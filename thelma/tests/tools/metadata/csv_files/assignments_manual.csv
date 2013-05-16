@@ -1,0 +1,13 @@
+"Design Rack Label";"Source Well in ISO Plate";"Target Well in Cell Plate";"Final Concentration in nM";"ISO Concentration in nM";"ISO Volume in ul"
+1;"B2";"B2";10;5000;20
+1;"B2";"B3";20;5000;20
+1;"C2";"D2";10;5000;10
+1;"C2";"D3";20;5000;10
+1;"D2";"F2";10;5000;10
+1;"D2";"F3";20;5000;10
+2;"B2";"B2";10;5000;20
+2;"B2";"B3";20;5000;20
+2;"C2";"D2";10;5000;10
+2;"C2";"D3";20;5000;10
+2;"D2";"F2";10;5000;10
+2;"D2";"F3";20;5000;10

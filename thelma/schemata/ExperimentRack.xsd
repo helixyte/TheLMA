@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/experimentrack"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:er="http://schemata.cenix-bioscience.com/experimentrack"
+    xmlns:e="http://schemata.cenix-bioscience.com/experiment"
+    xmlns:edr="http://schemata.cenix-bioscience.com/experimentdesignrack"
+    xmlns:r="http://schemata.cenix-bioscience.com/rack"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+
+    <import
+        schemaLocation="Experiment.xsd"
+        namespace="http://schemata.cenix-bioscience.com/experiment"
+    >
+    </import>
+
+    <import
+        schemaLocation="ExperimentDesignRack.xsd"
+        namespace="http://schemata.cenix-bioscience.com/experimentdesignrack"
+    >
+    </import>
+
+    <import
+        schemaLocation="Rack.xsd"
+        namespace="http://schemata.cenix-bioscience.com/rack"
+    >
+    </import>
+
+    <complexType
+        name="ExperimentRackType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="er:ExperimentRackLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            ref="e:experiment"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="design_rack"
+                            type="edr:ExperimentDesignRackType"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            ref="r:plate"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="source_rack"
+                            type="r:RackType"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="ExperimentRackCollectionType"
+    >
+        <sequence
+            maxOccurs="unbounded"
+            minOccurs="0"
+        >
+            <choice>
+                <element
+                    name="link"
+                    type="er:ExperimentRackCollectionLinkType"
+                    maxOccurs="1"
+                    minOccurs="0"
+                ></element>
+                <element
+                    ref="er:experiment_rack"
+                    maxOccurs="unbounded"
+                    minOccurs="0"
+                ></element>
+            </choice>
+        </sequence>
+    </complexType>
+
+    <complexType
+        name="ExperimentRackLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/experiment-rack"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="ExperimentRackCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/experiment-rack-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+    <element
+        name="experiment_rack"
+        type="er:ExperimentRackType"
+    >
+    </element>
+
+    <element
+        name="experiment_racks"
+        type="er:ExperimentRackCollectionType"
+    ></element>
+
+</schema>

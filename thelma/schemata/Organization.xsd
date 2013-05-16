@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/organization"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:o="http://schemata.cenix-bioscience.com/organization"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+
+    <complexType
+        name="OrganizationType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="o:OrganizationLinkType"
+                    >
+                    </element>
+                    <element
+                        name="name"
+                        type="string"
+                        minOccurs="1"
+                        maxOccurs="1"
+                    >
+                    </element>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="OrganizationCollectionType"
+    >
+         <choice>
+             <element
+                 ref="o:organization"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="o:OrganizationCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+
+    </complexType>
+
+    <complexType
+        name="OrganizationLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/organization"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="OrganizationCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/organization-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+    <element
+        name="organization"
+        type="o:OrganizationType"
+    >
+    </element>
+
+    <element
+        name="organizations"
+        type="o:OrganizationCollectionType"
+    >
+    </element>
+
+</schema>

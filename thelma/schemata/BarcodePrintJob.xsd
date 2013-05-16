@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/barcodeprintjob"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:bpj="http://schemata.cenix-bioscience.com/barcodeprintjob"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:dt="http://schemata.cenix-bioscience.com/barcodetype"
+    xmlns:l="http://schemata.cenix-bioscience.com/location"
+    xmlns:o="http://schemata.cenix-bioscience.com/organization"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+
+    <complexType
+        name="BarcodePrintJobType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="bpj:BarcodePrintJobLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="barcodes"
+                            type="string"
+                            maxOccurs="1"
+                            minOccurs="1"
+                        ></element>
+                        <element
+                            name="labels"
+                            type="string"
+                            maxOccurs="1"
+                            minOccurs="0"
+                        ></element>
+                        <element
+                            name="printer"
+                            type="string"
+                            maxOccurs="1"
+                            minOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="type"
+                            type="string"
+                            maxOccurs="1"
+                            minOccurs="1"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="BarcodePrintJobCollectionType"
+    >
+            <choice>
+                <element
+                    ref="bpj:barcode_print_job"
+                    maxOccurs="unbounded"
+                    minOccurs="0"
+                ></element>
+                <element
+                    name="link"
+                    type="bpj:BarcodePrintJobCollectionLinkType"
+                    maxOccurs="1"
+                    minOccurs="0"
+                ></element>
+            </choice>
+    </complexType>
+
+    <complexType
+        name="BarcodePrintJobLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/barcode"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="BarcodePrintJobCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/barcode-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="barcode_print_job"
+        type="bpj:BarcodePrintJobType"
+    >
+    </element>
+
+    <element
+        name="barcode_print_jobs"
+        type="bpj:BarcodePrintJobCollectionType"
+    ></element>
+
+</schema>

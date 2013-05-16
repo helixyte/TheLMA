@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<entry xmlns="http://www.w3.org/2005/Atom"
+       xmlns:tal="http://xml.zope.org/namespaces/tal"
+       xmlns:metal="http://xml.zope.org/namespaces/metal"
+       metal:use-macro="master.macros['standard_entry']">
+  <content type="application/vnd.everest+xml;type=projectMember"
+           metal:fill-slot="content">
+    <project xmlns="http://schemata.cenix-bioscience.com/project">
+      <label tal:content="context.label">Bayer LDLR</label>
+      <creationDate tal:content="rfc3339(context.creation_date)">2010-11-08T11:16:37+01:00</creationDate>
+      <leader>
+          <link	  xmlns="http://schemata.cenix-bioscience.com/Shared"
+                  rel="http://relations.cenix-bioscience.com/user"
+                  type="application/atom+xml;type=entry"
+                  title="James" href="/users/james"
+                  tal:omit-tag="context.leader is None"
+                  tal:attributes="title context.leader.username;
+                  href resource_to_url(context.leader, request)" />
+      </leader>
+      <customer>
+          <link xmlns="http://schemata.cenix-bioscience.com/Shared"
+                rel="http://relations.cenix-bioscience.com/organization"
+                type="application/atom+xml;type=entry"
+                title="ABI" href="/organizations/abi"
+                tal:omit-tag="context.customer is None"
+                tal:attributes="title context.customer.name;
+                                href resource_to_url(context.customer, request)" />
+      </customer>
+      <subprojects>
+          <tal:block tal:repeat="sp context.subprojects">
+            <subproject>
+              <label tal:content="sp.label">Validation 01</label>
+              <creationDate tal:content="rfc3339(sp.creation_date)">2010-11-08T11:16:37+01:00</creationDate>
+              <active tal:content="str(sp.active).lower()">false</active>
+            </subproject>
+          </tal:block>
+      </subprojects>
+    </project>
+  </content>
+</entry>

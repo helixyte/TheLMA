@@ -1,0 +1,9 @@
+<em:experiment_metadata xmlns:em="http://schemata.cenix-bioscience.com/experimentmetadata">
+  <em:label>unit test experiment metadata</em:label>
+  <sp:subproject xmlns:sp="http://schemata.cenix-bioscience.com/subproject">
+    <sp:link href="http://localhost:6543/subprojects/122/"
+             title="malaria_rbc optimization"
+             rel="http://relations.cenix-bioscience.com/subproject"/>
+  </sp:subproject>
+  <em:number_replicates>2</em:number_replicates>
+</em:experiment_metadata>

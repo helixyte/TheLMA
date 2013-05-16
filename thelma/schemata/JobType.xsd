@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/jobtype"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:jt="http://schemata.cenix-bioscience.com/jobtype"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+
+    <complexType
+        name="JobTypeType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="jt:JobTypeLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="name"
+                            type="string"
+                        >
+                        </element>
+                        <element
+                            name="label"
+                            type="string"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="JobTypeCollectionType"
+    >
+        <sequence
+            maxOccurs="unbounded"
+            minOccurs="0"
+        >
+            <choice>
+                <element
+                    name="link"
+                    type="jt:JobTypeCollectionLinkType"
+                    maxOccurs="1"
+                    minOccurs="0"
+                ></element>
+                <element
+                    ref="jt:job_type"
+                    maxOccurs="unbounded"
+                    minOccurs="0"
+                ></element>
+            </choice>
+        </sequence>
+    </complexType>
+
+    <complexType
+        name="JobTypeLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/job-type"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="JobTypeCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/job-type"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="job_type"
+        type="jt:JobTypeType"
+    >
+    </element>
+
+    <element
+        name="job_types"
+        type="jt:JobTypeCollectionType"
+    ></element>
+
+</schema>

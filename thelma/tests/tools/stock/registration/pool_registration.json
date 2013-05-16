@@ -1,0 +1,15 @@
+[ { "__jsonclass__" : "http://relations.cenix-bioscience.com/sample-registration-item",
+    "supplier" : "http://localhost:6543/organizations/cenix",
+    "concentration" : 1.00E-005,
+    "volume" : 3.00E-004,
+    "tube_barcode" : "1019026568",
+    "molecule_design_pool" : "http://localhost:6543/molecule-design-pools/1066194"
+   },
+  { "__jsonclass__" : "http://relations.cenix-bioscience.com/sample-registration-item",
+    "supplier" : "http://localhost:6543/organizations/cenix",
+    "concentration" : 1.00E-005,
+    "volume" : 3.00E-004,
+    "tube_barcode" : "1019026569",
+    "molecule_design_pool" : "http://localhost:6543/molecule-design-pools/1066195"
+   }
+]

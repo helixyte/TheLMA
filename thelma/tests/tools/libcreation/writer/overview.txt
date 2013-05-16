@@ -1,0 +1,65 @@
+Pool Creation
+-------------
+
+Volume: 3.0 ul each
+Assumed buffer volume: 36.0 ul
+
+Q1:
+Source racks: 09888101, 09888102, 09888103
+Target rack: 09990000
+
+Q2:
+Source racks: 09888201, 09888202, 09888203
+Target rack: 09990001
+
+Q3:
+Source racks: 09888301, 09888302, 09888303
+Target rack: 09990002
+
+Q4:
+Source racks: 09888401, 09888402, 09888403
+Target rack: 09990003
+
+
+Transfer from Stock Rack to Preparation Plates
+----------------------------------------------
+
+Volume: 5.5 ul
+Assumed buffer volume: 37.8 ul
+
+Q1:
+Source rack: 09990000
+Target rack: 09955001 (testlib-4-1270nM-Q1)
+
+Q2:
+Source rack: 09990001
+Target rack: 09955002 (testlib-4-1270nM-Q2)
+
+Q3:
+Source rack: 09990002
+Target rack: 09955003 (testlib-4-1270nM-Q3)
+
+Q4:
+Source rack: 09990003
+Target rack: 09955004 (testlib-4-1270nM-Q4)
+
+
+Transfer to Library Aliquot Plates
+----------------------------------
+
+Source racks:
+Q1: 09955001 (testlib-4-1270nM-Q1)
+Q2: 09955002 (testlib-4-1270nM-Q2)
+Q3: 09955003 (testlib-4-1270nM-Q3)
+Q4: 09955004 (testlib-4-1270nM-Q4)
+
+
+Target racks:
+09944000 (testlib-4-1270nM-1)
+09944001 (testlib-4-1270nM-2)
+09944002 (testlib-4-1270nM-3)
+09944003 (testlib-4-1270nM-4)
+09944004 (testlib-4-1270nM-5)
+09944005 (testlib-4-1270nM-6)
+09944006 (testlib-4-1270nM-7)
+09944007 (testlib-4-1270nM-8)

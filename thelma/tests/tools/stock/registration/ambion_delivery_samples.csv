@@ -1,0 +1,7 @@
+"supplier","product_id","molecule_type","structure_type_id","structure_representation","tube_barcode","concentration","volume"
+"http://localhost:7543/organizations/ambion","s47766","http://localhost:7543/molecule-types/sirna","NUCLEIC_ACID","CGAAGGUUCAAUUCACAGAtt",1052086106,5.00E-005,2.00E-004
+"http://localhost:7543/organizations/ambion","s47766","http://localhost:7543/molecule-types/sirna","NUCLEIC_ACID","UCUGUGAAUUGAACCUUCGag",1052086106,5.00E-005,2.00E-004
+"http://localhost:7543/organizations/ambion","s47766","http://localhost:7543/molecule-types/sirna","MODIFICATION","Ambion H",1052086106,5.00E-005,2.00E-004
+"http://localhost:7543/organizations/ambion","s-1","http://localhost:7543/molecule-types/sirna","NUCLEIC_ACID","AAAAAAAAAAAAAAAAAAAAAAA",9999999999,5.00E-005,2.00E-004
+"http://localhost:7543/organizations/ambion","s-1","http://localhost:7543/molecule-types/sirna","NUCLEIC_ACID","UUUUUUUUUUUUUUUUUUUUUUU",9999999999,5.00E-005,2.00E-004
+"http://localhost:7543/organizations/ambion","s-1","http://localhost:7543/molecule-types/sirna","MODIFICATION","Ambion H",9999999999,5.00E-005,2.00E-004

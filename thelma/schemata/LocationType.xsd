@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/locationtype"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:lt="http://schemata.cenix-bioscience.com/locationtype"
+    xmlns:l="http://schemata.cenix-bioscience.com/location"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+    <import
+        schemaLocation="Location.xsd"
+        namespace="http://schemata.cenix-bioscience.com/location"
+    >
+    </import>
+
+    <complexType
+        name="LocationTypeType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="lt:LocationTypeLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="name"
+                            type="string"
+                        >
+                        </element>
+                        <element
+                            ref="l:locations"
+                        >
+                        </element>
+                     </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="LocationTypeCollectionType"
+    >
+         <choice>
+             <element
+                 ref="lt:location_type"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="lt:LocationTypeCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+    </complexType>
+
+    <complexType
+        name="LocationTypeLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/location-type"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="LocationTypeCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/location-type-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="location_type"
+        type="lt:LocationTypeType"
+    >
+    </element>
+
+    <element
+        name="location_types"
+        type="lt:LocationTypeCollectionType"
+    ></element>
+
+</schema>

@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/isosamplestockrack"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:iss="http://schemata.cenix-bioscience.com/isosamplestockrack"
+    xmlns:r="http://schemata.cenix-bioscience.com/rack"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:sc="http://schemata.cenix-bioscience.com/species"
+    xmlns:md="http://schemata.cenix-bioscience.com/moleculedesign"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+    <import
+        schemaLocation="Rack.xsd"
+        namespace="http://schemata.cenix-bioscience.com/rack"
+    >
+    </import>
+
+    <complexType
+        name="IsoSampleStockRackType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="iss:IsoSampleStockRackLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="index"
+                            type="int"
+                        >
+                        </element>
+                        <element
+                            ref="r:rack"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="IsoSampleStockRackCollectionType"
+    >
+         <choice>
+             <element
+                 ref="iss:iso_sample_stock_rack"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="iss:IsoSampleStockRackCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+
+    </complexType>
+
+    <complexType
+        name="IsoSampleStockRackLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://schemata.cenix-bioscience.com/isosamplestockrack"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="IsoSampleStockRackCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/isosamplestockrack-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="iso_sample_stock_rack"
+        type="iss:IsoSampleStockRackType"
+    >
+    </element>
+
+    <element
+        name="iso_sample_stock_racks"
+        type="iss:IsoSampleStockRackCollectionType"
+    ></element>
+
+</schema>

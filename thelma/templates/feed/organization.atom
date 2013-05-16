@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      metal:use-macro="master.macros['standard_feed']">
+  <content_type xmlns="http://schemata.cenix-bioscience.com/content_type"
+               name="application/vnd.everest+xml;type=organizationCollection"
+               metal:fill-slot="content_type" />
+  <content type="application/vnd.everest+xml;type=organizationMember"
+           metal:fill-slot="content">
+    <organization xmlns="http://schemata.cenix-bioscience.com/organization">
+      <name tal:content="member.name">Cenix</name>
+    </organization>
+  </content>
+</feed>

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/experimentdesignrack"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:edr="http://schemata.cenix-bioscience.com/experimentdesignrack"
+    xmlns:rl="http://schemata.cenix-bioscience.com/racklayout"
+    xmlns:rs="http://schemata.cenix-bioscience.com/rackshape"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+    <import
+        schemaLocation="RackLayout.xsd"
+        namespace="http://schemata.cenix-bioscience.com/racklayout"
+    >
+    </import>
+    <import
+        schemaLocation="RackShape.xsd"
+        namespace="http://schemata.cenix-bioscience.com/rackshape"
+    >
+    </import>
+    <complexType
+        name="ExperimentDesignRackType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="edr:ExperimentDesignRackLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="label"
+                            type="string"
+                        >
+                        </element>
+                        <element
+                            ref="rs:rack_shape"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            ref="rl:rack_layout"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="ExperimentDesignRackCollectionType"
+    >
+         <choice>
+             <element
+                 ref="edr:experiment_design_rack"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="edr:ExperimentDesignRackCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+    </complexType>
+
+    <complexType
+        name="ExperimentDesignRackLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/experiment-design-rack"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="ExperimentDesignRackCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/experiment-design-rack-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="experiment_design_rack"
+        type="edr:ExperimentDesignRackType"
+    >
+    </element>
+
+    <element
+        name="experiment_design_racks"
+        type="edr:ExperimentDesignRackCollectionType"
+    ></element>
+
+
+</schema>

@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/transcript"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:tr="http://schemata.cenix-bioscience.com/transcript"
+    xmlns:g="http://schemata.cenix-bioscience.com/gene"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:sc="http://schemata.cenix-bioscience.com/species"
+>
+    <import
+        schemaLocation="Gene.xsd"
+        namespace="http://schemata.cenix-bioscience.com/gene"
+    >
+    </import>
+
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+
+    <import
+        schemaLocation="Species.xsd"
+        namespace="http://schemata.cenix-bioscience.com/species"
+    >
+    </import>
+
+    <complexType
+        name="TranscriptType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="tr:TranscriptLinkType"
+                    >
+                    </element>
+                    <element
+                        name="accession"
+                        type="string"
+                        nillable="false"
+                        minOccurs="1"
+                        maxOccurs="1"
+                    >
+                    </element>
+                    <element
+                        ref="g:gene"
+                        maxOccurs="1"
+                        minOccurs="1"
+                    >
+                    </element>
+                    <element
+                        ref="sc:species"
+                        minOccurs="1"
+                        maxOccurs="1"
+                    >
+                    </element>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="TranscriptCollectionType"
+    >
+         <choice>
+             <element
+                 ref="tr:transcript"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="tr:TranscriptCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+    </complexType>
+
+    <complexType
+        name="TranscriptLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/transcript"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="TranscriptCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/transcript-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="transcript"
+        type="tr:TranscriptType"
+    >
+    </element>
+
+    <element
+        name="transcripts"
+        type="tr:TranscriptCollectionType"
+    ></element>
+
+</schema>

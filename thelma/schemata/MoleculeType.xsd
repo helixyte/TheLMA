@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/moleculetype"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:mt="http://schemata.cenix-bioscience.com/moleculetype"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:chs="http://schemata.cenix-bioscience.com/chemicalstructure"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+    <import
+        schemaLocation="ChemicalStructure.xsd"
+        namespace="http://schemata.cenix-bioscience.com/chemicalstructure"
+    >
+    </import>
+
+    <complexType
+        name="MoleculeTypeType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="mt:MoleculeTypeLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="name"
+                            type="string"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="description"
+                            type="string"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="thaw_time"
+                            type="float"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="modifications"
+                            type="chs:ChemicalStructureCollectionType"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="MoleculeTypeCollectionType"
+    >
+         <choice>
+             <element
+                 ref="mt:molecule_type"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="mt:MoleculeTypeCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+
+    </complexType>
+
+    <complexType
+        name="MoleculeTypeLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/molecule-type"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="MoleculeTypeCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/molecule-type-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+
+    <element
+        name="molecule_type"
+        type="mt:MoleculeTypeType"
+    >
+    </element>
+
+    <element
+        name="molecule_types"
+        type="mt:MoleculeTypeCollectionType"
+    ></element>
+
+</schema>

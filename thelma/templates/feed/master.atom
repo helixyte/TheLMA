@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:app="http://www.w3.org/2007/app"
+      xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/"
+      xmlns:cenix="http://schemata.cenix-bioscience.com/content_type"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      metal:define-macro="standard_feed">
+
+  <title>${context.title}</title>
+  <subtitle>${context.description}</subtitle>
+  <generator uri="${request.path_url}">${context.title}</generator>
+  <id>${context.urn}</id>
+  <cenix:content_type metal:define-slot="content_type" />
+
+  <opensearch:Query role="request"
+                    searchTerms="${search_terms}"
+                    sortTerms="${sort_terms}" />
+  <opensearch:totalResults>${total_results}</opensearch:totalResults>
+  <opensearch:itemsPerPage>${items_per_page}</opensearch:itemsPerPage>
+  <opensearch:startIndex tal:condition="start_index is not None">${start_index}</opensearch:startIndex>
+
+  <link rel="search" href="${opensearch_url}"
+        type="application/opensearchdescription+xml"
+        title="Search for ${context.title}" />
+  <link rel="self" href="${context_url}"
+        type="application/atom+xml;type=feed" />
+  <link rel="first" href="${context_first_url}"
+        type="application/atom+xml;type=feed"
+        tal:omit-tag="context_first_url is None" />
+  <link rel="previous" href="${context_previous_url}"
+        type="application/atom+xml;type=feed"
+        tal:omit-tag="context_previous_url is None" />
+  <link rel="next" href="${context_next_url}"
+        type="application/atom+xml;type=feed"
+        tal:omit-tag="context_next_url is None" />
+  <link rel="last" href="${context_last_url}"
+        type="application/atom+xml;type=feed"
+        tal:omit-tag="context_last_url is None" />
+
+  <tal:block tal:repeat="member context">
+  <entry>
+    <title tal:content="member.title">Title</title>
+    <link rel="self" href="${resource_to_url(member, request)}" />
+    <link rel="edit" href="${resource_to_url(member, request)}" />
+    <id>${member.urn}</id>
+    <content metal:define-slot="content" />
+  </entry>
+  </tal:block>
+</feed>

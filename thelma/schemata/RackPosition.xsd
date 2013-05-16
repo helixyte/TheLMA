@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/rackposition"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:rp="http://schemata.cenix-bioscience.com/rackposition"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+
+    <complexType
+        name="RackPositionType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="rp:RackPositionLinkType"
+                    >
+                    </element>
+                    <sequence>
+                    	<element
+                            name="label"
+                            type="string"
+                        >
+                        </element>
+                        <element
+                            name="row_index"
+                            type="nonNegativeInteger"
+                        >
+                        </element>
+                        <element
+                            name="column_index"
+                            type="nonNegativeInteger"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="RackPositionCollectionType"
+    >
+         <choice>
+             <element
+                 ref="rp:rack_position"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="rp:RackPositionCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+
+    </complexType>
+
+    <complexType
+        name="RackPositionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/rack-position"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="RackPositionCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/rack-position-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="rack_position"
+        type="rp:RackPositionType"
+    >
+    </element>
+
+    <element
+        name="rack_positions"
+        type="rp:RackPositionCollectionType"
+    ></element>
+
+</schema>

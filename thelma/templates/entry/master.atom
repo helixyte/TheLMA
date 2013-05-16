@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<entry xmlns="http://www.w3.org/2005/Atom"
+       xmlns:app="http://www.w3.org/2007/app"
+       xmlns:tal="http://xml.zope.org/namespaces/tal"
+       xmlns:metal="http://xml.zope.org/namespaces/metal"
+       metal:define-macro="standard_entry">
+  <title type="text" tal:content="context.title">Title</title>
+  <link rel="self" tal:attributes="href resource_to_url(context, request)" />
+  <id tal:content="context.urn">urn:uuid:5d819956-c737-5cea-905c-e3bbf38ab58e</id>
+  <content metal:define-slot="content" />
+</entry>

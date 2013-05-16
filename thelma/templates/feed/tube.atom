@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      metal:use-macro="master.macros['standard_feed']">
+  <content_type name="application/vnd.everest+xml;type=TubeCollection"
+                metal:fill-slot="content_type" />
+  <content type="application/vnd.everest+xml;type=TubeMember"
+           metal:fill-slot="content">
+    <tube xmlns="http://schemata.cenix-bioscience.com/container">
+      <r:tube_rack tal:omit-tag="member.rack is None" xmlns:r="http://schemata.cenix-bioscience.com/rack">
+         <r:link
+          rel="http://relations.cenix-bioscience.com/rack"
+          title="c4s2" href="/racks/c4s2"
+          tal:omit-tag="member.rack is None"
+          tal:attributes="title member.rack.title;
+                          href resource_to_url(member.rack, request)" />
+       </r:tube_rack>
+        <rsp:tube_rack_specs tal:omit-tag="member.specs is None"
+                       xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs">
+           <rsp:link
+            rel="http://relations.cenix-bioscience.com/tube-rack-specs"
+            title="c4s2" href="/rack-specs/c4s2"
+            tal:omit-tag="member.specs is None"
+            tal:attributes="title member.specs.title;
+                            href resource_to_url(member.specs, request)" />
+         </rsp:tube_rack_specs>
+
+
+
+         <position tal:omit-tag="member.position is None"
+                        tal:content="member.position">H5</position>
+
+
+          <sample_volume tal:omit-tag="member.sample_volume is None"
+                         tal:content="member.sample_volume" >0.0002</sample_volume>
+
+      <sample_molecules xmlns="http://schemata.cenix-bioscience.com/samplemolecule">
+          <tal:block tal:repeat="sm member.sample_molecules">
+              <sample_molecule>
+                <concentration tal:condition="sm.concentration"
+                               tal:content="sm.concentration">5e-06</concentration>
+                <freeze_thaw_cycles tal:condition="sm.freeze_thaw_cycles"
+                                  tal:content="sm.freeze_thaw_cycles">2</freeze_thaw_cycles>
+                <insert_date tal:condition="sm.molecule.insert_date" tal:content="rfc3339(sm.molecule.insert_date)">2010-11-08T11:16:37+01:00</insert_date>
+                <molecule_design_id tal:content="sm.molecule.molecule_design_id">12323456</molecule_design_id>
+                <supplier_molecule_design_id tal:content="sm.molecule.supplier_molecule_design_id">s123432</supplier_molecule_design_id>
+                <supplier tal:omit-tag="sm.molecule.supplier is None">
+                    <name tal:content="sm.molecule.supplier.name" xmlns="http://schemata.cenix-bioscience.com/organization">Ambion</name>
+                </supplier>
+              </sample_molecule>
+          </tal:block>
+      </sample_molecules>
+    <csp:container_specs xmlns:csp="http://schemata.cenix-bioscience.com/containerspecs">
+      <csp:link tal:omit-tag="member.specs is None"
+            rel="http://relations.cenix-bioscience.com/container-specs"
+            title="Abgene tube (1.4 ml)" href="/container-specs/abgene1400"
+            tal:attributes="title member.specs.title;
+                            href resource_to_url(member.specs, request)" />
+    </csp:container_specs>
+    <is:itemstatus xmlns:is="http://schemata.cenix-bioscience.com/itemstatus">
+      <is:link tal:omit-tag="member.status is None"
+            rel="http://relations.cenix-bioscience.com/item-status"
+            title="Managed" href="/item-statuses/managed"
+            tal:attributes="title member.status.title;
+                            href resource_to_url(member.status, request)" />
+    </is:itemstatus>
+
+
+
+      <barcode  tal:content="member.barcode">1002342345</barcode>
+    </tube>
+  </content>
+</feed>

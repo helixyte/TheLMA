@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/container"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:co="http://schemata.cenix-bioscience.com/container"
+    xmlns:csp="http://schemata.cenix-bioscience.com/containerspecs"
+    xmlns:o="http://schemata.cenix-bioscience.com/organization"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:r="http://schemata.cenix-bioscience.com/rack"
+    xmlns:l="http://schemata.cenix-bioscience.com/location"
+    xmlns:is="http://schemata.cenix-bioscience.com/itemstatus"
+    xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs"
+    xmlns:sm="http://schemata.cenix-bioscience.com/samplemolecule"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+
+    <import
+        schemaLocation="ContainerSpecs.xsd"
+        namespace="http://schemata.cenix-bioscience.com/containerspecs"
+    >
+    </import>
+
+    <import
+        schemaLocation="ItemStatus.xsd"
+        namespace="http://schemata.cenix-bioscience.com/itemstatus"
+    >
+    </import>
+
+    <import
+        schemaLocation="Location.xsd"
+        namespace="http://schemata.cenix-bioscience.com/location"
+    >
+    </import>
+
+    <import
+        schemaLocation="Organization.xsd"
+        namespace="http://schemata.cenix-bioscience.com/organization"
+    >
+    </import>
+
+    <import
+        schemaLocation="Rack.xsd"
+        namespace="http://schemata.cenix-bioscience.com/rack"
+    >
+    </import>
+
+    <import
+        schemaLocation="RackSpecs.xsd"
+        namespace="http://schemata.cenix-bioscience.com/rackspecs"
+    >
+    </import>
+
+    <import
+        schemaLocation="SampleMolecule.xsd"
+        namespace="http://schemata.cenix-bioscience.com/samplemolecule"
+    >
+    </import>
+
+    <group name="ContainerBase">
+        <sequence>
+            <element
+                ref="l:location"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element
+                name="position"
+                type="string"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element
+                name="sample_volume"
+                type="double"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element ref="sm:sample_molecules">
+            </element>
+            <element
+                ref="is:itemstatus"
+                minOccurs="1"
+                maxOccurs="1"
+            >
+            </element>
+            <element
+                name="sample_molecule_design_pool_id"
+                type="string"
+                minOccurs="0"
+                maxOccurs="1"
+            ></element>
+            <element
+                name="barcode"
+                type="string"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+        </sequence>
+    </group>
+
+    <complexType
+        name="ContainerType"
+        abstract="true"
+    >
+        <complexContent>
+            <extension base="sh:ResourceType">
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="TubeType">
+        <complexContent>
+            <extension base="co:ContainerType">
+                <choice>
+                    <element
+                        name="link"
+                        type="co:ContainerLinkType"
+                    ></element>
+                    <sequence>
+                        <element
+                            ref="csp:tube_specs"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <group ref="co:ContainerBase">
+                        </group>
+                        <element
+                            ref="r:tube_rack"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            ref="rsp:tube_rack_specs"
+                            maxOccurs="1"
+                            minOccurs="0"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="WellType">
+        <complexContent>
+            <extension base="co:ContainerType">
+                <choice>
+                    <element
+                        name="link"
+                        type="co:ContainerLinkType"
+                    ></element>
+                    <sequence>
+                        <element
+                            ref="csp:well_specs"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <group ref="co:ContainerBase">
+                        </group>
+                        <element
+                            ref="r:rack"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            ref="rsp:rack_specs"
+                            maxOccurs="1"
+                            minOccurs="0"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="ContainerCollectionType">
+        <choice>
+            <choice
+                minOccurs="0"
+                maxOccurs="unbounded"
+            >
+                <element ref="co:tube">
+                </element>
+                <element ref="co:well">
+                </element>
+            </choice>
+            <element
+                name="link"
+                type="co:ContainerCollectionLinkType"
+                maxOccurs="1"
+                minOccurs="0"
+            >
+            </element>
+        </choice>
+    </complexType>
+
+    <complexType name="ContainerLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/container"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType name="ContainerCollectionLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/container-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="container"
+        type="co:ContainerType"
+    >
+    </element>
+
+    <element
+        name="tube"
+        type="co:TubeType"
+    >
+    </element>
+
+    <element
+        name="well"
+        type="co:WellType"
+    >
+    </element>
+
+    <element
+        name="containers"
+        type="co:ContainerCollectionType"
+    ></element>
+
+    <element
+        name="link"
+        type="co:ContainerLinkType"
+    ></element>
+
+</schema>

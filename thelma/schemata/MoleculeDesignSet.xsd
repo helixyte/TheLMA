@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/moleculedesignset"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:mds="http://schemata.cenix-bioscience.com/moleculedesignset"
+    xmlns:md="http://schemata.cenix-bioscience.com/moleculedesign"
+    xmlns:mt="http://schemata.cenix-bioscience.com/moleculetype"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+
+    <import
+        schemaLocation="MoleculeDesign.xsd"
+        namespace="http://schemata.cenix-bioscience.com/moleculedesign"
+    >
+    </import>
+
+    <import
+        schemaLocation="MoleculeType.xsd"
+        namespace="http://schemata.cenix-bioscience.com/moleculetype"
+    >
+    </import>
+
+    <group name="MoleculeDesignSetBase">
+        <sequence>
+            <element
+                ref="md:molecule_designs"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element
+                name="set_type"
+                type="string"
+            >
+            </element>
+        </sequence>
+    </group>
+
+    <complexType name="MoleculeDesignSetType">
+        <complexContent>
+            <extension base="sh:ResourceType">
+                <choice>
+                    <element
+                        name="link"
+                        type="mds:MoleculeDesignSetLinkType"
+                    >
+                    </element>
+                    <group ref="mds:MoleculeDesignSetBase">
+                    </group>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="MoleculeDesignPoolType">
+        <complexContent>
+            <extension base="sh:ResourceType">
+                <choice>
+                    <element
+                        name="link"
+                        type="mds:MoleculeDesignPoolLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <group ref="mds:MoleculeDesignSetBase">
+                        </group>
+                        <element ref="mt:molecule_type">
+                        </element>
+                        <element
+                            name="number_designs"
+                            type="integer"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="MoleculeDesignSetCollectionType">
+        <choice>
+            <choice
+                minOccurs="0"
+                maxOccurs="unbounded"
+            >
+                <element ref="mds:molecule_design_set">
+                </element>
+            </choice>
+            <element
+                name="link"
+                type="mds:MoleculeDesignSetCollectionLinkType"
+                maxOccurs="1"
+                minOccurs="0"
+            >
+            </element>
+        </choice>
+    </complexType>
+
+    <complexType name="MoleculeDesignPoolCollectionType">
+        <choice>
+            <choice
+                minOccurs="0"
+                maxOccurs="unbounded"
+            >
+                <element ref="mds:molecule_design_pool">
+                </element>
+            </choice>
+            <element
+                name="link"
+                type="mds:MoleculeDesignPoolCollectionLinkType"
+                maxOccurs="1"
+                minOccurs="0"
+            >
+            </element>
+        </choice>
+    </complexType>
+
+    <complexType name="MoleculeDesignSetLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/molecule-design-set"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType name="MoleculeDesignPoolLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/molecule-design-pool"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType name="MoleculeDesignSetCollectionLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/molecule-design-set-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType name="MoleculeDesignPoolCollectionLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/molecule-design-pool-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="molecule_design_set"
+        type="mds:MoleculeDesignSetType"
+    >
+    </element>
+
+    <element
+        name="molecule_design_pool"
+        type="mds:MoleculeDesignPoolType"
+    >
+    </element>
+
+    <element
+        name="molecule_design_sets"
+        type="mds:MoleculeDesignSetCollectionType"
+    >
+    </element>
+
+    <element
+        name="molecule_design_pools"
+        type="mds:MoleculeDesignPoolCollectionType"
+    >
+    </element>
+</schema>

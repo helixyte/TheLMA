@@ -1,0 +1,376 @@
+<configure xmlns="http://pylonshq.com/pyramid">
+    <!-- Configuration is meant in terms of configuring the components of
+        the software. It is not meant in the traditional sense of a configuration
+        file that is read by the application -->
+
+    <!-- INCLUDES -->
+
+    <!-- everest includes -->
+    <include package="everest.includes" />
+
+    <!-- REPOSITORIES -->
+
+    <rdb_repository
+        make_default="true"
+        metadata_factory="thelma.db.create_metadata"
+        aggregate_class="thelma.models.aggregates.ThelmaRdbAggregate" />
+
+    <memory_repository
+        cache_loader="thelma.models.aggregates.cache_loader_registry"
+        />
+
+    <!-- MESSAGING -->
+
+    <messaging
+        repository="RDB"/>
+
+    <!-- REPPRESENTERS -->
+
+    <representer
+        representer_class='thelma.representers.Xl20OutputRepresenter'/>
+
+    <!-- RESOURCES (must come after repository declarations) -->
+    <include package=".resources" />
+
+    <!-- ADAPTERS -->
+    <adapter
+        factory="everest.traversal.SuffixResourceTraverser"
+        provides="pyramid.interfaces.ITraverserFactory"
+        for="*" />
+
+    <!-- UTILITIES -->
+
+    <!-- RENDERERS -->
+
+    <renderer
+        name="atom"
+        factory="everest.renderers.RendererFactory" />
+
+    <renderer
+        name="csv"
+        factory="everest.renderers.RendererFactory" />
+
+    <renderer
+        name="thelma+zip;type=ExperimentMember"
+        factory=".renderers.ThelmaRendererFactory" />
+
+    <renderer
+        name="thelma+zip;type=IsoMember"
+        factory=".renderers.ThelmaRendererFactory" />
+
+    <renderer
+        name="thelma+zip;type=IsoJobMember"
+        factory=".renderers.ThelmaRendererFactory" />
+
+    <!-- VIEWS -->
+
+    <!-- Service -->
+
+    <view
+        context="everest.resources.interfaces.IService"
+        name=""
+        renderer="templates/index.pt"
+        request_method="GET"
+        permission="view" />
+
+    <view
+        context="everest.resources.interfaces.IService"
+        view="everest.views.static.public_view"
+        name="public"
+        request_method="GET" />
+
+    <!-- Old ATOM templates -->
+
+    <!-- Collection views (default ATOM) -->
+
+    <collection_view
+        for=".interfaces.IBarcodePrintJob
+           .interfaces.IChemicalStructure
+           .interfaces.IChemicalStructureType
+           .interfaces.IContainerSpecs
+           .interfaces.IDevice
+           .interfaces.IDeviceType
+           .interfaces.IExperiment
+           .interfaces.IExperimentDesign
+           .interfaces.IExperimentDesignRack
+           .interfaces.IExperimentJob
+           .interfaces.IExperimentMetadata
+           .interfaces.IExperimentMetadataType
+           .interfaces.IExperimentRack
+           .interfaces.IGene
+           .interfaces.IIso
+           .interfaces.IIsoJob
+           .interfaces.IIsoRequest
+           .interfaces.IItemStatus
+           .interfaces.IJob
+           .interfaces.IJobType
+           .interfaces.ILocation
+           .interfaces.ILocationType
+           .interfaces.IMolecule
+           .interfaces.IMoleculeDesign
+           .interfaces.IMoleculeDesignLibrary
+           .interfaces.IMoleculeDesignPool
+           .interfaces.IMoleculeDesignSet
+           .interfaces.IMoleculeModification
+           .interfaces.IMoleculeType
+           .interfaces.IOrganization
+           .interfaces.IProject
+           .interfaces.IRack
+           .interfaces.IRackLayout
+           .interfaces.IRackPosition
+           .interfaces.IRackPositionSet
+           .interfaces.IRackShape
+           .interfaces.IRackSpecs
+           .interfaces.ISpecies
+           .interfaces.IStockInfo
+           .interfaces.IStockSample
+           .interfaces.ISubproject
+           .interfaces.ITag
+           .interfaces.ITaggedRackPositionSet
+           .interfaces.ITube
+           .interfaces.IUser
+           .interfaces.IUserPreferences
+           .interfaces.IWell
+           "
+        default_content_type="everest.mime.AtomMime"
+        request_method="GET"
+        permission="view" />
+
+    <collection_view
+        for=".interfaces.IBarcodePrintJob
+           .interfaces.IExperimentJob
+           .interfaces.IExperimentMetadata
+           .interfaces.IIsoJob
+           .interfaces.IJob
+           .interfaces.IOrganization
+           .interfaces.IProject
+           .interfaces.ITubeTransferWorklist
+          "
+        view="everest.views.postcollection.PostCollectionView"
+        renderer="atom"
+        request_method="POST"
+        permission="create" />
+
+    <collection_view
+        for=".interfaces.ITubeTransferWorklist
+            "
+        default_content_type="thelma.mime.BioMicroLabXl20TextOutputMime"
+        default_response_content_type="everest.mime.AtomMime"
+        request_method="GET POST"/>
+
+
+    <!-- Member ATOM views -->
+
+    <member_view
+        for=".interfaces.IChemicalStructure
+           .interfaces.IChemicalStructureType
+           .interfaces.IDevice
+           .interfaces.IDeviceType
+           .interfaces.IExperiment
+           .interfaces.IExperimentDesign
+           .interfaces.IExperimentDesignRack
+           .interfaces.IExperimentJob
+           .interfaces.IExperimentMetadata
+           .interfaces.IExperimentRack
+           .interfaces.IGene
+           .interfaces.IIso
+           .interfaces.IIsoJob
+           .interfaces.IIsoRequest
+           .interfaces.IItemStatus
+           .interfaces.IJob
+           .interfaces.IJobType
+           .interfaces.ILocation
+           .interfaces.ILocationType
+           .interfaces.IMolecule
+           .interfaces.IMoleculeDesign
+           .interfaces.IMoleculeDesignLibrary
+           .interfaces.IMoleculeDesignSet
+           .interfaces.IMoleculeDesignPoolSet
+           .interfaces.IMoleculeType
+           .interfaces.IOrganization
+           .interfaces.IPlate
+           .interfaces.IPlateSpecs
+           .interfaces.IProject
+           .interfaces.IRackLayout
+           .interfaces.IRackPosition
+           .interfaces.IRackPositionSet
+           .interfaces.IRackShape
+           .interfaces.ISpecies
+           .interfaces.IStockInfo
+           .interfaces.IStockSample
+           .interfaces.ISubproject
+           .interfaces.ITag
+           .interfaces.ITaggedRackPositionSet
+           .interfaces.ITube
+           .interfaces.ITubeRack
+           .interfaces.ITubeRackSpecs
+           .interfaces.ITubeSpecs
+           .interfaces.IUser
+           .interfaces.IUserPreferences
+           .interfaces.IWellSpecs
+           "
+        default_content_type="everest.mime.AtomMime"
+        request_method="GET"
+        permission="view" />
+
+
+    <member_view
+        for=".interfaces.IExperimentJob
+             .interfaces.IIsoJob
+             .interfaces.IJob
+             .interfaces.IOrganization
+             .interfaces.IProject
+             "
+        view="everest.views.deletemember.DeleteMemberView"
+        request_method="DELETE"
+        permission="delete" />
+
+    <member_view
+        for=".interfaces.IExperimentJob
+             .interfaces.IIsoJob
+             .interfaces.IJob
+             .interfaces.IOrganization
+             .interfaces.IProject
+             "
+        view="everest.views.deletemember.DeleteMemberView"
+        request_method="POST"
+        header="X-HTTP-Method-Override:DELETE"
+        permission="delete" />
+
+    <member_view
+        for=".interfaces.IDevice
+             .interfaces.IDeviceType
+             .interfaces.IIsoRequest
+             .interfaces.IJob
+             .interfaces.IExperimentJob
+             .interfaces.IIsoJob
+             .interfaces.IOrganization
+             .interfaces.IProject
+             .interfaces.IUser
+          "
+        view="everest.views.putmember.PutMemberView"
+        renderer="atom"
+        request_method="PUT"
+        permission="update" />
+
+    <member_view
+        for=".interfaces.IDevice
+           .interfaces.IDeviceType
+           .interfaces.IIso
+           .interfaces.IIsoRequest
+           .interfaces.IJob
+           .interfaces.IExperimentJob
+            .interfaces.IIsoJob
+           .interfaces.IOrganization
+           .interfaces.IProject
+           .interfaces.IUser
+          "
+        view="everest.views.putmember.PutMemberView"
+        renderer="atom"
+        request_method="POST"
+        header="X-HTTP-Method-Override:PUT"
+        permission="update" />
+
+    <!-- for experiment metadata xls upload we use a custom view for now -->
+
+    <member_view
+        for=".interfaces.IExperimentMetadata
+          "
+        view=".views.experimentmetadata.PutExperimentMetadataMemberView"
+        renderer="atom"
+        request_method="PUT"
+        permission="update" />
+
+    <member_view
+        for=".interfaces.IExperimentMetadata
+          "
+        view=".views.experimentmetadata.PutExperimentMetadataMemberView"
+        renderer="atom"
+        request_method="POST"
+        header="X-HTTP-Method-Override:PUT"
+        permission="update" />
+
+    <!-- Collection CSV views -->
+
+<!--     <collection_view
+        for=".interfaces.IRack"
+        accept="application/csv"
+        view="everest.views.getcollection.GetCollectionView"
+        renderer="csv"
+        request_method="GET"
+        permission="view"
+        custom_predicates="everest.views.utils.accept_csv_only" />
+ -->
+
+<!--     <collection_view
+        for=".interfaces.IRack
+             .interfaces.ILocation
+             .interfaces.IMoleculeDesign
+             .interfaces.ITube
+             .interfaces.IStockInfo
+             .interfaces.IGene"
+        accept="application/csv"
+        name="csv"
+        view="everest.views.getcollection.GetCollectionView"
+        renderer="csv"
+        request_method="GET"
+        permission="view" />
+ -->
+    <member_view
+        for=".interfaces.IExperimentMetadata
+             .interfaces.IExperimentDesign"
+        name="csv"
+        view= "everest.views.getmember.GetMemberView"
+        renderer="csv"
+        request_method="GET"
+        permission="view" />
+
+    <!-- Member ZIP views -->
+
+    <member_view
+        name="worklists.zip"
+        for=".interfaces.IExperiment"
+        accept="application/zip"
+        view="everest.views.getmember.GetMemberView"
+        renderer="thelma+zip;type=ExperimentMember"
+        request_method="GET"
+        permission="view" />
+
+    <member_view
+        name="worklists.zip"
+        for=".interfaces.IIso"
+        accept="application/zip"
+        view="everest.views.getmember.GetMemberView"
+        renderer="thelma+zip;type=IsoMember"
+        request_method="GET"
+        permission="view" />
+
+    <member_view
+        name="worklists.zip"
+        for=".interfaces.IIsoJob"
+        accept="application/zip"
+        view="everest.views.getmember.GetMemberView"
+        renderer="thelma+zip;type=IsoJobMember"
+        request_method="GET"
+        permission="view" />
+
+    <!-- STATIC -->
+
+    <static
+        name="static"
+        path="thelma:templates/static" />
+
+    <static
+        name="schemata/"
+        path="thelma:schemata" />
+
+    <!-- Subscribers -->
+
+    <!-- Security -->
+
+    <remoteuserauthenticationpolicy
+        environ_key="REMOTE_USER"
+        callback="thelma.authentication.remote_user_auth_policy_callback" />
+    <aclauthorizationpolicy />
+
+</configure>

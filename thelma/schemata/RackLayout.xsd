@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/racklayout"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:rl="http://schemata.cenix-bioscience.com/racklayout"
+    xmlns:rs="http://schemata.cenix-bioscience.com/rackshape"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:tp="http://schemata.cenix-bioscience.com/taggedrackpositionset"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+    <import
+        schemaLocation="RackShape.xsd"
+        namespace="http://schemata.cenix-bioscience.com/rackshape"
+    >
+    </import>
+    <import
+        schemaLocation="TaggedRackPositionSet.xsd"
+        namespace="http://schemata.cenix-bioscience.com/taggedrackpositionset"
+    >
+    </import>
+
+    <complexType
+        name="RackLayoutType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="rl:RackLayoutLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            ref="rs:rack_shape"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            ref="tp:tagged_rack_position_sets"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="RackLayoutCollectionType"
+    >
+         <choice>
+             <element
+                 ref="rl:rack_layout"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="rl:RackLayoutCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+    </complexType>
+
+    <complexType
+        name="RackLayoutLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/rack-layout"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="RackLayoutCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/rack-layout-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="rack_layout"
+        type="rl:RackLayoutType"
+    >
+    </element>
+
+    <element
+        name="rack_layouts"
+        type="rl:RackLayoutCollectionType"
+    ></element>
+
+
+</schema>

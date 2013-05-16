@@ -1,0 +1,24 @@
+Stock Condense Worklist Generation Report / 04.09.2012 / 13:58
+==============================================================
+
+
+
+Involved Racks
+--------------
+
+09999990
+09999999
+
+
+Number of racks: 2
+
+
+Tubes to be Updated
+-------------------
+
+1003 (rack scanner: 09999990 (C3), DB: 09999999 (C1))
+1005 (rack scanner: 09999999 (E3), DB: 09999999 (E1))
+1006 (rack scanner: 09999999 (F1), DB: 09999990 (A1))
+1008 (rack scanner: 09999990 (C2), DB: 09999990 (C1))
+
+Number of tubes: 4

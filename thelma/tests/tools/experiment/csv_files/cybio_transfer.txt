@@ -1,0 +1,26 @@
+STEP 1:
+
+FROM: rack 09999990
+TO: rack 09999991
+volume: 5.0 ul
+
+
+STEP 2:
+
+FROM: rack 09999990
+TO: rack 09999992
+volume: 5.0 ul
+
+
+STEP 3:
+
+FROM: rack 09999990
+TO: rack 09999993
+volume: 5.0 ul
+
+
+STEP 4:
+
+FROM: rack 09999990
+TO: rack 09999994
+volume: 5.0 ul

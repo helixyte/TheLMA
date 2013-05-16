@@ -1,0 +1,26 @@
+XL20 Worklist Generation Report / 27.11.2012 / 09:55
+====================================================
+
+
+General Settings
+----------------
+
+ISO for Library: testlib
+Layout number: 4
+Sector number: 3
+Total number of tubes: 4
+Volume: 3.0 ul
+
+
+Destination Racks
+-----------------
+
+09000001
+09000000
+
+
+Source Racks
+------------
+
+09999998 (unknown location)
+09999999 (freezer1 (shelf 2))

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<entry xmlns="http://www.w3.org/2005/Atom"
+       xmlns:tal="http://xml.zope.org/namespaces/tal"
+       xmlns:metal="http://xml.zope.org/namespaces/metal"
+       metal:use-macro="master.macros['standard_entry']">
+  <content type="application/vnd.everest+xml;type=stockInfoMember"
+           metal:fill-slot="content">
+    <stockInfo xmlns="http://schemata.cenix-bioscience.com/stock-info">
+      <id tal:content="context.id">md11c50</id>
+      <link xmlns="http://www.w3.org/2005/Atom"
+            rel="http://relations.cenix-bioscience.com/molecule-design"
+            type="application/atom+xml;type=entry"
+            title="siRNA" href="/molecule-design/sirna"
+            tal:attributes="title context.molecule_design.id;
+                            href resource_to_url(context.molecule_design, request)" />
+
+      <link xmlns="http://www.w3.org/2005/Atom"
+            rel="http://relations.cenix-bioscience.com/molecule-type"
+            type="application/atom+xml;type=entry"
+            title="siRNA" href="/molecule-types/sirna"
+            tal:attributes="title context.molecule_type.name;
+                            href resource_to_url(context.molecule_type, request)" />
+      <modification tal:content="context.modification">unmodified</modification>
+      <totalTubes tal:content="context.total_tubes">3</totalTubes>
+      <totalVolume unit="l"
+        tal:content="context.total_volume">0.000256</totalVolume>
+      <minVolume unit="l"
+        tal:content="context.minimum_volume">3.4e-05</minVolume>
+      <maxVolume unit="l"
+        tal:content="context.maximum_volume">0.000182</maxVolume>
+      <concentration unit="M"
+        tal:content="context.concentration">5e-05</concentration>
+      <genes>
+        <tal:block tal:repeat="gene context.genes">
+          <gene tal:content="string:${gene.accession}:${gene.name}:${gene.species.acronym}"/>
+        </tal:block>
+      </genes>
+    </stockInfo>
+  </content>
+</entry>

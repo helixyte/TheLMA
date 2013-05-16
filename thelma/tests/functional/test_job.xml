@@ -1,0 +1,397 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<j:job
+    xmlns:co="http://schemata.cenix-bioscience.com/container"
+    xmlns:csp="http://schemata.cenix-bioscience.com/containerspecs"
+    xmlns:d="http://schemata.cenix-bioscience.com/device"
+    xmlns:dt="http://schemata.cenix-bioscience.com/devicetype"
+    xmlns:e="http://schemata.cenix-bioscience.com/experiment"
+    xmlns:ed="http://schemata.cenix-bioscience.com/experimentdesign"
+    xmlns:edr="http://schemata.cenix-bioscience.com/experimentdesignrack"
+    xmlns:er="http://schemata.cenix-bioscience.com/experimentrack"
+    xmlns:g="http://schemata.cenix-bioscience.com/gene"
+    xmlns:i="http://schemata.cenix-bioscience.com/itemstatus"
+    xmlns:j="http://schemata.cenix-bioscience.com/job"
+    xmlns:jt="http://schemata.cenix-bioscience.com/jobtype"
+    xmlns:l="http://schemata.cenix-bioscience.com/location"
+    xmlns:md="http://schemata.cenix-bioscience.com/moleculedesign"
+    xmlns:mo="http://schemata.cenix-bioscience.com/molecule"
+    xmlns:mt="http://schemata.cenix-bioscience.com/moleculetype"
+    xmlns:o="http://schemata.cenix-bioscience.com/organization"
+    xmlns:p="http://schemata.cenix-bioscience.com/project"
+    xmlns:r="http://schemata.cenix-bioscience.com/rack"
+    xmlns:rl="http://schemata.cenix-bioscience.com/racklayout"
+    xmlns:rp="http://schemata.cenix-bioscience.com/rackposition"
+    xmlns:rps="http://schemata.cenix-bioscience.com/rackpositionset"
+    xmlns:rs="http://schemata.cenix-bioscience.com/rackshape"
+    xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs"
+    xmlns:s="http://schemata.cenix-bioscience.com/sample"
+    xmlns:sc="http://schemata.cenix-bioscience.com/species"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:sm="http://schemata.cenix-bioscience.com/samplemolecule"
+    xmlns:sp="http://schemata.cenix-bioscience.com/subproject"
+    xmlns:tag="http://schemata.cenix-bioscience.com/tag"
+    xmlns:tp="http://schemata.cenix-bioscience.com/taggedrackpositionset"
+    xmlns:u="http://schemata.cenix-bioscience.com/user"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://schemata.cenix-bioscience.com/job Job.xsd"
+>
+    <j:label>UnitTestJob_1</j:label>
+    <jt:job_type xmlns:jt="http://schemata.cenix-bioscience.com/jobtype">
+        <jt:link
+            href="http://localhost:6543/job-types/rnai-experiment/"
+            kind="MEMBER"
+            title="RNAi Experiment"
+            rel="http://relations.cenix-bioscience.com/job-type" />
+    </jt:job_type>
+    <u:user xmlns:u="http://schemata.cenix-bioscience.com/user">
+        <u:link
+            href="http://raven.cenix-bioscience.com:7654/users/rothe/"
+            kind="MEMBER"
+            title="Tobias Rothe"
+            rel="http://relations.cenix-bioscience.com/user" />
+    </u:user>
+    <sp:subproject xmlns:sp="http://schemata.cenix-bioscience.com/subproject">
+        <sp:link
+            href="http://raven.cenix-bioscience.com:7654/subprojects/130/"
+            kind="MEMBER"
+            title="Test - Test"
+            rel="http://relations.cenix-bioscience.com/subproject" />
+    </sp:subproject>
+    <e:experiments xmlns:e="http://schemata.cenix-bioscience.com/experiment">
+        <e:experiment>
+            <e:label>UnitTestJob_1_exp1</e:label>
+            <e:destination_rack_specs>
+                <rsp:link
+                    href="http://localhost:6543/plate-specs/std384/"
+                    kind="MEMBER"
+                    title="std. 384 well"
+                    rel="http://relations.cenix-bioscience.com/plate-specs"
+                    xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs" />
+            </e:destination_rack_specs>
+            <e:source_rack>
+                <r:link
+                    href="http://raven.cenix-bioscience.com:7654/racks/02367784/"
+                    kind="MEMBER"
+                    title="DM DS_L.2 (170)"
+                    xmlns:r="http://schemata.cenix-bioscience.com/rack" />
+            </e:source_rack>
+            <ed:experiment_design
+                xmlns:ed="http://schemata.cenix-bioscience.com/experimentdesign"
+            >
+                <ed:link
+                    href="http://raven.cenix-bioscience.com:7654/experiment-metadatas/test-experiment-metadata//experiment-design"
+                    kind="MEMBER"
+                    title="Design"
+                    rel="http://relations.cenix-bioscience.com/experiment-design" />
+            </ed:experiment_design>
+            <er:experiment_racks
+                xmlns:er="http://schemata.cenix-bioscience.com/experimentrack"
+            >
+                <er:experiment_rack>
+                    <er:design_rack>
+                        <edr:link
+                            href="http://raven.cenix-bioscience.com:7654/experiment-designs/2/experiment-design-racks/13/"
+                            kind="MEMBER"
+                            title="1"
+                            rel="http://relations.cenix-bioscience.com/experiment-design-rack"
+                            xmlns:edr="http://schemata.cenix-bioscience.com/experimentdesignrack" />
+                    </er:design_rack>
+                    <r:plate xmlns:r="http://schemata.cenix-bioscience.com/rack">
+                        <r:label>UnitTestJob_1_1_1</r:label>
+                        <r:creation_date>2011-12-16T09:05:24.379Z
+                        </r:creation_date>
+                        <r:status>
+                            <i:link
+                                href="http://localhost:6543/item-statuses/future/"
+                                kind="MEMBER"
+                                title="future"
+                                rel="http://relations.cenix-bioscience.com/item-status"
+                                xmlns:i="http://schemata.cenix-bioscience.com/itemstatus" />
+                        </r:status>
+                        <r:specs>
+                            <rsp:link
+                                href="http://localhost:6543/plate-specs/std384/"
+                                kind="MEMBER"
+                                title="std. 384 well"
+                                rel="http://relations.cenix-bioscience.com/plate-specs"
+                                xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs" />
+                        </r:specs>
+                    </r:plate>
+                    <er:source_rack>
+                        <r:link
+                            href="http://raven.cenix-bioscience.com:7654/racks/02367784/"
+                            kind="MEMBER"
+                            title="DM DS_L.2 (170)"
+                            xmlns:r="http://schemata.cenix-bioscience.com/rack" />
+                    </er:source_rack>
+                </er:experiment_rack>
+                <er:experiment_rack>
+                    <er:design_rack>
+                        <edr:link
+                            href="http://raven.cenix-bioscience.com:7654/experiment-designs/2/experiment-design-racks/13/"
+                            kind="MEMBER"
+                            title="1"
+                            rel="http://relations.cenix-bioscience.com/experiment-design-rack"
+                            xmlns:edr="http://schemata.cenix-bioscience.com/experimentdesignrack" />
+                    </er:design_rack>
+                    <r:plate xmlns:r="http://schemata.cenix-bioscience.com/rack">
+                        <r:label>UnitTestJob_1_1_2</r:label>
+                        <r:creation_date>2011-12-16T09:05:24.380Z
+                        </r:creation_date>
+                        <r:status>
+                            <i:link
+                                href="http://localhost:6543/item-statuses/future/"
+                                kind="MEMBER"
+                                title="future"
+                                rel="http://relations.cenix-bioscience.com/item-status"
+                                xmlns:i="http://schemata.cenix-bioscience.com/itemstatus" />
+                        </r:status>
+                        <r:specs>
+                            <rsp:link
+                                href="http://localhost:6543/plate-specs/std384/"
+                                kind="MEMBER"
+                                title="std. 384 well"
+                                rel="http://relations.cenix-bioscience.com/plate-specs"
+                                xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs" />
+                        </r:specs>
+                    </r:plate>
+                    <er:source_rack>
+                        <r:link
+                            href="http://raven.cenix-bioscience.com:7654/racks/02367784/"
+                            kind="MEMBER"
+                            title="DM DS_L.2 (170)"
+                            xmlns:r="http://schemata.cenix-bioscience.com/rack" />
+                    </er:source_rack>
+                </er:experiment_rack>
+                <er:experiment_rack>
+                    <er:design_rack>
+                        <edr:link
+                            href="http://raven.cenix-bioscience.com:7654/experiment-designs/2/experiment-design-racks/14/"
+                            kind="MEMBER"
+                            title="3"
+                            rel="http://relations.cenix-bioscience.com/experiment-design-rack"
+                            xmlns:edr="http://schemata.cenix-bioscience.com/experimentdesignrack" />
+                    </er:design_rack>
+                    <r:plate xmlns:r="http://schemata.cenix-bioscience.com/rack">
+                        <r:label>UnitTestJob_1_3_1</r:label>
+                        <r:creation_date>2011-12-16T09:05:24.380Z
+                        </r:creation_date>
+                        <r:status>
+                            <i:link
+                                href="http://localhost:6543/item-statuses/future/"
+                                kind="MEMBER"
+                                title="future"
+                                rel="http://relations.cenix-bioscience.com/item-status"
+                                xmlns:i="http://schemata.cenix-bioscience.com/itemstatus" />
+                        </r:status>
+                        <r:specs>
+                            <rsp:link
+                                href="http://localhost:6543/plate-specs/std384/"
+                                kind="MEMBER"
+                                title="std. 384 well"
+                                rel="http://relations.cenix-bioscience.com/plate-specs"
+                                xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs" />
+                        </r:specs>
+                    </r:plate>
+                    <er:source_rack>
+                        <r:link
+                            href="http://raven.cenix-bioscience.com:7654/racks/02367784/"
+                            kind="MEMBER"
+                            title="DM DS_L.2 (170)"
+                            xmlns:r="http://schemata.cenix-bioscience.com/rack" />
+                    </er:source_rack>
+                </er:experiment_rack>
+                <er:experiment_rack>
+                    <er:design_rack>
+                        <edr:link
+                            href="http://raven.cenix-bioscience.com:7654/experiment-designs/2/experiment-design-racks/14/"
+                            kind="MEMBER"
+                            title="3"
+                            rel="http://relations.cenix-bioscience.com/experiment-design-rack"
+                            xmlns:edr="http://schemata.cenix-bioscience.com/experimentdesignrack" />
+                    </er:design_rack>
+                    <r:plate xmlns:r="http://schemata.cenix-bioscience.com/rack">
+                        <r:label>UnitTestJob_1_3_2</r:label>
+                        <r:creation_date>2011-12-16T09:05:24.380Z
+                        </r:creation_date>
+                        <r:status>
+                            <i:link
+                                href="http://localhost:6543/item-statuses/future/"
+                                kind="MEMBER"
+                                title="future"
+                                rel="http://relations.cenix-bioscience.com/item-status"
+                                xmlns:i="http://schemata.cenix-bioscience.com/itemstatus" />
+                        </r:status>
+                        <r:specs>
+                            <rsp:link
+                                href="http://localhost:6543/plate-specs/std384/"
+                                kind="MEMBER"
+                                title="std. 384 well"
+                                rel="http://relations.cenix-bioscience.com/plate-specs"
+                                xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs" />
+                        </r:specs>
+                    </r:plate>
+                    <er:source_rack>
+                        <r:link
+                            href="http://raven.cenix-bioscience.com:7654/racks/02367784/"
+                            kind="MEMBER"
+                            title="DM DS_L.2 (170)"
+                            xmlns:r="http://schemata.cenix-bioscience.com/rack" />
+                    </er:source_rack>
+                </er:experiment_rack>
+                <er:experiment_rack>
+                    <er:design_rack>
+                        <edr:link
+                            href="http://raven.cenix-bioscience.com:7654/experiment-designs/2/experiment-design-racks/15/"
+                            kind="MEMBER"
+                            title="2"
+                            rel="http://relations.cenix-bioscience.com/experiment-design-rack"
+                            xmlns:edr="http://schemata.cenix-bioscience.com/experimentdesignrack" />
+                    </er:design_rack>
+                    <r:plate xmlns:r="http://schemata.cenix-bioscience.com/rack">
+                        <r:label>UnitTestJob_1_2_1</r:label>
+                        <r:creation_date>2011-12-16T09:05:24.380Z
+                        </r:creation_date>
+                        <r:status>
+                            <i:link
+                                href="http://localhost:6543/item-statuses/future/"
+                                kind="MEMBER"
+                                title="future"
+                                rel="http://relations.cenix-bioscience.com/item-status"
+                                xmlns:i="http://schemata.cenix-bioscience.com/itemstatus" />
+                        </r:status>
+                        <r:specs>
+                            <rsp:link
+                                href="http://localhost:6543/plate-specs/std384/"
+                                kind="MEMBER"
+                                title="std. 384 well"
+                                rel="http://relations.cenix-bioscience.com/plate-specs"
+                                xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs" />
+                        </r:specs>
+                    </r:plate>
+                    <er:source_rack>
+                        <r:link
+                            href="http://raven.cenix-bioscience.com:7654/racks/02367784/"
+                            kind="MEMBER"
+                            title="DM DS_L.2 (170)"
+                            xmlns:r="http://schemata.cenix-bioscience.com/rack" />
+                    </er:source_rack>
+                </er:experiment_rack>
+                <er:experiment_rack>
+                    <er:design_rack>
+                        <edr:link
+                            href="http://raven.cenix-bioscience.com:7654/experiment-designs/2/experiment-design-racks/15/"
+                            kind="MEMBER"
+                            title="2"
+                            rel="http://relations.cenix-bioscience.com/experiment-design-rack"
+                            xmlns:edr="http://schemata.cenix-bioscience.com/experimentdesignrack" />
+                    </er:design_rack>
+                    <r:plate xmlns:r="http://schemata.cenix-bioscience.com/rack">
+                        <r:label>UnitTestJob_1_2_2</r:label>
+                        <r:creation_date>2011-12-16T09:05:24.380Z
+                        </r:creation_date>
+                        <r:status>
+                            <i:link
+                                href="http://localhost:6543/item-statuses/future/"
+                                kind="MEMBER"
+                                title="future"
+                                rel="http://relations.cenix-bioscience.com/item-status"
+                                xmlns:i="http://schemata.cenix-bioscience.com/itemstatus" />
+                        </r:status>
+                        <r:specs>
+                            <rsp:link
+                                href="http://localhost:6543/plate-specs/std384/"
+                                kind="MEMBER"
+                                title="std. 384 well"
+                                rel="http://relations.cenix-bioscience.com/plate-specs"
+                                xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs" />
+                        </r:specs>
+                    </r:plate>
+                    <er:source_rack>
+                        <r:link
+                            href="http://raven.cenix-bioscience.com:7654/racks/02367784/"
+                            kind="MEMBER"
+                            title="DM DS_L.2 (170)"
+                            xmlns:r="http://schemata.cenix-bioscience.com/rack" />
+                    </er:source_rack>
+                </er:experiment_rack>
+                <er:experiment_rack>
+                    <er:design_rack>
+                        <edr:link
+                            href="http://raven.cenix-bioscience.com:7654/experiment-designs/2/experiment-design-racks/16/"
+                            kind="MEMBER"
+                            title="4"
+                            rel="http://relations.cenix-bioscience.com/experiment-design-rack"
+                            xmlns:edr="http://schemata.cenix-bioscience.com/experimentdesignrack" />
+                    </er:design_rack>
+                    <r:plate xmlns:r="http://schemata.cenix-bioscience.com/rack">
+                        <r:label>UnitTestJob_1_4_1</r:label>
+                        <r:creation_date>2011-12-16T09:05:24.381Z
+                        </r:creation_date>
+                        <r:status>
+                            <i:link
+                                href="http://localhost:6543/item-statuses/future/"
+                                kind="MEMBER"
+                                title="future"
+                                rel="http://relations.cenix-bioscience.com/item-status"
+                                xmlns:i="http://schemata.cenix-bioscience.com/itemstatus" />
+                        </r:status>
+                        <r:specs>
+                            <rsp:link
+                                href="http://localhost:6543/plate-specs/std384/"
+                                kind="MEMBER"
+                                title="std. 384 well"
+                                rel="http://relations.cenix-bioscience.com/plate-specs"
+                                xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs" />
+                        </r:specs>
+                    </r:plate>
+                    <er:source_rack>
+                        <r:link
+                            href="http://raven.cenix-bioscience.com:7654/racks/02367784/"
+                            kind="MEMBER"
+                            title="DM DS_L.2 (170)"
+                            xmlns:r="http://schemata.cenix-bioscience.com/rack" />
+                    </er:source_rack>
+                </er:experiment_rack>
+                <er:experiment_rack>
+                    <er:design_rack>
+                        <edr:link
+                            href="http://raven.cenix-bioscience.com:7654/experiment-designs/2/experiment-design-racks/16/"
+                            kind="MEMBER"
+                            title="4"
+                            rel="http://relations.cenix-bioscience.com/experiment-design-rack"
+                            xmlns:edr="http://schemata.cenix-bioscience.com/experimentdesignrack" />
+                    </er:design_rack>
+                    <r:plate xmlns:r="http://schemata.cenix-bioscience.com/rack">
+                        <r:label>UnitTestJob_1_4_2</r:label>
+                        <r:creation_date>2011-12-16T09:05:24.381Z
+                        </r:creation_date>
+                        <r:status>
+                            <i:link
+                                href="http://localhost:6543/item-statuses/future/"
+                                kind="MEMBER"
+                                title="future"
+                                rel="http://relations.cenix-bioscience.com/item-status"
+                                xmlns:i="http://schemata.cenix-bioscience.com/itemstatus" />
+                        </r:status>
+                        <r:specs>
+                            <rsp:link
+                                href="http://localhost:6543/plate-specs/std384/"
+                                kind="MEMBER"
+                                title="std. 384 well"
+                                rel="http://relations.cenix-bioscience.com/plate-specs"
+                                xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs" />
+                        </r:specs>
+                    </r:plate>
+                    <er:source_rack>
+                        <r:link
+                            href="http://raven.cenix-bioscience.com:7654/racks/02367784/"
+                            kind="MEMBER"
+                            title="DM DS_L.2 (170)"
+                            xmlns:r="http://schemata.cenix-bioscience.com/rack" />
+                    </er:source_rack>
+                </er:experiment_rack>
+            </er:experiment_racks>
+        </e:experiment>
+    </e:experiments>
+</j:job>

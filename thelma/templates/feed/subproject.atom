@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      metal:use-macro="master.macros['standard_feed']">
+  <content_type xmlns="http://schemata.cenix-bioscience.com/content_type"
+               name="application/vnd.everest+xml;type=subprojectCollection"
+               metal:fill-slot="content_type" />
+
+  <content type="application/vnd.everest+xml;type=subprojectMember"
+           metal:fill-slot="content">
+        <subproject xmlns="http://schemata.cenix-bioscience.com/subproject">
+              <name tal:content="member.label">Validation 01</name>
+              <creationDate tal:content="rfc3339(member.creation_date)">2010-11-08T11:16:37+01:00</creationDate>
+             <link xmlns="http://www.w3.org/2005/Atom"
+                    rel="http://relations.cenix-bioscience.com/project"
+                    type="application/atom+xml;type=entry"
+                    title="A Project" href="/projects/p_project"
+                    tal:omit-tag="member.project is None"
+                    tal:attributes="title member.project.label;
+                                    href resource_to_url(member.project, request)" />
+              <active tal:content="str(member.active).lower()">false</active>
+         </subproject>
+  </content>
+</feed>

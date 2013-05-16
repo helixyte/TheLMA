@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      metal:use-macro="master.macros['standard_feed']">
+  <content_type xmlns="http://schemata.cenix-bioscience.com/content_type"
+               name="application/vnd.everest+xml;type=geneCollection"
+               metal:fill-slot="content_type" />
+  <content type="application/vnd.everest+xml;type=geneMember"
+           metal:fill-slot="content">
+    <gene xmlns="http://schemata.cenix-bioscience.com/gene">
+      <accession tal:content="member.accession">553129</accession>
+      <name tal:content="member.locus_name">Pcdhga1</name>
+      <link xmlns="http://www.w3.org/2005/Atom"
+            rel="http://relations.cenix-bioscience.com/species"
+            type="application/atom+xml;type=entry"
+            title="rat" href="/species/rat"
+            tal:attributes="title member.species.common_name;
+                            href resource_to_url(member.species, request)" />
+    </gene>
+  </content>
+</feed>

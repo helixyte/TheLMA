@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/subproject"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:sp="http://schemata.cenix-bioscience.com/subproject"
+    xmlns:p="http://schemata.cenix-bioscience.com/project"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+    <import
+        schemaLocation="Project.xsd"
+        namespace="http://schemata.cenix-bioscience.com/project"
+    >
+    </import>
+
+    <complexType
+        name="SubprojectType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="sp:SubprojectLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="label"
+                            type="string"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            ref="p:project"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="creation_date"
+                            type="dateTime"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="active"
+                            type="boolean"
+                            maxOccurs="1"
+                            minOccurs="0"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="SubprojectCollectionType"
+    >
+         <choice>
+             <element
+                 ref="sp:subproject"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="sp:SubprojectCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+
+    </complexType>
+
+    <complexType
+        name="SubprojectLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/subproject"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="SubprojectCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/subproject-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="subproject"
+        type="sp:SubprojectType"
+    >
+    </element>
+
+    <element
+        name="subprojects"
+        type="sp:SubprojectCollectionType"
+    ></element>
+
+</schema>

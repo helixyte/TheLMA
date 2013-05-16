@@ -1,0 +1,113 @@
+"""
+Models involved in XL20 run storage
+
+AAB
+"""
+from everest.entities.base import Entity
+from thelma.utils import get_utc_time
+
+__docformat__ = 'reStructuredText en'
+
+__all__ = ['TubeTransfer',
+           'TubeTransferWorklist']
+
+
+class TubeTransfer(Entity):
+    """
+    This class represents one tube transfer operation performed by the XL20
+    tubehandler robot, i.e. the transfer of one closed tube from one position
+    in a tube rack to another one (in the same tube rack or a different one).
+
+    **Equality Condition:** equal :attr:`id`
+    """
+
+    #: The transferred tube (:class:`thelma.models.container.Tube`).
+    tube = None
+    #: The source rack (:class:`thelma.models.rack.TubeRack`).
+    source_rack = None
+    #: The rack position in the source rack
+    #: (:class:`thelma.models.rack.RackPosition`).
+    source_position = None
+    #: The target rack (:class:`thelma.models.rack.TubeRack`).
+    target_rack = None
+    #: The rack position in the target rack
+    #: (:class:`thelma.models.rack.RackPosition`).
+    target_position = None
+
+    def __init__(self, tube, source_rack, source_position, target_rack,
+                 target_position, **kw):
+        """
+        Constructor
+        """
+        Entity.__init__(self, **kw)
+        self.tube = tube
+        self.source_rack = source_rack
+        self.source_position = source_position
+        self.target_rack = target_rack
+        self.target_position = target_position
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.id == other.id
+
+    def __ne__(self, other):
+        return not (self.__eq__(other))
+
+    def __str__(self):
+        return str(self.id)
+
+    def __repr__(self):
+        str_format = '<%s tube: %s, source rack: %s, source position: %s, ' \
+                     'target rack: %s, target position: %s>'
+        params = (self.__class__.__name__, self.tube.barcode, self.source_rack,
+                  self.source_position, self.target_rack, self.target_position)
+        return str_format % params
+
+
+class TubeTransferWorklist(Entity):
+    """
+    Comprises all tube transfers that have executed in one XL20 tubehandler run.
+
+    **Equality Condition:** equal :attr:`id`
+    """
+
+    #: The tube transfers being part of the worklist (:class:`TubeTransfer`).
+    tube_transfers = None
+    #: The user who has carried out the transfer
+    #: (:class:thelma.models.user.User`).
+    user = None
+    #: The time stamp is set upon entity creation. It represents the time
+    #: the transfer has been executed on DB level.
+    timestamp = None
+
+    def __init__(self, user, tube_transfers=None, timestamp=None, **kw):
+        """
+        Constructor
+        """
+        Entity.__init__(self, **kw)
+        self.user = user
+        if timestamp is None:
+            timestamp = get_utc_time()
+        self.timestamp = timestamp
+        if tube_transfers is None:
+            tube_transfers = []
+        self.tube_transfers = tube_transfers
+
+    def __len__(self):
+        return len(self.tube_transfers)
+
+    def __iter__(self):
+        return self.tube_transfers
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.id == other.id
+
+    def __ne__(self, other):
+        return not (self.__eq__(other))
+
+    def __str__(self):
+        return self.id
+
+    def __repr__(self):
+        str_format = '<%s user: %s, number of tube transfers: %i>'
+        params = (self.__class__.__name__, self.user, len(self.tube_transfers))
+        return str_format % params

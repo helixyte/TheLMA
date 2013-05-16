@@ -1,0 +1,3402 @@
+<configure xmlns="http://pylonshq.com/pyramid">
+
+    <!-- BarcodePrintJob -->
+
+    <resource
+        interface="thelma.interfaces.IBarcodePrintJob"
+        member=".barcode.BarcodePrintJobMember"
+        collection=".barcode.BarcodePrintJobCollection"
+        entity="thelma.models.barcode.BarcodePrintJob"
+        repository="MEMORY"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/BarcodePrintJob.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/barcodeprintjob" />
+            <option
+                name="xml_prefix"
+                value="bpj" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="barcode_print_job" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="barcode_print_jobs" />
+        </representer>
+    </resource>
+
+    <!-- Chemical Structure Type -->
+
+    <resource
+        interface="thelma.interfaces.IChemicalStructureType"
+        member=".chemicalstructure.ChemicalStructureTypeMember"
+        collection_root_name='chemical-structure-types'
+        entity="thelma.models.chemicalstructure.ChemicalStructureType"
+        repository="MEMORY"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/ChemicalStructureType.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/chemicalstructuretype" />
+            <option
+                name="xml_prefix"
+                value="chst" />
+            <attribute name="molecule_types">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="molecule_types.modifications">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="molecule_types.name">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="molecule_types.description">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="molecule_types.thaw_time">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="chemical_structure_type" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="chemical_structure_types" />
+        </representer>
+    </resource>
+
+    <!-- Chemical Structure -->
+    <resource
+        interface="thelma.interfaces.IChemicalStructure"
+        member=".chemicalstructure.ChemicalStructureMember"
+        collection_root_name='chemical-structures'
+        entity="thelma.models.chemicalstructure.ChemicalStructure"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/ChemicalStructure.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/chemicalstructure" />
+            <option
+                name="xml_prefix"
+                value="chs" />
+            <attribute name="structure_type">
+                <option
+                    name="repr_name"
+                    value="chemical_structure_type" />
+            </attribute>
+            <attribute name="structure_type_id">
+                <option
+                    name="ignore_on_write"
+                    value="true" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="chemical_structure" />
+            <attribute name="structure_type">
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="structure_type.molecule_types">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="chemical_structures" />
+            <attribute name="molecule_designs">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+        </representer>
+    </resource>
+
+    <!-- Container (Tube & Well) -->
+
+    <resource
+        interface="thelma.interfaces.IContainer"
+        member=".container.ContainerMember"
+        collection=".container.ContainerCollection"
+        entity="thelma.models.container.Container"
+        expose="false"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/Container.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/container" />
+            <option
+                name="xml_prefix"
+                value="co" />
+            <attribute name="sample_molecules">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="containers" />
+        </representer>
+    </resource>
+
+    <resource
+        interface="thelma.interfaces.ITube"
+        member=".container.TubeMember"
+        collection=".container.TubeCollection"
+        entity="thelma.models.container.Tube"
+    >
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="tube" />
+
+            <attribute name="specs">
+                <option
+                    name="repr_name"
+                    value="tube_specs" />
+            </attribute>
+            <attribute name="location">
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+            <attribute name="status">
+                <option
+                    name="repr_name"
+                    value="itemstatus" />
+            </attribute>
+            <attribute name="rack">
+                <option
+                    name="repr_name"
+                    value="tube_rack" />
+            </attribute>
+            <attribute name="rack_specs">
+                <option
+                    name="repr_name"
+                    value="tube_rack_specs" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="tubes" />
+            <attribute name="specs">
+                <option
+                    name="repr_name"
+                    value="tube_specs" />
+            </attribute>
+            <attribute name="location">
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+            <attribute name="status">
+                <option
+                    name="repr_name"
+                    value="itemstatus" />
+            </attribute>
+            <attribute name="rack">
+                <option
+                    name="repr_name"
+                    value="tube_rack" />
+            </attribute>
+            <attribute name="rack_specs">
+                <option
+                    name="repr_name"
+                    value="tube_rack_specs" />
+            </attribute>
+        </representer>
+    </resource>
+
+    <resource
+        interface="thelma.interfaces.IWell"
+        member=".container.WellMember"
+        collection=".container.WellCollection"
+        entity="thelma.models.container.Well"
+        expose="false"
+    >
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="well" />
+            <attribute name="specs">
+                <option
+                    name="repr_name"
+                    value="well_specs" />
+            </attribute>
+            <attribute name="status">
+                <option
+                    name="repr_name"
+                    value="itemstatus" />
+            </attribute>
+        </representer>
+    </resource>
+
+
+    <!-- Container Specs (Tube & Well Specs) -->
+
+    <resource
+        interface="thelma.interfaces.IContainerSpecs"
+        member=".containerspecs.ContainerSpecsMember"
+        collection=".containerspecs.ContainerSpecsCollection"
+        entity="thelma.models.container.ContainerSpecs"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/ContainerSpecs.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/containerspecs" />
+            <option
+                name="xml_prefix"
+                value="csp" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="container_specs" />
+            <attribute name="manufacturer">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/containerspecs" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="container_specses" />
+            <attribute name="manufacturer">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/containerspecs" />
+            </attribute>
+        </representer>
+    </resource>
+
+    <resource
+        interface="thelma.interfaces.ITubeSpecs"
+        member=".containerspecs.TubeSpecsMember"
+        collection=".containerspecs.TubeSpecsCollection"
+        entity="thelma.models.container.TubeSpecs"
+    >
+
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="tube_specs" />
+            <attribute name="manufacturer">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/containerspecs" />
+            </attribute>
+            <attribute name="tube_rack_specs">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/rackspecs" />
+            </attribute>
+        </representer>
+    </resource>
+
+    <resource
+        interface="thelma.interfaces.IWellSpecs"
+        member=".containerspecs.WellSpecsMember"
+        collection=".containerspecs.WellSpecsCollection"
+        entity="thelma.models.container.WellSpecs"
+    >
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="well_specs" />
+            <attribute name="manufacturer">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/containerspecs" />
+            </attribute>
+        </representer>
+    </resource>
+
+
+    <!-- Device -->
+
+    <resource
+        interface="thelma.interfaces.IDevice"
+        member=".device.DeviceMember"
+        collection=".device.DeviceCollection"
+        entity="thelma.models.device.Device"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/Device.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/device" />
+            <option
+                name="xml_prefix"
+                value="d" />
+            <attribute name="type">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/device" />
+            </attribute>
+            <attribute name="manufacturer">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/device" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="device" />
+            <attribute name="locations">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="devices" />
+        </representer>
+    </resource>
+
+
+    <!-- Device Type -->
+
+    <resource
+        interface="thelma.interfaces.IDeviceType"
+        member=".devicetype.DeviceTypeMember"
+        collection=".devicetype.DeviceTypeCollection"
+        entity="thelma.models.device.DeviceType"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/DeviceType.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/devicetype" />
+            <option
+                name="xml_prefix"
+                value="dt" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="devicetype" />
+            <attribute name="devices">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="devicetypes" />
+            <attribute name="devices">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/device" />
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+        </representer>
+    </resource>
+
+
+    <!-- Experiment -->
+
+    <resource
+        interface="thelma.interfaces.IExperiment"
+        member=".experiment.ExperimentMember"
+        collection=".experiment.ExperimentCollection"
+        entity="thelma.models.experiment.Experiment"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/Experiment.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/experiment" />
+            <option
+                name="xml_prefix"
+                value="e" />
+            <attribute name="destination_rack_specs">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/experiment" />
+            </attribute>
+            <attribute name="source_rack">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/experiment" />
+            </attribute>
+            <attribute name="experiment_racks">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="experiment" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="experiments" />
+        </representer>
+    </resource>
+
+
+    <!-- Experiment Design -->
+
+    <resource
+        interface="thelma.interfaces.IExperimentDesign"
+        member=".experiment.ExperimentDesignMember"
+        collection=".experiment.ExperimentDesignCollection"
+        entity="thelma.models.experiment.ExperimentDesign"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/ExperimentDesign.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/experimentdesign" />
+            <option
+                name="xml_prefix"
+                value="ed" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="experiment_design" />
+            <attribute name="rack_shape">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="experiment_design_racks">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="experiments">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="experiments.experiment_racks">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="experiment_designs" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.CsvMime"
+        >
+            <attribute name="id">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="rack_shape">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="experiment_metadata">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="experiment_metadata_type">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="experiment_design_racks">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="experiment_design_racks.id">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="experiment_design_racks.label">
+                <option
+                    name="repr_name"
+                    value="design_rack_label" />
+            </attribute>
+            <attribute name="experiment_design_racks.rack_layout">
+                <option
+                    name="write_as_link"
+                    value="false" />
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+            <attribute name="experiment_design_racks.rack_layout.id">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="experiment_design_racks.rack_layout.shape">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute
+                name="experiment_design_racks.rack_layout.tagged_rack_position_sets"
+            >
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute
+                name="experiment_design_racks.rack_layout.tagged_rack_position_sets.id"
+            >
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute
+                name="experiment_design_racks.rack_layout.tagged_rack_position_sets.tags"
+            >
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute
+                name="experiment_design_racks.rack_layout.tagged_rack_position_sets.rack_position_set"
+            >
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute
+                name="experiment_design_racks.rack_layout.tagged_rack_position_sets.rack_position_set.rack_positions"
+            >
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute
+                name="experiment_design_racks.rack_layout.tagged_rack_position_sets.rack_position_set.id"
+            >
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute
+                name="experiment_design_racks.rack_layout.tagged_rack_position_sets.rack_position_set.rack_positions.id"
+            >
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute
+                name="experiment_design_racks.rack_layout.tagged_rack_position_sets.tags.id"
+            >
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute
+                name="experiment_design_racks.rack_layout.tagged_rack_position_sets.tags.domain"
+            >
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute
+                name="experiment_design_racks.rack_layout.tagged_rack_position_sets.tags.predicate"
+            >
+                <option
+                    name="repr_name"
+                    value="tag_predicate" />
+            </attribute>
+            <attribute
+                name="experiment_design_racks.rack_layout.tagged_rack_position_sets.tags.value"
+            >
+                <option
+                    name="repr_name"
+                    value="tag_value" />
+            </attribute>
+            <attribute
+                name="experiment_design_racks.rack_layout.tagged_rack_position_sets.rack_position_set.rack_positions.row_index"
+            >
+                <option
+                    name="repr_name"
+                    value="row" />
+            </attribute>
+            <attribute
+                name="experiment_design_racks.rack_layout.tagged_rack_position_sets.rack_position_set.rack_positions.column_index"
+            >
+                <option
+                    name="repr_name"
+                    value="column" />
+            </attribute>
+        </representer>
+    </resource>
+
+
+    <!-- Experiment Design Rack -->
+
+    <resource
+        interface="thelma.interfaces.IExperimentDesignRack"
+        member=".experiment.ExperimentDesignRackMember"
+        collection=".experiment.ExperimentDesignRackCollection"
+        entity="thelma.models.experiment.ExperimentDesignRack"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/ExperimentDesignRack.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/experimentdesignrack" />
+            <option
+                name="xml_prefix"
+                value="edr" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="experiment_design_rack" />
+            <attribute name="rack_layout">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="experiment_design_racks" />
+            <attribute name="rack_layout">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="tags">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+        </representer>
+    </resource>
+
+
+    <!-- Experiment Metadata -->
+
+    <resource
+        interface="thelma.interfaces.IExperimentMetadata"
+        member=".experiment.ExperimentMetadataMember"
+        collection=".experiment.ExperimentMetadataCollection"
+        entity="thelma.models.experiment.ExperimentMetadata"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/ExperimentMetadata.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/experimentmetadata" />
+            <option
+                name="xml_prefix"
+                value="em" />
+            <attribute name="subproject">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="molecule_design_pool_set">
+                <option
+                    name="write_as_link"
+                    value="true" />
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+            <attribute name="target_set">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="iso_request.isos">
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+            <attribute name="iso_request.rack_layout">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="iso_request.requester">
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="iso_request.requester.user_preferenceses">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+
+            <attribute name="experiment_design.experiments.experiment_racks">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="experiment_design.experiments.experiment_job">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute
+                name="experiment_design.experiments.experiment_job.experiments"
+            >
+                <option
+                    name="ignore"
+                    value="true" />
+
+            </attribute>
+            <attribute
+                name="experiment_design.experiment_design_racks.rack_layout"
+            >
+                <option
+                    name="write_as_link"
+                    value="true" />
+
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="experiment_metadata" />
+            <attribute name="experiment_design">
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="iso_request">
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="experiment_metadatas" />
+            <attribute name="experiment_design">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="iso_request">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+        </representer>
+    </resource>
+
+	<!-- Experiment Metadata Type -->
+
+	<resource
+		interface="thelma.interfaces.IExperimentMetadataType"
+		member=".experiment.ExperimentMetadataTypeMember"
+		collection_root_name="experiment-metadata-types"
+		entity="thelma.models.experiment.ExperimentMetadataType"
+	>
+
+ 		<representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/ExperimentMetadataType.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/experimentmetadatatype" />
+            <option
+                name="xml_prefix"
+                value="emt" />
+        </representer>
+
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+        	<option
+                name="xml_tag"
+                value="experiment_metadata_type" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+        	<option
+                name="xml_tag"
+                value="experiment_metadata_types" />
+        </representer>
+	</resource>
+
+    <!-- Experiment Rack -->
+
+    <resource
+        interface="thelma.interfaces.IExperimentRack"
+        member=".experiment.ExperimentRackMember"
+        collection=".experiment.ExperimentRackCollection"
+        entity="thelma.models.experiment.ExperimentRack"
+        expose="false"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/ExperimentRack.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/experimentrack" />
+            <option
+                name="xml_prefix"
+                value="er" />
+            <attribute name="source_rack">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/experimentrack" />
+            </attribute>
+            <attribute name="design_rack">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/experimentrack" />
+            </attribute>
+            <attribute name="plate">
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="plate.containers">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="plate.status">
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="experiment_rack" />
+            <attribute name="experiment">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="experiment_racks" />
+            <attribute name="experiment">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+        </representer>
+    </resource>
+
+
+    <!-- Gene -->
+
+    <resource
+        interface="thelma.interfaces.IGene"
+        member=".gene.GeneMember"
+        collection=".gene.GeneCollection"
+        entity="thelma.models.gene.Gene"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/Gene.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/gene" />
+            <option
+                name="xml_prefix"
+                value="g" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="gene" />
+            <attribute name="molecule_designs">
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="genes" />
+            <attribute name="molecule_designs">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+        </representer>
+    </resource>
+
+
+    <!-- ISO -->
+
+    <resource
+        interface="thelma.interfaces.IIso"
+        member=".iso.IsoMember"
+        collection=".iso.IsoCollection"
+        entity="thelma.models.iso.Iso"
+        expose="false"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/Iso.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/iso" />
+            <option
+                name="xml_prefix"
+                value="iso" />
+            <attribute name="iso_job">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="iso_job.iso_control_stock_rack">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="iso_sample_stock_racks">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="iso_sample_stock_racks.rack">
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="iso_sample_stock_racks.rack.containers">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="iso_preparation_plate">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/iso" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="iso_preparation_plate">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/iso" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="iso_preparation_plate.containers">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="iso_aliquot_plates">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/iso" />
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="iso_aliquot_plates.containers">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="iso" />
+            <attribute name="rack_layout">
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="molecule_design_pool_set">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="isos" />
+            <attribute name="rack_layout">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="molecule_design_pool_set">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+        </representer>
+    </resource>
+
+
+    <!-- Library Creation ISO -->
+
+    <resource
+        interface="thelma.interfaces.ILibraryCreationIso"
+        member=".library.LibraryCreationIsoMember"
+        collection_root_name="library-collection-isos"
+        entity="thelma.models.library.LibraryCreationIso"
+    >
+    </resource>
+
+    <!-- ISO Request -->
+
+    <resource
+        interface="thelma.interfaces.IIsoRequest"
+        member=".iso.IsoRequestMember"
+        collection=".iso.IsoRequestCollection"
+        entity="thelma.models.iso.IsoRequest"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/IsoRequest.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/isorequest" />
+            <option
+                name="xml_prefix"
+                value="isor" />
+            <attribute name="isos">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="requester">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/isorequest" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="iso_request" />
+            <attribute name="rack_layout">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="rack_layout.tagged_rack_position_sets">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="isos">
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+            <attribute name="requester">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="experiment_metadata">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="iso_requests" />
+            <attribute name="rack_layout">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+        </representer>
+    </resource>
+
+    <!-- Iso Sample Stock Rack -->
+
+    <resource
+        interface="thelma.interfaces.IIsoSampleStockRack"
+        member=".iso.IsoSampleStockRackMember"
+        collection=".iso.IsoSampleStockRackCollection"
+        entity="thelma.models.iso.IsoSampleStockRack"
+        expose="false"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/IsoSampleStockRack.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/isosamplestockrack" />
+            <option
+                name="xml_prefix"
+                value="iss" />
+            <attribute name="iso">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="rack">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="sector_index">
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="iso_sample_stock_rack" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="iso_sample_stock_racks" />
+        </representer>
+    </resource>
+
+
+
+    <!-- Item Status -->
+
+    <resource
+        interface="thelma.interfaces.IItemStatus"
+        member=".itemstatus.ItemStatusMember"
+        collection=".itemstatus.ItemStatusCollection"
+        entity="thelma.models.status.ItemStatus"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/ItemStatus.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/itemstatus" />
+            <option
+                name="xml_prefix"
+                value="i" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="itemstatus" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="itemstatuses" />
+        </representer>
+    </resource>
+
+
+    <!-- Job -->
+
+    <resource
+        interface="thelma.interfaces.IJob"
+        member=".job.JobMember"
+        collection=".job.JobCollection"
+        entity="thelma.models.job.Job"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/Job.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/job" />
+            <option
+                name="xml_prefix"
+                value="j" />
+            <attribute name="subproject">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="job" />
+            <!-- <attribute name="experiments"> <option name="ignore" value="false" 
+                type="zope.configuration.fields.Bool" /> <option name="write_as_link" value="false" 
+                type="zope.configuration.fields.Bool" /> </attribute> <attribute name="experiments.experiment_racks"> 
+                <option name="ignore" value="false" type="zope.configuration.fields.Bool" 
+                /> <option name="write_as_link" value="true" type="zope.configuration.fields.Bool" 
+                /> </attribute> -->
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="jobs" />
+            <!-- <attribute name="experiments"> <option name="write_as_link" 
+                value="true" type="zope.configuration.fields.Bool" /> </attribute> -->
+        </representer>
+    </resource>
+
+    <resource
+        interface="thelma.interfaces.IIsoJob"
+        member=".job.IsoJobMember"
+        collection=".job.IsoJobCollection"
+        entity="thelma.models.job.IsoJob"
+        expose="true"
+    >
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="iso_job" />
+            <attribute name="iso_control_stock_rack">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/job" />
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="iso_control_stock_rack.containers">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+        </representer>
+    </resource>
+
+    <resource
+        interface="thelma.interfaces.IExperimentJob"
+        member=".job.ExperimentJobMember"
+        collection=".job.ExperimentJobCollection"
+        entity="thelma.models.job.ExperimentJob"
+    >
+
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="experiment_job" />
+            <attribute name="experiments">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="experiments.experiment_racks">
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="experiments.experiment_racks.plate.containers">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="experiments.experiment_design">
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute
+                name="experiments.experiment_design.experiment_design_racks"
+            >
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="experiments.experiment_design.experiments">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute
+                name="experiments.experiment_design.experiment_metadata"
+            >
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <!-- <attribute name="experiments.experiment_design.experiment_metadata.experiment_design"> 
+                <option name="write_as_link" value="true" type="zope.configuration.fields.Bool" 
+                /> </attribute> <attribute name="experiments.experiment_design.experiment_metadata.iso_request"> 
+                <option name="write_as_link" value="true" type="zope.configuration.fields.Bool" 
+                /> </attribute> -->
+        </representer>
+
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="experiment_jobs" />
+            <attribute name="experiments">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+
+        </representer>
+
+    </resource>
+
+
+    <!-- Job Type -->
+
+    <resource
+        interface="thelma.interfaces.IJobType"
+        member=".jobtype.JobTypeMember"
+        collection=".jobtype.JobTypeCollection"
+        entity="thelma.models.job.JobType"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/JobType.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/jobtype" />
+            <option
+                name="xml_prefix"
+                value="jt" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="job_type" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="job_types" />
+        </representer>
+    </resource>
+
+
+    <!-- Location -->
+
+    <resource
+        interface="thelma.interfaces.ILocation"
+        member=".location.LocationMember"
+        collection=".location.LocationCollection"
+        entity="thelma.models.location.BarcodedLocation"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/Location.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/location" />
+            <option
+                name="xml_prefix"
+                value="l" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="location" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="locations" />
+        </representer>
+    </resource>
+
+
+    <!-- Location Type -->
+
+    <resource
+        interface="thelma.interfaces.ILocationType"
+        member=".locationtype.LocationTypeMember"
+        collection=".locationtype.LocationTypeCollection"
+        entity="thelma.models.location.BarcodedLocationType"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/LocationType.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/locationtype" />
+            <option
+                name="xml_prefix"
+                value="lt" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="location_type" />
+            <attribute name="locations">
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="location_types" />
+            <attribute name="locations">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+        </representer>
+    </resource>
+
+
+    <!-- Molecule -->
+
+    <resource
+        interface="thelma.interfaces.IMolecule"
+        member=".sample.MoleculeMember"
+        collection=".sample.MoleculeCollection"
+        entity="thelma.models.sample.Molecule"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/Molecule.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/molecule" />
+            <option
+                name="xml_prefix"
+                value="mo" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="molecule" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="molecules" />
+        </representer>
+    </resource>
+
+
+    <!-- Molecule Design -->
+
+    <resource
+        interface="thelma.interfaces.IMoleculeDesign"
+        member=".moleculedesign.MoleculeDesignMember"
+        collection=".moleculedesign.MoleculeDesignCollection"
+        entity="thelma.models.moleculedesign.MoleculeDesign"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/MoleculeDesign.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/moleculedesign" />
+            <option
+                name="xml_prefix"
+                value="md" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="molecule_design" />
+            <attribute name="chemical_structures">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="chemical_structures.structure_type">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute
+                name="chemical_structures.structure_type.molecule_types"
+            >
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="genes">
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="molecule_designs" />
+        </representer>
+    </resource>
+
+    <!-- Molecule Design Library -->
+
+    <resource
+        interface="thelma.interfaces.IMoleculeDesignLibrary"
+        member=".library.MoleculeDesignLibraryMember"
+        collection_root_name="molecule-design-libraries"
+        entity="thelma.models.library.MoleculeDesignLibrary"
+    >
+    </resource>
+
+
+    <!-- Molecule Design Set -->
+
+    <resource
+        interface="thelma.interfaces.IMoleculeDesignSet"
+        member=".moleculedesign.MoleculeDesignSetMember"
+        collection=".moleculedesign.MoleculeDesignSetCollection"
+        entity="thelma.models.moleculedesign.MoleculeDesignSet"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/MoleculeDesignSet.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/moleculedesignset" />
+            <option
+                name="xml_prefix"
+                value="mds" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="molecule_design_set" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="molecule_design_sets" />
+        </representer>
+    </resource>
+
+    <!-- Molecule Design Pool -->
+
+    <resource
+        interface="thelma.interfaces.IMoleculeDesignPool"
+        member=".moleculedesign.MoleculeDesignPoolMember"
+        entity="thelma.models.moleculedesign.MoleculeDesignPool"
+        collection_root_name="molecule-design-pools"
+        expose="true"
+    >
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="molecule_design_pool" />
+            <attribute name="molecule_designs">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="molecule_designs.chemical_structures">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute
+                name="molecule_designs.chemical_structures.structure_type"
+            >
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute
+                name="molecule_designs.chemical_structures.structure_type.molecule_types"
+            >
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="molecule_designs.genes">
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+            <attribute name="genes">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="genes.molecule_designs">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="molecule_design_pools" />
+        </representer>
+    </resource>
+
+    <!-- Molecule Design Pool Set -->
+
+    <resource
+        interface="thelma.interfaces.IMoleculeDesignPoolSet"
+        member=".moleculedesign.MoleculeDesignPoolSetMember"
+        entity="thelma.models.moleculedesign.MoleculeDesignPoolSet"
+        collection_root_name='molecule-design-pool-sets'
+        expose="false"
+    >
+
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/MoleculeDesignPoolSet.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/moleculedesignpoolset" />
+            <option
+                name="xml_prefix"
+                value="mdps" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="molecule_design_pool_set" />
+            <attribute name="molecule_design_pools">
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.CsvMime"
+        >
+            <attribute name="id">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="molecule_type">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="molecule_design_pools.set_type">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="molecule_design_pools">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="molecule_design_pools.molecule_type">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+
+        </representer>
+    </resource>
+
+    <!-- Molecule Modification -->
+
+    <resource
+        interface="thelma.interfaces.IMoleculeModification"
+        member=".moleculemodification.MoleculeModificationMember"
+        collection=".moleculemodification.MoleculeModificationCollection"
+        entity="thelma.models.moleculemodification.MoleculeModification"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/MoleculeModification.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/moleculemodification" />
+            <option
+                name="xml_prefix"
+                value="mmo" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="molecule_modification" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="molecule_modifications" />
+        </representer>
+    </resource>
+
+    <!-- Molecule Type -->
+
+    <resource
+        interface="thelma.interfaces.IMoleculeType"
+        member=".moleculetype.MoleculeTypeMember"
+        collection=".moleculetype.MoleculeTypeCollection"
+        entity="thelma.models.moleculetype.MoleculeType"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/MoleculeType.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/moleculetype" />
+            <option
+                name="xml_prefix"
+                value="mt" />
+            <attribute name="modifications">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/moleculetype"
+                >
+                </option>
+            </attribute>
+            <attribute name="modifications.molecule_designs">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="modifications.structure_type">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="modifications.structure_type.molecule_types">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="molecule_type" />
+            <attribute name="modifications">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="molecule_types" />
+            <attribute name="modifications">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+        </representer>
+    </resource>
+
+
+    <!-- Organization -->
+
+    <resource
+        interface="thelma.interfaces.IOrganization"
+        member=".organization.OrganizationMember"
+        collection=".organization.OrganizationCollection"
+        entity="thelma.models.organization.Organization"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/Organization.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/organization" />
+            <option
+                name="xml_prefix"
+                value="o" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="organization" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="organizations" />
+        </representer>
+    </resource>
+
+
+    <!-- Project -->
+
+    <resource
+        interface="thelma.interfaces.IProject"
+        member=".project.ProjectMember"
+        collection=".project.ProjectCollection"
+        entity="thelma.models.project.Project"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/Project.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/project" />
+            <option
+                name="xml_prefix"
+                value="p" />
+            <attribute name="leader">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/project" />
+            </attribute>
+            <attribute name="customer">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/project" />
+            </attribute>
+            <attribute name="subprojects">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="project" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="projects" />
+            <attribute name="subprojects.project">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+        </representer>
+    </resource>
+
+
+    <!-- Rack (Plate & TubeRack) -->
+
+    <resource
+        interface="thelma.interfaces.IRack"
+        member=".rack.RackMember"
+        collection=".rack.RackCollection"
+        entity="thelma.models.rack.Rack"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/Rack.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/rack" />
+            <option
+                name="xml_prefix"
+                value="r" />
+            <attribute name="specs">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/rack" />
+            </attribute>
+            <attribute name="status">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/rack" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="rack" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="racks" />
+            <attribute name="containers">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+        </representer>
+    </resource>
+
+    <resource
+        interface="thelma.interfaces.ITubeRack"
+        member=".rack.TubeRackMember"
+        collection=".rack.TubeRackCollection"
+        entity="thelma.models.rack.TubeRack"
+    >
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="tube_rack" />
+            <attribute name="specs">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/rack" />
+            </attribute>
+            <attribute name="containers">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="containers.sample_molecules.product_id">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+        </representer>
+    </resource>
+
+    <resource
+        interface="thelma.interfaces.IPlate"
+        member=".rack.PlateMember"
+        collection=".rack.PlateCollection"
+        entity="thelma.models.rack.Plate"
+    >
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="plate" />
+            <attribute name="specs">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/rack" />
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="containers">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="containers.sample_molecules.product_id">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+        </representer>
+    </resource>
+
+
+    <!-- Rack Layout -->
+
+    <resource
+        interface="thelma.interfaces.IRackLayout"
+        member=".racklayout.RackLayoutMember"
+        collection=".racklayout.RackLayoutCollection"
+        entity="thelma.models.racklayout.RackLayout"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/RackLayout.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/racklayout" />
+            <option
+                name="xml_prefix"
+                value="rl" />
+            <attribute name="shape">
+                <option
+                    name="repr_name"
+                    value="rack_shape" />
+            </attribute>
+            <attribute name="tagged_rack_position_sets">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute
+                name="tagged_rack_position_sets.tagged_rack_position_set"
+            >
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="rack_layout" />
+            <attribute name="shape">
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="rack_layouts" />
+            <attribute name="shape">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+        </representer>
+    </resource>
+
+
+    <!-- Rack Position -->
+
+    <resource
+        interface="thelma.interfaces.IRackPosition"
+        member=".rack.RackPositionMember"
+        collection_root_name="rack-positions"
+        entity="thelma.models.rack.RackPosition"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/RackPosition.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/rackposition" />
+            <option
+                name="xml_prefix"
+                value="rp" />
+            <attribute name="tagged_rack_positions">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="rack_position" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="rack_positions" />
+        </representer>
+    </resource>
+
+
+    <!-- Rack Position Set -->
+
+    <resource
+        interface="thelma.interfaces.IRackPositionSet"
+        member=".rack.RackPositionSetMember"
+        collection=".rack.RackPositionSetCollection"
+        entity="thelma.models.rack.RackPositionSet"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/RackPositionSet.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/rackpositionset" />
+            <option
+                name="xml_prefix"
+                value="rps" />
+            <attribute name="rack_positions">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_members_as_link"
+                    value="true" />
+                <!-- <option name="write_as_link" value="false" /> -->
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="rack_position_set" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="rack_position_sets" />
+        </representer>
+    </resource>
+
+
+    <!-- Rack Shape -->
+
+    <resource
+        interface="thelma.interfaces.IRackShape"
+        member=".rack.RackShapeMember"
+        collection=".rack.RackShapeCollection"
+        entity="thelma.models.rack.RackShape"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/RackShape.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/rackshape" />
+            <option
+                name="xml_prefix"
+                value="rs" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="rack_shape" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="rack_shapes" />
+        </representer>
+    </resource>
+
+
+    <!-- Rack Specs -->
+
+    <resource
+        interface="thelma.interfaces.IRackSpecs"
+        member=".rackspecs.RackSpecsMember"
+        collection=".rackspecs.RackSpecsCollection"
+        entity="thelma.models.rack.RackSpecs"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/RackSpecs.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/rackspecs" />
+            <option
+                name="xml_prefix"
+                value="rsp" />
+            <attribute name="shape">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/rackspecs" />
+            </attribute>
+            <attribute name="manufacturer">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/rackspecs" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="rack_specs" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="rack_specses" />
+        </representer>
+    </resource>
+
+    <resource
+        interface="thelma.interfaces.ITubeRackSpecs"
+        member=".rackspecs.TubeRackSpecsMember"
+        collection=".rackspecs.TubeRackSpecsCollection"
+        entity="thelma.models.rack.TubeRackSpecs"
+    >
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="tube_rack_specs" />
+            <attribute name="tube_specs">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/rackspecs" />
+            </attribute>
+        </representer>
+    </resource>
+
+    <resource
+        interface="thelma.interfaces.IPlateSpecs"
+        member=".rackspecs.PlateSpecsMember"
+        collection=".rackspecs.PlateSpecsCollection"
+        entity="thelma.models.rack.PlateSpecs"
+    >
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="plate_specs" />
+            <!-- <attribute name="well_specs"> <option name="ignore" value="false" 
+                type="zope.configuration.fields.Bool" /> </attribute> -->
+        </representer>
+    </resource>
+
+
+    <!-- Reservoir Specs -->
+
+    <resource
+        interface="thelma.interfaces.IReservoirSpecs"
+        member=".liquidtransfer.ReservoirSpecsMember"
+        collection=".liquidtransfer.ReservoirSpecsCollection"
+        entity="thelma.models.liquidtransfer.ReservoirSpecs" />
+
+
+    <!-- Sample -->
+
+    <resource
+        interface="thelma.interfaces.ISample"
+        member=".sample.SampleMember"
+        entity="thelma.models.sample.Sample"
+        expose="false"
+    >
+    </resource>
+
+
+    <!-- StockSample -->
+
+    <resource
+        interface="thelma.interfaces.IStockSample"
+        member=".sample.StockSampleMember"
+        entity="thelma.models.sample.StockSample"
+        expose="false"
+    >
+    </resource>
+
+
+    <!-- Sample Molecule -->
+
+    <resource
+        interface="thelma.interfaces.ISampleMolecule"
+        member=".sample.SampleMoleculeMember"
+        collection=".sample.SampleMoleculeCollection"
+        entity="thelma.models.sample.SampleMolecule"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/SampleMolecule.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/samplemolecule" />
+            <option
+                name="xml_prefix"
+                value="sm" />
+            <attribute name="supplier">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/samplemolecule" />
+            </attribute>
+            <attribute name="supplier_molecule_design">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="sample_molecule" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="sample_molecules" />
+        </representer>
+    </resource>
+
+    <!-- SampleRegistrationItem -->
+
+    <resource
+        interface="thelma.automation.tools.stock.sampleregistration.ISampleRegistrationItem"
+        member="thelma.automation.tools.stock.sampleregistration.SampleRegistrationItemMember"
+        entity="thelma.automation.tools.stock.sampleregistration.SampleRegistrationItem"
+        expose="false"
+        repository="MEMORY"
+    >
+    </resource>
+
+    <!-- SupplierSampleRegistrationItem -->
+
+    <resource
+        interface="thelma.automation.tools.stock.sampleregistration.ISupplierSampleRegistrationItem"
+        member="thelma.automation.tools.stock.sampleregistration.SupplierSampleRegistrationItemMember"
+        entity="thelma.automation.tools.stock.sampleregistration.SupplierSampleRegistrationItem"
+        expose="false"
+        repository="MEMORY"
+    >
+        <representer content_type="everest.mime.JsonMime">
+            <attribute name="molecule_design_pool_registration_item">
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+            <attribute
+                name="molecule_design_pool_registration_item.molecule_design_registration_items"
+            >
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+            <attribute
+                name="molecule_design_pool_registration_item.molecule_design_registration_items.chemical_structures"
+            >
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+        </representer>
+    </resource>
+
+    <!-- MoleculeDesignRegistrationItem -->
+
+    <resource
+        interface="thelma.automation.tools.stock.sampleregistration.IMoleculeDesignRegistrationItem"
+        member="thelma.automation.tools.stock.sampleregistration.MoleculeDesignRegistrationItemMember"
+        entity="thelma.automation.tools.stock.sampleregistration.MoleculeDesignRegistrationItem"
+        expose="false"
+        repository="MEMORY"
+    >
+        <representer content_type="everest.mime.JsonMime">
+            <attribute name="chemical_structures">
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+        </representer>
+    </resource>
+
+    <!-- MoleculeDesignPoolRegistrationItem -->
+
+    <resource
+        interface="thelma.automation.tools.stock.sampleregistration.IMoleculeDesignPoolRegistrationItem"
+        member="thelma.automation.tools.stock.sampleregistration.MoleculeDesignPoolRegistrationItemMember"
+        entity="thelma.automation.tools.stock.sampleregistration.MoleculeDesignPoolRegistrationItem"
+        expose="false"
+        repository="MEMORY"
+    >
+        <representer content_type="everest.mime.JsonMime">
+            <attribute name="molecule_design_registration_items">
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+        </representer>
+    </resource>
+
+    <!-- Species -->
+
+    <resource
+        interface="thelma.interfaces.ISpecies"
+        member=".species.SpeciesMember"
+        collection=".species.SpeciesCollection"
+        entity="thelma.models.species.Species"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/Species.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/species" />
+            <option
+                name="xml_prefix"
+                value="sc" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="species" />
+            <attribute name="genes">
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="specieses" />
+            <attribute name="genes">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+        </representer>
+    </resource>
+
+
+    <!-- Stock Info -->
+
+    <resource
+        interface="thelma.interfaces.IStockInfo"
+        member=".stockinfo.StockInfoMember"
+        collection=".stockinfo.StockInfoCollection"
+        entity="thelma.models.stockinfo.StockInfo"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/StockInfo.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/stockinfo" />
+            <option
+                name="xml_prefix"
+                value="si" />
+            <!-- FIXME: uncomment once we can properly transmit the molecule 
+                design pool link <attribute name="molecule_design_pool_id"> <option name="ignore" 
+                value="true" > </option> </attribute> -->
+            <attribute name="molecule_design_pool.molecule_designs">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="genes">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="genes.molecule_designs">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="genes.molecule_design_pools">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="stockinfo" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="stockinfos" />
+        </representer>
+    </resource>
+
+
+    <!-- Stock Sample -->
+
+    <resource
+        interface="thelma.interfaces.IStockSample"
+        member=".sample.StockSampleMember"
+        collection_root_name="stock-samples"
+        entity="thelma.models.sample.StockSample"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/StockSample.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/stocksample" />
+            <option
+                name="xml_prefix"
+                value="ss" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="stocksample" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="stocksamples" />
+        </representer>
+    </resource>
+
+    <!-- Subproject -->
+
+    <resource
+        interface="thelma.interfaces.ISubproject"
+        member=".subproject.SubprojectMember"
+        collection=".subproject.SubprojectCollection"
+        entity="thelma.models.subproject.Subproject"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/SubProject.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/subproject" />
+            <option
+                name="xml_prefix"
+                value="sp" />
+            <attribute name="title">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="subproject" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="subprojects" />
+        </representer>
+    </resource>
+
+
+    <!-- SupplierMoleculeDesign -->
+
+    <resource
+        interface='thelma.interfaces.ISupplierMoleculeDesign'
+        member='.suppliermoleculedesign.SupplierMoleculeDesignMember'
+        entity='thelma.models.suppliermoleculedesign.SupplierMoleculeDesign'
+        expose='false'
+    >
+    </resource>
+
+    <!-- Tag -->
+
+    <resource
+        interface="thelma.interfaces.ITag"
+        member=".tagging.TagMember"
+        collection=".tagging.TagCollection"
+        entity="thelma.models.tagging.Tag"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/Tag.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/tag" />
+            <option
+                name="xml_prefix"
+                value="t" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="tag" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="tags" />
+        </representer>
+    </resource>
+
+
+    <!-- Tagged Rack Position Set -->
+
+    <resource
+        interface="thelma.interfaces.ITaggedRackPositionSet"
+        member=".tagging.TaggedRackPositionSetMember"
+        collection=".tagging.TaggedRackPositionSetCollection"
+        entity="thelma.models.tagging.TaggedRackPositionSet"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/TaggedRackPositionSet.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/taggedrackpositionset" />
+            <option
+                name="xml_prefix"
+                value="tp" />
+            <attribute name="tags">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="rack_position_set">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="tagged_rack_position_set" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="tagged_rack_position_sets" />
+        </representer>
+    </resource>
+
+
+    <!-- Target Set -->
+
+    <resource
+        interface="thelma.interfaces.ITargetSet"
+        member=".gene.TargetSetMember"
+        collection=".gene.TargetSetCollection"
+        entity="thelma.models.gene.TargetSet"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/TargetSet.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/targetset" />
+            <option
+                name="xml_prefix"
+                value="tas" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="target_set" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="target_sets" />
+        </representer>
+    </resource>
+
+
+    <!-- Transcript -->
+
+    <resource
+        interface="thelma.interfaces.ITranscript"
+        member=".gene.TranscriptMember"
+        collection=".gene.TranscriptCollection"
+        entity="thelma.models.gene.Transcript"
+        expose="false"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/Transcript.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/transcript" />
+            <option
+                name="xml_prefix"
+                value="tr" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="transcript" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="transcripts" />
+        </representer>
+    </resource>
+
+
+    <!-- User -->
+
+    <resource
+        interface="thelma.interfaces.IUser"
+        member=".user.UserMember"
+        collection=".user.UserCollection"
+        entity="thelma.models.user.User"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/User.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/user" />
+            <option
+                name="xml_prefix"
+                value="u" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="user" />
+            <attribute name="user_preferenceses">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="users" />
+        </representer>
+    </resource>
+
+
+    <!-- Tube Transfer -->
+
+    <resource
+        interface="thelma.interfaces.ITubeTransfer"
+        member=".tubetransfer.TubeTransferMember"
+        collection_root_name="tube-transfers"
+        entity="thelma.models.tubetransfer.TubeTransfer"
+        expose="false"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/TubeTransfer.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/tubetransfer" />
+            <option
+                name="xml_prefix"
+                value="tt" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="tube_transfer" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="tube_transfers" />
+        </representer>
+    </resource>
+
+
+    <!-- Tube Transfer Worklist -->
+
+    <resource
+        interface="thelma.interfaces.ITubeTransferWorklist"
+        member=".tubetransfer.TubeTransferWorklistMember"
+        collection_root_name="tube-transfer-worklists"
+        entity="thelma.models.tubetransfer.TubeTransferWorklist"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/TubeTransferWorklist.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/tubetransferworklist" />
+            <option
+                name="xml_prefix"
+                value="ttw" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="tube_transfer_worklist" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="tube_transfer_worklists" />
+        </representer>
+    </resource>
+
+
+    <!-- UserPreferences -->
+
+    <resource
+        interface="thelma.interfaces.IUserPreferences"
+        member=".user.UserPreferencesMember"
+        collection=".user.UserPreferencesCollection"
+        entity="thelma.models.user.UserPreferences"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/UserPreferences.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/userpreferences" />
+            <option
+                name="xml_prefix"
+                value="up" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="user_preferences" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="user_preferenceses" />
+        </representer>
+    </resource>
+
+</configure>

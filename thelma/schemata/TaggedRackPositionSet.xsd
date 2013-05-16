@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/taggedrackpositionset"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:rps="http://schemata.cenix-bioscience.com/rackpositionset"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:tp="http://schemata.cenix-bioscience.com/taggedrackpositionset"
+    xmlns:tag="http://schemata.cenix-bioscience.com/tag"
+>
+    <import
+        schemaLocation="RackPositionSet.xsd"
+        namespace="http://schemata.cenix-bioscience.com/rackpositionset"
+    >
+    </import>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+    <import
+        schemaLocation="Tag.xsd"
+        namespace="http://schemata.cenix-bioscience.com/tag"
+    >
+    </import>
+
+    <complexType
+        name="TaggedRackPositionSetType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="tp:TaggedRackPositionSetLinkType"
+                    >
+                    </element>
+                    <sequence>
+                         <element
+                             ref="tag:tags"
+                             minOccurs="1"
+                             maxOccurs="1"
+                         >
+                         </element>
+                         <element
+                             ref="rps:rack_position_set"
+                             minOccurs="1"
+                             maxOccurs="1"
+                         >
+                         </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="TaggedRackPositionSetCollectionType"
+    >
+         <choice>
+             <element
+                 ref="tp:tagged_rack_position_set"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="tp:TaggedRackPositionSetCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+
+    </complexType>
+
+    <complexType
+        name="TaggedRackPositionSetLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/tagged-rack-position-set"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="TaggedRackPositionSetCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/tagged-rack-position-set-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="tagged_rack_position_set"
+        type="tp:TaggedRackPositionSetType"
+    >
+    </element>
+
+    <element
+        name="tagged_rack_position_sets"
+        type="tp:TaggedRackPositionSetCollectionType"
+    ></element>
+
+</schema>

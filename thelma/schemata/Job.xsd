@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/job"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:j="http://schemata.cenix-bioscience.com/job"
+    xmlns:e="http://schemata.cenix-bioscience.com/experiment"
+    xmlns:jt="http://schemata.cenix-bioscience.com/jobtype"
+    xmlns:r="http://schemata.cenix-bioscience.com/rack"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:sp="http://schemata.cenix-bioscience.com/subproject"
+    xmlns:u="http://schemata.cenix-bioscience.com/user"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+
+    <import
+        schemaLocation="Experiment.xsd"
+        namespace="http://schemata.cenix-bioscience.com/experiment"
+    >
+    </import>
+
+    <import
+        schemaLocation="JobType.xsd"
+        namespace="http://schemata.cenix-bioscience.com/jobtype"
+    >
+    </import>
+
+    <import
+        schemaLocation="Subproject.xsd"
+        namespace="http://schemata.cenix-bioscience.com/subproject"
+    >
+    </import>
+
+    <import
+        schemaLocation="User.xsd"
+        namespace="http://schemata.cenix-bioscience.com/user"
+    >
+    </import>
+
+    <import
+        schemaLocation="Rack.xsd"
+        namespace="http://schemata.cenix-bioscience.com/rack"
+    >
+    </import>
+
+    <complexType
+        name="JobType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="j:JobLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="label"
+                            type="string"
+                        >
+                        </element>
+                        <element
+                            name="description"
+                            type="string"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            ref="jt:job_type"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            ref="u:user"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            ref="sp:subproject"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="status"
+                            type="string"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="start_time"
+                            type="dateTime"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="end_time"
+                            type="dateTime"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            ref="e:experiments"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="iso_control_stock_rack"
+                            type="r:RackType"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="IsoJobType">
+        <complexContent>
+            <extension base="j:JobType">
+
+       <!--       <choice>
+                    <element
+                        name="link"
+                        type="j:JobLinkType"
+                    ></element>
+                    <sequence>
+                        <element
+                            ref="r:tube_rack"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            ref="rsp:tube_rack_specs"
+                            maxOccurs="1"
+                            minOccurs="0"
+                        >
+                        </element>
+                        <element
+                            ref="csp:tube_specs"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <group ref="j:JobBase">
+                        </group>
+                    </sequence>
+                </choice>
+                 -->
+        </extension>
+           </complexContent>
+       </complexType>
+
+        <complexType name="ExperimentJobType">
+            <complexContent>
+            <extension base="j:JobType">
+            </extension>
+           </complexContent>
+       </complexType>
+
+    <complexType
+        name="JobCollectionType"
+    >
+        <sequence
+            maxOccurs="unbounded"
+            minOccurs="0"
+        >
+            <choice>
+                <element
+                    name="link"
+                    type="j:JobCollectionLinkType"
+                    maxOccurs="1"
+                    minOccurs="0"
+                ></element>
+                <element
+                    ref="j:job"
+                    maxOccurs="unbounded"
+                    minOccurs="0"
+                ></element>
+            </choice>
+        </sequence>
+    </complexType>
+
+    <complexType
+        name="JobLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/job"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="JobCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/job-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="job"
+        type="j:JobType"
+    >
+    </element>
+
+    <element
+        name="iso_job"
+        type="j:IsoJobType"
+    >
+    </element>
+
+    <element
+        name="experiment_job"
+        type="j:ExperimentJobType"
+    >
+    </element>
+    <element
+        name="jobs"
+        type="j:JobCollectionType"
+    ></element>
+
+</schema>

@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/userpreferences"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:up="http://schemata.cenix-bioscience.com/userpreferences"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+
+    <complexType
+        name="UserPreferencesType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="up:UserPreferencesLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="app_name"
+                            type="string"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="preferences"
+                            type="string"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                    </sequence>
+
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="UserPreferencesCollectionType"
+    >
+         <choice>
+             <element
+                 ref="up:user_preferences"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="up:UserPreferencesCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+    </complexType>
+
+    <complexType
+        name="UserPreferencesLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/userpreferences"
+                >
+                </attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="UserPreferencesCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/userpreferences-collection"
+                >
+                </attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="user_preferenceses"
+        type="up:UserPreferencesCollectionType"
+    >
+    </element>
+
+    <element
+        name="user_preferences"
+        type="up:UserPreferencesType"
+    >
+    </element>
+
+</schema>

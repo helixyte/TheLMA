@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/isorequest"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:em="http://schemata.cenix-bioscience.com/experimentmetadata"
+    xmlns:emt="http://schemata.cenix-bioscience.com/experimentmetadatatype"
+    xmlns:iso="http://schemata.cenix-bioscience.com/iso"
+    xmlns:isor="http://schemata.cenix-bioscience.com/isorequest"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:rl="http://schemata.cenix-bioscience.com/racklayout"
+    xmlns:u="http://schemata.cenix-bioscience.com/user"
+>
+    <import
+        schemaLocation="ExperimentMetadata.xsd"
+        namespace="http://schemata.cenix-bioscience.com/experimentmetadata"
+    >
+    </import>
+
+    <import
+        schemaLocation="ExperimentMetadataType.xsd"
+        namespace="http://schemata.cenix-bioscience.com/experimentmetadatatype"
+    >
+    </import>
+
+    <import
+        schemaLocation="Iso.xsd"
+        namespace="http://schemata.cenix-bioscience.com/iso"
+    >
+    </import>
+
+    <import
+        schemaLocation="RackLayout.xsd"
+        namespace="http://schemata.cenix-bioscience.com/racklayout"
+    >
+    </import>
+
+    <import
+        schemaLocation="User.xsd"
+        namespace="http://schemata.cenix-bioscience.com/user"
+    >
+    </import>
+
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+
+    <complexType name="IsoRequestType">
+        <complexContent>
+            <extension base="sh:ResourceType">
+                <choice>
+                    <element
+                        name="link"
+                        type="isor:IsoRequestLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="iso_type"
+                            type="string"
+                        >
+                        </element>
+                        <element
+                            name="plate_set_label"
+                            type="string"
+                        >
+                        </element>
+                        <element
+                            ref="rl:rack_layout"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="delivery_date"
+                            type="dateTime"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            ref="iso:isos"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="requester"
+                            type="u:UserType"
+                        ></element>
+                        <element
+                            name="owner"
+                            type="string"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="number_plates"
+                            type="int"
+                        >
+                        </element>
+                        <element
+                            name="number_aliquots"
+                            type="int"
+                        >
+                        </element>
+                        <element
+                            name="ticket_number"
+                            type="positiveInteger"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            ref="em:experiment_metadata"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+							ref="emt:experiment_metadata_type"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="IsoRequestCollectionType">
+        <choice>
+            <element
+                ref="isor:iso_request"
+                maxOccurs="unbounded"
+                minOccurs="0"
+            >
+            </element>
+            <element
+                name="link"
+                type="isor:IsoRequestCollectionLinkType"
+                maxOccurs="1"
+                minOccurs="0"
+            >
+            </element>
+        </choice>
+    </complexType>
+
+    <complexType name="IsoRequestLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/iso-request"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType name="IsoRequestCollectionLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/iso-request-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+    <element
+        name="iso_request"
+        type="isor:IsoRequestType"
+    >
+    </element>
+
+    <element
+        name="iso_requests"
+        type="isor:IsoRequestCollectionType"
+    ></element>
+
+</schema>

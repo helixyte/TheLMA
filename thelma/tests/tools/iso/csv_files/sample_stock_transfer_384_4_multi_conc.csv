@@ -1,0 +1,6 @@
+"SourcePlateBarcode";"SourcePlateWell";"DestinationPlateBarcode";"DestinationPlateWell";"Volume"
+"09999911";"A1";"09999922";"A1";9
+"09999911";"A2";"09999922";"A3";9
+"09999911";"B1";"09999922";"C1";9
+"09999913";"A1";"09999922";"B1";9
+"09999913";"A2";"09999922";"B3";9

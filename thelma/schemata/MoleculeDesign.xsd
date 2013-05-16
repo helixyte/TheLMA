@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/moleculedesign"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:md="http://schemata.cenix-bioscience.com/moleculedesign"
+    xmlns:g="http://schemata.cenix-bioscience.com/gene"
+    xmlns:mt="http://schemata.cenix-bioscience.com/moleculetype"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:chs="http://schemata.cenix-bioscience.com/chemicalstructure"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+    <import
+        schemaLocation="Gene.xsd"
+        namespace="http://schemata.cenix-bioscience.com/gene"
+    >
+    </import>
+    <import
+        schemaLocation="MoleculeType.xsd"
+        namespace="http://schemata.cenix-bioscience.com/moleculetype"
+    >
+    </import>
+    <import
+        schemaLocation="ChemicalStructure.xsd"
+        namespace="http://schemata.cenix-bioscience.com/chemicalstructure"
+    >
+    </import>
+
+    <complexType
+        name="MoleculeDesignType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="md:MoleculeDesignLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            ref="mt:molecule_type"
+                        >
+                        </element>
+                        <element
+                            ref="chs:chemical_structures"
+                        >
+                        </element>
+                        <element
+                            ref="g:genes"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="MoleculeDesignCollectionType"
+    >
+        <choice>
+            <element
+                ref="md:molecule_design"
+                maxOccurs="unbounded"
+                minOccurs="0"
+            >
+            </element>
+            <element
+                name="link"
+                type="md:MoleculeDesignCollectionLinkType"
+                maxOccurs="1"
+                minOccurs="0"
+            >
+            </element>
+        </choice>
+
+    </complexType>
+
+    <complexType
+        name="MoleculeDesignLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+
+                    fixed="http://relations.cenix-bioscience.com/molecule-design"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="MoleculeDesignCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+
+                    fixed="http://relations.cenix-bioscience.com/molecule-design-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="molecule_design"
+        type="md:MoleculeDesignType"
+    >
+    </element>
+
+    <element
+        name="molecule_designs"
+        type="md:MoleculeDesignCollectionType"
+    ></element>
+
+    <element
+        name="link"
+        type="md:MoleculeDesignLinkType"
+    ></element>
+
+</schema>

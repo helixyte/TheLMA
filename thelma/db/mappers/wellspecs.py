@@ -1,0 +1,24 @@
+"""
+Well specs mapper.
+"""
+from sqlalchemy.orm import mapper
+from sqlalchemy.orm import relationship
+from thelma.models.container import CONTAINER_SPECS_TYPES
+from thelma.models.container import WellSpecs
+from thelma.models.rack import PlateSpecs
+
+__docformat__ = 'reStructuredText en'
+__all__ = ['create_mapper']
+
+
+def create_mapper(containerspecs_mapper, rack_specs_container_specs_tbl):
+    "Mapper factory."
+    rscs = rack_specs_container_specs_tbl
+    m = mapper(WellSpecs, inherits=containerspecs_mapper,
+        properties=dict(
+            plate_specs=relationship(PlateSpecs, uselist=False, secondary=rscs,
+                                     back_populates='well_specs')
+            ),
+        polymorphic_identity=CONTAINER_SPECS_TYPES.WELL,
+        )
+    return m

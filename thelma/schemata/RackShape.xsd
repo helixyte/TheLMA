@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/rackshape"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:rs="http://schemata.cenix-bioscience.com/rackshape"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+
+    <complexType
+        name="RackShapeType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="rs:RackShapeLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="name"
+                            type="string"
+                        >
+                        </element>
+                        <element
+                            name="label"
+                            type="string"
+                        >
+                        </element>
+                        <element
+                            name="number_rows"
+                            type="nonNegativeInteger"
+                        >
+                        </element>
+                        <element
+                            name="number_columns"
+                            type="nonNegativeInteger"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="RackShapeCollectionType"
+    >
+         <choice>
+             <element
+                 ref="rs:rack_shape"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="rs:RackShapeCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+    </complexType>
+
+    <complexType
+        name="RackShapeLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/rack-shape"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="RackShapeCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/rack-shape-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="rack_shape"
+        type="rs:RackShapeType"
+    >
+    </element>
+
+    <element
+        name="rack_shapes"
+        type="rs:RackShapeCollectionType"
+    ></element>
+
+</schema>

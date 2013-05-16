@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/chemicalstructure"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:chs="http://schemata.cenix-bioscience.com/chemicalstructure"
+    xmlns:chst="http://schemata.cenix-bioscience.com/chemicalstructuretype"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+>
+    <import
+        schemaLocation="ChemicalStructureType.xsd"
+        namespace="http://schemata.cenix-bioscience.com/chemicalstructuretype"
+    >
+    </import>
+
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+
+
+    <complexType name="ChemicalStructureType">
+        <complexContent>
+            <extension base="sh:ResourceType">
+                <choice>
+                    <element
+                        name="link"
+                        type="chs:ChemicalStructureLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            ref="chst:chemical_structure_type"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="representation"
+                            type="string"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="ChemicalStructureCollectionType">
+        <choice>
+            <element
+                ref="chs:chemical_structure"
+                maxOccurs="unbounded"
+                minOccurs="0"
+            >
+            </element>
+            <element
+                name="link"
+                type="chs:ChemicalStructureCollectionLinkType"
+                maxOccurs="1"
+                minOccurs="0"
+            >
+            </element>
+        </choice>
+
+    </complexType>
+
+    <complexType name="ChemicalStructureLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/chemical-structure"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType name="ChemicalStructureCollectionLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/chemical-structure-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="chemical_structure"
+        type="chs:ChemicalStructureType"
+    >
+    </element>
+
+    <element
+        name="chemical_structures"
+        type="chs:ChemicalStructureCollectionType"
+    ></element>
+
+</schema>

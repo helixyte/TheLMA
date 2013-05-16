@@ -1,0 +1,4 @@
+A stock transfer has been executed by Michael Brehm (see file: attachment:stock_transfer_test_iso_job.csv).
+
+Type: controls
+Involved ISOs (preparation plates): test_iso0 (09999990), test_iso1 (09999991).

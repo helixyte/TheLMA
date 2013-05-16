@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/project"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:o="http://schemata.cenix-bioscience.com/organization"
+    xmlns:p="http://schemata.cenix-bioscience.com/project"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:sp="http://schemata.cenix-bioscience.com/subproject"
+    xmlns:u="http://schemata.cenix-bioscience.com/user"
+>
+
+
+    <import
+        schemaLocation="Organization.xsd"
+        namespace="http://schemata.cenix-bioscience.com/organization"
+    >
+    </import>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+    <import
+        schemaLocation="Subproject.xsd"
+        namespace="http://schemata.cenix-bioscience.com/subproject"
+    >
+    </import>
+    <import
+        schemaLocation="User.xsd"
+        namespace="http://schemata.cenix-bioscience.com/user"
+    >
+    </import>
+
+
+    <complexType
+        name="ProjectType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="p:ProjectLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="label"
+                            type="string"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="creation_date"
+                            type="dateTime"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="leader"
+                            type="u:UserType"
+                        ></element>
+                        <element
+                            name="customer"
+                            type="o:OrganizationType"
+                        >
+                        </element>
+                        <element
+                            ref="sp:subprojects"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="ProjectCollectionType"
+    >
+         <choice>
+             <element
+                 ref="p:project"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="p:ProjectCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+
+    </complexType>
+
+    <complexType
+        name="ProjectLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/project"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="ProjectCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/project-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="project"
+        type="p:ProjectType"
+    >
+    </element>
+
+    <element
+        name="projects"
+        type="string"
+    ></element>
+</schema>

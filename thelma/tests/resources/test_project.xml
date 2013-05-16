@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<p:project
+    xmlns:p="http://schemata.cenix-bioscience.com/project"
+    xmlns:sp="http://schemata.cenix-bioscience.com/subproject"
+    xmlns:u="http://schemata.cenix-bioscience.com/user"
+    xmlns:o="http://schemata.cenix-bioscience.com/organization"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://schemata.cenix-bioscience.com/project ../../schemata/Project.xsd "
+>
+
+    <p:label>TestProject</p:label>
+    <p:creation_date>2005-10-25T12:01:33+02:00</p:creation_date>
+    <p:leader>
+        <u:link
+            rel="http://relations.cenix-bioscience.com/user"
+            kind="MEMBER"
+            title="Christoph Sachse"
+            href="http://localhost:6543/users/sachse/" />
+    </p:leader>
+    <p:customer>
+        <o:link
+            rel="http://relations.cenix-bioscience.com/organization"
+            kind="MEMBER"
+            title="Ambion"
+            href="http://localhost:6543/organizations/ambion/" />
+    </p:customer>
+    <sp:subprojects>
+        <sp:subproject>
+            <sp:label>-1</sp:label>
+            <sp:creation_date>2005-10-25T12:01:33+02:00</sp:creation_date>
+            <sp:active>false</sp:active>
+        </sp:subproject>
+    </sp:subprojects>
+</p:project>

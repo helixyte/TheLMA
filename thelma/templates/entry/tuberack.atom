@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<entry xmlns="http://www.w3.org/2005/Atom"
+       xmlns:tal="http://xml.zope.org/namespaces/tal"
+       xmlns:metal="http://xml.zope.org/namespaces/metal"
+       metal:use-macro="master.macros['standard_entry']">
+  <content type="application/vnd.everest+xml;type=TubeRackMember"
+           metal:fill-slot="content">
+    <tube_rack xmlns="http://schemata.cenix-bioscience.com/rack">
+      <label tal:content="context.label">label</label>
+      <barcode tal:content="context.barcode">02454836</barcode>
+      <comment tal:content="context.comment">My rack's comment</comment>
+      <creation_date tal:content="rfc3339(context.creation_date)">2010-11-08T11:16:37+01:00</creation_date>
+       <status>
+               <link xmlns="http://schemata.cenix-bioscience.com/itemstatus"
+                tal:omit-tag="context.status is None"
+                rel="http://relations.cenix-bioscience.com/item-status"
+                title="Managed" href="/item-statuses/managed"
+                    tal:attributes="title context.status.title;
+                            href resource_to_url(context.status, request)" />
+       </status>
+        <l:location tal:omit-tag="context.location is None" xmlns:l="http://schemata.cenix-bioscience.com/location">
+           <l:link
+            rel="http://relations.cenix-bioscience.com/location"
+            title="c4s2" href="/locations/c4s2"
+            tal:omit-tag="context.location is None"
+            tal:attributes="title context.location.title;
+                            href resource_to_url(context.location, request)" />
+         </l:location>
+
+        <co:containers tal:omit-tag="context.containers is None"
+                      xmlns:co="http://schemata.cenix-bioscience.com/container">
+ <tal:block tal:repeat="tube context.containers">
+
+    <co:tube>
+     <r:rack tal:omit-tag="tube.rack is None" xmlns:r="http://schemata.cenix-bioscience.com/rack">
+         <r:link
+          rel="http://relations.cenix-bioscience.com/rack"
+          title="c4s2" href="/racks/c4s2"
+          tal:omit-tag="tube.rack is None"
+          tal:attributes="title tube.rack.title;
+                          href resource_to_url(tube.rack, request)" />
+       </r:rack>
+
+
+         <co:position tal:omit-tag="tube.position is None"
+                        tal:content="tube.position">H5</co:position>
+
+          <co:sample_volume tal:omit-tag="tube.sample_volume is None"
+                         tal:content="tube.sample_volume" >0.0002</co:sample_volume>
+
+      <sample_molecules xmlns="http://schemata.cenix-bioscience.com/samplemolecule">
+          <tal:block tal:repeat="sm tube.sample_molecules">
+              <sample_molecule>
+                <concentration tal:condition="sm.concentration"
+                               tal:content="sm.concentration">5e-06</concentration>
+                <freeze_thaw_cycles tal:condition="sm.freeze_thaw_cycles"
+                                  tal:content="sm.freeze_thaw_cycles">2</freeze_thaw_cycles>
+                <insert_date tal:condition="sm.molecule.insert_date" tal:content="rfc3339(sm.molecule.insert_date)">2010-11-08T11:16:37+01:00</insert_date>
+                <molecule_design_id tal:content="sm.molecule.molecule_design_id">12323456</molecule_design_id>
+                <supplier_molecule_design_id tal:content="sm.molecule.supplier_molecule_design_id">s123432</supplier_molecule_design_id>
+                <supplier tal:omit-tag="sm.molecule.supplier is None">
+                    <name tal:content="sm.molecule.supplier.name" xmlns="http://schemata.cenix-bioscience.com/organization">Ambion</name>
+                </supplier>
+              </sample_molecule>
+          </tal:block>
+      </sample_molecules>
+
+    <csp:container_specs xmlns:csp="http://schemata.cenix-bioscience.com/containerspecs">
+      <csp:link tal:omit-tag="tube.specs is None"
+            rel="http://relations.cenix-bioscience.com/containerspecs"
+            title="Abgene tube (1.4 ml)" href="/container-specs/abgene1400"
+            tal:attributes="title tube.specs.title;
+                            href resource_to_url(tube.specs, request)" />
+    </csp:container_specs>
+
+    <is:itemstatus xmlns:is="http://schemata.cenix-bioscience.com/itemstatus">
+      <is:link tal:omit-tag="tube.status is None"
+            rel="http://relations.cenix-bioscience.com/item-status"
+            title="Managed" href="/item-statuses/managed"
+            tal:attributes="title tube.status.title;
+                            href resource_to_url(tube.status, request)" />
+    </is:itemstatus>
+
+      <co:barcode tal:content="tube.barcode">1002342345</co:barcode>
+
+
+    </co:tube>
+</tal:block>
+
+         </co:containers>
+      <specs>
+          <link xmlns="http://schemata.cenix-bioscience.com/rackspecs"
+                    rel="http://relations.cenix-bioscience.com/rack-specs"
+                    title="Abgene 96 tube rack (1.4 ml)" href="/rack-specs/abgene1400"
+                    tal:omit-tag="context.specs is None"
+                     tal:attributes="title context.specs.title;
+                            href resource_to_url(context.specs, request)" />
+       </specs>
+    </tube_rack>
+  </content>
+</entry>

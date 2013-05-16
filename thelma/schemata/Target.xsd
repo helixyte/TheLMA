@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/target"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:ta="http://schemata.cenix-bioscience.com/target"
+    xmlns:md="http://schemata.cenix-bioscience.com/moleculedesign"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:tr="http://schemata.cenix-bioscience.com/transcript"
+>
+    <import
+        schemaLocation="MoleculeDesign.xsd"
+        namespace="http://schemata.cenix-bioscience.com/moleculedesign"
+    >
+    </import>
+
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+
+    <import
+        schemaLocation="Transcript.xsd"
+        namespace="http://schemata.cenix-bioscience.com/transcript"
+    >
+    </import>
+
+    <import
+        schemaLocation="MoleculeDesign.xsd"
+        namespace="http://schemata.cenix-bioscience.com/moleculedesign"
+    >
+    </import>
+
+    <complexType
+        name="TargetType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="ta:TargetLinkType"
+                    >
+                    </element>
+                    <element
+                        ref="tr:transcript"
+                    >
+                    </element>
+                    <element
+                        ref="md:molecule_design"
+                    >
+                    </element>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="TargetCollectionType"
+    >
+         <choice>
+             <element
+                 ref="ta:target"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="ta:TargetCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+    </complexType>
+
+    <complexType
+        name="TargetLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/target"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="TargetCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/target-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="target"
+        type="ta:TargetType"
+    >
+    </element>
+
+    <element
+        name="targets"
+        type="ta:TargetCollectionType"
+    ></element>
+
+</schema>

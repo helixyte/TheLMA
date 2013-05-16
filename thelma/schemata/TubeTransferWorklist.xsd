@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/tubetransferworklist"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:tt="http://schemata.cenix-bioscience.com/tubetransfer"
+    xmlns:ttw="http://schemata.cenix-bioscience.com/tubetransferworklist"
+    xmlns:u="http://schemata.cenix-bioscience.com/user"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+    <import
+        schemaLocation="TubeTransfer.xsd"
+        namespace="http://schemata.cenix-bioscience.com/tubetransfer"
+    >
+    </import>
+    <import
+        schemaLocation="User.xsd"
+        namespace="http://schemata.cenix-bioscience.com/user"
+    >
+    </import>
+
+    <complexType name="TubeTransferWorklistType">
+        <complexContent>
+            <extension base="sh:ResourceType">
+                <choice>
+                    <element
+                        name="link"
+                        type="ttw:TubeTransferWorklistLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element ref="u:user">
+                        </element>
+                        <element ref="tt:tube_transfers">
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="TubeTransferWorklistCollectionType">
+        <choice>
+            <element
+                ref="ttw:tube_transfer_worklist"
+                maxOccurs="unbounded"
+                minOccurs="0"
+            >
+            </element>
+            <element
+                name="link"
+                type="ttw:TubeTransferWorklistCollectionLinkType"
+                maxOccurs="1"
+                minOccurs="0"
+            >
+            </element>
+        </choice>
+    </complexType>
+
+    <complexType name="TubeTransferWorklistLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/tube_transfer_worklist"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType name="TubeTransferWorklistCollectionLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/tube_transfer_worklist-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="tube_transfer_worklist"
+        type="ttw:TubeTransferWorklistType"
+    >
+    </element>
+
+    <element
+        name="tube_transfer_worklists"
+        type="ttw:TubeTransferWorklistCollectionType"
+    ></element>
+
+</schema>

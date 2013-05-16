@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/stockinfo"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:si="http://schemata.cenix-bioscience.com/stockinfo"
+    xmlns:g="http://schemata.cenix-bioscience.com/gene"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:mds="http://schemata.cenix-bioscience.com/moleculedesignset"
+    xmlns:mt="http://schemata.cenix-bioscience.com/moleculetype"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+    <import
+        schemaLocation="MoleculeDesignSet.xsd"
+        namespace="http://schemata.cenix-bioscience.com/moleculedesignset"
+    >
+    </import>
+    <import
+        schemaLocation="Gene.xsd"
+        namespace="http://schemata.cenix-bioscience.com/gene"
+    >
+    </import>
+    <import
+        schemaLocation="MoleculeType.xsd"
+        namespace="http://schemata.cenix-bioscience.com/moleculetype"
+    >
+    </import>
+
+    <complexType name="StockInfoType">
+        <complexContent>
+            <extension base="sh:ResourceType">
+                <choice>
+                    <element
+                        name="link"
+                        type="si:StockInfoLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="total_tubes"
+                            type="int"
+                        >
+                        </element>
+                        <element
+                            name="total_volume"
+                            type="float"
+                        >
+                        </element>
+                        <element
+                            name="maximum_volume"
+                            type="float"
+                        >
+                        </element>
+                        <element
+                            name="minimum_volume"
+                            type="float"
+                        >
+                        </element>
+                        <element
+                            name="concentration"
+                            type="float"
+                        >
+                        </element>
+                        <element ref="mt:molecule_type">
+                        </element>
+                        <element
+                            name="molecule_design_pool_id"
+                            type="int">
+                        </element>
+                        <element ref="mds:molecule_design_pool">
+                        </element>
+                        <element ref="g:genes">
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="StockInfoCollectionType">
+        <choice>
+            <element
+                ref="si:stockinfo"
+                maxOccurs="unbounded"
+                minOccurs="0"
+            >
+            </element>
+            <element
+                name="link"
+                type="si:StockInfoCollectionLinkType"
+                maxOccurs="1"
+                minOccurs="0"
+            >
+            </element>
+        </choice>
+    </complexType>
+
+    <complexType name="StockInfoLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/stock-info"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType name="StockInfoCollectionLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/stock-info-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="stockinfo"
+        type="si:StockInfoType"
+    >
+    </element>
+
+    <element
+        name="stockinfos"
+        type="si:StockInfoCollectionType"
+    ></element>
+
+</schema>

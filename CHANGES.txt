@@ -1,0 +1,14 @@
+0.5
+---
+
+Initial version
+
+
+0.5.1
+-----
+ * sped up container retrieval in racks
+
+0.5.2
+-----
+ * improved collection loading with new batching scheme
+ * more speedups

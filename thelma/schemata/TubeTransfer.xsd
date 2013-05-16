@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/tubetransfer"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:co="http://schemata.cenix-bioscience.com/container"
+    xmlns:r="http://schemata.cenix-bioscience.com/rack"
+    xmlns:rp="http://schemata.cenix-bioscience.com/rackposition"
+    xmlns:tt="http://schemata.cenix-bioscience.com/tubetransfer"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+>
+    <import
+        schemaLocation="Container.xsd"
+        namespace="http://schemata.cenix-bioscience.com/container"
+    >
+    </import>
+    <import
+        schemaLocation="Rack.xsd"
+        namespace="http://schemata.cenix-bioscience.com/rack"
+    >
+    </import>
+    <import
+        schemaLocation="RackPosition.xsd"
+        namespace="http://schemata.cenix-bioscience.com/rackposition"
+    >
+    </import>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+
+    <complexType name="TubeTransferType">
+        <complexContent>
+            <extension base="sh:ResourceType">
+                <choice>
+                    <element
+                        name="link"
+                        type="tt:TubeTransferLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element ref="co:tube">
+                        </element>
+                        <element
+                            name="source_rack"
+                            type="r:TubeRackType"
+                        >
+                        </element>
+                        <element
+                            name="source_position"
+                            type="rp:RackPositionType"
+                        >
+                        </element>
+                        <element
+                            name="target_rack"
+                            type="r:TubeRackType"
+                        >
+                        </element>
+                        <element
+                            name="target_position"
+                            type="rp:RackPositionType"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="TubeTransferCollectionType">
+        <choice>
+            <element
+                ref="tt:tube_transfer"
+                maxOccurs="unbounded"
+                minOccurs="0"
+            >
+            </element>
+            <element
+                name="link"
+                type="tt:TubeTransferCollectionLinkType"
+                maxOccurs="1"
+                minOccurs="0"
+            >
+            </element>
+        </choice>
+    </complexType>
+
+    <complexType name="TubeTransferLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/tube_transfer_worklist"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType name="TubeTransferCollectionLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/tube_transfer_worklist-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="tube_transfer"
+        type="tt:TubeTransferType"
+    >
+    </element>
+
+    <element
+        name="tube_transfers"
+        type="tt:TubeTransferCollectionType"
+    ></element>
+
+</schema>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"
+      xmlns:tal="http://xml.zope.org/namespaces/tal"
+      xmlns:metal="http://xml.zope.org/namespaces/metal"
+      metal:use-macro="master.macros['standard_feed']">
+  <content_type xmlns="http://schemata.cenix-bioscience.com/content_type"
+               name="application/vnd.everest+xml;type=speciesCollection"
+               metal:fill-slot="content_type" />
+  <content type="application/vnd.everest+xml;type=speciesMember"
+           metal:fill-slot="content">
+    <species xmlns="http://schemata.cenix-bioscience.com/species"
+             xmlns:atom="http://www.w3.org/2005/Atom"
+             tal:define="total_genes len(member.genes)">
+      <genusName tal:content="member.genus_name">Homo</genusName>
+      <speciesName tal:content="member.species_name">sapiens</speciesName>
+      <commonName tal:content="member.common_name">human</commonName>
+      <acronym tal:content="member.acronym">HS</acronym>
+      <ncbiTaxId tal:content="member.ncbi_tax_id">9606</ncbiTaxId>
+      <link xmlns="http://www.w3.org/2005/Atom"
+            tal:omit-tag="total_genes == 0"
+            rel="http://relations.cenix-bioscience.com/gene"
+            type="application/atom+xml;type=feed"
+            title="2" href="/genes?q=species=http://localhost/species/rat"
+            tal:attributes="title total_genes;
+                            href resource_to_url(member.genes, request)" />
+    </species>
+  </content>
+</feed>

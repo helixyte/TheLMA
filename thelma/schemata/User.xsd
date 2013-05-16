@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/user"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:u="http://schemata.cenix-bioscience.com/user"
+    xmlns:up="http://schemata.cenix-bioscience.com/userpreferences"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+    <import
+        schemaLocation="UserPreferences.xsd"
+        namespace="http://schemata.cenix-bioscience.com/userpreferences"
+    >
+    </import>
+
+    <complexType
+        name="UserType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="u:UserLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="username"
+                            type="string"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            ref="up:user_preferenceses"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="directory_user_id"
+                            type="string"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                    </sequence>
+
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="UserCollectionType"
+    >
+         <choice>
+             <element
+                 ref="u:user"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="u:UserCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+    </complexType>
+
+    <complexType
+        name="UserLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/user"
+                >
+                </attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="UserCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/user-collection"
+                >
+                </attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="user"
+        type="u:UserType"
+    >
+    </element>
+
+    <element
+        name="users"
+        type="u:UserCollectionType"
+    >
+    </element>
+
+</schema>

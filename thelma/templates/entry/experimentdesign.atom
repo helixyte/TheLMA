@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<entry xmlns="http://www.w3.org/2005/Atom"
+       xmlns:tal="http://xml.zope.org/namespaces/tal"
+       xmlns:metal="http://xml.zope.org/namespaces/metal"
+       metal:use-macro="master.macros['standard_entry']">
+  <content type="application/vnd.everest+xml;type=experimentDesignMember"
+           metal:fill-slot="content">
+    <experimentdesign xmlns="http://schemata.cenix-bioscience.com/experiment-design">
+        <label tal:content="context.label">Design XYZ</label>
+      <description tal:content="context.description">Long description</description>
+      <link xmlns="http://www.w3.org/2005/Atom"
+            rel="http://relations.cenix-bioscience.com/rack-shape"
+            type="application/atom+xml;type=entry"
+            title="Nunc" href="/rack-shapes/nunc"
+            tal:attributes="title context.rack_shape.label;
+                            href resource_to_url(context.rack_shape, request)" />
+    </experimentdesign>
+  </content>
+</entry>

@@ -1,0 +1,52 @@
+FORMULAS
+--------
+
+ISO volume and ISO concentration have been calculated by the system.
+
+
+The minimum ISO volume is determined using the following formula:
+
+    isoVolume = ( (No(tw) * nr * transferVolume) + deadVolume) / (2 * ODF)
+
+    where
+
+    isoVolume - is the determined ISO volume
+    No(tw) - is the total number of target wells in all cell plates (without replicates)
+    nr - is the number of (interplate) replicates (here: 3)
+    transferVolume - is the mastermix volume transfer into each cell plate well (5 ul)
+    deadVolume* - is the deadVolume of a ISO plate well (see below)
+    ODF - is the OptiMem dilution factor (3 or 4 depending on the molecule type).
+
+    If the isoVolume is smaller than the allowed minimum ISO volume (1 ul)
+    it is replaced by the minimum volume. The isoVolume is rounded to
+    one decimal place.
+
+
+    * The dead volume is calculated dynamically depending on the number
+    of cell plate wells that obtain volumes from an ISO position. It is
+    at least 10 ul. For each well above 3 target wells an additional
+    amount of 1 ul is added to the dead volume, up to a maximum dead
+    volume of 30 ul.
+
+
+
+The ISO concentration is determined using the following formula:
+
+    isoConcentration = finalConcentration * (RDF * CDF * ODF)
+
+    where
+
+    isoConcentration - the concentration ordered from the stock (in nM)
+    finalConcentration - is the final concentration in the cell plate (in nM)
+    RDF - is the transfection reagent dilution factor (2)
+    CDF - is the cell suspension dilution factor (7)
+    ODF - is the OptiMem dilution factor (3 or 4 depending on the molecule type).
+
+    The isoConcentration is rounded to one decimal place.
+
+
+
+WARNINGS
+--------
+
+Experiment Metadata Generator - You did not specify an ISO layout. The system will try to generate the ISO layout by itself.

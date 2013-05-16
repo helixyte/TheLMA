@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/sample"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:co="http://schemata.cenix-bioscience.com/container"
+    xmlns:s="http://schemata.cenix-bioscience.com/sample"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:sm="http://schemata.cenix-bioscience.com/samplemolecule"
+    xmlns:mds="http://schemata.cenix-bioscience.com/moleculedesignset"
+>
+
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+    <import
+        schemaLocation="Container.xsd"
+        namespace="http://schemata.cenix-bioscience.com/container"
+    >
+    </import>
+      <import
+        schemaLocation="SampleMolecule.xsd"
+        namespace="http://schemata.cenix-bioscience.com/samplemolecule"
+    >
+    </import>
+    <import
+        schemaLocation="MoleculeDesignSet.xsd"
+        namespace="http://schemata.cenix-bioscience.com/moleculedesignset"
+    >
+    </import>
+
+    <complexType
+        name="SampleType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        ref="s:sample"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="volume"
+                            type="float"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        ></element>
+                        <element
+                            ref="co:container"
+                        ></element>
+                        <element
+                            ref="sm:sample_molecules"
+                        ></element>
+                        <element
+                            ref="mds:molecule_design_set"
+                        ></element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="SampleCollectionType"
+    >
+         <choice>
+             <element
+                 ref="s:sample"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="s:SampleCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+    </complexType>
+
+    <complexType
+        name="SampleLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/sample"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="SampleCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/sample-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="sample"
+        type="s:SampleType"
+    >
+    </element>
+
+    <element
+        name="samples"
+        type="s:SampleCollectionType"
+    ></element>
+
+</schema>
