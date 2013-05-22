@@ -186,7 +186,7 @@ class IsoRequestParserTest(ParsingTestCase):
         self._check_error_messages('Affected positions: B2, B3, B4')
 
     def _test_order_stock_conc(self):
-        self._test_invalid_file('order_stock_conc.xls',
+        self._test_invalid_file('stock_conc_order.xls',
             'Ordering molecule design pools in stock concentration is not ' \
             'allowed for this kind of experiment metadata')
 
@@ -791,13 +791,13 @@ class IsoRequestManualParserTestCase(IsoRequestParserTest):
         rl = iso_request.iso_layout
         self.assert_equal(len(rl.tagged_rack_position_sets), 7)
         self.assert_equal(len(rl.get_positions()), 6)
+        # check transfection parameters
         b2_pos = get_rack_position_from_label('B2')
         b3_pos = get_rack_position_from_label('B3')
         b4_pos = get_rack_position_from_label('B4')
         b5_pos = get_rack_position_from_label('B5')
         c2_pos = get_rack_position_from_label('C2')
         c3_pos = get_rack_position_from_label('C3')
-        # check transfection parameters
         md_tag = Tag(IsoParameters.DOMAIN, IsoParameters.MOLECULE_DESIGN_POOL,
                      '205201')
         md_positions = [b3_pos, c3_pos]
@@ -844,18 +844,21 @@ class IsoRequestManualParserTestCase(IsoRequestParserTest):
 
     def test_manual_with_mock(self):
         self._test_invalid_file('manual_with_mock.xls',
-            'ISO layouts for manual optimisation must not contain mock ' \
-            'positions.')
+            'There are some positions in the ISO layout that are not allowed ' \
+            'for this type of experiment metadata (manual optimisation): ' \
+            'mock (B6).')
 
     def test_manual_with_untreated(self):
         self._test_invalid_file('manual_with_untreated.xls',
-            'ISO layouts for manual optimisation must not contain untreated ' \
-            'positions.')
+            'There are some positions in the ISO layout that are not allowed ' \
+            'for this type of experiment metadata (manual optimisation): ' \
+            'untreated (B6).')
 
     def test_manual_with_floating(self):
         self._test_invalid_file('manual_with_floating.xls',
-            'ISO layout for manual optimisations must not contain floating ' \
-            'positions!')
+            'There are some positions in the ISO layout that are not allowed ' \
+            'for this type of experiment metadata (manual optimisation): ' \
+            'floating (B6, B7).')
 
     def test_manual_duplicate_molecule_design_pool(self):
         self._test_invalid_file('manual_duplicate_md.xls',
@@ -876,3 +879,97 @@ class IsoRequestManualParserTestCase(IsoRequestParserTest):
         self._test_invalid_file('manual_too_many_pools.xls',
             '384-well manual optimisation ISO layouts with more than 96 ' \
             'distinct molecule design pools are not supported')
+
+
+class IsoRequestOrderParserTestCase(IsoRequestParserTest):
+
+    def set_up(self):
+        IsoRequestParserTest.set_up(self)
+        self.VALID_FILE = 'valid_order.xls'
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
+
+
+    def test_if_result(self):
+        self._test_if_result()
+
+    def test_handler_user(self):
+        self._test_invalid_user()
+
+    def test_result(self):
+        self._continue_setup()
+        iso_request = self.tool.get_result()
+        self.assert_is_not_none(iso_request)
+        # check metadata
+        delivery_date = date(2013, 7, 1)
+        attrs = dict(delivery_date=delivery_date,
+                     plate_set_label='all_sorts_of_pools',
+                     number_aliquots=1, requester=self.user,
+                     isos=[], owner='', experiment_metadata=None,
+                     comment='ISO request without experiment')
+        check_attributes(iso_request, attrs)
+        # check rack layout
+        rl = iso_request.iso_layout
+        pos_b2 = get_rack_position_from_label('B2')
+        pos_b4 = get_rack_position_from_label('B4')
+        pos_b6 = get_rack_position_from_label('B6')
+        pos_b8 = get_rack_position_from_label('B8')
+        pos_b10 = get_rack_position_from_label('B10')
+        all_positions = [pos_b2, pos_b4, pos_b6, pos_b8, pos_b10]
+        self.assert_equal(len(rl.tagged_rack_position_sets), 6)
+        pos_set = rl.get_positions()
+        self._compare_pos_sets(all_positions, pos_set)
+        # check transfection layout
+        tf_layout = self.tool.get_transfection_layout()
+        self.assert_equal(len(tf_layout), len(all_positions))
+        b2_tf = tf_layout.get_working_position(pos_b2)
+        self.assert_equal(b2_tf.molecule_design_pool_id, 205201)
+        self.assert_equal(b2_tf.iso_volume, 1)
+        self.assert_equal(b2_tf.supplier.name, 'Ambion')
+        b8_tf = tf_layout.get_working_position(pos_b8)
+        self.assert_equal(b8_tf.molecule_design_pool_id, 1056000)
+        self.assert_equal(b8_tf.iso_volume, 1)
+        self.assert_is_none(b8_tf.supplier)
+        # check additional tags
+        add_tags = self.tool.get_additional_trps()
+        self.assert_equal(len(add_tags), 5)
+        pool_tag = Tag('transfection', 'molecule_type', 'siRNA pool')
+        pool_positions = [pos_b8]
+        exp_pos_set = RackPositionSet.from_positions(pool_positions)
+        exp_hash_value = exp_pos_set.hash_value
+        has_tag = False
+        for pos_hash_value, trps in add_tags.iteritems():
+            self.assert_equal(len(trps.tags), 1)
+            for tag in trps.tags:
+                if pool_tag == tag:
+                    has_tag = True
+                    self.assert_equal(pos_hash_value, exp_hash_value)
+        self.assert_true(has_tag)
+
+    def test_plate_label_too_long(self):
+        self._test_invalid_file('order_plate_label_too_long.xls',
+                'The maximum length for plate set labels is 24 characters ' \
+                '(obtained: "this_label_is_a_little_too_long", 31 characters)')
+
+    def test_with_mock_positions(self):
+        self._test_invalid_file('order_with_mock.xls',
+            'There are some positions in the ISO layout that are not allowed ' \
+            'for this type of experiment metadata (ISO without experiment): ' \
+            'mock (B10)')
+
+    def test_with_untreated_positions(self):
+        self._test_invalid_file('order_with_untreated.xls',
+            'There are some positions in the ISO layout that are not allowed ' \
+            'for this type of experiment metadata (ISO without experiment): ' \
+            'untreated (B10)')
+
+    def test_with_untreated_floatings(self):
+        self._test_invalid_file('order_with_floating.xls',
+            'There are some positions in the ISO layout that are not allowed ' \
+            'for this type of experiment metadata (ISO without experiment): ' \
+            'floating (B10)')
+
+    def test_multiple_occurrence(self):
+        self._test_invalid_file('order_multiple_occurrence.xls',
+            'In an ISO request without experiment, each molecule design pool ' \
+            'may occur only once. The following pools occur several times: ' \
+            '180202, 1056000')

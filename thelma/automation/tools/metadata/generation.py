@@ -90,6 +90,14 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
     #: The experiment metadata scenario supported by this generator.
     SUPPORTED_EXPERIMENT_TYPE = None
 
+    #: If *True* the generator will expect an experiment design from the file.
+    HAS_EXPERIMENT_DESIGN = True
+    #: If *True* the generator will expect an ISO request from the file.
+    HAS_ISO_REQUEST = True
+    #: If *True* the generator will try to parse an molecule design pool set
+    #: from the file (there still does not have to be one).
+    HAS_POOL_SET = True
+
     def __init__(self, stream, experiment_metadata, requester,
                  logging_level=logging.WARNING, add_default_handlers=False):
         """
@@ -234,22 +242,36 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
         self.__check_input()
         if not self.has_errors(): self.__check_experiment_type()
         if not self.has_errors(): self.__search_for_isos_and_experiments()
-        if not self.has_errors(): self.__obtain_experiment_design()
-        if not self.has_errors(): self._obtain_iso_request()
+
+        if self.HAS_EXPERIMENT_DESIGN and not self.has_errors():
+            self.__obtain_experiment_design()
+        if self.HAS_ISO_REQUEST and not self.has_errors():
+            self._obtain_iso_request()
 
         if self._iso_request is not None:
-            if not self.has_errors(): self._obtain_pool_set()
+
+            if not self.has_errors():
+                if self.HAS_POOL_SET:
+                    self._obtain_pool_set()
+                else:
+                    self.__validate_no_pool_set()
+
             if not self.has_errors(): self._set_optimem_dilution_factors()
-            if not self.has_errors(): self._associate_iso_layout_and_design()
-            if not self.has_errors(): self._determine_mastermix_support()
+
+            if self.HAS_EXPERIMENT_DESIGN:
+                if not self.has_errors():
+                    self._associate_iso_layout_and_design()
+                if not self.has_errors(): self._determine_mastermix_support()
+
             if not self.has_errors(): self._check_iso_concentrations()
-            if not self.has_errors(): self.__generate_worklists()
+            if self.HAS_EXPERIMENT_DESIGN and not self.has_errors():
+                self.__generate_worklists()
             if not self.has_errors(): self._determine_plate_number()
 
         if not self.has_errors(): self.__check_blocked_entities()
 
         if not self.has_errors():
-            if not self._iso_request is None: self.__look_for_compounds()
+            if self.HAS_ISO_REQUEST: self.__look_for_compounds()
             self.__update_metadata()
             self.return_value = self.experiment_metadata
             self.add_info('Metadata generation completed.')
@@ -298,18 +320,19 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
                     self.add_warning(msg)
                     break
 
-        num_experiment_jobs = self.experiment_metadata.experiment_design.\
-                              experiment_jobs
-        self.__has_experiment_jobs = len(num_experiment_jobs) > 0
-        if self.__has_experiment_jobs:
-            msg = 'There are already experiment jobs for this metadata! ' \
-                  'Delete all experiment jobs or talk to the IT department, ' \
-                  'please.'
-            self.add_warning(msg)
+        experiment_design = self.experiment_metadata.experiment_design
+        if not experiment_design is None:
+            num_experiment_jobs = experiment_design.experiment_jobs
+            self.__has_experiment_jobs = len(num_experiment_jobs) > 0
+            if self.__has_experiment_jobs:
+                msg = 'There are already experiment jobs for this metadata! ' \
+                      'Delete all experiment jobs or talk to the IT department, ' \
+                      'please.'
+                self.add_warning(msg)
 
     def __obtain_experiment_design(self):
         """
-        Generates the experiment design.
+        Parses the experiment design from the file.
         """
         self.add_debug('Obtain experiment design ...')
 
@@ -326,9 +349,29 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
 
     def _obtain_iso_request(self):
         """
-        Generates the ISO request.
+        By default, the parsing of the ISO request must not fail.
+        The unconverted ISO transfection layout and additional tags
+        are retrieved along with the main return value (the ISO request).
         """
-        self.add_error('Abstract method: _obtain_iso_request()')
+        self.add_debug('Obtain ISO request ...')
+
+        handler = self._create_iso_request_handler()
+        self._iso_request = handler.get_result()
+
+        if self._iso_request is None and not handler.has_iso_sheet():
+            msg = 'For experiment metadata of the type "%s", you need to ' \
+                  'provide an ISO sheet!' % (self._scenario_display_name)
+            self.add_error(msg)
+            return None
+        elif self._iso_request is None:
+            msg = 'Error when trying to generate ISO request.'
+            self.add_error(msg)
+            return None
+        else:
+            self._source_layout = handler.get_transfection_layout()
+            self._additional_trps = handler.get_additional_trps()
+            self.supports_mastermix = False
+            return handler
 
     def _create_iso_request_handler(self):
         """
@@ -376,6 +419,19 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
         Commits scenario-specific molecule design pool set checks.
         """
         pass
+
+    def __validate_no_pool_set(self):
+        """
+        Some experiment metadata types do not allow for floating designs
+        """
+        handler = ExperimentPoolSetParserHandler(self.stream, self.log)
+        pool_set = handler.get_result()
+
+        if not pool_set is None:
+            msg = 'There are molecule design pools for floating positions ' \
+                  'specified. Floating positions are not allowed for ' \
+                  '%s experiments!' % (self._scenario_display_name)
+            self.add_error(msg)
 
     def _set_optimem_dilution_factors(self):
         """
@@ -738,7 +794,8 @@ class ExperimentMetadataGeneratorOpti(ExperimentMetadataGenerator):
 
     def _obtain_iso_request(self):
         """
-        Generates the ISO request.
+        The layout for ISO request can either be parsed from the file or
+        be generated by the finder (speed-optimisation for the Biomek).
         """
         self.add_debug('Obtain ISO request ...')
 
@@ -960,25 +1017,13 @@ class ExperimentMetadataGeneratorScreen(ExperimentMetadataGenerator):
 
     def _obtain_iso_request(self):
         """
-        Generates the ISO request.
+        The parsing works in the default way, but we need to extract some
+        additional information (molecule type, association data and
+        ISO volume).
         """
-        self.add_debug('Obtain ISO request ...')
-
-        handler = self._create_iso_request_handler()
-        self._iso_request = handler.get_result()
-
-        if self._iso_request is None and not handler.has_iso_sheet():
-            msg = 'You need to provide an ISO sheet for %s scenarios!' \
-                   % (self._scenario_display_name)
-            self.add_error(msg)
-
-        elif self._iso_request is None:
-            msg = 'Error when trying to generate ISO request.'
-            self.add_error(msg)
-
-        else:
-            self._source_layout = handler.get_transfection_layout()
-            self._additional_trps = handler.get_additional_trps()
+        handler = ExperimentMetadataGenerator._obtain_iso_request(self)
+        if not handler is None:
+            self.supports_mastermix = None
             self.__iso_request_molecule_type = handler.get_molecule_type()
             self._iso_request.molecule_type = handler.get_molecule_type()
             self.__association_data = handler.get_association_data()
@@ -1047,10 +1092,14 @@ class ExperimentMetadataGeneratorLibrary(ExperimentMetadataGenerator):
     """
     An experiment metadata generator for library screening scenarios.
 
+    Libraries do not allow for a pool set because the pools for the
+    sample positions are already defined by the library.
+
     **Return Value:** experiment metadata
         (:class:`thelma.models.experiment.ExperimentMetadata`)
     """
     SUPPORTED_EXPERIMENT_TYPE = EXPERIMENT_SCENARIOS.LIBRARY
+    HAS_POOL_SET = False
 
     def __init__(self, stream, experiment_metadata, requester,
                  logging_level=logging.WARNING, add_default_handlers=False):
@@ -1112,25 +1161,12 @@ class ExperimentMetadataGeneratorLibrary(ExperimentMetadataGenerator):
 
     def _obtain_iso_request(self):
         """
-        Generates the ISO request.
+        The parsing works in the default way, but we need to extract some
+        additional information (library and default values).
         """
-        self.add_debug('Obtain ISO request ...')
-
-        handler = self._create_iso_request_handler()
-        self._iso_request = handler.get_result()
-
-        if self._iso_request is None and not handler.has_iso_sheet():
-            msg = 'You need to provide an ISO sheet for %s scenarios!' \
-                   % (self._scenario_display_name)
-            self.add_error(msg)
-
-        elif self._iso_request is None:
-            msg = 'Error when trying to generate ISO request.'
-            self.add_error(msg)
-
-        else:
-            self._source_layout = handler.get_transfection_layout()
-            self._additional_trps = handler.get_additional_trps()
+        handler = ExperimentMetadataGenerator._obtain_iso_request(self)
+        if not handler is None:
+            self.supports_mastermix = None
             self.__library = handler.get_library()
             self.__parameter_values[
                                 TransfectionParameters.FINAL_CONCENTRATION] = \
@@ -1141,20 +1177,6 @@ class ExperimentMetadataGeneratorLibrary(ExperimentMetadataGenerator):
             self.__parameter_values[
                                 TransfectionParameters.REAGENT_DIL_FACTOR] = \
                                             handler.get_reagent_dil_factor()
-
-    def _obtain_pool_set(self):
-        """
-        Library screenings do not allow for floating designs (since the
-        designs are already defined by the library).
-        """
-        handler = ExperimentPoolSetParserHandler(self.stream, self.log)
-        pool_set = handler.get_result()
-
-        if not pool_set is None:
-            msg = 'There are molecule design pools for floating positions ' \
-                  'specified. Floating positions are not allowed for ' \
-                  '%s experiments!' % (self._scenario_display_name)
-            self.add_error(msg)
 
     def _set_optimem_dilution_factors(self):
         """
@@ -1221,40 +1243,7 @@ class ExperimentMetadataGeneratorManual(ExperimentMetadataGenerator):
         (:class:`thelma.models.experiment.ExperimentMetadata`)
     """
     SUPPORTED_EXPERIMENT_TYPE = EXPERIMENT_SCENARIOS.MANUAL
-
-    def _obtain_iso_request(self):
-        """
-        Generates the ISO request.
-        """
-        self.add_debug('Obtain ISO request ...')
-
-        handler = self._create_iso_request_handler()
-        self._iso_request = handler.get_result()
-
-        if self._iso_request is None and not handler.has_iso_sheet():
-            msg = 'You need to provide an ISO sheet for %s scenarios!' \
-                   % (self._scenario_display_name)
-            self.add_error(msg)
-        elif self._iso_request is None:
-            msg = 'Error when trying to generate ISO request.'
-            self.add_error(msg)
-        else:
-            self._source_layout = handler.get_transfection_layout()
-            self._additional_trps = handler.get_additional_trps()
-            self.supports_mastermix = False
-
-    def _obtain_pool_set(self):
-        """
-        Manual optimisation do not allow for floating designs.
-        """
-        handler = ExperimentPoolSetParserHandler(self.stream, self.log)
-        pool_set = handler.get_result()
-
-        if not pool_set is None:
-            msg = 'There are molecule design pools for floating positions ' \
-                  'specified. Floating positions are not allowed for ' \
-                  '%s experiments!' % (self._scenario_display_name)
-            self.add_error(msg)
+    HAS_POOL_SET = False
 
     def _associate_iso_layout_and_design(self):
         """
@@ -1312,13 +1301,47 @@ class ExperimentMetadataGeneratorIsoless(ExperimentMetadataGenerator):
         (:class:`thelma.models.experiment.ExperimentMetadata`)
     """
     SUPPORTED_EXPERIMENT_TYPE = EXPERIMENT_SCENARIOS.ISO_LESS
+    HAS_POOL_SET = False
+    HAS_ISO_REQUEST = False
+
+
+class ExperimentMetadataGeneratorOrder(ExperimentMetadataGenerator):
+    """
+    An experiment metadata generator for order only (experiment-less)
+    scenarios. These are basically only ISO requests without any
+    experiment data.
+
+    **Return Value:** experiment metadata
+        (:class:`thelma.models.experiment.ExperimentMetadata`)
+    """
+    SUPPORTED_EXPERIMENT_TYPE = EXPERIMENT_SCENARIOS.ORDER_ONLY
+    HAS_EXPERIMENT_DESIGN = False
+    HAS_POOL_SET = False
 
     def _obtain_iso_request(self):
         """
-        There are no ISO requests for ISO-less experiment scenarios.
+        In addition to the normal parsing, we have to set the ISO concentrations
+        of the ISO positions to the default stock concentrations and make
+        sure that the ISO volumes are not below the minimum value
+        (usually this is done during robot-support determination but since
+        we do not have an experiment design, this step is skipped).
         """
-        pass
+        handler = ExperimentMetadataGenerator._obtain_iso_request(self)
 
+        min_volume = []
+        if handler is not None:
+            for tf_pos in self._source_layout.working_positions():
+                tf_pos.iso_concentration = tf_pos.stock_concentration
+                if tf_pos.iso_volume < MIN_CYBIO_TRANSFER_VOLUME:
+                    info = '%s (%s, %.1f ul)' % (tf_pos.molecule_design_pool_id,
+                                 tf_pos.rack_position.label, tf_pos.iso_volume)
+                    min_volume.append(info)
+
+        if len(min_volume) > 0:
+            msg = 'The minimum ISO volume you can order is 1 ul. For some ' \
+                  'positions, you have ordered less: %s.'\
+                   % (', '.join(sorted(min_volume)))
+            self.add_error(msg)
 
 #: Lookup storing the generator classes for each experiment type.
 _GENERATOR_CLASSES = {
@@ -1326,7 +1349,8 @@ _GENERATOR_CLASSES = {
             EXPERIMENT_SCENARIOS.SCREENING : ExperimentMetadataGeneratorScreen,
             EXPERIMENT_SCENARIOS.LIBRARY : ExperimentMetadataGeneratorLibrary,
             EXPERIMENT_SCENARIOS.MANUAL : ExperimentMetadataGeneratorManual,
-            EXPERIMENT_SCENARIOS.ISO_LESS : ExperimentMetadataGeneratorIsoless
+            EXPERIMENT_SCENARIOS.ISO_LESS : ExperimentMetadataGeneratorIsoless,
+            EXPERIMENT_SCENARIOS.ORDER_ONLY : ExperimentMetadataGeneratorOrder,
                      }
 
 

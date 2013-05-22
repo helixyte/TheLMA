@@ -431,7 +431,7 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
     #: The title for the number of aliquots.
     NUMBER_ALIQUOTS_TITLE = 'Number of Aliquots'
     #: The title for the aliquot plate rack shape.
-    RACK_SHAPE_TITLE = 'Aliquot Plate Format'
+    ISO_RACK_SHAPE_TITLE = 'Aliquot Plate Format'
     #: The title for the experiment cell plate rack shape.
     EXP_RACK_SHAPE_TITLE = 'Cell Plate Format'
     #: The title for the deep well row.
@@ -444,15 +444,18 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
     #: Placeholder for unknown values.
     UNKNOWN_MARKER = 'not specified'
 
-    #: All table row titles in their expected order.
-    TITLES = [DELIVERY_DATE_TITLE, PROJECT_TITLE, PROJECT_LEADER_TITLE,
-              SUBPROJECT_TITLE, PLATE_SET_LABEL_TITLE, REQUESTER_TITLE,
-              NUMBER_PLATES_TITLE, NUMBER_ALIQUOTS_TITLE, RACK_SHAPE_TITLE,
-              ROBOT_SUPPORT_TITLE, DEEP_WELL_TITLE, EXPERIMENT_TYPE_TITLE,
-              COMMENT_TITLE]
-    #: All table row titles for ISO-less experiments.
-    TITLES_ISO_LESS = [PROJECT_TITLE, PROJECT_LEADER_TITLE, SUBPROJECT_TITLE,
-                       EXP_RACK_SHAPE_TITLE, EXPERIMENT_TYPE_TITLE]
+    #: These tables fields always occur (regardless of the experiment type).
+    COMMON_TITLES = [EXPERIMENT_TYPE_TITLE, PROJECT_TITLE, PROJECT_LEADER_TITLE,
+                     SUBPROJECT_TITLE]
+    #: These table fields occur, if there is an ISO request at the experiment
+    #: metadata.
+    ISO_REQUEST_TITLES = [REQUESTER_TITLE, PLATE_SET_LABEL_TITLE,
+                          NUMBER_PLATES_TITLE, NUMBER_ALIQUOTS_TITLE,
+                          ISO_RACK_SHAPE_TITLE, DEEP_WELL_TITLE,
+                          DELIVERY_DATE_TITLE, COMMENT_TITLE]
+    #: These table fields occur if there is an experiment design at the
+    #: experiment metadata.
+    EXPERIMENT_DESIGN_TITLES = [EXP_RACK_SHAPE_TITLE, ROBOT_SUPPORT_TITLE]
 
     #: The template for each table row.
     BASE_TABLE_ROW = "|| '''%s: '''||%s||\n"
@@ -558,15 +561,12 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
         """
         self.__wiki_table = ''
 
-        if self.experiment_metadata.experiment_metadata_type.id == \
-                                                 EXPERIMENT_SCENARIOS.ISO_LESS:
-            table_values = self.__collect_isoless_tables_values()
-            titles = self.TITLES_ISO_LESS
-        else:
-            table_values = self.__collect_table_values()
-            titles = self.TITLES
+        table_values = self.__collect_table_values()
 
+        titles = self.COMMON_TITLES + self.EXPERIMENT_DESIGN_TITLES \
+                 + self.ISO_REQUEST_TITLES
         for title in titles:
+            if not table_values.has_key(title): continue
             value = table_values[title]
             if title == self.DEEP_WELL_TITLE and value is None: continue
             table_line = self.BASE_TABLE_ROW % (title, value)
@@ -576,19 +576,14 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
 
     def __collect_table_values(self):
         """
-        Generates a dictionary for the table values.
+        Generates a dictionary for the table values. Not all possible table
+        fields must occur.
         """
         table_values = dict()
 
-        iso_request = self.experiment_metadata.iso_request
-        requester = iso_request.requester
-        table_values[self.REQUESTER_TITLE] = requester.username
-
-        number_of_plates = '%i' % (iso_request.number_plates)
-        table_values[self.NUMBER_PLATES_TITLE] = number_of_plates
-        number_of_aliquots = '%i' % (iso_request.number_aliquots)
-        table_values[self.NUMBER_ALIQUOTS_TITLE] = number_of_aliquots
-
+        # common values
+        table_values[self.EXPERIMENT_TYPE_TITLE] = self.experiment_metadata.\
+                                        experiment_metadata_type.display_name
         subproject = self.experiment_metadata.subproject
         table_values[self.SUBPROJECT_TITLE] = subproject.label
         project = subproject.project
@@ -596,27 +591,54 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
         project_leader = project.leader
         table_values[self.PROJECT_LEADER_TITLE] = project_leader.username
 
-        plate_set_label = str(iso_request.plate_set_label)
-        table_values[self.PLATE_SET_LABEL_TITLE] = plate_set_label
+        # experiment design values
+        experiment_design = self.experiment_metadata.experiment_design
+        if not experiment_design is None:
+            shape_name = self.experiment_metadata.experiment_design.\
+                         rack_shape.name
+            table_values[self.EXP_RACK_SHAPE_TITLE] = shape_name
+            self.__set_robot_support_value(table_values)
 
-        del_date = iso_request.delivery_date
-        if del_date:
-            del_date_value = del_date.strftime("%a %b %d %Y")
-        else:
-            del_date_value = self.UNKNOWN_MARKER
-        table_values[self.DELIVERY_DATE_TITLE] = del_date_value
+        #: ISO request values
+        iso_request = self.experiment_metadata.iso_request
+        if not iso_request is None:
+            requester = iso_request.requester
+            table_values[self.REQUESTER_TITLE] = requester.username
+            table_values[self.NUMBER_PLATES_TITLE] = \
+                                        '%i' % (iso_request.number_plates)
+            table_values[self.NUMBER_ALIQUOTS_TITLE] = \
+                                        '%i' % (iso_request.number_aliquots)
+            table_values[self.PLATE_SET_LABEL_TITLE] = \
+                                        str(iso_request.plate_set_label)
 
-        shape_name = iso_request.iso_layout.shape.name
-        table_values[self.RACK_SHAPE_TITLE] = shape_name
+            del_date = iso_request.delivery_date
+            if del_date:
+                del_date_value = del_date.strftime("%a %b %d %Y")
+            else:
+                del_date_value = self.UNKNOWN_MARKER
+            table_values[self.DELIVERY_DATE_TITLE] = del_date_value
 
+            shape_name = iso_request.iso_layout.shape.name
+            table_values[self.ISO_RACK_SHAPE_TITLE] = shape_name
+
+            comment_value = self.experiment_metadata.iso_request.comment
+            if comment_value is None: comment_value = ' '
+            table_values[self.COMMENT_TITLE] = comment_value
+            self.__set_deepwell(table_values, iso_request)
+
+        return table_values
+
+    def __set_robot_support_value(self, table_values):
+        """
+        The robot-support is a little harder o set. Some experiment types
+        do not offer robot-support at all, some enforce it and in some it is
+        optional (for these, the availablity can be retrieved from the length
+        of the experiment design worklist series).
+        """
         em_type = self.experiment_metadata.experiment_metadata_type
-        table_values[self.EXPERIMENT_TYPE_TITLE] = em_type.display_name
-
         design_series = self.experiment_metadata.experiment_design.\
                         worklist_series
         if design_series is None:
-            mastermix_support = 'no'
-        elif em_type.id == EXPERIMENT_SCENARIOS.MANUAL:
             mastermix_support = 'no'
         elif em_type.id == EXPERIMENT_SCENARIOS.OPTIMISATION:
             if len(design_series) == 2:
@@ -630,48 +652,35 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
                 mastermix_support = 'no'
         elif em_type.id == EXPERIMENT_SCENARIOS.LIBRARY:
             mastermix_support = 'yes'
+
         table_values[self.ROBOT_SUPPORT_TITLE] = mastermix_support
 
-        if self.use_deep_well is None:
-            if shape_name == RACK_SHAPE_NAMES.SHAPE_384:
-                use_deep_well_value = None
-            else:
-                use_deep_well_value = self.UNKNOWN_MARKER
+    def __set_deepwell(self, table_values, iso_request):
+        """
+        The deep well value applies only to 96-well plates. It can only be
+        determined if there is mastermix support.
+        """
+        iso_shape_name = iso_request.iso_layout.shape.name
+
+        mastermix_support = None
+        if table_values.has_key(self.ROBOT_SUPPORT_TITLE):
+            mastermix_support = (table_values[self.ROBOT_SUPPORT_TITLE] \
+                                                                    == 'yes')
+
+        if iso_shape_name == RACK_SHAPE_NAMES.SHAPE_384:
+            use_deep_well_value = None
+        elif mastermix_support is None:
+            use_deep_well_value = self.UNKNOWN_MARKER
         elif not mastermix_support:
+            use_deep_well_value = self.UNKNOWN_MARKER
+        elif self.use_deep_well is None:
             use_deep_well_value = self.UNKNOWN_MARKER
         elif self.use_deep_well:
             use_deep_well_value = 'yes'
         else:
             use_deep_well_value = 'no'
+
         table_values[self.DEEP_WELL_TITLE] = use_deep_well_value
-
-        comment_value = self.experiment_metadata.iso_request.comment
-        if comment_value is None: comment_value = ' '
-        table_values[self.COMMENT_TITLE] = comment_value
-
-        return table_values
-
-    def __collect_isoless_tables_values(self):
-        """
-        A special :attr:`__collect_table_values` method for ISO-less
-        experiments.
-        """
-        table_values = dict()
-
-        subproject = self.experiment_metadata.subproject
-        table_values[self.SUBPROJECT_TITLE] = subproject.label
-        project = subproject.project
-        table_values[self.PROJECT_TITLE] = project.label
-        project_leader = project.leader
-        table_values[self.PROJECT_LEADER_TITLE] = project_leader.username
-
-        shape_name = self.experiment_metadata.experiment_design.rack_shape.name
-        table_values[self.EXP_RACK_SHAPE_TITLE] = shape_name
-
-        em_type = self.experiment_metadata.experiment_metadata_type
-        table_values[self.EXPERIMENT_TYPE_TITLE] = em_type.display_name
-
-        return table_values
 
     def __assemble_description(self):
         """

@@ -5,19 +5,16 @@ AAB, Jan 2012
 
 
 from everest.testing import RdbContextManager
-from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 from thelma.automation.tools.iso.generation import IsoGenerator
 from thelma.automation.tools.iso.generation import IsoRescheduler
 from thelma.automation.tools.iso.optimizer import IsoOptimizer
 from thelma.automation.tools.iso.preplayoutfinder import PrepLayoutFinder96
-from thelma.automation.tools.semiconstants import get_experiment_type_isoless
-from thelma.automation.tools.metadata.generation \
-    import ExperimentMetadataGenerator
 from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_standard_384
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import PLATE_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_experiment_metadata_type
+from thelma.automation.tools.semiconstants import get_experiment_type_isoless
 from thelma.automation.tools.semiconstants import get_experiment_type_screening
 from thelma.automation.tools.stock.base import STOCK_ITEM_STATUS
 from thelma.automation.tools.utils.iso import IsoLayoutConverter
@@ -31,20 +28,17 @@ from thelma.models.iso import Iso
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from thelma.models.racklayout import RackLayout
 from thelma.models.utils import get_user
+from thelma.tests.tools.tooltestingutils \
+    import ExperimentMetadataReadingTestCase
 from thelma.tests.tools.tooltestingutils import SilentLog
-from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 
-class IsoCreatorTestCase(ToolsAndUtilsTestCase):
+class IsoCreatorTestCase(ExperimentMetadataReadingTestCase):
 
     def set_up(self):
-        ToolsAndUtilsTestCase.set_up(self)
-        self.FILE_PATH = 'thelma:tests/tools/iso/iso_generator/'
-        self.VALID_FILE_96 = 'valid_file_96.xls'
-        self.VALID_FILE_384_OPTI = 'valid_file_384_opti.xls'
-        self.VALID_FILE_384_OPTI_FLOATS = 'valid_file_384_opti_floats.xls'
-        self.VALID_FILE_384_SCREEN = 'valid_file_384_screen.xls'
-        self.VALID_FILE_MANUAL = 'valid_manual.xls'
+        ExperimentMetadataReadingTestCase.set_up(self)
+        self.TEST_FILE_PATH = 'thelma:tests/tools/iso/iso_generator/'
+        self.VALID_FILE = 'valid_file_96.xls'
         self.user = get_user('it')
         self.number_of_isos = 2
         self.excluded_racks = None
@@ -57,32 +51,22 @@ class IsoCreatorTestCase(ToolsAndUtilsTestCase):
         self.pool_id = None
 
     def tear_down(self):
-        ToolsAndUtilsTestCase.tear_down(self)
-        del self.FILE_PATH
-        del self.VALID_FILE_96
-        del self.VALID_FILE_384_OPTI
-        del self.VALID_FILE_384_OPTI_FLOATS
-        del self.VALID_FILE_384_SCREEN
+        ExperimentMetadataReadingTestCase.tear_down(self)
         del self.number_of_isos
         del self.excluded_racks
         del self.requested_tubes
         del self.iso_request
-        del self.experiment_metadata
         del self.source
         del self.experiment_type_id
         del self.expected_prep_plate_specs_name
         del self.pool_id
 
-    def _continue_setup(self, file_name):
-        self._read_file(file_name)
+    def _continue_setup(self, file_name=None):
+        ExperimentMetadataReadingTestCase._continue_setup(self, file_name)
+        self.iso_request = self.experiment_metadata.iso_request
         self._create_tool()
 
-    def _read_file(self, file_name):
-        file_name = self.FILE_PATH + file_name
-        fn = file_name.split(':')
-        f = resource_filename(*fn) # pylint: disable=W0142
-        stream = open(f, 'rb')
-        source = stream.read()
+    def _set_experiment_metadadata(self):
         if self.experiment_metadata is None:
             em_type = get_experiment_metadata_type(self.experiment_type_id)
             self.experiment_metadata = ExperimentMetadata(number_replicates=3,
@@ -91,14 +75,8 @@ class IsoCreatorTestCase(ToolsAndUtilsTestCase):
                                     experiment_design=ExperimentDesign(),
                                     experiment_metadata_type=em_type,
                                     ticket_number=123)
-        em_generator = ExperimentMetadataGenerator.create(stream=source,
-                                experiment_metadata=self.experiment_metadata,
-                                requester=self.user)
-        self.experiment_metadata = em_generator.get_result()
-        stream.close()
-        self.iso_request = self.experiment_metadata.iso_request
 
-    def _check_result(self, file_name):
+    def _check_result(self, file_name=None):
         self._continue_setup(file_name)
         original_isos = len(self.iso_request.isos)
         isos = self.tool.get_result()
@@ -132,7 +110,7 @@ class IsoCreatorTestCase(ToolsAndUtilsTestCase):
             self.assert_equal(len(iso.iso_aliquot_plates), 0)
             prep_plate = iso.preparation_plate
             self.assert_is_not_none(prep_plate)
-            if self.experiment_type_id == EXPERIMENT_SCENARIOS.MANUAL:
+            if self.experiment_type_id in self.tool.ONE_PLATE_TYPES:
                 self.assert_equal(prep_plate.label,
                                   self.iso_request.plate_set_label)
             else:
@@ -155,21 +133,21 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
                                  requested_tubes=self.requested_tubes)
 
     def test_result_96(self):
-        self._check_result(self.VALID_FILE_96)
+        self._check_result()
         self.assert_equal(len(self.tool.return_value), self.number_of_isos)
         self._check_warning_messages('Did not find candidates for the ' \
                                      'following sample molecule design pools')
 
     def test_result_384_opti(self):
         self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_384
-        self._check_result(self.VALID_FILE_384_OPTI)
+        self._check_result('valid_file_384_opti.xls')
         self._check_warning_messages('The system will only generate 1 ISO ' \
                                      'though, because there are no floating ' \
                                      'positions for this ISO request')
 
     def test_result_384_opti_floats(self):
         self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_384
-        self._check_result(self.VALID_FILE_384_OPTI_FLOATS)
+        self._check_result('valid_file_384_opti_floats.xls')
         new_iso = self.tool.return_value[0]
         self.assert_equal(len(new_iso.molecule_design_pool_set), 2)
 
@@ -184,13 +162,13 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
     def test_result_384_screen(self):
         self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_384
         self.experiment_type_id = EXPERIMENT_SCENARIOS.SCREENING
-        self._check_result(self.VALID_FILE_384_SCREEN)
+        self._check_result('valid_file_384_screen.xls')
 
     def test_result_manual_with_buffer(self):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.MANUAL
         self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_96
         self.number_of_isos = 1
-        self._check_result(self.VALID_FILE_MANUAL)
+        self._check_result('valid_manual.xls')
         ws = self.iso_request.worklist_series
         self.assert_is_not_none(ws)
         self.assert_equal(len(ws), 1)
@@ -203,6 +181,13 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
         ws = self.iso_request.worklist_series
         self.assert_is_none(ws)
 
+    def test_result_order_only(self):
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
+        self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_96
+        self.number_of_isos = 1
+        self._check_result('valid_order.xls')
+        self.assert_is_none(self.iso_request.worklist_series)
+
     def test_with_compounds(self):
         self._check_result('with_compound.xls')
         self._check_warning_messages('Attention! There are compound pools ' \
@@ -213,19 +198,19 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
 #                    'the following fixed molecule design pool IDs: [277700]')
 
     def test_invalid_iso_request(self):
-        self._continue_setup(self.VALID_FILE_96)
+        self._continue_setup()
         self.iso_request = None
         self._test_and_expect_errors('The ISO request must be a IsoRequest ' \
                                      'object')
 
     def test_invalid_number_isos(self):
-        self._continue_setup(self.VALID_FILE_96)
+        self._continue_setup()
         self.number_of_isos = 3.4
         self._test_and_expect_errors('The number of ISOs order must be a ' \
                                      'positive integer')
 
     def test_invalid_excluded_racks(self):
-        self._continue_setup(self.VALID_FILE_96)
+        self._continue_setup()
         self.excluded_racks = dict()
         self._test_and_expect_errors('The excluded racks list must be a ' \
                                      'list object')
@@ -234,7 +219,7 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
                                      'basestring object')
 
     def test_invalid_requested_tube(self):
-        self._continue_setup(self.VALID_FILE_96)
+        self._continue_setup()
         self.requested_tubes = dict()
         self._test_and_expect_errors('The requested tubes list must be a list')
         self.requested_tubes = [12, 13]
@@ -242,25 +227,25 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
                                      'basestring object')
 
     def test_iso_layout_conversion_error(self):
-        self._continue_setup(self.VALID_FILE_96)
+        self._continue_setup()
         self.iso_request.iso_layout = RackLayout()
         self._test_and_expect_errors('Error when trying to convert ISO layout.')
 
     def test_unknown_experiment_type(self):
-        self._continue_setup(self.VALID_FILE_384_OPTI)
+        self._continue_setup()
         self.experiment_metadata.experiment_metadata_type = \
                                                 get_experiment_type_isoless()
         self._test_and_expect_errors('Unsupported experiment type')
 
     def test_unsupported_rack_shape(self):
-        self._continue_setup(self.VALID_FILE_96)
+        self._continue_setup()
         rack_shape = self._get_entity(IRackShape, '1x4')
         self.assert_is_not_none(rack_shape)
         self.iso_request.iso_layout.shape = rack_shape
         self._test_and_expect_errors('Unknown rack shape name')
 
     def test_preparation_layout_finding_failure(self):
-        self._continue_setup(self.VALID_FILE_384_OPTI)
+        self._continue_setup('valid_file_384_opti.xls')
         self.experiment_metadata.experiment_metadata_type = \
                                             get_experiment_type_screening()
         self._test_and_expect_errors('Error when trying to find ' \
@@ -273,7 +258,7 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
 
     def test_not_enough_floatings(self):
         self.number_of_isos = 6
-        self._check_result(self.VALID_FILE_96)
+        self._check_result()
         self.assert_equal(len(self.iso_request.isos), 3)
         self._check_warning_messages('Some positions of the last ISO will ' \
                     'be empty because there are not enough molecule design ' \
@@ -281,7 +266,7 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
                     'of generated ISOs: 3')
 
     def test_queued_molecules(self):
-        self._continue_setup(self.VALID_FILE_96)
+        self._continue_setup()
         md_pools = set()
         for md_pool in self.experiment_metadata.molecule_design_pool_set:
             md_pools.add(md_pool)
@@ -306,7 +291,7 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
         self._test_and_expect_errors('Error when trying to find ISO candidates')
 
     def test_missing_fixed_candidates(self):
-        self._continue_setup(self.VALID_FILE_96)
+        self._continue_setup()
         converter = IsoLayoutConverter(rack_layout=self.iso_request.iso_layout,
                                        log=SilentLog())
         iso_layout = converter.get_result()
@@ -323,7 +308,7 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
         # use test pool we have at least 2 stock samples for, make sure you
         # find it in the file
         test_pool_id = 205230
-        self._check_result(self.VALID_FILE_96)
+        self._check_result()
         fixed_candidates = self.tool.get_report_data()[0]
         first_tube = fixed_candidates[test_pool_id].container_barcode
         # get tubes barcode
@@ -375,11 +360,11 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
             result = session.query('tube_barcode').from_statement(query).all()
             self.assert_true(len(result) > 1)
             self.requested_tubes = [result[0][0]]
-            self._check_result(self.VALID_FILE_96)
+            self._check_result()
 
     def test_more_requested_tubes_than_controls(self):
         self.requested_tubes = ['1', '2', '3', '4', '5', '6', '7']
-        self._check_result(self.VALID_FILE_96)
+        self._check_result()
         self._check_warning_messages('There are more requested control tubes ' \
                                 '(7) than control molecule design pools (3)')
         self._check_warning_messages('The following tube barcodes you have ' \
@@ -387,14 +372,14 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
 
     def test_requested_tube_not_found(self):
         self.requested_tubes = ['1']
-        self._check_result(self.VALID_FILE_96)
+        self._check_result()
         self._check_warning_messages('The following tube barcodes you have ' \
                                      'requested could not be found')
 
     def test_empty_molecule_design_pool_set(self):
         # Note: might fail if some molecule design lack a suitable candidate
         self.number_of_isos = 4
-        self._continue_setup(self.VALID_FILE_96)
+        self._continue_setup()
         new_isos = self.tool.get_result()
         self.assert_is_not_none(new_isos)
         pool_set = self.experiment_metadata.molecule_design_pool_set
@@ -406,7 +391,7 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
                                      'pools left for the floating positions')
 
     def test_no_fixed_positions(self):
-        self._continue_setup(self.VALID_FILE_96)
+        self._continue_setup()
         converter = IsoLayoutConverter(rack_layout=self.iso_request.iso_layout,
                                        log=SilentLog())
         iso_layout = converter.get_result()
@@ -435,8 +420,8 @@ class IsoReschedulerTestCase(IsoCreatorTestCase):
         del self.all_old_mdps
         del self.expected_mdps
 
-    def _continue_setup(self, file_name):
-        self._read_file(file_name)
+    def _continue_setup(self, file_name=None):
+        IsoCreatorTestCase._continue_setup(self, file_name)
         self.__create_isos()
         self._create_tool()
 
@@ -460,7 +445,7 @@ class IsoReschedulerTestCase(IsoCreatorTestCase):
                                    requested_tubes=self.requested_tubes)
 
     def test_result(self):
-        self._check_result(self.VALID_FILE_96)
+        self._check_result()
         new_isos = self.tool.return_value
         self.assert_is_not_none(new_isos)
         self.assert_equal(len(new_isos), len(self.isos))
@@ -474,7 +459,7 @@ class IsoReschedulerTestCase(IsoCreatorTestCase):
         self.assert_equal(len(self.expected_mdps), len(new_mdps))
 
     def test_invalid_isos_list(self):
-        self._continue_setup(self.VALID_FILE_96)
+        self._continue_setup()
         self.isos = dict()
         self._test_and_expect_errors('The ISO list must be a list object')
         self.isos = [1, 2]
@@ -483,7 +468,7 @@ class IsoReschedulerTestCase(IsoCreatorTestCase):
     def test_twice_the_same(self):
         # there is a duplicate ISO among the isos passed to the tool
         self.number_of_isos = 1
-        self._continue_setup(self.VALID_FILE_96)
+        self._continue_setup()
         self.iso_request.isos[0].status = ISO_STATUS.CANCELLED
         self.__create_isos()
         self.assert_equal(len(self.iso_request.isos), 2)
@@ -498,7 +483,7 @@ class IsoReschedulerTestCase(IsoCreatorTestCase):
                 'of ISOs. Number of generated ISOs: 1')
 
     def test_no_preparation_plate(self):
-        self._continue_setup(self.VALID_FILE_96)
+        self._continue_setup()
         for iso in self.isos:
             iso.iso_preparation_plate = None
             break
@@ -506,7 +491,7 @@ class IsoReschedulerTestCase(IsoCreatorTestCase):
                                      'a preparation plate!')
 
     def test_differing_plate_specs(self):
-        self._continue_setup(self.VALID_FILE_96)
+        self._continue_setup()
         plate_specs_384 = PLATE_SPECS_NAMES.from_reservoir_specs(
                                         get_reservoir_specs_standard_384())
         for iso in self.isos:

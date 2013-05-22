@@ -4,6 +4,7 @@ AAB Aug 08, 2011
 """
 
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
+from thelma.automation.tools.metadata.generation import ExperimentMetadataGeneratorOrder
 from thelma.automation.handlers.experimentdesign \
     import ExperimentDesignParserHandler
 from thelma.automation.tools.metadata.generation \
@@ -54,7 +55,8 @@ class ExperimentMetadataGeneratorTestCase(ToolsAndUtilsTestCase):
                         EXPERIMENT_SCENARIOS.SCREENING : 'valid_screen.xls',
                         EXPERIMENT_SCENARIOS.LIBRARY : 'valid_library.xls',
                         EXPERIMENT_SCENARIOS.MANUAL : 'valid_manual.xls',
-                        EXPERIMENT_SCENARIOS.ISO_LESS : 'valid_isoless.xls'}
+                        EXPERIMENT_SCENARIOS.ISO_LESS : 'valid_isoless.xls',
+                        EXPERIMENT_SCENARIOS.ORDER_ONLY : 'valid_order.xls'}
         self.update_file = None
         self.source = None
         self.experiment_metadata = None
@@ -174,11 +176,12 @@ class ExperimentMetadataGeneratorTestCase(ToolsAndUtilsTestCase):
             em = self.experiment_metadata
         self.assert_is_not_none(em)
         self.__check_em_attributes(em)
-        self.__check_worklists_series(em)
+        if self.tool.HAS_EXPERIMENT_DESIGN: self.__check_worklists_series(em)
         self._check_source_layout()
-        one_to_one_types = [EXPERIMENT_SCENARIOS.SCREENING,
-                           EXPERIMENT_SCENARIOS.LIBRARY]
-        if self.experiment_type_id in one_to_one_types:
+        no_association_types = [EXPERIMENT_SCENARIOS.SCREENING,
+                                EXPERIMENT_SCENARIOS.LIBRARY,
+                                EXPERIMENT_SCENARIOS.ORDER_ONLY]
+        if self.experiment_type_id in no_association_types:
             self.assert_is_none(self.tool.get_final_concentrations())
             self.assert_is_none(self.tool.get_association_layouts())
         else:
@@ -189,15 +192,21 @@ class ExperimentMetadataGeneratorTestCase(ToolsAndUtilsTestCase):
     def __check_em_attributes(self, em):
         self.assert_equal(em.number_replicates, self.number_replicates)
         self.assert_equal(em.label, self.label)
-        self.assert_is_not_none(em.experiment_design)
+        if self.tool.HAS_EXPERIMENT_DESIGN:
+            self.assert_is_not_none(em.experiment_design)
+        else:
+            self.assert_is_none(em.experiment_design)
         self.assert_equal(em.ticket_number, self.ticket_number)
         iso_request = em.iso_request
-        self.assert_is_not_none(iso_request)
-        self.assert_equal(iso_request.requester, self.requester)
-        self.assert_equal(iso_request.number_aliquots, self.number_aliquots)
-        self.assert_equal(iso_request.number_plates, self.number_plates)
-        self.assert_equal(iso_request.comment, self.iso_request_comment)
-        self.assert_is_none(iso_request.worklist_series)
+        if self.tool.HAS_ISO_REQUEST:
+            self.assert_is_not_none(iso_request)
+            self.assert_equal(iso_request.requester, self.requester)
+            self.assert_equal(iso_request.number_aliquots, self.number_aliquots)
+            self.assert_equal(iso_request.number_plates, self.number_plates)
+            self.assert_equal(iso_request.comment, self.iso_request_comment)
+            self.assert_is_none(iso_request.worklist_series)
+        else:
+            self.assert_is_none(iso_request)
         if self.len_pool_set == 0:
             self.assert_is_none(em.molecule_design_pool_set)
         else:
@@ -342,6 +351,18 @@ class ExperimentMetadataGeneratorTestCase(ToolsAndUtilsTestCase):
         self._test_and_expect_errors('Error when trying to generate ' \
                                      'experiment design.')
 
+    def _test_missing_iso_request_sheet(self, file_name):
+        self._continue_setup(file_name)
+        em_type = get_experiment_metadata_type(self.experiment_type_id)
+        msg = 'For experiment metadata of the type "%s", you need to ' \
+              'provide an ISO sheet!' % (em_type.display_name)
+        self._test_and_expect_errors(msg)
+
+    def _test_invalid_iso_request(self, file_name):
+        self._continue_setup(file_name)
+        self._test_and_expect_errors('Error when trying to generate ISO ' \
+                                     'request.')
+
     def _test_invalid_pool_set(self, file_name):
         self._continue_setup(file_name)
         self._test_and_expect_errors('Error when trying to determine ' \
@@ -352,6 +373,13 @@ class ExperimentMetadataGeneratorTestCase(ToolsAndUtilsTestCase):
         self._test_and_expect_errors('Error when trying to determine ' \
                 'molecule design pool set for floating positions: There are ' \
                 'no molecule design pool IDs on the molecule design sheet!')
+
+    def _test_with_pool_set(self, file_name):
+        em_type = get_experiment_metadata_type(self.experiment_type_id)
+        self._continue_setup(file_name)
+        self._test_and_expect_errors('There are molecule design pools for ' \
+                'floating positions specified. Floating positions are not ' \
+                'allowed for %s experiments!' % (em_type.display_name))
 
     def _test_no_floatings_but_md_set(self, file_name):
         self._continue_setup(file_name)
@@ -530,14 +558,7 @@ class ExperimentMetadataGeneratorOptiTestCase(
         # test additional ISO layout tag
         irl = self.tool.return_value.iso_request.iso_layout
         add_tag = Tag('transfection', 'sample type', 'pos')
-        has_tag = False
-        for trps in irl.tagged_rack_position_sets:
-            for tag in trps.tags:
-                if tag == add_tag:
-                    has_tag = True
-                    break
-            if has_tag: break
-        self.assert_true(has_tag)
+        self._has_tag(irl, add_tag)
 
     def test_result_different_molecule_types(self):
         for pos_data in self.iso_layout_values.values():
@@ -842,14 +863,10 @@ class ExperimentMetadataGeneratorScreenTestCase(
                                         'screen_invalid_experiment_design.xls')
 
     def test_missing_iso_request_sheet(self):
-        self._continue_setup('screen_missing_iso_request.xls')
-        self._test_and_expect_errors('You need to provide an ISO sheet for ' \
-                                     'screening scenarios!')
+        self._test_missing_iso_request_sheet('screen_missing_iso_request.xls')
 
     def test_invalid_iso_request(self):
-        self._continue_setup('screen_invalid_iso_request.xls')
-        self._test_and_expect_errors('Error when trying to generate ISO ' \
-                                     'request.')
+        self._test_invalid_iso_request('screen_invalid_iso_request.xls')
 
     def test_robot_support_determiner_failure(self):
         self._continue_setup('screen_support_determiner_failure.xls')
@@ -1058,14 +1075,10 @@ class ExperimentMetadataGeneratorLibraryTestCase(
                                         'library_invalid_experiment_design.xls')
 
     def test_missing_iso_request_sheet(self):
-        self._continue_setup('library_missing_iso_request.xls')
-        self._test_and_expect_errors('You need to provide an ISO sheet for ' \
-                                     'library screening scenarios!')
+        self._test_missing_iso_request_sheet('library_missing_iso_request.xls')
 
     def test_invalid_iso_request(self):
-        self._continue_setup('library_invalid_iso_request.xls')
-        self._test_and_expect_errors('Error when trying to generate ISO ' \
-                                     'request.')
+        self._test_invalid_iso_request('library_invalid_iso_request.xls')
 
     def test_robot_support_determiner_failure(self):
         self._continue_setup('library_support_determiner_failure.xls')
@@ -1073,10 +1086,7 @@ class ExperimentMetadataGeneratorLibraryTestCase(
                                      'mastermix support.')
 
     def test_with_pool_set(self):
-        self._continue_setup('library_with_pool_set.xls')
-        self._test_and_expect_errors('There are molecule design pools for ' \
-                    'floating positions specified. Floating positions are ' \
-                    'not allowed for library screening experiments!')
+        self._test_with_pool_set('library_with_pool_set.xls')
 
     def test_worklist_generation_failure(self):
         self._test_worklist_generation_failure(
@@ -1191,14 +1201,10 @@ class ExperimentMetdadataGeneratorManualTestCase(
                                         'manual_invalid_experiment_design.xls')
 
     def test_missing_iso_request_sheet(self):
-        self._continue_setup('manual_missing_iso_sheet.xls')
-        self._test_and_expect_errors('You need to provide an ISO sheet for ' \
-                                     'manual optimisation scenarios!')
+        self._test_missing_iso_request_sheet('manual_missing_iso_sheet.xls')
 
     def test_invalid_iso_request(self):
-        self._continue_setup('manual_invalid_iso_request.xls')
-        self._test_and_expect_errors('Error when trying to generate ISO ' \
-                                     'request.')
+        self._test_invalid_iso_request('manual_invalid_iso_request.xls')
 
     def test_iso_volume_too_low(self):
         self._continue_setup('manual_iso_volume_too_low.xls')
@@ -1298,3 +1304,82 @@ class ExperimentMetadataGeneratorIsoLessTestCase(#pylint: disable=W0223
 
     def test_update_different_tags(self):
         self._test_update_different_tags()
+
+
+class ExperimentMetadataGeneratorOrderTestCase(
+                                    ExperimentMetadataGeneratorTestCase):
+
+    def set_up(self):
+        ExperimentMetadataGeneratorTestCase.set_up(self)
+        self.update_file = 'update_order_with_isos.xls'
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
+        self.generator_cls = ExperimentMetadataGeneratorOrder
+        self.iso_request_comment = 'ISO request without experiment'
+        # pos label, values: md, iso vol, iso conc, reagent name, reagent df
+        self.iso_layout_values = dict(
+                B2=[205201, 1, 50000, None, None],
+                B4=[330001, 1, 10000, None, None],
+                B6=[333803, 1, 5000000, None, None],
+                B8=[1056000, 1, 10000, None, None],
+                B10=[180202, 1, 50000, None, None])
+
+    def _check_experiment_design_tag(self, experiment_metadata):
+        pass # no experiment design
+
+    def test_result(self):
+        self._continue_setup()
+        self._check_result()
+        # check additional tag from ISO sheet
+        irl = self.tool.return_value.iso_request.iso_layout
+        add_tag = Tag('transfection', 'molecule_type', 'siRNA pool')
+        self._has_tag(irl, add_tag)
+        self._check_warning_messages('Attention! There are compounds among ' \
+                                     'your molecule design pools.')
+
+    def test_result_update(self):
+        self._continue_setup_update(self.update_file, create_iso=True,
+                                    create_experiment=False)
+        self._check_result(is_update_check=True)
+        irl = self.tool.return_value.iso_request.iso_layout
+        ori_tag = Tag('transfection', 'molecule_type', 'siRNA pool')
+        new_tag = Tag('transfection', 'molecule_type', 'pool of siRNAs')
+        self._has_tag(irl, ori_tag, expect_true=False)
+        self._has_tag(irl, new_tag)
+        self._check_warning_messages('The ISO generation for this experiment ' \
+                                     'metadata has already started!')
+
+    def test_unsupported_type(self):
+        self._test_unsupported_type()
+
+    def test_invalid_experiment_metadata(self):
+        self._test_invalid_experiment_metadata()
+
+    def test_invalid_requester(self):
+        self._test_invalid_requester()
+
+    def test_missing_ticket_number(self):
+        self._test_missing_ticket_number()
+
+    def test_missing_iso_request_sheet(self):
+        self._test_missing_iso_request_sheet('order_missing_iso_sheet.xls')
+
+    def test_invalid_iso_request(self):
+        self._test_invalid_iso_request('order_invalid_iso_request.xls')
+
+    def test_iso_volume_too_low(self):
+        self._continue_setup('order_iso_volume_too_low.xls')
+        self._test_and_expect_errors('The minimum ISO volume you can order ' \
+             'is 1 ul. For some positions, you have ordered less: ' \
+             '1056000 (B8, 0.5 ul), 180202 (B10, 0.5 ul), 333803 (B6, 0.5 ul)')
+
+    def test_with_pool_set(self):
+        self._test_with_pool_set('order_with_pool_set.xls')
+
+    def test_update_converter_error(self):
+        self._test_update_converter_error()
+
+    def test_update_changed_plate_set_label(self):
+        self._test_update_changed_plate_set_label()
+
+    def test_update_changed_iso_layout(self):
+        self._test_update_changed_iso_layout()

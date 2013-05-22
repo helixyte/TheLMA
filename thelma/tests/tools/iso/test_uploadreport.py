@@ -3,26 +3,27 @@ Tests the ISO trac uploads.
 
 AAB
 """
-from thelma.automation.tools.iso.seriesprocessing import IsoProcessingExecutor
-from thelma.automation.tools.iso.stock import IsoControlStockRackExecutor
-from thelma.automation.tools.iso.stock import IsoSampleStockRackExecutor
+from thelma.automation.tools.iso.isoprocessing import IsoProcessingExecutor
+from thelma.automation.tools.iso.stocktransfer \
+    import IsoControlStockRackExecutor
+from thelma.automation.tools.iso.stocktransfer import IsoSampleStockRackExecutor
 from thelma.automation.tools.iso.uploadreport import StockTransferLogFileWriter
 from thelma.automation.tools.iso.uploadreport import StockTransferReportUploader
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketCreator
-from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants \
     import get_experiment_type_manual_optimisation
-from thelma.automation.tools.semiconstants import get_experiment_type_screening
+from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.utils.iso import IsoLayout
 from thelma.interfaces import ITractor
 from thelma.models.utils import get_user
-from thelma.tests.tools.iso.test_seriesprocessing \
+from thelma.tests.tools.iso.test_isoprocessing \
     import IsoProcessing384TestCase
-from thelma.tests.tools.iso.test_stock import IsoControlStockRackTestCase
-from thelma.tests.tools.iso.test_stock import StockTaking384TestCase
-from thelma.tests.tools.iso.test_stock import StockTaking96TestCase
+from thelma.tests.tools.iso.test_stocktransfer \
+    import IsoControlStockRackTestCase
+from thelma.tests.tools.iso.test_stocktransfer import StockTaking384TestCase
+from thelma.tests.tools.iso.test_stocktransfer import StockTaking96TestCase
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
 from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import TracToolTestCase
@@ -230,26 +231,18 @@ class StockTransferReport384TestCase(StockTaking384TestCase,
         StockTaking384TestCase.set_up(self)
         StockTransferReportTestCase.set_up(self)
         self.csv_file_name = 'report_log_file_384.csv'
-        self.create_opti = False
 
     def tear_down(self):
         StockTransferReportTestCase.tear_down(self)
         StockTaking384TestCase.tear_down(self)
         del self.csv_file_name
-        del self.create_opti
 
     def _continue_setup(self, single_stock_rack=False):
-        if self.create_opti:
-            self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
-            del self.position_data['D3']
-            del self.position_data['D4']
-            self.floatings_pools = self.floatings_pools + self.control_pools
+        StockTaking384TestCase._continue_setup(self, single_stock_rack)
+        if self.experiment_type_id == EXPERIMENT_SCENARIOS.OPTIMISATION:
             self.csv_file_name = 'report_log_file_384_opti.csv'
-            StockTaking384TestCase._continue_setup(self, single_stock_rack=True)
-        else:
-            StockTaking384TestCase._continue_setup(self, single_stock_rack)
-            self.iso.iso_request.experiment_metadata.experiment_metadata_type = \
-                                              get_experiment_type_screening()
+        elif self.experiment_type_id == EXPERIMENT_SCENARIOS.ORDER_ONLY:
+            self.csv_file_name = 'report_log_file_384_order.csv'
         self.working_layout = self.preparation_layout
         self.__execute_transfers()
         self._create_ticket(self.user, self.iso.iso_request)
@@ -282,7 +275,12 @@ class StockTransferLogFileWriter384TestCase(StockTransferReport384TestCase):
         self.__check_result()
 
     def test_result_opti(self):
-        self.create_opti = True
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
+        self._continue_setup()
+        self.__check_result()
+
+    def test_result_order(self):
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
         self._continue_setup()
         self.__check_result()
 
@@ -326,9 +324,14 @@ class StockTransferReportUploader384TestCase(StockTransferReport384TestCase):
         self.__check_result('report_comment_384_screen.txt')
 
     def test_result_opti(self):
-        self.create_opti = True
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
         self._continue_setup()
         self.__check_result('report_comment_384_opti.txt')
+
+    def test_result_order(self):
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
+        self._continue_setup()
+        self.__check_result('report_comment_384_opti.txt') # same as opti
 
     def test_invalid_executor(self):
         self._continue_setup()

@@ -8,6 +8,9 @@ from pyramid.threadlocal import get_current_registry
 from thelma import ThelmaLog
 from thelma.automation.tools.semiconstants import clear_semiconstant_caches
 from thelma.automation.tools.semiconstants import initialize_semiconstant_caches
+from thelma.models.racklayout import RackLayout
+from thelma.automation.tools.metadata.generation import ExperimentMetadataGenerator
+from thelma.models.utils import get_user
 from thelma.automation.tools.worklists.base \
     import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
@@ -161,6 +164,25 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
         self.assert_equal(len(pool_md_ids), len(sample_ids))
         self.assert_equal(sorted(pool_md_ids), sorted(sample_ids))
 
+    def _has_tag(self, trp_sets_or_rack_rack_layout, tag, expect_true=True):
+        if isinstance(trp_sets_or_rack_rack_layout, TaggedRackPositionSet):
+            trp_sets = trp_sets_or_rack_rack_layout
+        elif isinstance(trp_sets_or_rack_rack_layout, RackLayout):
+            trp_sets = trp_sets_or_rack_rack_layout.tagged_rack_position_sets
+        else:
+            raise TypeError('Expect TaggedRackPositionSet list or RackLayout!')
+        has_tag = False
+        for trps in trp_sets:
+            for trps_tag in trps.tags:
+                if tag == trps_tag:
+                    has_tag = True
+                    break
+            if has_tag: break
+        if expect_true:
+            self.assert_true(has_tag)
+        else:
+            self.assert_false(has_tag)
+
     def _create_test_trp_set(self, tag_list, rack_positions):
         rps = RackPositionSet.from_positions(rack_positions)
         return TaggedRackPositionSet(set(tag_list), rps, self.user)
@@ -186,21 +208,17 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
         self.assert_is_not_none(et.timestamp)
 
 
-class ParsingTestCase(ToolsAndUtilsTestCase):
-
-    _PARSER_CLS = None
+class FileReadingTestCase(ToolsAndUtilsTestCase):
 
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
         self.stream = None
-        self.log = TestingLog()
         self.VALID_FILE = None
         self.TEST_FILE_PATH = None
 
     def tear_down(self):
         ToolsAndUtilsTestCase.tear_down(self)
         del self.stream
-        del self.log
         del self.VALID_FILE
         del self.TEST_FILE_PATH
         clear_semiconstant_caches()
@@ -208,7 +226,10 @@ class ParsingTestCase(ToolsAndUtilsTestCase):
     def _continue_setup(self, file_name=None):
         initialize_semiconstant_caches()
         self.__read_file(file_name)
-        self._create_tool()
+
+    def _test_invalid_file(self, file_name, msg):
+        self._continue_setup(file_name)
+        self._test_and_expect_errors(msg)
 
     def __read_file(self, file_name):
         if file_name is None: file_name = self.VALID_FILE
@@ -221,6 +242,23 @@ class ParsingTestCase(ToolsAndUtilsTestCase):
         finally:
             stream.close()
 
+
+class ParsingTestCase(FileReadingTestCase):
+
+    _PARSER_CLS = None
+
+    def set_up(self):
+        ToolsAndUtilsTestCase.set_up(self)
+        self.log = TestingLog()
+
+    def tear_down(self):
+        FileReadingTestCase.tear_down(self)
+        del self.log
+
+    def _continue_setup(self, file_name=None):
+        FileReadingTestCase._continue_setup(self, file_name)
+        self._create_tool()
+
     def _test_if_result(self):
         self._continue_setup()
         self.assert_is_none(self.tool.parser)
@@ -231,9 +269,33 @@ class ParsingTestCase(ToolsAndUtilsTestCase):
         self.assert_is_not_none(result)
         self.assert_equal(self.tool.parser.__class__, self._PARSER_CLS)
 
-    def _test_invalid_file(self, file_name, msg):
-        self._continue_setup(file_name)
-        self._test_and_expect_errors(msg)
+
+class ExperimentMetadataReadingTestCase(FileReadingTestCase):
+
+    def set_up(self):
+        FileReadingTestCase.set_up(self)
+        self.experiment_metadata = None
+        self.em_requester = get_user('it')
+
+    def tear_down(self):
+        FileReadingTestCase.tear_down(self)
+        del self.experiment_metadata
+
+    def _continue_setup(self, file_name=None):
+        FileReadingTestCase._continue_setup(self, file_name=file_name)
+        if self.experiment_metadata is None:
+            self._set_experiment_metadadata()
+            self.__read_experiment_metadata_file()
+
+    def _set_experiment_metadadata(self):
+        raise NotImplementedError('Abstract method')
+
+    def __read_experiment_metadata_file(self):
+        em_generator = ExperimentMetadataGenerator.create(stream=self.stream,
+                      experiment_metadata=self.experiment_metadata,
+                      requester=self.em_requester)
+        self.experiment_metadata = em_generator.get_result()
+        self.assert_is_not_none(self.experiment_metadata)
 
 
 class TracToolTestCase(ToolsAndUtilsTestCase):

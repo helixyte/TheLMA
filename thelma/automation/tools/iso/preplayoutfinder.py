@@ -42,7 +42,8 @@ __all__ = ['_get_finder_class',
            'PrepLayoutFinder348',
            'PrepLayoutFinder384Optimisation',
            'PrepLayoutFinder384Screening',
-           'PrepLayoutFinderManual']
+           'PrepLayoutFinderManual',
+           'PrepLayoutFinderOrderOnly']
 
 
 def _get_finder_class(rack_shape_name, experiment_type):
@@ -67,6 +68,8 @@ def _get_finder_class(rack_shape_name, experiment_type):
 
     if experiment_type.id == EXPERIMENT_SCENARIOS.MANUAL:
         return PrepLayoutFinderManual
+    elif experiment_type.id == EXPERIMENT_SCENARIOS.ORDER_ONLY:
+        return PrepLayoutFinderOrderOnly
     elif rack_shape_name == RACK_SHAPE_NAMES.SHAPE_96:
         return PrepLayoutFinder96
     elif experiment_type.id == EXPERIMENT_SCENARIOS.SCREENING:
@@ -80,6 +83,7 @@ class PrepLayoutFinder(BaseAutomationTool):
     This tool generates a ISO preparation layout (:class:`PrepIsoLayout`)
     from an ISO layout.
     """
+    NAME = 'Preparation ISO Layout Finder'
 
     #: Name of the rack shape that is supported by this preparation layout
     #: finder.
@@ -690,8 +694,6 @@ class PrepLayoutFinder96(PrepLayoutFinder):
     the child wells.
     """
 
-    NAME = 'Preparation ISO Layout Finder 96-well'
-
     RACK_SHAPE_NAME = '8x12'
 
     def __init__(self, iso_layout, iso_request, log):
@@ -1155,7 +1157,55 @@ class PrepLayoutFinderManual(PrepLayoutFinder):
             self.return_value = prep_layout
 
 
+class PrepLayoutFinderOrderOnly(PrepLayoutFinder):
+    """
+    A preparation layout finder for order only cases. This layout
+    finder is a special case, since ISO layout and preparation layout
+    are the same (we just have to convert the type).
+
+    Each pool may occur only once and it must be in stock concentration.
+    """
+
+    def run(self):
+        """
+        We only need to convert the layout, that's why we can use a
+        simplfied :func:`run` method.
+        """
+
+        if self._check_input_class('ISO layout', self.iso_layout, IsoLayout):
+
+            invalid_concentration = []
+
+            prep_layout = PrepIsoLayout(shape=self.iso_layout.shape)
+            for rack_pos, iso_pos in self.iso_layout.iterpositions():
+                if not iso_pos.iso_concentration == iso_pos.stock_concentration:
+                    info = '%s (%s, expected: %s, found: %s)' \
+                        % (iso_pos.molecule_design_pool_id, rack_pos.label,
+                           get_trimmed_string(iso_pos.iso_concentration),
+                           get_trimmed_string(iso_pos.stock_concentration))
+                    invalid_concentration.append(info)
+                    continue
+
+                prep_pos = PrepIsoPosition(rack_position=rack_pos,
+                        molecule_design_pool=iso_pos.molecule_design_pool,
+                        position_type=iso_pos.position_type,
+                        required_volume=iso_pos.iso_volume,
+                        prep_concentration=iso_pos.iso_concentration,
+                        transfer_targets=[], parent_well=None)
+                prep_layout.add_position(prep_pos)
+
+            if len(invalid_concentration) > 0:
+                msg = 'For order only scenarios, molecule design pools can ' \
+                      'only be ordered in stock concentration. Some ordered ' \
+                      'concentrations in this layout are different: %s.' \
+                      % (', '.join(sorted(invalid_concentration)))
+                self.add_error(msg)
+            else:
+                self.return_value = prep_layout
+
+
 _SUPPORTED_EXPERIMENT_TYPES = [
                 EXPERIMENT_SCENARIOS.OPTIMISATION,
                 EXPERIMENT_SCENARIOS.SCREENING,
-                EXPERIMENT_SCENARIOS.MANUAL]
+                EXPERIMENT_SCENARIOS.MANUAL,
+                EXPERIMENT_SCENARIOS.ORDER_ONLY]

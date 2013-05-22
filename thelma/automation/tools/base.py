@@ -77,7 +77,7 @@ class BaseAutomationTool(ErrorRecording):
         :default run: *True*
         """
         if run == True: self.run()
-        if self.__depending: clear_semiconstant_caches()
+        if not self.__depending: clear_semiconstant_caches()
         return self.return_value
 
     def reset(self):

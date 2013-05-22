@@ -87,7 +87,8 @@ class IsoTicketDescriptionBuilderTestCase(FileCreatorTestCase):
                     EXPERIMENT_SCENARIOS.OPTIMISATION : 'valid_opti.xls',
                     EXPERIMENT_SCENARIOS.SCREENING : 'valid_screen.xls',
                     EXPERIMENT_SCENARIOS.MANUAL : 'valid_manual.xls',
-                    EXPERIMENT_SCENARIOS.ISO_LESS : 'valid_isoless.xls'}
+                    EXPERIMENT_SCENARIOS.ISO_LESS : 'valid_isoless.xls',
+                    EXPERIMENT_SCENARIOS.ORDER_ONLY : 'valid_order.xls'}
         self.VALID_FILES_NO_MM_SUPPORT = {
                     EXPERIMENT_SCENARIOS.OPTIMISATION : \
                                         'valid_opti_no_mastermix_support.xls',
@@ -181,6 +182,10 @@ class IsoTicketDescriptionBuilderTestCase(FileCreatorTestCase):
     def test_result_iso_less(self):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.ISO_LESS
         self.__check_result('ticket_description_isoless.txt')
+
+    def test_result_order_only(self):
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
+        self.__check_result('ticket_description_order_only.txt')
 
     def test_get_use_deep_well(self):
         self.use_deep_well = True

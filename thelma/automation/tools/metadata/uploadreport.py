@@ -536,10 +536,9 @@ The ISO volumes and ISO concentrations for this metadata have been set manually.
                 self._stream.write('%s\n' % msg)
 
 
-class ExperimentMetadataInfoWriterIsoLess(TxtWriter):
+class ExperimentMetadataInfoWriterWarningOnly(TxtWriter):
     """
-    This scenario requires a separate write because it does not have an
-    ISO request and there are no formulars.
+    For some experiment types there are no formulas, but only warnings.
 
     **Return Value:** stream (TXT)
     """
@@ -1027,11 +1026,13 @@ class ExperimentMetadataReportUploader(BaseTracTool):
 
     #: The info writer class for each scenario.
     INFO_WRITER_CLS = {
-            EXPERIMENT_SCENARIOS.OPTIMISATION : ExperimentMetadataInfoWriter,
-            EXPERIMENT_SCENARIOS.SCREENING : ExperimentMetadataInfoWriter,
-            EXPERIMENT_SCENARIOS.LIBRARY : ExperimentMetadataInfoWriterLibrary,
-            EXPERIMENT_SCENARIOS.MANUAL : ExperimentMetadataInfoWriter,
-            EXPERIMENT_SCENARIOS.ISO_LESS : ExperimentMetadataInfoWriterIsoLess}
+        EXPERIMENT_SCENARIOS.OPTIMISATION : ExperimentMetadataInfoWriter,
+        EXPERIMENT_SCENARIOS.SCREENING : ExperimentMetadataInfoWriter,
+        EXPERIMENT_SCENARIOS.LIBRARY : ExperimentMetadataInfoWriterLibrary,
+        EXPERIMENT_SCENARIOS.MANUAL : ExperimentMetadataInfoWriter,
+        EXPERIMENT_SCENARIOS.ISO_LESS : ExperimentMetadataInfoWriterWarningOnly,
+        EXPERIMENT_SCENARIOS.ORDER_ONLY :
+                                        ExperimentMetadataInfoWriterWarningOnly}
 
     #: Experiment scenarios that get assignment files.
     ASSIGNMENT_FILE_SCENARIOS = [EXPERIMENT_SCENARIOS.OPTIMISATION,
@@ -1040,7 +1041,8 @@ class ExperimentMetadataReportUploader(BaseTracTool):
     #: Experiment scenario that get ISO overview files.
     ISO_OVERVIEW_SCENARIOS = [EXPERIMENT_SCENARIOS.OPTIMISATION,
                               EXPERIMENT_SCENARIOS.SCREENING,
-                              EXPERIMENT_SCENARIOS.MANUAL]
+                              EXPERIMENT_SCENARIOS.MANUAL,
+                              EXPERIMENT_SCENARIOS.ORDER_ONLY]
 
     #: Experiment scenarios that get stock volume files.
     STOCK_VOLUME_SCENARIOS = [EXPERIMENT_SCENARIOS.OPTIMISATION,
@@ -1182,8 +1184,8 @@ class ExperimentMetadataReportUploader(BaseTracTool):
         if writer_cls == ExperimentMetadataInfoWriterLibrary:
             info_writer = ExperimentMetadataInfoWriterLibrary(log=self.log,
                                                     generator=self.generator)
-        elif writer_cls == ExperimentMetadataInfoWriterIsoLess:
-            info_writer = ExperimentMetadataInfoWriterIsoLess(log=self.log,
+        elif writer_cls == ExperimentMetadataInfoWriterWarningOnly:
+            info_writer = ExperimentMetadataInfoWriterWarningOnly(log=self.log,
                                     em_log=self.generator.log,
                                     em_label=self.generator.return_value.label)
         else:

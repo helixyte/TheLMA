@@ -7,7 +7,7 @@ AAB
 
 from thelma.automation.tools.iso.prep_utils import IsoControlRackLayout
 from thelma.automation.tools.iso.prep_utils import PrepIsoLayout
-from thelma.automation.tools.iso.stock import StockTransferExecutor
+from thelma.automation.tools.iso.stocktransfer import StockTransferExecutor
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.utils.base import WorkingLayout

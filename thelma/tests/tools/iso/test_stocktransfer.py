@@ -6,27 +6,29 @@ AAB, Jan 2012
 from everest.entities.utils import get_root_aggregate
 from thelma.automation.tools.iso.prep_utils import IsoControlRackLayout
 from thelma.automation.tools.iso.prep_utils import IsoControlRackPosition
-from thelma.automation.tools.iso.prep_utils import PrepIsoAssociationData
 from thelma.automation.tools.iso.prep_utils import PrepIsoLayout
 from thelma.automation.tools.iso.prep_utils import PrepIsoPosition
 from thelma.automation.tools.iso.prep_utils import RequestedStockSample
-from thelma.automation.tools.iso.stock \
+from thelma.automation.tools.iso.stocktransfer \
+    import IsoControlStockRackExecutor
+from thelma.automation.tools.iso.stocktransfer \
+    import IsoControlStockRackVerifier
+from thelma.automation.tools.iso.stocktransfer \
+    import IsoControlStockRackWorklistWriter
+from thelma.automation.tools.iso.stocktransfer \
+    import IsoControlTransferOverviewWriter
+from thelma.automation.tools.iso.stocktransfer \
+    import IsoSampleStockRackExecutor
+from thelma.automation.tools.iso.stocktransfer \
+    import IsoSampleStockRackJobCreator
+from thelma.automation.tools.iso.stocktransfer \
+    import IsoSampleStockRackVerifier
+from thelma.automation.tools.iso.stocktransfer \
     import IsoSampleStockRackWorklistWriter
-from thelma.automation.tools.iso.stock \
-    import StockTransferWorklistGenerator384Controls
-from thelma.automation.tools.iso.stock \
-    import StockTransferWorklistGenerator384Samples
-from thelma.automation.tools.iso.stock \
-    import StockTransferWorklistGenerator384Single
-from thelma.automation.tools.iso.stock import IsoControlStockRackExecutor
-from thelma.automation.tools.iso.stock import IsoControlStockRackVerifier
-from thelma.automation.tools.iso.stock import IsoControlStockRackWorklistWriter
-from thelma.automation.tools.iso.stock import IsoControlTransferOverviewWriter
-from thelma.automation.tools.iso.stock import IsoSampleStockRackExecutor
-from thelma.automation.tools.iso.stock import IsoSampleStockRackJobCreator
-from thelma.automation.tools.iso.stock import IsoSampleStockRackVerifier
-from thelma.automation.tools.iso.stock import SingleStockRackLayoutOptimiser
-from thelma.automation.tools.iso.stock import StockTransferWorklistGenerator96
+from thelma.automation.tools.iso.stockworklist \
+    import SingleStockRackLayoutOptimiser
+from thelma.automation.tools.iso.stockworklist \
+    import StockTransferWorklistGenerator96
 from thelma.automation.tools.semiconstants \
     import get_experiment_type_robot_optimisation
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
@@ -44,7 +46,6 @@ from thelma.automation.tools.stock.base import get_default_stock_concentration
 from thelma.automation.tools.utils.base import FIXED_POSITION_TYPE
 from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
 from thelma.automation.tools.utils.base import TransferTarget
-from thelma.automation.tools.utils.racksector import QuadrantIterator
 from thelma.automation.tools.worklists.base \
     import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
@@ -70,7 +71,6 @@ from thelma.models.job import IsoJob
 from thelma.models.liquidtransfer import ExecutedWorklist
 from thelma.models.liquidtransfer import PlannedContainerTransfer
 from thelma.models.liquidtransfer import PlannedWorklist
-from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 from thelma.models.rack import PlateSpecs
 from thelma.models.rack import TubeRackSpecs
@@ -315,64 +315,6 @@ class StockTaking96TestCase(ToolsAndUtilsTestCase):
         self.iso.rack_layout = self.preparation_layout.create_rack_layout()
         self._test_and_expect_errors('The stock racks are not ' \
                                      'compatible with the ISO!')
-
-
-class IsoSampleStockRack96WorklistGeneratorTestCase(StockTaking96TestCase):
-
-    def set_up(self):
-        StockTaking96TestCase.set_up(self)
-        #: rack position, expected volume in ul
-        self.result_data = dict(A1=10.2, B1=9, C1=7.2)
-
-    def tear_down(self):
-        StockTaking96TestCase.tear_down(self)
-        del self.result_data
-
-    def _create_tool(self):
-        self.tool = StockTransferWorklistGenerator96(
-                            working_layout=self.preparation_layout,
-                            label=self.iso_label, log=self.log)
-
-    def _continue_setup(self):
-        self._create_prep_layout()
-        self._create_tool()
-
-    def __check_result(self):
-        worklist = self.tool.get_result()
-        self.assert_is_not_none(worklist)
-        self.assert_equal(len(worklist.executed_worklists), 0)
-        self.assert_equal(len(worklist.planned_transfers),
-                          len(self.result_data))
-        expected_label = '%s%s' % (self.iso_label, self.tool.WORKLIST_SUFFIX)
-        self.assert_true(self.tool.BIOMEK_MARKER in worklist.label)
-        self.assert_equal(worklist.label, expected_label)
-        for pct in worklist.planned_transfers:
-            self.assert_equal(pct.source_position, pct.target_position)
-            self.assert_equal(pct.type, TRANSFER_TYPES.CONTAINER_TRANSFER)
-            trg_pos = pct.target_position
-            expected_volume = self.result_data[trg_pos.label]
-            pct_volume = pct.volume * VOLUME_CONVERSION_FACTOR
-            self.assert_equal(expected_volume, pct_volume)
-
-    def test_result(self):
-        self._continue_setup()
-        self.__check_result()
-
-    def test_result_inactivated_position(self):
-        self.inactivate_pos = 'A1'
-        self._continue_setup()
-        del self.result_data['A1']
-        self.__check_result()
-
-    def test_invalid_preparation_layout(self):
-        self._continue_setup()
-        self.preparation_layout = self.preparation_layout.create_rack_layout()
-        self._test_and_expect_errors()
-
-    def test_invalid_label(self):
-        self._continue_setup()
-        self.iso_label = 123
-        self._test_and_expect_errors('The label must be a basestring object')
 
 
 class IsoSampleStockRackVerifier96TestCase(StockTaking96TestCase):
@@ -670,7 +612,6 @@ class StockTaking384TestCase(ToolsAndUtilsTestCase):
         self.iso_label = 'stock_taking_test'
         self.iso = None
         self.stock_concentration = 50000
-        self.association_data = None
         self.log = TestingLog()
         self.execute_control_transfer = True
         # data tuple: molecule design, iso conc, parent well, req vol, pos type
@@ -704,7 +645,7 @@ class StockTaking384TestCase(ToolsAndUtilsTestCase):
                                      B2=['C3', 'C4', 'D3', 'D4'])
         self.iso_volume = 10
         self.take_out_volume = 6
-        self.floatings_pools = [205203, 205204, 205205, 205206, 205207, 205208,
+        self.floating_pools = [205203, 205204, 205205, 205206, 205207, 205208,
                                 205209, 205210, 205212, 205214]
         self.control_pools = [205200, 205201]
         #: other setup data
@@ -738,7 +679,6 @@ class StockTaking384TestCase(ToolsAndUtilsTestCase):
         del self.iso_label
         del self.iso
         del self.stock_concentration
-        del self.association_data
         del self.log
         del self.execute_control_transfer
         del self.position_data
@@ -746,7 +686,7 @@ class StockTaking384TestCase(ToolsAndUtilsTestCase):
         del self.source_positions
         del self.iso_volume
         del self.take_out_volume
-        del self.floatings_pools
+        del self.floating_pools
         del self.control_pools
         del self.tube_specs
         del self.tube_rack_shape
@@ -765,9 +705,10 @@ class StockTaking384TestCase(ToolsAndUtilsTestCase):
         del self.experiment_type_id
 
     def _continue_setup(self, single_stock_rack=False):
+        single_stock_rack = self._set_scenario_specific_values(
+                                                            single_stock_rack)
         self._create_pool_map()
         self._create_preparation_layout()
-        self._create_association_data()
         self._create_preparation_plate()
         if single_stock_rack:
             self._create_single_stock_rack()
@@ -778,20 +719,39 @@ class StockTaking384TestCase(ToolsAndUtilsTestCase):
         self._create_issrs()
         self._create_tool()
 
-    def _continue_setup_opti(self):
-        self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
+    def _set_scenario_specific_values(self, single_stock_rack):
+        if self.experiment_type_id == EXPERIMENT_SCENARIOS.OPTIMISATION:
+            self.__set_opti_values()
+            single_stock_rack = True
+        elif self.experiment_type_id == EXPERIMENT_SCENARIOS.ORDER_ONLY:
+            self.__set_order_values()
+            single_stock_rack = True
+        return single_stock_rack
+
+    def __set_opti_values(self):
         del self.position_data['D3']
         del self.position_data['D4']
-        self.floatings_pools = self.floatings_pools + self.control_pools
-        self._continue_setup(single_stock_rack=True)
+        self.floating_pools = self.floating_pools + self.control_pools
+
+    def __set_order_values(self):
+        # data tuple: molecule design, iso conc, parent well, req vol, pos type
+        self.position_data = dict(
+                        B2=[205201, 50000, None, 1, 'fixed'],
+                        B4=[330001, 10000, None, 1, 'fixed'],
+                        B6=[333803, 5000000, None, 1, 'fixed'],
+                        B8=[1056000, 10000, None, 1, 'fixed'],
+                        B10=[180202, 50000, None, 1, 'fixed'])
+        self.control_pools = [205201, 330001, 333803, 1056000, 180202]
+        self.floating_pools = self.control_pools
+        self.take_out_volume = 1
 
     def _continue_setup_inactivated_position(self):
         self.inactivated_pos = 'B1'
-        self.floatings_pools.remove(205203)
+        self.floating_pools.remove(205203)
         self._continue_setup()
 
     def _create_pool_map(self):
-        all_pools = self.floatings_pools + self.control_pools
+        all_pools = set(self.floating_pools + self.control_pools)
         for pool_id in all_pools:
             self._get_pool(pool_id)
 
@@ -819,11 +779,6 @@ class StockTaking384TestCase(ToolsAndUtilsTestCase):
             self.preparation_layout.add_position(pp)
             if pos_label == self.inactivated_pos: pp.inactivate()
 
-    def _create_association_data(self):
-        self.association_data = PrepIsoAssociationData(
-                    preparation_layout=self.preparation_layout, log=self.log)
-
-
     def _create_preparation_plate(self):
         self.preparation_plate = self.plate_specs.create_rack(
                         label='stock_test_prep_plate', status=self.prep_status)
@@ -846,7 +801,7 @@ class StockTaking384TestCase(ToolsAndUtilsTestCase):
                 prep_pos = self.preparation_layout.get_working_position(trg_pos)
                 if prep_pos.is_inactivated: continue
                 pool_id = prep_pos.molecule_design_pool_id
-                if not pool_id in self.floatings_pools: continue
+                if not pool_id in self.floating_pools: continue
                 pool = prep_pos.molecule_design_pool
                 tube_barcode = prep_pos.stock_tube_barcode
                 tube = self.tube_specs.create_tube(item_status=self.status,
@@ -883,7 +838,7 @@ class StockTaking384TestCase(ToolsAndUtilsTestCase):
             pool = prep_pos.molecule_design_pool
             pool_id = prep_pos.molecule_design_pool_id
             if prep_pos.is_inactivated: continue
-            if not pool_id in self.floatings_pools: continue
+            if not pool_id in self.floating_pools: continue
             tube_barcode = prep_pos.stock_tube_barcode
             tube = self.tube_specs.create_tube(item_status=self.status,
                     barcode=tube_barcode, location=None)
@@ -953,7 +908,6 @@ class StockTaking384TestCase(ToolsAndUtilsTestCase):
     def _test_missing_stock_racks(self):
         self._create_pool_map()
         self._create_preparation_layout()
-        self._create_association_data()
         self._create_preparation_plate()
         self._create_stock_racks_and_worklists()
         self._create_test_iso()
@@ -987,159 +941,6 @@ class StockTaking384TestCase(ToolsAndUtilsTestCase):
                                      'transfer jobs.')
 
 
-class IsoSampleStockRack384WorklistGeneratorMultiTestCase(
-                                                    StockTaking384TestCase):
-
-    def set_up(self):
-        StockTaking384TestCase.set_up(self)
-        self.sector_stock_samples = dict()
-        # target pos, source pos
-        self.sector_data = {0 : dict(A3='A2', C1='B1', C3='B2'),
-                            1 : dict(A4='A2', C2='B1', C4='B2'),
-                            2 : dict(B1='A1', B3='A2', D1='B1'),
-                            3 : dict(B2='A1', B4='A2', D2='B1')}
-
-    def tear_down(self):
-        StockTaking384TestCase.tear_down(self)
-        del self.sector_stock_samples
-
-    def _continue_setup(self, single_stock_rack=False):
-        self._create_preparation_layout()
-        self._create_association_data()
-        self._create_req_stock_samples()
-        self._create_tool()
-
-    def _create_tool(self):
-        self.tool = StockTransferWorklistGenerator384Samples(
-                        preparation_layout=self.preparation_layout,
-                        iso_label=self.iso_label, log=self.log,
-                        sector_stock_samples=self.sector_stock_samples,
-                        floating_stock_concentration=self.stock_concentration,
-                        association_data=self.association_data)
-
-    def _create_req_stock_samples(self):
-        for i in range(4): self.sector_stock_samples[i] = []
-        quadrant_iter = QuadrantIterator(number_sectors=4)
-        for quadrant_pps in quadrant_iter.get_all_quadrants(
-                                working_layout=self.preparation_layout):
-            for sector_index, pp in quadrant_pps.iteritems():
-                if pp is None: continue
-                if pp.is_inactivated or not pp.is_floating: continue
-                if not pp.parent_well is None: continue
-                rss = RequestedStockSample.from_prep_pos(pp)
-                self.sector_stock_samples[sector_index].append(rss)
-
-    def __check_result(self):
-        worklist_map = self.tool.get_result()
-        self.assert_is_not_none(worklist_map)
-        self.assert_equal(len(worklist_map), len(self.sector_data))
-        for sector_index, worklist in worklist_map.iteritems():
-            expected_label = '%s_Q%i' % (self.iso_label, sector_index + 1)
-            self.assert_equal(worklist.label, expected_label)
-            self.assert_equal(len(worklist.executed_worklists), 0)
-            sector_data = self.sector_data[sector_index]
-            self.assert_equal(len(worklist.planned_transfers), len(sector_data))
-            for pct in worklist.planned_transfers:
-                self.assert_equal(pct.type, TRANSFER_TYPES.CONTAINER_TRANSFER)
-                expected_volume = self.take_out_volume
-                pct_volume = pct.volume * VOLUME_CONVERSION_FACTOR
-                self.assert_equal(expected_volume, pct_volume)
-                trg_pos_label = pct.target_position.label
-                exp_src_label = sector_data[trg_pos_label]
-                self.assert_equal(exp_src_label, pct.source_position.label)
-
-    def test_result(self):
-        self.sector_data = {0 : dict(A3='A2', C1='B1'),
-                            1 : dict(A4='A2', C2='B1'),
-                            2 : dict(B1='A1', B3='A2', D1='B1'),
-                            3 : dict(B2='A1', B4='A2', D2='B1')}
-        self._continue_setup()
-        self.__check_result()
-
-    def test_result_two_sectors(self):
-        sector_info_0 = self.sector_data[0]
-        del sector_info_0['C3']
-        self._continue_setup()
-        del self.sector_stock_samples[1]
-        del self.sector_stock_samples[3]
-        del self.sector_data[1]
-        del self.sector_data[3]
-        self.__check_result()
-
-    def test_result_several_sectors(self):
-        self.position_data = dict(
-                # first quadrant
-                A1=(205200, 10000, None, 45, 'fixed'),
-                A2=(205200, 5000, 'A1', 30, 'fixed'),
-                B1=(205203, 10000, None, 45, 'floating'),
-                B2=(205203, 5000, 'B1', 30, 'floating'),
-                # second quadrant
-                A3=(205204, 10000, None, 45, 'floating'),
-                A4=(205204, 5000, 'A3', 30, 'floating'),
-                B3=(205205, 10000, None, 45, 'floating'),
-                B4=(205205, 5000, 'B3', 30, 'floating'),
-                # third quadrant
-                C1=(205206, 10000, None, 45, 'floating'),
-                C2=(205206, 5000, 'C1', 30, 'floating'),
-                D1=(205207, 10000, None, 45, 'floating'),
-                D2=(205207, 5000, 'D1', 30, 'floating'),
-                # fourth quadrant
-                C3=(205200, 10000, None, 45, 'fixed'),
-                C4=(205200, 5000, 'C3', 30, 'fixed'),
-                D3=(205201, 10000, None, 45, 'fixed'),
-                D4=(205201, 5000, 'D3', 30, 'fixed'))
-        self.sector_data = {0 : dict(A3='A2', C1='B1'),
-                            2 : dict(B1='A1', B3='A2', D1='B1')}
-        self.take_out_volume = 9
-        self._continue_setup()
-        self.__check_result()
-
-    def test_result_inactivated_position(self):
-        self.sector_data = {0 : dict(A3='A2', C1='B1'),
-                            1 : dict(A4='A2', C2='B1'),
-                            2 : dict(B3='A2', D1='B1'),
-                            3 : dict(B2='A1', B4='A2', D2='B1')}
-        self.inactivated_pos = 'B1'
-        self._continue_setup()
-        self.__check_result()
-
-    def test_invalid_preparation_layout(self):
-        self._continue_setup()
-        self.preparation_layout = self.preparation_layout.create_rack_layout()
-        self._test_and_expect_errors('The preparation plate layout must be a ' \
-                                     'PrepIsoLayout object')
-
-    def test_invalid_iso_label(self):
-        self._continue_setup()
-        self.iso_label = 123
-        self._test_and_expect_errors('The ISO label must be a basestring')
-
-    def test_invalid_association_data(self):
-        self._continue_setup()
-        self.association_data = None
-        self._test_and_expect_errors('The association data must be a ' \
-                                     'PrepIsoAssociationData object')
-
-    def test_invalid_stock_concentration(self):
-        self._continue_setup()
-        self.stock_concentration = -2
-        self._test_and_expect_errors('The stock concentration must be a ' \
-                                     'positive integer')
-        self.stock_concentration = 0
-        self._test_and_expect_errors('The stock concentration must be a ' \
-                                     'positive integer')
-
-    def test_invalid_sector_map(self):
-        self._continue_setup()
-        req_stock_samples = self.sector_stock_samples[0]
-        self.sector_stock_samples = []
-        self._test_and_expect_errors('The sector stock samples map must be ' \
-                                     'a dict')
-        self.sector_stock_samples = dict(A1=req_stock_samples)
-        self._test_and_expect_errors('The sector index must be a int object')
-        self.sector_stock_samples = {0 : set(req_stock_samples)}
-        self._test_and_expect_errors('The requested stock samples list must ' \
-                                     'be a list')
 
 
 class SingleStockRackLayoutOptimiserTestCase(ToolsAndUtilsTestCase):
@@ -1221,98 +1022,6 @@ class SingleStockRackLayoutOptimiserTestCase(ToolsAndUtilsTestCase):
                         'There must not be more than 96 molecule design pools')
 
 
-class IsoSampleStockRack384WorklistGeneratorSingleTestCase(
-                                                        StockTaking384TestCase):
-
-    def set_up(self):
-        StockTaking384TestCase.set_up(self)
-        self.requested_stock_samples = []
-        # pool_id, soource pos label
-        self.expected_src_positions = {205203 : 'A1', 205212 : 'B1',
-                    205204 : 'C1', 205214 : 'D1', 205209 : 'E1', 205210 : 'F1',
-                    205205 : 'G1', 205207 : 'H1', 205206 : 'A2', 205208 : 'B2'}
-
-
-    def tear_down(self):
-        StockTaking384TestCase.tear_down(self)
-        del self.requested_stock_samples
-        del self.expected_src_positions
-
-    def _create_tool(self):
-        self.tool = StockTransferWorklistGenerator384Single(log=self.log,
-                        iso_label=self.iso_label,
-                        requested_stock_samples=self.requested_stock_samples)
-
-    def _continue_setup(self, single_stock_rack=False):
-        self._create_preparation_layout()
-        self._create_association_data()
-        self._create_req_stock_samples()
-        self._create_tool()
-
-    def _create_req_stock_samples(self):
-        for pp in self.preparation_layout.working_positions():
-            if not pp.parent_well is None or pp.is_inactivated: continue
-            pool_id = pp.molecule_design_pool_id
-            if not pool_id in self.floatings_pools: continue
-            rss = RequestedStockSample.from_prep_pos(prep_pos=pp)
-            self.requested_stock_samples.append(rss)
-
-    def __check_result(self):
-        worklist = self.tool.get_result()
-        self.assert_is_not_none(worklist)
-        expected_label = '%s%s' % (self.iso_label, self.tool.WORKLIST_SUFFIX)
-        self.assert_equal(expected_label, worklist.label)
-        self.assert_equal(len(worklist.executed_worklists), 0)
-        self.assert_equal(len(worklist.planned_transfers),
-                          len(self.requested_stock_samples))
-        self.assert_equal(len(worklist.planned_transfers),
-                          len(self.expected_src_positions))
-        for rss in self.requested_stock_samples:
-            #pylint: disable=E1101
-            pool_id = rss.pool.id
-            exp_src_pos = self.expected_src_positions[pool_id]
-            self.assert_equal(rss.target_position.label, exp_src_pos)
-            #pylint: enable=E1101
-        for pct in worklist.planned_transfers:
-            self.assert_equal(pct.type, TRANSFER_TYPES.CONTAINER_TRANSFER)
-            expected_volume = self.take_out_volume
-            pct_volume = pct.volume * VOLUME_CONVERSION_FACTOR
-            self.assert_equal(expected_volume, pct_volume)
-            target_pos = pct.target_position
-            self.assert_not_equal(target_pos.label, self.inactivated_pos)
-            prep_pos = self.preparation_layout.get_working_position(target_pos)
-            self.assert_is_not_none(prep_pos)
-            self.assert_false(prep_pos.is_mock)
-            source_pos = pct.source_position
-            self.assert_true(source_pos.label in
-                             self.expected_src_positions.values())
-
-    def test_result(self):
-        self._continue_setup()
-        self.__check_result()
-
-    def test_result_inactivated_position(self):
-        self.inactivated_pos = 'A4' # md ID = 205206
-        self.expected_src_positions[205208] = self.expected_src_positions[205206]
-        del self.expected_src_positions[205206]
-        self._continue_setup()
-        self.__check_result()
-
-    def test_invalid_requested_stock_samples(self):
-        self._continue_setup()
-        self.requested_stock_samples = dict()
-        self._test_and_expect_errors('The requested stock samples list must ' \
-                                     'be a list object')
-        self.requested_stock_samples = [1]
-        self._test_and_expect_errors('The requested stock sample must be a ' \
-                                     'RequestedStockSample object')
-
-    def test_invalid_iso_label(self):
-        self._continue_setup()
-        self.iso_label = 123
-        self._test_and_expect_errors('The label must be a basestring object')
-
-
 class IsoSampleStockRackVerifier384TestCase(StockTaking384TestCase):
 
     def set_up(self):
@@ -1329,6 +1038,8 @@ class IsoSampleStockRackVerifier384TestCase(StockTaking384TestCase):
                             sample_stock_racks=self.sample_stock_racks)
 
     def _continue_setup(self, single_stock_rack=False):
+        single_stock_rack = self._set_scenario_specific_values(
+                                                            single_stock_rack)
         self._create_pool_map()
         self._create_preparation_layout()
         self._create_preparation_plate()
@@ -1342,29 +1053,32 @@ class IsoSampleStockRackVerifier384TestCase(StockTaking384TestCase):
             self.sample_stock_racks[issr.sector_index] = issr
         self._create_tool()
 
-    def test_result_4_racks(self):
-        self._continue_setup()
+    def __test_and_expect_success(self, single_stock_rack=False,
+                                  inactivate_position=False):
+        if inactivate_position:
+            self._continue_setup_inactivated_position()
+        else:
+            self._continue_setup(single_stock_rack)
         compatible = self.tool.get_result()
         self.assert_is_not_none(compatible)
         self.assert_true(compatible)
+
+    def test_result_4_racks(self):
+        self.__test_and_expect_success()
 
     def test_result_1_rack(self):
-        self._continue_setup(single_stock_rack=True)
-        compatible = self.tool.get_result()
-        self.assert_is_not_none(compatible)
-        self.assert_true(compatible)
+        self.__test_and_expect_success(single_stock_rack=True)
 
     def test_result_opti(self):
-        self._continue_setup_opti()
-        compatible = self.tool.get_result()
-        self.assert_is_not_none(compatible)
-        self.assert_true(compatible)
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
+        self.__test_and_expect_success()
+
+    def test_result_order(self):
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
+        self.__test_and_expect_success()
 
     def test_result_inactivated_position(self):
-        self._continue_setup_inactivated_position()
-        compatible = self.tool.get_result()
-        self.assert_is_not_none(compatible)
-        self.assert_true(compatible)
+        self.__test_and_expect_success(inactivate_position=True)
 
     def test_invalid_prep_layout(self):
         self._continue_setup()
@@ -1566,9 +1280,10 @@ class IsoSampleStockRack384ExecutorTestCase(StockTaking384TestCase):
         self.assert_is_none(self.tool.get_executed_stock_worklists())
         self.assert_is_none(self.tool.get_working_layout())
 
-    def __check_result(self, updated_iso, number_transfers):
+    def __check_result(self, updated_iso, number_transfers,
+                       expected_iso_status=ISO_STATUS.IN_PROGRESS):
         self.assert_is_not_none(updated_iso)
-        self.assert_equal(updated_iso.status, ISO_STATUS.IN_PROGRESS)
+        self.assert_equal(updated_iso.status, expected_iso_status)
         for issr in updated_iso.iso_sample_stock_racks:
             worklist = issr.planned_worklist
             self.assert_equal(len(worklist.executed_worklists), 1)
@@ -1603,7 +1318,7 @@ class IsoSampleStockRack384ExecutorTestCase(StockTaking384TestCase):
             pool = prep_pos.molecule_design_pool
             pool_id = prep_pos.molecule_design_pool_id
             if not prep_pos.parent_well is None or prep_pos.is_mock or \
-                                        not pool_id in self.floatings_pools:
+                                        not pool_id in self.floating_pools:
                 self.assert_is_none(sample)
                 continue
             expected_volume = self.take_out_volume
@@ -1618,7 +1333,7 @@ class IsoSampleStockRack384ExecutorTestCase(StockTaking384TestCase):
             for src_label, target_labels in self.source_positions.iteritems():
                 trg_label = target_labels[sector_index]
                 pos_data = self.position_data[trg_label]
-                if not pos_data[0] in self.floatings_pools: continue
+                if not pos_data[0] in self.floating_pools: continue
                 src_positions.append(src_label)
             for container in stock_rack.containers:
                 pos_label = container.location.position.label
@@ -1642,7 +1357,7 @@ class IsoSampleStockRack384ExecutorTestCase(StockTaking384TestCase):
                 continue
             pool_id = prep_pos.molecule_design_pool_id
             if not prep_pos.parent_well is None or prep_pos.is_mock or \
-                    not pool_id in self.floatings_pools:
+                    not pool_id in self.floating_pools:
                 self.assert_is_none(sample)
                 continue
             self._compare_sample_volume(sample, expected_volume)
@@ -1650,8 +1365,8 @@ class IsoSampleStockRack384ExecutorTestCase(StockTaking384TestCase):
     def test_result_4_racks(self):
         self.position_data['C3'] = (205215, 10000, None, 30, 'floating')
         self.position_data['C4'] = (205216, 10000, None, 30, 'floating')
-        self.floatings_pools.append(205215)
-        self.floatings_pools.append(205216)
+        self.floating_pools.append(205215)
+        self.floating_pools.append(205216)
         self._continue_setup(single_stock_rack=False)
         updated_iso = self.tool.get_result()
         self.__check_result(updated_iso, number_transfers=3)
@@ -1661,7 +1376,7 @@ class IsoSampleStockRack384ExecutorTestCase(StockTaking384TestCase):
         self._continue_setup(single_stock_rack=True)
         updated_iso = self.tool.get_result()
         self.__check_result(updated_iso,
-                            number_transfers=len(self.floatings_pools))
+                            number_transfers=len(self.floating_pools))
         self.__check_single_stock_rack()
 
     def test_result_inactivated_positions(self):
@@ -1671,11 +1386,21 @@ class IsoSampleStockRack384ExecutorTestCase(StockTaking384TestCase):
         self.__check_stock_racks()
 
     def test_result_opti(self):
-        self._continue_setup_opti()
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
+        self._continue_setup()
         updated_iso = self.tool.get_result()
         self.__check_result(updated_iso,
-                            number_transfers=len(self.floatings_pools))
+                            number_transfers=len(self.floating_pools))
         self.__check_single_stock_rack()
+
+    def test_result_order(self):
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
+        self._continue_setup()
+        updated_iso = self.tool.get_result()
+        self.__check_result(updated_iso, expected_iso_status=ISO_STATUS.DONE,
+                            number_transfers=len(self.position_data))
+        self.__check_single_stock_rack()
+        self.assert_equal(updated_iso.status, ISO_STATUS.DONE)
 
     def test_invalid_user(self):
         self._continue_setup(single_stock_rack=False)
@@ -1768,8 +1493,14 @@ class IsoSampleStockRack384WorklistWriterTestCase(StockTaking384TestCase,
         self.__check_result('sample_stock_transfer_384_4_inact.csv', 2)
 
     def test_result_opti(self):
-        self._continue_setup_opti()
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
+        self._continue_setup()
         self.__check_result('sample_stock_transfer_384_opti.csv', 1)
+
+    def test_result_order_only(self):
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
+        self._continue_setup()
+        self.__check_result('sample_stock_transfer_384_order.csv', 1)
 
     def test_invalid_iso(self):
         self._test_invalid_iso()
@@ -2099,62 +1830,6 @@ class IsoControlStockRackVerifierTestCase(IsoControlStockRackTestCase):
         self._check_error_messages('The molecule designs of the following ' \
                                    'positions do not match:')
 
-
-class IsoControlStockRackWorklistGeneratorTestCase(
-                                                IsoControlStockRackTestCase):
-
-    def _create_tool(self):
-        self.tool = StockTransferWorklistGenerator384Controls(
-                                control_layout=self.control_layout,
-                                job_label=self.job_label, log=self.log)
-
-    def _continue_setup(self):
-        self._create_control_layout()
-        self._create_tool()
-
-    def _create_control_layout(self):
-        for pos_label, pos_data in self.md_map.iteritems():
-            tts = []
-            for target_label in pos_data[1]:
-                transfer_volume = self.volume_map[target_label]
-                tt = TransferTarget(rack_position=target_label,
-                                    transfer_volume=transfer_volume)
-                tts.append(tt)
-            rack_pos = get_rack_position_from_label(pos_label)
-            pool = self._get_pool(pos_data[0])
-            control_pos = IsoControlRackPosition(rack_position=rack_pos,
-                                molecule_design_pool=pool,
-                                transfer_targets=tts)
-            self.control_layout.add_position(control_pos)
-
-    def test_result(self):
-        self._continue_setup()
-        worklist = self.tool.get_result()
-        self.assert_is_not_none(worklist)
-        self.assert_equal(len(worklist.executed_worklists), 0)
-        expected_label = '%s%s' % (self.job_label,
-                    StockTransferWorklistGenerator384Controls.WORKLIST_SUFFIX)
-        self.assert_equal(worklist.label, expected_label)
-        self.assert_equal(len(worklist.planned_transfers), len(self.volume_map))
-        for pct in worklist.planned_transfers:
-            self.assert_equal(pct.type, TRANSFER_TYPES.CONTAINER_TRANSFER)
-            src_pos = pct.source_position
-            source_data = self.md_map[src_pos.label]
-            target_label = pct.target_position.label
-            self.assert_true(target_label in source_data[1])
-            expected_volume = self.volume_map[target_label]
-            pct_volume = pct.volume * VOLUME_CONVERSION_FACTOR
-            self.assert_equal(expected_volume, pct_volume)
-
-    def test_invalid_control_layout(self):
-        self._continue_setup()
-        self.control_layout = self.control_layout.create_rack_layout()
-        self._test_and_expect_errors('The working layout must be a ' \
-                                     'IsoControlRackLayout object')
-    def test_invalid_label(self):
-        self._continue_setup()
-        self.job_label = 123
-        self._test_and_expect_errors('The label must be a basestring object')
 
 
 class IsoControlTransferRackOverviewWriterTestCase(IsoControlStockRackTestCase,

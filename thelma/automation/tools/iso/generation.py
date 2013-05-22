@@ -11,7 +11,8 @@ from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.iso.optimizer import IsoOptimizer
 from thelma.automation.tools.iso.prep_utils import PrepIsoLayout
 from thelma.automation.tools.iso.preplayoutfinder import PrepLayoutFinder
-from thelma.automation.tools.iso.worklist import IsoWorklistSeriesGenerator
+from thelma.automation.tools.iso.processingworklist \
+    import IsoWorklistSeriesGenerator
 from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_standard_384
 from thelma.automation.tools.semiconstants \
@@ -62,6 +63,11 @@ class IsoCreator(BaseAutomationTool):
 
     #: The suffix to be added to the ISO label to mark the ISO as copy.
     COPY_MARKER = 'copy'
+
+    #: In a scenarios of each type, there can only be one plate at maximum.
+    #: Also, preparation plate and aliquot plate, are the same.
+    ONE_PLATE_TYPES = [EXPERIMENT_SCENARIOS.MANUAL,
+                       EXPERIMENT_SCENARIOS.ORDER_ONLY]
 
     def __init__(self, iso_request, number_isos,
                        excluded_racks=None, requested_tubes=None,
@@ -216,7 +222,16 @@ class IsoCreator(BaseAutomationTool):
         if not self.has_errors(): self.__run_optimizers()
         if not self.has_errors(): self.__distribute_candidates()
         if not self.has_errors(): self.__create_isos()
-        if not self.has_errors(): self.__create_worklist_series()
+
+        if not self.has_errors() and \
+                not self._experiment_type.id == EXPERIMENT_SCENARIOS.ORDER_ONLY:
+            self.__create_worklist_series()
+        if not self.has_errors() and \
+                            self._experiment_type.id in self.ONE_PLATE_TYPES:
+            # there should be only one new ISO
+            new_iso = self.__isos[0]
+            self._adjust_one_plate_prep_plate_labels(new_iso)
+
         if not self.has_errors():
             self.return_value = self.__isos
             self.add_info('ISO creation completed.')
@@ -392,8 +407,7 @@ class IsoCreator(BaseAutomationTool):
         elif self.__iso_layout.shape.name == RACK_SHAPE_NAMES.SHAPE_384:
             self.__fixed_candidates = self.__get_candidates(self.__fixed_pools,
                                                             'fixed')
-#            if self._experiment_type and self._number_floatings > 0:
-            if self._number_floatings > 0: # TODO: reactivate or remove
+            if self._number_floatings > 0:
                 floating_designs = set(self._floating_pools.keys())
                 self.__floating_candidates = self.__get_candidates(
                                         floating_designs, 'floating')
@@ -755,24 +769,19 @@ class IsoCreator(BaseAutomationTool):
                       'ISO request.'
                 self.add_error(msg)
             elif len(series) < 1 and \
-                        self._experiment_type.id == EXPERIMENT_SCENARIOS.MANUAL:
+                        self._experiment_type.id in self.ONE_PLATE_TYPES:
                 pass
             else:
                 self.iso_request.worklist_series = series
 
-        if self._experiment_type.id == EXPERIMENT_SCENARIOS.MANUAL:
-            # there should be only one new ISO
-            new_iso = self.__isos[0]
-            self._adjust_manual_prep_plate_labels(new_iso)
-
-    def _adjust_manual_prep_plate_labels(self, new_iso): #pylint: disable=W0613
+    def _adjust_one_plate_prep_plate_labels(self, new_iso): #pylint: disable=W0613
         """
         In case of manual experiment it can be that the preparation plate
         is already the final cell plate. In this case, we want the
         plates to have to set plate set labels instead of the preparation
         plate labels.
         """
-        self.add_error('Abstract method: _adjust_manual_prep_plate_labels()')
+        self.add_error('Abstract method: _adjust_one_plate_prep_plate_labels()')
 
     def __look_for_compounds(self):
         """
@@ -854,8 +863,6 @@ class IsoGenerator(IsoCreator):
 
         if self._raw_prep_layout.shape.name == RACK_SHAPE_NAMES.SHAPE_384:
             prep_rs = get_reservoir_specs_standard_384()
-        elif self._experiment_type.id == EXPERIMENT_SCENARIOS.MANUAL:
-            prep_rs = get_reservoir_specs_standard_96()
         else:
             prep_rs = get_reservoir_specs_standard_96()
             max_req_volume = 0
@@ -887,7 +894,7 @@ class IsoGenerator(IsoCreator):
                   'floating positions!'
             self.add_error(msg)
 
-    def _adjust_manual_prep_plate_labels(self, new_iso):
+    def _adjust_one_plate_prep_plate_labels(self, new_iso):
         new_iso.preparation_plate.label = self.iso_request.plate_set_label
 
 
@@ -1001,5 +1008,6 @@ class IsoRescheduler(IsoCreator):
         copy_label = '%s%s%s' % (label, self.SEPARATING_CHAR, self.COPY_MARKER)
         return copy_label
 
-    def _adjust_manual_prep_plate_labels(self, new_iso):
-        new_iso.preparation_plate.label = new_iso.label
+    def _adjust_one_plate_prep_plate_labels(self, new_iso):
+        num = len(self.iso_request.isos) + 1
+        new_iso.preparation_plate.label = '%s#%i' % (new_iso.label, num)

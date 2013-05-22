@@ -30,9 +30,13 @@ from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.semiconstants import get_positions_for_shape
+from thelma.automation.tools.utils.base import EMPTY_POSITION_TYPE
+from thelma.automation.tools.utils.base import FIXED_POSITION_TYPE
+from thelma.automation.tools.utils.base import FLOATING_POSITION_TYPE
 from thelma.automation.tools.utils.base import MAX_PLATE_LABEL_LENGTH
 from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
 from thelma.automation.tools.utils.base import UNTREATED_POSITION_TYPE
+from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.iso import IsoParameters
@@ -91,6 +95,10 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
 
     #: Can molecule design pools be ordered in stock concentration?
     ALLOWS_STOCK_CONCENTRATION = False
+    #: By default, all position types are allowed.
+    ALLOWED_POSITION_TYPES = [FIXED_POSITION_TYPE, FLOATING_POSITION_TYPE,
+                              MOCK_POSITION_TYPE, UNTREATED_POSITION_TYPE,
+                              EMPTY_POSITION_TYPE]
 
     #: A list of parameters that do not need to specified at all.
     OPTIONAL_PARAMETERS = None
@@ -180,6 +188,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         self._has_volume_layout = False
         self._has_name_layout = False
         self._has_reagent_df_layout = False
+        self._invalid_position_type = dict()
 
         # lookups for numerical values
         self.__invalid_lookup = {IsoParameters.ISO_VOLUME : self._invalid_vol,
@@ -441,31 +450,38 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         Returns the molecule design set or placeholder for a molecule design
         pool ID.
         """
-        if pool_id is None:
-            return None
+        if pool_id is None: return None
 
-        if isinstance(pool_id, str):
-            if IsoParameters.FLOATING_INDICATOR in str(pool_id):
-                return pool_id
-            if pool_id.lower() == IsoParameters.MOCK_TYPE_VALUE:
-                return MOCK_POSITION_TYPE
-            elif pool_id.lower() == UNTREATED_POSITION_TYPE:
-                return UNTREATED_POSITION_TYPE
-        elif not is_valid_number(pool_id, is_integer=True):
+        # fixed positions have pool IDs (integer)
+        # we cannot use the get_position_type() function because this
+        # expects pool entities and we only have pool IDs
+        if is_valid_number(pool_id, positive=True, is_integer=True):
+            if self._pool_map.has_key(pool_id): return self._pool_map[pool_id]
+            pool = self._pool_aggregate.get_by_id(int(pool_id))
+            if pool is None:
+                info = '%s (%s)' % (get_trimmed_string(pool_id), pos_label)
+                self._invalid_pool.append(info)
+                return None
+            self._pool_map[pool_id] = pool
+            return pool
+
+        # other position types can be identified by get_position_type()
+        try:
+            pos_type = TransfectionParameters.get_position_type(pool_id)
+        except ValueError:
             info = '%s (%s)' % (pool_id, pos_label)
             self._invalid_pool.append(info)
             return None
 
-        if self._pool_map.has_key(pool_id): return self._pool_map[pool_id]
-
-        pool = self._pool_aggregate.get_by_id(int(pool_id))
-        if pool is None:
-            info = '%s (%s)' % (get_trimmed_string(pool_id), pos_label)
-            self._invalid_pool.append(info)
+        if not pos_type in self.ALLOWED_POSITION_TYPES:
+            add_list_map_element(self._invalid_position_type, pos_type,
+                                 pos_label)
             return None
 
-        self._pool_map[pool_id] = pool
-        return pool
+        if pos_type == FLOATING_POSITION_TYPE:
+            return pool_id
+        else:
+            return pos_type # is the same for mock and untreated
 
     def _is_valid_reagent_name(self, reagent_name, pos_label):
         """
@@ -646,6 +662,18 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         if len(self._unknown_supplier) > 0:
             msg = 'Some suppliers could not be found in the DB: %s. Please ' \
                   'check the spelling.' % (list(self._unknown_supplier))
+            self.add_error(msg)
+
+        if len(self._invalid_position_type) > 0:
+            type_positions = []
+            for pos_type, positions in self._invalid_position_type.iteritems():
+                pos_type_str = '%s (%s)' % (pos_type,
+                                           ', '.join(sorted(positions)))
+                type_positions.append(pos_type_str)
+            msg = 'There are some positions in the ISO layout that are ' \
+                  'not allowed for this type of experiment metadata (%s): %s.' \
+                  % (get_experiment_metadata_type(self.SUPPORTED_SCENARIO).\
+                    display_name, ' -- '.join(type_positions))
             self.add_error(msg)
 
     def _check_layout_validity(self, has_floatings): #pylint: disable=W0613
@@ -904,9 +932,6 @@ class IsoRequestParserHandlerOpti(IsoRequestParserHandler):
                             TransfectionParameters.REAGENT_DIL_FACTOR]
 
     def _create_positions(self):
-        """
-        Creates the actual positions.
-        """
         self.add_debug('Create transfection positions ...')
 
         parameter_map = self.parser.parameter_map
@@ -1036,9 +1061,6 @@ class IsoRequestParserHandlerScreen(IsoRequestParserHandler):
         return self._metadata_lookup[IsoParameters.ISO_VOLUME]
 
     def _create_positions(self):
-        """
-        Creates the actual positions.
-        """
         self.add_debug('Create transfection positions ...')
 
         parameter_map = self.parser.parameter_map
@@ -1387,9 +1409,6 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
             self.add_error(msg)
 
     def _create_positions(self):
-        """
-        Only molecule design pools can be specified via layout.
-        """
         self.add_debug('Create transfection positions ...')
 
         parameter_map = self.parser.parameter_map
@@ -1497,6 +1516,7 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
                         IsoParameters.ISO_VOLUME, IsoParameters.SUPPLIER]
 
     ALLOWS_STOCK_CONCENTRATION = True
+    ALLOWED_POSITION_TYPES = [FIXED_POSITION_TYPE, EMPTY_POSITION_TYPE]
 
     ISO_LAYOUT_PARAMETERS = IsoParameters.ALL
     TRANSFECTION_LAYOUT_PARAMETERS = []
@@ -1505,27 +1525,9 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
     _NUMERICAL_PARAMETERS = [IsoParameters.ISO_VOLUME,
                              IsoParameters.ISO_CONCENTRATION]
 
-    def __init__(self, stream, requester, log):
-        """
-        Constructor:
-
-        :param stream: The opened file to be parsed.
-
-        :param requester: the user requesting the ISO
-        :type requester: :class:`thelma.models.user.User`
-
-        :param log: The ThelmaLog you want to write in.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        IsoRequestParserHandler.__init__(self, stream=stream,
-                                         requester=requester, log=log)
-
-        self.__mock_positions = []
-        self.__untreated_positions = []
-
     def _create_positions(self):
         """
-        Creates the actual positions.
+        Only molecule design pools can be specified via layout.
         """
         self.add_debug('Create transfection positions ...')
 
@@ -1540,20 +1542,11 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
             pool = self._get_molecule_design_pool_for_id(pool_id, pos_label)
             if pool is None: continue
 
-            is_valid_position = True
-            if pool == MOCK_POSITION_TYPE:
-                self.__mock_positions.append(pos_label)
-                is_valid_position = False
-            elif pool == UNTREATED_POSITION_TYPE:
-                self.__untreated_positions.append(pos_label)
-                is_valid_position = False
-
             supplier = self._get_supplier(pos_label, pool)
             iso_volume = self._get_iso_volume(pos_label, False, False, False)
             iso_conc = self._get_iso_concentration(pos_label, False, False,
                                                    False)
 
-            if not is_valid_position: continue
             # Create position
             rack_pos = self._convert_to_rack_position(pos_container)
             tf_pos = TransfectionPosition(rack_position=rack_pos,
@@ -1562,36 +1555,12 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
                                 supplier=supplier)
             self.transfection_layout.add_position(tf_pos)
 
-    def _record_errors(self):
-        """
-        Records the errors that have been collected during layout filling.
-        """
-        IsoRequestParserHandler._record_errors(self)
-
-        if len(self.__mock_positions) > 0:
-            msg = 'ISO layouts for manual optimisation must not contain ' \
-                  'mock positions. Mock positions have been detected for the ' \
-                  'following rack positions: %s.' \
-                   % (', '.join(sorted(self.__mock_positions)))
-            self.add_error(msg)
-
-        if len(self.__untreated_positions) > 0:
-            msg = 'ISO layouts for manual optimisation must not contain ' \
-                  'untreated positions. Untreated positions have been ' \
-                  'detected for the following rack positions: %s.' \
-                   % (', '.join(sorted(self.__untreated_positions)))
-            self.add_error(msg)
-
     def _check_layout_validity(self, has_floatings): #pylint: disable=W0613
         """
-        Checks scenario-dependent properties of the transfection layout.
+        Pools that are ordered in stock concentration may occur only once.
+        Floating position cannot occur since they are an invalid position type.
         """
         IsoRequestParserHandler._check_layout_validity(self, has_floatings)
-
-        if has_floatings:
-            msg = 'ISO layout for manual optimisations must not contain ' \
-                  'floating positions!'
-            self.add_error(msg)
 
         pool_count = dict()
         stock_conc_pools = set()
@@ -1663,9 +1632,114 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
         """
         Sorts the floating placeholders in the layout.
         """
-        self.add_error('Programming error: This method should never be called ' \
-                       'for the %s subclass.' % (self.__class__.__name__))
+        self.add_error('Programming error: This method should never be ' \
+                   'called for the %s subclass.' % (self.__class__.__name__))
 
+
+class IsoRequestParserHandlerOrder(IsoRequestParserHandler):
+    """
+    A IsoRequestParserHandler for orders without experiment.
+    These transfection layouts only contains pools and volumes. All
+    pools are ordered in stock concentration and may occur only once
+    per layout.
+
+    **Return Value:** ISO request (:class:`thelma.models.iso.IsoRequest`).
+    """
+    SUPPORTED_SCENARIO = EXPERIMENT_SCENARIOS.ORDER_ONLY
+
+    ALLOWS_STOCK_CONCENTRATION = True
+    ALLOWED_POSITION_TYPES = [FIXED_POSITION_TYPE, EMPTY_POSITION_TYPE]
+
+    ALLOWED_METADATA = [IsoRequestParserHandler.PLATE_SET_LABEL_KEY,
+                        IsoRequestParserHandler.DELIVERY_DATE_KEY,
+                        IsoRequestParserHandler.COMMENT_KEY,
+                        IsoParameters.ISO_VOLUME, IsoParameters.SUPPLIER]
+    OPTIONAL_PARAMETERS = [IsoParameters.SUPPLIER]
+    REQUIRED_METADATA = [IsoRequestParserHandler.PLATE_SET_LABEL_KEY]
+
+    ISO_LAYOUT_PARAMETERS = [IsoParameters.MOLECULE_DESIGN_POOL,
+                             IsoParameters.ISO_VOLUME,
+                             IsoParameters.SUPPLIER]
+    TRANSFECTION_LAYOUT_PARAMETERS = []
+
+    _NUMERICAL_PARAMETERS = [IsoParameters.ISO_VOLUME]
+
+    def _get_plate_set_label(self, metadata_value_map):
+        """
+        Since there is only one plate the plate set label is taken over
+        directly and may occupy the full 24 positions.
+        """
+        self.add_debug('Obtain plate set label ...')
+
+        plate_set_label = metadata_value_map[self.PLATE_SET_LABEL_KEY]
+        plate_set_label = plate_set_label.replace(' ', '_')
+
+        if len(plate_set_label) > MAX_PLATE_LABEL_LENGTH:
+            msg = 'The maximum length for plate set labels is %i characters ' \
+                  '(obtained: "%s", %i characters).' \
+                   % (MAX_PLATE_LABEL_LENGTH, plate_set_label,
+                      len(plate_set_label))
+            self.add_error(msg)
+
+        return plate_set_label
+
+    def _create_positions(self):
+        """
+        Only molecule design pools can be specified via layout.
+        """
+        self.add_debug('Create transfection positions ...')
+
+        parameter_map = self.parser.parameter_map
+        pool_container = parameter_map[IsoParameters.MOLECULE_DESIGN_POOL]
+
+        for pos_container in self.parser.shape.position_containers:
+            pos_label = pos_container.label
+
+            # Check properties
+            pool_id = self._get_value_for_rack_pos(pool_container, pos_label)
+            pool = self._get_molecule_design_pool_for_id(pool_id, pos_label)
+            if pool is None: continue
+
+            supplier = self._get_supplier(pos_label, pool)
+            iso_volume = self._get_iso_volume(pos_label, False, False, False)
+
+            # Create position
+            rack_pos = self._convert_to_rack_position(pos_container)
+            tf_pos = TransfectionPosition(rack_position=rack_pos,
+                                molecule_design_pool=pool, iso_volume=iso_volume,
+                                supplier=supplier)
+            self.transfection_layout.add_position(tf_pos)
+
+    def _check_layout_validity(self, has_floatings):
+        """
+        Each pool may occur only once.
+        Floating position cannot occur since they are an invalid position type.
+        """
+        IsoRequestParserHandler._check_layout_validity(self, has_floatings)
+
+        count_map = dict()
+        for tf_pos in self.transfection_layout.working_positions():
+            pool_id = tf_pos.molecule_design_pool_id
+            if not count_map.has_key(pool_id):
+                count_map[pool_id] = 0
+            count_map[pool_id] += 1
+
+        more_than_one = []
+        for pool_id, pool_count in count_map.iteritems():
+            if pool_count > 1: more_than_one.append(pool_id)
+        if len(more_than_one) > 0:
+            msg = 'In an ISO request without experiment, each molecule ' \
+                  'design pool may occur only once. The following pools ' \
+                  'occur several times: %s.' % (', '.join([str(pool_id) \
+                                    for pool_id in sorted(more_than_one)]))
+            self.add_error(msg)
+
+    def _sort_floatings(self):
+        """
+        Sorts the floating placeholders in the layout.
+        """
+        self.add_error('Programming error: This method should never be ' \
+                   'called for the %s subclass.' % (self.__class__.__name__))
 
 
 #: Lookup storing the handler classes for each experiment type.
@@ -1673,5 +1747,6 @@ _HANDLER_CLASSES = {
             EXPERIMENT_SCENARIOS.OPTIMISATION : IsoRequestParserHandlerOpti,
             EXPERIMENT_SCENARIOS.SCREENING : IsoRequestParserHandlerScreen,
             EXPERIMENT_SCENARIOS.LIBRARY : IsoRequestParserHandlerLibrary,
-            EXPERIMENT_SCENARIOS.MANUAL : IsoRequestParserHandlerManual
+            EXPERIMENT_SCENARIOS.MANUAL : IsoRequestParserHandlerManual,
+            EXPERIMENT_SCENARIOS.ORDER_ONLY : IsoRequestParserHandlerOrder
                      }

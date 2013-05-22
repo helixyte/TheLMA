@@ -11,40 +11,37 @@ from everest.views.base import ViewUserMessageChecker
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.threadlocal import get_current_registry
 from thelma.automation.tools.experiment.batch import \
-                                    ExperimentBatchWorklistWriter
+    ExperimentBatchWorklistWriter
 from thelma.automation.tools.experiment.writer import \
-                                    ExperimentWorklistWriterOptimisation
+    ExperimentWorklistWriterOptimisation
 from thelma.automation.tools.experiment.writer import \
-                                    ExperimentWorklistWriterScreening
-from thelma.automation.tools.iso.seriesprocessing \
-import IsoProcessingWorklistWriter
-from thelma.automation.tools.iso.seriesprocessing import \
-                                    IsoAliquotWorklistWriter
-from thelma.automation.tools.iso.stock import IsoControlStockRackWorklistWriter
-from thelma.automation.tools.iso.stock import IsoSampleStockRackWorklistWriter
+    ExperimentWorklistWriterScreening
+from thelma.automation.tools.iso.aliquot import IsoAliquotWorklistWriter
+from thelma.automation.tools.iso.isoprocessing \
+    import IsoProcessingWorklistWriter
+from thelma.automation.tools.iso.stocktransfer \
+    import IsoControlStockRackWorklistWriter
+from thelma.automation.tools.iso.stocktransfer \
+    import IsoSampleStockRackWorklistWriter
 from thelma.automation.tools.iso.tubehandler import \
-                                    IsoXL20WorklistGenerator384Controls
+    IsoXL20WorklistGenerator384Controls
 from thelma.automation.tools.iso.tubehandler import \
-                                    IsoXL20WorklistGenerator384Samples
+    IsoXL20WorklistGenerator384Samples
 from thelma.automation.tools.iso.tubehandler import \
-                                    IsoXL20WorklistGenerator96
+    IsoXL20WorklistGenerator96
 from thelma.models.experiment import EXPERIMENT_METADATA_TYPES
-#from thelma.tests.tools.iso.stockrackcreator import ControlStockRackCreator
-#from thelma.tests.tools.iso.stockrackcreator import StockRackCreator
 from zope.interface import providedBy as provided_by # pylint: disable=E0611,F0401
 import logging
 import transaction
 
 
 __docformat__ = "reStructuredText en"
-
-__author__ = 'Nikos Papagrigoriou'
-__date__ = '$Date: 2013-05-08 17:42:10 +0200 (Wed, 08 May 2013) $'
-__revision__ = '$Rev: 13330 $'
-__source__ = '$URL:: http://svn/cenix/TheLMA/trunk/thelma/renderers.py        $'
-
 __all__ = ['ThelmaRendererFactory',
-           ]
+           'CustomRenderer',
+           'ExperimentWorklistRenderer',
+           'ZippedWorklistRenderer',
+           'IsoJobWorklistRenderer',
+           'IsoWorklistRenderer']
 
 class ThelmaRendererFactory(object):
     def __init__(self, info):

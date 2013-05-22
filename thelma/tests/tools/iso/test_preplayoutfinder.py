@@ -6,6 +6,7 @@ AAB, Jan 2012
 
 from everest.entities.utils import get_root_aggregate
 from pkg_resources import resource_filename # pylint: disable=E0611
+from thelma.automation.tools.iso.preplayoutfinder import PrepLayoutFinderOrderOnly
 from thelma.automation.tools.iso.preplayoutfinder \
     import PrepLayoutFinder384Optimisation
 from thelma.automation.tools.iso.preplayoutfinder \
@@ -248,42 +249,64 @@ class PrepLayoutFinderTestCase(ToolsAndUtilsTestCase):
             expected_number_pps = len(self.result_data)
         self.assert_equal(len(prep_layout), expected_number_pps)
         for rack_pos, prep_pos in prep_layout.iterpositions():
-            label = rack_pos.label
-            self.assert_true(self.result_data.has_key(label))
-            data_tuple = self.result_data[label]
+            pos_label = rack_pos.label
+            self.assert_true(self.result_data.has_key(pos_label))
+            data_tuple = self.result_data[pos_label]
             req_vol = data_tuple[0]
             iso_conc = data_tuple[1]
-            iso_vol = data_tuple[2]
-            pool_id = data_tuple[3]
             self.assert_equal(prep_pos.required_volume, req_vol)
             if iso_conc is None:
                 expected_conc = None
             else:
                 expected_conc = iso_conc * self.aliquot_dil_factor
+            self.assert_equal(prep_pos.molecule_design_pool_id, data_tuple[3])
             self.assert_equal(prep_pos.prep_concentration, expected_conc)
             self.assert_is_none(prep_pos.stock_tube_barcode)
             self.assert_is_none(prep_pos.stock_rack_barcode)
-            if len(data_tuple) > 5:
-                position_labels = data_tuple[5]
-                if iso_vol == 0:
-                    self.assert_equal(len(prep_pos.transfer_targets), 0)
-                for tt in prep_pos.transfer_targets:
-                    self.assert_true(tt.position_label in position_labels)
-                    expected_vol = iso_vol / self.aliquot_dil_factor
-                    self.assert_equal(float(tt.transfer_volume), expected_vol)
-                if not pool_id is None:
-                    self.assert_equal(prep_pos.molecule_design_pool_id, pool_id)
-                    exp_pos_type = data_tuple[4]
-                    self.assert_equal(prep_pos.position_type, exp_pos_type)
-            else:
-                if self.experiment_type_id == EXPERIMENT_SCENARIOS.MANUAL:
-                    self.assert_equal(len(prep_pos.transfer_targets), 0)
-                else:
-                    self.assert_equal(len(prep_pos.transfer_targets), 1)
-                    tt = prep_pos.transfer_targets[0]
-                    self.assert_equal(tt.position_label, label)
-                    self.assert_equal(tt.transfer_volume, iso_vol)
-                self.assert_equal(prep_pos.molecule_design_pool_id, pool_id)
+            self._check_target_iso_positions(data_tuple, prep_pos, pos_label)
+
+#            if len(data_tuple) > 5:
+#                position_labels = data_tuple[5]
+#                if iso_vol == 0:
+#                    self.assert_equal(len(prep_pos.transfer_targets), 0)
+#                for tt in prep_pos.transfer_targets:
+#                    self.assert_true(tt.position_label in position_labels)
+#                    expected_vol = iso_vol / self.aliquot_dil_factor
+#                    self.assert_equal(float(tt.transfer_volume), expected_vol)
+#                if not pool_id is None:
+#                    self.assert_equal(prep_pos.molecule_design_pool_id, pool_id)
+#                    exp_pos_type = data_tuple[4]
+#                    self.assert_equal(prep_pos.position_type, exp_pos_type)
+#            else:
+#                if self.experiment_type_id == EXPERIMENT_SCENARIOS.MANUAL or \
+#                     self.experiment_type_id == EXPERIMENT_SCENARIOS.ORDER_ONLY:
+#                    self.assert_equal(len(prep_pos.transfer_targets), 0)
+#                else:
+#                    self.assert_equal(len(prep_pos.transfer_targets), 1)
+#                    tt = prep_pos.transfer_targets[0]
+#                    self.assert_equal(tt.position_label, label)
+#                    self.assert_equal(tt.transfer_volume, iso_vol)
+#                self.assert_equal(prep_pos.molecule_design_pool_id, pool_id)
+
+    def _check_target_iso_positions(self, data_tuple, prep_pos, pos_label):
+        iso_vol = data_tuple[2]
+        pool_id = data_tuple[3]
+        if len(data_tuple) > 5:
+            position_labels = data_tuple[5]
+            if iso_vol == 0:
+                self.assert_equal(len(prep_pos.transfer_targets), 0)
+            for tt in prep_pos.transfer_targets:
+                self.assert_true(tt.position_label in position_labels)
+                expected_vol = iso_vol / self.aliquot_dil_factor
+                self.assert_equal(float(tt.transfer_volume), expected_vol)
+            if not pool_id is None:
+                exp_pos_type = data_tuple[4]
+                self.assert_equal(prep_pos.position_type, exp_pos_type)
+        else:
+            self.assert_equal(len(prep_pos.transfer_targets), 1)
+            tt = prep_pos.transfer_targets[0]
+            self.assert_equal(tt.position_label, pos_label)
+            self.assert_equal(tt.transfer_volume, iso_vol)
 
     def _test_invalid_iso_layout(self):
         self._continue_setup()
@@ -626,6 +649,9 @@ class PrepLayoutFinderManualTestCase(PrepLayoutFinderTestCase):
                     A2=(5, 40000, 5, 205202, 'fixed'),
                     A3=(2.5, 30000, 2.5, 205203, 'fixed'))
 
+    def _check_target_iso_positions(self, data_tuple, prep_pos, pos_label):
+        self.assert_equal(len(prep_pos.transfer_targets), 0)
+
     def test_result_96(self):
         self._continue_setup()
         self._check_result()
@@ -637,3 +663,44 @@ class PrepLayoutFinderManualTestCase(PrepLayoutFinderTestCase):
 
     def test_invalid_iso_layout(self):
         self._test_invalid_iso_layout()
+
+
+class PrepLayoutFinderOrderOnlyTestCase(PrepLayoutFinderTestCase):
+
+    def set_up(self):
+        PrepLayoutFinderTestCase.set_up(self)
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
+        self.expected_finder_cls = PrepLayoutFinderOrderOnly
+        self.rack_shape = get_96_rack_shape()
+        self.number_aliquots = 1
+        # data tuple: (req_volume, prep_conc, iso_volume, molecule design ID,
+        # iso position labels)
+        self.result_data = dict(
+                B2=[1, 50000, 1, 205201, 'fixed'],
+                B4=[1, 10000, 1, 330001, 'fixed'],
+                B6=[1, 5000000, 1, 333803, 'fixed'],
+                B8=[1, 10000, 1, 1056000, 'fixed'],
+                B10=[1, 50000, 1, 180202, 'fixed'])
+
+    def _check_target_iso_positions(self, data_tuple, prep_pos, pos_label):
+        self.assert_equal(len(prep_pos.transfer_targets), 0)
+
+    def test_result_96(self):
+        self._continue_setup()
+        self._check_result()
+
+    def test_result_384(self):
+        self.rack_shape = get_384_rack_shape()
+        self._continue_setup()
+        self._check_result()
+
+    def test_invalid_iso_layout(self):
+        self._test_invalid_iso_layout()
+
+    def test_invalid_concentration(self):
+        self.result_data['B8'][1] = 5000
+        self._continue_setup()
+        self._test_and_expect_errors('For order only scenarios, molecule ' \
+                 'design pools can only be ordered in stock concentration. ' \
+                 'Some ordered concentrations in this layout are different: ' \
+                 '1056000 (B8, expected: 5000, found: 10000)')

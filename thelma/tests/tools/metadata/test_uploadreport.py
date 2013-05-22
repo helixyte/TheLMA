@@ -17,7 +17,7 @@ from thelma.automation.tools.metadata.uploadreport \
 from thelma.automation.tools.metadata.uploadreport \
     import RequiredStockVolumeWriter
 from thelma.automation.tools.metadata.uploadreport \
-    import ExperimentMetadataInfoWriterIsoLess
+    import ExperimentMetadataInfoWriterWarningOnly
 from thelma.automation.tools.metadata.uploadreport \
     import ExperimentMetadataInfoWriterLibrary
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
@@ -45,7 +45,8 @@ class ExperimentMetadataReportTestCase(FileCreatorTestCase):
                     EXPERIMENT_SCENARIOS.SCREENING : 'valid_screen.xls',
                     EXPERIMENT_SCENARIOS.LIBRARY : 'valid_library.xls',
                     EXPERIMENT_SCENARIOS.MANUAL : 'valid_manual.xls',
-                    EXPERIMENT_SCENARIOS.ISO_LESS : 'valid_isoless.xls'}
+                    EXPERIMENT_SCENARIOS.ISO_LESS : 'valid_isoless.xls',
+                    EXPERIMENT_SCENARIOS.ORDER_ONLY : 'valid_order.xls'}
         self.log = TestingLog()
         self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
         self.generator = None
@@ -153,25 +154,26 @@ class ExperimentMetadataIsoPlateWriterTestCase(ExperimentMetadataReportTestCase)
         self.tool = ExperimentMetadataIsoPlateWriter(log=self.log,
                                         generator=self.generator)
 
-    def test_result_opti(self):
+    def __check_result(self, reference_file_name):
         self._continue_setup()
         tool_stream = self.tool.get_result()
         self.assert_is_not_none(tool_stream)
-        self._compare_csv_file_stream(tool_stream, 'iso_data_opti.csv')
+        self._compare_csv_file_stream(tool_stream, reference_file_name)
+
+    def test_result_opti(self):
+        self.__check_result('iso_data_opti.csv')
 
     def test_result_screen(self):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.SCREENING
-        self._continue_setup()
-        tool_stream = self.tool.get_result()
-        self.assert_is_not_none(tool_stream)
-        self._compare_csv_file_stream(tool_stream, 'iso_data_screen.csv')
+        self.__check_result('iso_data_screen.csv')
 
     def test_result_manual(self):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.MANUAL
-        self._continue_setup()
-        tool_stream = self.tool.get_result()
-        self.assert_is_not_none(tool_stream)
-        self._compare_csv_file_stream(tool_stream, 'iso_data_manual.csv')
+        self.__check_result('iso_data_manual.csv')
+
+    def test_result_order(self):
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
+        self.__check_result('iso_data_order.csv')
 
     def test_failed_generator(self):
         self._test_failed_generator('The generator has errors.')
@@ -242,7 +244,7 @@ class ExperimentMetadataInfoWriterTestCase(ExperimentMetadataReportTestCase):
                                      'a ReservoirSpecs object')
 
 
-class ExperimentMetadataInfoWriterIsoLessTestCase(
+class ExperimentMetadataInfoWriterWarningOnlyTestCase(
                                             ExperimentMetadataReportTestCase):
 
     def set_up(self):
@@ -250,16 +252,17 @@ class ExperimentMetadataInfoWriterIsoLessTestCase(
         self.experiment_type_id = EXPERIMENT_SCENARIOS.ISO_LESS
 
     def _create_tool(self):
-        self.tool = ExperimentMetadataInfoWriterIsoLess(log=self.log,
+        self.tool = ExperimentMetadataInfoWriterWarningOnly(log=self.log,
                             em_log=self.generator.log,
                             em_label=self.experiment_metadata_label)
 
-    def test_result(self):
+    def __check_result(self):
         self._continue_setup()
         # without warnings
         tool_stream = self.tool.get_result()
         self.assert_is_not_none(tool_stream)
-        self._compare_txt_file_stream(tool_stream, 'report_info_isoless.txt')
+        self._compare_txt_file_stream(tool_stream,
+                                      'report_info_warnings_only.txt')
         # with warnings
         warn = 'a warning'
         self.generator.add_warning(warn)
@@ -269,6 +272,13 @@ class ExperimentMetadataInfoWriterIsoLessTestCase(
         tool_content = tool_stream.read()
         self.assert_false(self.tool.NO_WARNINGS_LINE in tool_content)
         self.assert_true(warn in tool_content)
+
+    def test_result_iso_less(self):
+        self.__check_result()
+
+    def test_result_order_only(self):
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
+        self.__check_result()
 
     def test_invalid_input_values(self):
         self._continue_setup()
@@ -436,6 +446,10 @@ class ExperimentMetadataReportUploaderTestCase(TracToolTestCase,
     def test_result_isoless(self):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.ISO_LESS
         self.__check_result(number_files=2)
+
+    def test_result_order_only(self):
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
+        self.__check_result(number_files=3)
 
     def test_failed_generator(self):
         self._test_failed_generator('generator did not complete its run')
