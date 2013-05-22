@@ -37,7 +37,6 @@ from thelma.interfaces import IRackShape
 from thelma.interfaces import IRackSpecs
 from thelma.interfaces import ISubproject
 from thelma.interfaces import ITag
-from thelma.interfaces import ITargetSet
 from thelma.models.racklayout import RackLayout
 from thelma.models.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
@@ -169,7 +168,6 @@ class ExperimentMetadataMember(Member):
     molecule_design_pool_set = member_attribute(IMoleculeDesignPoolSet,
                                                 'molecule_design_pool_set',
                                                 is_nested=True)
-    target_set = member_attribute(ITargetSet, 'target_set')
     experiment_design = member_attribute(IExperimentDesign,
                                          'experiment_design',
                                          is_nested=True)

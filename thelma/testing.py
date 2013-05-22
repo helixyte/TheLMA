@@ -23,7 +23,6 @@ from thelma.interfaces import IExperiment
 from thelma.interfaces import IExperimentDesign
 from thelma.interfaces import IExperimentDesignRack
 from thelma.interfaces import IExperimentMetadataType
-from thelma.interfaces import IGene
 from thelma.interfaces import IIso
 from thelma.interfaces import IIsoRequest
 from thelma.interfaces import IItemStatus
@@ -44,9 +43,7 @@ from thelma.interfaces import IReservoirSpecs
 from thelma.interfaces import ISpecies
 from thelma.interfaces import ISubproject
 from thelma.interfaces import ITag
-from thelma.interfaces import ITarget
 from thelma.interfaces import ITractor
-from thelma.interfaces import ITranscript
 from thelma.interfaces import ITube
 from thelma.interfaces import ITubeRack
 from thelma.interfaces import ITubeRackSpecs
@@ -69,9 +66,6 @@ from thelma.models.experiment import ExperimentDesignRack
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.experiment import ExperimentRack
 from thelma.models.gene import Gene
-from thelma.models.gene import Target
-from thelma.models.gene import TargetSet
-from thelma.models.gene import Transcript
 from thelma.models.iso import Iso
 from thelma.models.iso import IsoAliquotPlate
 from thelma.models.iso import IsoControlStockRack
@@ -133,7 +127,6 @@ from thelma.resources.experiment import ExperimentDesignMember
 from thelma.resources.experiment import ExperimentMember
 from thelma.resources.experiment import ExperimentRackMember
 from thelma.resources.gene import GeneMember
-from thelma.resources.gene import TranscriptMember
 from thelma.resources.job import JobMember
 from thelma.resources.jobtype import JobTypeMember
 from thelma.resources.location import LocationMember
@@ -811,27 +804,6 @@ class EntityCreatorMixin(object):
             kw['index'] = 0
         return self._create_entity(WorklistSeriesMember, kw)
 
-    def _create_transcript(self, **kw):
-        if not 'accession' in kw:
-            kw['accession'] = 'NM_678'
-        if not 'gene' in kw:
-            kw['gene'] = self._get_entity(IGene, '641519')
-        return self._create_entity(Transcript, kw)
-
-    def _create_target(self, **kw):
-        if not 'transcript' in kw:
-            kw['transcript'] = self._get_entity(ITranscript, '1')
-        if not 'molecule_design' in kw:
-            kw['molecule_design'] = self._get_entity(IMoleculeDesign, '11')
-        return self._create_entity(Target, kw)
-
-    def _create_target_set(self, **kw):
-        if not 'label' in kw:
-            kw['label'] = 'TestTargetSet'
-        if not 'targets' in kw:
-            kw['targets'] = [self._get_entity(ITarget)]
-        return self._create_entity(TargetSet, kw)
-
 
 class ThelmaModelTestCase(EntityTestCase, EntityCreatorMixin):
     """
@@ -967,10 +939,6 @@ class ThelmaResourceTestCase(ResourceTestCase, EntityCreatorMixin):
     def _create_project_member(self):
         project = self._create_project()
         return self._create_member(ProjectMember, project)
-
-    def _create_transcript_member(self):
-        transcript = self._create_transcript()
-        return self._create_member(TranscriptMember, transcript)
 
     def _create_tube_rack_member(self):
         tube_rack = self._create_tube_rack()

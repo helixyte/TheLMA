@@ -312,9 +312,6 @@ class ExperimentMetadata(Entity):
     #: The subproject (:class:`thelma.models.subproject.Subproject`)
     #: this experiment metadata belongs to.
     subproject = None
-    #: The targets to be tested in these experiments
-    #: (:class:`thelma.models.gene.TargetSet`).
-    target_set = None
     #: The experiment design containing the meta data for the
     #: experiments (:class:`thelma.models.experiment.ExperimentDesign`)
     experiment_design = None
@@ -334,10 +331,10 @@ class ExperimentMetadata(Entity):
     #: (:class:`thelma.models.moleculedesign.MoleculeDesignPoolSet`)
     molecule_design_pool_set = None
 
-    def __init__(self, label, subproject, experiment_design, number_replicates,
-                 experiment_metadata_type, ticket_number=None, iso_request=None,
-                 molecule_design_pool_set=None, target_set=None,
-                 creation_date=None,
+    def __init__(self, label, subproject, experiment_design,
+                 number_replicates, experiment_metadata_type,
+                 ticket_number=None, iso_request=None,
+                 molecule_design_pool_set=None, creation_date=None,
                  **kw):
         Entity.__init__(self, **kw)
         self.label = label
@@ -347,7 +344,6 @@ class ExperimentMetadata(Entity):
         self.number_replicates = number_replicates
         self.ticket_number = ticket_number
         self.molecule_design_pool_set = molecule_design_pool_set
-        self.target_set = target_set
         if creation_date is None:
             creation_date = get_utc_time()
         self.creation_date = creation_date

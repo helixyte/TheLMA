@@ -23,17 +23,13 @@ class SupplierMoleculeDesign(Entity):
     #: Flag indicating if this supplier molecule design was discontinued by
     #: the supplier
     is_deleted = False
-    #: Strand the supplier indicated as the sense strand.
-    # FIXME: drop after migration to new molecule design structure.
-    sense_strand = None
     #: Molecule design associated with this supplier design.
     molecule_design = None
     #: Molecule design pool associated with this supplier design.
     molecule_design_pool = None
 
     def __init__(self, product_id, supplier,
-                 time_stamp=None, is_current=False, is_deleted=False,
-                 sense_strand='unknown', **kw):
+                 time_stamp=None, is_current=False, is_deleted=False, **kw):
         Entity.__init__(self, **kw)
         self.product_id = product_id
         self.supplier = supplier
@@ -42,7 +38,6 @@ class SupplierMoleculeDesign(Entity):
         self.time_stamp = time_stamp
         self.is_current = is_current
         self.is_deleted = is_deleted
-        self.sense_strand = sense_strand
 
 
 class SupplierStructureAnnotation(Entity):

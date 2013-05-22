@@ -16,6 +16,5 @@ def create_table(metadata):
                 Column('job_type_id', Integer, primary_key=True),
                 Column('name', String(32), nullable=False, unique=True),
                 Column('label', String(64), nullable=False),
-                Column('xml', String, nullable=False)
                 )
     return tbl

@@ -895,11 +895,6 @@
                     name="ignore"
                     value="false" />
             </attribute>
-            <attribute name="target_set">
-                <option
-                    name="write_as_link"
-                    value="true" />
-            </attribute>
             <attribute name="iso_request.isos">
                 <option
                     name="ignore"
@@ -2077,43 +2072,6 @@
         </representer>
     </resource>
 
-    <!-- Molecule Modification -->
-
-    <resource
-        interface="thelma.interfaces.IMoleculeModification"
-        member=".moleculemodification.MoleculeModificationMember"
-        collection=".moleculemodification.MoleculeModificationCollection"
-        entity="thelma.models.moleculemodification.MoleculeModification"
-    >
-        <representer content_type="everest.mime.XmlMime">
-            <option
-                name="xml_schema"
-                value="thelma:schemata/MoleculeModification.xsd" />
-            <option
-                name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/moleculemodification" />
-            <option
-                name="xml_prefix"
-                value="mmo" />
-        </representer>
-        <representer
-            kind="member"
-            content_type="everest.mime.XmlMime"
-        >
-            <option
-                name="xml_tag"
-                value="molecule_modification" />
-        </representer>
-        <representer
-            kind="collection"
-            content_type="everest.mime.XmlMime"
-        >
-            <option
-                name="xml_tag"
-                value="molecule_modifications" />
-        </representer>
-    </resource>
-
     <!-- Molecule Type -->
 
     <resource
@@ -3158,83 +3116,6 @@
             <option
                 name="xml_tag"
                 value="tagged_rack_position_sets" />
-        </representer>
-    </resource>
-
-
-    <!-- Target Set -->
-
-    <resource
-        interface="thelma.interfaces.ITargetSet"
-        member=".gene.TargetSetMember"
-        collection=".gene.TargetSetCollection"
-        entity="thelma.models.gene.TargetSet"
-    >
-        <representer content_type="everest.mime.XmlMime">
-            <option
-                name="xml_schema"
-                value="thelma:schemata/TargetSet.xsd" />
-            <option
-                name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/targetset" />
-            <option
-                name="xml_prefix"
-                value="tas" />
-        </representer>
-        <representer
-            kind="member"
-            content_type="everest.mime.XmlMime"
-        >
-            <option
-                name="xml_tag"
-                value="target_set" />
-        </representer>
-        <representer
-            kind="collection"
-            content_type="everest.mime.XmlMime"
-        >
-            <option
-                name="xml_tag"
-                value="target_sets" />
-        </representer>
-    </resource>
-
-
-    <!-- Transcript -->
-
-    <resource
-        interface="thelma.interfaces.ITranscript"
-        member=".gene.TranscriptMember"
-        collection=".gene.TranscriptCollection"
-        entity="thelma.models.gene.Transcript"
-        expose="false"
-    >
-        <representer content_type="everest.mime.XmlMime">
-            <option
-                name="xml_schema"
-                value="thelma:schemata/Transcript.xsd" />
-            <option
-                name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/transcript" />
-            <option
-                name="xml_prefix"
-                value="tr" />
-        </representer>
-        <representer
-            kind="member"
-            content_type="everest.mime.XmlMime"
-        >
-            <option
-                name="xml_tag"
-                value="transcript" />
-        </representer>
-        <representer
-            kind="collection"
-            content_type="everest.mime.XmlMime"
-        >
-            <option
-                name="xml_tag"
-                value="transcripts" />
         </representer>
     </resource>
 

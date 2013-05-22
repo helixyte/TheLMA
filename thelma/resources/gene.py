@@ -11,13 +11,10 @@ from everest.resources.descriptors import attribute_alias
 from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
-from thelma.interfaces import IGene
 from thelma.interfaces import IMoleculeDesign
-from thelma.interfaces import ISpecies
-from thelma.interfaces import ITarget
-from thelma.interfaces import ITranscript
-from thelma.resources.base import RELATION_BASE_URL
 from thelma.interfaces import IMoleculeDesignPool
+from thelma.interfaces import ISpecies
+from thelma.resources.base import RELATION_BASE_URL
 
 
 __docformat__ = 'reStructuredText en'
@@ -29,12 +26,6 @@ __source__ = '$URL:: http://svn/cenix/TheLMA/trunk/thelma/resources/gene.py   $'
 
 __all__ = ['GeneCollection',
            'GeneMember',
-           'TargetCollection',
-           'TargetMember',
-           'TargetSetCollection',
-           'TargetSetMember',
-           'TranscriptCollection',
-           'TranscriptMember',
            ]
 
 
@@ -59,41 +50,3 @@ class GeneCollection(Collection):
     root_name = 'genes'
     description = 'Manage Genes'
     default_order = AscendingOrderSpecification('accession')
-
-
-class TranscriptMember(Member):
-    relation = "%s/transcript" % RELATION_BASE_URL
-    accession = terminal_attribute(str, 'accession')
-    gene = member_attribute(IGene, 'gene')
-    species = member_attribute(ISpecies, 'species')
-
-
-class TranscriptCollection(Collection):
-    title = 'Transcripts'
-    root_name = 'transcripts'
-    description = 'Manage Transcripts'
-    default_order = AscendingOrderSpecification('accession')
-
-
-class TargetMember(Member):
-    relation = "%s/target" % RELATION_BASE_URL
-    transcript = member_attribute(ITranscript, 'transcript')
-    molecule_design = member_attribute(IMoleculeDesign, 'molecule_design')
-
-
-class TargetCollection(Collection):
-    title = 'Targets'
-    root_name = 'targets'
-    description = 'Manage Targets'
-    default_order = AscendingOrderSpecification('transcript')
-
-
-class TargetSetMember(Member):
-    relation = "%s/target-set" % RELATION_BASE_URL
-    targets = collection_attribute(ITarget, 'targets')
-
-
-class TargetSetCollection(Collection):
-    title = 'Target Sets'
-    root_name = 'target-sets'
-    description = 'Manage Target Sets'

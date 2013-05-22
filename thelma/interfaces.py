@@ -40,6 +40,7 @@ __all__ = ['IBarcodePrintJob',
            'ILocationType',
            'IMolecule',
            'IMoleculeDesign',
+           'IMoleculeDesignPool',
            'IMoleculeDesignSet',
            'IMoleculeType',
            'IOrganization',
@@ -56,14 +57,10 @@ __all__ = ['IBarcodePrintJob',
            'ISpecies',
            'IStockInfo',
            'IStockSample',
-           'IMoleculeDesignPool',
            'ISubproject',
            'ITag',
            'ITaggedRackPositionSet',
-           'ITarget',
-           'ITargetSet',
            'ITractor',
-           'ITranscript',
            'ITube',
            'ITubeRack',
            'ITubeRackSpecs',
@@ -298,12 +295,6 @@ class IMoleculeDesignLibrary(Interface):
     """
 
 
-class IMoleculeModification(Interface):
-    """
-    Marker interface for molecule type modification
-    resources.
-    """
-
 class IMoleculeType(Interface):
     """
     Marker interface indicating participation in molecule type resources.
@@ -471,28 +462,10 @@ class ITaggedRackPositionSet(Interface):
     """
 
 
-class ITarget(Interface):
-    """
-    Marker interface indicating participation in target resources.
-    """
-
-
-class ITargetSet(Interface):
-    """
-    Marker interface indicating participation in target set resources.
-    """
-
-
 class ITractor(Interface):
     """
     Marker interface by which you can get the registered config file for the
     tractor API.
-    """
-
-
-class ITranscript(Interface):
-    """
-    Marker interface indicating participation in transcript resources.
     """
 
 
