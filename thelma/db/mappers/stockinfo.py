@@ -15,11 +15,11 @@ __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
 
 
-def create_mapper(stock_info_vw, molecule_design_set_gene_tbl, refseq_gene_vw):
+def create_mapper(stock_info_vw, molecule_design_set_gene_tbl, refseq_gene_tbl):
     "Mapper factory."
     siv = stock_info_vw
     mdsg = molecule_design_set_gene_tbl
-    rgv = refseq_gene_vw
+    rsg = refseq_gene_tbl
     m = mapper(StockInfo, stock_info_vw,
         primary_key=[stock_info_vw.c.molecule_design_set_id,
                      stock_info_vw.c.concentration],
@@ -33,7 +33,7 @@ def create_mapper(stock_info_vw, molecule_design_set_gene_tbl, refseq_gene_vw):
             genes=relationship(Gene, viewonly=True,
                                primaryjoin=(mdsg.c.molecule_design_set_id ==
                                                 siv.c.molecule_design_set_id),
-                               secondaryjoin=(rgv.c.gene_id == mdsg.c.gene_id),
+                               secondaryjoin=(rsg.c.gene_id == mdsg.c.gene_id),
                                foreign_keys=(mdsg.c.molecule_design_set_id,
                                              mdsg.c.gene_id),
                                secondary=molecule_design_set_gene_tbl,

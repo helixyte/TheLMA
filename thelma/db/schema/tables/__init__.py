@@ -5,13 +5,8 @@ from thelma.db.schema.tables import container
 from thelma.db.schema.tables import containerbarcode
 from thelma.db.schema.tables import containerspecs
 from thelma.db.schema.tables import containment
-from thelma.db.schema.tables import currentdbrelease
-from thelma.db.schema.tables import dbrelease
-from thelma.db.schema.tables import dbsource
 from thelma.db.schema.tables import device
 from thelma.db.schema.tables import devicetype
-from thelma.db.schema.tables import doublestrandeddesign
-from thelma.db.schema.tables import doublestrandedmodification
 from thelma.db.schema.tables import executedcontainerdilution
 from thelma.db.schema.tables import executedcontainertransfer
 from thelma.db.schema.tables import executedracktransfer
@@ -25,12 +20,10 @@ from thelma.db.schema.tables import experimentdesigntaggedrackpositionset
 from thelma.db.schema.tables import experimentmetadata
 from thelma.db.schema.tables import experimentmetadataisorequest
 from thelma.db.schema.tables import experimentmetadatapoolset
-from thelma.db.schema.tables import experimentmetadatatargetset
 from thelma.db.schema.tables import experimentmetadatatype
 from thelma.db.schema.tables import experimentrack
 from thelma.db.schema.tables import experimentrackjob
 from thelma.db.schema.tables import experimentsourcerack
-from thelma.db.schema.tables import gene
 from thelma.db.schema.tables import iso
 from thelma.db.schema.tables import isoaliquotplate
 from thelma.db.schema.tables import isocontrolstockrack
@@ -45,10 +38,6 @@ from thelma.db.schema.tables import job
 from thelma.db.schema.tables import jobtype
 from thelma.db.schema.tables import librarycreationiso
 from thelma.db.schema.tables import librarysourceplate
-from thelma.db.schema.tables import mirna
-from thelma.db.schema.tables import mirnainhibitordesign
-from thelma.db.schema.tables import mirnainhibitormodification
-from thelma.db.schema.tables import mirnamimicdesign
 from thelma.db.schema.tables import molecule
 from thelma.db.schema.tables import moleculedesign
 from thelma.db.schema.tables import moleculedesigngene
@@ -61,7 +50,6 @@ from thelma.db.schema.tables import moleculedesignset
 from thelma.db.schema.tables import moleculedesignsetgene
 from thelma.db.schema.tables import moleculedesignsetmember
 from thelma.db.schema.tables import moleculedesignstructure
-from thelma.db.schema.tables import moleculedesignversionedtranscripttarget
 from thelma.db.schema.tables import moleculetype
 from thelma.db.schema.tables import organization
 from thelma.db.schema.tables import plannedcontainerdilution
@@ -81,14 +69,11 @@ from thelma.db.schema.tables import rackpositionsetmember
 from thelma.db.schema.tables import rackshape
 from thelma.db.schema.tables import rackspecs
 from thelma.db.schema.tables import rackspecscontainerspecs
-from thelma.db.schema.tables import releasegenetranscript
-from thelma.db.schema.tables import releaseversionedtranscript
+from thelma.db.schema.tables import refseqgene
 from thelma.db.schema.tables import reservoirspecs
 from thelma.db.schema.tables import sample
 from thelma.db.schema.tables import samplemolecule
 from thelma.db.schema.tables import sampleregistration
-from thelma.db.schema.tables import singlestrandeddesign
-from thelma.db.schema.tables import singlestrandedmodification
 from thelma.db.schema.tables import singlesuppliermoleculedesign
 from thelma.db.schema.tables import species
 from thelma.db.schema.tables import stocksample
@@ -99,16 +84,11 @@ from thelma.db.schema.tables import tag
 from thelma.db.schema.tables import tagged
 from thelma.db.schema.tables import taggedrackpositionset
 from thelma.db.schema.tables import tagging
-from thelma.db.schema.tables import target
-from thelma.db.schema.tables import targetset
-from thelma.db.schema.tables import targetsetmember
-from thelma.db.schema.tables import transcript
 from thelma.db.schema.tables import tubetransfer
 from thelma.db.schema.tables import tubetransferworklist
 from thelma.db.schema.tables import tubetransferworklistmember
 from thelma.db.schema.tables import user
 from thelma.db.schema.tables import userpreferences
-from thelma.db.schema.tables import versionedtranscript
 from thelma.db.schema.tables import worklistseries
 from thelma.db.schema.tables import worklistseriesexperimentdesign
 from thelma.db.schema.tables import worklistseriesexperimentdesignrack
@@ -162,25 +142,16 @@ def initialize_tables(metadata):
                                                       molecule_tbl)
     stocksample.create_table(metadata, sample_tbl, organization_tbl,
                              molecule_design_set_tbl, molecule_type_tbl)
-    single_stranded_modification_tbl = \
-                               singlestrandedmodification.create_table(metadata)
-    single_stranded_design_tbl = singlestrandeddesign.create_table(metadata,
-                          molecule_design_tbl, single_stranded_modification_tbl)
-    double_stranded_modification_tbl = \
-                               doublestrandedmodification.create_table(metadata)
-    double_stranded_design_tbl = \
-        doublestrandeddesign.create_table(metadata, molecule_design_tbl,
-                                          double_stranded_modification_tbl)
     compound_tbl = compound.create_table(metadata, molecule_design_tbl)
 
     species_tbl = species.create_table(metadata)
-    gene_tbl = gene.create_table(metadata, species_tbl)
+    refseq_gene_tbl = refseqgene.create_table(metadata, species_tbl)
     molecule_design_gene_tbl = \
         moleculedesigngene.create_table(metadata, molecule_design_tbl,
-                                        gene_tbl)
+                                        refseq_gene_tbl)
     molecule_design_set_gene_tbl = \
         moleculedesignsetgene.create_table(metadata, molecule_design_set_tbl,
-                                           gene_tbl)
+                                           refseq_gene_tbl)
 
     molecule_design_pool_set_tbl = moleculedesignpoolset.create_table(metadata,
                                                         molecule_type_tbl)
@@ -188,25 +159,6 @@ def initialize_tables(metadata):
                 create_table(metadata, molecule_design_set_tbl,
                                        molecule_design_pool_set_tbl)
 
-    db_source_tbl = dbsource.create_table(metadata)
-    db_release_tbl = dbrelease.create_table(metadata, db_source_tbl)
-    current_db_release_tbl = currentdbrelease.create_table(metadata,
-                                                           db_source_tbl,
-                                                           db_release_tbl)
-    transcript_tbl = transcript.create_table(metadata, species_tbl)
-    release_gene_transcript_tbl = \
-        releasegenetranscript.create_table(metadata, db_release_tbl, gene_tbl,
-                                           transcript_tbl)
-    versioned_transcript_tbl = versionedtranscript.create_table(metadata,
-                                                                transcript_tbl)
-    release_versioned_transcript_tbl = \
-        releaseversionedtranscript.create_table(metadata, db_release_tbl,
-                                                versioned_transcript_tbl)
-    molecule_design_ver_tran_target_tbl = \
-        moleculedesignversionedtranscripttarget.create_table(
-                                                    metadata,
-                                                    molecule_design_tbl,
-                                                    versioned_transcript_tbl)
     supplier_molecule_design_tbl = suppliermoleculedesign.create_table(
                                                 metadata, organization_tbl)
     singlesuppliermoleculedesign.create_table(metadata,
@@ -218,15 +170,6 @@ def initialize_tables(metadata):
     supplierstructureannotation.create_table(metadata,
                                              supplier_molecule_design_tbl,
                                              chemical_structure_tbl)
-    mirna_tbl = mirna.create_table(metadata)
-    mirna_mimic_design_tbl = \
-        mirnamimicdesign.create_table(metadata, molecule_design_tbl, mirna_tbl)
-    mirna_inhi_modification_tbl = \
-        mirnainhibitormodification.create_table(metadata)
-    mirna_inhi_design_tbl = \
-        mirnainhibitordesign.create_table(metadata, molecule_design_tbl,
-                                          mirna_inhi_modification_tbl)
-
     dbuser_tbl = user.create_table(metadata)
     user_preferences_tbl = userpreferences.create_table(metadata, dbuser_tbl)
 
@@ -234,11 +177,6 @@ def initialize_tables(metadata):
     tagged_tbl = tagged.create_table(metadata)
     tagging_tbl = tagging.create_table(metadata, tagged_tbl, tag_tbl,
                                        dbuser_tbl)
-    target_tbl = target.create_table(metadata,
-                            transcript_tbl, molecule_design_tbl)
-    target_set_tbl = targetset.create_table(metadata)
-    target_set_member_tbl = targetsetmember.create_table(metadata,
-                                            target_tbl, target_set_tbl)
     rack_position_tbl = rackposition.create_table(metadata)
     rack_position_set_tbl = rackpositionset.create_table(metadata)
     rack_position_set_member_tbl = rackpositionsetmember.create_table(
@@ -326,9 +264,6 @@ def initialize_tables(metadata):
     experiment_metadata_pool_set_tbl = experimentmetadatapoolset.create_table(
                             metadata, experiment_metadata_tbl,
                             molecule_design_pool_set_tbl)
-    experiment_metadata_target_set_tbl = experimentmetadatatargetset.\
-            create_table(metadata, experiment_metadata_tbl, target_set_tbl)
-
     iso_tbl = iso.create_table(metadata, iso_request_tbl, rack_layout_tbl)
     library_creation_iso_tbl = librarycreationiso.create_table(metadata,
                                                                iso_tbl)

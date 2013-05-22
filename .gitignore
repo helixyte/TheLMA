@@ -1,3 +1,5 @@
 /TheLMA.egg-info
-/.pydevproject
-/.project
+*.pyc
+.project
+.pydevproject
+

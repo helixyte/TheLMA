@@ -28,12 +28,6 @@ def create_mapper(subproject_tbl):
 #                              uselist=False,
 #                              secondary=
 #                                subproject_molecule_designs_and_targets_tbl),
-#               target_set=
-#                 relationship(TargetSet,
-#                              uselist=False,
-#                              secondary=
-#                                subproject_molecule_designs_and_targets_tbl),
-#               experiment_metadatas=relationship(ExperimentMetadata),
                )
           )
     if isinstance(Subproject.slug, property):

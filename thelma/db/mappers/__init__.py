@@ -48,7 +48,6 @@ from thelma.db.mappers import moleculedesignlibrary
 from thelma.db.mappers import moleculedesignpool
 from thelma.db.mappers import moleculedesignpoolset
 from thelma.db.mappers import moleculedesignset
-from thelma.db.mappers import moleculemodification
 from thelma.db.mappers import moleculetype
 from thelma.db.mappers import nucleicacidchemicalstructure
 from thelma.db.mappers import organization
@@ -85,10 +84,7 @@ from thelma.db.mappers import tag
 from thelma.db.mappers import tagged
 from thelma.db.mappers import taggedrackpositionset
 from thelma.db.mappers import tagging
-from thelma.db.mappers import target
-from thelma.db.mappers import targetset
 from thelma.db.mappers import titandesign
-from thelma.db.mappers import transcript
 from thelma.db.mappers import tube
 from thelma.db.mappers import tuberack
 from thelma.db.mappers import tuberackspecs
@@ -135,8 +131,6 @@ def initialize_mappers(tables, views):
     barcodedlocation.create_mapper(tables['barcoded_location'],
                                    tables['rack_barcoded_location'])
     barcodedlocationtype.create_mapper(tables['barcoded_location'])
-    moleculemodification.create_mapper(
-                                views['molecule_type_modification_view'])
     moleculetype.create_mapper(tables['molecule_type'],
                                views['molecule_type_modification_view'],
                                tables['chemical_structure'])
@@ -150,7 +144,7 @@ def initialize_mappers(tables, views):
                              tables['molecule'],
                              tables['molecule_design_pool'])
     sampleregistration.create_mapper(tables['sample_registration'])
-    gene.create_mapper(views['refseq_gene_view'],
+    gene.create_mapper(tables['refseq_gene'],
                        tables['molecule_design_gene'],
                        tables['molecule_design_set_gene'],
                        tables['molecule_design'],
@@ -158,7 +152,7 @@ def initialize_mappers(tables, views):
     species.create_mapper(tables['species'])
     stockinfo.create_mapper(views['stock_info_view'],
                             tables['molecule_design_set_gene'],
-                            views['refseq_gene_view'])
+                            tables['refseq_gene'])
     chemical_structure_mapper = \
         chemicalstructure.create_mapper(tables['chemical_structure'],
                                         tables['molecule_design_structure'])
@@ -175,7 +169,7 @@ def initialize_mappers(tables, views):
                                     tables['molecule_design_structure'],
                                     tables['single_supplier_molecule_design'],
                                     tables['molecule_design_gene'],
-                                    views['refseq_gene_view'])
+                                    tables['refseq_gene'])
 
     molecule_design_set_mapper = \
         moleculedesignset.create_mapper(tables['molecule_design_set'],
@@ -236,12 +230,6 @@ def initialize_mappers(tables, views):
     tagged_mapper = tagged.create_mapper(tables['tagged'], tables['tagging'])
     taggedrackpositionset.create_mapper(tagged_mapper,
                                         tables['tagged_rack_position_set'])
-    transcript.create_mapper(tables['transcript'],
-                             tables['release_gene_transcript'],
-                             views['refseq_gene_view'])
-    target.create_mapper(tables['target'])
-    targetset.create_mapper(tables['target_set'], tables['target'],
-                            tables['target_set_member'])
     rackpositionset.create_mapper(tables['rack_position_set'],
                                         tables['rack_position_set_member'])
     rackposition.create_mapper(tables['rack_position'])
@@ -263,7 +251,6 @@ def initialize_mappers(tables, views):
     experimentmetadatatype.create_mapper(tables['experiment_metadata_type'])
     experimentmetadata.create_mapper(tables['experiment_metadata'],
                         tables['experiment_metadata_iso_request'],
-                        tables['experiment_metadata_target_set'],
                         tables['experiment_metadata_pool_set'])
     experimentjob.create_mapper(job_mapper, tables['job'],
                                 tables['new_experiment'])

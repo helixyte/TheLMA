@@ -11,7 +11,6 @@ from thelma.db.mappers.utils import as_slug_expression
 from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.experiment import ExperimentMetadataType
-from thelma.models.gene import TargetSet
 from thelma.models.iso import IsoRequest
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from thelma.models.subproject import Subproject
@@ -20,8 +19,8 @@ __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']
 
 
-def create_mapper(experiment_metadata_tbl, experiment_metadata_iso_request_tbl,
-                  experiment_metadata_target_set_tbl,
+def create_mapper(experiment_metadata_tbl,
+                  experiment_metadata_iso_request_tbl,
                   experiment_metadata_pool_set_tbl):
     "Mapper factory."
     m = mapper(
@@ -41,8 +40,6 @@ def create_mapper(experiment_metadata_tbl, experiment_metadata_iso_request_tbl,
                                 MoleculeDesignPoolSet,
                                 uselist=False,
                                 secondary=experiment_metadata_pool_set_tbl),
-                  target_set=relationship(TargetSet, uselist=False,
-                            secondary=experiment_metadata_target_set_tbl),
                   iso_request=relationship(IsoRequest, uselist=False,
                             secondary=experiment_metadata_iso_request_tbl,
                             back_populates='experiment_metadata',

@@ -103,12 +103,6 @@
                         >
                         </element>
                         <element
-                            ref="tas:target_set"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
                             ref="ed:experiment_design"
                             minOccurs="0"
                             maxOccurs="1"

@@ -17,33 +17,33 @@ __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
 
 
-def create_mapper(refseq_gene_vw, molecule_design_gene_tbl,
+def create_mapper(refseq_gene_tbl, molecule_design_gene_tbl,
                   molecule_design_set_gene_tbl,
                   molecule_design_tbl,
                   molecule_design_pool_tbl):
     "Mapper factory."
-    rsgv = refseq_gene_vw
+    rsg = refseq_gene_tbl
     mdg = molecule_design_gene_tbl
     mdsg = molecule_design_set_gene_tbl
     md = molecule_design_tbl
     mdp = molecule_design_pool_tbl
-    m = mapper(Gene, rsgv,
+    m = mapper(Gene, rsg,
         properties=dict(
             id=synonym('gene_id'),
             name=synonym('locus_name'),
             accession=column_property(
-                rsgv.c.accession,
+                rsg.c.accession,
                 comparator_factory=CaseInsensitiveComparator
                 ),
             locus_name=column_property(
-                rsgv.c.locus_name,
+                rsg.c.locus_name,
                 comparator_factory=CaseInsensitiveComparator
                 ),
             molecule_designs=
                 relationship(
                     MoleculeDesign, viewonly=True,
                     secondary=mdg,
-                    primaryjoin=(mdg.c.gene_id == rsgv.c.gene_id),
+                    primaryjoin=(mdg.c.gene_id == rsg.c.gene_id),
                     secondaryjoin=(md.c.molecule_design_id ==
                                             mdg.c.molecule_design_id),
                     foreign_keys=(mdg.c.molecule_design_id,
@@ -54,7 +54,7 @@ def create_mapper(refseq_gene_vw, molecule_design_gene_tbl,
                 relationship(
                     MoleculeDesignPool, viewonly=True,
                     secondary=mdsg,
-                    primaryjoin=(mdsg.c.gene_id == rsgv.c.gene_id),
+                    primaryjoin=(mdsg.c.gene_id == rsg.c.gene_id),
                     secondaryjoin=(mdsg.c.molecule_design_set_id ==
                                             mdp.c.molecule_design_set_id),
                     foreign_keys=(mdsg.c.molecule_design_set_id,

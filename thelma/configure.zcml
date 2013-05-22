@@ -111,7 +111,6 @@
            .interfaces.IMoleculeDesignLibrary
            .interfaces.IMoleculeDesignPool
            .interfaces.IMoleculeDesignSet
-           .interfaces.IMoleculeModification
            .interfaces.IMoleculeType
            .interfaces.IOrganization
            .interfaces.IProject
