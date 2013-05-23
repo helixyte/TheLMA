@@ -33,7 +33,6 @@ from thelma.interfaces import IPlate
 from thelma.interfaces import ISubproject
 from thelma.interfaces import IUser
 from thelma.models.experiment import Experiment
-from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.iso import Iso
 from thelma.models.job import ExperimentJob
@@ -151,7 +150,6 @@ class ExperimentMetadataGeneratorTestCase(ToolsAndUtilsTestCase):
         em_type = get_experiment_metadata_type(self.experiment_type_id)
         self.experiment_metadata = ExperimentMetadata(label=self.label,
                     subproject=self._get_entity(ISubproject),
-                    experiment_design=ExperimentDesign(),
                     number_replicates=self.number_replicates,
                     experiment_metadata_type=em_type,
                     ticket_number=self.ticket_number)

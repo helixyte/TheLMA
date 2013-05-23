@@ -22,6 +22,7 @@ from thelma.automation.tools.iso.prep_utils import IsoControlRackPosition
 from thelma.automation.tools.iso.prep_utils import PrepIsoAssociationData
 from thelma.automation.tools.iso.prep_utils import PrepIsoLayoutConverter
 from thelma.automation.tools.iso.prep_utils import RequestedStockSample
+from thelma.automation.tools.iso.prep_utils import ISO_LABELS
 from thelma.automation.tools.iso.stockworklist \
     import StockTransferWorklistGenerator384Controls
 from thelma.automation.tools.iso.stockworklist \
@@ -455,7 +456,14 @@ class IsoXL20WorklistGenerator(BaseAutomationTool):
         # Create aliquot plates
         aliquot_plate_specs = PLATE_SPECS_NAMES.from_reservoir_specs(aliquot_rs)
         for i in range(self.entity.iso_request.number_aliquots):
-            label = 'a%i_%s' % ((i + 1), self.entity.label)
+            label = ISO_LABELS.create_aliquot_plate_label(iso=self.entity,
+                                                      aliquot_number=(i + 1))
+#            iso_number = ISO_LABELS.get_iso_number(iso=self.entity)
+#            label = self.ALIQUOT_PLATE_LABEL_PATTERN % (
+#                    self.entity.iso_request.plate_set_label, iso_number)
+#            if self.entity.iso_request.number_aliquots > 1:
+#                suffix = self.ALIQUOT_PLATE_LABEL_SUFFIX % (i + 1)
+#                label += suffix
             aliquot_plate = aliquot_plate_specs.create_rack(label=label,
                                         status=get_item_status_future())
             IsoAliquotPlate(iso=self.entity, plate=aliquot_plate)

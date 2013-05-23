@@ -21,7 +21,6 @@ from thelma.automation.tools.utils.iso import IsoLayoutConverter
 from thelma.automation.tools.utils.iso import IsoParameters
 from thelma.interfaces import IRackShape
 from thelma.interfaces import ISubproject
-from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import Iso
@@ -49,6 +48,7 @@ class IsoCreatorTestCase(ExperimentMetadataReadingTestCase):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
         self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.DEEP_96
         self.pool_id = None
+        self.expected_iso_labels = None
 
     def tear_down(self):
         ExperimentMetadataReadingTestCase.tear_down(self)
@@ -60,6 +60,7 @@ class IsoCreatorTestCase(ExperimentMetadataReadingTestCase):
         del self.experiment_type_id
         del self.expected_prep_plate_specs_name
         del self.pool_id
+        del self.expected_iso_labels
 
     def _continue_setup(self, file_name=None):
         ExperimentMetadataReadingTestCase._continue_setup(self, file_name)
@@ -72,7 +73,6 @@ class IsoCreatorTestCase(ExperimentMetadataReadingTestCase):
             self.experiment_metadata = ExperimentMetadata(number_replicates=3,
                                     label='ISO Creation Test',
                                     subproject=self._get_entity(ISubproject),
-                                    experiment_design=ExperimentDesign(),
                                     experiment_metadata_type=em_type,
                                     ticket_number=123)
 
@@ -88,7 +88,9 @@ class IsoCreatorTestCase(ExperimentMetadataReadingTestCase):
             self.assert_is_not_none(iso.rack_layout)
         fixed_cand, iso_cands, prep_layout_map = self.tool.get_report_data()
         used_pools = set()
+        found_iso_labels = []
         for iso in isos:
+            found_iso_labels.append(iso.label)
             prep_layout = prep_layout_map[iso.label]
             self.assert_false(prep_layout.has_unconverted_floatings())
             floating_cands = iso_cands[iso.label]
@@ -122,6 +124,13 @@ class IsoCreatorTestCase(ExperimentMetadataReadingTestCase):
             self.assert_is_not_none(req_cand)
             self.assert_equal(req_cand.container_barcode,
                               self.requested_tubes[0])
+        if self.expected_iso_labels is None:
+            self.expected_iso_labels = []
+            for i in range(self.number_of_isos):
+                label = '123_iso%i' % (i + 1)
+                self.expected_iso_labels.append(label)
+        self.assert_equal(sorted(found_iso_labels),
+                          sorted(self.expected_iso_labels))
 
 
 class IsoGeneratorTestCase(IsoCreatorTestCase):
@@ -140,6 +149,7 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
 
     def test_result_384_opti(self):
         self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_384
+        self.expected_iso_labels = ['123_iso1']
         self._check_result('valid_file_384_opti.xls')
         self._check_warning_messages('The system will only generate 1 ISO ' \
                                      'though, because there are no floating ' \
@@ -147,6 +157,7 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
 
     def test_result_384_opti_floats(self):
         self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_384
+        self.expected_iso_labels = ['123_iso1']
         self._check_result('valid_file_384_opti_floats.xls')
         new_iso = self.tool.return_value[0]
         self.assert_equal(len(new_iso.molecule_design_pool_set), 2)
@@ -258,8 +269,10 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
 
     def test_not_enough_floatings(self):
         self.number_of_isos = 6
+        self.expected_iso_labels = ['123_iso1', '123_iso2', '123_iso3']
         self._check_result()
-        self.assert_equal(len(self.iso_request.isos), 3)
+        self.assert_equal(len(self.iso_request.isos),
+                          len(self.expected_iso_labels))
         self._check_warning_messages('Some positions of the last ISO will ' \
                     'be empty because there are not enough molecule design ' \
                     'pools left in the queue to fill all positions. Number ' \
@@ -445,6 +458,7 @@ class IsoReschedulerTestCase(IsoCreatorTestCase):
                                    requested_tubes=self.requested_tubes)
 
     def test_result(self):
+        self.expected_iso_labels = ['123_iso4_copy', '123_iso5_copy']
         self._check_result()
         new_isos = self.tool.return_value
         self.assert_is_not_none(new_isos)
@@ -452,7 +466,6 @@ class IsoReschedulerTestCase(IsoCreatorTestCase):
         self.assert_equal(len(self.iso_request.isos), 5)
         new_mdps = set()
         for iso in new_isos:
-            self.assert_true(IsoRescheduler.COPY_MARKER in iso.label)
             for md_pool in iso.molecule_design_pool_set:
                 self.assert_true(md_pool in self.expected_mdps)
                 new_mdps.add(md_pool)

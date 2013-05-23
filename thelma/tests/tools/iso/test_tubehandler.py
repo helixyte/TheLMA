@@ -37,7 +37,6 @@ from thelma.interfaces import ITubeRackSpecs
 from thelma.interfaces import ITubeSpecs
 from thelma.models.container import ContainerLocation
 from thelma.models.container import Tube
-from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.job import IsoJob
 from thelma.models.racklayout import RackLayout
@@ -626,6 +625,7 @@ class IsoXL20WorklistGeneratorTestCase(ExperimentMetadataReadingTestCase,
         self.pool_id = None
         self.tube_rack_agg = get_root_aggregate(ITubeRack)
         self.racks = dict()
+        self.aliquot_plate_labels = ['tubehandler_test#1']
 
     def tear_down(self):
         ExperimentMetadataReadingTestCase.tear_down(self)
@@ -646,6 +646,7 @@ class IsoXL20WorklistGeneratorTestCase(ExperimentMetadataReadingTestCase,
         for rack in self.racks.values(): self.tube_rack_agg.remove(rack)
         del self.racks
         del self.tube_rack_agg
+        del self.aliquot_plate_labels
 
     def _continue_setup(self, file_name=None):
         ExperimentMetadataReadingTestCase._continue_setup(self, file_name)
@@ -659,7 +660,6 @@ class IsoXL20WorklistGeneratorTestCase(ExperimentMetadataReadingTestCase,
         self.experiment_metadata = ExperimentMetadata(
                             label='Tubehandler Test',
                             subproject=self._create_subproject(),
-                            experiment_design=ExperimentDesign(),
                             number_replicates=2,
                             experiment_metadata_type=em_type,
                             ticket_number=123)
@@ -907,7 +907,7 @@ class IsoXL20WorklistGenerator96TestCase(IsoXL20WorklistGeneratorTestCase):
     def _set_iso_or_iso_job(self):
         self.iso = self.generated_isos[0]
 
-    def __check_racks(self, number_aliquot_plates=1, number_transfers=4):
+    def __check_racks(self, number_transfers=4):
         self.assert_equal(len(self.iso.iso_sample_stock_racks), 1)
         issr = self.iso.iso_sample_stock_racks[0]
         worklist = issr.planned_worklist
@@ -915,8 +915,11 @@ class IsoXL20WorklistGenerator96TestCase(IsoXL20WorklistGeneratorTestCase):
         self.assert_equal(issr.sector_index, 0)
         self.assert_equal(issr.iso.label, self.iso.label)
         self.assert_is_not_none(self.iso.preparation_plate)
-        self.assert_equal(len(self.iso.iso_aliquot_plates),
-                          number_aliquot_plates)
+        found_labels = []
+        for iap in self.iso.iso_aliquot_plates:
+            found_labels.append(iap.plate.label)
+        self.assert_equal(sorted(found_labels),
+                          sorted(self.aliquot_plate_labels))
 
     def test_result_opti(self):
         self._continue_setup()
@@ -928,11 +931,12 @@ class IsoXL20WorklistGenerator96TestCase(IsoXL20WorklistGeneratorTestCase):
     def test_result_manual(self):
         self.VALID_FILE = self.VALID_FILE_MANUAL
         self.experiment_type_id = EXPERIMENT_SCENARIOS.MANUAL
+        self.aliquot_plate_labels = []
         self._continue_setup()
         zip_stream = self.tool.get_result()
         self.assert_is_not_none(zip_stream)
         self._check_successfull_run(zip_stream, expected_tube_number=3)
-        self.__check_racks(number_aliquot_plates=0, number_transfers=3)
+        self.__check_racks(number_transfers=3)
 
     def test_excluded_racks(self):
         self._test_excluded_racks()
@@ -994,6 +998,7 @@ class IsoXL20WorklistGenerator384SamplesTestCase(
         self.VALID_FILE_384_OPTI = 'valid_file_384_opti.xls'
         self.experiment_type_id = EXPERIMENT_SCENARIOS.SCREENING
         self.enforce_cybio_compatibility = False
+        self.aliquot_plate_labels = ['xl20_test#1_a1', 'xl20_test#1_a2']
         self.pool_id = 205235 # floating pool with at lease 2 stock samples
 
     def tear_down(self):
@@ -1032,8 +1037,11 @@ class IsoXL20WorklistGenerator384SamplesTestCase(
         for i in range(number_racks):
             self.assert_true(i in sector_indices)
         self.assert_is_not_none(self.iso.preparation_plate)
-        self.assert_equal(len(self.iso.iso_aliquot_plates),
-                          self.iso_request.number_aliquots)
+        found_labels = []
+        for iap in self.iso.iso_aliquot_plates:
+            found_labels.append(iap.plate.label)
+        self.assert_equal(sorted(found_labels),
+                          sorted(self.aliquot_plate_labels))
 
     def test_result_single_rack(self):
         self._continue_setup()
@@ -1057,6 +1065,8 @@ class IsoXL20WorklistGenerator384SamplesTestCase(
 
     def test_result_all_quadrants(self):
         self.VALID_FILE = self.VALID_FILE_384_SCREEN
+        self.aliquot_plate_labels = ['p1-p2_double_repeats#1_a1',
+                                     'p1-p2_double_repeats#1_a2']
         self._continue_setup()
         zip_stream = self.tool.get_result()
         self.assert_is_not_none(zip_stream)
@@ -1076,6 +1086,8 @@ class IsoXL20WorklistGenerator384SamplesTestCase(
 
     def test_result_multiple_sectors(self):
         self.VALID_FILE = 'valid_file_384_screen_multi_sector.xls'
+        self.aliquot_plate_labels = ['p1-p2_double_repeats#1_a1',
+                                     'p1-p2_double_repeats#1_a2']
         self._continue_setup()
         zip_stream = self.tool.get_result()
         self.assert_is_not_none(zip_stream)
@@ -1104,6 +1116,7 @@ class IsoXL20WorklistGenerator384SamplesTestCase(
 
     def test_result_optimisation(self):
         self.VALID_FILE = self.VALID_FILE_384_OPTI
+        self.aliquot_plate_labels = ['test_iso#1']
         self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
         self._continue_setup()
         zip_stream = self.tool.get_result()
@@ -1113,6 +1126,7 @@ class IsoXL20WorklistGenerator384SamplesTestCase(
 
     def test_result_order_only(self):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
+        self.aliquot_plate_labels = ['all_sorts_of_pools#1']
         self.VALID_FILE = 'valid_order.xls'
         self._continue_setup()
         zip_stream = self.tool.get_result()

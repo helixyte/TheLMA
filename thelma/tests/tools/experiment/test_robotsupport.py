@@ -36,7 +36,6 @@ from thelma.interfaces import ISubproject
 from thelma.interfaces import IUser
 from thelma.models.container import Well
 from thelma.models.container import WellSpecs
-from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.liquidtransfer import PlannedRackTransfer
 from thelma.models.liquidtransfer import TRANSFER_TYPES
@@ -337,7 +336,6 @@ class ReagentPreparationWriterTestCase(FileCreatorTestCase):
                 stream.close()
         em = ExperimentMetadata(label='Reagent Writer Test',
                             subproject=self._get_entity(ISubproject),
-                            experiment_design=ExperimentDesign(),
                             number_replicates=3,
                             experiment_metadata_type=\
                                     get_experiment_type_robot_optimisation(),

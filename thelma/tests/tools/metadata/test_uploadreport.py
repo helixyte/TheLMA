@@ -25,7 +25,6 @@ from thelma.automation.tools.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.worklists.base import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.worklists.base import get_reservoir_spec
 from thelma.interfaces import ISubproject
-from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from thelma.models.utils import get_user
@@ -93,7 +92,6 @@ class ExperimentMetadataReportTestCase(FileCreatorTestCase):
             self.experiment_metadata = ExperimentMetadata(
                                 label=self.experiment_metadata_label,
                                 subproject=self._get_entity(ISubproject),
-                                experiment_design=ExperimentDesign(),
                                 number_replicates=3,
                                 ticket_number=self.ticket_number,
                                 experiment_metadata_type=em_type)

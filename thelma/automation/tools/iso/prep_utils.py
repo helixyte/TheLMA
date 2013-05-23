@@ -27,7 +27,8 @@ from thelma.models.rack import RackPosition
 
 __docformat__ = "reStructuredText en"
 
-__all__ = ['get_stock_takeout_volume',
+__all__ = ['ISO_LABELS',
+           'get_stock_takeout_volume',
            'PrepIsoParameters',
            'PrepIsoPosition',
            'PrepIsoLayout',
@@ -40,6 +41,111 @@ __all__ = ['get_stock_takeout_volume',
            'IsoControlRackLayout',
            'IsoControlRackLayoutConverter',
            'RequestedStockSample']
+
+
+class ISO_LABELS(object):
+    """
+    Generates and parses labels for ISOs and ISO-related plates.
+    """
+    #: The character used in the ISO label to separate the plate set label of
+    #: the ISO request from the ISO counter.
+    __SEPARATING_CHAR = '_'
+
+    #: Used to create ISO labels - the placeholder contain ticket number and
+    #: ISO number.
+    __ISO_LABEL_PATTERN = '%i_iso%i'
+    #: The suffix to be added to the ISO label to mark the ISO as copy.
+    __ISO_LABEL_COPY_MARKER = 'copy'
+
+    #: Pattern for the labels of ISO aliquot plates. The placeholders contain
+    #: the plate set label, the ISO number and the aliquot number.
+    __ALIQUOT_PLATE_LABEL_PATTERN = '%s#%i'
+    #: The aliquot suffix is only added if there are more than one aliquots
+    #: ordered for an ISO. The placeholder is the aliquot number.
+    __ALIQUOT_PLATE_LABEL_SUFFIX = '_a%i'
+
+    @classmethod
+    def create_iso_label(cls, iso_request, create_copy=False):
+        """
+        Creates a label for a future ISO. The number is derived from the count
+        of ISOs that is already attached to the ISO request.
+
+        :param iso_request: The ISO request the future ISO belongs to.
+        :type iso_request: :class:`thelma.models.iso.IsoRequest`
+
+        :param create_copy: Is the future ISO a copy of an existing ISO
+            (if so, a marker will be added to the label).
+        :type create_copy: :class:`bool`
+        :default create_copy: *True*`
+        """
+        highest_number = cls.__get_largest_iso_number(iso_request)
+        iso_number = highest_number + 1
+        ticket_number = iso_request.experiment_metadata.ticket_number
+        label = cls.__ISO_LABEL_PATTERN % (ticket_number, iso_number)
+
+        if create_copy:
+            label += cls.__SEPARATING_CHAR
+            label += cls.__ISO_LABEL_COPY_MARKER
+
+        return label
+
+    @classmethod
+    def __get_largest_iso_number(cls, iso_request):
+        """
+        Returns the number of the largest ISO existing for this ISO request.
+        """
+        highest_number = 0
+        for iso in iso_request.isos:
+            number = cls.get_iso_number(iso)
+            highest_number = max(highest_number, number)
+
+        return highest_number
+
+    @classmethod
+    def get_iso_number(cls, iso):
+        """
+        Parses an ISO number from the label.
+        """
+        number_str = iso.label.split(cls.__SEPARATING_CHAR)[-1]
+        if number_str == cls.__ISO_LABEL_COPY_MARKER:
+            number_str = iso.label.split(cls.__SEPARATING_CHAR)[-2]
+        try:
+            number = int(number_str[3:])
+        except ValueError:
+            number = 0
+
+        return number
+
+    @classmethod
+    def create_aliquot_plate_label(cls, iso, aliquot_number=1):
+        """
+        Creates a label for a future ISO aliuot plate. The aliquot number
+        is only added, if there is more than one aliquot requested for this
+        ISO or if it is larger than the requested number of aliqout (for
+        additional plates).
+
+        In all cases, the label will contain the plate set label specified
+        by the user during experiment metadata file upload.
+
+        :param iso: The ISO future plate belongs to.
+        :type iso: :class:`thelma.models.iso.Iso`
+
+        :param aliquot_number: Only added if there is more than one aliquot
+            requested (see :class:`thelma.models.iso.IsoRequest`) or the
+            number is larger than the number of originally requested plates.
+        :type aliquot_number: :class:`int`
+        :default aliquot_number: *1*`
+        """
+        iso_number = cls.get_iso_number(iso)
+        label = cls.__ALIQUOT_PLATE_LABEL_PATTERN % (
+                iso.iso_request.plate_set_label, iso_number)
+
+        req_aliquots = iso.iso_request.number_aliquots
+        if req_aliquots > 1 or aliquot_number > req_aliquots:
+            suffix = cls.__ALIQUOT_PLATE_LABEL_SUFFIX % (aliquot_number)
+            label += suffix
+
+        return label
 
 
 def get_stock_takeout_volume(stock_concentration, required_volume,
