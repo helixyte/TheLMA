@@ -297,8 +297,6 @@ class EntityCreatorMixin(object):
             kw['label'] = 'TestExperimentMetadata'
         if not 'subproject' in kw:
             kw['subproject'] = self._get_entity(ISubproject)
-        if not 'experiment_design' in kw:
-            kw['experiment_design'] = self._get_entity(IExperimentDesign)
         if not 'number_replicates' in kw:
             kw['number_replicates'] = 3
         if not 'experiment_metadata_type' in kw:
@@ -376,6 +374,8 @@ class EntityCreatorMixin(object):
         return self._create_entity(IsoLayout, kw)
 
     def _create_iso_request(self, **kw):
+        if not 'plate_set_label' in kw:
+            kw['plate_set_label'] = 'IsoRequest.PlateSetLabel.Test'
         if not 'iso_layout' in kw:
             kw['iso_layout'] = self._create_rack_layout()
         if not 'requester' in kw:

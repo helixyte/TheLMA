@@ -9,6 +9,7 @@ AAB
 """
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.iso.optimizer import IsoOptimizer
+from thelma.automation.tools.iso.prep_utils import ISO_LABELS
 from thelma.automation.tools.iso.prep_utils import PrepIsoLayout
 from thelma.automation.tools.iso.preplayoutfinder import PrepLayoutFinder
 from thelma.automation.tools.iso.processingworklist \
@@ -56,13 +57,8 @@ class IsoCreator(BaseAutomationTool):
 
     **Return Value:** The new ISOs.
     """
-
-    #: The character used in the ISO label to separate the plate set label of
-    #: the ISO request from the ISO counter.
-    SEPARATING_CHAR = '_'
-
-    #: The suffix to be added to the ISO label to mark the ISO as copy.
-    COPY_MARKER = 'copy'
+    #: Does the tool create copies of existing ISOs?
+    CREATE_COPIES = None
 
     #: In a scenarios of each type, there can only be one plate at maximum.
     #: Also, preparation plate and aliquot plate, are the same.
@@ -221,11 +217,11 @@ class IsoCreator(BaseAutomationTool):
         if not self.has_errors(): self.__find_molecule_design_pools()
         if not self.has_errors(): self.__run_optimizers()
         if not self.has_errors(): self.__distribute_candidates()
-        if not self.has_errors(): self.__create_isos()
-
         if not self.has_errors() and \
                 not self._experiment_type.id == EXPERIMENT_SCENARIOS.ORDER_ONLY:
             self.__create_worklist_series()
+        if not self.has_errors(): self.__create_isos()
+
         if not self.has_errors() and \
                             self._experiment_type.id in self.ONE_PLATE_TYPES:
             # there should be only one new ISO
@@ -624,34 +620,15 @@ class IsoCreator(BaseAutomationTool):
         """
         Creates the ISOs.
         """
-        latest_iso_number = self.__get_largest_iso_number()
         placeholder_maps = self.__get_placeholder_maps()
 
         if len(self.__floating_selection) < 1:
-            self.__create_iso(latest_iso_number, 1, dict(), dict())
+            self.__create_iso(dict(), dict())
         else:
             for iso_count, candidate_map in \
                                         self.__floating_selection.iteritems():
                 placeholder_map = placeholder_maps[iso_count]
-                self.__create_iso(latest_iso_number, iso_count,
-                                  placeholder_map, candidate_map)
-
-    def __get_largest_iso_number(self):
-        """
-        Returns the number of the largest ISO existing for this ISO request.
-        """
-        highest_number = 0
-        for iso in self.iso_request.isos:
-            number_str = iso.label.split(self.SEPARATING_CHAR)[-1]
-            if number_str == self.COPY_MARKER:
-                number_str = iso.label.split(self.SEPARATING_CHAR)[-2]
-            try:
-                number = int(number_str)
-            except ValueError:
-                number = len(self.iso_request.isos)
-            highest_number = max(highest_number, number)
-
-        return highest_number
+                self.__create_iso(placeholder_map, candidate_map)
 
     def __get_placeholder_maps(self):
         """
@@ -672,14 +649,14 @@ class IsoCreator(BaseAutomationTool):
 
         return placeholder_maps
 
-    def __create_iso(self, latest_iso_number, iso_count, placeholder_map,
-                     candidate_map):
+    def __create_iso(self, placeholder_map, candidate_map):
         """
         Creates an ISO.
         """
         prep_layout = self.__create_prep_layout_for_iso(placeholder_map,
                                                                 candidate_map)
-        label = self._create_iso_label(latest_iso_number, iso_count)
+        label = ISO_LABELS.create_iso_label(iso_request=self.iso_request,
+                                            create_copy=self.CREATE_COPIES)
         self.__prep_layout_map[label] = prep_layout # for report
         self.__iso_selections[label] = candidate_map # for report
         pool_set = self.__create_pool_set(candidate_map)
@@ -724,15 +701,6 @@ class IsoCreator(BaseAutomationTool):
             prep_layout.add_position(completed_pos)
 
         return prep_layout
-
-    def _create_iso_label(self, highest_number, iso_count):
-        """
-        Creates a label for a new ISO.
-        """
-        iso_number = highest_number + iso_count
-        ticket_number = self.iso_request.experiment_metadata.ticket_number
-        label = '%i%siso%i' % (ticket_number, self.SEPARATING_CHAR, iso_number)
-        return label
 
     def __create_pool_set(self, candidate_map):
         """
@@ -815,6 +783,8 @@ class IsoGenerator(IsoCreator):
     """
 
     NAME = 'ISO Generator'
+
+    CREATE_COPIES = False
 
     def __init__(self, iso_request, number_isos,
                        excluded_racks=None, requested_tubes=None,
@@ -905,8 +875,9 @@ class IsoRescheduler(IsoCreator):
 
     **Return Value:** The new ISOs.
     """
-
     NAME = 'ISO Rescheduler'
+
+    CREATE_COPIES = True
 
     def __init__(self, iso_request, isos_to_copy,
                        excluded_racks=None, requested_tubes=None,
@@ -999,14 +970,6 @@ class IsoRescheduler(IsoCreator):
         for iso in self.isos_to_copy:
             for md_pool in iso.molecule_design_pool_set:
                 self._floating_pools[md_pool.id] = md_pool
-
-    def _create_iso_label(self, highest_number, iso_count):
-        """
-        Creates a label for a new ISO.
-        """
-        label = IsoCreator._create_iso_label(self, highest_number, iso_count)
-        copy_label = '%s%s%s' % (label, self.SEPARATING_CHAR, self.COPY_MARKER)
-        return copy_label
 
     def _adjust_one_plate_prep_plate_labels(self, new_iso):
         num = len(self.iso_request.isos) + 1

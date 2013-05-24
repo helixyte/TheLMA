@@ -34,6 +34,47 @@ from thelma.models.racklayout import RackLayout
 from thelma.models.tagging import Tag
 from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
+from thelma.automation.tools.iso.prep_utils import ISO_LABELS
+
+
+class IsoLabelsTestCase(ToolsAndUtilsTestCase):
+
+    def test_create_iso_label(self):
+        ticket_number = 123
+        em = self._create_experiment_metadata(ticket_number=ticket_number)
+        ir = self._create_iso_request(experiment_metadata=em)
+        label1 = ISO_LABELS.create_iso_label(iso_request=ir)
+        self.assert_equal(label1, '123_iso1')
+        self._create_iso(label=label1, iso_request=ir)
+        label2 = ISO_LABELS.create_iso_label(iso_request=ir)
+        self.assert_equal(label2, '123_iso2')
+        self._create_iso(label=label2, iso_request=ir)
+        label3 = ISO_LABELS.create_iso_label(iso_request=ir, create_copy=True)
+        self.assert_equal(label3, '123_iso3_copy')
+
+    def test_get_iso_number(self):
+        label1 = '456_iso4'
+        iso1 = self._create_iso(label=label1)
+        self.assert_equal(ISO_LABELS.get_iso_number(iso1), 4)
+        label2 = '456_iso19_copy'
+        iso2 = self._create_iso(label=label2)
+        self.assert_equal(ISO_LABELS.get_iso_number(iso2), 19)
+
+    def test_create_aliquot_plate_label(self):
+        em = self._create_experiment_metadata(ticket_number=123)
+        ir = self._create_iso_request(plate_set_label='psl', number_aliquots=1,
+                                      experiment_metadata=em)
+        iso_label = ISO_LABELS.create_iso_label(ir)
+        iso = self._create_iso(iso_request=ir, label=iso_label)
+        label1 = 'psl#1'
+        self.assert_equal(ISO_LABELS.create_aliquot_plate_label(iso), label1)
+        ir.number_aliquots = 2
+        label2 = 'psl#1_a1'
+        self.assert_equal(ISO_LABELS.create_aliquot_plate_label(iso), label2)
+        ir.number_aliquots = 1
+        label3 = 'psl#1_a2'
+        self.assert_equal(label3,
+                  ISO_LABELS.create_aliquot_plate_label(iso, aliquot_number=2))
 
 
 class PrepIsoPositionTestCase(ToolsAndUtilsTestCase):

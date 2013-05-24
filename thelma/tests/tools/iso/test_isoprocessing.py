@@ -5,6 +5,7 @@ AAB, Jan 2012
 """
 from everest.entities.utils import get_root_aggregate
 from thelma.automation.tools.semiconstants import get_experiment_type_order
+from thelma.automation.tools.iso.prep_utils import ISO_LABELS
 from thelma.automation.tools.iso.isoprocessing \
     import IsoProcessingWorklistWriter
 from thelma.automation.tools.iso.isoprocessing import IsoProcessingExecutor
@@ -38,7 +39,6 @@ from thelma.interfaces import ISubproject
 from thelma.models.container import ContainerLocation
 from thelma.models.container import TubeSpecs
 from thelma.models.container import WellSpecs
-from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import Iso
@@ -74,7 +74,6 @@ class IsoProcessingTestCase(ToolsAndUtilsTestCase):
         self.silent_log = SilentLog()
         self.iso = None
         self.setup_includes_stock_transfer = False
-        self.iso_label = 'iso_processing_test'
         self.preparation_plate = None
         self.prep_plate_barcode = '09999922'
         self.shape_iso = None
@@ -123,7 +122,6 @@ class IsoProcessingTestCase(ToolsAndUtilsTestCase):
         del self.silent_log
         del self.iso
         del self.setup_includes_stock_transfer
-        del self.iso_label
         del self.preparation_plate
         del self.prep_plate_barcode
         del self.shape_iso
@@ -197,7 +195,6 @@ class IsoProcessingTestCase(ToolsAndUtilsTestCase):
                                          molecule_design_pools=set([pool]))
         ExperimentMetadata(label='test_em',
                            subproject=self._get_entity(ISubproject),
-                           experiment_design=ExperimentDesign(),
                            number_replicates=3,
                            experiment_metadata_type=self.experiment_type,
                            ticket_number=213,
@@ -247,8 +244,8 @@ class IsoProcessingTestCase(ToolsAndUtilsTestCase):
             self.preparation_layout.del_position(rack_pos)
 
     def __create_iso(self):
-        self.iso = Iso(label=self.iso_label,
-                   iso_request=self.iso_request,
+        label = ISO_LABELS.create_iso_label(iso_request=self.iso_request)
+        self.iso = Iso(label=label, iso_request=self.iso_request,
                    rack_layout=self.preparation_layout.create_rack_layout())
         IsoJob(label='iso_processing_test_job',
                  job_type=self._get_entity(IJobType, 'iso-batch'),

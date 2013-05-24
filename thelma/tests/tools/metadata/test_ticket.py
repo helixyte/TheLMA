@@ -24,7 +24,6 @@ from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.interfaces import IProject
 from thelma.interfaces import ITractor
 from thelma.interfaces import IUser
-from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import Iso
@@ -140,7 +139,6 @@ class IsoTicketDescriptionBuilderTestCase(FileCreatorTestCase):
         em_type = get_experiment_metadata_type(self.experiment_type_id)
         em = ExperimentMetadata(label='DescBuilderTest',
                                 subproject=self.subproject,
-                                experiment_design=ExperimentDesign(),
                                 number_replicates=3,
                                 experiment_metadata_type=em_type,
                                 ticket_number=123)
@@ -288,7 +286,6 @@ class IsoRequestTicketUpdateToolTestCase(TracToolTestCase):
         em_type = get_experiment_metadata_type(self.experiment_type_id)
         em = ExperimentMetadata(label=self.experiment_metadata_label,
                             subproject=self.subproject, number_replicates=1,
-                            experiment_design=ExperimentDesign(),
                             experiment_metadata_type=em_type,
                             ticket_number=self.ticket_id)
         generator = ExperimentMetadataGenerator.create(stream=source,

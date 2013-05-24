@@ -59,7 +59,6 @@ from thelma.interfaces import ISubproject
 from thelma.models.container import ContainerLocation
 from thelma.models.container import TubeSpecs
 from thelma.models.container import WellSpecs
-from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import Iso
@@ -266,7 +265,6 @@ class StockTaking96TestCase(ToolsAndUtilsTestCase):
                        iso_request=iso_request)
         ExperimentMetadata(label='test_em',
                            subproject=self._get_entity(ISubproject),
-                           experiment_design=ExperimentDesign(),
                            iso_request=iso_request,
                            number_replicates=1,
                            experiment_metadata_type=self.scenario,
@@ -871,7 +869,6 @@ class StockTaking384TestCase(ToolsAndUtilsTestCase):
     def _create_control_stock_rack(self):
         em_type = get_experiment_metadata_type(self.experiment_type_id)
         ExperimentMetadata(label='test_em', iso_request=self.iso.iso_request,
-                           experiment_design=ExperimentDesign(),
                            number_replicates=1,
                            subproject=self._get_entity(ISubproject),
                            experiment_metadata_type=em_type)
@@ -1660,7 +1657,6 @@ class IsoControlStockRackTestCase(ToolsAndUtilsTestCase):
                     requester=self.user)
         ExperimentMetadata(label='test_em', number_replicates=2,
                     subproject=self._create_subproject(),
-                    experiment_design=ExperimentDesign(),
                     iso_request=iso_request,
                     experiment_metadata_type=get_experiment_type_screening(),
                     ticket_number=123)

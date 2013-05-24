@@ -207,10 +207,10 @@ class IsoRequest(Entity):
     #: contains the worklists for the ISO processing.
     worklist_series = None
 
-    def __init__(self, iso_layout, requester, number_plates=1,
-                 number_aliquots=1, delivery_date=None, owner='',
-                 plate_set_label='', comment='', experiment_metadata=None,
-                 worklist_series=None, iso_type=ISO_TYPES.STANDARD, **kw):
+    def __init__(self, iso_layout, requester, plate_set_label, number_plates=1,
+                 number_aliquots=1, delivery_date=None, owner='', comment='',
+                 experiment_metadata=None, worklist_series=None,
+                 iso_type=ISO_TYPES.STANDARD, **kw):
         """
         Constructor
         """
@@ -411,10 +411,6 @@ class IsoAliquotPlate(Entity):
 
     **Equality Condition**: equal :attr:`iso` and equal :attr:`plate`
     """
-
-    #: Marker in the plate labels of additioal
-    ADDITIONAL_PLATE_MARKER = 'add_'
-
     #: The ISO this preparation plate belongs to (:class:`Iso`).
     iso = None
     #: The plate being the aliquot plate (:class:`thelma.models.rack.Plate`).

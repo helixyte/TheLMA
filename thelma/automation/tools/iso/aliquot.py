@@ -10,6 +10,7 @@ AAB
 """
 from StringIO import StringIO
 from thelma.automation.tools.iso.isoprocessing import IsoProcessingTool
+from thelma.automation.tools.iso.prep_utils import ISO_LABELS
 from thelma.automation.tools.iso.processingworklist \
     import IsoAliquotBufferWorklistGenerator
 from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
@@ -81,8 +82,8 @@ class IsoAliquotCreator(IsoProcessingTool):
         self._check_input()
         if not self.has_errors():
             self._fetch_preparation_data()
-            self._fetch_aliquot_plates()
-        if not self.has_errors(): self._determine_scenario()
+            self._determine_scenario()
+        if not self.has_errors(): self._fetch_aliquot_plates()
         if not self.has_errors(): self.__check_worklist_series_execution()
         if not self.has_errors(): self._fetch_processing_series()
         if not self.has_errors(): self.__create_aliquot_plate()
@@ -129,9 +130,9 @@ class IsoAliquotCreator(IsoProcessingTool):
         if not plate_specs is None:
             self.__check_preparation_plate_volumes(plate_specs)
             if not self.has_errors():
-                label = '%s%i_%s' % (IsoAliquotPlate.ADDITIONAL_PLATE_MARKER,
-                                     (len(self._aliquot_plates) + 1),
-                                     self.iso.label)
+                num = len(self._aliquot_plates) + 1
+                label = ISO_LABELS.create_aliquot_plate_label(iso=self.iso,
+                                                        aliquot_number=num)
                 plate = plate_specs.create_rack(label=label,
                                                 status=get_item_status_future())
                 IsoAliquotPlate(iso=self.iso, plate=plate)
@@ -282,7 +283,8 @@ class IsoAliquotTool(IsoProcessingTool):
         if not self.has_errors(): self.__get_iso_aliquot_plate()
         if not self.has_errors():
             self._fetch_preparation_data()
-            self._fetch_processing_series()
+            self._determine_scenario()
+        if not self.has_errors(): self._fetch_processing_series()
         if not self.has_errors():
             self._find_ignored_positions()
             self._transfer_worklist = self._get_aliquot_transfer_worklist()

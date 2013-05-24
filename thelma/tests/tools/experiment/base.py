@@ -24,7 +24,6 @@ from thelma.interfaces import ISubproject
 from thelma.interfaces import IUser
 from thelma.models.container import WellSpecs
 from thelma.models.experiment import Experiment
-from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.experiment import ExperimentRack
 from thelma.models.rack import PlateSpecs
@@ -237,7 +236,6 @@ class ExperimentToolTestCase(ToolsAndUtilsTestCase):
                 stream.close()
         em = ExperimentMetadata(label='ExperimentTest',
                                 subproject=self._get_entity(ISubproject),
-                                experiment_design=ExperimentDesign(),
                                 number_replicates=self.number_replicates,
                                 experiment_metadata_type=self.experiment_type,
                                 ticket_number=123)

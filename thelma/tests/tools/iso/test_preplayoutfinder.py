@@ -31,7 +31,6 @@ from thelma.automation.tools.utils.iso import IsoPosition
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import IMoleculeType
 from thelma.interfaces import ISubproject
-from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
@@ -234,7 +233,6 @@ class PrepLayoutFinderTestCase(ToolsAndUtilsTestCase):
         em_type = get_experiment_metadata_type(self.experiment_type_id)
         ExperimentMetadata(label='Test Em',
                            subproject=self._get_entity(ISubproject),
-                           experiment_design=ExperimentDesign(),
                            iso_request=self.iso_request,
                            number_replicates=3,
                            experiment_metadata_type=em_type,

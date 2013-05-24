@@ -41,7 +41,6 @@ from thelma.automation.tools.utils.iso import IsoLayout
 from thelma.automation.tools.utils.iso import IsoPosition
 from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import ISubproject
-from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.iso import IsoRequest
 from thelma.models.liquidtransfer import TRANSFER_TYPES
@@ -159,7 +158,6 @@ class IsoWorklistGeneratorTestCase(ToolsAndUtilsTestCase):
         em_type = get_experiment_metadata_type(self.experiment_type_id)
         ExperimentMetadata(label='iso_worklist_generation_test',
                            subproject=self._get_entity(ISubproject),
-                           experiment_design=ExperimentDesign(),
                            iso_request=self.iso_request,
                            number_replicates=2,
                            experiment_metadata_type=em_type,

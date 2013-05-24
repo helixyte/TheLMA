@@ -109,13 +109,7 @@ class IsoProcessingTool(BaseAutomationTool): #pylint: disable=W0223
         #: In some experiment types there might be no aliquot plates or no
         #: processing worklist series at all.
         self._experiment_type = None
-#
-#        #: Is this an ISO for a manual optimisation scenario (worklist series
-#        #: might contain only one worklist or be None, no aliquot plates).
-#        self._is_manual_case = None
-#        #: Order only scenarios do only contain a stock transfer worklist.
-#        #: There is no processing series and thus no transfer jobs.
-#        self._is_order_case = None
+
         #: The preparation layout of the ISO.
         self._preparation_layout = None
         #: The preparation plate of the (:class:`thelma.model.rack.Plate).
@@ -137,8 +131,6 @@ class IsoProcessingTool(BaseAutomationTool): #pylint: disable=W0223
         BaseAutomationTool.reset(self)
         self._experiment_type = None
         self._is_384_screening = None
-#        self._is_manual_case = False
-#        self._is_order_case = False
         self._preparation_layout = None
         self._preparation_plate = None
         self._aliquot_plates = []

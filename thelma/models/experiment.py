@@ -331,8 +331,8 @@ class ExperimentMetadata(Entity):
     #: (:class:`thelma.models.moleculedesign.MoleculeDesignPoolSet`)
     molecule_design_pool_set = None
 
-    def __init__(self, label, subproject, experiment_design,
-                 number_replicates, experiment_metadata_type,
+    def __init__(self, label, subproject, number_replicates,
+                 experiment_metadata_type, experiment_design=None,
                  ticket_number=None, iso_request=None,
                  molecule_design_pool_set=None, creation_date=None,
                  **kw):

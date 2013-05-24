@@ -17,7 +17,6 @@ from thelma.automation.tools.semiconstants import get_item_status_managed
 from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.models.container import WellSpecs
 from thelma.models.iso import ISO_STATUS
-from thelma.models.iso import IsoAliquotPlate
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.rack import PlateSpecs
 from thelma.tests.tools.iso.test_isoprocessing import IsoProcessing384TestCase
@@ -45,12 +44,12 @@ class IsoAliquotToolTestCase(IsoProcessing384TestCase):
     def set_up(self):
         IsoProcessing384TestCase.set_up(self)
         self.setup_includes_stock_transfer = True
-        self.delete_one_aliquot_plate = True
+        self.new_aliqout_label = 'iso_processing_request#1_a3'
         self.new_aliquot_barcode = '09999933'
 
     def tear_down(self):
         IsoProcessing384TestCase.tear_down(self)
-        del self.delete_one_aliquot_plate
+        del self.new_aliqout_label
         del self.new_aliquot_barcode
 
     def _continue_setup(self):
@@ -70,14 +69,14 @@ class IsoAliquotToolTestCase(IsoProcessing384TestCase):
         self._create_tool()
 
     def _add_process_dilution_series(self):
-        if self.delete_one_aliquot_plate:
-            iaps = self.iso.iso_aliquot_plates
-            iap = iaps[0]
-            self.iso.iso_aliquot_plates = [iap]
         executor = IsoProcessingExecutor(iso=self.iso,
                                          user=self.executor_user)
         updated_iso = executor.get_result()
         if updated_iso is None: raise ValueError('Series executed failed.')
+        # we double the preparation plate volume to have enough
+        for well in self.preparation_plate.containers:
+            if not well.sample is None:
+                well.sample.volume = (well.sample.volume * 2)
 
     def _create_new_aliquot_plate(self):
         aliquot_creator = IsoAliquotCreator(iso=self.iso)
@@ -85,7 +84,7 @@ class IsoAliquotToolTestCase(IsoProcessing384TestCase):
         if updated_iso is None:
             raise ValueError('Aliquot plate creation failed.')
         for iap in updated_iso.iso_aliquot_plates:
-            if IsoAliquotPlate.ADDITIONAL_PLATE_MARKER in iap.plate.label:
+            if iap.plate.label == self.new_aliqout_label:
                 iap.plate.barcode = self.new_aliquot_barcode
                 break
 
@@ -100,6 +99,14 @@ class IsoAliquotToolTestCase(IsoProcessing384TestCase):
 
 class IsoAliquotCreator384TestCase(IsoAliquotToolTestCase):
 
+    def set_up(self):
+        IsoAliquotToolTestCase.set_up(self)
+        self.exp_plate_label = 'iso_processing_request#1_a3'
+
+    def tear_down(self):
+        IsoAliquotToolTestCase.tear_down(self)
+        del self.exp_plate_label
+
     def _create_tool(self):
         self.tool = IsoAliquotCreator(iso=self.iso)
 
@@ -109,20 +116,19 @@ class IsoAliquotCreator384TestCase(IsoAliquotToolTestCase):
 
     def __check_result(self):
         aliquot_plates = self.iso.iso_aliquot_plates
-        self.assert_equal(len(aliquot_plates), 1)
+        self.assert_equal(len(aliquot_plates), 2)
         plate_specs = aliquot_plates[0].plate.specs
         original_labels = []
         for iap in aliquot_plates: original_labels.append(iap.plate.label)
         updated_iso = self.tool.get_result()
         self.assert_is_not_none(updated_iso)
         self.assert_equal(updated_iso.status, ISO_STATUS.REOPENED)
-        self.assert_equal(len(updated_iso.iso_aliquot_plates), 2)
+        self.assert_equal(len(updated_iso.iso_aliquot_plates), 3)
         for iap in updated_iso.iso_aliquot_plates:
             self.assert_equal(iap.plate.specs, plate_specs)
             plate_label = iap.plate.label
             if not plate_label in original_labels:
-                self.assert_true(IsoAliquotPlate.ADDITIONAL_PLATE_MARKER \
-                                 in plate_label)
+                self.assert_equal(plate_label, self.exp_plate_label)
 
     def test_result(self):
         self._continue_setup()
@@ -153,13 +159,15 @@ class IsoAliquotCreator384TestCase(IsoAliquotToolTestCase):
                     'do not contain a sample although there should be one')
 
     def test_not_enough_preparation_volume(self):
-        self.delete_one_aliquot_plate = False
         self._continue_setup()
+        # revert doubling of preparation volume
+        for well in self.preparation_plate.containers:
+            if well.sample is None: continue
+            well.sample.volume = (well.sample.volume / 2)
         self._test_and_expect_errors('The following well do not contain ' \
                         'enough volume for another aliquot plate anymore')
 
     def test_different_specs(self):
-        self.delete_one_aliquot_plate = False
         self._continue_setup()
         specs_96 = PLATE_SPECS_NAMES.from_reservoir_specs(
                                         get_reservoir_specs_standard_96())
@@ -279,17 +287,19 @@ class IsoAliquotPlateExecutorTestCase(IsoAliquotToolTestCase):
         last_index = max(worklist_map.keys())
         transfer_worklist = worklist_map[last_index]
         self.assert_equal(len(transfer_worklist.executed_worklists), 2)
+        num_ets = []
         for transfer_ew in transfer_worklist.executed_worklists:
-            self.assert_equal(len(transfer_ew.executed_transfers), 1)
+            num_ets.append(len(transfer_ew.executed_transfers))
             ert = transfer_ew.executed_transfers[0]
             self._check_executed_transfer(ert, TRANSFER_TYPES.RACK_TRANSFER)
             self.assert_equal(ert.source_rack.barcode, self.prep_plate_barcode)
             target_barcode = ert.target_rack.barcode
             if not target_barcode == self.new_aliquot_barcode:
                 self.assert_true(target_barcode in self.aliquot_plate_barcodes)
+        self.assert_equal(sorted(num_ets), [1, 2])
         if self.position_data == self.position_data_aliquot_buffer:
             buffer_worklist = worklist_map[last_index - 1]
-            self.assert_equal(len(buffer_worklist.executed_worklists), 2)
+            self.assert_equal(len(buffer_worklist.executed_worklists), 3)
             quarter_rs_name = RESERVOIR_SPECS_NAMES.QUARTER_MODULAR
             for buffer_ew in buffer_worklist.executed_worklists:
                 for et in buffer_ew.executed_transfers:
@@ -379,7 +389,7 @@ class IsoAliquotPlateExecutorTestCase(IsoAliquotToolTestCase):
     def test_check_previous_execution(self):
         self._continue_setup()
         for iap in self.iso.iso_aliquot_plates:
-            if IsoAliquotPlate.ADDITIONAL_PLATE_MARKER in iap.plate.label:
+            if iap.plate.barcode == self.new_aliquot_barcode:
                 iap.plate.status = get_item_status_managed()
                 break
         self._test_and_expect_errors('The transfer for this aliquot plate ' \
