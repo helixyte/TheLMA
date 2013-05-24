@@ -10,7 +10,6 @@
     xmlns:mdps="http://schemata.cenix-bioscience.com/moleculedesignpoolset"
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
     xmlns:sp="http://schemata.cenix-bioscience.com/subproject"
-    xmlns:tas="http://schemata.cenix-bioscience.com/targetset"
 >
     <import
         schemaLocation="Shared.xsd"
@@ -45,12 +44,6 @@
     <import
         schemaLocation="Subproject.xsd"
         namespace="http://schemata.cenix-bioscience.com/subproject"
-    >
-    </import>
-
-    <import
-        schemaLocation="TargetSet.xsd"
-        namespace="http://schemata.cenix-bioscience.com/targetset"
     >
     </import>
 
