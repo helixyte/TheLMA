@@ -14,9 +14,9 @@ from thelma.interfaces import IContainerSpecs
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import ILocation
 from thelma.interfaces import IRack
+from thelma.interfaces import IRackPosition
 from thelma.interfaces import IRackSpecs
 from thelma.interfaces import ISampleMolecule
-from thelma.models.rack import RackPosition
 from thelma.resources.base import RELATION_BASE_URL
 #from thelma.interfaces import IMoleculeDesignPool
 
@@ -38,7 +38,7 @@ class ContainerMember(Member):
 
     specs = member_attribute(IContainerSpecs, 'specs')
     location = member_attribute(ILocation, 'location.rack.location')
-    position = terminal_attribute(RackPosition, 'location.position')
+    position = member_attribute(IRackPosition, 'location.position')
     sample_volume = terminal_attribute(float, 'sample.volume')
     sample_molecules = collection_attribute(ISampleMolecule,
                                             'sample.sample_molecules',
