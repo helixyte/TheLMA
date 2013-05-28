@@ -8,10 +8,10 @@ from sqlalchemy import String
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql.expression import ColumnElement
 from sqlalchemy.sql.expression import _literal_as_binds
-from sqlalchemy.sql.expression import _literal_as_column
+from sqlalchemy.sql.expression import literal_column
 
 
-class string_agg(ColumnElement):
+class string_agg(ColumnElement): # __iter__ raises NotImplementedError pylint:disable=W0223
     """
     Represents a string_agg aggregation function clause with support for
     an ORDER BY expression.
@@ -27,14 +27,13 @@ class string_agg(ColumnElement):
         self.expr = _literal_as_binds(expr)
         self.separator = _literal_as_binds(separator)
         if order_by is not None:
-            self.order_by = _literal_as_column(order_by)
+            self.order_by = literal_column(order_by)
         else:
             self.order_by = None
 
     @property
     def table(self):
         return self.expr.table # pylint: disable=E1103
-
 
 
 @compiles(string_agg, 'postgresql')
