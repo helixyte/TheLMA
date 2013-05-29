@@ -9,6 +9,7 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql.expression import ColumnElement
 from sqlalchemy.sql.expression import _literal_as_binds
 from sqlalchemy.sql.expression import literal_column
+from sqlalchemy.sql.visitors import Visitable
 
 
 class string_agg(ColumnElement): # __iter__ raises NotImplementedError pylint:disable=W0223
@@ -27,7 +28,7 @@ class string_agg(ColumnElement): # __iter__ raises NotImplementedError pylint:di
         self.expr = _literal_as_binds(expr)
         self.separator = _literal_as_binds(separator)
         if order_by is not None:
-            self.order_by = literal_column(order_by)
+            self.order_by = _literal_as_column(order_by)
         else:
             self.order_by = None
 
@@ -48,3 +49,14 @@ def _compile_string_agg_postgresql(element, compiler, **kw): # pylint: disable=W
     buf.write(')')
     sql_expr = buf.getvalue()
     return sql_expr
+
+
+# FIXME: This function was removed in SA 0.8.x; investigate the reason for
+#        its removal.
+def _literal_as_column(element):
+    if isinstance(element, Visitable):
+        return element
+    elif hasattr(element, '__clause_element__'):
+        return element.__clause_element__()
+    else:
+        return literal_column(str(element))

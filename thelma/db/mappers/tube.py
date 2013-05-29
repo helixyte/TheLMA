@@ -1,10 +1,9 @@
 """
 Tube mapper.
 """
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy import String
-from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import column_property
-from sqlalchemy.orm import mapper
 from sqlalchemy.orm.deprecated_interfaces import MapperExtension
 from sqlalchemy.sql import case
 from sqlalchemy.sql import cast
@@ -41,19 +40,14 @@ def create_mapper(container_mapper, container_tbl, container_barcode_tbl):
                        container_barcode_tbl.c.container_id ==
                                                 container_tbl.c.container_id)
     m = mapper(Tube,
+               slug_expression=lambda cls: case([(cls.barcode == None,
+                                                  literal('no-barcode-') +
+                                                  cast(cls.id, String))],
+                                                else_=cls.barcode),
                extension=TubeMapperExtension(container_barcode_tbl),
                inherits=container_mapper,
                properties=
                 dict(barcode=column_property(bc_select.as_scalar()),
                      ),
                polymorphic_identity=CONTAINER_TYPES.TUBE)
-    if isinstance(Tube.slug, property):
-        Tube.slug = \
-            hybrid_property(Tube.slug.fget,
-                            expr=lambda cls:
-                                case([(cls.barcode == None,
-                                       literal('no-barcode-') +
-                                       cast(cls.id, String))],
-                                     else_=cls.barcode)
-                            )
     return m

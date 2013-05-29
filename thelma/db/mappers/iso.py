@@ -1,11 +1,11 @@
 """
 ISO mapper.
 """
+from everest.repositories.rdb.utils import as_slug_expression
+from everest.repositories.rdb.utils import mapper
+from everest.repositories.rdb.utils import synonym
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
-from thelma.db.mappers.utils import as_slug_expression
 from thelma.models.iso import ISO_TYPES
 from thelma.models.iso import Iso
 from thelma.models.iso import IsoAliquotPlate
@@ -26,10 +26,10 @@ def create_mapper(iso_tbl, iso_job_tbl, iso_job_member_tbl,
     ij = iso_job_tbl
     ijm = iso_job_member_tbl
     m = mapper(Iso, iso_tbl,
+        id_attribute='iso_id',
+        slug_expression=lambda cls: as_slug_expression(cls.label),
         properties=
-            dict(id=synonym('iso_id'),
-                 type=synonym('iso_type'),
-                 iso_request=relationship(IsoRequest,
+            dict(iso_request=relationship(IsoRequest,
                                          uselist=False,
                                          back_populates='isos'),
                  molecule_design_pool_set=
@@ -58,7 +58,7 @@ def create_mapper(iso_tbl, iso_job_tbl, iso_job_member_tbl,
                polymorphic_on=iso_tbl.c.iso_type,
                polymorphic_identity=ISO_TYPES.STANDARD,
                )
-
+    Iso.type = synonym('type')
     if isinstance(Iso.slug, property):
         Iso.slug = hybrid_property(
                             Iso.slug.fget,

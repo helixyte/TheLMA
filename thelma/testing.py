@@ -544,6 +544,8 @@ class EntityCreatorMixin(object):
             kw['manufacturer'] = self._get_entity(IOrganization)
         if not 'well_specs' in kw:
             kw['well_specs'] = self._get_entity(IWellSpecs)
+        if not 'has_movable_subitems' in kw:
+            kw['has_movable_subitems'] = False
         return self._create_entity(PlateSpecs, kw)
 
     def _create_molecule_design_pool_set(self, **kw):

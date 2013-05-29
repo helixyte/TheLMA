@@ -1,13 +1,12 @@
 """
 Refseq Gene mapper.
 """
-from sqlalchemy.ext.hybrid import hybrid_property
+from everest.repositories.rdb.utils import as_slug_expression
+from everest.repositories.rdb.utils import mapper
+from everest.repositories.rdb.utils import synonym
 from sqlalchemy.orm import column_property
-from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
 from thelma.db.mappers.utils import CaseInsensitiveComparator
-from thelma.db.mappers.utils import as_slug_expression
 from thelma.models.gene import Gene
 from thelma.models.moleculedesign import MoleculeDesign
 from thelma.models.moleculedesign import MoleculeDesignPool
@@ -28,9 +27,9 @@ def create_mapper(refseq_gene_tbl, molecule_design_gene_tbl,
     md = molecule_design_tbl
     mdp = molecule_design_pool_tbl
     m = mapper(Gene, rsg,
+        id_attribute='gene_id',
+        slug_expression=lambda cls: as_slug_expression(cls.accession),
         properties=dict(
-            id=synonym('gene_id'),
-            name=synonym('locus_name'),
             accession=column_property(
                 rsg.c.accession,
                 comparator_factory=CaseInsensitiveComparator
@@ -65,8 +64,5 @@ def create_mapper(refseq_gene_tbl, molecule_design_gene_tbl,
                                  lazy='joined'),
             ),
         )
-    if isinstance(Gene.slug, property):
-        Gene.slug = hybrid_property(
-                        Gene.slug.fget,
-                        expr=lambda cls: as_slug_expression(cls.accession))
+    Gene.name = synonym('locus_name')
     return m

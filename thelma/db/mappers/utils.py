@@ -2,89 +2,15 @@
 Mapper utilities.
 """
 from sqlalchemy import func
-from sqlalchemy import select
 from sqlalchemy.orm import ColumnProperty
-from sqlalchemy.orm import deferred
-from sqlalchemy.orm import mapper
-from sqlalchemy.sql.expression import and_
 
 
 __docformat__ = 'reStructuredText en'
-__all__ = ['as_slug_expression',
-           'design_subset_view',
-           'single_stranded_design_mapper',
-           'double_stranded_design_mapper',
-           'CaseInsensitiveComparator',
+__all__ = ['CaseInsensitiveComparator',
            'ProxyDict',
            ]
 
-def as_slug_expression(attr):
-    """
-    Converts the given instrumented string attribute into an SQL expression
-    that can be used as a slug.
-
-    Slugs are identifiers for members in a collection that can be used in an
-    URL. We create slug columns by replacing non-URL characters with dashes
-    and lower casing the result. We need this at the ORM level so that we can
-    use the slug in a query expression.
-    """
-    slug_expr = func.replace(attr, ' ', '-')
-    slug_expr = func.replace(slug_expr, '_', '-')
-    slug_expr = func.lower(slug_expr)
-    return slug_expr
-
-
-def single_stranded_design_mapper(klass, base_mapper, molecule_design_tbl,
-                                  single_stranded_design_tbl, molecule_type):
-    md = molecule_design_tbl # .alias('md')
-    ssd = single_stranded_design_tbl # .alias('ssd')
-
-    mdssd = select([ssd.c.molecule_design_id,
-                    ssd.c.sequence,
-#                    ssd.c.modification
-                    ],
-                    and_(md.c.molecule_design_id == ssd.c.molecule_design_id,
-                         md.c.molecule_type_id == molecule_type)
-                   ).alias('mdssd')
-
-    m = mapper(klass, mdssd,
-               properties=dict(
-                   sequence=deferred(mdssd.c.sequence),
-#                   modification=mdssd.c.modification,
-                   ),
-               inherits=base_mapper,
-               polymorphic_identity=molecule_type
-               )
-    return m
-
-
-def double_stranded_design_mapper(klass, base_mapper, molecule_design_tbl,
-                                  double_stranded_design_tbl, molecule_type):
-    md = molecule_design_tbl
-    dsd = double_stranded_design_tbl
-
-    mddsd = select([dsd.c.molecule_design_id,
-                    dsd.c.sequence_1,
-                    dsd.c.sequence_2,
-#                    dsd.c.modification
-                    ],
-                    and_(md.c.molecule_design_id == dsd.c.molecule_design_id,
-                         md.c.molecule_type_id == molecule_type)
-                   ).alias('mddsd')
-
-    m = mapper(klass, mddsd,
-               properties=dict(
-                   sequence_1=deferred(mddsd.c.sequence_1),
-                   sequence_2=deferred(mddsd.c.sequence_2),
-#                   modification=mddsd.c.modification,
-                   ),
-               inherits=base_mapper,
-               polymorphic_identity=molecule_type
-               )
-    return m
-
-
-class CaseInsensitiveComparator(ColumnProperty.Comparator): # pylint: disable=W0232
+class CaseInsensitiveComparator(ColumnProperty.Comparator): # pylint: disable=W0223
     """
     Case Insensitive Comparator
     """

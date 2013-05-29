@@ -1,11 +1,8 @@
 """
 Planned worklist mapper.
 """
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import mapper
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
-from thelma.db.mappers.utils import as_slug_expression
 from thelma.models.liquidtransfer import ExecutedWorklist
 from thelma.models.liquidtransfer import PlannedTransfer
 from thelma.models.liquidtransfer import PlannedWorklist
@@ -22,8 +19,8 @@ def create_mapper(planned_worklist_tbl, planned_transfer_tbl,
     pwm = planned_worklist_member_tbl
     pt = planned_transfer_tbl
     m = mapper(PlannedWorklist, planned_worklist_tbl,
+               id_attribute='planned_worklist_id',
                properties=dict(
-                    id=synonym('planned_worklist_id'),
                     planned_transfers=relationship(PlannedTransfer,
                             uselist=True,
                             primaryjoin=(pw.c.planned_worklist_id == \
@@ -39,9 +36,4 @@ def create_mapper(planned_worklist_tbl, planned_transfer_tbl,
                             back_populates='planned_worklist')
                     )
                )
-    if isinstance(PlannedWorklist.slug, property):
-        PlannedWorklist.slug = \
-            hybrid_property(PlannedWorklist.slug.fget,
-                    expr=lambda cls: as_slug_expression(cls.id)
-                            )
     return m

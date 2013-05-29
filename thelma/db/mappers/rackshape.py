@@ -1,11 +1,10 @@
 """
 Rack shape mapper.
 """
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import mapper
+from everest.repositories.rdb.utils import as_slug_expression
+from everest.repositories.rdb.utils import mapper
+from everest.repositories.rdb.utils import synonym
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
-from thelma.db.mappers.utils import as_slug_expression
 from thelma.models.rack import RackShape
 from thelma.models.rack import RackSpecs
 
@@ -16,15 +15,11 @@ __all__ = ['create_mapper']
 def create_mapper(rack_shape_tbl):
     "Mapper factory."
     m = mapper(RackShape, rack_shape_tbl,
+        id_attribute='rack_shape_name',
+        slug_expression=lambda cls: as_slug_expression(cls.rack_shape_name),
         properties=dict(
-            name=synonym('rack_shape_name'),
-            id=synonym('rack_shape_name'),
             specs=relationship(RackSpecs, back_populates='shape'),
             ),
         )
-    if isinstance(RackShape.slug, property):
-        RackShape.slug = \
-            hybrid_property(RackShape.slug.fget,
-                            expr=lambda cls:
-                                as_slug_expression(cls.rack_shape_name))
+    RackShape.name = synonym('rack_shape_name')
     return m

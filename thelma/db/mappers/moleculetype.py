@@ -1,11 +1,9 @@
 """
 Molecule type mapper.
 """
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import mapper
+from everest.repositories.rdb.utils import as_slug_expression
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
-from thelma.db.mappers.utils import as_slug_expression
 from thelma.models.chemicalstructure import ChemicalStructure
 from thelma.models.moleculetype import MoleculeType
 
@@ -20,8 +18,9 @@ def create_mapper(molecule_type_tbl, molecule_type_modification_vw,
     mtmv = molecule_type_modification_vw
     cs = chemical_structure_tbl
     m = mapper(MoleculeType, mt,
+               id_attribute='molecule_type_id',
+               slug_expression=lambda cls: as_slug_expression(cls.name),
                properties=dict(
-                   id=synonym('molecule_type_id'),
                    modifications=relationship(
                             ChemicalStructure,
                             secondary=mtmv,
@@ -32,8 +31,4 @@ def create_mapper(molecule_type_tbl, molecule_type_modification_vw,
                             viewonly=True),
                    ),
                )
-    if isinstance(MoleculeType.slug, property):
-        MoleculeType.slug = \
-            hybrid_property(MoleculeType.slug.fget,
-                            expr=lambda cls: as_slug_expression(cls.name))
     return m

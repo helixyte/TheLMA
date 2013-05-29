@@ -1,12 +1,8 @@
 """
 User preferences mapper.
 """
-from sqlalchemy import String
-from sqlalchemy import cast
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import mapper
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
 from thelma.models.user import User
 from thelma.models.user import UserPreferences
 
@@ -17,16 +13,11 @@ __all__ = ['create_mapper']
 def create_mapper(user_preferences_tbl):
     "Mapper factory."
     m = mapper(UserPreferences, user_preferences_tbl,
+               id_attribute='user_preferences_id',
                properties=dict(
-                    id=synonym('user_preferences_id'),
                     user=relationship(User, uselist=False,
                                         back_populates='user_preferenceses',
                                         cascade='save-update'),
                     )
                )
-    if isinstance(UserPreferences.slug, property):
-        UserPreferences.slug = \
-            hybrid_property(UserPreferences.slug.fget,
-                            expr=lambda cls: cast(cls.user_preferences_id,
-                                                  String))
     return m

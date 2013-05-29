@@ -1,16 +1,14 @@
 """
 Tag mapper.
 """
-from sqlalchemy.ext.hybrid import hybrid_property
+from everest.repositories.rdb.utils import as_slug_expression
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import column_property
-from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
 from sqlalchemy.orm.interfaces import MapperExtension
 from sqlalchemy.sql import select
-from sqlalchemy.sql.expression import insert
 from sqlalchemy.sql.expression import func
-from thelma.db.mappers.utils import as_slug_expression
+from sqlalchemy.sql.expression import insert
 from thelma.models.tagging import Tag
 from thelma.models.tagging import Tagged
 
@@ -71,11 +69,15 @@ def create_mapper(tag_tbl, tag_domain_tbl, tag_predicate_tbl, tag_value_tbl,
     "Mapper factory."
     m = mapper(Tag,
                tag_tbl,
+               id_attribute='tag_id',
+               slug_expression=lambda cls: as_slug_expression(
+                                        func.concatenate(cls.domain, ':',
+                                                         cls.predicate, '=',
+                                                         cls.value)),
                extension=TagMapperExtension(tag_domain_tbl,
                                             tag_predicate_tbl, tag_value_tbl),
                properties=
-                    dict(id=synonym('tag_id'),
-                         tagged=relationship(Tagged,
+                    dict(tagged=relationship(Tagged,
                                              secondary=tagging_tbl,
                                              back_populates='tags'),
                          domain=column_property(
@@ -95,12 +97,4 @@ def create_mapper(tag_tbl, tag_domain_tbl, tag_predicate_tbl, tag_value_tbl,
                                     ),
                          )
                )
-    if isinstance(Tag.slug, property):
-        Tag.slug = \
-            hybrid_property(Tag.slug.fget,
-                            expr=lambda cls:
-                                as_slug_expression(
-                                        func.concatenate(cls.domain, ':',
-                                                         cls.predicate, '=',
-                                                         cls.value)))
     return m

@@ -3,9 +3,9 @@ Library creation ISO mapper.
 """
 
 from everest.repositories.rdb.utils import mapper
+from sqlalchemy.orm import relationship
 from thelma.models.iso import ISO_TYPES
 from thelma.models.library import LibraryCreationIso
-from sqlalchemy.orm import relationship
 from thelma.models.library import LibrarySourcePlate
 
 __docformat__ = "reStructuredText en"
