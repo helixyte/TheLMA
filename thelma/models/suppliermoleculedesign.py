@@ -19,10 +19,10 @@ class SupplierMoleculeDesign(Entity):
     time_stamp = None
     #: Flag indicating if this is the most recent supplier molecule design
     #: from the supplier for the associated molecule design.
-    is_current = False
+    is_current = None
     #: Flag indicating if this supplier molecule design was discontinued by
     #: the supplier
-    is_deleted = False
+    is_deleted = None
     #: Molecule design associated with this supplier design.
     molecule_design = None
     #: Molecule design pool associated with this supplier design.

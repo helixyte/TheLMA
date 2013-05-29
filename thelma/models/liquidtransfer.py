@@ -418,14 +418,17 @@ class ExecutedTransfer(Entity):
     timestamp = None
     #: The type of the transfer (element of :class:`TRANSFER_TYPES`) depends
     #: on the type of the associated :attr:`planned_transfer`.
-    type = None
+    transfer_type = None
 
-
-    def __init__(self, planned_transfer, user, timestamp=None, **kw):
+    def __init__(self, planned_transfer, user, timestamp=None,
+                 type=None, **kw): # pylint: disable=W0622
         """
         Constructor
         """
         Entity.__init__(self, **kw)
+        if type is None:
+            type = self.__class__.transfer_type
+        self.type = type
         if self.__class__ is ExecutedTransfer:
             raise NotImplementedError('Abstract class')
         if not planned_transfer.type == self.type:
@@ -473,8 +476,9 @@ class ExecutedContainerDilution(ExecutedTransfer):
     target_container = None
     #: The specs of the source reservoir (:class:`ReservoirSpecs`).
     reservoir_specs = None
-
-    type = TRANSFER_TYPES.CONTAINER_DILUTION
+    #: The type of the transfer (element of :class:`TRANSFER_TYPES`) depends
+    #: on the type of the associated :attr:`planned_transfer`.
+    transfer_type = TRANSFER_TYPES.CONTAINER_DILUTION
 
     def __init__(self, target_container, reservoir_specs,
                  planned_container_dilution, user, timestamp=None, **kw):
@@ -525,8 +529,9 @@ class ExecutedContainerTransfer(ExecutedTransfer):
     #: The container the volume has been dispensed into
     #: (:class:`thelma.models.container.Container`).
     target_container = None
-
-    type = TRANSFER_TYPES.CONTAINER_TRANSFER
+    #: The type of the transfer (element of :class:`TRANSFER_TYPES`) depends
+    #: on the type of the associated :attr:`planned_transfer`.
+    transfer_type = TRANSFER_TYPES.CONTAINER_TRANSFER
 
     def __init__(self, source_container, target_container,
                  planned_container_transfer, user, timestamp=None, **kw):
@@ -583,8 +588,9 @@ class ExecutedRackTransfer(ExecutedTransfer):
     #: The rack the volumes are dispensed into
     #: (:class:`thelma.models.rack.Rack`).
     target_rack = None
-
-    type = TRANSFER_TYPES.RACK_TRANSFER
+    #: The type of the transfer (element of :class:`TRANSFER_TYPES`) depends
+    #: on the type of the associated :attr:`planned_transfer`.
+    transfer_type = TRANSFER_TYPES.RACK_TRANSFER
 
     def __init__(self, source_rack, target_rack, planned_rack_transfer,
                  user, timestamp=None, **kw):

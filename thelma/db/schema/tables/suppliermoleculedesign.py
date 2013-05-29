@@ -31,8 +31,6 @@ def create_table(metadata, organization_tbl):
                default=datetime.now),
         Column('is_current', Boolean, nullable=False, default=False),
         Column('is_deleted', Boolean, nullable=False, default=False),
-        # FIXME: Drop this column after the migration has been completed.
-        Column('sense_strand', String, default='unknown'),
         )
     Index('current_supplier_molecule_design',
           tbl.c.product_id, tbl.c.supplier_id,

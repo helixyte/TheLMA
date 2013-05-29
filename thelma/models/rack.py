@@ -384,7 +384,7 @@ class RackSpecs(Entity):
     #: Defines whether this rack type has movable subitems (*True* for
     #: :class:`TubeRack` instances, *False* for
     #: :class:`Plate` instances).
-    has_tubes = False
+    has_tubes = None
     #: The manufacturer of this type of racks
     #: (:class:`thelma.models.organization.Organization`).
     manufacturer = None
