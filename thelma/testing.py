@@ -374,12 +374,12 @@ class EntityCreatorMixin(object):
         return self._create_entity(IsoLayout, kw)
 
     def _create_iso_request(self, **kw):
-        if not 'plate_set_label' in kw:
-            kw['plate_set_label'] = 'IsoRequest.PlateSetLabel.Test'
         if not 'iso_layout' in kw:
             kw['iso_layout'] = self._create_rack_layout()
         if not 'requester' in kw:
             kw['requester'] = self._get_entity(IUser, 'it')
+        if not 'plate_set_label' in kw:
+            kw['plate_set_label'] = 'IsoRequest.PlateSetLabel.Test'
         return self._create_entity(IsoRequest, kw)
 
     def _create_iso_sample_stock_rack(self, **kw):

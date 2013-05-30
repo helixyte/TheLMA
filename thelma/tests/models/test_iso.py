@@ -148,8 +148,10 @@ class IsoRequestModelTest(ThelmaModelTestCase):
 
     def test_init(self):
         attrs = self.__get_data()
-        ir1 = IsoRequest(iso_layout=attrs['iso_layout'],
-                         requester=attrs['requester'])
+        test_label = 'TEST'
+        ir1 = self._create_iso_request(iso_layout=attrs['iso_layout'],
+                                       requester=attrs['requester'],
+                                       plate_set_label=test_label)
         self.assert_is_not_none(ir1)
         self.assert_equal(len(ir1.isos), 0)
         exp_attrs1 = dict(iso_layout=attrs['iso_layout'],
@@ -161,7 +163,7 @@ class IsoRequestModelTest(ThelmaModelTestCase):
                           comment='',
                           experiment_metadata=None,
                           worklist_series=None,
-                          plate_set_label='')
+                          plate_set_label=test_label)
         check_attributes(ir1, exp_attrs1)
         del ir1.iso_layout # otherwise we get problems with the ORM
         ir2 = self._create_iso_request(**attrs)

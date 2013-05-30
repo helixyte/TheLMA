@@ -151,14 +151,14 @@ class PrepLayoutFinder(BaseAutomationTool):
                 experiment_type=iso_request.experiment_metadata_type)
         except ValueError as e:
             log.add_error(e)
-            return None
+            result = None
         except AttributeError as e:
             log.add_error(e)
-            return None
-
-        kw = dict(iso_layout=iso_layout, iso_request=iso_request, log=log)
-        finder = finder_cls(**kw)
-        return finder
+            result = None
+        else:
+            kw = dict(iso_layout=iso_layout, iso_request=iso_request, log=log)
+            result = finder_cls(**kw)
+        return result
 
     def run(self):
         """
