@@ -9,3 +9,5 @@
 .externalToolBuilders/deployer.launch
 
 *.launch
+
+.externalToolBuilders/deployer.launch
