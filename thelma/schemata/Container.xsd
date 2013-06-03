@@ -11,6 +11,7 @@
     xmlns:l="http://schemata.cenix-bioscience.com/location"
     xmlns:is="http://schemata.cenix-bioscience.com/itemstatus"
     xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs"
+    xmlns:rp="http://schemata.cenix-bioscience.com/rackposition"
     xmlns:sm="http://schemata.cenix-bioscience.com/samplemolecule"
 >
     <import
@@ -56,6 +57,12 @@
     </import>
 
     <import
+        schemaLocation="RackPosition.xsd"
+        namespace="http://schemata.cenix-bioscience.com/rackposition"
+    >
+    </import>
+
+    <import
         schemaLocation="SampleMolecule.xsd"
         namespace="http://schemata.cenix-bioscience.com/samplemolecule"
     >
@@ -71,7 +78,7 @@
             </element>
             <element
                 name="position"
-                type="string"
+                type="rp:RackPositionType"
                 minOccurs="0"
                 maxOccurs="1"
             >

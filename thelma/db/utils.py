@@ -8,10 +8,11 @@ from sqlalchemy import String
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.sql.expression import ColumnElement
 from sqlalchemy.sql.expression import _literal_as_binds
-from sqlalchemy.sql.expression import _literal_as_column
+from sqlalchemy.sql.expression import literal_column
+from sqlalchemy.sql.visitors import Visitable
 
 
-class string_agg(ColumnElement):
+class string_agg(ColumnElement): # __iter__ raises NotImplementedError pylint:disable=W0223
     """
     Represents a string_agg aggregation function clause with support for
     an ORDER BY expression.
@@ -36,7 +37,6 @@ class string_agg(ColumnElement):
         return self.expr.table # pylint: disable=E1103
 
 
-
 @compiles(string_agg, 'postgresql')
 def _compile_string_agg_postgresql(element, compiler, **kw): # pylint: disable=W0613
     buf = StringIO()
@@ -49,3 +49,14 @@ def _compile_string_agg_postgresql(element, compiler, **kw): # pylint: disable=W
     buf.write(')')
     sql_expr = buf.getvalue()
     return sql_expr
+
+
+# FIXME: This function was removed in SA 0.8.x; investigate the reason for
+#        its removal.
+def _literal_as_column(element):
+    if isinstance(element, Visitable):
+        return element
+    elif hasattr(element, '__clause_element__'):
+        return element.__clause_element__()
+    else:
+        return literal_column(str(element))

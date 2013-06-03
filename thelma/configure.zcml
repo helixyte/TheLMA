@@ -79,8 +79,6 @@
         name="public"
         request_method="GET" />
 
-    <!-- Old ATOM templates -->
-
     <!-- Collection views (default ATOM) -->
 
     <collection_view
@@ -220,54 +218,26 @@
              .interfaces.IOrganization
              .interfaces.IProject
              "
-        view="everest.views.deletemember.DeleteMemberView"
-        request_method="DELETE"
-        permission="delete" />
-
-    <member_view
-        for=".interfaces.IExperimentJob
-             .interfaces.IIsoJob
-             .interfaces.IJob
-             .interfaces.IOrganization
-             .interfaces.IProject
-             "
-        view="everest.views.deletemember.DeleteMemberView"
-        request_method="POST"
-        header="X-HTTP-Method-Override:DELETE"
+        request_method="DELETE
+                        FAKE_DELETE
+                       "
         permission="delete" />
 
     <member_view
         for=".interfaces.IDevice
              .interfaces.IDeviceType
+             .interfaces.IExperimentJob
              .interfaces.IIsoRequest
              .interfaces.IJob
-             .interfaces.IExperimentJob
              .interfaces.IIsoJob
              .interfaces.IOrganization
              .interfaces.IProject
+             .interfaces.ITube
              .interfaces.IUser
-          "
-        view="everest.views.putmember.PutMemberView"
-        renderer="atom"
-        request_method="PUT"
-        permission="update" />
-
-    <member_view
-        for=".interfaces.IDevice
-           .interfaces.IDeviceType
-           .interfaces.IIso
-           .interfaces.IIsoRequest
-           .interfaces.IJob
-           .interfaces.IExperimentJob
-            .interfaces.IIsoJob
-           .interfaces.IOrganization
-           .interfaces.IProject
-           .interfaces.IUser
-          "
-        view="everest.views.putmember.PutMemberView"
-        renderer="atom"
-        request_method="POST"
-        header="X-HTTP-Method-Override:PUT"
+             "
+        request_method="PUT
+                        FAKE_PUT
+                       "
         permission="update" />
 
     <!-- for experiment metadata xls upload we use a custom view for now -->

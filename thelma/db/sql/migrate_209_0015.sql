@@ -1,5 +1,4 @@
--- introduces a new metadata type table including a new type ('ORDER_ONLY' for
--- ISO requests without experiment)
+-- Changes precipitated by the creation of the schema for the DTU.
 
 SELECT assert('(select version from db_version) = 209.0014');
 
@@ -51,5 +50,10 @@ insert into refseq_gene
 alter table supplier_molecule_design
     drop column sense_strand;
   
+    
+-- One more timezone-aware timestamp (cf. migration script 209.0007).
+alter table molecule 
+    alter column insert_date type timestamp with time zone using timestamp at time zone 'utc';
+
   
 CREATE OR REPLACE VIEW db_version AS SELECT 209.0015 AS version;

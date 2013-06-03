@@ -1,7 +1,7 @@
 """
 Sample mapper.
 """
-from everest.repositories.rdb.utils import mapper
+from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
 from thelma.models.sample import SampleRegistration
 from thelma.models.sample import StockSample

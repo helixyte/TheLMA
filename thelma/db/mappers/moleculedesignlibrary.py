@@ -1,11 +1,9 @@
 """
 Molecule design library mapper.
 """
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import mapper
+from everest.repositories.rdb.utils import as_slug_expression
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
-from thelma.db.mappers.utils import as_slug_expression
 from thelma.models.iso import IsoRequest
 from thelma.models.library import MoleculeDesignLibrary
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
@@ -23,8 +21,9 @@ def create_mapper(molecule_design_library_tbl, iso_request_tbl,
     mdlir = molecule_design_library_iso_request_tbl
 
     m = mapper(MoleculeDesignLibrary, molecule_design_library_tbl,
+               id_attribute='molecule_design_library_id',
+               slug_expression=lambda cls: as_slug_expression(cls.label),
                properties=dict(
-                    id=synonym('molecule_design_library_id'),
                     molecule_design_pool_set=
                         relationship(MoleculeDesignPoolSet,
                                      uselist=False),
@@ -35,10 +34,4 @@ def create_mapper(molecule_design_library_tbl, iso_request_tbl,
                                            ir.c.iso_request_id),
                             secondary=mdlir))
                )
-
-    if isinstance(MoleculeDesignLibrary.slug, property):
-        MoleculeDesignLibrary.slug = \
-            hybrid_property(MoleculeDesignLibrary.slug.fget,
-                    expr=lambda cls: as_slug_expression(cls.label)
-                            )
     return m

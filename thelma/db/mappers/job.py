@@ -1,12 +1,9 @@
 """
 Job mapper.
 """
-from sqlalchemy import String
-from sqlalchemy import cast
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import mapper
+from everest.repositories.rdb.utils import mapper
+from everest.repositories.rdb.utils import synonym
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
 from thelma.models.job import JOB_TYPES
 from thelma.models.job import Job
 from thelma.models.job import JobType
@@ -21,18 +18,14 @@ def create_mapper(job_tbl):
     "Mapper factory."
     # TODO: remove job type
     m = mapper(Job, job_tbl,
+            id_attribute='job_id',
             properties=dict(
-                id=synonym('job_id'),
                 job_type=relationship(JobType, uselist=False),
                 user=relationship(User, uselist=False),
                 subproject=relationship(Subproject, uselist=False),
-                status=synonym('status_type'),
             ),
             polymorphic_on=job_tbl.c.type,
             polymorphic_identity=JOB_TYPES.OTHER
         )
-    if isinstance(Job.slug, property):
-        Job.slug = hybrid_property(
-                            Job.slug.fget,
-                            expr=lambda cls: cast(cls.job_id, String))
+    Job.status = synonym('status_type')
     return m

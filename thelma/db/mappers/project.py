@@ -1,11 +1,9 @@
 """
 Project mapper.
 """
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import mapper
+from everest.repositories.rdb.utils import as_slug_expression
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
-from thelma.db.mappers.utils import as_slug_expression
 from thelma.models.organization import Organization
 from thelma.models.project import Project
 from thelma.models.subproject import Subproject
@@ -18,8 +16,9 @@ __all__ = ['create_mapper']
 def create_mapper(project_tbl):
     "Mapper factory."
     m = mapper(Project, project_tbl,
+               id_attribute='project_id',
+               slug_expression=lambda cls: as_slug_expression(cls.label),
                properties=dict(
-                    id=synonym('project_id'),
                     customer=relationship(Organization, uselist=False),
                     subprojects=relationship(Subproject,
                                              back_populates='project',
@@ -28,8 +27,4 @@ def create_mapper(project_tbl):
                     leader=relationship(User, uselist=False),
                     ),
                )
-    if isinstance(Project.slug, property):
-        Project.slug = \
-            hybrid_property(Project.slug.fget,
-                            expr=lambda cls: as_slug_expression(cls.label))
     return m

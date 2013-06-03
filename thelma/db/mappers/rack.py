@@ -1,16 +1,14 @@
 """
 Rack mapper.
 """
-from sqlalchemy.ext.hybrid import hybrid_property
+from everest.repositories.rdb.utils import as_slug_expression
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import column_property
-from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy.sql import func
 from sqlalchemy.sql import select
 from thelma.db.mappers.utils import CaseInsensitiveComparator
-from thelma.db.mappers.utils import as_slug_expression
 from thelma.models.container import Container
 from thelma.models.container import ContainerLocation
 from thelma.models.location import BarcodedLocation
@@ -32,8 +30,9 @@ def create_mapper(rack_tbl, rack_barcoded_location_tbl,
     cnt1 = containment_tbl.alias('containment_rack_1')
     cnt2 = containment_tbl.alias('containment_rack_2')
     m = mapper(Rack, rack_tbl,
+        id_attribute='rack_id',
+        slug_expression=lambda cls: as_slug_expression(cls.barcode),
         properties=dict(
-            id=synonym('rack_id'),
             label=column_property(
                 rack_tbl.c.label,
                 comparator_factory=CaseInsensitiveComparator
@@ -71,8 +70,4 @@ def create_mapper(rack_tbl, rack_barcoded_location_tbl,
         polymorphic_on=rack_tbl.c.rack_type,
         polymorphic_identity=RACK_TYPES.RACK,
         )
-    if isinstance(Rack.slug, property):
-        Rack.slug = hybrid_property(
-                            Rack.slug.fget,
-                            expr=lambda cls: as_slug_expression(cls.barcode))
     return m

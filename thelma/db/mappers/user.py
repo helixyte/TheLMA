@@ -1,13 +1,11 @@
 """
 User mapper.
 """
-from sqlalchemy.ext.hybrid import hybrid_property
+from everest.repositories.rdb.utils import as_slug_expression
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import column_property
-from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
 from thelma.db.mappers.utils import CaseInsensitiveComparator
-from thelma.db.mappers.utils import as_slug_expression
 from thelma.models.user import User
 from thelma.models.user import UserPreferences
 
@@ -18,8 +16,10 @@ __all__ = ['create_mapper']
 def create_mapper(dbuser_tbl):
     "Mapper factory."
     m = mapper(User, dbuser_tbl,
+               id_attribute='db_user_id',
+               slug_expression=
+                    lambda cls: as_slug_expression(cls.directory_user_id),
                properties=dict(
-                    id=synonym('db_user_id'),
                     username=column_property(
                           dbuser_tbl.c.username,
                           comparator_factory=CaseInsensitiveComparator
@@ -30,9 +30,4 @@ def create_mapper(dbuser_tbl):
                                              ),
                     ),
                )
-    if isinstance(User.slug, property):
-        User.slug = \
-            hybrid_property(User.slug.fget,
-                            expr=lambda cls:
-                                    as_slug_expression(cls.directory_user_id))
     return m

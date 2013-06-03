@@ -133,6 +133,8 @@ class RackPositionMember(Member):
     label = terminal_attribute(str, 'label')
     row_index = terminal_attribute(int, 'row_index')
     column_index = terminal_attribute(int, 'column_index')
+    title = attribute_alias('label')
+
 
 class RackPositionSetMember(Member):
     relation = "%s/rack-position-set" % RELATION_BASE_URL

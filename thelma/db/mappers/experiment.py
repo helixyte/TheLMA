@@ -1,12 +1,8 @@
 """
 Experiment mapper.
 """
-from sqlalchemy import String
-from sqlalchemy import cast
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import mapper
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
 from thelma.models.experiment import Experiment
 from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentRack
@@ -24,9 +20,9 @@ def create_mapper(experiment_tbl, experiment_source_rack_tbl):
     esr = experiment_source_rack_tbl
 
     m = mapper(Experiment, experiment_tbl,
+               id_attribute='experiment_id',
                properties=
-                 dict(id=synonym("experiment_id"),
-                      destination_rack_specs=relationship(RackSpecs,
+                 dict(destination_rack_specs=relationship(RackSpecs,
                                                           uselist=False),
                       job=relationship(ExperimentJob, uselist=False,
                           back_populates='experiments',
@@ -44,8 +40,4 @@ def create_mapper(experiment_tbl, experiment_source_rack_tbl):
                           ),
                       ),
                )
-    if isinstance(Experiment.slug, property):
-        Experiment.slug = \
-            hybrid_property(Experiment.slug.fget,
-                            expr=lambda cls: cast(cls.experiment_id, String))
     return m

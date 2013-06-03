@@ -1,15 +1,14 @@
 """
 Rack specs mapper.
 """
-from sqlalchemy.ext.hybrid import hybrid_property
+from everest.repositories.rdb.utils import as_slug_expression
+from everest.repositories.rdb.utils import mapper
+from everest.repositories.rdb.utils import synonym
 from sqlalchemy.orm import column_property
-from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
 from sqlalchemy.sql import case
 from sqlalchemy.sql import literal
 from sqlalchemy.sql import select
-from thelma.db.mappers.utils import as_slug_expression
 from thelma.models.organization import Organization
 from thelma.models.rack import RACK_SPECS_TYPES
 from thelma.models.rack import RackShape
@@ -31,20 +30,17 @@ def create_mapper(rack_specs_tbl):
         ],
         ).alias('rackspecs')
     m = mapper(RackSpecs, polymorphic_select,
-        properties=dict(
-            id=synonym('rack_specs_id'),
-            has_tubes=synonym('has_movable_subitems'),
-            manufacturer=relationship(Organization),
-            shape=relationship(RackShape, uselist=False,
-                               back_populates='specs'),
-            rack_specs_type=
-                    column_property(polymorphic_select.c.rackspecs_type),
-            ),
-        polymorphic_on=polymorphic_select.c.rackspecs_type,
-        polymorphic_identity=RACK_SPECS_TYPES.RACK_SPECS,
-        )
-    if isinstance(RackSpecs.slug, property):
-        RackSpecs.slug = hybrid_property(RackSpecs.slug.fget,
-                                         expr=lambda cls:
-                                                as_slug_expression(cls.name))
+            id_attribute='rack_specs_id',
+            slug_expression=lambda cls: as_slug_expression(cls.name),
+            properties=dict(
+                manufacturer=relationship(Organization),
+                shape=relationship(RackShape, uselist=False,
+                                   back_populates='specs'),
+                rack_specs_type=
+                        column_property(polymorphic_select.c.rackspecs_type),
+                ),
+            polymorphic_on=polymorphic_select.c.rackspecs_type,
+            polymorphic_identity=RACK_SPECS_TYPES.RACK_SPECS,
+            )
+    RackSpecs.has_tubes = synonym('has_movable_subitems')
     return m

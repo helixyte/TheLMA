@@ -1,12 +1,8 @@
 """
 Tagged mapper.
 """
-from sqlalchemy import String
-from sqlalchemy import cast
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import mapper
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
 from thelma.models.tagging import Tag
 from thelma.models.tagging import Tagged
 from thelma.models.tagging import Tagging
@@ -20,8 +16,8 @@ TAGGED_TYPE = 'TAGGED'
 def create_mapper(tagged_tbl, tagging_tbl):
     "Mapper factory."
     m = mapper(Tagged, tagged_tbl,
-               properties=dict(id=synonym('tagged_id'),
-                               tags=relationship(Tag,
+               id_attribute='tagged_id',
+               properties=dict(tags=relationship(Tag,
                                          secondary=tagging_tbl,
                                          viewonly=True,
                                          collection_class=set),
@@ -32,8 +28,4 @@ def create_mapper(tagged_tbl, tagging_tbl):
                polymorphic_on=tagged_tbl.c.type,
                polymorphic_identity=TAGGED_TYPE,
                )
-    if isinstance(Tagged.slug, property):
-        Tagged.slug = \
-            hybrid_property(Tagged.slug.fget,
-                            expr=lambda cls: cast(cls.tagged_id, String))
     return m

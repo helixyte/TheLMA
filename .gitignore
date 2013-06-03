@@ -2,12 +2,6 @@
 *.pyc
 .project
 .pydevproject
-
-
 *.log
+/.externalToolBuilders
 
-.externalToolBuilders/deployer.launch
-
-*.launch
-
-.externalToolBuilders/deployer.launch

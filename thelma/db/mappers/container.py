@@ -1,9 +1,8 @@
 """
 Container mapper.
 """
-from sqlalchemy.orm import mapper
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
 from thelma.models.container import CONTAINER_TYPES
 from thelma.models.container import Container
 from thelma.models.container import ContainerLocation
@@ -18,9 +17,9 @@ __all__ = ['create_mapper']
 def create_mapper(container_tbl):
     "Mapper factory."
     m = mapper(Container, container_tbl,
+           id_attribute='container_id',
            properties=
-            dict(id=synonym('container_id'),
-                 specs=relationship(ContainerSpecs, uselist=False),
+            dict(specs=relationship(ContainerSpecs, uselist=False),
                  location=relationship(ContainerLocation, uselist=False,
                                        back_populates='container',
                                        lazy='joined',

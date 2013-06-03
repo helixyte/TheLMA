@@ -1,13 +1,9 @@
 """
 ISO request mapper.
 """
-from sqlalchemy import String
-from sqlalchemy import cast
-from sqlalchemy.ext.hybrid import hybrid_property
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import column_property
-from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
 from thelma.db.mappers.utils import CaseInsensitiveComparator
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.iso import Iso
@@ -29,9 +25,9 @@ def create_mapper(iso_request_tbl, worklist_series_iso_request_tbl,
     emir = experiment_metadata_iso_request_tbl
 
     m = mapper(IsoRequest, iso_request_tbl,
+               id_attribute='iso_request_id',
                properties=
-                    dict(id=synonym('iso_request_id'),
-                         requester=relationship(User, uselist=False),
+                    dict(requester=relationship(User, uselist=False),
                          iso_layout=relationship(RackLayout, uselist=False,
                                 cascade='all,delete,delete-orphan',
                                 single_parent=True),
@@ -48,8 +44,4 @@ def create_mapper(iso_request_tbl, worklist_series_iso_request_tbl,
                                 single_parent=True),
                     ),
                ),
-    if isinstance(IsoRequest.slug, property):
-        IsoRequest.slug = \
-            hybrid_property(IsoRequest.slug.fget,
-                            expr=lambda cls: cast(cls.id, String))
     return m

@@ -1,5 +1,5 @@
 include *.py *.txt *.cfg *.in *.md
-recursive-include thelma *.py *.zcml *.xsd *.ini *.xml *.xls *.txt *.csv *.json *.conf
+recursive-include thelma *.py *.zcml *.xsd *.ini *.xml *.xls *.txt *.csv *.json *.conf *.pt *.png
 recursive-include docs *.*
 prune docs/_build
 prune docs/_static

@@ -3,12 +3,8 @@ Tube transfer mapper
 
 AAB
 """
-from sqlalchemy import String
-from sqlalchemy import cast
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import mapper
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
 from thelma.models.container import Tube
 from thelma.models.rack import RackPosition
 from thelma.models.rack import TubeRack
@@ -31,8 +27,8 @@ def create_mapper(tube_transfer_tbl, rack_tbl, rack_position_tbl):
     rp = rack_position_tbl
 
     m = mapper(TubeTransfer, tube_transfer_tbl,
+               id_attribute='tube_transfer_id',
                properties=dict(
-                    id=synonym('tube_transfer_id'),
                     tube=relationship(Tube, uselist=False),
                     source_rack=relationship(TubeRack, uselist=False,
                             primaryjoin=(tt.c.source_rack_id == r.c.rack_id)),
@@ -46,11 +42,4 @@ def create_mapper(tube_transfer_tbl, rack_tbl, rack_position_tbl):
                                          rp.c.rack_position_id))
                                ),
                )
-
-    if isinstance(TubeTransfer.slug, property):
-        TubeTransfer.slug = \
-            hybrid_property(TubeTransfer.slug.fget,
-                            expr=lambda cls: cast(cls.tube_transfer_id,
-                                                  String))
-
     return m

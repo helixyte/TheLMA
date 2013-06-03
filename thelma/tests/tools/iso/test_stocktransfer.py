@@ -64,7 +64,6 @@ from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import Iso
 from thelma.models.iso import IsoControlStockRack
 from thelma.models.iso import IsoPreparationPlate
-from thelma.models.iso import IsoRequest
 from thelma.models.iso import IsoSampleStockRack
 from thelma.models.job import IsoJob
 from thelma.models.liquidtransfer import ExecutedWorklist
@@ -257,8 +256,9 @@ class StockTaking96TestCase(ToolsAndUtilsTestCase):
             self.stock_worklist.planned_transfers.append(pct)
 
     def _create_test_iso(self):
-        iso_request = IsoRequest(iso_layout=RackLayout(shape=self.shape),
-                                 requester=self.user)
+        iso_request = self._create_iso_request(
+                                iso_layout=RackLayout(shape=self.shape),
+                                requester=self.user)
         self.iso = Iso(label='stock_test_iso',
                        rack_layout=self.preparation_layout.create_rack_layout(),
                        iso_preparation_plate=self.iso_prep_plate,
@@ -858,7 +858,7 @@ class StockTaking384TestCase(ToolsAndUtilsTestCase):
         self.worklists[0] = worklist
 
     def _create_test_iso(self):
-        iso_request = IsoRequest(requester=self.user,
+        iso_request = self._create_iso_request(requester=self.user,
                             iso_layout=RackLayout(shape=get_384_rack_shape()))
         self.iso = Iso(label='stock_test_iso',
                        rack_layout=self.preparation_layout.create_rack_layout(),
@@ -1652,7 +1652,7 @@ class IsoControlStockRackTestCase(ToolsAndUtilsTestCase):
                 sample.make_sample_molecule(mol, conc)
 
     def _create_test_job(self):
-        iso_request = IsoRequest(
+        iso_request = self._create_iso_request(
                     iso_layout=RackLayout(shape=get_384_rack_shape()),
                     requester=self.user)
         ExperimentMetadata(label='test_em', number_replicates=2,

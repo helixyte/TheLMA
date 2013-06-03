@@ -1,11 +1,9 @@
 """
 Stock info mapper.
 """
-from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import mapper
+from everest.repositories.rdb.utils import as_slug_expression
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm import synonym
-from thelma.db.mappers.utils import as_slug_expression
 from thelma.models.gene import Gene
 from thelma.models.moleculedesign import MoleculeDesignPool
 from thelma.models.moleculetype import MoleculeType
@@ -21,10 +19,11 @@ def create_mapper(stock_info_vw, molecule_design_set_gene_tbl, refseq_gene_tbl):
     mdsg = molecule_design_set_gene_tbl
     rsg = refseq_gene_tbl
     m = mapper(StockInfo, stock_info_vw,
+        id_attribute='stock_info_id',
+        slug_expression=lambda cls: as_slug_expression(cls.stock_info_id),
         primary_key=[stock_info_vw.c.molecule_design_set_id,
                      stock_info_vw.c.concentration],
         properties=dict(
-            id=synonym('stock_info_id'),
             molecule_design_pool=relationship(MoleculeDesignPool,
                                               lazy='joined'
                                               ),
@@ -41,9 +40,4 @@ def create_mapper(stock_info_vw, molecule_design_set_gene_tbl, refseq_gene_tbl):
                                ),
             ),
         )
-    if isinstance(StockInfo.slug, property):
-        StockInfo.slug = \
-            hybrid_property(StockInfo.slug.fget,
-                            expr=lambda cls:
-                                as_slug_expression(cls.stock_info_id))
     return m
