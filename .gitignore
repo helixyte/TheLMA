@@ -5,3 +5,7 @@
 
 
 *.log
+
+.externalToolBuilders/deployer.launch
+
+*.launch
