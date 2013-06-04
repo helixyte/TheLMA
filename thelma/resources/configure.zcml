@@ -1510,11 +1510,11 @@
             <option
                 name="xml_tag"
                 value="job" />
-            <!-- <attribute name="experiments"> <option name="ignore" value="false" 
-                type="zope.configuration.fields.Bool" /> <option name="write_as_link" value="false" 
-                type="zope.configuration.fields.Bool" /> </attribute> <attribute name="experiments.experiment_racks"> 
-                <option name="ignore" value="false" type="zope.configuration.fields.Bool" 
-                /> <option name="write_as_link" value="true" type="zope.configuration.fields.Bool" 
+            <!-- <attribute name="experiments"> <option name="ignore" value="false"
+                type="zope.configuration.fields.Bool" /> <option name="write_as_link" value="false"
+                type="zope.configuration.fields.Bool" /> </attribute> <attribute name="experiments.experiment_racks">
+                <option name="ignore" value="false" type="zope.configuration.fields.Bool"
+                /> <option name="write_as_link" value="true" type="zope.configuration.fields.Bool"
                 /> </attribute> -->
         </representer>
         <representer
@@ -1524,7 +1524,7 @@
             <option
                 name="xml_tag"
                 value="jobs" />
-            <!-- <attribute name="experiments"> <option name="write_as_link" 
+            <!-- <attribute name="experiments"> <option name="write_as_link"
                 value="true" type="zope.configuration.fields.Bool" /> </attribute> -->
         </representer>
     </resource>
@@ -1621,10 +1621,10 @@
                     name="write_as_link"
                     value="true" />
             </attribute>
-            <!-- <attribute name="experiments.experiment_design.experiment_metadata.experiment_design"> 
-                <option name="write_as_link" value="true" type="zope.configuration.fields.Bool" 
-                /> </attribute> <attribute name="experiments.experiment_design.experiment_metadata.iso_request"> 
-                <option name="write_as_link" value="true" type="zope.configuration.fields.Bool" 
+            <!-- <attribute name="experiments.experiment_design.experiment_metadata.experiment_design">
+                <option name="write_as_link" value="true" type="zope.configuration.fields.Bool"
+                /> </attribute> <attribute name="experiments.experiment_design.experiment_metadata.iso_request">
+                <option name="write_as_link" value="true" type="zope.configuration.fields.Bool"
                 /> </attribute> -->
         </representer>
 
@@ -2185,6 +2185,13 @@
         </representer>
     </resource>
 
+	<!-- Pipetting Specs -->
+
+    <resource
+        interface="thelma.interfaces.IPipettingSpecs"
+        member=".liquidtransfer.PipettingSpecsMember"
+        collection_root_name="pipetting-specs"
+        entity="thelma.models.liquidtransfer.PipettingSpecs" />
 
     <!-- Project -->
 
@@ -2663,7 +2670,7 @@
             <option
                 name="xml_tag"
                 value="plate_specs" />
-            <!-- <attribute name="well_specs"> <option name="ignore" value="false" 
+            <!-- <attribute name="well_specs"> <option name="ignore" value="false"
                 type="zope.configuration.fields.Bool" /> </attribute> -->
         </representer>
     </resource>
@@ -2892,8 +2899,8 @@
             <option
                 name="xml_prefix"
                 value="si" />
-            <!-- FIXME: uncomment once we can properly transmit the molecule 
-                design pool link <attribute name="molecule_design_pool_id"> <option name="ignore" 
+            <!-- FIXME: uncomment once we can properly transmit the molecule
+                design pool link <attribute name="molecule_design_pool_id"> <option name="ignore"
                 value="true" > </option> </attribute> -->
             <attribute name="molecule_design_pool.molecule_designs">
                 <option

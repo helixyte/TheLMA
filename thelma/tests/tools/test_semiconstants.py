@@ -5,6 +5,14 @@ AAB
 """
 from everest.entities.utils import get_root_aggregate
 from everest.repositories.rdb.utils import as_slug_expression
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
+from thelma.models.liquidtransfer import PipettingSpecs
+from thelma.automation.tools.semiconstants import get_pipetting_specs
+from thelma.automation.tools.semiconstants import get_pipetting_specs_manual
+from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
+from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
+from thelma.automation.tools.semiconstants import get_item_status
+from thelma.automation.tools.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.semiconstants \
     import get_experiment_type_manual_optimisation
 from thelma.automation.tools.semiconstants \
@@ -42,59 +50,110 @@ from thelma.models.status import ItemStatus
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 
-class ReservoirSpecsNamesTestCase(ToolsAndUtilsTestCase):
+class _SemiConstantCacheTestCase(ToolsAndUtilsTestCase):
+
+    def set_up(self):
+        ToolsAndUtilsTestCase.set_up(self)
+        self.entity_cls = None
+        self.cache_cls = None
+        self.from_name_meth = None
+        self.comp_attr_name = 'name'
+
+    def tear_down(self):
+        ToolsAndUtilsTestCase.tear_down(self)
+        del self.entity_cls
+        del self.cache_cls
+        del self.from_name_meth
+        del self.comp_attr_name
+
+    def _test_from_name(self):
+        for entity_slug in self.cache_cls.ALL:
+            self.assert_true(self.cache_cls.is_known_entity(entity_slug))
+            entity = self.from_name_meth(entity_slug) #pylint: disable=E1102
+            self.assert_is_not_none(entity)
+            self.assert_true(isinstance(entity, self.entity_cls))
+        self.assert_raises(ValueError, self.from_name_meth, 'wrong_name')
+        self.assert_false(self.cache_cls.is_known_entity('wrong_name'))
+
+    def _test_shortcut(self, shortcut_meth, exp_name):
+        entity = shortcut_meth()
+        self.assert_is_none(entity)
+        self.assert_true(isinstance(entity, self.entity_cls))
+        self.assert_equal(getattr(entity, self.comp_attr_name), exp_name)
+        return entity
+
+
+class ReservoirSpecsNamesTestCase(_SemiConstantCacheTestCase):
+
+    def set_up(self):
+        _SemiConstantCacheTestCase.set_up(self)
+        self.entity_cls = ReservoirSpecs
+        self.cache_cls = RESERVOIR_SPECS_NAMES
+        self.from_name_meth = get_reservoir_spec
 
     def test_from_name(self):
-        for rs_name in RESERVOIR_SPECS_NAMES.ALL:
-            self.assert_true(RESERVOIR_SPECS_NAMES.is_known_entity(rs_name))
-            rs = get_reservoir_spec(rs_name)
-            self.assert_is_not_none(rs)
-            self.assert_true(isinstance(rs, ReservoirSpecs))
-        self.assert_raises(ValueError, get_reservoir_spec, 'wrong_name')
-        self.assert_false(RESERVOIR_SPECS_NAMES.is_known_entity('wrong_name'))
+        self._test_from_name()
 
     def test_shortcuts(self):
-        rs_std_96 = get_reservoir_specs_standard_96()
-        self.assert_is_not_none(rs_std_96)
-        self.assert_true(isinstance(rs_std_96, ReservoirSpecs))
-        self.assert_equal(rs_std_96.name, RESERVOIR_SPECS_NAMES.STANDARD_96)
-        rs_std_384 = get_reservoir_specs_standard_384()
-        self.assert_is_not_none(rs_std_384)
-        self.assert_true(isinstance(rs_std_384, ReservoirSpecs))
-        self.assert_equal(rs_std_384.name, RESERVOIR_SPECS_NAMES.STANDARD_384)
-        rs_deep_96 = get_reservoir_specs_deep_96()
-        self.assert_is_not_none(rs_deep_96)
-        self.assert_true(isinstance(rs_deep_96, ReservoirSpecs))
-        self.assert_equal(rs_deep_96.name, RESERVOIR_SPECS_NAMES.DEEP_96)
+        self._test_shortcut(get_reservoir_specs_standard_96(),
+                            RESERVOIR_SPECS_NAMES.STANDARD_96)
+        self._test_shortcut(get_reservoir_specs_standard_384(),
+                            RESERVOIR_SPECS_NAMES.STANDARD_384)
+        self._test_shortcut(get_reservoir_specs_deep_96,
+                            RESERVOIR_SPECS_NAMES.DEEP_96)
 
     def test_is_plate(self):
-        rs_std_96 = get_reservoir_specs_standard_96()
-        self.assert_true(RESERVOIR_SPECS_NAMES.is_plate_spec(rs_std_96))
-        self.assert_true(RESERVOIR_SPECS_NAMES.is_plate_spec(rs_std_96.name))
-        rs_std_384 = get_reservoir_specs_standard_384()
-        self.assert_true(RESERVOIR_SPECS_NAMES.is_plate_spec(rs_std_384))
-        self.assert_true(RESERVOIR_SPECS_NAMES.is_plate_spec(rs_std_384.name))
-        rs_dp_96 = get_reservoir_specs_deep_96()
-        self.assert_true(RESERVOIR_SPECS_NAMES.is_plate_spec(rs_dp_96))
-        self.assert_true(RESERVOIR_SPECS_NAMES.is_plate_spec(rs_dp_96.name))
-        falcon_rs = get_reservoir_spec(RESERVOIR_SPECS_NAMES.FALCON_MANUAL)
-        self.assert_false(RESERVOIR_SPECS_NAMES.is_plate_spec(falcon_rs))
-        self.assert_false(RESERVOIR_SPECS_NAMES.is_plate_spec(falcon_rs))
+        self.__test_is_plate_result(RESERVOIR_SPECS_NAMES.STANDARD_96, True)
+        self.__test_is_plate_result(RESERVOIR_SPECS_NAMES.STANDARD_384, True)
+        self.__test_is_plate_result(RESERVOIR_SPECS_NAMES.DEEP_96, True)
+        self.__test_is_plate_result(RESERVOIR_SPECS_NAMES.FALCON_MANUAL, False)
+        self.__test_is_plate_result(RESERVOIR_SPECS_NAMES.QUARTER_MODULAR,
+                                    False)
+        self.__test_is_plate_result(RESERVOIR_SPECS_NAMES.TUBE_24, False)
         self.assert_raises(TypeError, RESERVOIR_SPECS_NAMES.is_plate_spec, 4)
         self.assert_raises(ValueError, RESERVOIR_SPECS_NAMES.is_plate_spec,
                            'invalid')
 
+    def __test_is_plate_result(self, rs_name, is_plate):
+        rs = get_reservoir_spec(rs_name)
+        if is_plate:
+            assert_meth = self.assert_true
+        else:
+            assert_meth = self.assert_false
+        assert_meth(RESERVOIR_SPECS_NAMES.is_plate_spec(rs))
+        assert_meth(RESERVOIR_SPECS_NAMES.is_plate_spec(rs.name))
 
-class PlateSpecsNamesTestCase(ToolsAndUtilsTestCase):
+
+class PipettingsSpecsNamesTestCase(_SemiConstantCacheTestCase):
+
+    def set_up(self):
+        _SemiConstantCacheTestCase.set_up(self)
+        self.entity_cls = PipettingSpecs
+        self.cache_cls = PIPETTING_SPECS_NAMES
+        self.from_name_meth = get_pipetting_specs
 
     def test_from_name(self):
-        for ps_name in PLATE_SPECS_NAMES.ALL:
-            self.assert_true(PLATE_SPECS_NAMES.is_known_entity(ps_name))
-            ps = PLATE_SPECS_NAMES.from_name(ps_name)
-            self.assert_is_not_none(ps)
-            self.assert_true(isinstance(ps, PlateSpecs))
-        self.assert_raises(ValueError, PLATE_SPECS_NAMES.from_name, 'invalid')
-        self.assert_false(PLATE_SPECS_NAMES.is_known_entity('invalid'))
+        self._test_from_name()
+
+    def test_shortcuts(self):
+        self._test_shortcut(get_pipetting_specs_manual,
+                            PIPETTING_SPECS_NAMES.MANUAL)
+        self._test_shortcut(get_pipetting_specs_cybio,
+                            PIPETTING_SPECS_NAMES.CYBIO)
+        self._test_shortcut(get_pipetting_specs_biomek,
+                            PIPETTING_SPECS_NAMES.BIOMEK)
+
+
+class PlateSpecsNamesTestCase(_SemiConstantCacheTestCase):
+
+    def set_up(self):
+        _SemiConstantCacheTestCase.set_up(self)
+        self.entity_cls = PlateSpecs
+        self.cache_cls = PLATE_SPECS_NAMES
+        self.from_name_meth = PLATE_SPECS_NAMES.from_name
+
+    def test_from_name(self):
+        self._test_from_name()
 
     def test_from_reservoir_specs(self):
         test_names = \
@@ -123,41 +182,41 @@ class PlateSpecsNamesTestCase(ToolsAndUtilsTestCase):
                            nunc)
 
 
-class RackShapesNamesTestCase(ToolsAndUtilsTestCase):
+class RackShapesNamesTestCase(_SemiConstantCacheTestCase):
+
+    def set_up(self):
+        _SemiConstantCacheTestCase.set_up(self)
+        self.entity_cls = RackShape
+        self.cache_cls = RACK_SHAPE_NAMES
+        self.from_name_meth = RACK_SHAPE_NAMES.from_name
 
     def test_from_name(self):
-        name96 = RACK_SHAPE_NAMES.SHAPE_96
-        self.assert_true(RACK_SHAPE_NAMES.is_known_entity(name96))
-        shape96 = RACK_SHAPE_NAMES.from_name(name96)
-        self.assert_true(isinstance(shape96, RackShape))
-        self.assert_equal(shape96.number_rows, 8)
-        self.assert_equal(shape96.number_columns, 12)
-        name384 = RACK_SHAPE_NAMES.SHAPE_384
-        self.assert_true(RACK_SHAPE_NAMES.is_known_entity(name384))
-        shape384 = RACK_SHAPE_NAMES.from_name(RACK_SHAPE_NAMES.SHAPE_384)
-        self.assert_true(isinstance(shape384, RackShape))
-        self.assert_equal(shape384.number_rows, 16)
-        self.assert_equal(shape384.number_columns, 24)
-        self.assert_false(RACK_SHAPE_NAMES.is_known_entity('inv'))
-        self.assert_raises(ValueError, RACK_SHAPE_NAMES.from_name, 'inv')
+        self._test_from_name()
+
+    def test_shortcuts(self):
+        self._test_shortcut(get_96_rack_shape, RACK_SHAPE_NAMES.SHAPE_96,
+                            num_rows=8, num_cols=12)
+        self._test_shortcut(get_384_rack_shape, RACK_SHAPE_NAMES.SHAPE_384,
+                            num_rows=16, num_cols=24)
+
+    #pylint: disable=W0221
+    def _test_shortcut(self, shortcut_meth, exp_name, num_rows, num_cols):
+        shape = _SemiConstantCacheTestCase._test_shortcut(self, shortcut_meth,
+                                                          exp_name)
+        self.assert_equal(shape.number_rows, num_rows)
+        self.assert_equal(shape.number_columns, num_cols)
+    #pylint: enable=W0221
+
 
     def test_from_position_count(self):
         shape96 = RACK_SHAPE_NAMES.from_positions_count(96)
         self.assert_true(isinstance(shape96, RackShape))
-        self.assert_equal(shape96.number_rows, 8)
-        self.assert_equal(shape96.number_columns, 12)
+        self.assert_equal(shape96.name, RACK_SHAPE_NAMES.SHAPE_96)
         shape384 = RACK_SHAPE_NAMES.from_positions_count(384)
         self.assert_true(isinstance(shape384, RackShape))
-        self.assert_equal(shape384.number_rows, 16)
-        self.assert_equal(shape384.number_columns, 24)
+        self.assert_equal(shape384.name, RACK_SHAPE_NAMES.SHAPE_384)
         self.assert_raises(ValueError,
                     RACK_SHAPE_NAMES.from_positions_count, 12)
-
-    def test_shortcuts(self):
-        shape96 = RACK_SHAPE_NAMES.from_name(RACK_SHAPE_NAMES.SHAPE_96)
-        self.assert_equal(shape96, get_96_rack_shape())
-        shape384 = RACK_SHAPE_NAMES.from_name(RACK_SHAPE_NAMES.SHAPE_384)
-        self.assert_equal(shape384, get_384_rack_shape())
 
     def test_get_positions_for_rack_shape(self):
         attrs = dict(number_rows=2, number_columns=2, name='2x2', label='2x2')
@@ -176,57 +235,44 @@ class RackShapesNamesTestCase(ToolsAndUtilsTestCase):
             self.assert_equal(pos_label, exp_horis[i])
 
 
-class ItemStatusUtilsTestCase(ToolsAndUtilsTestCase):
+class ItemStatusUtilsTestCase(_SemiConstantCacheTestCase):
+
+    def set_up(self):
+        _SemiConstantCacheTestCase.set_up(self)
+        self.entity_cls = ItemStatus
+        self.cache_cls = ITEM_STATUS_NAMES
+        self.from_name_meth = get_item_status
 
     def test_from_name(self):
-        for status_name in ITEM_STATUS_NAMES.ALL:
-            self.assert_true(ITEM_STATUS_NAMES.is_known_entity(status_name))
-            entity = ITEM_STATUS_NAMES.from_name(status_name)
-            self.assert_is_not_none(entity)
-            self.assert_true(isinstance(entity, ItemStatus))
-        self.assert_false(ITEM_STATUS_NAMES.is_known_entity('invalid'))
-        self.assert_raises(ValueError, ITEM_STATUS_NAMES.from_name,
-                           'invalid')
+        self._test_from_name()
 
     def test_shortcuts(self):
-        status_managed = get_item_status_managed()
-        self.assert_is_not_none(status_managed)
-        self.assert_true(isinstance(status_managed, ItemStatus))
-        self.assert_equal(status_managed.name, ITEM_STATUS_NAMES.MANAGED)
-        status_future = get_item_status_future()
-        self.assert_is_not_none(status_future)
-        self.assert_true(isinstance(status_future, ItemStatus))
-        self.assert_equal(status_future.name, ITEM_STATUS_NAMES.FUTURE)
+        self._test_shortcut(get_item_status_managed, ITEM_STATUS_NAMES.MANAGED)
+        self._test_shortcut(get_item_status_future, ITEM_STATUS_NAMES.FUTURE)
 
 
-class ExperimentScenariosTestCase(ToolsAndUtilsTestCase):
+class ExperimentScenariosTestCase(_SemiConstantCacheTestCase):
+
+    def set_up(self):
+        _SemiConstantCacheTestCase.set_up(self)
+        self.entity_cls = ExperimentMetadataType
+        self.cache_cls = EXPERIMENT_SCENARIOS
+        self.from_name_meth = get_experiment_metadata_type
+        self.comp_attr_name = 'id'
 
     def test_from_name(self):
-        for em_type_id in EXPERIMENT_SCENARIOS.ALL:
-            self.assert_true(EXPERIMENT_SCENARIOS.is_known_entity(em_type_id))
-            entity = EXPERIMENT_SCENARIOS.from_name(em_type_id)
-            self.assert_is_not_none(entity)
-            self.assert_true(isinstance(entity, ExperimentMetadataType))
-        self.assert_false(EXPERIMENT_SCENARIOS.is_known_entity('invalid'))
-        self.assert_raises(ValueError, EXPERIMENT_SCENARIOS.from_name,
-                           'invalid')
+        self._test_from_name()
 
     def test_shortcuts(self):
-        type_opti = get_experiment_type_robot_optimisation()
-        self.__test_shortcut(type_opti, EXPERIMENT_SCENARIOS.OPTIMISATION)
-        type_screen = get_experiment_type_screening()
-        self.__test_shortcut(type_screen, EXPERIMENT_SCENARIOS.SCREENING)
-        type_manual = get_experiment_type_manual_optimisation()
-        self.__test_shortcut(type_manual, EXPERIMENT_SCENARIOS.MANUAL)
-        type_library = get_experiment_type_library()
-        self.__test_shortcut(type_library, EXPERIMENT_SCENARIOS.LIBRARY)
-        type_isoless = get_experiment_type_isoless()
-        self.__test_shortcut(type_isoless, EXPERIMENT_SCENARIOS.ISO_LESS)
-        type_order = get_experiment_type_order()
-        self.__test_shortcut(type_order, EXPERIMENT_SCENARIOS.ORDER_ONLY)
-
-    def __test_shortcut(self, em_type, exp_id):
-        self.assert_is_not_none(em_type)
-        self.assert_true(isinstance(em_type, ExperimentMetadataType))
-        self.assert_equal(em_type.id, exp_id)
-
+        self._test_shortcut(get_experiment_type_robot_optimisation,
+                            EXPERIMENT_SCENARIOS.OPTIMISATION)
+        self._test_shortcut(get_experiment_type_manual_optimisation,
+                            EXPERIMENT_SCENARIOS.MANUAL)
+        self._test_shortcut(get_experiment_type_screening,
+                            EXPERIMENT_SCENARIOS.SCREENING)
+        self._test_shortcut(get_experiment_type_library,
+                            EXPERIMENT_SCENARIOS.LIBRARY)
+        self._test_shortcut(get_experiment_type_isoless,
+                            EXPERIMENT_SCENARIOS.ISO_LESS)
+        self._test_shortcut(get_experiment_type_order,
+                            EXPERIMENT_SCENARIOS.ORDER_ONLY)

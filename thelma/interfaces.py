@@ -44,6 +44,7 @@ __all__ = ['IBarcodePrintJob',
            'IMoleculeDesignSet',
            'IMoleculeType',
            'IOrganization',
+           'IPipettingSpecs',
            'IPlate',
            'IPlateSpecs',
            'IProject',
@@ -336,6 +337,12 @@ class IPlannedRackTransfer(Interface):
 class IPlannedWorklist(Interface):
     """
     Marker interface indicating participation in planned worklist resources
+    """
+
+
+class IPipettingSpecs(Interface):
+    """
+    Marker interface indicating participation in pipetting specs resources.
     """
 
 

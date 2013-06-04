@@ -17,7 +17,7 @@ __author__ = 'Anna-Antonia Berger'
 
 __all__ = ['ReservoirSpecsCollection',
            'ReservoirSpecsMember',
-           ]
+           'PipettingSpecsMember']
 
 
 class ReservoirSpecsMember(Member):
@@ -33,3 +33,12 @@ class ReservoirSpecsCollection(Collection):
     description = 'Manage Reservoir Specs'
 
 
+class PipettingSpecsMember(Member):
+    relation = '%s/pipettingspecs' % RELATION_BASE_URL
+    name = terminal_attribute(str, 'name')
+    min_transfer_volume = terminal_attribute(float, 'min_transfer_volume')
+    max_transfer_volume = terminal_attribute(float, 'max_transfer_volume')
+    max_dilution_factor = terminal_attribute(int, 'max_dilution_factor')
+    has_dynamic_dead_volume = terminal_attribute(bool,
+                                                 'has_dynamic_dead_volume')
+    is_sector_bound = terminal_attribute(bool, 'is_sector_bound')

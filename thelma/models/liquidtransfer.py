@@ -25,6 +25,7 @@ __all__ = ['TRANSFER_TYPES',
            'ExecutedContainerTransfer',
            'ExecutedRackTransfer',
            'ExecutedWorklist',
+           'PipettingSpecs',
            'ReservoirSpecs']
 
 
@@ -670,6 +671,62 @@ class ExecutedWorklist(Entity):
     def __repr__(self):
         str_format = '<%s id: %s, planned worklist: %s>'
         params = (self.__class__.__name__, self.id, self.planned_worklist.label)
+        return str_format % params
+
+
+class PipettingSpecs(Entity):
+    """
+    Contains the properties for a pipetting method or robot.
+
+    **Equality Condition**: equal :attr:`name`
+    """
+    #: The name of the robot or method.
+    name = None
+    #: The minimum volume that can be pipetted with this method in l.
+    min_transfer_volume = None
+    #: The maximum volume that can be pipetted with this method in l.
+    max_transfer_volume = None
+    #: The maximum dilution that can achieved with a one-step transfer.
+    max_dilution_factor = None
+    #: For some robots the dead volume depends on the number of transfers
+    #: taken from a source well. The minimum and maximum dead volume depend
+    #: on the :class:`ReservoirSpecs`.
+    has_dynamic_dead_volume = None
+    #: Some robots have limitation regarding the possible target positions for
+    #: a source position.
+    is_sector_bound = None
+
+    def __init__(self, name, min_transfer_volume, max_transfer_volume,
+                 max_dilution_factor, has_dynamic_dead_volume, is_sector_bound,
+                 **kw):
+        """
+        Constructor
+        """
+        Entity.__init__(self, **kw)
+        self.name = name
+        self.min_transfer_volume = min_transfer_volume
+        self.max_transfer_volume = max_transfer_volume
+        self.max_dilution_factor = max_dilution_factor
+        self.has_dynamic_dead_volume = has_dynamic_dead_volume
+        self.is_sector_bound = is_sector_bound
+
+    @property
+    def slug(self):
+        """
+        The slug of a planned transfer is its :attr:`name`.
+        """
+        return slug_from_string(self.name)
+
+    def __eq__(self, other):
+        return isinstance(other, PipettingSpecs) and \
+                    other.name == self.name
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        str_format = '<%s name: %s>'
+        params = (self.__class__.__name__, self.name)
         return str_format % params
 
 

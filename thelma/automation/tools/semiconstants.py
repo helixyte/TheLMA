@@ -19,18 +19,19 @@ AAB
 from everest.entities.utils import get_root_aggregate
 from everest.querying.specifications import lt
 from everest.repositories.rdb.utils import as_slug_expression
+from thelma.interfaces import IExperimentMetadataType
 from thelma.interfaces import IItemStatus
+from thelma.interfaces import IPipettingSpecs
 from thelma.interfaces import IPlateSpecs
 from thelma.interfaces import IRackPosition
 from thelma.interfaces import IRackShape
 from thelma.interfaces import IReservoirSpecs
+from thelma.models.experiment import ExperimentMetadataType
 from thelma.models.liquidtransfer import ReservoirSpecs
+from thelma.models.rack import PlateSpecs
 from thelma.models.rack import RACK_POSITION_REGEXP
 from thelma.models.status import ITEM_STATUSES
 from thelma.models.utils import label_from_number
-from thelma.models.rack import PlateSpecs
-from thelma.interfaces import IExperimentMetadataType
-from thelma.models.experiment import ExperimentMetadataType
 
 
 __docformat__ = 'reStructuredText en'
@@ -52,6 +53,11 @@ __all__ = ['SemiconstantCache',
            'get_96_rack_shape',
            'get_384_rack_shape',
            'get_positions_for_shape',
+           'PIPETTING_SPECS_NAMES',
+           'get_pipetting_specs',
+           'get_pipetting_specs_manual',
+           'get_pipetting_specs_cybio',
+           'get_pipetting_specs_biomek',
            'RESERVOIR_SPECS_NAMES',
            'get_reservoir_spec',
            'get_reservoir_specs_standard_96',
@@ -364,6 +370,34 @@ def get_384_rack_shape():
 def get_positions_for_shape(rack_shape, vertical_sorting=False):
     return RACK_SHAPE_NAMES.get_positions_for_shape(rack_shape,
                                                     vertical_sorting)
+
+
+class PIPETTING_SPECS_NAMES(SemiconstantCache):
+    """
+    Caching and shortcuts for
+    :class:`thelma.models.liquidtransfer.PipettingSpecs` entities.
+    """
+    MANUAL = 'manual'
+    CYBIO = 'CyBio'
+    BIOMEK = 'BioMek'
+
+    ALL = [MANUAL, CYBIO, BIOMEK]
+    _MARKER_INTERFACE = IPipettingSpecs
+
+#: A short cut for :func:`PIPETTING_SPECS_NAMES.from_name`.
+get_pipetting_specs = PIPETTING_SPECS_NAMES.from_name
+
+#: A short cut to get the manual pipetting specs.
+def get_pipetting_specs_manual():
+    return get_pipetting_specs(PIPETTING_SPECS_NAMES.MANUAL)
+
+#: A short cut to get the CyBio pipetting specs.
+def get_pipetting_specs_cybio():
+    return get_pipetting_specs(PIPETTING_SPECS_NAMES.CYBIO)
+
+#: A short cut to get the BioMek pipetting specs.
+def get_pipetting_specs_biomek():
+    return get_pipetting_specs(PIPETTING_SPECS_NAMES.BIOMEK)
 
 
 class RESERVOIR_SPECS_NAMES(SemiconstantCache):

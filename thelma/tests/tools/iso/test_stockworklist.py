@@ -6,6 +6,7 @@ AAB
 """
 from thelma.automation.tools.iso.prep_utils import IsoControlRackPosition
 from thelma.automation.tools.iso.prep_utils import RequestedStockSample
+from thelma.automation.tools.iso.prep_utils import PrepIsoAssociationData
 from thelma.automation.tools.iso.stockworklist \
     import StockTransferWorklistGenerator384Controls
 from thelma.automation.tools.iso.stockworklist \
@@ -19,9 +20,10 @@ from thelma.automation.tools.utils.base import TransferTarget
 from thelma.automation.tools.utils.racksector import QuadrantIterator
 from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.tests.tools.iso.test_stock import IsoControlStockRackTestCase
-from thelma.tests.tools.iso.test_stock import StockTaking384TestCase
-from thelma.tests.tools.iso.test_stock import StockTaking96TestCase
+from thelma.tests.tools.iso.test_stocktransfer \
+    import IsoControlStockRackTestCase
+from thelma.tests.tools.iso.test_stocktransfer import StockTaking384TestCase
+from thelma.tests.tools.iso.test_stocktransfer import StockTaking96TestCase
 
 
 class IsoSampleStockRack96WorklistGeneratorTestCase(StockTaking96TestCase):
@@ -93,10 +95,12 @@ class IsoSampleStockRack384WorklistGeneratorMultiTestCase(
                             1 : dict(A4='A2', C2='B1', C4='B2'),
                             2 : dict(B1='A1', B3='A2', D1='B1'),
                             3 : dict(B2='A1', B4='A2', D2='B1')}
+        self.association_data = None
 
     def tear_down(self):
         StockTaking384TestCase.tear_down(self)
         del self.sector_stock_samples
+        del self.association_data
 
     def _continue_setup(self, single_stock_rack=False):
         self._create_preparation_layout()
@@ -111,6 +115,10 @@ class IsoSampleStockRack384WorklistGeneratorMultiTestCase(
                         sector_stock_samples=self.sector_stock_samples,
                         floating_stock_concentration=self.stock_concentration,
                         association_data=self.association_data)
+
+    def _create_association_data(self):
+        self.association_data = PrepIsoAssociationData(
+                    preparation_layout=self.preparation_layout, log=self.log)
 
     def _create_req_stock_samples(self):
         for i in range(4): self.sector_stock_samples[i] = []
@@ -261,7 +269,6 @@ class IsoSampleStockRack384WorklistGeneratorSingleTestCase(
 
     def _continue_setup(self, single_stock_rack=False):
         self._create_preparation_layout()
-        self._create_association_data()
         self._create_req_stock_samples()
         self._create_tool()
 
@@ -269,7 +276,7 @@ class IsoSampleStockRack384WorklistGeneratorSingleTestCase(
         for pp in self.preparation_layout.working_positions():
             if not pp.parent_well is None or pp.is_inactivated: continue
             pool_id = pp.molecule_design_pool_id
-            if not pool_id in self.floatings_pools: continue
+            if not pool_id in self.floating_pools: continue
             rss = RequestedStockSample.from_prep_pos(prep_pos=pp)
             self.requested_stock_samples.append(rss)
 

@@ -52,6 +52,7 @@ from thelma.db.schema.tables import moleculedesignsetmember
 from thelma.db.schema.tables import moleculedesignstructure
 from thelma.db.schema.tables import moleculetype
 from thelma.db.schema.tables import organization
+from thelma.db.schema.tables import pipettingspecs
 from thelma.db.schema.tables import plannedcontainerdilution
 from thelma.db.schema.tables import plannedcontainertransfer
 from thelma.db.schema.tables import plannedracktransfer
@@ -192,6 +193,7 @@ def initialize_tables(metadata):
     job_tbl = job.create_table(metadata, job_type_tbl, dbuser_tbl,
                                subproject_tbl)
 
+    pipetting_specs_tbl = pipettingspecs.create_table(metadata)
     reservoir_specs_tbl = reservoirspecs.create_table(metadata, rack_shape_tbl)
     planned_transfer_tbl = plannedtransfer.create_table(metadata)
     planned_container_dilution_tbl = plannedcontainerdilution.create_table(

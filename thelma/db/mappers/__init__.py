@@ -52,6 +52,7 @@ from thelma.db.mappers import moleculetype
 from thelma.db.mappers import nucleicacidchemicalstructure
 from thelma.db.mappers import organization
 from thelma.db.mappers import otherjob
+from thelma.db.mappers import pipettingspecs
 from thelma.db.mappers import plannedcontainerdilution
 from thelma.db.mappers import plannedcontainertransfer
 from thelma.db.mappers import plannedracktransfer
@@ -278,6 +279,7 @@ def initialize_mappers(tables, views):
     isoaliquotplate.create_mapper(tables['iso_aliquot_plate'])
     isopreparationplate.create_mapper(tables['iso_preparation_plate'])
 
+    pipettingspecs.create_mapper(tables['pipetting_specs'])
     reservoirspecs.create_mapper(tables['reservoir_specs'])
     planned_transfer_mapper = plannedtransfer.create_mapper(
                     tables['planned_transfer'], tables['planned_worklist'],
