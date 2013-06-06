@@ -77,7 +77,7 @@ class _SemiConstantCacheTestCase(ToolsAndUtilsTestCase):
 
     def _test_shortcut(self, shortcut_meth, exp_name):
         entity = shortcut_meth()
-        self.assert_is_none(entity)
+        self.assert_is_not_none(entity)
         self.assert_true(isinstance(entity, self.entity_cls))
         self.assert_equal(getattr(entity, self.comp_attr_name), exp_name)
         return entity
@@ -95,9 +95,9 @@ class ReservoirSpecsNamesTestCase(_SemiConstantCacheTestCase):
         self._test_from_name()
 
     def test_shortcuts(self):
-        self._test_shortcut(get_reservoir_specs_standard_96(),
+        self._test_shortcut(get_reservoir_specs_standard_96,
                             RESERVOIR_SPECS_NAMES.STANDARD_96)
-        self._test_shortcut(get_reservoir_specs_standard_384(),
+        self._test_shortcut(get_reservoir_specs_standard_384,
                             RESERVOIR_SPECS_NAMES.STANDARD_384)
         self._test_shortcut(get_reservoir_specs_deep_96,
                             RESERVOIR_SPECS_NAMES.DEEP_96)
