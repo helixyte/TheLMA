@@ -22,7 +22,7 @@ import glob
 #                                    ISampleRegistrationItem
 
 
-class _DeliveryRegistrationTestCase(ThelmaResourceTestCase):
+class _SampleRegistrationTestCase(ThelmaResourceTestCase):
     delivery_file = None
     def set_up(self):
         ThelmaResourceTestCase.set_up(self)
@@ -51,10 +51,11 @@ class _DeliveryRegistrationTestCase(ThelmaResourceTestCase):
         self.assert_equal(len(reg_data['stock_samples']), 2)
         self.assert_equal(len(reg_data['supplier_molecule_designs']), 1)
         self.assert_equal(len(reg_data['tubes']), 2)
+        dlv_reg.write_report()
         return reg_data
 
 
-class DeliveryRegistrationTestCase(_DeliveryRegistrationTestCase):
+class SampleRegistrationTestCase(_SampleRegistrationTestCase):
     delivery_file = 'thelma:tests/tools/stock/registration/' \
                     'ambion_delivery_samples.json'
 
@@ -63,7 +64,7 @@ class DeliveryRegistrationTestCase(_DeliveryRegistrationTestCase):
         self.assert_equal(len(reg_data['racks']), 0)
 
 
-class DeliveryRegistrationWithLocationsTestCase(_DeliveryRegistrationTestCase):
+class SampleRegistrationWithLocationsTestCase(_SampleRegistrationTestCase):
     delivery_file = 'thelma:tests/tools/stock/registration/' \
                     'ambion_delivery_samples_with_locations.json'
 
@@ -72,12 +73,12 @@ class DeliveryRegistrationWithLocationsTestCase(_DeliveryRegistrationTestCase):
         self.assert_equal(len(reg_data['racks']), 1)
 
 
-class _DeliveryRegistrationWithScanfileTestCase(
-                                    DeliveryRegistrationWithLocationsTestCase):
+class _SampleRegistrationWithScanfileTestCase(
+                                    SampleRegistrationWithLocationsTestCase):
     scan_file = None
 
     def set_up(self):
-        DeliveryRegistrationWithLocationsTestCase.set_up(self)
+        SampleRegistrationWithLocationsTestCase.set_up(self)
         vld_f_path = resource_filename(*self.scan_file.split(':'))
         self.__validation_file = os.path.join(self._directory,
                                               os.path.split(vld_f_path)[1])
@@ -90,8 +91,8 @@ class _DeliveryRegistrationWithScanfileTestCase(
                     validation_files=self.__validation_file)
 
 
-class DeliveryRegistrationWithValidScanfileTestCase(
-                                _DeliveryRegistrationWithScanfileTestCase):
+class SampleRegistrationWithValidScanfileTestCase(
+                                _SampleRegistrationWithScanfileTestCase):
 
     scan_file = 'thelma:tests/tools/stock/registration/' \
                 'valid_delivery_scan_file.txt'
@@ -123,8 +124,8 @@ class DeliveryRegistrationWithValidScanfileTestCase(
         self.assert_equal(float(ss_row_data['volume']), 2e-4)
 
 
-class DeliveryRegistrationWithInvalidScanfileTestCase(
-                                _DeliveryRegistrationWithScanfileTestCase):
+class SampleRegistrationWithInvalidScanfileTestCase(
+                                _SampleRegistrationWithScanfileTestCase):
 
     scan_file = 'thelma:tests/tools/stock/registration/' \
                 'invalid_delivery_scan_file.txt'

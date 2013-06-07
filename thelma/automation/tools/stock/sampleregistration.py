@@ -5,15 +5,12 @@ Created on September 06, 2012.
 """
 from everest.entities.base import Entity
 from everest.entities.utils import get_root_aggregate
-from everest.mime import JsonMime
 from everest.querying.specifications import cntd
 from everest.querying.specifications import eq
-from everest.representers.utils import as_representer
 from everest.resources.base import Member
 from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
-from everest.resources.utils import get_collection_class
 from thelma.automation.handlers.rackscanning \
                                     import AnyRackScanningParserHandler
 from thelma.automation.handlers.rackscanning import RackScanningLayout
@@ -110,6 +107,7 @@ class MoleculeDesignRegistrationItem(MoleculeDesignRegistrationItemBase):
 
 class MoleculeDesignRegistrationItemMember(Member):
     relation = "%s/molecule-design-registration-item" % RELATION_BASE_URL
+    molecule_type = member_attribute(IMoleculeType, 'molecule_type')
     chemical_structures = collection_attribute(IChemicalStructure,
                                                'chemical_structures')
 
@@ -133,6 +131,7 @@ class MoleculeDesignPoolRegistrationItem(MoleculeDesignRegistrationItemBase):
 
 class MoleculeDesignPoolRegistrationItemMember(Member):
     relation = "%s/molecule-design-pool-registration-item" % RELATION_BASE_URL
+    molecule_type = member_attribute(IMoleculeType, 'molecule_type')
     molecule_design_registration_items = \
                 collection_attribute(IMoleculeDesignRegistrationItem,
                                      'molecule_design_registration_items')
@@ -252,7 +251,115 @@ class SupplierSampleRegistrationItemMember(SampleRegistrationItemMember):
                              'molecule_design_pool_registration_item')
 
 
-class SampleRegistrar(BaseAutomationTool):
+class Reporter(object):
+    def __init__(self, directory, filename):
+        self.__directory = directory
+        self.__filename = filename
+
+    def header(self):
+        raise NotImplementedError('Abstract method.')
+
+    def line(self, datum):
+        raise NotImplementedError('Abstract method.')
+
+    def run(self, data):
+        lines = [self.header()]
+        for datum in data:
+            lines.append(self.line(datum))
+        time_string = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+        report_filename = os.path.join(self.__directory,
+                                       "%s-%s.csv" % (self.__filename,
+                                                      time_string))
+        with open(report_filename, 'wb') as report_file:
+            report_file.write(os.linesep.join(lines))
+
+
+class BarcodeMapReporter(Reporter):
+    def header(self):
+        return 'cenix_barcode,supplier_barcode'
+
+    def line(self, datum):
+        rack, spl_bc = datum
+        return "%s,%s" % (rack.barcode, spl_bc)
+
+
+class StockSampleReporter(Reporter):
+    def header(self):
+        return 'tube_barcode,molecule_type,molecule_design_pool_id,' \
+               'supplier,volume,concentration'
+
+    def line(self, datum):
+        return '"%s","%s",%s,"%s",%f,%f' % (datum.container.barcode,
+                                            datum.molecule_type.name,
+                                            datum.molecule_design_pool.id,
+                                            datum.supplier.name,
+                                            datum.volume,
+                                            datum.concentration)
+
+
+class SupplierMoleculeDesignReporter(Reporter):
+    def header(self):
+        return 'product_id,supplier,supplier_molecule_design_id,' \
+               'molecule_design_pool_id'
+
+    def line(self, datum):
+        return '%s,%s,%s,%s' % (datum.product_id, datum.supplier.name,
+                                datum.id, datum.molecule_design_pool.id)
+
+
+class MoleculeDesignReporter(Reporter):
+    def header(self):
+        return 'molecule_design_id,structure_hash'
+
+    def line(self, datum):
+        return '%s,%s' % (datum.id, datum.structure_hash_string)
+
+
+class MoleculeDesignPoolReporter(Reporter):
+    def header(self):
+        return 'molecule_design_pool_id,member_hash'
+
+    def line(self, datum):
+        return '%s,%s' % (datum.id, datum.member_hash_string)
+
+
+class ReporterDispatcher(object):
+    __reporter_map = dict(rack_barcodes=BarcodeMapReporter,
+                          stock_samples=StockSampleReporter,
+                          supplier_molecule_designs=
+                                SupplierMoleculeDesignReporter,
+                          molecule_designs=MoleculeDesignReporter,
+                          molecule_design_pools=MoleculeDesignPoolReporter)
+    @staticmethod
+    def dispatch(name, directory, data):
+        rep_cls = ReporterDispatcher.__reporter_map.get(name)
+        if not rep_cls is None:
+            rep = rep_cls(directory, name)
+            rep.run(data)
+
+
+class ReportingAutomationTool(BaseAutomationTool): # still abstract pylint: disable=W0223
+    def __init__(self, report_directory=None, **kw):
+        BaseAutomationTool.__init__(self, **kw)
+        if report_directory is None:
+            report_directory = os.getcwd()
+        self.report_directory = report_directory
+
+    def write_report(self):
+        for name, data in self.return_value.items():
+            ReporterDispatcher.dispatch(name, self.report_directory, data)
+
+
+class RegistrationTool(ReportingAutomationTool): # still abstract pylint: disable=W0223
+    def __init__(self, registration_items, report_directory=None,
+                 depending=False, **kw):
+        ReportingAutomationTool.__init__(self,
+                                         report_directory=report_directory,
+                                         depending=depending, **kw)
+        self.registration_items = registration_items
+
+
+class SampleRegistrar(RegistrationTool):
     """
     Registrar for samples with existing design information.
 
@@ -278,12 +385,12 @@ class SampleRegistrar(BaseAutomationTool):
       molecule_design_pools : list of molecule design pools created.
       supplier_rack_barcodes : dictionary supplier barcode -> Cenix barcode
     """
-    def __init__(self, sample_registration_items, report_directory=None,
+    def __init__(self, registration_items, report_directory=None,
                  rack_specs_name='matrix0500', tube_specs_name='matrix0500',
-                 validation_files=None, depending=False, **kw):
+                 validation_files=None, **kw):
         """
-        :param sample_registration_items: delivery samples to register.
-        :type sample_registration_items: sequence of
+        :param registration_items: delivery samples to register.
+        :type registration_items: sequence of
             :class:`SampleRegistrationItem`
         :param str rack_specs_name: name of the rack specs to use for newly
             created racks.
@@ -292,11 +399,8 @@ class SampleRegistrar(BaseAutomationTool):
         :param str validation_files: optional comma-separated list of rack
             scanning file names to use for validation of the sample positions.
         """
-        BaseAutomationTool.__init__(self, depending=depending, **kw)
-        self.sample_registration_items = sample_registration_items
-        if report_directory is None:
-            report_directory = os.getcwd()
-        self.__report_directory = report_directory
+        RegistrationTool.__init__(self, registration_items,
+                                  report_directory=report_directory, **kw)
         self.__tube_specs_name = tube_specs_name
         self.__rack_specs_name = rack_specs_name
         if not validation_files is None:
@@ -320,34 +424,15 @@ class SampleRegistrar(BaseAutomationTool):
             # Create new tubes, if necessary.
             self.__check_tubes()
         if not self.has_errors():
-            # Build a mapping supplier rack barcode -> Cenix rack barcode.
-            spl_rack_map = {}
-            for rack, spl_bc in \
-                        self.__new_rack_supplier_barcode_map.iteritems():
-                spl_rack_map[spl_bc] = rack.barcode
-            self.return_value['supplier_rack_barcodes'] = spl_rack_map
-        #
-        time_string = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
+            # Store supplier rack barcode -> Cenix rack barcode map.
+            self.return_value['rack_barcodes'] = \
+                        self.__new_rack_supplier_barcode_map.items()
         if not self.has_errors() and not self.__validation_files is None:
             self.__validate_locations()
-            if not self.has_errors():
-                # Generate rack barcode report file content.
-                lines = ['cenix_barcode,supplier_barcode']
-                for rack, spl_bc in \
-                        self.__new_rack_supplier_barcode_map.items():
-                    lines.append("%s,%s" % (rack.barcode, spl_bc))
-                # Write out rack barcode report file.
-
-                rack_barcode_report_filename = \
-                                    os.path.join(self.__report_directory,
-                                                 'rack_barcodes_%s.csv'
-                                                 % time_string)
-                with open(rack_barcode_report_filename, 'wb') as bc_file:
-                    bc_file.write(os.linesep.join(lines))
         if not self.has_errors():
             new_stock_spls = []
             ss_agg = get_root_aggregate(IStockSample)
-            for sri in self.sample_registration_items:
+            for sri in self.registration_items:
                 # Create new stock sample.
                 stock_spl = StockSample(
                                     sri.volume,
@@ -363,31 +448,13 @@ class SampleRegistrar(BaseAutomationTool):
                 # Update the sample registration item.
                 sri.stock_sample = stock_spl
             self.return_value['stock_samples'] = new_stock_spls
-            # Generate stock sample report file content.
-            lines = ['tube_barcode,molecule_type,molecule_design_pool_id,'
-                     'supplier,volume,concentration']
-            for ss in new_stock_spls:
-                lines.append('"%s","%s",%d,"%s",%f,%f' %
-                             (ss.container.barcode,
-                              ss.molecule_type.name,
-                              ss.molecule_design_pool.id,
-                              ss.supplier.name,
-                              ss.volume,
-                              ss.concentration))
-            # Write out stock sample report file.
-            stock_sample_repor_filename = \
-                        os.path.join(self.__report_directory,
-                                     'stock_samples_%s.csv'
-                                     % time_string)
-            with open(stock_sample_repor_filename, 'wb') as ss_file:
-                ss_file.write(os.linesep.join(lines))
 
     def __check_racks(self):
         rack_agg = get_root_aggregate(IRack)
         bcs = [getattr(sri, 'rack_barcode')
-               for sri in self.sample_registration_items
+               for sri in self.registration_items
                if not getattr(sri, 'rack_barcode') is None]
-        if len(bcs) > 0 and len(bcs) != len(self.sample_registration_items):
+        if len(bcs) > 0 and len(bcs) != len(self.registration_items):
             msg = 'Some sample registration items contain rack ' \
                   'barcodes, but not all of them do.'
             self.add_error(msg)
@@ -397,7 +464,7 @@ class SampleRegistrar(BaseAutomationTool):
                 rack_agg.filter = cntd(barcode=bcs)
                 rack_map = dict([(rack.barcode, rack)
                                  for rack in rack_agg.iterator()])
-                for sri in self.sample_registration_items:
+                for sri in self.registration_items:
                     rack_bc = sri.rack_barcode
                     if not rack_bc in rack_map:
                         # Create new item and add.
@@ -417,11 +484,11 @@ class SampleRegistrar(BaseAutomationTool):
         tube_agg = get_root_aggregate(ITube)
         tube_agg.filter = \
             cntd(barcode=[getattr(sri, 'tube_barcode')
-                          for sri in self.sample_registration_items])
+                          for sri in self.registration_items])
         tube_map = dict([(tube.barcode, tube)
                          for tube in tube_agg.iterator()])
         new_tubes = []
-        for sri in self.sample_registration_items:
+        for sri in self.registration_items:
             tube_bc = sri.tube_barcode
             if not tube_bc in tube_map:
                 tube = self.__make_new_tube(sri)
@@ -496,7 +563,7 @@ class SampleRegistrar(BaseAutomationTool):
         rsl_map = self.__read_rack_scanning_files()
         if not self.has_errors():
             processed_racks = set()
-            for sri in self.sample_registration_items:
+            for sri in self.registration_items:
                 if sri.rack is None:
                     msg = 'No rack was found or created for registration ' \
                           'item with tube barcode %s.' % sri.tube_barcode
@@ -546,7 +613,7 @@ class SampleRegistrar(BaseAutomationTool):
         return rsl_map
 
 
-class SupplierSampleRegistrar(BaseAutomationTool):
+class SupplierSampleRegistrar(RegistrationTool):
     """
     Registrar for samples shipped by a supplier.
 
@@ -563,11 +630,10 @@ class SupplierSampleRegistrar(BaseAutomationTool):
        :class:`SampleRegistrar` to register samples.
      * Check that all molecule designs have a supplier molecule design.
     """
-    def __init__(self, sample_registration_items, report_directory=None,
-                 validation_files=None, depending=False, **kw):
-        BaseAutomationTool.__init__(self, depending=depending, **kw)
-        self.sample_registration_items = sample_registration_items
-        self.__report_directory = report_directory
+    def __init__(self, registration_items, report_directory=None,
+                 validation_files=None, **kw):
+        RegistrationTool.__init__(self, registration_items,
+                                  report_directory=report_directory, **kw)
         self.__validation_files = validation_files
         self.__new_smd_sris = None
 
@@ -578,26 +644,25 @@ class SupplierSampleRegistrar(BaseAutomationTool):
         self.__check_new_supplier_molecule_designs()
         #
         if not self.has_errors():
-            self.__check_molecule_designs()
-        #
-        if not self.has_errors():
             self.__check_molecule_design_pools()
         #
         if not self.has_errors():
-            self.__check_supplier_molecule_designs()
+            self.__process_supplier_molecule_designs()
         #
         if not self.has_errors():
             # Run the sample registrar.
-            sr = SampleRegistrar(self.sample_registration_items,
-                                 report_directory=self.__report_directory,
-                                 validation_files=self.__validation_files)
+            sr = SampleRegistrar(self.registration_items,
+                                 report_directory=self.report_directory,
+                                 validation_files=self.__validation_files,
+                                 depending=True,
+                                 log=self.log)
             sr.run()
             if sr.has_errors():
                 self.add_error(sr.get_messages(logging.ERROR))
             else:
                 self.return_value.update(sr.return_value)
             # Checks.
-            for sri in self.sample_registration_items:
+            for sri in self.registration_items:
                 mdpri = sri.molecule_design_pool_registration_item
                 for mdri in mdpri.molecule_design_registration_items:
                     if not sri.supplier_molecule_design in \
@@ -616,20 +681,22 @@ class SupplierSampleRegistrar(BaseAutomationTool):
         #        However, this leads to "maximum recursion depth exceeded"
         #        problems with the current everest.
         exst_smd_map = {}
-        for sri in self.sample_registration_items:
+        for sri in self.registration_items:
             smd_spec = eq(supplier=sri.supplier,
                           product_id=sri.product_id,
                           is_current=True)
             smd_agg.filter = smd_spec
             try:
-                smd = smd_agg.iterator().next()
+                smd = next(smd_agg.iterator())
             except StopIteration:
                 continue
             else:
                 exst_smd_map[(smd.supplier, smd.product_id)] = smd
         new_smd_sris = []
-        for sri in self.sample_registration_items:
+        for sri in self.registration_items:
             mdpri = sri.molecule_design_pool_registration_item
+            # Set the molecule type.
+            mdpri.molecule_type = sri.molecule_type
             key = (sri.supplier, sri.product_id)
             if key in exst_smd_map:
                 # Update sample registration item.
@@ -639,8 +706,10 @@ class SupplierSampleRegistrar(BaseAutomationTool):
                     # Compare found design information against existing design
                     # information.
                     mdris = mdpri.molecule_design_registration_items
-                    found_md_hashes = sorted([self.__make_hash(mdri)
-                                              for mdri in mdris])
+                    found_md_hashes = \
+                        sorted([MoleculeDesign.make_structure_hash(
+                                                    mdri.chemical_structures)
+                                for mdri in mdris])
                     exist_mds = smd.molecule_design_pool.molecule_designs
                     exist_md_hashes = sorted([md.structure_hash
                                               for md in exist_mds])
@@ -665,125 +734,30 @@ class SupplierSampleRegistrar(BaseAutomationTool):
         # Store new supplier molecule design registration items for later use.
         self.__new_smd_sris = new_smd_sris
 
-    def __check_molecule_designs(self):
-        md_agg = get_root_aggregate(IMoleculeDesign)
-        # Build a map design hash -> registration item for all molecule design
-        # registration items. Note that if several registration items produce
-        # the same design hash (i.e., several pools sharing one or more
-        # designs submitted for registration), only the last one is included.
-        mdri_map = {}
-        for sri in self.sample_registration_items:
-            mdpri = sri.molecule_design_pool_registration_item
-            for mdri in mdpri.molecule_design_registration_items:
-                struc_hash = self.__make_hash(mdri)
-                mdri_map[struc_hash] = mdri
-                # Set the molecule type on the molecule design registration
-                # item.
-                mdri.molecule_type = sri.molecule_type
-        # Build "contained" specification, filter all existing designs and
-        # build difference set of new designs.
-        md_agg.filter = cntd(structure_hash=mdri_map.keys())
-        existing_md_map = dict([(md.structure_hash, md)
-                                for md in md_agg.iterator()])
-        # Update registration items with existing molecule designs.
-        for struc_hash, md in existing_md_map.iteritems():
-            mdri = mdri_map[struc_hash]
-            mdri.molecule_design = md
-        # Collect molecule design registration items to submit to the
-        # registrar.
-        new_md_hashes = \
-                set(mdri_map.keys()).difference(existing_md_map.keys())
-        if len(new_md_hashes) > 0:
-            # Register the new designs.
-            new_mdris = [mdri_map[hash_string]
-                         for hash_string in new_md_hashes]
-            md_registrar = MoleculeDesignRegistrar(new_mdris, log=self.log)
-            md_registrar.run()
-            if not md_registrar.has_errors():
-                self.return_value.update(md_registrar.return_value)
-            else:
-                self.add_error(md_registrar.get_messages(logging.ERROR))
-
     def __check_molecule_design_pools(self):
-        md_pool_agg = get_root_aggregate(IMoleculeDesignPool)
-        # Create design pool hashes for the samples that are being registered.
-        hash_map = {}
-        for sri in self.sample_registration_items:
-            # New single designs are not yet flushed at this point and will
-            # create an impossible member hash (using None as ID value).
-            # This is not a problem as we can not have an existing design pool
-            # for a new single design.
-            mdpri = sri.molecule_design_pool_registration_item
-            hash_func = MoleculeDesignPool.make_member_hash
-            hash_val = hash_func([mdri.molecule_design
-                           for mdri in
-                           mdpri.molecule_design_registration_items])
-            hash_map[sri] = hash_val
-        md_pool_agg.filter = cntd(member_hash=hash_map.values())
-        mdp_map = dict([(mdp.member_hash, mdp)
-                        for mdp in md_pool_agg.iterator()])
-        new_md_pools = []
-        for sri, hash_string in hash_map.iteritems():
-            mdpri = sri.molecule_design_pool_registration_item
-            if not hash_string in mdp_map:
-                # Create new molecule design pool.
-                md_pool = MoleculeDesignPool(
-                        set([mdri.molecule_design
-                             for mdri in
-                             mdpri.molecule_design_registration_items]))
-                md_pool_agg.add(md_pool)
-                new_md_pools.append(md_pool)
-            else:
-                md_pool = mdp_map[hash_string]
-            # Update sample registration item.
-            mdpri.molecule_design_pool = md_pool
-            sri.molecule_design_pool = md_pool
-        self.return_value['molecule_design_pools'] = new_md_pools
-
-    def __check_supplier_molecule_designs(self):
-        # Run the supplier molecule design registrar to create missing
-        # supplier molecule designs.
-        smd_reg = SupplierMoleculeDesignRegistrar(self.__new_smd_sris,
-                                                  log=self.log)
-        smd_reg.run()
-        if not smd_reg.has_errors():
-            self.return_value.update(smd_reg.return_value)
-#            # Iterate over registration items again and update supplier
-#            # molecule designs with freshly registered molecule design pools.
-#            for sri in self.sample_registration_items:
-#                smd = sri.supplier_molecule_design
-#                if not smd.molecule_design_pool is None:
-#                    smd.molecule_design_pool = sri.molecule_design_pool
+        mdpris = [sri.molecule_design_pool_registration_item
+                  for sri in self.registration_items]
+        mdp_registrar = \
+                MoleculeDesignPoolRegistrar(mdpris,
+                                            depending=True,
+                                            log=self.log,
+                                            report_directory=
+                                                self.report_directory)
+        mdp_registrar.run()
+        if not mdp_registrar.has_errors():
+            # Update sample registration items.
+            for sri in self.registration_items:
+                mdpri = sri.molecule_design_pool_registration_item
+                sri.molecule_design_pool = mdpri.molecule_design_pool
+            self.return_value.update(mdp_registrar.return_value)
         else:
-            self.add_error(smd_reg.get_messages(logging.ERROR))
-
-    def __make_hash(self, mdri):
-        return MoleculeDesign.make_structure_hash(mdri.chemical_structures)
+            self.add_error(mdp_registrar.get_messages(logging.ERROR))
 
 
-class SupplierMoleculeDesignRegistrar(BaseAutomationTool):
-    """
-    Registers new supplier molecule designs for a set of sample registration
-    items.
-
-    Note that no check is performed if a supplier molecule design with the
-    specified product ID and supplier already exists.
-    """
-    def __init__(self, sample_registration_items, **kw):
-        """
-        :param sample_registration_items: sequence of sample registration
-          items to register supplier molecule designs for.
-        :type sample_registration_items: sequence of
-          :class:`SampleRegistrationItem`
-        """
-        BaseAutomationTool.__init__(self, **kw)
-        self.sample_registration_items = sample_registration_items
-
-    def run(self):
+    def __process_supplier_molecule_designs(self):
         smd_agg = get_root_aggregate(ISupplierMoleculeDesign)
-        self.return_value = {}
         new_smds = []
-        for sri in self.sample_registration_items:
+        for sri in self.__new_smd_sris:
             # Create a new supplier molecule design.
             smd = SupplierMoleculeDesign(sri.product_id, sri.supplier,
                                          is_current=True)
@@ -801,12 +775,88 @@ class SupplierMoleculeDesignRegistrar(BaseAutomationTool):
         self.return_value['supplier_molecule_designs'] = new_smds
 
 
-class MoleculeDesignRegistrar(BaseAutomationTool):
+class MoleculeDesignPoolRegistrar(RegistrationTool):
+    """
+    Molecule design pool registration utility.
+    """
+    def __init__(self, registration_items, report_directory=None, **kw):
+        RegistrationTool.__init__(self, registration_items,
+                                  report_directory=report_directory, **kw)
+
+    def run(self):
+        self.return_value = {}
+        # Collect molecule design registration items and set their molecule
+        # type.
+        mdris = []
+        for mdpri in self.registration_items:
+            for mdri in mdpri.molecule_design_registration_items:
+                mdris.append(mdri)
+                mdri.molecule_type = mdpri.molecule_type
+        # First, run the MoleculeDesignRegistrar to register all designs
+        # that are not in the system yet.
+        md_reg = MoleculeDesignRegistrar(mdris, log=self.log)
+        md_reg.run()
+        if md_reg.has_errors():
+            self.add_error.md_reg.get_messages(logging.ERROR)
+        else:
+            self.return_value.update(md_reg.return_value)
+            # Now that we have all designs, proceed to the pools.
+            self.__process_molecule_design_pools()
+
+    def __process_molecule_design_pools(self):
+        md_pool_agg = get_root_aggregate(IMoleculeDesignPool)
+        mdpri_hash_map = {}
+        hash_func = MoleculeDesignPool.make_member_hash
+        new_mdpris = []
+        new_mds = self.return_value['molecule_designs']
+        for mdpri in self.registration_items:
+            # By definition, any mdpri that contains one or more new designs
+            # must be new. We must treat this as a special case because
+            # building member hash values with the new designs does not work
+            # reliably since they may not have been flushed yet.
+            if any([mdri.molecule_design in new_mds
+                    for mdri in mdpri.molecule_design_registration_items]):
+                new_mdpris.append(mdpri)
+            else:
+                # For all others, we build a list of member hashes that we
+                # then query in a single DB call.
+                hash_val = \
+                        hash_func([mdri.molecule_design
+                                   for mdri in
+                                   mdpri.molecule_design_registration_items])
+                mdpri_hash_map[hash_val] = mdpri
+        if len(mdpri_hash_map) > 0:
+            md_pool_agg.filter = cntd(member_hash=mdpri_hash_map.keys())
+            existing_mdp_map = dict([(mdp.member_hash, mdp)
+                                     for mdp in md_pool_agg.iterator()])
+            # Update existing molecule design pool registration items.
+            for hash_val, mdp in existing_mdp_map.iteritems():
+                mdpri = mdpri_hash_map[hash_val]
+                mdpri.molecule_design_pool = mdp
+        else:
+            existing_mdp_map = {}
+        # Find new molecule design pool registration items.
+        new_mdp_hashes = \
+                set(mdpri_hash_map.keys()).difference(existing_mdp_map.keys())
+        for new_mdp_hash in new_mdp_hashes:
+            new_mdpris.append(mdpri_hash_map[new_mdp_hash])
+        if len(new_mdpris) > 0:
+            new_md_pools = []
+            for mdpri in new_mdpris:
+                # Create new molecule design pool.
+                md_pool = MoleculeDesignPool(
+                        set([mdri.molecule_design
+                             for mdri in
+                             mdpri.molecule_design_registration_items]))
+                md_pool_agg.add(md_pool)
+                new_md_pools.append(md_pool)
+                mdpri.molecule_design_pool = md_pool
+            self.return_value['molecule_design_pools'] = new_md_pools
+
+
+class MoleculeDesignRegistrar(RegistrationTool):
     """
     Molecule design registration utility.
-
-    Note that no check is performed if a molecule design with the specified
-    structures already exists.
 
     Algorithm:
      * Loop through the chemical structure information for each registration
@@ -814,22 +864,29 @@ class MoleculeDesignRegistrar(BaseAutomationTool):
        structure_type_id and representation as key) or create a new one;
      * Create new molecule designs using the created/found structures.
     """
-    def __init__(self, design_registration_items, depending=False, **kw):
+    def __init__(self, registration_items, report_directory=None, **kw):
         """
         :param design_registration_items: sequence of design registration
           items to process.
         :type design_registration_items: sequence of
           :class:`MoleculeDesignRegistrationItem`
         """
-        BaseAutomationTool.__init__(self, depending=depending, **kw)
-        self.design_registration_items = design_registration_items
+        RegistrationTool.__init__(self, registration_items,
+                                  report_directory=report_directory, **kw)
+        self.__new_mdris = None
 
     def run(self):
+        self.__check_new_molecule_designs()
         cs_agg = get_root_aggregate(IChemicalStructure)
         md_agg = get_root_aggregate(IMoleculeDesign)
         cs_keys = set()
-        for dri in self.design_registration_items:
-            for cs in dri.chemical_structures:
+        new_css = set()
+        new_mds = set()
+        # Build keys for all new chemical structures.
+        for mdris in self.__new_mdris:
+            # By definition, all mdris for a given hash have the same
+            # structures, so we just take the first.
+            for cs in mdris[0].chemical_structures:
                 cs_keys.add((cs.structure_type_id, cs.representation))
         # FIXME: Build a single filtering spec here (see FIXME above).
         cs_map = {}
@@ -844,61 +901,50 @@ class MoleculeDesignRegistrar(BaseAutomationTool):
                 continue
             else:
                 cs_map[cs_key] = cs
-        new_css = []
-        new_mds = []
-        for mdri in self.design_registration_items:
+        for mdris in self.__new_mdris:
             md_structs = []
-            for struct in mdri.chemical_structures:
+            # By definition, all mdris for a given hash have the same
+            # structures, so we just take the first.
+            for struct in mdris[0].chemical_structures:
                 key = (struct.structure_type_id, struct.representation)
                 if not key in cs_map:
                     # New chemical structure - add and use for the design.
                     cs_agg.add(struct)
-                    new_css.append(struct)
+                    new_css.add(struct)
                     md_structs.append(struct)
                 else:
                     # Use existing structure for the design.
                     md_structs.append(cs_map[key])
             # Create the new design.
             md = MoleculeDesign.create_from_data(
-                                        dict(molecule_type=mdri.molecule_type,
-                                             chemical_structures=md_structs))
+                                dict(molecule_type=mdris[0].molecule_type,
+                                     chemical_structures=md_structs))
             md_agg.add(md)
-            new_mds.append(md)
-            # Update registration item.
-            mdri.molecule_design = md
+            new_mds.add(md)
+            # Update registration items.
+            for mdri in mdris:
+                mdri.molecule_design = md
         self.return_value = dict(molecule_designs=new_mds,
                                  chemical_structures=new_css)
 
-
-class DeliveryRegistrar(BaseAutomationTool):
-    """
-    Registrar for a sample delivery from a supplier.
-    """
-    def __init__(self, delivery_file, report_directory=None,
-                 validation_files=None, depending=False,
-                 **kw):
-        """
-        :param str delivery_file: XML file containing the delivery data.
-        """
-        BaseAutomationTool.__init__(self, depending=depending, **kw)
-        self.__delivery_file = delivery_file
-        self.__report_directory = report_directory
-        self.__validation_files = validation_files
-
-    def run(self):
-        coll_cls = get_collection_class(ISupplierSampleRegistrationItem)
-        rpr = as_representer(object.__new__(coll_cls), JsonMime)
-        delivery_file = open(self.__delivery_file, 'rU')
-        try:
-            delivery_items = [rc.get_entity()
-                              for rc in rpr.from_stream(delivery_file)]
-        finally:
-            delivery_file.close()
-        spl_reg = SupplierSampleRegistrar(
-                                delivery_items,
-                                report_directory=self.__report_directory,
-                                validation_files=self.__validation_files)
-        spl_reg.run()
-        if spl_reg.has_errors():
-            self.add_error(
-                    os.linesep.join(spl_reg.get_messages(logging.ERROR)))
+    def __check_new_molecule_designs(self):
+        md_agg = get_root_aggregate(IMoleculeDesign)
+        # Build a map design hash -> registration item for all molecule design
+        # registration items.
+        mdri_map = {}
+        for mdri in self.registration_items:
+            struc_hash = \
+              MoleculeDesign.make_structure_hash(mdri.chemical_structures)
+            mdri_map.setdefault(struc_hash, []).append(mdri)
+        # Build "contained" specification, filter all existing designs and
+        # build difference set of new designs.
+        md_agg.filter = cntd(structure_hash=mdri_map.keys())
+        existing_md_map = dict([(md.structure_hash, md)
+                                for md in md_agg.iterator()])
+        # Update registration items with existing molecule designs and
+        # remove from hash map.
+        for struc_hash, md in existing_md_map.iteritems():
+            mdris = mdri_map.pop(struc_hash)
+            for mdri in mdris:
+                mdri.molecule_design = md
+        self.__new_mdris = list(mdri_map.values())

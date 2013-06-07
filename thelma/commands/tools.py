@@ -2,14 +2,27 @@
 Run tool command.
 """
 from everest.entities.utils import get_root_aggregate
+from everest.mime import JsonMime
 from everest.querying.specifications import eq
 from everest.repositories.interfaces import IRepositoryManager
 from everest.repositories.rdb import Session
+from everest.representers.utils import as_representer
+from everest.resources.interfaces import IService
+from everest.resources.utils import get_collection_class
 from everest.utils import classproperty
 from paste.deploy import appconfig # pylint: disable=E0611,F0401
 from paste.script.command import Command # pylint: disable=E0611,F0401
 from pyramid.path import DottedNameResolver
 from pyramid.registry import Registry
+from pyramid.testing import DummyRequest
+from thelma.automation.tools.stock.sampleregistration import \
+    IMoleculeDesignPoolRegistrationItem
+from thelma.automation.tools.stock.sampleregistration import \
+    IMoleculeDesignRegistrationItem
+from thelma.automation.tools.stock.sampleregistration import \
+    ISampleRegistrationItem
+from thelma.automation.tools.stock.sampleregistration import \
+    ISupplierSampleRegistrationItem
 from thelma.interfaces import ILibraryCreationIso
 from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import ITube
@@ -26,12 +39,6 @@ import transaction
 #    import LibraryCreationStockTransferReporter
 #from thelma.automation.tools.libcreation.ticket \
 #    import LibraryCreationTicketWorklistUploader
-from pyramid.testing import DummyRequest
-from everest.resources.interfaces import IService
-from everest.resources.utils import get_collection_class
-from thelma.automation.tools.stock.sampleregistration import ISampleRegistrationItem
-from everest.representers.utils import as_representer
-from everest.mime import JsonMime
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['EmptyTubeRegistrarToolCommand',
@@ -56,7 +63,8 @@ class MetaToolCommand(type):
     run.
     """
     def __new__(mcs, name, bases, class_dict):
-        if name != 'ToolCommand': # Ignore the base class.
+        # Ignore base classes.
+        if name != 'ToolCommand' and not name.startswith('_'):
             parser = ToolCommand.make_standard_parser(simulate=True)
             if not 'name' in class_dict:
                 raise ValueError('You need to define a name for the tool '
@@ -67,27 +75,32 @@ class MetaToolCommand(type):
                                  'style dotted name (absolute) of the '
                                  'tool to run as "tool" attribute in the '
                                  'class namespace of your tool (%s).' % name)
-            if not 'option_defs' in class_dict:
+            option_defs = \
+                class_dict.get('option_defs') or bases[-1].option_defs
+            if option_defs is None:
                 raise ValueError('You need to define a list of option '
                                  'definitions as "option_defs" attribute '
                                  'in the class namespace of your tool (%s).'
                                  % name)
-            for opt_name, attr_name, opt_kw in class_dict['option_defs']:
+            for opt_name, attr_name, opt_kw in option_defs:
                 if 'dest' in opt_kw:
                     raise ValueError('Cannot use the "dest" parameter for '
                                      'tool command options.')
-                opt_kw['dest'] = attr_name
-                parser.add_option(opt_name, **opt_kw)
+                # We need a copy here in case the option defs are reused in
+                # derived classes.
+                copied_opt_kw = opt_kw.copy()
+                copied_opt_kw['dest'] = attr_name
+                parser.add_option(opt_name, **copied_opt_kw)
             summary = class_dict.__doc__.strip()
             class_dict['summary'] = summary
-            usage = bases[-1].__dict__['_usage_template'] \
+            usage = ToolCommand.__dict__['_usage_template'] \
                                   % class_dict['name']
             class_dict['usage'] = usage
             class_dict['parser'] = parser
         cls = type.__new__(mcs, name, bases, class_dict)
         # This is the magic: If this is the command we are running,
         # set the new class as the target class of the ToolCommand.
-        if class_dict['name'] == sys.argv[-2]:
+        if class_dict.get('name') == sys.argv[-2]:
             ToolCommand.set_target_class(cls)
         return cls
 
@@ -105,8 +118,8 @@ class LazyOption(object):
         self.__option_value = option_value
         setattr(parser.values, option.dest, self)
 
-    def initialize(self):
-        return self.__value_callback(self.__option_value)
+    def initialize(self, tool_class, options):
+        return self.__value_callback(tool_class, self.__option_value, options)
 
 
 class ToolCommand(Command): # no __init__ pylint: disable=W0232
@@ -168,6 +181,14 @@ class ToolCommand(Command): # no __init__ pylint: disable=W0232
         """
         pass
 
+    @classmethod
+    def report(cls, tool):
+        """
+        Override this method in drived classes to perform reporting actions
+        after the tool has run and all data have been committed.
+        """
+        pass
+
     @classproperty
     def summary(cls):
         if cls.__target_class is None:
@@ -195,11 +216,16 @@ class ToolCommand(Command): # no __init__ pylint: disable=W0232
         tool_cls = rsv.resolve(self.__target_class.tool)
         arg_names = [od[1] for od in self.__target_class.option_defs]
         kw = {}
+        # Initializing lazy options. We pass the target class and the
+        # options so the callback has access to them.
+        opts = self.options # pylint: disable=E1101
         for arg_name in arg_names:
-            arg_value = getattr(self.options, arg_name) # pylint: disable=E1101
+            arg_value = getattr(opts, arg_name)
             if isinstance(arg_value, LazyOption):
-                arg_value = arg_value.initialize()
-            kw[arg_name] = arg_value
+                arg_value = arg_value.initialize(self.__target_class, opts)
+                setattr(opts, arg_name, arg_value)
+        kw = dict((arg_name, getattr(opts, arg_name))
+                  for arg_name in arg_names)
         tool = tool_cls(**kw)
         try:
             tool.run()
@@ -218,6 +244,7 @@ class ToolCommand(Command): # no __init__ pylint: disable=W0232
                       'repeat the run with the --ignore-warnings switch ' \
                       'to force changes to be committed. Warning messages:\n'
                 raise RuntimeError(msg + os.linesep.join(warn_msgs))
+            run_report = False
             try:
                 # This gives the tool command a chance to perform actions after
                 # the tool has run.
@@ -227,9 +254,18 @@ class ToolCommand(Command): # no __init__ pylint: disable=W0232
                     transaction.commit()
                 else:
                     transaction.abort()
+                run_report = True
             except: # catch all pylint: disable=W0702
                 transaction.abort()
                 raise
+            if run_report:
+                try:
+                    self.__target_class.report(tool)
+                except Exception as err: # catch all pylint: disable=W0703
+                    msg = 'There were errors during report generation ' \
+                          'after the transaction had already finished.' \
+                          'Error message: %s.' % str(err)
+                    raise RuntimeError(msg)
         config.end()
 
     def __setup_thelma(self, ini_file):
@@ -257,8 +293,13 @@ class ToolCommand(Command): # no __init__ pylint: disable=W0232
         repo_mgr.initialize_all()
         #
         srvc.start()
-        # Make sure RDB sessions join the Zope transaction.
-        Session.configure(extension=ZopeTransactionExtension())
+        # Configure the session maker. We need the Zope transaction extension
+        # to not close the session such that we can write tool reports after
+        # the commit. Also, we do not expire objects on commit to avoid
+        # having to refresh the attributes needed for reporting.
+        Session.configure(extension=
+                                ZopeTransactionExtension(keep_session=True),
+                          expire_on_commit=False)
         return config
 
 
@@ -283,74 +324,102 @@ class EmptyTubeRegistrarToolCommand(ToolCommand): # no __init__ pylint: disable=
                 tube_agg.add(tube)
 
 
-class DeliveryRegistrarCommand(ToolCommand): # no __init__ pylint: disable=W0232
-    """
-    Runs the delivery registrar.
-    """
-    name = 'deliveryregistrar'
-    tool = \
-        'thelma.automation.tools.stock.sampleregistration.DeliveryRegistrar'
-    option_defs = [('--delivery-file',
-                    'delivery_file',
-                    dict(help='File containing JSON delivery registration '
-                              'data.',
-                         type='string')
-                    ),
-                   ('--report-directory',
-                    'report_directory',
-                    dict(help='Directory where report files will be written. '
-                              'Defaults to current directory.',
-                         type='string')
-                    ),
-                   ('--validation-files',
-                    'validation_files',
-                    dict(help='Directory containing or comma-separated list '
-                               'secifying rack scanning files for validation '
-                               'of tube positions.',
-                         type='string')
-                    ),
-                   ]
+class _RegistrarCommand(ToolCommand): # no __init__ pylint: disable=W0232
+    registration_resource = None
 
+    option_defs = \
+        [('--report-directory',
+          'report_directory',
+          dict(help='Directory where report files will be written. Defaults '
+                    'to the directory the data file is in.',
+               type='string'),
+          ),
+         ('--data-file',
+          'registration_items',
+          dict(help='File containing JSON registration data.',
+               action='callback',
+               type='string',
+               callback=LazyOption(lambda cls, value, options:
+                                        cls._data_callback(value, options)) # pylint: disable=W0212
+               ),
+          ),
+         ]
 
-class SampleRegistrarCommand(ToolCommand): # no __init__ pylint: disable=W0232
-    """
-    Runs the sample registrar (for internal registration of new samples).
-    """
     @classmethod
-    def _sample_data_callback(cls, value):
-        coll_cls = get_collection_class(ISampleRegistrationItem)
+    def _data_callback(cls, value, options):
+        # Set the default for the report directory.
+        if options.report_directory is None:
+            options.report_directory = os.path.dirname(value)
+        coll_cls = get_collection_class(cls.registration_resource)
         rpr = as_representer(object.__new__(coll_cls), JsonMime)
         return [rc.get_entity() for rc in rpr.from_stream(open(value, 'rU'))]
 
+    @classmethod
+    def report(cls, tool):
+        # Write out report files for registered items.
+        tool.write_report()
+
+
+class DesignPoolRegistrarCommand(_RegistrarCommand): # no __init__ pylint: disable=W0232
+    """
+    Runs the design registrar (for internal registration of new molecule
+    designs).
+    """
+    name = 'designpoolregistrar'
+    tool = 'thelma.automation.tools.stock.' \
+           'sampleregistration.MoleculeDesignPoolRegistrar'
+    registration_resource = IMoleculeDesignPoolRegistrationItem
+
+
+class DesignRegistrarCommand(_RegistrarCommand): # no __init__ pylint: disable=W0232
+    """
+    Runs the design registrar (for internal registration of new molecule
+    designs).
+    """
+    name = 'designregistrar'
+    tool = \
+    'thelma.automation.tools.stock.sampleregistration.MoleculeDesignRegistrar'
+    registration_resource = IMoleculeDesignRegistrationItem
+
+
+class SampleRegistrarCommand(_RegistrarCommand): # no __init__ pylint: disable=W0232
+    """
+    Runs the sample registrar (for internal registration of new samples).
+    """
     name = 'sampleregistrar'
     tool = \
         'thelma.automation.tools.stock.sampleregistration.SampleRegistrar'
-    option_defs = \
-        [('--sample-data-file',
-          'sample_registration_items',
-          dict(help='File containing JSON sample registration data.',
-               action='callback',
-               type='string',
-               callback=LazyOption(lambda value: # pylint: disable=W0108
-                          SampleRegistrarCommand._sample_data_callback(value))
-               ),
-          ),
-         ('--validation-files',
+    option_defs = _RegistrarCommand.option_defs + \
+        [('--validation-files',
           'validation_files',
           dict(help='Comma-separated list of rack scanning files '
                     'for validation of tube positions.',
                type='string')
           ),
          ]
+    registration_resource = ISampleRegistrationItem
+
+
+class SupplierSampleRegistrarCommand(_RegistrarCommand): # no __init__ pylint: disable=W0232
+    """
+    Runs the supplier sample registrar (for registration of supplier samples).
+    """
+    name = 'deliveryregistrar'
+    tool = \
+        'thelma.automation.tools.stock.sampleregistration.DeliveryRegistrar'
+    option_defs = SampleRegistrarCommand.option_defs
+    registration_resource = ISupplierSampleRegistrationItem
 
 
 class XL20ExecutorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
     """
     Runs the XL20 executor that executes tube transfers on DB level.
     """
-    _user_callback = LazyOption(lambda value: # pylint: disable=W0108
+    _user_callback = \
+        LazyOption(lambda cls, value, options:
                                 get_root_aggregate(IUser).get_by_slug(value))
-    _output_file_callback = LazyOption(lambda value: open(value, 'rb').read())
+    _output_file_callback = \
+            LazyOption(lambda cls, value, options: open(value, 'rb').read())
 
     name = 'xl20executor'
     tool = 'thelma.automation.tools.worklists.tubehandler:XL20Executor'
@@ -381,69 +450,6 @@ class XL20ExecutorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
             tube_transfer_worklist_agg.add(tool.return_value)
 
 
-class RackScanningAdjusterToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
-    """
-    Compares the content of rack scanning files to the DB state and might
-    perform DB update (depending on the adjust_database flag).
-    """
-    @classmethod
-    def parse_boolean(cls, value):
-        if value.lower() == 'true':
-            return True
-        elif value.lower() == 'false':
-            return False
-        else:
-            raise ValueError('Invalid boolean option: %s' % value)
-
-    _stream_callback = LazyOption(lambda value: open(value, 'rb'))
-    _user_callback = LazyOption(lambda value: # pylint: disable=W0108
-                                get_root_aggregate(IUser).get_by_slug(value))
-    _bool_callback = LazyOption(lambda value: # pylint: disable=W0108
-                        RackScanningAdjusterToolCommand.parse_boolean(value))
-
-    name = 'rackscanningadjuster'
-    tool = 'thelma.automation.tools.stock.rackscanning:RackScanningAdjuster'
-
-    option_defs = [('--scanfiles',
-                    'rack_scanning_stream',
-                    dict(help='Stream of either a single file or several ' \
-                              'files as zip archives.',
-                         action='callback',
-                         type='string',
-                         callback=_stream_callback)
-                    ),
-                    ('--adjust-db',
-                    'adjust_database',
-                    dict(help='Shall the DB be adjusted (True) or do you ' \
-                              'only want to have a report (False)?',
-                         action='callback',
-                         type='string',
-                         callback=_bool_callback)
-                    ),
-                    ('--user',
-                    'user',
-                    dict(help='User name for the DB update tracking.',
-                         action='callback',
-                         type='string',
-                         callback=_user_callback),
-                   )]
-
-    # TODO: think about how to make this prettier
-    @classmethod
-    def finalize(cls, tool):
-        if not tool.has_errors():
-            output_file = tool.get_overview_stream()
-            fn = '/Users/berger/Desktop/rack_scanning_overview.txt'
-            o = open(fn, 'w')
-            output_file.seek(0)
-            o.write(output_file.read())
-            o.close()
-#            if tool.adjust_database:
-#                ttw_agg = get_root_aggregate(ITubeTransferWorklist)
-#                ttw = tool.get_tube_transfer_worklist()
-#                ttw_agg.add(ttw)
-
-
 class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
     """
     Runs the tool condenser.
@@ -452,7 +458,8 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
     def split_string(cls, value):
         return value.split(',')
 
-    _excluded_racks_callback = LazyOption(lambda value: # pylint: disable=W0108
+    _excluded_racks_callback = \
+        LazyOption(lambda cls, value, options:
                             StockCondenserToolCommand.split_string(value))
 
     name = 'stockcondenser'
@@ -490,10 +497,11 @@ class LibraryGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0
     """
     Runs the library ISO creator tool.
     """
-    _excel_file_callback = LazyOption(lambda value:
-                                      open(value, 'rb').read())
-    _user_callback = LazyOption(lambda value: # pylint: disable=W0108
-                                get_root_aggregate(IUser).get_by_slug(value))
+    _excel_file_callback = LazyOption(lambda cls, value, options:
+                                            open(value, 'rb').read())
+    _user_callback = \
+            LazyOption(lambda cls, value, options:
+                            get_root_aggregate(IUser).get_by_slug(value))
     name = 'librarygenerator'
     tool = 'thelma.automation.tools.libcreation.generation:LibraryGenerator'
     option_defs = [('--library-name',
@@ -536,8 +544,8 @@ class LibraryIsoGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable
         agg.filter = eq(label=value)
         return list(agg.iterator())[0]
 
-    _library_callback = LazyOption(lambda value: # pylint: disable=W0108
-                            LibraryIsoGeneratorToolCommand.get_library(value))
+    _library_callback = \
+        LazyOption(lambda cls, value, options: cls.get_library(value))
 
     name = 'librarycreationisogenerator'
     tool = 'thelma.automation.tools.libcreation.ticket:LibraryCreationIsoCreator'
@@ -563,14 +571,14 @@ class LibraryIsoPopulatorToolCommand(ToolCommand): # no __init__ pylint: disable
     def split_string(cls, value):
         return value.split(',')
 
-    _library_callback = LazyOption(lambda value: # pylint: disable=W0108
-                            LibraryIsoPopulatorToolCommand.get_library(value))
+    _library_callback = \
+        LazyOption(lambda cls, value, options: cls.get_library(value))
 
-    _excluded_racks_callback = LazyOption(lambda value: # pylint: disable=W0108
-                            LibraryIsoPopulatorToolCommand.split_string(value))
+    _excluded_racks_callback = \
+        LazyOption(lambda cls, value, options: cls.split_string(value))
 
-    _requested_tube_callback = LazyOption(lambda value: # pylint: disable=W0108
-                            LibraryIsoPopulatorToolCommand.split_string(value))
+    _requested_tube_callback = \
+        LazyOption(lambda cls, value, options: cls.split_string(value))
 
     name = 'librarycreationisopopulator'
     tool = 'thelma.automation.tools.libcreation.iso:LibraryCreationIsoPopulator'
@@ -625,8 +633,8 @@ class LibraryCreationLayoutWriterToolCommand(ToolCommand): # no __init__ pylint:
         agg.filter = eq(label=value)
         return list(agg.iterator())[0]
 
-    _iso_callback = LazyOption(lambda value: # pylint: disable=W0108
-                    LibraryCreationLayoutWriterToolCommand.get_iso(value))
+    _iso_callback = \
+        LazyOption(lambda cls, value, options: cls.get_iso(value))
 
     name = 'librarycreationisolayoutwriter'
     tool = 'thelma.automation.tools.libcreation.iso:LibraryCreationIsoLayoutWriter'
@@ -687,18 +695,17 @@ class LibraryCreationWorklistWriterToolCommand(ToolCommand): # no __init__ pylin
             pool_racks[sector_index] = barcode
         return pool_racks
 
-    _iso_callback = LazyOption(lambda value: # pylint: disable=W0108
-                    LibraryCreationWorklistWriterToolCommand.get_iso(value))
+    _iso_callback = \
+        LazyOption(lambda cls, value, options: cls.get_iso(value))
 
-    _tube_destination_racks_callback = LazyOption(
-                                lambda value: # pylint: disable=W0108
-                    LibraryCreationWorklistWriterToolCommand.\
-                                            get_tube_destination_map(value))
+    _tube_destination_racks_callback = \
+        LazyOption(lambda cls, value, options:
+                        cls.get_tube_destination_map(value))
 
 
-    _pool_stock_rack_callback = LazyOption(lambda value: # pylint: disable=W0108
-                    LibraryCreationWorklistWriterToolCommand.\
-                                            get_pool_stock_rack_barcodes(value))
+    _pool_stock_rack_callback = \
+        LazyOption(lambda cls, value, options:
+                        cls.get_pool_stock_rack_barcodes(value))
 
     name = 'librarycreationworklistwriter'
     tool = 'thelma.automation.tools.libcreation.writer:LibraryCreationWorklistWriter'
@@ -755,11 +762,10 @@ class LibraryCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: dis
         return list(agg.iterator())[0]
 
     _iso_callback = \
-        LazyOption(lambda value: # pylint: disable=W0108
-                   LibraryCreationExecutorToolCommand.get_iso(value))
+        LazyOption(lambda cls, value, options: cls.get_iso(value))
     _user_callback = \
-        LazyOption(lambda value: # pylint: disable=W0108
-                   get_root_aggregate(IUser).get_by_slug(value))
+        LazyOption(lambda cls, value, options:
+                        get_root_aggregate(IUser).get_by_slug(value))
 
     name = 'librarycreationexecutor'
     tool = 'thelma.automation.tools.libcreation.execution:LibraryCreationExecutor'
@@ -810,7 +816,8 @@ class StockAuditToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
 
 class XL20DummyToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
 
-    _wl_file_callback = LazyOption(lambda value: open(value, 'rb'))
+    _wl_file_callback = LazyOption(lambda cls, value, options:
+                                        open(value, 'rb'))
 
     name = 'xl20dummy'
     tool = 'thelma.automation.tools.dummies:XL20Dummy'

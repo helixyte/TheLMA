@@ -209,7 +209,7 @@ class SingleStrandedDesign(MoleculeDesign):
     @classmethod
     def _validate_chemical_structures(cls, chemical_structures):
         if not len(chemical_structures) == 1 \
-           or not chemical_structures[0].structure_type \
+           or not chemical_structures[0].structure_type_id \
                     in [CHEMICAL_STRUCTURE_TYPE_IDS.NUCLEIC_ACID,
                         CHEMICAL_STRUCTURE_TYPE_IDS.UNKNOWN]:
             raise ValueError('%s designs require exactly one nucleic '
@@ -228,11 +228,11 @@ class DoubleStrandedDesign(MoleculeDesign):
 
     @classmethod
     def _validate_chemical_structures(cls, chemical_structures):
-        if not (len(chemical_structures) == 2 \
-                and set([cs.structure_type for cs in chemical_structures]) \
+        if not (len(chemical_structures) == 2
+                and set([cs.structure_type_id for cs in chemical_structures])
                     == set([CHEMICAL_STRUCTURE_TYPE_IDS.NUCLEIC_ACID])) \
-           or (len(chemical_structures) == 1 \
-                and chemical_structures[0].structure_type \
+           or (len(chemical_structures) == 1
+                and chemical_structures[0].structure_type_id
                         == CHEMICAL_STRUCTURE_TYPE_IDS.UNKNOWN):
             raise ValueError('%s designs require exactly two nucleic '
                              'acid structures OR one unknown structure.'
