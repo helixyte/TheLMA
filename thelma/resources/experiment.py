@@ -213,9 +213,12 @@ class ExperimentMetadataMember(Member):
         prx = DataElementAttributeProxy(data_element)
         self_entity = self.get_entity()
         if prx.number_replicates != self.number_replicates \
-           or prx.experiment_metadata_type != self.experiment_metadata_type:
-            # invalidate data to force a fresh upload of the XLS file
-            self_entity.experiment_design.experiment_design_racks = []
+           or prx.experiment_metadata_type.get('id') \
+              != self.experiment_metadata_type.id:
+            if not self_entity.experiment_design is None:
+                # invalidate data to force a fresh upload of the XLS file
+                self_entity.experiment_design.experiment_design_racks = []
+                self_entity.experiment_design.worklist_series = None
             if not self_entity.iso_request is None:
                 shape = self_entity.iso_request.iso_layout.shape
                 new_layout = RackLayout(shape=shape)
