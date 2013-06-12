@@ -168,6 +168,7 @@
            .interfaces.IExperimentDesignRack
            .interfaces.IExperimentJob
            .interfaces.IExperimentMetadata
+           .interfaces.IExperimentMetadataType
            .interfaces.IExperimentRack
            .interfaces.IGene
            .interfaces.IIso

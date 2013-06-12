@@ -65,8 +65,8 @@ __all__ = ['ExperimentMetadataTypeMember',
 
 
 class ExperimentMetadataTypeMember(Member):
-    relation = '%s/experiment_metadata_type' % RELATION_BASE_URL
-    title = attribute_alias('id')
+    relation = '%s/experiment-metadata-type' % RELATION_BASE_URL
+    title = attribute_alias('display_name')
     display_name = terminal_attribute(str, 'display_name')
 
 
@@ -163,6 +163,7 @@ class ExperimentMetadataMember(Member):
     relation = '%s/experiment-metadata' % RELATION_BASE_URL
     label = terminal_attribute(str, 'label')
     title = attribute_alias('label')
+    ticket_number = terminal_attribute(int, 'ticket_number')
     subproject = member_attribute(ISubproject, 'subproject')
     number_replicates = terminal_attribute(int, 'number_replicates')
     molecule_design_pool_set = member_attribute(IMoleculeDesignPoolSet,
@@ -175,7 +176,6 @@ class ExperimentMetadataMember(Member):
             collection_attribute(IExperimentDesignRack,
                                  'experiment_design.design_racks')
     iso_request = member_attribute(IIsoRequest, 'iso_request')
-    ticket_number = terminal_attribute(int, 'ticket_number')
     creation_date = terminal_attribute(datetime, 'creation_date')
     experiment_metadata_type = member_attribute(IExperimentMetadataType,
                                                 'experiment_metadata_type')

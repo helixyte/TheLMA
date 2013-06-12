@@ -46,6 +46,10 @@ class ExperimentMetadataType(Entity):
         Entity.__init__(self, **kw)
         self.display_name = display_name
 
+    @property
+    def slug(self):
+        return self.id.lower()
+
     def __str__(self):
         return self.id
 

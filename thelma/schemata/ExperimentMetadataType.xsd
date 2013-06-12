@@ -13,7 +13,7 @@
     </import>
 
     <complexType
-        name="ExperimentMetadataTypeType"
+        name="ExperimentMetaDataTypeType"
     >
         <complexContent>
             <extension
@@ -22,7 +22,7 @@
                 <choice>
                     <element
                         name="link"
-                        type="emt:ExperimentMetadataTypeLinkType"
+                        type="emt:ExperimentMetaDataTypeLinkType"
                     >
                     </element>
                     <sequence>
@@ -38,7 +38,7 @@
     </complexType>
 
     <complexType
-        name="ExperimentMetadataTypeCollectionType"
+        name="ExperimentMetaDataTypeCollectionType"
     >
          <choice>
              <element
@@ -49,7 +49,7 @@
              </element>
              <element
                  name="link"
-                 type="emt:ExperimentMetadataTypeCollectionLinkType"
+                 type="emt:ExperimentMetaDataTypeCollectionLinkType"
                  maxOccurs="1"
                  minOccurs="0"
              >
@@ -58,7 +58,7 @@
     </complexType>
 
     <complexType
-        name="ExperimentMetadataTypeLinkType"
+        name="ExperimentMetaDataTypeLinkType"
     >
         <complexContent>
             <restriction
@@ -74,7 +74,7 @@
     </complexType>
 
     <complexType
-        name="ExperimentMetadataTypeCollectionLinkType"
+        name="ExperimentMetaDataTypeCollectionLinkType"
     >
         <complexContent>
             <restriction
@@ -91,13 +91,13 @@
 
     <element
         name="experiment_metadata_type"
-        type="emt:ExperimentMetadataTypeType"
+        type="emt:ExperimentMetaDataTypeType"
     >
     </element>
 
     <element
         name="experiment_metadata_types"
-        type="emt:ExperimentMetadataTypeCollectionType"
+        type="emt:ExperimentMetaDataTypeCollectionType"
     ></element>
 
 </schema>

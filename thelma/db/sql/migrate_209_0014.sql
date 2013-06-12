@@ -27,7 +27,7 @@ INSERT INTO experiment_metadata_type (experiment_metadata_type_id, display_name)
   VALUES ('QPCR', 'qPCR');
 
 INSERT INTO experiment_metadata_type (experiment_metadata_type_id, display_name)
-  VALUES ('ORDER_ONLY', 'ISO without experiment');
+  VALUES ('ORDER-ONLY', 'ISO without experiment');
 
 
 ALTER TABLE experiment_metadata

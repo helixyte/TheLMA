@@ -206,13 +206,11 @@ class EXPERIMENT_SCENARIOS(SemiconstantCache):
     MANUAL = 'MANUAL'
     ISO_LESS = 'ISO-LESS'
     LIBRARY = 'LIBRARY'
-    ORDER_ONLY = 'ORDER_ONLY'
+    ORDER_ONLY = 'ORDER-ONLY'
     QPCR = 'QPCR'
 
     ALL = [OPTIMISATION, SCREENING, MANUAL, ISO_LESS, LIBRARY, ORDER_ONLY, QPCR]
     _MARKER_INTERFACE = IExperimentMetadataType
-
-    _CONVERT_TO_SLUG = False
 
     @classmethod
     def get_displaynames(cls, experiment_metadata_types):
