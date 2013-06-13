@@ -559,7 +559,8 @@ class ExperimentWorklistGeneratorTestCase(ExperimentWorklistSeriesTestCase):
     def test_unknown_scenario(self):
         self._continue_setup()
         self.experiment_type = get_experiment_type_order()
-        self._test_and_expect_errors('Unexpected scenario: "ORDER_ONLY"')
+        self._test_and_expect_errors('Unexpected scenario: "%s"' %
+                                     EXPERIMENT_SCENARIOS.ORDER_ONLY)
 
     def test_invalid_design_rack_associations(self):
         self._continue_setup()
