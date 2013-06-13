@@ -24,7 +24,7 @@
     >
     </import>
     <import
-        schemaLocation="ExperimentMetadataType.xsd"
+        schemaLocation="ExperimentMetaDataType.xsd"
         namespace="http://schemata.cenix-bioscience.com/experimentmetadatatype"
     >
     </import>

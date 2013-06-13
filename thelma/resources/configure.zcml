@@ -875,7 +875,7 @@
         <representer content_type="everest.mime.XmlMime">
             <option
                 name="xml_schema"
-                value="thelma:schemata/ExperimentMetadata.xsd" />
+                value="thelma:schemata/ExperimentMetaData.xsd" />
             <option
                 name="xml_ns"
                 value="http://schemata.cenix-bioscience.com/experimentmetadata" />
@@ -1002,7 +1002,7 @@
  		<representer content_type="everest.mime.XmlMime">
             <option
                 name="xml_schema"
-                value="thelma:schemata/ExperimentMetadataType.xsd" />
+                value="thelma:schemata/ExperimentMetaDataType.xsd" />
             <option
                 name="xml_ns"
                 value="http://schemata.cenix-bioscience.com/experimentmetadatatype" />

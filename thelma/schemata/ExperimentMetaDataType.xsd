@@ -1,39 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/target"
+    targetNamespace="http://schemata.cenix-bioscience.com/experimentmetadatatype"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:ta="http://schemata.cenix-bioscience.com/target"
-    xmlns:md="http://schemata.cenix-bioscience.com/moleculedesign"
+    xmlns:emt="http://schemata.cenix-bioscience.com/experimentmetadatatype"
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:tr="http://schemata.cenix-bioscience.com/transcript"
 >
-    <import
-        schemaLocation="MoleculeDesign.xsd"
-        namespace="http://schemata.cenix-bioscience.com/moleculedesign"
-    >
-    </import>
-
     <import
         schemaLocation="Shared.xsd"
         namespace="http://schemata.cenix-bioscience.com/shared"
     >
     </import>
 
-    <import
-        schemaLocation="Transcript.xsd"
-        namespace="http://schemata.cenix-bioscience.com/transcript"
-    >
-    </import>
-
-    <import
-        schemaLocation="MoleculeDesign.xsd"
-        namespace="http://schemata.cenix-bioscience.com/moleculedesign"
-    >
-    </import>
-
     <complexType
-        name="TargetType"
+        name="ExperimentMetaDataTypeType"
     >
         <complexContent>
             <extension
@@ -42,35 +22,34 @@
                 <choice>
                     <element
                         name="link"
-                        type="ta:TargetLinkType"
+                        type="emt:ExperimentMetaDataTypeLinkType"
                     >
                     </element>
-                    <element
-                        ref="tr:transcript"
-                    >
-                    </element>
-                    <element
-                        ref="md:molecule_design"
-                    >
-                    </element>
+                    <sequence>
+                        <element
+                            name="display_name"
+                            type="string"
+                        >
+                        </element>
+                    </sequence>
                 </choice>
             </extension>
         </complexContent>
     </complexType>
 
     <complexType
-        name="TargetCollectionType"
+        name="ExperimentMetaDataTypeCollectionType"
     >
          <choice>
              <element
-                 ref="ta:target"
+                 ref="emt:experiment_metadata_type"
                  maxOccurs="unbounded"
                  minOccurs="0"
              >
              </element>
              <element
                  name="link"
-                 type="ta:TargetCollectionLinkType"
+                 type="emt:ExperimentMetaDataTypeCollectionLinkType"
                  maxOccurs="1"
                  minOccurs="0"
              >
@@ -79,7 +58,7 @@
     </complexType>
 
     <complexType
-        name="TargetLinkType"
+        name="ExperimentMetaDataTypeLinkType"
     >
         <complexContent>
             <restriction
@@ -88,14 +67,14 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/target"
+                    fixed="http://relations.cenix-bioscience.com/experiment-metadata-type"
                 ></attribute>
             </restriction>
         </complexContent>
     </complexType>
 
     <complexType
-        name="TargetCollectionLinkType"
+        name="ExperimentMetaDataTypeCollectionLinkType"
     >
         <complexContent>
             <restriction
@@ -104,21 +83,21 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/target-collection"
+                    fixed="http://relations.cenix-bioscience.com/experiment-metadata-type-collection"
                 ></attribute>
             </restriction>
         </complexContent>
     </complexType>
 
     <element
-        name="target"
-        type="ta:TargetType"
+        name="experiment_metadata_type"
+        type="emt:ExperimentMetaDataTypeType"
     >
     </element>
 
     <element
-        name="targets"
-        type="ta:TargetCollectionType"
+        name="experiment_metadata_types"
+        type="emt:ExperimentMetaDataTypeCollectionType"
     ></element>
 
 </schema>

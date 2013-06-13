@@ -5,6 +5,19 @@
     elementFormDefault="qualified"
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
 >
+
+    <simpleType name="RackBarcodeType">
+        <restriction base="string">
+            <pattern value="0\d{7}"></pattern>
+        </restriction>
+    </simpleType>
+    
+    <simpleType name="LocationBarcodeType">
+        <restriction base="string">
+            <pattern value="0\d{7}"></pattern>
+        </restriction>
+    </simpleType>
+    
     <complexType name="LinkType">
         <attribute
             name="href"
@@ -33,147 +46,6 @@
         ></attribute>
     </complexType>
 
-    <complexType name="RackShapeType">
-        <sequence>
-            <element
-                name="name"
-                type="string"
-            >
-            </element>
-            <element
-                name="label"
-                type="string"
-            >
-            </element>
-            <element
-                name="number_rows"
-                type="nonNegativeInteger"
-            >
-            </element>
-            <element
-                name="number_columns"
-                type="nonNegativeInteger"
-            >
-            </element>
-        </sequence>
-    </complexType>
-
-
-    <complexType name="RackPositionType">
-        <sequence>
-            <element
-                name="row_index"
-                type="nonNegativeInteger"
-            >
-            </element>
-            <element
-                name="column_index"
-                type="nonNegativeInteger"
-            >
-            </element>
-        </sequence>
-    </complexType>
-
-
-    <complexType name="TagType">
-        <sequence>
-            <element
-                name="namespace"
-                type="string"
-            >
-            </element>
-            <element
-                name="predicate"
-                type="string"
-            >
-            </element>
-            <element
-                name="value"
-                type="string"
-            >
-            </element>
-        </sequence>
-
-    </complexType>
-
-
-    <simpleType name="RackBarcodeType">
-        <restriction base="string">
-            <pattern value="0\d{7}"></pattern>
-        </restriction>
-    </simpleType>
-    <simpleType name="LocationBarcodeType">
-        <restriction base="string">
-            <pattern value="0\d{7}"></pattern>
-        </restriction>
-    </simpleType>
-    <simpleType name="BarcodeType">
-        <restriction base="string">
-            <pattern value="0\d{7}"></pattern>
-        </restriction>
-    </simpleType>
-
-    <complexType name="TagLinkType">
-        <complexContent>
-            <restriction base="sh:LinkType">
-                <attribute
-                    name="href"
-                    use="required"
-                    type="anyURI"
-                ></attribute>
-                <attribute
-                    name="rel"
-                    type="string"
-                    fixed="http://relations.cenix-bioscience.com/tag"
-                >
-                </attribute>
-                <!-- <attribute name="type" use="optional" type="string" 
-                    ></attribute> -->
-                <attribute
-                    name="title"
-                    use="optional"
-                    type="string"
-                ></attribute>
-                <attribute
-                    name="length"
-                    use="optional"
-                    type="positiveInteger"
-                ></attribute>
-            </restriction>
-        </complexContent>
-    </complexType>
-
-
-    <complexType name="RackPositionLinkType">
-        <complexContent>
-            <restriction base="sh:LinkType">
-                <attribute
-                    name="href"
-                    use="required"
-                    type="anyURI"
-                ></attribute>
-                <attribute
-                    name="rel"
-                    type="string"
-                    fixed="http://relations.cenix-bioscience.com/rackposition"
-                >
-                </attribute>
-                <!-- <attribute name="type" use="optional" type="string" 
-                    ></attribute> -->
-                <attribute
-                    name="title"
-                    use="optional"
-                    type="string"
-                ></attribute>
-                <attribute
-                    name="length"
-                    use="optional"
-                    type="positiveInteger"
-                ></attribute>
-            </restriction>
-        </complexContent>
-    </complexType>
-
     <complexType
         name="ResourceType"
         abstract="true"
@@ -184,63 +56,4 @@
             type="string"
         ></attribute>
     </complexType>
-
-    <complexType name="RackShapeLinkType">
-        <complexContent>
-            <restriction base="sh:LinkType">
-                <attribute
-                    name="href"
-                    use="required"
-                    type="anyURI"
-                ></attribute>
-                <attribute
-                    name="rel"
-                    type="string"
-                    fixed="http://relations.cenix-bioscience.com/rackshape"
-                >
-                </attribute>
-                <!-- <attribute name="type" use="optional" type="string" 
-                    ></attribute> -->
-                <attribute
-                    name="title"
-                    use="optional"
-                    type="string"
-                ></attribute>
-                <attribute
-                    name="length"
-                    use="optional"
-                    type="positiveInteger"
-                ></attribute>
-            </restriction>
-        </complexContent>
-    </complexType>
-
-    <element
-        name="rackposition"
-        type="sh:RackPositionType"
-    >
-    </element>
-
-    <element
-        name="rack_shape"
-        type="sh:RackShapeType"
-    >
-    </element>
-
-    <element
-        name="tag"
-        type="sh:TagType"
-    >
-    </element>
-
-    <element
-        name="barcode"
-        type="sh:RackBarcodeType"
-    >
-    </element>
-    <element
-        name="link"
-        type="sh:LinkType"
-    >
-    </element>
 </schema>

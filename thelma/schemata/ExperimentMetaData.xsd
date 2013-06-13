@@ -24,7 +24,7 @@
     </import>
 
     <import
-        schemaLocation="ExperimentMetadataType.xsd"
+        schemaLocation="ExperimentMetaDataType.xsd"
         namespace="http://schemata.cenix-bioscience.com/experimentmetadatatype"
     >
     </import>
@@ -48,7 +48,7 @@
     </import>
 
     <complexType
-        name="ExperimentMetadataType"
+        name="ExperimentMetaDataType"
     >
         <complexContent>
             <extension
@@ -57,7 +57,7 @@
                 <choice>
                     <element
                         name="link"
-                        type="em:ExperimentMetadataLinkType"
+                        type="em:ExperimentMetaDataLinkType"
                     >
                     </element>
                     <sequence>
@@ -76,10 +76,6 @@
                         </element>
                         <element
                             ref="sp:subproject"
-                        >
-                        </element>
-                        <element
-                        	ref="emt:experiment_metadata_type"
                         >
                         </element>
                         <element
@@ -114,6 +110,10 @@
                             maxOccurs="1"
                         >
                         </element>
+                        <element
+                            ref="emt:experiment_metadata_type"
+                        >
+                        </element>
                     </sequence>
                 </choice>
             </extension>
@@ -121,7 +121,7 @@
     </complexType>
 
     <complexType
-        name="ExperimentMetadataCollectionType"
+        name="ExperimentMetaDataCollectionType"
     >
         <sequence
             maxOccurs="unbounded"
@@ -130,7 +130,7 @@
             <choice>
                 <element
                     name="link"
-                    type="em:ExperimentMetadataCollectionLinkType"
+                    type="em:ExperimentMetaDataCollectionLinkType"
                     maxOccurs="1"
                     minOccurs="0"
                 ></element>
@@ -144,7 +144,7 @@
     </complexType>
 
     <complexType
-        name="ExperimentMetadataLinkType"
+        name="ExperimentMetaDataLinkType"
     >
         <complexContent>
             <restriction
@@ -160,7 +160,7 @@
     </complexType>
 
     <complexType
-        name="ExperimentMetadataCollectionLinkType"
+        name="ExperimentMetaDataCollectionLinkType"
     >
         <complexContent>
             <restriction
@@ -177,13 +177,13 @@
 
     <element
         name="experiment_metadata"
-        type="em:ExperimentMetadataType"
+        type="em:ExperimentMetaDataType"
     >
     </element>
 
     <element
         name="experiment_metadatas"
-        type="em:ExperimentMetadataCollectionType"
+        type="em:ExperimentMetaDataCollectionType"
     ></element>
 
 </schema>

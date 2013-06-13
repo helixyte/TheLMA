@@ -65,8 +65,8 @@ __all__ = ['ExperimentMetadataTypeMember',
 
 
 class ExperimentMetadataTypeMember(Member):
-    relation = '%s/experiment_metadata_type' % RELATION_BASE_URL
-    title = attribute_alias('id')
+    relation = '%s/experiment-metadata-type' % RELATION_BASE_URL
+    title = attribute_alias('display_name')
     display_name = terminal_attribute(str, 'display_name')
 
 
@@ -163,6 +163,7 @@ class ExperimentMetadataMember(Member):
     relation = '%s/experiment-metadata' % RELATION_BASE_URL
     label = terminal_attribute(str, 'label')
     title = attribute_alias('label')
+    ticket_number = terminal_attribute(int, 'ticket_number')
     subproject = member_attribute(ISubproject, 'subproject')
     number_replicates = terminal_attribute(int, 'number_replicates')
     molecule_design_pool_set = member_attribute(IMoleculeDesignPoolSet,
@@ -175,7 +176,6 @@ class ExperimentMetadataMember(Member):
             collection_attribute(IExperimentDesignRack,
                                  'experiment_design.design_racks')
     iso_request = member_attribute(IIsoRequest, 'iso_request')
-    ticket_number = terminal_attribute(int, 'ticket_number')
     creation_date = terminal_attribute(datetime, 'creation_date')
     experiment_metadata_type = member_attribute(IExperimentMetadataType,
                                                 'experiment_metadata_type')
@@ -213,9 +213,12 @@ class ExperimentMetadataMember(Member):
         prx = DataElementAttributeProxy(data_element)
         self_entity = self.get_entity()
         if prx.number_replicates != self.number_replicates \
-           or prx.experiment_metadata_type != self.experiment_metadata_type:
-            # invalidate data to force a fresh upload of the XLS file
-            self_entity.experiment_design.experiment_design_racks = []
+           or prx.experiment_metadata_type.get('id') \
+              != self.experiment_metadata_type.id:
+            if not self_entity.experiment_design is None:
+                # invalidate data to force a fresh upload of the XLS file
+                self_entity.experiment_design.experiment_design_racks = []
+                self_entity.experiment_design.worklist_series = None
             if not self_entity.iso_request is None:
                 shape = self_entity.iso_request.iso_layout.shape
                 new_layout = RackLayout(shape=shape)

@@ -25,8 +25,8 @@ def create_table(metadata, subproject_tbl, experiment_metadata_type_tbl):
                 Column('creation_date', DateTime(timezone=True),
                        default=datetime.now),
                 Column('experiment_metadata_type_id', String(10),
-                       ForeignKey(experiment_metadata_type_tbl.c.\
-                                  experiment_metadata_type_id),
+                       ForeignKey(experiment_metadata_type_tbl.c.
+                                            experiment_metadata_type_id),
                        nullable=False),
                 Column('ticket_number', Integer, nullable=False),
                 )

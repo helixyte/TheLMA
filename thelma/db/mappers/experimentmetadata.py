@@ -46,7 +46,7 @@ def create_mapper(experiment_metadata_tbl,
                             single_parent=True),
 
                   experiment_metadata_type=relationship(ExperimentMetadataType,
-                                                uselist=False, viewonly=True),
+                                                        uselist=False),
                   ),
            )
     return m

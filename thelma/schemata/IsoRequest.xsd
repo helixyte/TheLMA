@@ -12,13 +12,13 @@
     xmlns:u="http://schemata.cenix-bioscience.com/user"
 >
     <import
-        schemaLocation="ExperimentMetadata.xsd"
+        schemaLocation="ExperimentMetaData.xsd"
         namespace="http://schemata.cenix-bioscience.com/experimentmetadata"
     >
     </import>
 
     <import
-        schemaLocation="ExperimentMetadataType.xsd"
+        schemaLocation="ExperimentMetaDataType.xsd"
         namespace="http://schemata.cenix-bioscience.com/experimentmetadatatype"
     >
     </import>
