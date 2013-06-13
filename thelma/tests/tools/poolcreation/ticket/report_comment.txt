@@ -1,0 +1,5 @@
+A stock transfer has been executed by Michael Brehm (see file: attachment:stock_transfer_pool_creation_executor_test-4.csv).
+
+Type: samples
+
+New pool stock rack: 09999999.

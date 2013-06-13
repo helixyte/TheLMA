@@ -329,6 +329,20 @@ class WorklistSeries(Entity):
         WorklistSeriesMember(planned_worklist=worklist, worklist_series=self,
                              index=index)
 
+    def get_worklist_for_index(self, wl_index):
+        """
+        Returns the :class:`PlannedWorklist` for the given index.
+
+        :param wl_index: Index of the worklist within the series.
+        :type wl_index: positive number
+        :return: The :class:`PlannedWorklist` for the given index.
+        :raises ValueError: If there is no worklist for the given index.
+        """
+        for wsm in self.worklist_series_members:
+            if wsm.index == wl_index: return wsm.planned_worklist
+
+        raise ValueError('There is no worklist for index %i!' % (wl_index))
+
     def __eq__(self, other):
         return (isinstance(other, WorklistSeries) and self.id == other.id)
 
