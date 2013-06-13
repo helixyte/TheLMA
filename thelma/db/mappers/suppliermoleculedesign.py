@@ -1,7 +1,7 @@
 """
 Supplier molecule design mapper.
 """
-from sqlalchemy.orm import mapper
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
 from thelma.models.moleculedesign import MoleculeDesign
 from thelma.models.moleculedesign import MoleculeDesignPool
@@ -21,6 +21,7 @@ def create_mapper(supplier_molecule_design_tbl,
     ssmd = single_supplier_molecule_design_tbl
     psmd = pooled_supplier_molecule_design_tbl
     m = mapper(SupplierMoleculeDesign, supplier_molecule_design_tbl,
+               id_attribute='supplier_molecule_design_id',
                properties=dict(
                    supplier=
                        relationship(Organization,

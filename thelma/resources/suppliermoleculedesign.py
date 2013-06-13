@@ -17,18 +17,18 @@ __all__ = ['PooledSupplierMoleculeDesignMember',
 
 
 class SupplierMoleculeDesignMember(Member):
-    relation = "%s/supplier-moleculedesign" % RELATION_BASE_URL
+    relation = "%s/supplier-molecule-design" % RELATION_BASE_URL
     product_id = terminal_attribute(str, 'product_id')
     supplier = member_attribute(IOrganization, 'supplier')
     is_current = terminal_attribute(bool, 'is_current')
 
 
 class SingleSupplierMoleculeDesignMember(SupplierMoleculeDesignMember):
-    relation = "%s/single-supplier-moleculedesign" % RELATION_BASE_URL
+    relation = "%s/single-supplier-molecule-design" % RELATION_BASE_URL
     molecule_design = member_attribute(IMoleculeDesign, 'molecule_design')
 
 
 class PooledSupplierMoleculeDesignMember(SupplierMoleculeDesignMember):
-    relation = "%s/pooled-supplier-moleculedesign" % RELATION_BASE_URL
+    relation = "%s/pooled-supplier-molecule-design" % RELATION_BASE_URL
     molecule_design_pool = member_attribute(IMoleculeDesignPool,
                                             'molecule_design_pool')

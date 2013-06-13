@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="http://schemata.cenix-bioscience.com/suppliermoleculedesign"
+    elementFormDefault="qualified"
+    xmlns:o="http://schemata.cenix-bioscience.com/organization"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:smd="http://schemata.cenix-bioscience.com/suppliermoleculedesign"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+    <import
+        schemaLocation="Organization.xsd"
+        namespace="http://schemata.cenix-bioscience.com/organization"
+    >
+    </import>
+
+    <!-- SupplierMoleculeDesign resource -->
+
+    <complexType name="SupplierMoleculeDesignType">
+        <complexContent>
+            <extension base="sh:ResourceType">
+                <choice>
+                    <element
+                        name="link"
+                        type="smd:SupplierMoleculeDesignLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="product_id"
+                            type="string" />
+                        <element
+                            name="supplier"
+                            type="o:OrganizationType" />
+                        <element
+                            name="is_current"
+                            type="boolean" />
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="SupplierMoleculeDesignCollectionType">
+        <choice>
+            <element
+                ref="smd:supplier_molecule_design"
+                maxOccurs="unbounded"
+                minOccurs="0"
+            >
+            </element>
+            <element
+                name="link"
+                type="smd:SupplierMoleculeDesignCollectionLinkType"
+                maxOccurs="1"
+                minOccurs="0"
+            >
+            </element>
+        </choice>
+    </complexType>
+
+    <complexType name="SupplierMoleculeDesignLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <!-- The relation URI for members of your resource. -->
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/supplier-molecule-design"
+                >
+                </attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType name="SupplierMoleculeDesignCollectionLinkType">
+        <complexContent>
+            <!-- The relation URI for a collection of your resource. -->
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/supplier-molecule-design-collection"
+                >
+                </attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="supplier_molecule_design"
+        type="smd:SupplierMoleculeDesignType"
+    >
+    </element>
+
+    <element
+        name="supplier_molecule_designs"
+        type="smd:SupplierMoleculeDesignCollectionType"
+    >
+    </element>
+
+</schema>

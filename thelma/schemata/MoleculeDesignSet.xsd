@@ -7,6 +7,7 @@
     xmlns:md="http://schemata.cenix-bioscience.com/moleculedesign"
     xmlns:mt="http://schemata.cenix-bioscience.com/moleculetype"
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:smd="http://schemata.cenix-bioscience.com/suppliermoleculedesign"
 >
     <import
         schemaLocation="Shared.xsd"
@@ -25,6 +26,13 @@
         namespace="http://schemata.cenix-bioscience.com/moleculetype"
     >
     </import>
+
+    <import
+        schemaLocation="SupplierMoleculeDesign.xsd"
+        namespace="http://schemata.cenix-bioscience.com/suppliermoleculedesign"
+    >
+    </import>
+
 
     <group name="MoleculeDesignSetBase">
         <sequence>
@@ -76,6 +84,8 @@
                             name="number_designs"
                             type="integer"
                         >
+                        </element>
+                        <element ref="smd:supplier_molecule_designs">
                         </element>
                     </sequence>
                 </choice>

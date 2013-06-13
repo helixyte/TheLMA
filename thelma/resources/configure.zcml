@@ -990,16 +990,16 @@
         </representer>
     </resource>
 
-	<!-- Experiment Metadata Type -->
+    <!-- Experiment Metadata Type -->
 
-	<resource
-		interface="thelma.interfaces.IExperimentMetadataType"
-		member=".experiment.ExperimentMetadataTypeMember"
-		collection_root_name="experiment-metadata-types"
-		entity="thelma.models.experiment.ExperimentMetadataType"
-	>
+    <resource
+        interface="thelma.interfaces.IExperimentMetadataType"
+        member=".experiment.ExperimentMetadataTypeMember"
+        collection_root_name="experiment-metadata-types"
+        entity="thelma.models.experiment.ExperimentMetadataType"
+    >
 
- 		<representer content_type="everest.mime.XmlMime">
+        <representer content_type="everest.mime.XmlMime">
             <option
                 name="xml_schema"
                 value="thelma:schemata/ExperimentMetaDataType.xsd" />
@@ -1015,7 +1015,7 @@
             kind="member"
             content_type="everest.mime.XmlMime"
         >
-        	<option
+            <option
                 name="xml_tag"
                 value="experiment_metadata_type" />
         </representer>
@@ -1023,11 +1023,11 @@
             kind="collection"
             content_type="everest.mime.XmlMime"
         >
-        	<option
+            <option
                 name="xml_tag"
                 value="experiment_metadata_types" />
         </representer>
-	</resource>
+    </resource>
 
     <!-- Experiment Rack -->
 
@@ -1510,11 +1510,11 @@
             <option
                 name="xml_tag"
                 value="job" />
-            <!-- <attribute name="experiments"> <option name="ignore" value="false"
-                type="zope.configuration.fields.Bool" /> <option name="write_as_link" value="false"
-                type="zope.configuration.fields.Bool" /> </attribute> <attribute name="experiments.experiment_racks">
-                <option name="ignore" value="false" type="zope.configuration.fields.Bool"
-                /> <option name="write_as_link" value="true" type="zope.configuration.fields.Bool"
+            <!-- <attribute name="experiments"> <option name="ignore" value="false" 
+                type="zope.configuration.fields.Bool" /> <option name="write_as_link" value="false" 
+                type="zope.configuration.fields.Bool" /> </attribute> <attribute name="experiments.experiment_racks"> 
+                <option name="ignore" value="false" type="zope.configuration.fields.Bool" 
+                /> <option name="write_as_link" value="true" type="zope.configuration.fields.Bool" 
                 /> </attribute> -->
         </representer>
         <representer
@@ -1524,7 +1524,7 @@
             <option
                 name="xml_tag"
                 value="jobs" />
-            <!-- <attribute name="experiments"> <option name="write_as_link"
+            <!-- <attribute name="experiments"> <option name="write_as_link" 
                 value="true" type="zope.configuration.fields.Bool" /> </attribute> -->
         </representer>
     </resource>
@@ -1621,10 +1621,10 @@
                     name="write_as_link"
                     value="true" />
             </attribute>
-            <!-- <attribute name="experiments.experiment_design.experiment_metadata.experiment_design">
-                <option name="write_as_link" value="true" type="zope.configuration.fields.Bool"
-                /> </attribute> <attribute name="experiments.experiment_design.experiment_metadata.iso_request">
-                <option name="write_as_link" value="true" type="zope.configuration.fields.Bool"
+            <!-- <attribute name="experiments.experiment_design.experiment_metadata.experiment_design"> 
+                <option name="write_as_link" value="true" type="zope.configuration.fields.Bool" 
+                /> </attribute> <attribute name="experiments.experiment_design.experiment_metadata.iso_request"> 
+                <option name="write_as_link" value="true" type="zope.configuration.fields.Bool" 
                 /> </attribute> -->
         </representer>
 
@@ -1934,6 +1934,26 @@
         expose="true"
     >
         <representer
+            content_type="everest.mime.XmlMime"
+        >
+            <attribute name="supplier_molecule_designs">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="molecule_design_pools" />
+        </representer>
+        <representer
             kind="member"
             content_type="everest.mime.XmlMime"
         >
@@ -1991,14 +2011,6 @@
                     name="ignore"
                     value="true" />
             </attribute>
-        </representer>
-        <representer
-            kind="collection"
-            content_type="everest.mime.XmlMime"
-        >
-            <option
-                name="xml_tag"
-                value="molecule_design_pools" />
         </representer>
     </resource>
 
@@ -2185,7 +2197,7 @@
         </representer>
     </resource>
 
-	<!-- Pipetting Specs -->
+    <!-- Pipetting Specs -->
 
     <resource
         interface="thelma.interfaces.IPipettingSpecs"
@@ -2670,7 +2682,7 @@
             <option
                 name="xml_tag"
                 value="plate_specs" />
-            <!-- <attribute name="well_specs"> <option name="ignore" value="false"
+            <!-- <attribute name="well_specs"> <option name="ignore" value="false" 
                 type="zope.configuration.fields.Bool" /> </attribute> -->
         </representer>
     </resource>
@@ -2899,8 +2911,8 @@
             <option
                 name="xml_prefix"
                 value="si" />
-            <!-- FIXME: uncomment once we can properly transmit the molecule
-                design pool link <attribute name="molecule_design_pool_id"> <option name="ignore"
+            <!-- FIXME: uncomment once we can properly transmit the molecule 
+                design pool link <attribute name="molecule_design_pool_id"> <option name="ignore" 
                 value="true" > </option> </attribute> -->
             <attribute name="molecule_design_pool.molecule_designs">
                 <option
@@ -3033,6 +3045,38 @@
         entity='thelma.models.suppliermoleculedesign.SupplierMoleculeDesign'
         expose='false'
     >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/SupplierMoleculeDesign.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/suppliermoleculedesign" />
+            <option
+                name="xml_prefix"
+                value="smd" />
+            <attribute name="supplier">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/suppliermoleculedesign" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="supplier_molecule_design" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="supplier_molecule_designs" />
+        </representer>
     </resource>
 
     <!-- Tag -->
