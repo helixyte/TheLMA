@@ -174,12 +174,10 @@ class WellAssociatorTestCaseManual(WellAssociatorTestCase):
         # src label; value: target labels
         self.result_data_1 = dict(
                     B2=['B2', 'B3', 'B4', 'F2', 'F3', 'F4'],
-                    B3=[],
                     C2=['C2', 'C3', 'C4', 'G2', 'G3', 'G4'],
                     D2=[])
         self.result_data_2 = dict(
                     B2=['B2', 'B3', 'B4', 'F2', 'F3', 'F4'],
-                    B3=[],
                     C2=[],
                     D2=['C2', 'C3', 'C4', 'G2', 'G3', 'G4'])
 

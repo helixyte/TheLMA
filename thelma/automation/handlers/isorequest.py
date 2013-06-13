@@ -1562,34 +1562,63 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
         """
         IsoRequestParserHandler._check_layout_validity(self, has_floatings)
 
-        pool_count = dict()
-        stock_conc_pools = set()
+        if has_floatings:
+            msg = 'ISO layout for manual optimisations must not contain ' \
+                  'floating positions!'
+            self.add_error(msg)
 
+        mdp_count = dict()
         for tf_pos in self.transfection_layout.working_positions():
             pool_id = tf_pos.molecule_design_pool_id
             if pool_id is None: continue
-            if not pool_count.has_key(pool_id): pool_count[pool_id] = 0
-            pool_count[pool_id] += 1
-            if tf_pos.iso_concentration == tf_pos.stock_concentration:
-                stock_conc_pools.add(pool_id)
+            if not mdp_count.has_key(pool_id): mdp_count[pool_id] = 0
+            mdp_count[pool_id] += 1
 
-        invalid = []
-        for pool_id in stock_conc_pools:
-            count = pool_count[pool_id]
-            if count > 1: invalid.append(pool_id)
-        if len(pool_count) > 96:
-            msg = '384-well manual optimisation ISO layouts with more than ' \
-                  '96 distinct molecule design pools are not supported. ' \
-                  'Talk to the stock management and the IT unit, please.'
-            self.add_error(msg)
-        elif len(invalid) > 0:
-            msg = 'If you order a molecule design pool in stock ' \
-                  'concentration, this pool may only occur once on the ISO ' \
-                  'plate. The following pools violate this rule: %s.' \
-                  % (', '.join([str(pool_id) for pool_id in sorted(invalid)]))
+        if len(mdp_count) < 1:
+            max_well_number = 0
+        else:
+            max_well_number = max(mdp_count.values())
+        if max_well_number > 1:
+            msg = 'Each molecule design pool may occur only once for ISO ' \
+                  'layouts of %s experiments. If you want to order multiple ' \
+                  'wells switch to experiment type "%s", please.' \
+                  % (self.SUPPORTED_SCENARIO,
+                     get_experiment_type_manual_optimisation().display_name)
             self.add_error(msg)
         else:
             self.__check_dilution_concentrations()
+
+            # TODO: review after ISO genertion refactoring
+#        IsoRequestParserHandler._check_layout_validity(self, has_floatings)
+#
+#        pool_count = dict()
+#        stock_conc_pools = set()
+#
+#        for tf_pos in self.transfection_layout.working_positions():
+#            pool_id = tf_pos.molecule_design_pool_id
+#            if pool_id is None: continue
+#            if not pool_count.has_key(pool_id): pool_count[pool_id] = 0
+#            pool_count[pool_id] += 1
+#            if tf_pos.iso_concentration == tf_pos.stock_concentration:
+#                stock_conc_pools.add(pool_id)
+#
+#        invalid = []
+#        for pool_id in stock_conc_pools:
+#            count = pool_count[pool_id]
+#            if count > 1: invalid.append(pool_id)
+#        if len(pool_count) > 96:
+#            msg = '384-well manual optimisation ISO layouts with more than ' \
+#                  '96 distinct molecule design pools are not supported. ' \
+#                  'Talk to the stock management and the IT unit, please.'
+#            self.add_error(msg)
+#        elif len(invalid) > 0:
+#            msg = 'If you order a molecule design pool in stock ' \
+#                  'concentration, this pool may only occur once on the ISO ' \
+#                  'plate. The following pools violate this rule: %s.' \
+#                  % (', '.join([str(pool_id) for pool_id in sorted(invalid)]))
+#            self.add_error(msg)
+#        else:
+#            self.__check_dilution_concentrations()
 
     def __check_dilution_concentrations(self):
         """

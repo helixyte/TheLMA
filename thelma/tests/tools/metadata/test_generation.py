@@ -1136,7 +1136,6 @@ class ExperimentMetdadataGeneratorManualTestCase(
         # pos label, values: md, iso vol, iso conc, reagent name, reagent df
         self.iso_layout_values = dict(
                             B2=(205200, 20, 5000, None, None),
-                            B3=(205200, 20, 5000, None, None),
                             C2=(205201, 10, 5000, None, None),
                             D2=(205202, 10, 5000, None, None))
 
