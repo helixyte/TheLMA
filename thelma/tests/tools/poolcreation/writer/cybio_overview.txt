@@ -1,0 +1,7 @@
+Pool Creation
+-------------
+
+Volume: 2.0 ul each
+Assumed buffer volume: 24.0 ul
+Source racks: 08000001, 08000002, 08000003
+Target rack: 09999999

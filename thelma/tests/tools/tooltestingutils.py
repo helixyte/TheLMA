@@ -238,8 +238,10 @@ class FileReadingTestCase(ToolsAndUtilsTestCase):
         f = resource_filename(*file_name) # pylint: disable=W0142
         try:
             stream = open(f, 'rb')
+        except IOError:
+            raise IOError('Unable to find file "%s"' % (complete_file))
+        else:
             self.stream = stream.read()
-        finally:
             stream.close()
 
 

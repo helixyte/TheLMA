@@ -28,6 +28,7 @@ __all__ = ['ParameterSet',
            'WorkingLayout',
            'is_valid_number',
            'get_converted_number',
+           'get_trimmed_string',
            'round_up',
            'create_in_term_for_db_queries',
            'add_list_map_element',
@@ -632,8 +633,11 @@ def get_converted_number(value, is_integer=False):
 
 def get_trimmed_string(value):
     """
-    Returns a string of value (free of \'.0\' at the end).
+    Returns a string of value (free of \'.0\' at the end). Float values
+    are limited to 1 decimal place.
     """
+    if isinstance(value, float):
+        value = round(value, 1)
     value_str = str(value)
     if value_str.endswith('.0'): value_str = value_str[:-2]
     return value_str

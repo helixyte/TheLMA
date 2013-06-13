@@ -32,6 +32,7 @@ from thelma.models.rack import PlateSpecs
 from thelma.models.rack import RACK_POSITION_REGEXP
 from thelma.models.status import ITEM_STATUSES
 from thelma.models.utils import label_from_number
+from thelma.models.rack import RackShape
 
 
 __docformat__ = 'reStructuredText en'
@@ -206,7 +207,7 @@ class EXPERIMENT_SCENARIOS(SemiconstantCache):
     MANUAL = 'MANUAL'
     ISO_LESS = 'ISO-LESS'
     LIBRARY = 'LIBRARY'
-    ORDER_ONLY = 'ORDER_ONLY'
+    ORDER_ONLY = 'ORDER-ONLY'
     QPCR = 'QPCR'
 
     ALL = [OPTIMISATION, SCREENING, MANUAL, ISO_LESS, LIBRARY, ORDER_ONLY, QPCR]
@@ -315,6 +316,10 @@ class RACK_SHAPE_NAMES(SemiconstantCache):
 
         The positions are cached.
 
+        :param rack_shape: A rack shape or its name:
+        :type rack_shape: :class:`thelma.models.rack.RackShape` or
+            :class:`basestring`
+
         :param vertical_sorting: Set to *True* for vertical sorting and to
             *False* for horizontal sorting.
         :type vertical_sorting: :class:`bool`
@@ -323,9 +328,21 @@ class RACK_SHAPE_NAMES(SemiconstantCache):
         :return: The rack positions of the rack shape as list sorted by the
             chosen direction.
         """
+        if isinstance(rack_shape, RackShape):
+            shape_name = rack_shape.name
+            shape_entity = rack_shape
+        elif isinstance(rack_shape, basestring):
+            shape_entity = cls.from_name(rack_shape)
+            shape_name = rack_shape
+        else:
+            msg = 'Unexpected type for rack shape (%s). Allowed types are ' \
+                  'string and %s.' % (rack_shape.__class__.__name__,
+                                      RackShape.__name__)
+            raise TypeError(msg)
+
         lookup = None
-        if cls.__shape_positions.has_key(rack_shape.name):
-            lookup = cls.__shape_positions[rack_shape.name]
+        if cls.__shape_positions.has_key(shape_name):
+            lookup = cls.__shape_positions[shape_name]
             if lookup.has_key(vertical_sorting):
                 return lookup[vertical_sorting]
 
@@ -341,9 +358,9 @@ class RACK_SHAPE_NAMES(SemiconstantCache):
             prime_values = row_values
             sec_values = col_values
 
-        for prime_index in range(getattr(rack_shape, prime_values[1])):
+        for prime_index in range(getattr(shape_entity, prime_values[1])):
             prime_values[0] = prime_index
-            for sec_index in range(getattr(rack_shape, sec_values[1])):
+            for sec_index in range(getattr(shape_entity, sec_values[1])):
                 sec_values[0] = sec_index
                 coords = (row_values[0], col_values[0])
                 rack_pos = get_rack_position_from_indices(*coords)
@@ -353,7 +370,7 @@ class RACK_SHAPE_NAMES(SemiconstantCache):
             lookup = {vertical_sorting : positions}
         else:
             lookup[vertical_sorting] = positions
-        cls.__shape_positions[rack_shape.name] = lookup
+        cls.__shape_positions[shape_name] = lookup
 
         return positions
 

@@ -875,7 +875,7 @@ class IsoRequestManualParserTestCase(IsoRequestParserTest):
             'There are no fixed positions in this ISO layout!')
 
 #    TODO: review after ISO processing refactoring
-#    def xtest_manual_too_many_pools(self):
+#    def test_manual_too_many_pools(self):
 #        self._test_invalid_file('manual_too_many_pools.xls',
 #            '384-well manual optimisation ISO layouts with more than 96 ' \
 #            'distinct molecule design pools are not supported')

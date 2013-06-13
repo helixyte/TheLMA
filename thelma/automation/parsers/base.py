@@ -305,6 +305,9 @@ class ExcelFileParser(BaseParser): #pylint: disable=W0223
         """
         BaseParser.__init__(self, stream, log)
 
+        #: The sheet that is parsed at the moment.
+        self.sheet = None
+
     def open_workbook(self):
         """
         Opens the Excel file as workbook and performs some checks.
@@ -599,16 +602,25 @@ class ExcelSheetParsingContainer(ExcelParsingContainer):
         self._row_number = self._parser.get_sheet_row_number(sheet)
         self._col_number = self._parser.get_sheet_column_number(sheet)
 
-        #: If true all further parsing is aborted.
+        #: Can be used to abort parsing of cancel progress in rows.
         self._end_reached = False
+
+    def _check_for_end(self):
+        """
+        Sets the :attr:`_end_reached` flag. The effect on the parsing process
+        depends on the derived class.
+        Per default, the boolean is set to *True* if the row tracker
+        (:attr:`_current_row`) is in the last row of the sheet.
+        """
+        if self._current_row > (self._row_number - 1):
+            self._end_reached = True
 
     def _step_to_next_row(self):
         """
         Increases the internal row count and checks for the end of document.
         """
         self._current_row += 1
-        if self._current_row >= (self._row_number - 1):
-            self._end_reached = True
+        self._check_for_end()
 
     def _get_cell_value(self, row_index, column_index):
         """
@@ -649,9 +661,6 @@ class ExcelLayoutFileParser(ExcelFileParser): #pylint: disable=W0223
         :type log: :class:`thelma.automation.errors.ThelmaLog`
         """
         ExcelFileParser.__init__(self, stream=stream, log=log)
-
-        #: The sheet that is parsed at the moment.
-        self.sheet = None
 
         #: Defines the allow rack shapes (needs to set by the handler).
         self.allowed_rack_dimensions = None
@@ -714,16 +723,17 @@ class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
         #: layout search).
         self.__max_tag_column_index = 0
 
-    def _step_to_next_row(self):
+    def _check_for_end(self):
         """
-        Increases the internal row count and checks for the end marker and
-        the end of document.
+        In addition to the default implementation we also check for the
+        presence of the :attr:`_END_MARKER` (in the first column).
         """
-        ExcelSheetParsingContainer._step_to_next_row(self)
+        ExcelSheetParsingContainer._check_for_end(self)
+
         if not self._end_reached:
             first_col_value = self._get_cell_value(self._current_row, 0)
             if isinstance(first_col_value, str) and \
-                            first_col_value.lower() == self._END_MARKER:
+                                first_col_value.lower() == self._END_MARKER:
                 self._end_reached = True
 
     def _parse_tag_definitions(self):
