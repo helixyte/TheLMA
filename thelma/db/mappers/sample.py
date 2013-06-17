@@ -3,13 +3,17 @@ Sample mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy import String
+from sqlalchemy import event
 from sqlalchemy.orm import column_property
 from sqlalchemy.orm import relationship
+from sqlalchemy.orm.session import object_session
+from sqlalchemy.orm.util import class_mapper
 from sqlalchemy.sql import cast
 from sqlalchemy.sql import literal
 from sqlalchemy.sql import select
 from sqlalchemy.sql.expression import and_
 from sqlalchemy.sql.expression import func
+from sqlalchemy.sql.expression import insert
 from sqlalchemy.sql.expression import null
 from sqlalchemy.sql.functions import coalesce
 from thelma.db.utils import string_agg
@@ -17,8 +21,7 @@ from thelma.models.container import Container
 from thelma.models.sample import SAMPLE_TYPES
 from thelma.models.sample import Sample
 from thelma.models.sample import SampleMolecule
-#from sqlalchemy.schema import ForeignKey
-#from thelma.models.moleculedesign import MoleculeDesignPool
+from thelma.models.sample import StockSample
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
@@ -66,31 +69,28 @@ def create_mapper(sample_tbl, sample_molecule_tbl, molecule_tbl,
         polymorphic_on=sample_tbl.c.sample_type,
         polymorphic_identity=SAMPLE_TYPES.BASIC
         )
-#    fkey_mds = ForeignKey(ssmds.c.molecule_design_set_id)
-#    fkey_mds.parent = mds_sel.c.molecule_design_set_id
-#    mds_sel.c.molecule_design_set_id.foreign_keys.add(fkey_mds)
-#    fkey_s = ForeignKey(s.c.sample_id)
-#    fkey_s.parent = mds_sel.c.sample_id
-#    mds_sel.c.sample_id.foreign_keys.add(fkey_s)
-#    m.add_property('molecule_design_set',
-#                   relationship(MoleculeDesignPool,
-#                                viewonly=True,
-#                                uselist=False,
-#                                lazy='joined',
-#                                primaryjoin=
-#                                    and_(s.c.sample_id == mds_sel.c.sample_id,
-#                                    mds_sel.c.molecule_design_set_id ==
-#                                            ssmds.c.molecule_design_set_id),
-#                                foreign_keys=mds_sel.c.molecule_design_set_id
-#                                )
-#                   )
-#                                secondary=mds_sel,
-#                                primaryjoin=mds_sel.c.sample_id == s2.c.sample_id,
-#                                secondaryjoin=
-#                                        ssmds.c.molecule_design_set_id ==
-#                                              mds_sel.c.molecule_design_set_id,
-#                                foreign_keys=(mds_sel.c.sample_id,
-#                                              mds_sel.c.molecule_design_set_id)
-#                                )
-#                   )
+    # Listen to changes to the sample_type attribute.
+    event.listen(Sample.sample_type, "set", check_set_sample_type) # pylint: disable=E1101
     return m
+
+
+def check_set_sample_type(target, value, oldvalue, initiator): # pylint: disable=W0613
+    if isinstance(target, Sample) \
+       and value == SAMPLE_TYPES.STOCK \
+       and oldvalue != SAMPLE_TYPES.STOCK:
+        sess = object_session(target)
+        if target.id is None:
+            # We need a sample ID for the following execute statement to work.
+            sess.flush()
+        ss_tbl = class_mapper(StockSample).local_table
+        sess.execute(insert(ss_tbl,
+                            values=dict(sample_id=target.sample_id,
+                                        molecule_design_set_id=
+                                            target.molecule_design_pool.id,
+                                        supplier_id=target.supplier.id,
+                                        molecule_type_id=
+                                            target.molecule_type.id,
+                                        concentration=
+                                            target.concentration)
+                                  )
+                           )

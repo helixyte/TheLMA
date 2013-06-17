@@ -108,6 +108,34 @@ class Sample(Entity):
     def make_sample_molecule(self, molecule, concentration, **kw):
         return SampleMolecule(molecule, concentration, sample=self, **kw)
 
+    def convert_to_stock_sample(self):
+        """
+        Converts this instance into a stock sample by setting all the
+        required attributes. The object class is ''not'' changed.
+        """
+        mols = [sm.molecule for sm in self.sample_molecules]
+        if len(mols) == 0:
+            raise ValueError('Stock samples must have at least one sample '
+                             'molecule.')
+        if len(set([(mol.supplier, mol.molecule_design.molecule_type,
+                     self.sample_molecules[idx].concentration)
+                    for (idx, mol) in enumerate(mols)])) > 1:
+            raise ValueError('All molecule designs in a stock sample must '
+                             'have the same supplier, the same molecule type '
+                             'and the same concentration.')
+        from thelma.models.moleculedesign import MoleculeDesignPool
+        mdp = MoleculeDesignPool.create_from_data(
+                            dict(molecule_designs=[mol.molecule_design
+                                                   for mol in mols]))
+        # Setting attributes outside __init__ pylint: disable=W0201
+        self.molecule_design_pool = mdp
+        self.supplier = mols[0].supplier
+        self.molecule_type = mols[0].molecule_design.molecule_type
+        self.concentration = self.sample_molecules[0].concentration
+        self.sample_type = SAMPLE_TYPES.STOCK
+        # pylint: disable=W0201
+        return self
+
 
 class StockSample(Sample):
     """

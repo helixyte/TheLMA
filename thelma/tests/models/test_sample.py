@@ -3,11 +3,13 @@ Created on Jun 20, 2011
 
 @author: berger
 '''
+from everest.testing import RdbContextManager
+from thelma.interfaces import IContainer
 from thelma.models.sample import Molecule
 from thelma.models.sample import Sample
 from thelma.models.sample import SampleMolecule
+from thelma.models.sample import StockSample
 from thelma.testing import ThelmaModelTestCase
-from thelma.interfaces import IContainer
 
 
 class MoleculeModelTest(ThelmaModelTestCase):
@@ -129,3 +131,32 @@ class SampleMoleculeModelTest(ThelmaModelTestCase):
         self.assert_not_equal(sm1, sm4)
         self.assert_not_equal(sm1, sm5)
         self.assert_not_equal(sm1, self.concentration)
+
+
+class StockSampleTestCase(ThelmaModelTestCase):
+    def set_up(self):
+        ThelmaModelTestCase.set_up(self)
+
+    def test_convert_from_sample(self):
+        with RdbContextManager() as session:
+            container = self._create_tube()
+            sample = container.make_sample(1e-5)
+            molecule = self._create_molecule()
+            sm = sample.make_sample_molecule(molecule, 1e-5)
+            self.assert_true(sm in sample.sample_molecules)
+            session.add(sample)
+            sample.convert_to_stock_sample()
+            session.commit()
+            s_id = sample.id
+            supl_id = sample.supplier.id
+            s_mdp_id = sample.molecule_design_pool.id
+            cnc = sample.concentration
+            mt_id = sample.molecule_type.id
+            session.expunge(sample)
+            del sample
+            spl_reloaded = session.query(Sample).filter_by(id=s_id).one()
+            self.assert_true(isinstance(spl_reloaded, StockSample))
+            self.assert_equal(spl_reloaded.molecule_design_pool.id, s_mdp_id)
+            self.assert_equal(spl_reloaded.supplier.id, supl_id)
+            self.assert_equal(spl_reloaded.molecule_type.id, mt_id)
+            self.assert_equal(spl_reloaded.concentration, cnc)
