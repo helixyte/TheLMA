@@ -5,8 +5,8 @@ from a stock tube to a plate).
 AAB
 """
 from thelma.automation.tools.iso.prep_utils import IsoControlRackPosition
-from thelma.automation.tools.iso.prep_utils import RequestedStockSample
 from thelma.automation.tools.iso.prep_utils import PrepIsoAssociationData
+from thelma.automation.tools.iso.prep_utils import RequestedStockSample
 from thelma.automation.tools.iso.stockworklist \
     import StockTransferWorklistGenerator384Controls
 from thelma.automation.tools.iso.stockworklist \
@@ -17,8 +17,8 @@ from thelma.automation.tools.iso.stockworklist \
     import StockTransferWorklistGenerator96
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.utils.base import TransferTarget
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.racksector import QuadrantIterator
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.tests.tools.iso.test_stocktransfer \
     import IsoControlStockRackTestCase

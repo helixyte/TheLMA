@@ -6,11 +6,11 @@ AAB
 from math import ceil
 from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
 from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.utils.base import EmptyPositionManager
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import round_up
 from thelma.automation.tools.utils.base import sort_rack_positions
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.worklists.base import EmptyPositionManager
 from thelma.automation.tools.worklists.writers import WorklistWriter
 from thelma.automation.tools.writers import CsvColumnParameters
 from thelma.models.liquidtransfer import ReservoirSpecs

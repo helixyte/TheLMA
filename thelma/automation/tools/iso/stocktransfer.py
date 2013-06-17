@@ -16,9 +16,9 @@ from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.verifier import BaseRackVerifier
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.series import ContainerTransferJob
 from thelma.automation.tools.worklists.series import RackTransferJob
 from thelma.automation.tools.worklists.series import SeriesExecutor

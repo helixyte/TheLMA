@@ -8,14 +8,13 @@ from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.semiconstants import get_item_status_managed
 from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.tools.semiconstants import get_positions_for_shape
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.racksector import RackSectorTranslator
 from thelma.automation.tools.utils.racksector import check_rack_shape_match
 from thelma.automation.tools.utils.racksector import get_sector_positions
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.models.liquidtransfer import ExecutedContainerDilution
 from thelma.models.liquidtransfer import ExecutedContainerTransfer
 from thelma.models.liquidtransfer import ExecutedRackTransfer

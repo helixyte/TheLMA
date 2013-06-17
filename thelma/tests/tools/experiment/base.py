@@ -16,10 +16,9 @@ from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_item_status_managed
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.iso import IsoLayoutConverter
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import ISubproject
 from thelma.interfaces import IUser
 from thelma.models.container import WellSpecs

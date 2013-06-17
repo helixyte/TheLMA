@@ -607,12 +607,12 @@ class ExperimentMetadataGeneratorOptiTestCase(
         self.len_pool_set = 3
         self.iso_request_comment = 'opti with layout and floatings'
         self.iso_layout_values = dict(
-                B2=(205200, 7, 40000, 'mix1', 140),
-                B3=(205201, 7, 40000, 'mix1', 140),
-                D2=('md_001', 7, 40000, 'mix1', 140),
-                D3=('md_002', 7, 40000, 'mix1', 140),
-                D4=('md_003', 7, 40000, 'mix1', 140),
-                D5=('md_004', 7, 40000, 'mix1', 140),
+                B2=(205200, 7, 45000, 'mix1', 140),
+                B3=(205201, 7, 45000, 'mix1', 140),
+                D2=('md_001', 7, 45000, 'mix1', 140),
+                D3=('md_002', 7, 45000, 'mix1', 140),
+                D4=('md_003', 7, 45000, 'mix1', 140),
+                D5=('md_004', 7, 45000, 'mix1', 140),
                 F2=('mock', 7, 'None', 'mix1', 140))
         self._continue_setup('valid_opti_layout_floatings.xls')
         self._check_result()

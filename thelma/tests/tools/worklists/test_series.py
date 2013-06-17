@@ -11,9 +11,8 @@ from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
 from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.tools.semiconstants import get_pipetting_specs_manual
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.biomek \
     import ContainerTransferWorklistWriter
 from thelma.automation.tools.worklists.execution \

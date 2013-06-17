@@ -8,8 +8,6 @@ AAB
 """
 from everest.entities.utils import get_root_aggregate
 from thelma.automation.handlers.base import LayoutParserHandler
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.worklists.base import TRANSFER_ROLES
 from thelma.automation.parsers.sampletransfer \
     import GenericSampleTransferPlanParser
 from thelma.automation.tools.semiconstants \
@@ -20,7 +18,9 @@ from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_reservoir_spec
 from thelma.automation.tools.utils.base import MAX_PLATE_LABEL_LENGTH
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import add_list_map_element
+from thelma.automation.tools.worklists.base import TRANSFER_ROLES
 from thelma.interfaces import IPlate
 from thelma.interfaces import IRackShape
 from thelma.models.liquidtransfer import PlannedContainerDilution

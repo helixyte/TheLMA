@@ -6,21 +6,21 @@ from logging import config
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 from pyramid.threadlocal import get_current_registry
 from thelma import ThelmaLog
+from thelma.automation.tools.metadata.generation \
+    import ExperimentMetadataGenerator
 from thelma.automation.tools.semiconstants import clear_semiconstant_caches
 from thelma.automation.tools.semiconstants import initialize_semiconstant_caches
-from thelma.models.racklayout import RackLayout
-from thelma.automation.tools.metadata.generation import ExperimentMetadataGenerator
-from thelma.models.utils import get_user
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.writers import LINEBREAK_CHAR
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import ITractor
 from thelma.models.rack import RackPosition
 from thelma.models.rack import RackPositionSet
+from thelma.models.racklayout import RackLayout
 from thelma.models.tagging import Tag
 from thelma.models.tagging import TaggedRackPositionSet
+from thelma.models.utils import get_user
 from thelma.testing import ThelmaModelTestCase
 from tractor.api import DummyTractor
 import logging

@@ -9,16 +9,17 @@ from thelma.automation.tools.iso.prep_utils import PrepIsoAssociationData
 from thelma.automation.tools.iso.prep_utils import PrepIsoLayout
 from thelma.automation.tools.iso.prep_utils import get_stock_takeout_volume
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.tools.semiconstants import get_min_transfer_volume
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.stock.base import get_default_stock_concentration
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.iso import IsoLayoutConverter
 from thelma.automation.tools.utils.iso import IsoValueDeterminer
 from thelma.automation.tools.utils.racksector import QuadrantIterator
-from thelma.automation.tools.worklists.base import MIN_BIOMEK_TRANSFER_VOLUME
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.generation \
             import PlannedWorklistGenerator
 from thelma.models.iso import IsoRequest
@@ -451,6 +452,9 @@ class IsoBufferWorklistGeneratorOptimisation(IsoBufferWorklistGenerator):
                                         iso_request=iso_request,
                                         preparation_layout=preparation_layout)
 
+        self.__min_transfer_volume = get_min_transfer_volume(
+                                                PIPETTING_SPECS_NAMES.BIOMEK)
+
         # Intermediate error storage.
         self.__min_buffer_volume = None
 
@@ -532,7 +536,7 @@ class IsoBufferWorklistGeneratorOptimisation(IsoBufferWorklistGenerator):
         """
         Checks whether the buffer volume is within the valid range.
         """
-        if (volume - MIN_BIOMEK_TRANSFER_VOLUME) < -0.01:
+        if (volume - self.__min_transfer_volume) < -0.01:
             info = '%s (%.1f ul)' % (rack_pos.label, volume)
             self.__min_buffer_volume.append(info)
 

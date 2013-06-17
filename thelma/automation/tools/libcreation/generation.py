@@ -10,7 +10,6 @@ AAB
 """
 from everest.entities.utils import get_root_aggregate
 from math import ceil
-from thelma.automation.tools.stock.base import get_default_stock_concentration
 from thelma.automation.handlers.libbaselayout \
     import LibraryBaseLayoutParserHandler
 from thelma.automation.handlers.libmembers import LibraryMemberParserHandler
@@ -29,12 +28,12 @@ from thelma.automation.tools.libcreation.base import PREPARATION_PLATE_VOLUME
 from thelma.automation.tools.libcreation.base import STARTING_NUMBER_ALIQUOTS
 from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
+from thelma.automation.tools.stock.base import get_default_stock_concentration
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.racksector import QuadrantIterator
 from thelma.automation.tools.utils.racksector import RackSectorTranslator
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeType
 from thelma.models.iso import ISO_TYPES
 from thelma.models.iso import IsoRequest

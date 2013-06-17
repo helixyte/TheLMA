@@ -9,14 +9,12 @@ from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_item_status_managed
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
 from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.tools.semiconstants import get_pipetting_specs_manual
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base \
-    import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.semiconstants import get_rack_position_from_label
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.execution \
     import ContainerDilutionWorklistExecutor
 from thelma.automation.tools.worklists.execution \

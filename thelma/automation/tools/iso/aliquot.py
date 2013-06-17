@@ -17,7 +17,7 @@ from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_reservoir_spec
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.series import ContainerDilutionJob
 from thelma.automation.tools.worklists.series import RackTransferJob
 from thelma.automation.tools.worklists.series import SeriesExecutor

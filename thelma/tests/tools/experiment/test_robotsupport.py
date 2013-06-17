@@ -27,7 +27,7 @@ from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.semiconstants import get_reservoir_spec
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.biomek \
     import ContainerDilutionWorklistWriter
 from thelma.interfaces import IItemStatus

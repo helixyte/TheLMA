@@ -6,11 +6,14 @@ AAB, Sept 2011
 """
 from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_standard_96
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
+from thelma.automation.tools.semiconstants import get_min_transfer_volume
 from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.utils.base import EMPTY_POSITION_TYPE
 from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
 from thelma.automation.tools.utils.base import UNTREATED_POSITION_TYPE
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_converted_number
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_valid_number
@@ -22,10 +25,7 @@ from thelma.automation.tools.utils.iso import IsoParameters
 from thelma.automation.tools.utils.iso import IsoPosition
 from thelma.automation.tools.utils.iso import IsoRackSectorAssociator
 from thelma.automation.tools.utils.iso import IsoValueDeterminer
-from thelma.automation.tools.worklists.base import MIN_BIOMEK_TRANSFER_VOLUME
-from thelma.automation.tools.worklists.base import MIN_CYBIO_TRANSFER_VOLUME
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import get_biomek_dead_volume
+from thelma.automation.tools.worklists.base import get_dynamic_dead_volume
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 from thelma.models.moleculetype import MoleculeType
 from thelma.models.rack import RackPosition
@@ -131,7 +131,7 @@ class TransfectionParameters(IsoParameters):
     @classmethod
     def calculate_iso_volume(cls, number_target_wells, number_replicates,
                              iso_reservoir_spec, optimem_dil_factor,
-                             use_cybio=False):
+                             pipetting_specs):
         """
         Calculates the ISO volume required to fill the given number
         of target wells (assuming the given number of interplate replicates).
@@ -153,22 +153,18 @@ class TransfectionParameters(IsoParameters):
         :return: The ISO volume that should be ordered in the ISO to generate
             an sufficient amount of mastermix solution.
 
-        :param use_cybio: Defines whether to use a static dead volume (*True*)
-            or a dynamic (represents Biomek-transfer, *False*).
-        :type use_cybio: :class:`bool`
-        :default use_cybio: *False*
+        :param pipetting_specs: Defines whether to use a static dead volume
+            or a dynamic (represents Biomek-transfer).
+        :type pipetting_specs: :class:`PipettingSpecs`
         """
         required_volume = cls.calculate_mastermix_volume(number_target_wells,
                                                         number_replicates,
                                                         iso_reservoir_spec,
-                                                        use_cybio)
+                                                        pipetting_specs)
         iso_volume = required_volume / (cls.REAGENT_MM_DILUTION_FACTOR \
                                         * optimem_dil_factor)
 
-        if use_cybio:
-            min_volume = MIN_CYBIO_TRANSFER_VOLUME
-        else:
-            min_volume = MIN_BIOMEK_TRANSFER_VOLUME
+        min_volume = get_min_transfer_volume(pipetting_specs)
 
         if iso_volume < min_volume: iso_volume = min_volume
         return round_up(iso_volume)
@@ -225,11 +221,13 @@ class TransfectionParameters(IsoParameters):
     def requires_deepwell(cls, number_target_wells, number_replicates):
         """
         Determines the reservoir specs for an ISO plate
-        (depending on the maximum volume of a mastermix).
+        (depending on the maximum volume of a mastermix). We assume a
+        pipetting specs without dynamic dead volume correction.
 
         :param number_target_wells: The number of target wells in all
             design racks fo an experiment design.
         :type number_target_wells: :class:`int`
+
         :param number_replicates: The number of replicates.
         :type number_replicates: :class:`int`
         :return: :class:`bool` (*True* for deep well, *False* for standard).
@@ -247,7 +245,7 @@ class TransfectionParameters(IsoParameters):
     def calculate_mastermix_volume(cls, number_target_wells,
                                         number_replicates,
                                         iso_reservoir_spec,
-                                        use_cybio=False):
+                                        pipetting_specs=None):
         """
         Calculates the mastermix volume including transfection reagent.
         (assuming the given number of target wells and interplate replicates).
@@ -263,21 +261,22 @@ class TransfectionParameters(IsoParameters):
         :type iso_reservoir_spec:
             :class:`thelma.models.liquidtransfer.ReservoirSpecs`
 
-        :param use_cybio: Defines whether to use a static dead volume (*True*)
-            or a dynamic (represents Biomek-transfer, *False*).
-        :type use_cybio: :class:`bool`
-        :default use_cybio: *False*
+        :param pipetting_specs: Defines whether to use a static dead volume
+            or a dynamic dead volume correction (e.g. for Biomek).
+        :type pipetting_specs: :class:`PipettingSpecs`
+        :default pipetting_specs: *None* (with correction)
 
         :return: The determined volume required to fill these wells.
         """
         well_number = number_target_wells * number_replicates
 
-        if use_cybio:
+        if pipetting_specs is None or pipetting_specs.has_dynamic_dead_volume:
+            dead_volume = get_dynamic_dead_volume(
+                                            target_well_number=well_number,
+                                            reservoir_specs=iso_reservoir_spec)
+        else:
             dead_volume = iso_reservoir_spec.min_dead_volume \
                           * VOLUME_CONVERSION_FACTOR
-        else:
-            dead_volume = get_biomek_dead_volume(target_well_number=well_number,
-                                            reservoir_specs=iso_reservoir_spec)
 
         required_volume = well_number * cls.TRANSFER_VOLUME + dead_volume
         return required_volume
@@ -347,11 +346,13 @@ class TransfectionParameters(IsoParameters):
         """
         rs = get_reservoir_specs_standard_96()
         std_96_min_dead_vol = rs.min_dead_volume * VOLUME_CONVERSION_FACTOR
+        min_biomek_transfer_vol = get_min_transfer_volume(
+                                                PIPETTING_SPECS_NAMES.BIOMEK)
 
         crit_iso_conc = stock_concentration \
                     / ((std_96_min_dead_vol + cls.MINIMUM_ISO_VOLUME) \
                     / (std_96_min_dead_vol + cls.MINIMUM_ISO_VOLUME \
-                       - MIN_BIOMEK_TRANSFER_VOLUME))
+                       - min_biomek_transfer_vol))
 
         return crit_iso_conc
 

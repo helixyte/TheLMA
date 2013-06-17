@@ -5,14 +5,6 @@ AAB Aug 08, 2011
 
 from everest.entities.utils import get_root_aggregate
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
-from thelma.automation.tools.semiconstants \
-    import get_experiment_type_robot_optimisation
-from thelma.automation.tools.semiconstants \
-    import get_experiment_type_screening
-from thelma.automation.tools.semiconstants \
-    import get_experiment_type_manual_optimisation
-from thelma.automation.tools.semiconstants \
-    import get_experiment_type_order
 from thelma.automation.handlers.experimentdesign \
     import ExperimentDesignParserHandler
 from thelma.automation.handlers.isorequest import IsoRequestParserHandler
@@ -33,8 +25,16 @@ from thelma.automation.tools.metadata.worklist \
     import ExperimentWorklistGenerator
 from thelma.automation.tools.metadata.worklist import OptimemWorklistGenerator
 from thelma.automation.tools.metadata.worklist import ReagentWorklistGenerator
+from thelma.automation.tools.semiconstants \
+    import get_experiment_type_manual_optimisation
+from thelma.automation.tools.semiconstants \
+    import get_experiment_type_order
+from thelma.automation.tools.semiconstants \
+    import get_experiment_type_robot_optimisation
+from thelma.automation.tools.semiconstants \
+    import get_experiment_type_screening
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeType
 from thelma.interfaces import IUser
 from thelma.models.liquidtransfer import PlannedWorklist

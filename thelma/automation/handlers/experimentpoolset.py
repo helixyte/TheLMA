@@ -13,8 +13,7 @@ from everest.entities.utils import get_root_aggregate
 from everest.querying.specifications import cntd
 from thelma.automation.handlers.base import BaseParserHandler
 from thelma.automation.parsers.experimentpoolset import ExperimentPoolSetParser
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 

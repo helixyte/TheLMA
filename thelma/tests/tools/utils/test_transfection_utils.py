@@ -4,6 +4,9 @@ AAB Aug 03, 2011
 """
 from everest.testing import check_attributes
 from thelma.automation.tools.utils.base import UNTREATED_POSITION_TYPE
+from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
+from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
+from thelma.automation.tools.semiconstants import get_min_transfer_volume
 from thelma.automation.tools.metadata.transfection_utils \
     import TransfectionAssociationData
 from thelma.automation.tools.metadata.transfection_utils \
@@ -27,7 +30,6 @@ from thelma.automation.tools.utils.base import FLOATING_POSITION_TYPE
 from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
 from thelma.automation.tools.utils.iso import IsoParameters
 from thelma.automation.tools.utils.iso import IsoPosition
-from thelma.automation.tools.worklists.base import MIN_BIOMEK_TRANSFER_VOLUME
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 from thelma.models.racklayout import RackLayout
@@ -49,49 +51,59 @@ class TransfectionParametersTestCase(ToolsAndUtilsTestCase):
 
     def test_calculate_mastermix_volume(self):
         reservoir_specs = get_reservoir_specs_standard_96()
+        biomek_specs = get_pipetting_specs_biomek()
         req_vol1 = TransfectionParameters.calculate_mastermix_volume(
                             number_target_wells=10, number_replicates=3,
-                            iso_reservoir_spec=reservoir_specs)
+                            iso_reservoir_spec=reservoir_specs,
+                            pipetting_specs=biomek_specs)
         self.assert_equal(req_vol1, 180)
         req_vol2 = TransfectionParameters.calculate_mastermix_volume(
                             number_target_wells=10, number_replicates=1,
-                            iso_reservoir_spec=reservoir_specs)
+                            iso_reservoir_spec=reservoir_specs,
+                            pipetting_specs=biomek_specs)
         self.assert_equal(req_vol2, 67)
+        cybio_specs = get_pipetting_specs_cybio()
         req_vol3 = TransfectionParameters.calculate_mastermix_volume(
                             number_target_wells=10, number_replicates=1,
-                            iso_reservoir_spec=reservoir_specs, use_cybio=True)
+                            iso_reservoir_spec=reservoir_specs,
+                            pipetting_specs=cybio_specs)
         self.assert_equal(req_vol3, 60)
 
     def test_calculate_iso_volume(self):
         reservoir_specs = get_reservoir_specs_standard_96()
+        biomek_specs = get_pipetting_specs_biomek()
         optimem_df_sirna = 4
         iso_vol1 = TransfectionParameters.calculate_iso_volume(
                             number_target_wells=16, number_replicates=3,
                             iso_reservoir_spec=reservoir_specs,
-                            optimem_dil_factor=optimem_df_sirna)
+                            optimem_dil_factor=optimem_df_sirna,
+                            pipetting_specs=biomek_specs)
         self.assert_equal(iso_vol1, 33.8)
         iso_vol2 = TransfectionParameters.calculate_iso_volume(1, 1,
                                     iso_reservoir_spec=reservoir_specs,
-                                    optimem_dil_factor=optimem_df_sirna)
-        self.assert_equal(iso_vol2, MIN_BIOMEK_TRANSFER_VOLUME)
+                                    optimem_dil_factor=optimem_df_sirna,
+                                    pipetting_specs=biomek_specs)
+        min_vol = get_min_transfer_volume(biomek_specs)
+        self.assert_equal(iso_vol2, min_vol)
+        cybio_specs = get_pipetting_specs_cybio()
         iso_vol3 = TransfectionParameters.calculate_iso_volume(
                             number_target_wells=4, number_replicates=2,
                             iso_reservoir_spec=reservoir_specs,
                             optimem_dil_factor=optimem_df_sirna,
-                            use_cybio=True)
+                            pipetting_specs=cybio_specs)
         self.assert_equal(iso_vol3, 6.3)
         iso_vol4 = TransfectionParameters.calculate_iso_volume(
                             number_target_wells=1, number_replicates=1,
                             iso_reservoir_spec=reservoir_specs,
                             optimem_dil_factor=optimem_df_sirna,
-                            use_cybio=True)
+                            pipetting_specs=cybio_specs)
         self.assert_equal(iso_vol4, 1.9)
         optimem_df_mirna = 3
         iso_vol5 = TransfectionParameters.calculate_iso_volume(
                             number_target_wells=4, number_replicates=2,
                             iso_reservoir_spec=reservoir_specs,
                             optimem_dil_factor=optimem_df_mirna,
-                            use_cybio=True)
+                            pipetting_specs=cybio_specs)
         self.assert_equal(iso_vol5, 8.4)
 
     def test_calculate_reagent_dilution_volume(self):

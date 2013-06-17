@@ -13,11 +13,11 @@ from thelma.automation.tools.iso.prep_utils import RequestedStockSample
 from thelma.automation.tools.iso.prep_utils import get_stock_takeout_volume
 from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.racksector import QuadrantIterator
 from thelma.automation.tools.utils.racksector import RackSectorTranslator
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.generation \
     import PlannedWorklistGenerator
 from thelma.automation.tools.worklists.optimiser import BiomekLayoutOptimizer

@@ -7,9 +7,8 @@ from thelma.automation.tools.poolcreation.base \
     import calculate_single_design_stock_transfer_volume
 from thelma.automation.tools.poolcreation.base \
     import calculate_single_design_stock_transfer_volume_for_library
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.library import MoleculeDesignLibrary
 from thelma.models.moleculedesign import MoleculeDesignPoolSet

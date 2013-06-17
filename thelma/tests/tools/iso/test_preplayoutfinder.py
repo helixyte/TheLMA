@@ -384,12 +384,12 @@ class PrepLayoutFinder96TestCase(PrepLayoutFinderTestCase):
     def test_additional_dilution_position_in_series(self):
         self.result_data = dict(
                         A1=(20, 1000, 10, 205202, 'fixed', ['A1']),
-                        B1=(23, 50000, 10, 205202, 'fixed', ['B1']),
+                        B1=(22, 50000, 10, 205202, 'fixed', ['B1']),
                         A3=(20, 1000, 10, 205203, 'fixed', ['A3']),
-                        B3=(23, 50000, 10, 205203, 'fixed', ['B3']))
+                        B3=(22, 50000, 10, 205203, 'fixed', ['B3']))
         self._continue_setup()
-        self.result_data['H1'] = (30, 5000, 0, 205202, 'fixed', [])
-        self.result_data['H3'] = (30, 5000, 0, 205203, 'fixed', [])
+        self.result_data['H1'] = (20, 5000, 0, 205202, 'fixed', [])
+        self.result_data['H3'] = (20, 5000, 0, 205203, 'fixed', [])
         self._check_result()
 
     def test_not_enough_empty_positions(self):
@@ -414,9 +414,9 @@ class PrepLayoutFinder96TestCase(PrepLayoutFinderTestCase):
     def test_buffer_volume_correction(self):
         # data tuple: (req_volume, iso_conc, iso_volume, molecule design ID,
         # iso position labels)
-        self.result_data = dict(A1=(20, 40000, 1, 205202, 'fixed', ['A1']),
-                                A2=(12, 30000, 1, 205202, 'fixed', ['A2']),
-                                B1=(15, 40000, 1, 205204, 'fixed', ['B1']))
+        self.result_data = dict(A1=(27, 45000, 1, 205202, 'fixed', ['A1']),
+                                A2=(18, 40000, 1, 205202, 'fixed', ['A2']),
+                                B1=(20, 45000, 1, 205204, 'fixed', ['B1']))
         self._continue_setup()
         self._check_result()
 
@@ -437,7 +437,7 @@ class PrepLayoutFinder96TestCase(PrepLayoutFinderTestCase):
 
     def test_different_stock_concentration(self):
         self.result_data = dict(A1=[20.4, 9800, 10, 205202, 'fixed', ['A1']],
-                                A2=[150.0, 9800, 10, 330001, 'fixed', ['A2']])
+                                A2=[100.0, 9800, 10, 330001, 'fixed', ['A2']])
         self._continue_setup()
         self._check_result()
 
@@ -475,12 +475,12 @@ class PrepLayoutFinder384OptimisationTestCase(PrepLayoutFinderTestCase):
         self.result_data = dict(
         # data tuple: (req_volume, iso_conc, iso_volume, molecule design ID)
                         A1=(30, 1000, 10, 205200, 'fixed', ['A1']),
-                        B1=(33, 50000, 10, 205200, 'fixed', ['B1']),
+                        B1=(32, 50000, 10, 205200, 'fixed', ['B1']),
                         A3=(30, 1000, 10, 205201, 'fixed', ['A3']),
-                        B3=(33, 50000, 10, 205201, 'fixed', ['B3']))
+                        B3=(32, 50000, 10, 205201, 'fixed', ['B3']))
         self._continue_setup()
-        self.result_data['P1'] = (30, 5000, 0, 205200, 'fixed', [])
-        self.result_data['P3'] = (30, 5000, 0, 205201, 'fixed', [])
+        self.result_data['P1'] = (20, 5000, 0, 205200, 'fixed', [])
+        self.result_data['P3'] = (20, 5000, 0, 205201, 'fixed', [])
         self._check_result()
 
     def test_different_stock_concentration(self):

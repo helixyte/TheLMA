@@ -15,17 +15,17 @@ from thelma.automation.tools.iso.processingworklist \
 from thelma.automation.tools.iso.processingworklist \
     import IsoBufferWorklistGeneratorScreening
 from thelma.automation.tools.iso.processingworklist \
+    import IsoDilutionWorklistsGenerator
+from thelma.automation.tools.iso.processingworklist \
     import IsoDilutionWorklistsGeneratorOptimisation
 from thelma.automation.tools.iso.processingworklist \
     import IsoDilutionWorklistsGeneratorScreening
 from thelma.automation.tools.iso.processingworklist \
+    import IsoTransferWorklistGenerator
+from thelma.automation.tools.iso.processingworklist \
     import IsoTransferWorklistGeneratorOptimisation
 from thelma.automation.tools.iso.processingworklist \
     import IsoTransferWorklistGeneratorScreening
-from thelma.automation.tools.iso.processingworklist \
-    import IsoDilutionWorklistsGenerator
-from thelma.automation.tools.iso.processingworklist \
-    import IsoTransferWorklistGenerator
 from thelma.automation.tools.iso.processingworklist \
     import IsoWorklistSeriesGenerator
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
@@ -37,9 +37,9 @@ from thelma.automation.tools.utils.base import FIXED_POSITION_TYPE
 from thelma.automation.tools.utils.base import FLOATING_POSITION_TYPE
 from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
 from thelma.automation.tools.utils.base import TransferTarget
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.iso import IsoLayout
 from thelma.automation.tools.utils.iso import IsoPosition
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import ISubproject
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.iso import IsoRequest

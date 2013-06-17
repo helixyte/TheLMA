@@ -9,9 +9,9 @@ from thelma.automation.tools.libcreation.base import LibraryLayout
 from thelma.automation.tools.poolcreation.execution import PoolCreationExecutor
 from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.base import get_trimmed_string
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.writers import CsvColumnParameters
 from thelma.automation.tools.writers import CsvWriter
 from thelma.automation.tracbase import BaseTracTool

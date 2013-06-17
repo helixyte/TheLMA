@@ -5,11 +5,10 @@ AAB
 """
 from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.tools.stock.base import get_default_stock_concentration
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import round_up
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 
 __docformat__ = 'reStructuredText en'
 

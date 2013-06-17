@@ -24,12 +24,11 @@ from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_reservoir_specs_deep_96
 from thelma.automation.tools.stock.base import STOCK_CONCENTRATIONS
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.iso import IsoLayoutConverter
 from thelma.automation.tools.utils.iso import IsoParameters
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import Iso
 from thelma.models.iso import IsoPreparationPlate

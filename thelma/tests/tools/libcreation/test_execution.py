@@ -40,9 +40,8 @@ from thelma.automation.tools.semiconstants import get_item_status_managed
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.semiconstants import get_reservoir_spec
 from thelma.automation.tools.stock.base import get_default_stock_concentration
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.series import ContainerDilutionJob
 from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IMoleculeDesignPool

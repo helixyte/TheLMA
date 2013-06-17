@@ -19,6 +19,7 @@ AAB
 from everest.entities.utils import get_root_aggregate
 from everest.querying.specifications import lt
 from everest.repositories.rdb.utils import as_slug_expression
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IExperimentMetadataType
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import IPipettingSpecs
@@ -27,12 +28,13 @@ from thelma.interfaces import IRackPosition
 from thelma.interfaces import IRackShape
 from thelma.interfaces import IReservoirSpecs
 from thelma.models.experiment import ExperimentMetadataType
+from thelma.models.liquidtransfer import PipettingSpecs
 from thelma.models.liquidtransfer import ReservoirSpecs
 from thelma.models.rack import PlateSpecs
 from thelma.models.rack import RACK_POSITION_REGEXP
+from thelma.models.rack import RackShape
 from thelma.models.status import ITEM_STATUSES
 from thelma.models.utils import label_from_number
-from thelma.models.rack import RackShape
 
 
 __docformat__ = 'reStructuredText en'
@@ -59,6 +61,8 @@ __all__ = ['SemiconstantCache',
            'get_pipetting_specs_manual',
            'get_pipetting_specs_cybio',
            'get_pipetting_specs_biomek',
+           'get_min_transfer_volume',
+           'get_max_transfer_volume',
            'RESERVOIR_SPECS_NAMES',
            'get_reservoir_spec',
            'get_reservoir_specs_standard_96',
@@ -399,6 +403,42 @@ class PIPETTING_SPECS_NAMES(SemiconstantCache):
     ALL = [MANUAL, CYBIO, BIOMEK]
     _MARKER_INTERFACE = IPipettingSpecs
 
+    @classmethod
+    def get_min_transfer_volume(cls, pipetting_specs):
+        """
+        Returns the minimum transfer volume for the given pipetting specs in ul.
+
+        Invokes :func:`from_name`.
+
+        :param pipetting_specs: The pipetting specs whose minimum volume you
+            want to get or its name.
+        :type pipetting_specs: :class:`basestring` or
+            :class:`thelma.models.liquidtransfer.PipettingSpecs`
+        :return: The minimum transfer volume in ul.
+        """
+        if not isinstance(pipetting_specs, PipettingSpecs):
+            pipetting_specs = cls.from_name(pipetting_specs)
+
+        return pipetting_specs.min_transfer_volume * VOLUME_CONVERSION_FACTOR
+
+    @classmethod
+    def get_max_transfer_volume(cls, pipetting_specs):
+        """
+        Returns the maximum transfer volume for the given pipetting specs in ul.
+
+        Invokes :func:`from_name`.
+
+        :param pipetting_specs: The pipetting specs whose maximum volume you
+            want to get or its name.
+        :type pipetting_specs: :class:`basestring` or
+            :class:`thelma.models.liquidtransfer.PipettingSpecs`
+        :return: The minimum transfer volume in ul.
+        """
+        if not isinstance(pipetting_specs, PipettingSpecs):
+            pipetting_specs = cls.from_name(pipetting_specs)
+
+        return pipetting_specs.max_transfer_volume * VOLUME_CONVERSION_FACTOR
+
 #: A short cut for :func:`PIPETTING_SPECS_NAMES.from_name`.
 get_pipetting_specs = PIPETTING_SPECS_NAMES.from_name
 
@@ -413,6 +453,11 @@ def get_pipetting_specs_cybio():
 #: A short cut to get the BioMek pipetting specs.
 def get_pipetting_specs_biomek():
     return get_pipetting_specs(PIPETTING_SPECS_NAMES.BIOMEK)
+
+#: A short cut for :func:`PIPETTING_SPECS_NAMES.get_minimum_transfer_volume`.
+get_min_transfer_volume = PIPETTING_SPECS_NAMES.get_min_transfer_volume
+#: A short cut for :func:`PIPETTING_SPECS_NAMES.get_minimum_transfer_volume`.
+get_max_transfer_volume = PIPETTING_SPECS_NAMES.get_max_transfer_volume
 
 
 class RESERVOIR_SPECS_NAMES(SemiconstantCache):
