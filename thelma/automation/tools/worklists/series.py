@@ -5,9 +5,10 @@ AAB
 """
 from StringIO import StringIO
 from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
+from thelma.automation.tools.semiconstants import get_pipetting_specs
 from thelma.automation.tools.utils.racksector import RackSectorTranslator
 from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.execution import WorklistExecutor
 from thelma.automation.tools.worklists.biomek \
     import ContainerDilutionWorklistWriter
 from thelma.automation.tools.worklists.biomek \
@@ -18,6 +19,7 @@ from thelma.automation.tools.worklists.execution \
     import ContainerTransferWorklistExecutor
 from thelma.automation.tools.worklists.execution \
     import RackTransferExecutor
+from thelma.automation.tools.worklists.execution import WorklistExecutor
 from thelma.automation.tools.writers import LINEBREAK_CHAR
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.user import User
@@ -49,42 +51,59 @@ class TransferJob(object):
     #: (see :class:`thelma.models.liquidtransfer.TRANSFER_TYPES`).
     SUPPORTED_TRANSFER_TYPE = None
 
-    def __init__(self, index, target_rack, is_biomek_transfer=False):
+    #: The executor class supported by this transfer job class.
+    EXECUTOR_CLS = None
+
+    #: The writer classes for the different pipetting techniques.
+    WRITER_CLASSES = dict()
+
+    def __init__(self, index, target_rack, pipetting_specs):
         """
         Constructor:
 
         :param index: The index of the transfer job within the series.
         :type index: :class:`int`
+
         :param target_rack: The rack taking up the volumes.
         :type target_rack: :class:`thelma.models.rack.Rack`
-        :param is_biomek_transfer: Is this supposed to be a Biomek transfer?
-        :type is_biomek_transfer: :class:`bool`
-        :default is_biomek_transfer: *False*
+
+        :param pipetting_specs: Defines the properties (like the
+            transfer volume range, etc.)
+        :type pipetting_specs: :class:`basestring` (pipetting specs name) or
+            :class:`thelma.models.liquidtransfer.PipettingSpecs`
         """
 
         #: The index of the transfer job within the series.
         self.index = index
         #: The rack into which the volumes will be dispensed.
         self.target_rack = target_rack
-        #: Is this supposed to be a Biomek transfer?
-        self.is_biomek_transfer = is_biomek_transfer
+
+        if isinstance(pipetting_specs, basestring):
+            pipetting_specs = get_pipetting_specs(pipetting_specs)
+        #: The :class:`PipettingSpecs` to be used for this transfer.
+        self.pipetting_specs = pipetting_specs
 
         #: Overwrites the minimum transfer volume of a writer (if not None).
         self.min_transfer_volume = None
         #: Overwrites the maximum transfer volume of a writer (if not None).
         self.max_transfer_volume = None
 
-    def get_kw_for_worklist_writer(self, log):
+    def get_executor(self, log, user):
         """
-        Returns a keywords map that can be used to initialise a worklist writer.
+        Returns an configured :class:`LiquidTransferExecutor`.
+
+        :param log: The ThelmaLog you want to write into.
+        :type log: :class:`thelma.ThelmaLog`
+
+        :param user: The DB user executing the transfers.
+        :type user: :class:`thelma.models.user.User`
+
+        :return: configured :class:`LiquidTransferExecutor`
         """
-        kw = dict()
+        kw = self._get_kw_for_executor(log, user)
+        return self.EXECUTOR_CLS(**kw) #pylint: disable=E1102
 
-        kw['target_rack'] = self.target_rack
-        kw['log'] = log
-        return kw
-
-    def get_kw_for_executor(self, log, user):
+    def _get_kw_for_executor(self, log, user):
         """
         Returns a keywords map that can be used to initialise an executor.
         """
@@ -93,6 +112,39 @@ class TransferJob(object):
         kw['user'] = user
         kw['log'] = log
         kw['target_rack'] = self.target_rack
+        kw['pipetting_specs'] = self.pipetting_specs
+        return kw
+
+    def get_worklist_writer(self, log):
+        """
+        Returns an configured :class:`WorklistWriter` (or *None* if there is
+        no writer class registered for the used :attr:`pipetting_specs`).
+
+        :param log: The ThelmaLog you want to write into.
+        :type log: :class:`thelma.ThelmaLog`
+
+        :param user: The DB user executing the transfers.
+        :type user: :class:`thelma.models.user.User`
+
+        :return: configured :class:`WorklistWriter`
+        """
+        ps_name = self.pipetting_specs.name
+        if not self.WRITER_CLASSES.has_key(ps_name): return None
+        writer_cls = self.WRITER_CLASSES[ps_name]
+        if writer_cls is None: return None
+
+        kw = self._get_kw_for_worklist_writer(log)
+        return writer_cls(**kw)
+
+    def _get_kw_for_worklist_writer(self, log):
+        """
+        Returns a keywords map that can be used to initialise a worklist writer.
+        """
+        kw = dict()
+
+        kw['target_rack'] = self.target_rack
+        kw['log'] = log
+        kw['pipetting_specs'] = self.pipetting_specs
         return kw
 
 
@@ -104,35 +156,46 @@ class ContainerDilutionJob(TransferJob):
     """
 
     SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.CONTAINER_DILUTION
+    EXECUTOR_CLS = ContainerDilutionWorklistExecutor
+    WRITER_CLASSES = {
+          PIPETTING_SPECS_NAMES.BIOMEK : ContainerDilutionWorklistWriter,
+          PIPETTING_SPECS_NAMES.MANUAL : ContainerDilutionWorklistWriter }
 
     def __init__(self, index, planned_worklist, target_rack, reservoir_specs,
-                 source_rack_barcode=None, ignored_positions=None,
-                 is_biomek_transfer=False):
+                 pipetting_specs, source_rack_barcode=None,
+                 ignored_positions=None):
         """
         Constructor:
 
         :param index: The index of the transfer job within the series.
         :type index: :class:`int`
+
         :param planned_worklist: The worklist containing the planned transfers.
         :type planned_worklist:
             :class:`thelma.models.liquidtransfer.PlannedWorklist`
+
         :param target_rack: The rack taking up the volumes.
         :type target_rack: :class:`thelma.models.rack.Rack`
+
         :param reservoir_specs: The specs for the source reservoir or rack.
         :type reservoir_specs:
             :class:`thelma.models.liquidtransfer.ResevoirSpecs`
+
         :param source_rack_barcode: The barcode of the source reservoir or
             rack (only required for worklist file generation.
         :type source_rack_barcode: :class:`basestring`
+
         :param ignored_positions: A list of rack positions whose planned
             transfers should be ignored (refers to target positions).
         :type ignored_positions: :class:`list` of :class:`RackPosition`
-        :param is_biomek_transfer: Is this supposed to be a Biomek transfer?
-        :type is_biomek_transfer: :class:`bool`
-        :default is_biomek_transfer: *False*
+
+        :param pipetting_specs: Defines the properties (like the
+            transfer volume range, etc.)
+        :type pipetting_specs: :class:`basestring` (pipetting specs name) or
+            :class:`thelma.models.liquidtransfer.PipettingSpecs`
         """
         TransferJob.__init__(self, index=index, target_rack=target_rack,
-                             is_biomek_transfer=is_biomek_transfer)
+                             pipetting_specs=pipetting_specs)
 
         #: The worklist containing the planned transfers.
         self.planned_worklist = planned_worklist
@@ -144,11 +207,11 @@ class ContainerDilutionJob(TransferJob):
         #: ignored (refers to target positions).
         self.ignored_positions = ignored_positions
 
-    def get_kw_for_worklist_writer(self, log):
+    def _get_kw_for_worklist_writer(self, log):
         """
         Returns a keywords map that can be used to initialise a worklist writer.
         """
-        kw = TransferJob.get_kw_for_worklist_writer(self, log=log)
+        kw = TransferJob._get_kw_for_worklist_writer(self, log=log)
 
         kw['planned_worklist'] = self.planned_worklist
         kw['reservoir_specs'] = self.reservoir_specs
@@ -157,16 +220,15 @@ class ContainerDilutionJob(TransferJob):
 
         return kw
 
-    def get_kw_for_executor(self, log, user):
+    def _get_kw_for_executor(self, log, user):
         """
         Returns a keywords map that can be used to initialise an executor.
         """
-        kw = TransferJob.get_kw_for_executor(self, log=log, user=user)
+        kw = TransferJob._get_kw_for_executor(self, log=log, user=user)
 
         kw['planned_worklist'] = self.planned_worklist
         kw['reservoir_specs'] = self.reservoir_specs
         kw['ignored_positions'] = self.ignored_positions
-        kw['is_biomek_transfer'] = self.is_biomek_transfer
 
         return kw
 
@@ -187,30 +249,40 @@ class ContainerTransferJob(TransferJob):
     """
 
     SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.CONTAINER_TRANSFER
+    EXECUTOR_CLS = ContainerTransferWorklistExecutor
+    WRITER_CLASSES = {
+          PIPETTING_SPECS_NAMES.BIOMEK : ContainerTransferWorklistWriter,
+          PIPETTING_SPECS_NAMES.MANUAL : ContainerTransferWorklistWriter }
 
     def __init__(self, index, planned_worklist, target_rack, source_rack,
-                 ignored_positions=None, is_biomek_transfer=False):
+                 pipetting_specs, ignored_positions=None):
         """
         Constructor:
 
         :param index: The index of the transfer job within the series.
         :type index: :class:`int`
+
         :param planned_worklist: The worklist containing the planned transfers.
         :type planned_worklist:
             :class:`thelma.models.liquidtransfer.PlannedWorklist`
+
         :param target_rack: The rack taking up the volumes.
         :type target_rack: :class:`thelma.models.rack.Rack`
+
         :param source_rack: The rack providing the volumes.
         :type source_rack: :class:`thelma.models.rack.Rack`
+
+        :param pipetting_specs: Defines the properties (like the
+            transfer volume range, etc.)
+        :type pipetting_specs: :class:`basestring` (pipetting specs name) or
+            :class:`thelma.models.liquidtransfer.PipettingSpecs`
+
         :param ignored_positions: A list of rack positions whose planned
             transfers should be ignored (refers to target positions).
         :type ignored_positions: :class:`list` of :class:`RackPosition`
-        :param is_biomek_transfer: Is this supposed to be a Biomek transfer?
-        :type is_biomek_transfer: :class:`bool`
-        :default is_biomek_transfer: *False*
         """
         TransferJob.__init__(self, index=index, target_rack=target_rack,
-                             is_biomek_transfer=is_biomek_transfer)
+                             pipetting_specs=pipetting_specs)
 
          #: The worklist containing the planned transfers.
         self.planned_worklist = planned_worklist
@@ -220,11 +292,11 @@ class ContainerTransferJob(TransferJob):
         #: ignored (refers to target positions).
         self.ignored_positions = ignored_positions
 
-    def get_kw_for_worklist_writer(self, log):
+    def _get_kw_for_worklist_writer(self, log):
         """
         Returns a keywords map that can be used to initialise a worklist writer.
         """
-        kw = TransferJob.get_kw_for_worklist_writer(self, log=log)
+        kw = TransferJob._get_kw_for_worklist_writer(self, log=log)
 
         kw['planned_worklist'] = self.planned_worklist
         kw['source_rack'] = self.source_rack
@@ -232,16 +304,15 @@ class ContainerTransferJob(TransferJob):
 
         return kw
 
-    def get_kw_for_executor(self, log, user):
+    def _get_kw_for_executor(self, log, user):
         """
         Returns a keywords map that can be used to initialise an executor.
         """
-        kw = TransferJob.get_kw_for_executor(self, log=log, user=user)
+        kw = TransferJob._get_kw_for_executor(self, log=log, user=user)
 
         kw['planned_worklist'] = self.planned_worklist
         kw['source_rack'] = self.source_rack
         kw['ignored_positions'] = self.ignored_positions
-        kw['is_biomek_transfer'] = self.is_biomek_transfer
 
         return kw
 
@@ -256,12 +327,15 @@ class ContainerTransferJob(TransferJob):
 
 class RackTransferJob(TransferJob):
     """
-    A transfer job for a planned container transfers.
+    A transfer job for a planned container transfers. This sort of jobs
+    is assumed to be performed by the CyBio.
 
     :Note: There are no checks carried out here.
     """
 
     SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.RACK_TRANSFER
+    EXECUTOR_CLS = RackTransferExecutor
+    # no writer support
 
     def __init__(self, index, planned_rack_transfer, target_rack, source_rack):
         """
@@ -269,38 +343,49 @@ class RackTransferJob(TransferJob):
 
         :param index: The index of the transfer job within the series.
         :type index: :class:`int`
+
         :param planned_rack_transfer: The data for the planned transfer.
         :type planned_rack_transfer:
             :class:`thelma.models.liquidtransfer.PlannedRackTransfer`
+
         :param target_rack: The rack taking up the volumes.
         :type target_rack: :class:`thelma.models.rack.Rack`
+
         :param source_rack: The rack providing the volumes.
         :type source_rack: :class:`thelma.models.rack.Rack`
         """
         TransferJob.__init__(self, index=index, target_rack=target_rack,
-                             is_biomek_transfer=False)
+                             pipetting_specs=PIPETTING_SPECS_NAMES.CYBIO)
 
          #: The worklist containing the planned transfers.
         self.planned_rack_transfer = planned_rack_transfer
         #: The rack providing the volumes.
         self.source_rack = source_rack
 
-    def get_kw_for_worklist_writer(self, log):
-        """
-        Returns a keywords map that can be used to initialise a worklist writer.
-        """
-        raise NotImplementedError('No worklists for rack transfers.')
-
-    def get_kw_for_executor(self, log, user):
+    def _get_kw_for_executor(self, log, user):
         """
         Returns a keywords map that can be used to initialise an executor.
         """
-        kw = TransferJob.get_kw_for_executor(self, log=log, user=user)
+        kw = TransferJob._get_kw_for_executor(self, log=log, user=user)
 
         kw['planned_rack_transfer'] = self.planned_rack_transfer
         kw['source_rack'] = self.source_rack
 
         return kw
+
+    def _get_kw_for_worklist_writer(self, log):
+        """
+        They are no real worklist files for rack transfers but only sections
+        in instruction files (which are handled separately).
+        """
+        raise NotImplementedError('No worklists for rack transfers.')
+
+    def get_worklist_writer(self, log):
+        """
+        They are no real worklist files for rack transfers but only sections
+        in instruction files (which are handled separately).
+        """
+        return None
 
     def __repr__(self):
         str_format = '<%s index: %s, target rack: %s, source rack: %s>'
@@ -327,8 +412,10 @@ class SeriesTool(BaseAutomationTool):
         :param transfer_jobs: A list of transfer job to be carried out
             one after the other.
         :type transfer_jobs: :class:`list` of :class:`TransferJob` objects
+
         :param log: The ThelmaLog you want to write into.
         :type log: :class:`thelma.ThelmaLog`
+
         :param user: The user used for the simulated executions.
         :type user: :class:`thelma.models.user.User`
         :default user: None
@@ -416,16 +503,8 @@ class SeriesTool(BaseAutomationTool):
         """
         Executes a transfer job.
         """
+        executor = transfer_job.get_executor(log=self.log, user=self.user)
 
-        if isinstance(transfer_job, ContainerDilutionJob):
-            executor_cls = ContainerDilutionWorklistExecutor
-        elif isinstance(transfer_job, ContainerTransferJob):
-            executor_cls = ContainerTransferWorklistExecutor
-        elif isinstance(transfer_job, RackTransferJob):
-            executor_cls = RackTransferExecutor
-
-        kw = transfer_job.get_kw_for_executor(log=self.log, user=self.user)
-        executor = executor_cls(**kw)
         if not transfer_job.min_transfer_volume is None:
             if isinstance(executor, WorklistExecutor):
                 executor.is_biomek_transfer = False
@@ -481,6 +560,7 @@ class SeriesWorklistWriter(SeriesTool):
         :param transfer_jobs: A list of transfer job to be carried out
             one after the other.
         :type transfer_jobs: :class:`list` of :class:`TransferJob` objects
+
         :param log: The ThelmaLog you want to write into.
         :type log: :class:`thelma.ThelmaLog`
         """
@@ -566,27 +646,8 @@ class SeriesWorklistWriter(SeriesTool):
         """
         Returns the writer for the given transfer job.
         """
-
-        if isinstance(transfer_job, RackTransferJob):
-            # No single writers so far
-            return None
-
-        elif isinstance(transfer_job, ContainerDilutionJob):
-            if transfer_job.is_biomek_transfer:
-                writer_cls = ContainerDilutionWorklistWriter
-            else:
-                # No other writers so far
-                return None
-
-        elif isinstance(transfer_job, ContainerTransferJob):
-            if transfer_job.is_biomek_transfer:
-                writer_cls = ContainerTransferWorklistWriter
-            else:
-                # No other writers so far
-                return None
-
-        kw = transfer_job.get_kw_for_worklist_writer(log=self.log)
-        writer = writer_cls(**kw)
+        writer = transfer_job.get_worklist_writer(log=self.log)
+        if writer is None: return None
 
         if not transfer_job.min_transfer_volume is None:
             writer.set_minimum_transfer_volume(transfer_job.min_transfer_volume)

@@ -6,6 +6,7 @@ AAB
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.semiconstants import get_item_status_managed
+from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_valid_number
@@ -14,13 +15,12 @@ from thelma.automation.tools.utils.racksector import check_rack_shape_match
 from thelma.automation.tools.utils.racksector import get_sector_positions
 from thelma.automation.tools.worklists.base \
     import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import MAX_BIOMEK_TRANSFER_VOLUME
-from thelma.automation.tools.worklists.base import MIN_BIOMEK_TRANSFER_VOLUME
 from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.models.liquidtransfer import ExecutedContainerDilution
 from thelma.models.liquidtransfer import ExecutedContainerTransfer
 from thelma.models.liquidtransfer import ExecutedRackTransfer
 from thelma.models.liquidtransfer import ExecutedWorklist
+from thelma.models.liquidtransfer import PipettingSpecs
 from thelma.models.liquidtransfer import PlannedContainerDilution
 from thelma.models.liquidtransfer import PlannedContainerTransfer
 from thelma.models.liquidtransfer import PlannedRackTransfer
@@ -34,7 +34,6 @@ from thelma.models.user import User
 from thelma.utils import get_utc_time
 
 __docformat__ = 'reStructuredText en'
-__author__ = 'Anna-Antonia Berger'
 
 __all__ = ['LiquidTransferExecutor',
            'WorklistExecutor',
@@ -61,17 +60,10 @@ class LiquidTransferExecutor(BaseAutomationTool):
     #: (see :class:`thelma.models.liquidtransfer.TRANSFER_TYPES`).
     SUPPORTED_TRANSFER_TYPE = None
 
-    #: The default minimum transfer volume in ul (for non-biomek transfers
-    #: - can be overwritten).
-    MIN_TRANSFER_VOLUME = 1
-    #: The default maximum transfer volume in ul (for non-biomek transfers
-    #: - can be overwritten).
-    MAX_TRANSFER_VOLUME = 500
-
     #: Error range used for floating point comparison.
     _ERROR_RANGE = -0.01
 
-    def __init__(self, target_rack, user, log):
+    def __init__(self, target_rack, user, pipetting_specs, log):
         """
         Constructor:
 
@@ -80,6 +72,11 @@ class LiquidTransferExecutor(BaseAutomationTool):
 
         :param user: The user who has launched the execution.
         :type user: :class:`thelma.models.user.User`
+
+        :param pipetting_specs: Pipetting specs define transfer properties and
+            conditions like the transfer volume range.
+        :type pipetting_specs:
+            :class:`thelma.models.liquidtransfer.PipettingSpecs`
 
         :param log: The ThelmaLog you want to write into.
         :type log: :class:`thelma.ThelmaLog`
@@ -90,6 +87,9 @@ class LiquidTransferExecutor(BaseAutomationTool):
         self.target_rack = target_rack
         #: The user who has launched the execution.
         self.user = user
+        #: Pipetting specs define transfer properties and conditions like
+        #: the transfer volume range.
+        self.pipetting_specs = pipetting_specs
 
         self.now = get_utc_time()
 
@@ -148,15 +148,17 @@ class LiquidTransferExecutor(BaseAutomationTool):
 
     def set_minimum_transfer_volume(self, volume):
         """
-        Sets the the minimum transfer volume. If you do not set a volume,
-        the executor will use the default volume.
+        Use this method to overwrite the minimum volume for a transfer (in ul).
+        If you do not set a volume, the executor will use the volume for the
+        :attr:`pipetting_specs`.
         """
         self._min_transfer_volume = volume
 
     def set_maximum_transfer_volume(self, volume):
         """
-        Sets the the maximum transfer volume. If you do not set a volume,
-        the executor will use the default volume.
+        Use this method to overwrite the maximum volume for a transfer (in ul).
+        If you do not set a volume, the executor will use the volume for the
+        :attr:`pipetting_specs`.
         """
         self._max_transfer_volume = volume
 
@@ -188,6 +190,8 @@ class LiquidTransferExecutor(BaseAutomationTool):
 
         self._check_input_class('target rack', self.target_rack, Rack)
         self._check_input_class('user', self.user, User)
+        self._check_input_class('pipetting specs', self.pipetting_specs,
+                                PipettingSpecs)
 
         if not self._min_transfer_volume is None:
             if not is_valid_number(self._min_transfer_volume):
@@ -320,6 +324,35 @@ class LiquidTransferExecutor(BaseAutomationTool):
         else:
             return self._source_dead_volume
 
+    def _is_valid_transfer_volume(self, planned_transfer):
+        """
+        Checks whether the volume is in valid range for Biomek transfers.
+        """
+        if self._min_transfer_volume is None:
+            self._min_transfer_volume = self.pipetting_specs.\
+                                min_transfer_volume * VOLUME_CONVERSION_FACTOR
+        if self._max_transfer_volume is None:
+            self._max_transfer_volume = self.pipetting_specs.\
+                                max_transfer_volume * VOLUME_CONVERSION_FACTOR
+
+        transfer_volume = planned_transfer.volume * VOLUME_CONVERSION_FACTOR
+        try:
+            trg_position_label = planned_transfer.target_position.label
+        except AttributeError:
+            info = '%.1f ul' % (transfer_volume)
+        else:
+            info = '%s (%.1f ul)' % (trg_position_label, transfer_volume)
+        if transfer_volume > self._max_transfer_volume and \
+                    not self.SUPPORTED_TRANSFER_TYPE == \
+                    TRANSFER_TYPES.CONTAINER_DILUTION:
+            self._transfer_volume_too_large.append(info)
+            return False
+        elif transfer_volume < self._min_transfer_volume:
+            self._transfer_volume_too_small.append(info)
+            return False
+
+        return True
+
     def _record_errors(self):
         """
         Records errors that have been found during value list creation.
@@ -351,6 +384,23 @@ class LiquidTransferExecutor(BaseAutomationTool):
                   'positions: %s.' \
                    % (', '.join(sorted(self._target_container_missing)))
             self.add_error(msg)
+
+        if len(self._transfer_volume_too_small) > 0:
+            msg = 'Some transfer volumes are smaller than the allowed ' \
+                  'minimum transfer volume of %s ul: %s.' % (
+                   get_trimmed_string(self._min_transfer_volume),
+                   ', '.join(sorted(self._transfer_volume_too_small)))
+            self.add_error(msg)
+
+        if len(self._transfer_volume_too_large) > 0:
+            meth = self.add_error
+            if self.SUPPORTED_TRANSFER_TYPE == TRANSFER_TYPES.CONTAINER_DILUTION:
+                meth = self.add_warning
+            msg = 'Some transfer volumes are larger than the allowed maximum ' \
+                  'transfer volume of %s ul: %s.' % (
+                   get_trimmed_string(self._max_transfer_volume),
+                  ', '.join(sorted(self._transfer_volume_too_large)))
+            meth(msg)
 
     def __execute_transfers(self):
         """
@@ -430,8 +480,8 @@ class WorklistExecutor(LiquidTransferExecutor):
         (:class:`thelma.models.liquidtransfer.ExecutedWorklist`).
     """
 
-    def __init__(self, planned_worklist, target_rack, user, log,
-                 ignored_positions=None, is_biomek_transfer=False):
+    def __init__(self, planned_worklist, target_rack, user, pipetting_specs,
+                 log, ignored_positions=None):
         """
         Constructor:
 
@@ -445,6 +495,11 @@ class WorklistExecutor(LiquidTransferExecutor):
         :param user: The user who has launched the execution.
         :type user: :class:`thelma.models.user.User`
 
+        :param pipetting_specs: Pipetting specs define transfer properties and
+            conditions like the transfer volume range.
+        :type pipetting_specs:
+            :class:`thelma.models.liquidtransfer.PipettingSpecs`
+
         :param log: The ThelmaLog you want to write into.
         :type log: :class:`thelma.ThelmaLog`
 
@@ -452,15 +507,10 @@ class WorklistExecutor(LiquidTransferExecutor):
             for dilutions and source for transfers) that are not included
             in the DB execution.
         :type ignored_positions: :class:`list` of :class:`RackPosition`
-
-        :param is_biomek_transfer: Has the transfer been carried out by a
-            Biomek?
-        :type is_biomek_transfer: :class:`bool`
-        :default is_biomek_transfer: *False*
         """
-        LiquidTransferExecutor.__init__(self, log=log,
+        LiquidTransferExecutor.__init__(self, log=log, user=user,
                                         target_rack=target_rack,
-                                        user=user)
+                                        pipetting_specs=pipetting_specs)
         #: The planned worklist to execute.
         self.planned_worklist = planned_worklist
 
@@ -468,8 +518,6 @@ class WorklistExecutor(LiquidTransferExecutor):
         #: A list of positions that will not be included in the DB execution
         #: (even if there are planned transfers for them).
         self.ignored_positions = ignored_positions
-        #: Has the transer been carried out by a Biomek?
-        self.is_biomek_transfer = is_biomek_transfer
 
         #: The executed worklist.
         self._executed_worklist = None
@@ -488,8 +536,6 @@ class WorklistExecutor(LiquidTransferExecutor):
         LiquidTransferExecutor._check_input(self)
         self._check_input_class('planned worklist', self.planned_worklist,
                                 PlannedWorklist)
-        self._check_input_class('"is Biomek transfer" flag',
-                                self.is_biomek_transfer, bool)
 
         if self._check_input_class('ignored position list',
                                    self.ignored_positions, list):
@@ -505,7 +551,7 @@ class WorklistExecutor(LiquidTransferExecutor):
 
         for planned_transfer in self.planned_worklist.planned_transfers:
             if not self.__is_valid_transfer_type(planned_transfer): break
-            if not self.__is_valid_transfer_volume(planned_transfer): continue
+            if not self._is_valid_transfer_volume(planned_transfer): continue
             self._register_transfer(planned_transfer)
 
     def __is_valid_transfer_type(self, planned_transfer):
@@ -521,61 +567,11 @@ class WorklistExecutor(LiquidTransferExecutor):
 
         return True
 
-    def __is_valid_transfer_volume(self, planned_transfer):
-        """
-        Checks whether the volume is in valid range for Biomek transfers.
-        """
-        if self._min_transfer_volume is None:
-            if self.is_biomek_transfer:
-                self._min_transfer_volume = MIN_BIOMEK_TRANSFER_VOLUME
-            else:
-                self._min_transfer_volume = self.MIN_TRANSFER_VOLUME
-        if self._max_transfer_volume is None:
-            if self.is_biomek_transfer:
-                self._max_transfer_volume = MAX_BIOMEK_TRANSFER_VOLUME
-            else:
-                self._max_transfer_volume = self.MAX_TRANSFER_VOLUME
-
-        transfer_volume = planned_transfer.volume * VOLUME_CONVERSION_FACTOR
-        trg_position_label = planned_transfer.target_position.label
-        info = '%s (%.1f ul)' % (trg_position_label, transfer_volume)
-        if transfer_volume > self._max_transfer_volume and \
-                    not self.SUPPORTED_TRANSFER_TYPE == \
-                    TRANSFER_TYPES.CONTAINER_DILUTION:
-            self._transfer_volume_too_large.append(info)
-            return False
-        elif transfer_volume < self._min_transfer_volume:
-            self._transfer_volume_too_small.append(info)
-            return False
-
-        return True
-
     def _register_transfer(self, planned_transfer): #pylint: disable=W0613
         """
         Registers a particular planned transfer.
         """
         self.add_error('Abstract method: _register_transfer()')
-
-    def _record_errors(self):
-        """
-        Records errors that have been found during value list creation.
-        """
-
-        LiquidTransferExecutor._record_errors(self)
-        if len(self._transfer_volume_too_small) > 0:
-            msg = 'Some transfer volumes are smaller than the allowed minimum ' \
-                  'transfer volume of %s ul: %s.' % (self._min_transfer_volume,
-                   ', '.join(sorted(self._transfer_volume_too_small)))
-            self.add_error(msg)
-
-        if len(self._transfer_volume_too_large) > 0:
-            meth = self.add_error
-            if self.SUPPORTED_TRANSFER_TYPE == TRANSFER_TYPES.CONTAINER_DILUTION:
-                meth = self.add_warning
-            msg = 'Some transfer volumes are larger than the allowed maximum ' \
-                  'transfer volume of %s ul: %s.' % (self._max_transfer_volume,
-                  ', '.join(sorted(self._transfer_volume_too_large)))
-            meth(msg)
 
     def _create_executed_items(self):
         """
@@ -613,7 +609,7 @@ class ContainerDilutionWorklistExecutor(WorklistExecutor):
     SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.CONTAINER_DILUTION
 
     def __init__(self, planned_worklist, target_rack, user, reservoir_specs,
-                 log, ignored_positions=None, is_biomek_transfer=False):
+                 pipetting_specs, log, ignored_positions=None):
         """
         Constructor:
 
@@ -634,19 +630,20 @@ class ContainerDilutionWorklistExecutor(WorklistExecutor):
         :param log: The ThelmaLog you want to write into.
         :type log: :class:`thelma.ThelmaLog`
 
+        :param pipetting_specs: Pipetting specs define transfer properties and
+            conditions like the transfer volume range.
+        :type pipetting_specs:
+            :class:`thelma.models.liquidtransfer.PipettingSpecs`
+
         :param ignored_positions: A list of positions (target
             for dilutions and source for transfers) that are not included
             in the DB execution.
         :type ignored_positions: :class:`list` of :class:`RackPosition`
-
-        :param is_biomek_transfer: Has the transer been carried out by a Biomek?
-        :type is_biomek_transfer: :class:`bool`
-        :default is_biomek_transfer: *False*
         """
         WorklistExecutor.__init__(self, log=log, target_rack=target_rack,
                                   planned_worklist=planned_worklist,
                                   ignored_positions=ignored_positions,
-                                  is_biomek_transfer=is_biomek_transfer,
+                                  pipetting_specs=pipetting_specs,
                                   user=user)
 
         #: The specs for the source rack or reservoir.
@@ -713,7 +710,7 @@ class ContainerTransferWorklistExecutor(WorklistExecutor):
     SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.CONTAINER_TRANSFER
 
     def __init__(self, planned_worklist, user, target_rack, source_rack, log,
-                 ignored_positions=None, is_biomek_transfer=False):
+                 pipetting_specs, ignored_positions=None):
         """
         Constructor:
 
@@ -733,19 +730,20 @@ class ContainerTransferWorklistExecutor(WorklistExecutor):
         :param log: The ThelmaLog you want to write into.
         :type log: :class:`thelma.ThelmaLog`
 
+        :param pipetting_specs: Pipetting specs define transfer properties and
+            conditions like the transfer volume range.
+        :type pipetting_specs:
+            :class:`thelma.models.liquidtransfer.PipettingSpecs`
+
         :param ignored_positions: A list of positions (target
             for dilutions and source for transfers) that are not included
             in the DB execution.
         :type ignored_positions: :class:`list` of :class:`RackPosition`
-
-        :param is_biomek_transfer: Has the transer been carried out by a Biomek?
-        :type is_biomek_transfer: :class:`bool`
-        :default is_biomek_transfer: *False*
         """
         WorklistExecutor.__init__(self, log=log, target_rack=target_rack,
                                   planned_worklist=planned_worklist,
                                   ignored_positions=ignored_positions,
-                                  is_biomek_transfer=is_biomek_transfer,
+                                  pipetting_specs=pipetting_specs,
                                   user=user)
 
         #: The source from which to take the volumes.
@@ -835,7 +833,7 @@ class RackTransferExecutor(LiquidTransferExecutor):
     SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.RACK_TRANSFER
 
     def __init__(self, planned_rack_transfer, target_rack, source_rack, user,
-                 log):
+                 log, pipetting_specs=None):
         """
         Constructor:
 
@@ -854,14 +852,24 @@ class RackTransferExecutor(LiquidTransferExecutor):
 
         :param log: The ThelmaLog you want to write into.
         :type log: :class:`thelma.ThelmaLog`
+
+        :param pipetting_specs: Pipetting specs define transfer properties and
+            conditions like the transfer volume range.
+        :type pipetting_specs:
+            :class:`thelma.models.liquidtransfer.PipettingSpecs`
+        :default pipetting_specs: None (CYBIO)
         """
         LiquidTransferExecutor.__init__(self, target_rack=target_rack,
+                                        pipetting_specs=pipetting_specs,
                                         user=user, log=log)
 
         #: The planned rack transfer to execute.
         self.planned_rack_transfer = planned_rack_transfer
         #: The source from which to take the volumes.
         self.source_rack = source_rack
+
+        if self.pipetting_specs is None:
+            self.pipetting_specs = get_pipetting_specs_cybio()
 
         #: Translates the rack positions of one rack into another.
         self._translator = None
@@ -893,9 +901,9 @@ class RackTransferExecutor(LiquidTransferExecutor):
 
     def _init_source_data(self):
         """
-        Initialises the source rack related values and lookups.
+        Initialises the source rack related values and lookups. Also checks
+        the rack shape and translation type match and the transfer volume.
         """
-
         for container in self.source_rack.containers:
             rack_pos = container.location.position
             self._source_containers[rack_pos] = container
@@ -908,7 +916,9 @@ class RackTransferExecutor(LiquidTransferExecutor):
         if self.source_rack.barcode == self.target_rack.barcode:
             self.__is_intra_rack_transfer = True
         self.__setup_translator()
-        if not self.has_errors(): self.__check_shape_and_sector_match()
+        if not self.has_errors():
+            self.__check_shape_and_sector_match()
+            self._is_valid_transfer_volume(self.planned_rack_transfer)
 
     def __setup_translator(self):
         """
@@ -980,7 +990,9 @@ class RackTransferExecutor(LiquidTransferExecutor):
 
     def _register_planned_transfers(self):
         """
-        Registers the planned transfers and checks the transfer volumes.
+        Registers the planned transfers. The transfer volume is equal for
+        all single transfers and has already been checked before in the
+        :func:`_init_source_data` method.
         """
         self.add_debug('Check rack transfer content ...')
 

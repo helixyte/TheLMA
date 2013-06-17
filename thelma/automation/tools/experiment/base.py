@@ -11,6 +11,7 @@ used be series tools.
 AAB
 """
 from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.metadata.transfection_utils \
     import TransfectionLayoutConverter
 from thelma.automation.tools.metadata.transfection_utils \
@@ -337,7 +338,7 @@ class ExperimentTool(BaseAutomationTool):
                        reservoir_specs=quarter_rs,
                        source_rack_barcode=self.OPTIMEM_PLATE_BARCODE,
                        ignored_positions=self._ignored_positions,
-                       is_biomek_transfer=True)
+                       pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
         return optimem_job
 
     def _create_reagent_job(self, reagent_worklist):
@@ -352,7 +353,7 @@ class ExperimentTool(BaseAutomationTool):
                        reservoir_specs=tube_24_rs,
                        source_rack_barcode=self.REAGENT_PLATE_BARCODE,
                        ignored_positions=self._ignored_positions,
-                       is_biomek_transfer=True)
+                       pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
         return optimem_job
 
     def _create_transfer_jobs_for_mastermix_preparation(self):
@@ -420,7 +421,7 @@ class ExperimentTool(BaseAutomationTool):
                     target_rack=plate,
                     reservoir_specs=falcon_reservoir,
                     ignored_positions=cell_ignored_positions,
-                    is_biomek_transfer=False)
+                    pipetting_specs=PIPETTING_SPECS_NAMES.MANUAL)
         self._transfer_jobs.append(cell_job)
         job_index += 1
         return job_index
@@ -510,7 +511,7 @@ class ExperimentOptimisationTool(ExperimentTool):
                     target_rack=plate,
                     source_rack=self._iso_plate,
                     ignored_positions=self._ignored_positions,
-                    is_biomek_transfer=True)
+                    pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
             self._transfer_jobs.append(transfer_job)
             counter += 1
 

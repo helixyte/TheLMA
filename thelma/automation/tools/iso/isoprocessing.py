@@ -28,6 +28,7 @@ from thelma.automation.tools.iso.stocktransfer import IsoSampleStockRackVerifier
 from thelma.automation.tools.iso.stocktransfer import StockTransferExecutor
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_reservoir_spec
@@ -468,7 +469,7 @@ class IsoProcessingSeriesTool(IsoProcessingTool):
                         target_rack=self._preparation_plate,
                         reservoir_specs=quarter_rs,
                         source_rack_barcode=self.ANNEALING_BUFFER_PLATE_BARCODE,
-                        is_biomek_transfer=True)
+                        pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
             transfer_job.min_transfer_volume = 1
             self._transfer_jobs.append(transfer_job)
 
@@ -501,7 +502,7 @@ class IsoProcessingSeriesTool(IsoProcessingTool):
                         reservoir_specs=quarter_rs,
                         source_rack_barcode=self.ANNEALING_BUFFER_PLATE_BARCODE,
                         ignored_positions=self._ignored_positions,
-                        is_biomek_transfer=True)
+                        pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
             elif wl_index == last_index:
                 continue # aliquot plate transfers are done later
             elif IsoAliquotBufferWorklistGenerator.WORKLIST_SUFFIX \
@@ -515,7 +516,7 @@ class IsoProcessingSeriesTool(IsoProcessingTool):
                         target_rack=self._preparation_plate,
                         source_rack=self._preparation_plate,
                         ignored_positions=self._ignored_positions,
-                        is_biomek_transfer=True)
+                        pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
             else:
                 has_screening_dilutions = True
                 if self._first_rack_transfer_index is None:
@@ -558,7 +559,7 @@ class IsoProcessingSeriesTool(IsoProcessingTool):
                         reservoir_specs=quarter_rs,
                         source_rack_barcode=self.ALIQUOT_BUFFER_PLATE_BARCODE,
                         ignored_positions=self._ignored_positions,
-                        is_biomek_transfer=True)
+                        pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
                     buffer_job.min_transfer_volume = 1
                     self._aliquot_buffer_job_indices.append(job_index)
                     job_index_modifier = self.__add_aliquot_job(buffer_job,
@@ -578,7 +579,7 @@ class IsoProcessingSeriesTool(IsoProcessingTool):
                                 target_rack=plate,
                                 source_rack=self._preparation_plate,
                                 ignored_positions=self._ignored_positions,
-                                is_biomek_transfer=True)
+                                pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
 
             job_index_modifier = self.__add_aliquot_job(transfer_job,
                                                         job_index_modifier)

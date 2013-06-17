@@ -10,6 +10,9 @@ from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_item_status_managed
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
+from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
+from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
+from thelma.automation.tools.semiconstants import get_pipetting_specs_manual
 from thelma.automation.tools.worklists.base \
     import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.base \
@@ -391,6 +394,7 @@ class LiquidTransferExecutorTestCase(ToolsAndUtilsTestCase):
                                                        '10001')
         self.molecule_design_target = self._get_entity(IMoleculeDesign,
                                                        '10002')
+        self.pipetting_specs = get_pipetting_specs_biomek()
 
     def tear_down(self):
         ToolsAndUtilsTestCase.tear_down(self)
@@ -414,6 +418,7 @@ class LiquidTransferExecutorTestCase(ToolsAndUtilsTestCase):
         del self.starting_conc_target
         del self.molecule_design_source
         del self.molecule_design_target
+        del self.pipetting_specs
 
     def _continue_setup(self, create_sample_molecules_src=True,
                               create_sample_molecules_trg=True):
@@ -507,14 +512,23 @@ class LiquidTransferExecutorTestCase(ToolsAndUtilsTestCase):
         return  tube
 
     def _test_invalid_user(self):
-        self._continue_setup()
+        eu = self.executor_user
         self.executor_user = self.executor_user.username
         self._test_and_expect_errors('The user must be a User object')
+        self.executor_user = eu
 
     def _test_invalid_target_rack(self):
-        self._continue_setup()
+        trg_rack = self.target_rack
         self.target_rack = None
         self._test_and_expect_errors('The target rack must be a Rack object')
+        self.target_rack = trg_rack
+
+    def _test_invalid_pipetting_specs(self):
+        ps = self.pipetting_specs
+        self.pipetting_specs = 3
+        self._test_and_expect_errors('The pipetting specs must be a ' \
+                                     'PipettingSpecs object')
+        self.pipetting_specs = ps
 
     def _test_missing_target_container(self, container_positions):
         self._continue_setup()
@@ -536,13 +550,11 @@ class WorklistExecutorTestCase(LiquidTransferExecutorTestCase): #pylint: disable
         LiquidTransferExecutorTestCase.set_up(self)
         self.worklist = None
         self.ignored_positions = []
-        self.is_biomek_transfer = False
 
     def tear_down(self):
         LiquidTransferExecutorTestCase.tear_down(self)
         del self.worklist
         del self.ignored_positions
-        del self.is_biomek_transfer
 
     def _test_invalid_planned_worklist(self):
         self._continue_setup()
@@ -559,12 +571,6 @@ class WorklistExecutorTestCase(LiquidTransferExecutorTestCase): #pylint: disable
         self._test_and_expect_errors('The ignored rack position must be a ' \
                                      'RackPosition object')
 
-    def _test_invalid_use_biomek_flag(self):
-        self._continue_setup()
-        self.is_biomek_transfer = None
-        self._test_and_expect_errors('The "is Biomek transfer" flag must be ' \
-                                     'a bool object')
-
 
 class ContainerDilutionWorklistExecutorTestCase(WorklistExecutorTestCase):
 
@@ -573,11 +579,11 @@ class ContainerDilutionWorklistExecutorTestCase(WorklistExecutorTestCase):
         self.reservoir_specs = self._get_entity(IReservoirSpecs)
         # result data
         # position label, transfer volume, result volume, result conc
-        self.result_data = dict(A1=(10, 20, 60),
-                                B2=(20, 30, 40),
-                                C3=(30, 40, 30),
-                                D4=(50, 60, 20),
-                                E5=(110, 120, 10))
+        self.result_data = dict(A1=[10, 20, 60],
+                                B2=[20, 30, 40],
+                                C3=[30, 40, 30],
+                                D4=[50, 60, 20],
+                                E5=[110, 120, 10])
         # other setup values
         self.rack_setup_pos_target = self.result_data.keys()
         self.diluent_info = 'buffer'
@@ -590,13 +596,14 @@ class ContainerDilutionWorklistExecutorTestCase(WorklistExecutorTestCase):
         del self.diluent_info
 
     def _create_tool(self):
-        self.tool = ContainerDilutionWorklistExecutor(log=self.log,
-                    planned_worklist=self.worklist,
-                    target_rack=self.target_rack,
-                    user=self.executor_user,
-                    reservoir_specs=self.reservoir_specs,
-                    ignored_positions=self.ignored_positions,
-                    is_biomek_transfer=self.is_biomek_transfer)
+        self.tool = ContainerDilutionWorklistExecutor(
+                      planned_worklist=self.worklist,
+                      target_rack=self.target_rack,
+                      user=self.executor_user,
+                      reservoir_specs=self.reservoir_specs,
+                      pipetting_specs=self.pipetting_specs,
+                      log=self.log,
+                      ignored_positions=self.ignored_positions)
 
     def _create_worklist(self):
         self.worklist = PlannedWorklist(label='container dilution worklist')
@@ -721,20 +728,23 @@ class ContainerDilutionWorklistExecutorTestCase(WorklistExecutorTestCase):
         self.target_rack = self.target_tube_rack
         self.__check_result(check_sample_molecules=False)
 
-    def test_invalid_user(self):
+    def test_pipetting_specs(self):
+        self.result_data['A1'] = [1, 11, round(((120 * 10) / 11.), 1)]
+        self._continue_setup()
+        self._test_and_expect_errors('Some transfer volumes are smaller ' \
+                     'than the allowed minimum transfer volume of 2 ul: ' \
+                     'A1 (1.0 ul).')
+        self.pipetting_specs = get_pipetting_specs_manual()
+        self._create_tool()
+        self.__check_result()
+
+    def test_invalid_input_values(self):
+        self._continue_setup()
         self._test_invalid_user()
-
-    def test_invalid_target_rack(self):
         self._test_invalid_target_rack()
-
-    def test_invalid_worklist(self):
         self._test_invalid_planned_worklist()
-
-    def test_invalid_ignored_positions(self):
         self._test_invalid_ignored_positions()
-
-    def test_invalid_use_biomek(self):
-        self._test_invalid_use_biomek_flag()
+        self._test_invalid_pipetting_specs()
 
     def test_invalid_transfer_type(self):
         self._continue_setup()
@@ -749,21 +759,18 @@ class ContainerDilutionWorklistExecutorTestCase(WorklistExecutorTestCase):
                                      'are not supported')
 
     def test_transfer_volume_too_large(self):
-        self.container_max_volume = 0.000300 # 300 ul
-        self.result_data['A1'] = (290, 300, 4)
+        self.container_max_volume = 0.001000 # 300 ul
+        self.result_data['A1'] = (590, 600, 2)
         self._continue_setup()
         self.__check_result()
-        self.is_biomek_transfer = True
-        self._continue_setup()
-        ew = self.tool.get_result()
         # volume for dilutions can be split, thus: no error
-        self.assert_is_not_none(ew)
 
     def test_transfer_volume_too_small(self):
+        self.pipetting_specs = get_pipetting_specs_manual()
         self.result_data['A1'] = (1, 11, round((120 / (11 / 10.0)), 1))
         self._continue_setup()
         self.__check_result()
-        self.is_biomek_transfer = True
+        self.pipetting_specs = get_pipetting_specs_biomek()
         self._create_tool()
         self._test_and_expect_errors('Some transfer volumes are smaller ' \
                                      'than the allowed minimum transfer volume')
@@ -810,7 +817,7 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
                             user=self.executor_user,
                             source_rack=self.source_rack,
                             ignored_positions=self.ignored_positions,
-                            is_biomek_transfer=self.is_biomek_transfer)
+                            pipetting_specs=self.pipetting_specs)
 
     def _create_worklist(self):
         self.worklist = PlannedWorklist(label='container transfer worklist')
@@ -1010,7 +1017,6 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
         self.__check_result()
 
     def test_valid_range_overwritten(self):
-        self.is_biomek_transfer = True
         self.target_data['A2'] = (1, 11, round((120 / 11.), 1),
                                   round((120 / 1.1), 1), 2)
         self.source_data['A1'] = (100, 120, 49, ['A2', 'A3'])
@@ -1018,16 +1024,9 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
         self._test_and_expect_errors('Some transfer volumes are smaller than ' \
                                      'the allowed minimum transfer volume')
         self.tool.reset()
-        self.tool.is_biomek_transfer = False
         self.tool.set_minimum_transfer_volume(1)
         self.target_rack = self.target_plate
         self.source_rack = self.source_plate
-        self.__check_result(create_tool=False)
-        self.target_rack = self.target_tube_rack
-        self.source_rack = self.source_tube_rack
-        self._create_tool()
-        self.tool.set_minimum_transfer_volume(1)
-        self.tool.is_biomek_transfer = False
         self.__check_result(create_tool=False)
         # check errors
         self._create_tool()
@@ -1043,6 +1042,17 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
         self._check_error_messages('The maximum transfer volume must be a ' \
                                    'positive number. Obtained: 4,3.')
 
+    def test_pipetting_specs(self):
+        self.target_data['A2'] = (1, 11, round((120 / 11.), 1),
+                                  round((120 / 1.1), 1), 2)
+        self.source_data['A1'] = (100, 120, 49, ['A2', 'A3'])
+        self._continue_setup()
+        self._test_and_expect_errors('Some transfer volumes are smaller than ' \
+                                     'the allowed minimum transfer volume')
+        self.pipetting_specs = get_pipetting_specs_manual()
+        self._create_tool()
+        self.__check_result()
+
     def test_result_tube_rack_status_update(self):
         self._continue_setup()
         self._create_test_tube('G8', rack=self.target_tube_rack,
@@ -1050,20 +1060,13 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
         self.target_rack = self.target_tube_rack
         self.__check_result()
 
-    def test_invalid_user(self):
+    def test_invalid_input_values(self):
+        self._continue_setup()
         self._test_invalid_user()
-
-    def test_invalid_target_rack(self):
         self._test_invalid_target_rack()
-
-    def test_invalid_worklist(self):
         self._test_invalid_planned_worklist()
-
-    def test_invalid_ignored_positions(self):
         self._test_invalid_ignored_positions()
-
-    def test_invalid_use_biomek(self):
-        self._test_invalid_use_biomek_flag()
+        self._test_invalid_pipetting_specs()
 
     def test_invalid_transfer_type(self):
         self._continue_setup()
@@ -1083,21 +1086,21 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
         self.target_data['A3'] = (290, 300, round((120 / (300 / 290.0)), 1),
                                   4, 2)
         self._continue_setup()
-        self.__check_result()
-        self.is_biomek_transfer = True
-        self._continue_setup()
         self._test_and_expect_errors('Some transfer volumes are larger than ' \
                                      'the allowed maximum transfer volume')
+        self.pipetting_specs = get_pipetting_specs_manual()
+        self._create_tool()
+        self.__check_result()
 
     def test_transfer_volume_too_small(self):
         self.source_data['A1'] = (100, 120, 89, ['A2', 'A3'])
         self.target_data['A3'] = (1, 11, 10.9, round((120 / (11 / 10.0)), 1), 2)
         self._continue_setup()
-        self.__check_result()
-        self.is_biomek_transfer = True
-        self._continue_setup()
         self._test_and_expect_errors('Some transfer volumes are smaller ' \
                                      'than the allowed minimum transfer volume')
+        self.pipetting_specs = get_pipetting_specs_manual()
+        self._create_tool()
+        self.__check_result()
 
     def test_missing_target_container(self):
         positions = ['A2', 'B2']
@@ -1140,6 +1143,7 @@ class RackTransferExecutorTestCase(LiquidTransferExecutorTestCase):
 
     def set_up(self):
         LiquidTransferExecutorTestCase.set_up(self)
+        self.pipetting_specs = get_pipetting_specs_cybio()
         self.planned_rack_transfer = None
         # result data
         self.transfer_volume = 0.000010 # 10 ul
@@ -1190,7 +1194,8 @@ class RackTransferExecutorTestCase(LiquidTransferExecutorTestCase):
                     planned_rack_transfer=self.planned_rack_transfer,
                     target_rack=self.target_rack,
                     source_rack=self.source_rack,
-                    user=self.executor_user)
+                    user=self.executor_user,
+                    pipetting_specs=self.pipetting_specs)
 
     def _create_rack_specs(self):
         if self.well_specs is None:
@@ -1467,14 +1472,18 @@ class RackTransferExecutorTestCase(LiquidTransferExecutorTestCase):
         self._continue_setup(create_sample_molecules_trg=False)
         self.__check_result()
 
-    def test_invalid_user(self):
-        self._test_invalid_user()
-
-    def test_invalid_target_rack(self):
-        self._test_invalid_target_rack()
-
-    def test_invalid_planned_rack_transfer(self):
+    def test_pipetting_specs(self):
+        self.transfer_volume = 1 / VOLUME_CONVERSION_FACTOR
+        self.pipetting_specs = get_pipetting_specs_biomek()
         self._continue_setup()
+        self._test_and_expect_errors('Some transfer volumes are smaller than ' \
+                         'the allowed minimum transfer volume of 2 ul: 1.0 ul')
+
+    def test_invalid_input_users(self):
+        self._continue_setup()
+        self._test_invalid_user()
+        self._test_invalid_target_rack()
+        self._test_invalid_pipetting_specs()
         a1_pos = get_rack_position_from_label('A1')
         self.planned_rack_transfer = PlannedContainerTransfer(
                         volume=0.000050, source_position=a1_pos,

@@ -7,6 +7,7 @@ from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.writers import CsvWriter
+from thelma.models.liquidtransfer import PipettingSpecs
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.rack import Plate
@@ -30,15 +31,10 @@ class WorklistWriter(CsvWriter):
     #: (see :class:`thelma.models.liquidtransfer.TRANSFER_TYPES`).
     SUPPORTED_TRANSFER_TYPE = None
 
-    #: The minimum transfer volume in ul.
-    MIN_TRANSFER_VOLUME = 1
-    #: The maximum transfer volume in ul.
-    MAX_TRANSFER_VOLUME = 500
-
     #: Error range used for floating point comparison.
     _ERROR_RANGE = -0.01
 
-    def __init__(self, planned_worklist, target_rack, log,
+    def __init__(self, planned_worklist, target_rack, pipetting_specs, log,
                  ignored_positions=None):
         """
         Constructor:
@@ -50,6 +46,11 @@ class WorklistWriter(CsvWriter):
 
         :param target_rack: The rack into which the volumes will be dispensed.
         :type target_rack: :class:`thelma.models.rack.Rack`
+
+        :param pipetting_specs: Pipetting specs define transfer properties and
+            conditions like the transfer volume range.
+        :type pipetting_specs:
+            :class:`thelma.models.liquidtransfer.PipettingSpecs`
 
         :param log: The ThelmaLog you want to write into.
         :type log: :class:`thelma.ThelmaLog`
@@ -65,6 +66,9 @@ class WorklistWriter(CsvWriter):
         self.planned_worklist = planned_worklist
         #: The rack into which the volumes will be dispensed.
         self.target_rack = target_rack
+        #: Pipetting specs define transfer properties and conditions like
+        #: the transfer volume range.
+        self.pipetting_specs = pipetting_specs
 
         if ignored_positions is None: ignored_positions = []
         #: A list of positions that will not be included in the worklist file
@@ -121,15 +125,17 @@ class WorklistWriter(CsvWriter):
 
     def set_minimum_transfer_volume(self, volume):
         """
-        Sets the the minimum transfer volume. If you do not set a volume,
-        the executor will use the default volume.
+        Use this method to overwrite the minimum volume for a transfer (in ul).
+        If you do not set a volume, the writer will use the volume for the
+        :attr:`pipetting_specs`.
         """
         self._min_transfer_volume = volume
 
     def set_maximum_transfer_volume(self, volume):
         """
-        Sets the the maximum transfer volume. If you do not set a volume,
-        the executor will use the default volume.
+        Use this method to overwrite the maximum volume for a transfer (in ul).
+        If you do not set a volume, the writer will use the volume for the
+        :attr:`pipetting_specs`.
         """
         self._max_transfer_volume = volume
 
@@ -161,6 +167,8 @@ class WorklistWriter(CsvWriter):
         self._check_input_class('planned worklist', self.planned_worklist,
                                 PlannedWorklist)
         self._check_input_class('target rack', self.target_rack, Rack)
+        self._check_input_class('pipetting specs', self.pipetting_specs,
+                                PipettingSpecs)
 
         if self._check_input_class('ignored position list',
                                    self.ignored_positions, list):
@@ -215,9 +223,11 @@ class WorklistWriter(CsvWriter):
         self.add_debug('Set transfer volume range ...')
 
         if self._min_transfer_volume is None:
-            self._min_transfer_volume = self.MIN_TRANSFER_VOLUME
+            self._min_transfer_volume = VOLUME_CONVERSION_FACTOR \
+                                    * self.pipetting_specs.min_transfer_volume
         if self._max_transfer_volume is None:
-            self._max_transfer_volume = self.MAX_TRANSFER_VOLUME
+            self._max_transfer_volume = VOLUME_CONVERSION_FACTOR \
+                                    * self.pipetting_specs.max_transfer_volume
 
     def _generate_column_values(self):
         """

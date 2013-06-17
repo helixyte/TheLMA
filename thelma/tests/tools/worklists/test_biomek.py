@@ -5,9 +5,11 @@ AAB
 """
 from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.semiconstants import get_item_status_managed
+from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.worklists.base import MIN_BIOMEK_TRANSFER_VOLUME
 from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.semiconstants import get_pipetting_specs_manual
 from thelma.automation.tools.worklists.biomek \
     import ContainerDilutionWorklistWriter
 from thelma.automation.tools.worklists.biomek \
@@ -32,7 +34,7 @@ class BiomekWorklistWriterTestCase(FileCreatorTestCase):
 
     def set_up(self):
         FileCreatorTestCase.set_up(self)
-        self.WL_PATH = 'thelma:tests/tools/worklists/test_files/'
+        self.WL_PATH = 'thelma:tests/tools/worklists/writer/'
         self.log = TestingLog()
         self.target_rack = None
         self.worklist = None
@@ -45,6 +47,7 @@ class BiomekWorklistWriterTestCase(FileCreatorTestCase):
         self.well_specs = None
         self.well_dead_volume = 0.000010 # 10 ul
         self.well_max_volume = 0.000500 # 100 ul
+        self.pipetting_specs = get_pipetting_specs_biomek()
 
     def tear_down(self):
         FileCreatorTestCase.tear_down(self)
@@ -60,6 +63,7 @@ class BiomekWorklistWriterTestCase(FileCreatorTestCase):
         del self.well_specs
         del self.well_dead_volume
         del self.well_max_volume
+        del self.pipetting_specs
 
     def _get_alternative_rack(self, container_positions, volume):
         tube_spec = TubeSpecs(label='test_tube_specs',
@@ -93,6 +97,11 @@ class BiomekWorklistWriterTestCase(FileCreatorTestCase):
                                           shape=self.rack_shape,
                                           well_specs=self.well_specs)
 
+    def _check_result(self, file_name):
+        tool_stream = self.tool.get_result()
+        self.assert_is_not_none(tool_stream)
+        self._compare_csv_file_stream(tool_stream, file_name)
+
 
 class ContainerTransferWorklistWriterTestCase(BiomekWorklistWriterTestCase):
 
@@ -121,7 +130,8 @@ class ContainerTransferWorklistWriterTestCase(BiomekWorklistWriterTestCase):
                             planned_worklist=self.worklist,
                             target_rack=self.target_rack,
                             source_rack=self.source_rack,
-                            ignored_positions=self.ignored_positions)
+                            ignored_positions=self.ignored_positions,
+                            pipetting_specs=self.pipetting_specs)
 
     def __continue_setup(self):
         self.__create_worklist()
@@ -168,57 +178,59 @@ class ContainerTransferWorklistWriterTestCase(BiomekWorklistWriterTestCase):
 
     def test_result(self):
         self.__continue_setup()
-        tool_stream = self.tool.get_result()
-        self.assert_is_not_none(tool_stream)
-        self._compare_csv_file_stream(tool_stream, self.WL_FILE)
+        self._check_result(self.WL_FILE)
 
     def test_result_ignored_positions(self):
         self.__continue_setup()
         # ignored positions can be None
         self.ignored_positions = None
         self._create_tool()
-        tool_stream = self.tool.get_result()
-        self.assert_is_not_none(tool_stream)
-        self._compare_csv_file_stream(tool_stream, self.WL_FILE)
+        self._check_result(self.WL_FILE)
         # ignored positions with samples in source rack
         self.ignored_positions = []
         self.__continue_setup()
         self.ignored_positions = [get_rack_position_from_label('A1')]
         self._create_tool()
-        tool_stream = self.tool.get_result()
-        self.assert_is_not_none(tool_stream)
-        self._compare_csv_file_stream(tool_stream,
-                    'container_transfer_worklist_ign.csv')
+        self._check_result('container_transfer_worklist_ign.csv')
         # ignored positions without samples in source rack
         self.__continue_setup()
-        tool_stream = self.tool.get_result()
-        self.assert_is_not_none(tool_stream)
-        self._compare_csv_file_stream(tool_stream,
-                    'container_transfer_worklist_ign.csv')
+        self._check_result('container_transfer_worklist_ign.csv')
 
-    def test_invalid_worklist(self):
+    def test_result_pipetting_specs(self):
+        self.target_positions['A2'] = 1
         self.__continue_setup()
+        self._test_and_expect_errors('Some transfer volume are smaller than ' \
+                             'the allowed minimum transfer volume of 2.0 ul: ' \
+                             'target A2 (1.0 ul)')
+        self.pipetting_specs = get_pipetting_specs_manual()
+        self.__continue_setup()
+        self._check_result('container_transfer_worklist_man.csv')
+
+    def test_invalid_input_values(self):
+        self.__continue_setup()
+        wl = self.worklist
         self.worklist = self.worklist.planned_transfers
         self._test_and_expect_errors('planned worklist must be a ' \
                                      'PlannedWorklist object')
-
-    def test_invalid_target_rack(self):
-        self.__continue_setup()
+        self.worklist = wl
+        trg_rack = self.target_rack
         self.target_rack = self.plate_specs
         self._test_and_expect_errors('target rack must be a Rack object')
-
-    def test_invalid_ignored_positions(self):
-        self.__continue_setup()
+        self.target_rack = trg_rack
+        ign = self.ignored_positions
         self.ignored_positions = dict()
         self._test_and_expect_errors('ignored position list must be a list')
         self.ignored_positions = ['A1']
         self._test_and_expect_errors('ignored rack position must be a ' \
                                      'RackPosition object')
-
-    def test_invalid_source_rack(self):
-        self.__continue_setup()
+        self.ignored_positions = ign
+        src_rack = self.source_rack
         self.source_rack = self.plate_specs
         self._test_and_expect_errors('source rack must be a Rack object')
+        self.source_rack = src_rack
+        self.pipetting_specs = 3
+        self._test_and_expect_errors('The pipetting specs must be a ' \
+                                     'PipettingSpecs object')
 
     def test_unsupported_transfer_type(self):
         self.__continue_setup()
@@ -229,7 +241,11 @@ class ContainerTransferWorklistWriterTestCase(BiomekWorklistWriterTestCase):
                                      'are not supported')
 
     def test_transfer_volume_too_small(self):
-        invalid_volume = MIN_BIOMEK_TRANSFER_VOLUME / 2.0
+        #pylint: disable=E1103
+        min_vol = self.pipetting_specs.min_transfer_volume \
+                  * VOLUME_CONVERSION_FACTOR
+        #pylint: enable=E1103
+        invalid_volume = min_vol / 2.0
         self.target_positions['A2'] = invalid_volume
         self.target_positions['B3'] = invalid_volume
         self.__continue_setup()
@@ -237,8 +253,8 @@ class ContainerTransferWorklistWriterTestCase(BiomekWorklistWriterTestCase):
                                      'the allowed minimum transfer volume')
 
     def test_transfer_volume_too_large(self):
-        self.source_positions['A1'] = (300, ['A2', 'A3'])
-        self.target_positions['A3'] = 250
+        self.source_positions['A1'] = (600, ['A2', 'A3'])
+        self.target_positions['A3'] = 550
         self.__continue_setup()
         self._test_and_expect_errors('Some transfer volume are larger than ' \
                                      'the allowed maximum transfer volume')
@@ -280,11 +296,11 @@ class ContainerDilutionWorklistWriterTestCase(BiomekWorklistWriterTestCase):
         self.WL_FILE = 'container_dilution_worklist.csv'
         self.reservoir_specs = None
         # target position, diluent info, transfer volume in ul
-        self.target_positions = dict(A1=('mix1', 10),
-                                     B2=('mix1', 30),
-                                     C3=('mix2', 10),
-                                     D4=('mix2', 30),
-                                     E5=('mix1', 90))
+        self.target_positions = dict(A1=['mix1', 10],
+                                     B2=['mix1', 30],
+                                     C3=['mix2', 10],
+                                     D4=['mix2', 30],
+                                     E5=['mix1', 90])
         # rack and reservoir specs
         self.rack_shape_reservoir = self._get_entity(IRackShape, '1x4')
         self.target_container_volume = 0.000010 # 10 ul
@@ -309,7 +325,8 @@ class ContainerDilutionWorklistWriterTestCase(BiomekWorklistWriterTestCase):
                                 target_rack=self.target_rack,
                                 source_rack_barcode=self.source_rack_barcode,
                                 reservoir_specs=self.reservoir_specs,
-                                ignored_positions=self.ignored_positions)
+                                ignored_positions=self.ignored_positions,
+                                pipetting_specs=self.pipetting_specs)
 
     def __continue_setup(self):
         self.__create_worklist()
@@ -349,9 +366,7 @@ class ContainerDilutionWorklistWriterTestCase(BiomekWorklistWriterTestCase):
 
     def test_result(self):
         self.__continue_setup()
-        tool_stream = self.tool.get_result()
-        self.assert_is_not_none(tool_stream)
-        self._compare_csv_file_stream(tool_stream, self.WL_FILE)
+        self._check_result(self.WL_FILE)
 
     def test_result_ignored_positions(self):
         self.__continue_setup()
@@ -367,72 +382,70 @@ class ContainerDilutionWorklistWriterTestCase(BiomekWorklistWriterTestCase):
         self.ignored_positions = [get_rack_position_from_label('A1'),
                                   get_rack_position_from_label('B2')]
         self._create_tool()
-        tool_stream = self.tool.get_result()
-        self.assert_is_not_none(tool_stream)
-        self._compare_csv_file_stream(tool_stream,
-                    'container_dilution_worklist_ign.csv')
+        self._check_result('container_dilution_worklist_ign.csv')
         # ignored positions without samples in target rack
         self.__continue_setup()
-        tool_stream = self.tool.get_result()
-        self.assert_is_not_none(tool_stream)
-        self._compare_csv_file_stream(tool_stream,
-                    'container_dilution_worklist_ign.csv')
+        self._check_result('container_dilution_worklist_ign.csv')
 
     def test_result_split_volumes(self):
-        self.well_max_volume = 0.000500 # 500 ul
-        self.target_positions['F6'] = ('mix1', 401)
+        self.well_max_volume = 0.001000 # 1000 ul
+        self.target_positions['F6'] = ('mix1', 501)
         self.__continue_setup()
-        tool_stream = self.tool.get_result()
-        self.assert_is_not_none(tool_stream)
-        self._compare_csv_file_stream(tool_stream,
-                                        'container_dilution_worklist_split.csv')
-        warnings = ' '.join(self.tool.get_messages())
-        self.assert_true('Some dilution volumes exceed the allowed maximum ' \
-                         'transfer volume' in warnings)
+        self._check_result('container_dilution_worklist_split.csv')
+        self._check_warning_messages('Some dilution volumes exceed the ' \
+                                     'allowed maximum transfer volume')
 
     def test_result_several_source_wells(self):
         self.reservoir_max_volume = 0.000100 # 100 ul
         self.reservoir_max_dead_volume = 0.000020 # 20 ul
         self.reservoir_min_dead_volume = 0.000010 # 10 ul
         self.__continue_setup()
-        tool_stream = self.tool.get_result()
-        self.assert_is_not_none(tool_stream)
-        self._compare_csv_file_stream(tool_stream,
-                                        'container_dilution_worklist_cap.csv')
+        self._check_result('container_dilution_worklist_cap.csv')
         self._check_warning_messages('The source for the following diluents ' \
                 'has been split and distributed over several containers ' \
                 'because one single container could not have taken up the ' \
                 'required volume (max volume of a source container')
 
-    def test_invalid_worklist(self):
+    def test_result_pipetting_specs(self):
+        self.target_positions['A1'][1] = 1
         self.__continue_setup()
+        self._test_and_expect_errors('Some transfer volume are smaller than ' \
+                             'the allowed minimum transfer volume of 2.0 ul: ' \
+                             'target A1 (1.0 ul)')
+        self.pipetting_specs = get_pipetting_specs_manual()
+        self.__continue_setup()
+        self._check_result('container_dilution_worklist_man.csv')
+
+    def test_invalid_input_values(self):
+        self.__continue_setup()
+        wl = self.worklist
         self.worklist = self.worklist.planned_transfers
         self._test_and_expect_errors('planned worklist must be a ' \
                                      'PlannedWorklist object')
-
-    def test_invalid_target_rack(self):
-        self.__continue_setup()
+        self.worklist = wl
+        trg_rack = self.target_rack
         self.target_rack = self.plate_specs
         self._test_and_expect_errors('target rack must be a Rack object')
-
-    def test_invalid_source_rack_barcode(self):
-        self.__continue_setup()
+        self.target_rack = trg_rack
+        srb = self.source_rack_barcode
         self.source_rack_barcode = 3
         self._test_and_expect_errors('source rack barcode must be a basestring')
-
-    def test_invalid_reservoir_specs(self):
-        self.__continue_setup()
+        self.source_rack_barcode = srb
+        rs = self.reservoir_specs
         self.reservoir_specs = None
         self._test_and_expect_errors('The reservoir specs must be a ' \
                                      'ReservoirSpecs object')
-
-    def test_invalid_ignored_positions(self):
-        self.__continue_setup()
+        self.reservoir_specs = rs
+        ign = self.ignored_positions
         self.ignored_positions = dict()
         self._test_and_expect_errors('ignored position list must be a list')
         self.ignored_positions = ['A1']
         self._test_and_expect_errors('ignored rack position must be a ' \
                                      'RackPosition object')
+        self.ignored_positions = ign
+        self.pipetting_specs = 3
+        self._test_and_expect_errors('The pipetting specs must be a ' \
+                                     'PipettingSpecs object (obtained: int)')
 
     def test_unsupported_transfer_type(self):
         self.__continue_setup()

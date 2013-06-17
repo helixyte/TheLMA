@@ -7,6 +7,9 @@ from everest.testing import check_attributes
 from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.semiconstants import get_item_status_managed
+from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
+from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
+from thelma.automation.tools.semiconstants import get_pipetting_specs_manual
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.worklists.base \
     import CONCENTRATION_CONVERSION_FACTOR
@@ -24,7 +27,6 @@ from thelma.automation.tools.worklists.series import SeriesWorklistWriter
 from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IOrganization
 from thelma.interfaces import IReservoirSpecs
-from thelma.interfaces import IUser
 from thelma.models.container import WellSpecs
 from thelma.models.liquidtransfer import ExecutedRackTransfer
 from thelma.models.liquidtransfer import ExecutedWorklist
@@ -36,162 +38,161 @@ from thelma.models.rack import PlateSpecs
 from thelma.models.sample import Molecule
 from thelma.models.sample import Sample
 from thelma.models.user import User
+from thelma.models.utils import get_user
 from thelma.tests.tools.tooltestingutils import FileComparisonUtils
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
 from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 
-class ContainerDilutionJobTestCase(ToolsAndUtilsTestCase):
+class TransferJobTestCase(ToolsAndUtilsTestCase):
+
+    TRANSFER_JOB_CLS = None
 
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
         self.planned_worklist = self._create_planned_worklist(label='test')
         self.index = 3
         self.target_rack = self._create_plate()
+        self.pipetting_specs = get_pipetting_specs_biomek()
+        self.log = TestingLog()
+        self.executor_user = get_user('sachse')
+
+    def tear_down(self):
+        ToolsAndUtilsTestCase.tear_down(self)
+        del self.planned_worklist
+        del self.index
+        del self.target_rack
+        del self.pipetting_specs
+        del self.log
+
+    def _get_init_data(self):
+        return dict(planned_worklist=self.planned_worklist,
+                    index=self.index,
+                    target_rack=self.target_rack,
+                    pipetting_specs=self.pipetting_specs)
+
+    def _test_get_writer(self, unreg_pipetting_specs=None):
+        test_data = self.__prepare_get_tool_test()
+        tj1, kw = test_data[0], test_data[1]
+        writer = tj1.get_worklist_writer(self.log)
+        self.assert_is_not_none(writer)
+        check_attributes(writer, kw)
+        # test unregistered pipetting technique
+        self.pipetting_specs = unreg_pipetting_specs #pylint: disable=E1102
+        test_data_no_writer = self.__prepare_get_tool_test()
+        tj_no_writer = test_data_no_writer[0]
+        self.assert_is_none(tj_no_writer.get_worklist_writer(self.log))
+
+    def _test_get_executor(self, del_attributes=None, add_attributes=None):
+        test_data = self.__prepare_get_tool_test(include_user=True)
+        tj, kw = test_data[0], test_data[1]
+        executor = tj.get_executor(self.log, self.executor_user)
+        self.assert_is_not_none(executor)
+        if not del_attributes is None:
+            for attr_name in del_attributes: del kw[attr_name]
+        if not add_attributes is None:
+            for attr_name, attr_value in add_attributes.iteritems():
+                kw[attr_name] = attr_value
+        check_attributes(executor, kw)
+
+    def __prepare_get_tool_test(self, include_user=False):
+        kw = self._get_init_data()
+        tj = self.TRANSFER_JOB_CLS(**kw) #pylint: disable=E1102
+        check_attributes(tj, kw)
+        del kw['index']
+        kw['log'] = self.log
+        if include_user: kw['user'] = self.executor_user
+        return (tj, kw)
+
+
+class ContainerDilutionJobTestCase(TransferJobTestCase):
+
+    TRANSFER_JOB_CLS = ContainerDilutionJob
+
+    def set_up(self):
+        TransferJobTestCase.set_up(self)
         self.reservoir_specs = self._create_reservoir_specs()
         self.ignored_positions = [get_rack_position_from_label('A1')]
-        self.is_biomek_transfer = True
         self.source_rack_barcode = '09999994'
 
     def tear_down(self):
-        ToolsAndUtilsTestCase.tear_down(self)
-        del self.planned_worklist
-        del self.index
-        del self.target_rack
+        TransferJobTestCase.tear_down(self)
         del self.reservoir_specs
         del self.ignored_positions
-        del self.is_biomek_transfer
         del self.source_rack_barcode
 
-    def __get_data(self):
-        return dict(planned_worklist=self.planned_worklist,
-                    index=self.index,
-                    target_rack=self.target_rack,
-                    reservoir_specs=self.reservoir_specs,
-                    source_rack_barcode=self.source_rack_barcode,
-                    ignored_positions=self.ignored_positions,
-                    is_biomek_transfer=self.is_biomek_transfer)
+    def _get_init_data(self):
+        kw = TransferJobTestCase._get_init_data(self)
+        kw['reservoir_specs'] = self.reservoir_specs
+        kw['source_rack_barcode'] = self.source_rack_barcode
+        kw['ignored_positions'] = self.ignored_positions
+        return kw
 
-    def test_get_kw_for_worklist_writer(self):
-        exp_kw = self.__get_data()
-        cdj = ContainerDilutionJob(**exp_kw)
-        check_attributes(cdj, exp_kw)
-        log = TestingLog()
-        del exp_kw['index']
-        del exp_kw['is_biomek_transfer']
-        exp_kw['log'] = log
-        kw = cdj.get_kw_for_worklist_writer(log=log)
-        self.assert_equal(kw, exp_kw)
+    def test_get_writer(self):
+        self._test_get_writer(unreg_pipetting_specs=get_pipetting_specs_cybio())
 
-    def test_get_kw_for_executor(self):
-        exp_kw = self.__get_data()
-        cdj = ContainerDilutionJob(**exp_kw)
-        check_attributes(cdj, exp_kw)
-        log = TestingLog()
-        user = self._get_entity(IUser, 'it')
-        del exp_kw['index']
-        del exp_kw['source_rack_barcode']
-        exp_kw['log'] = log
-        exp_kw['user'] = user
-        kw = cdj.get_kw_for_executor(log=log, user=user)
-        self.assert_equal(kw, exp_kw)
+    def test_get_executor(self):
+        self._test_get_executor(['source_rack_barcode'])
 
 
-class ContainerTransferJobTestCase(ToolsAndUtilsTestCase):
+class ContainerTransferJobTestCase(TransferJobTestCase):
+
+    TRANSFER_JOB_CLS = ContainerTransferJob
 
     def set_up(self):
-        ToolsAndUtilsTestCase.set_up(self)
-        self.planned_worklist = self._create_planned_worklist(label='test')
-        self.index = 3
-        self.target_rack = self._create_plate()
+        TransferJobTestCase.set_up(self)
         self.source_rack = self._create_tube_rack()
         self.ignored_positions = [get_rack_position_from_label('A1')]
-        self.is_biomek_transfer = True
 
     def tear_down(self):
-        ToolsAndUtilsTestCase.tear_down(self)
-        del self.planned_worklist
-        del self.index
-        del self.target_rack
+        TransferJobTestCase.tear_down(self)
         del self.source_rack
         del self.ignored_positions
-        del self.is_biomek_transfer
 
-    def __get_data(self):
-        return dict(planned_worklist=self.planned_worklist,
-                    index=self.index,
-                    target_rack=self.target_rack,
-                    source_rack=self.source_rack,
-                    ignored_positions=self.ignored_positions,
-                    is_biomek_transfer=self.is_biomek_transfer)
+    def _get_init_data(self):
+        kw = TransferJobTestCase._get_init_data(self)
+        kw['source_rack'] = self.source_rack
+        kw['ignored_positions'] = self.ignored_positions
+        return kw
 
-    def test_get_kw_for_worklist_writer(self):
-        exp_kw = self.__get_data()
-        ctj = ContainerTransferJob(**exp_kw)
-        check_attributes(ctj, exp_kw)
-        log = TestingLog()
-        del exp_kw['index']
-        del exp_kw['is_biomek_transfer']
-        exp_kw['log'] = log
-        kw = ctj.get_kw_for_worklist_writer(log=log)
-        self.assert_equal(kw, exp_kw)
+    def test_get_writer(self):
+        self._test_get_writer(unreg_pipetting_specs=get_pipetting_specs_cybio())
 
-    def test_get_kw_for_executor(self):
-        exp_kw = self.__get_data()
-        ctj = ContainerTransferJob(**exp_kw)
-        check_attributes(ctj, exp_kw)
-        log = TestingLog()
-        user = self._get_entity(IUser, 'it')
-        del exp_kw['index']
-        exp_kw['log'] = log
-        exp_kw['user'] = user
-        kw = ctj.get_kw_for_executor(log=log, user=user)
-        self.assert_equal(kw, exp_kw)
+    def test_get_executor(self):
+        self._test_get_executor()
 
 
-class RackTransferJobTestCase(ToolsAndUtilsTestCase):
+class RackTransferJobTestCase(TransferJobTestCase):
+
+    TRANSFER_JOB_CLS = RackTransferJob
 
     def set_up(self):
-        ToolsAndUtilsTestCase.set_up(self)
-        self.index = 3
-        self.target_rack = self._create_plate()
+        TransferJobTestCase.set_up(self)
         self.source_rack = self._create_tube_rack()
         self.planned_rack_transfer = self._create_planned_rack_transfer()
 
     def tear_down(self):
-        ToolsAndUtilsTestCase.tear_down(self)
-        del self.index
-        del self.target_rack
+        TransferJobTestCase.tear_down(self)
         del self.source_rack
         del self.planned_rack_transfer
 
-    def __get_data(self):
+    def _get_init_data(self):
         return dict(planned_rack_transfer=self.planned_rack_transfer,
                     index=self.index,
                     target_rack=self.target_rack,
                     source_rack=self.source_rack)
 
-    def test_get_kw_for_worklist_writer(self):
-        exp_kw = self.__get_data()
-        rtj = RackTransferJob(**exp_kw)
-        check_attributes(rtj, exp_kw)
-        log = TestingLog()
-        self.assert_raises(NotImplementedError, rtj.get_kw_for_worklist_writer,
-                           log)
+    def test_get_writer(self):
+        # there are no writers for rack transfer jobs
+        kw = self._get_init_data()
+        tj = self.TRANSFER_JOB_CLS(**kw)
+        check_attributes(tj, kw)
+        self.assert_is_none(tj.get_worklist_writer(self.log))
 
-    def test_get_kw_for_executor(self):
-        exp_kw = self.__get_data()
-        rtj = RackTransferJob(**exp_kw)
-        check_attributes(rtj, exp_kw)
-        log = TestingLog()
-        user = self._get_entity(IUser, 'it')
-        del exp_kw['index']
-        exp_kw['log'] = log
-        exp_kw['user'] = user
-        kw = rtj.get_kw_for_executor(log=log, user=user)
-        self.assert_equal(kw, exp_kw)
-
+    def test_get_executor(self):
+        add_attributes = dict(pipetting_specs=get_pipetting_specs_cybio())
+        self._test_get_executor(add_attributes=add_attributes)
 
 
 class SeriesToolTestCase(FileCreatorTestCase):
@@ -215,10 +216,10 @@ class SeriesToolTestCase(FileCreatorTestCase):
         self.source_sector = 0
         self.target_sector = 2
         self.rack_transfer_volume = 0.000050 # 50 ul
-        self.is_biomek_transfer = True
         self.source_rack_barcode = 'source_reservoir'
         self.ignored_position_dil = []
         self.ignored_positions_ct = None
+        self.pipetting_specs_cd_ct = get_pipetting_specs_biomek()
         # other setup values
         self.shape = get_96_rack_shape()
         self.status = get_item_status_managed()
@@ -253,10 +254,10 @@ class SeriesToolTestCase(FileCreatorTestCase):
         del self.source_sector
         del self.target_sector
         del self.rack_transfer_volume
-        del self.is_biomek_transfer
         del self.source_rack_barcode
         del self.ignored_position_dil
         del self.ignored_positions_ct
+        del self.pipetting_specs_cd_ct
         del self.shape
         del self.status
         del self.molecule_design
@@ -343,13 +344,13 @@ class SeriesToolTestCase(FileCreatorTestCase):
                 reservoir_specs=self.reservoir_specs,
                 source_rack_barcode=self.source_rack_barcode,
                 ignored_positions=self.ignored_position_dil,
-                is_biomek_transfer=self.is_biomek_transfer)
+                pipetting_specs=self.pipetting_specs_cd_ct)
         self.ct_job = ContainerTransferJob(index=2,
                 planned_worklist=self.transfer_worklist,
                 target_rack=self.test_plate,
                 source_rack=self.test_plate,
                 ignored_positions=self.ignored_positions_ct,
-                is_biomek_transfer=self.is_biomek_transfer)
+                pipetting_specs=self.pipetting_specs_cd_ct)
         self.rack_job = RackTransferJob(index=1,
                 planned_rack_transfer=self.rack_transfer,
                 target_rack=self.test_plate,
@@ -516,7 +517,7 @@ class SeriesExecutorTestCase(SeriesToolTestCase):
                             source_rack=self.test_plate,
                             log=self.log,
                             ignored_positions=self.ignored_positions_ct,
-                            is_biomek_transfer=self.is_biomek_transfer)
+                            pipetting_specs=self.pipetting_specs_cd_ct)
         self.assert_is_none(transfer_executor.get_result())
         execution_map = self.tool.get_result()
         self.assert_is_not_none(execution_map)
@@ -560,12 +561,12 @@ class SeriesExecutorTestCase(SeriesToolTestCase):
             else:
                 self.assert_is_none(sample)
 
-    def test_result_is_biomek_transfer(self):
+    def test_result_pipetting_specs(self):
         self.transfer_data['B1'] = ('B2', 1)
         self._continue_setup()
         self._test_and_expect_errors('Some transfer volumes are smaller than ' \
                                      'the allowed minimum transfer volume')
-        self.is_biomek_transfer = False
+        self.pipetting_specs_cd_ct = get_pipetting_specs_manual()
         self._continue_setup()
         execution_map = self.tool.get_result()
         self.assert_is_not_none(execution_map)
@@ -737,7 +738,7 @@ class RackTransferWriterTestCase(FileCreatorTestCase):
             e_lin = exp_lines[i]
             self.assert_equal(t_lin, e_lin)
 
-    def test_invalid_rack_transfer_jobs(self):
+    def xtest_invalid_rack_transfer_jobs(self):
         self._continue_setup()
         a1_pos = get_rack_position_from_label('A1')
         pct = PlannedContainerTransfer(volume=self.volume1,
@@ -745,9 +746,9 @@ class RackTransferWriterTestCase(FileCreatorTestCase):
         worklist = PlannedWorklist(label='invalid worklist',
                                    planned_transfers=[pct])
         pctj = ContainerTransferJob(index=3, planned_worklist=worklist,
-                                    target_rack=self.rep_plate,
-                                    source_rack=self.small_plate,
-                                    is_biomek_transfer=True)
+                                target_rack=self.rep_plate,
+                                source_rack=self.small_plate,
+                                pipetting_specs=get_pipetting_specs_biomek())
         self.rack_transfer_jobs.append(pctj)
         self._test_and_expect_errors('The rack transfer job must be a ' \
                                      'RackTransferJob object')

@@ -662,9 +662,9 @@ class TransfectionLayoutTestCase(ToolsAndUtilsTestCase):
         self.reagent_name = 'reagent I'
         self.reagent_name_tag = Tag('transfection', 'reagent_name',
                                     self.reagent_name)
-        self.reagent_dil_factor = 0.04
+        self.reagent_dil_factor = 1400
         self.reagent_conc_tag = Tag('transfection', 'reagent_dilution_factor',
-                                    '0.04')
+                                    '1400')
         self.transfer_volume = 10
         self.transfer_vol_tag = Tag('sample_transfer', 'transfer_volume', '10')
         self.final_concentration = 7

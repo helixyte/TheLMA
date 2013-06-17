@@ -13,6 +13,7 @@ from thelma.automation.tools.libcreation.generation \
     import LibraryCreationWorklistGenerator
 from thelma.automation.tools.libcreation.writer \
     import LibraryCreationWorklistWriter
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants import get_96_rack_shape
@@ -359,7 +360,7 @@ class LibraryCreationExecutor(BaseAutomationTool):
                         planned_worklist=issr.planned_worklist,
                         target_rack=issr.rack,
                         source_rack=rack,
-                        is_biomek_transfer=True)
+                        pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
                 ctj.min_transfer_volume = 1
                 self.__transfer_jobs[current_index] = ctj
                 self.__stock_transfer_worklists[current_index] = None
@@ -819,7 +820,7 @@ class LibraryCreationBufferWorklistTransferJobCreator(BaseAutomationTool):
                         reservoir_specs=rs_quarter,
                         source_rack_barcode=self.BUFFER_RESERVOIR_BARCODE,
                         ignored_positions=self.ignored_positions[sector_index],
-                        is_biomek_transfer=True)
+                        pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
             self.__transfer_jobs[job_index] = cdj
             job_index += 1
 
@@ -861,7 +862,7 @@ class LibraryCreationBufferWorklistTransferJobCreator(BaseAutomationTool):
                        reservoir_specs=rs_quarter,
                        source_rack_barcode=self.BUFFER_RESERVOIR_BARCODE,
                        ignored_positions=self.ignored_positions[sector_index],
-                       is_biomek_transfer=True)
+                       pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
             self.__transfer_jobs[job_index] = cdj
             job_index += 1
 

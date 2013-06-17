@@ -11,6 +11,7 @@ from thelma.automation.tools.poolcreation.generation \
     import PoolCreationWorklistGenerator
 from thelma.automation.tools.poolcreation.writer \
     import PoolCreationWorklistWriter
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_96_rack_shape
@@ -274,7 +275,7 @@ class PoolCreationExecutor(BaseAutomationTool):
                              reservoir_specs=rs_quarter,
                              source_rack_barcode=self.BUFFER_RESERVOIR_BARCODE,
                              ignored_positions=self.__ignore_positions,
-                             is_biomek_transfer=True)
+                             pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
         self.__transfer_jobs[job_index] = cdj
 
     def __create_stock_transfer_jobs(self):
@@ -291,7 +292,7 @@ class PoolCreationExecutor(BaseAutomationTool):
                     planned_worklist=self.__sample_stock_rack.planned_worklist,
                     target_rack=self.__sample_stock_rack.rack,
                     source_rack=single_rack,
-                    is_biomek_transfer=True)
+                    pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
             ctj.min_transfer_volume = 1
             self.__transfer_jobs[job_index] = ctj
             self.__exec_stock_transfer_wls[job_index] = None

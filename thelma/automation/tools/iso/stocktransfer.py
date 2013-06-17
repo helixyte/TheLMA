@@ -14,6 +14,7 @@ from thelma.automation.tools.iso.stockworklist \
     import StockTransferWorklistGenerator
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.verifier import BaseRackVerifier
@@ -306,7 +307,7 @@ class IsoControlStockRackTool(BaseAutomationTool):
                                 planned_worklist=self._planned_worklist,
                                 target_rack=preparation_plate,
                                 source_rack=self._stock_rack,
-                                is_biomek_transfer=True)
+                                pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
             transfer_job.min_transfer_volume = 1
             self._transfer_jobs.append(transfer_job)
             counter += 1
@@ -1214,7 +1215,7 @@ class IsoSampleStockRackJobCreator(BaseAutomationTool):
                                 planned_worklist=worklist,
                                 target_rack=self.preparation_plate,
                                 source_rack=stock_rack,
-                                is_biomek_transfer=True)
+                                pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
             transfer_job.min_transfer_volume = 1
             self._transfer_jobs.append(transfer_job)
 

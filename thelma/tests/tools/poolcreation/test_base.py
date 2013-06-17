@@ -3,15 +3,17 @@ Tests for classes and constants involved in pool stock samples creation tasks.
 
 AAB
 """
-from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
-from thelma.automation.tools.poolcreation.base import calculate_single_design_stock_transfer_volume
-from everest.entities.utils import get_root_aggregate
-from thelma.interfaces import IMoleculeDesignPoolSet
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
-from thelma.models.library import MoleculeDesignLibrary
+from thelma.automation.tools.poolcreation.base \
+    import calculate_single_design_stock_transfer_volume
+from thelma.automation.tools.poolcreation.base \
+    import calculate_single_design_stock_transfer_volume_for_library
+from thelma.automation.tools.worklists.base \
+    import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.poolcreation.base import calculate_single_design_stock_transfer_volume_for_library
+from thelma.interfaces import IMoleculeDesignPool
+from thelma.models.library import MoleculeDesignLibrary
+from thelma.models.moleculedesign import MoleculeDesignPoolSet
+from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 class PoolCreationBaseFunctionTestCase(ToolsAndUtilsTestCase):
 
@@ -45,14 +47,9 @@ class PoolCreationBaseFunctionTestCase(ToolsAndUtilsTestCase):
         self.assert_raises(ValueError, meth, **kw)
 
     def test_calculate_single_design_stock_transfer_volume_for_library(self):
-        pool_ids = (1063102, 1058382, 1064324)
-        pools = set()
-        agg = get_root_aggregate(IMoleculeDesignPoolSet)
-        for pool_id in pool_ids:
-            pool = agg.get_by_id(pool_id)
-            pools.add(pool)
+        pool = self._get_entity(IMoleculeDesignPool)
         pool_set = MoleculeDesignPoolSet(molecule_type=pool.molecule_type,
-                                         molecule_design_pools=pools)
+                                         molecule_design_pools=set([pool]))
         lib = MoleculeDesignLibrary(molecule_design_pool_set=pool_set,
             label='testlib',
             final_volume=self.target_volume / VOLUME_CONVERSION_FACTOR,
