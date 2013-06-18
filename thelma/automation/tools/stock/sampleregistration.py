@@ -11,12 +11,14 @@ from everest.resources.base import Member
 from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
+from thelma.models.rack import Plate
 from thelma.automation.handlers.rackscanning \
                                     import AnyRackScanningParserHandler
 from thelma.automation.handlers.rackscanning import RackScanningLayout
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 from thelma.interfaces import IChemicalStructure
+from thelma.interfaces import IContainerSpecs
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IMoleculeDesignPool
@@ -28,8 +30,8 @@ from thelma.interfaces import IRackSpecs
 from thelma.interfaces import IStockSample
 from thelma.interfaces import ISupplierMoleculeDesign
 from thelma.interfaces import ITube
-from thelma.interfaces import ITubeSpecs
 from thelma.models.container import Tube
+from thelma.models.container import Well
 from thelma.models.moleculedesign import MoleculeDesign
 from thelma.models.moleculedesign import MoleculeDesignPool
 from thelma.models.rack import TubeRack
@@ -386,7 +388,8 @@ class SampleRegistrar(RegistrationTool):
       supplier_rack_barcodes : dictionary supplier barcode -> Cenix barcode
     """
     def __init__(self, registration_items, report_directory=None,
-                 rack_specs_name='matrix0500', tube_specs_name='matrix0500',
+                 rack_specs_name='matrix0500',
+                 container_specs_name='matrix0500',
                  validation_files=None, **kw):
         """
         :param registration_items: delivery samples to register.
@@ -394,14 +397,14 @@ class SampleRegistrar(RegistrationTool):
             :class:`SampleRegistrationItem`
         :param str rack_specs_name: name of the rack specs to use for newly
             created racks.
-        :param str tube_specs_name: name of the tube specs to use for newly
+        :param str container_specs_name: name of the tube specs to use for newly
             created tubes.
         :param str validation_files: optional comma-separated list of rack
             scanning file names to use for validation of the sample positions.
         """
         RegistrationTool.__init__(self, registration_items,
                                   report_directory=report_directory, **kw)
-        self.__tube_specs_name = tube_specs_name
+        self.__container_specs_name = container_specs_name
         self.__rack_specs_name = rack_specs_name
         if not validation_files is None:
             # Validation files are given in a directory or as a
@@ -412,7 +415,7 @@ class SampleRegistrar(RegistrationTool):
             else:
                 validation_files = validation_files.split(',')
         self.__validation_files = validation_files
-        self.__tube_create_kw = None
+        self.__container_create_kw = None
         self.__rack_create_kw = None
         self.__new_rack_supplier_barcode_map = {}
 
@@ -513,30 +516,40 @@ class SampleRegistrar(RegistrationTool):
                                             ITEM_STATUS_NAMES.MANAGED.lower())
                      )
         kw = self.__rack_create_kw.copy()
-        rack = TubeRack(**kw)
+        if kw['specs'].has_tubes:
+            rack_fac = TubeRack
+        else:
+            rack_fac = Plate
+        rack = rack_fac(**kw)
         rack_barcode = sample_registration_item.rack_barcode
-        if not TubeRack.is_valid_barcode(rack_barcode):
+        if not rack_fac.is_valid_barcode(rack_barcode):
             self.__new_rack_supplier_barcode_map[rack] = rack_barcode
         return rack
 
     def __make_new_tube(self, sample_registration_item):
-        if self.__tube_create_kw is None:
-            tube_specs_agg = get_root_aggregate(ITubeSpecs)
+        if self.__container_create_kw is None:
+            container_specs_agg = get_root_aggregate(IContainerSpecs)
             item_status_agg = get_root_aggregate(IItemStatus)
-            self.__tube_create_kw = \
-              dict(specs=tube_specs_agg.get_by_slug(self.__tube_specs_name),
+            self.__container_create_kw = \
+              dict(specs=container_specs_agg.get_by_slug(
+                                                self.__container_specs_name),
                    status=item_status_agg.get_by_slug(
                                             ITEM_STATUS_NAMES.MANAGED.lower())
                    )
-        kw = self.__tube_create_kw.copy()
-        kw['barcode'] = sample_registration_item.tube_barcode
+        kw = self.__container_create_kw.copy()
+        is_tube = kw['specs'].has_barcode
+        if is_tube:
+            container_fac = Tube
+            kw['barcode'] = sample_registration_item.tube_barcode
+        else:
+            container_fac = Well
         pos = sample_registration_item.rack_position
         if not pos is None:
             kw['rack'] = sample_registration_item.rack
             kw['position'] = pos
-            tube = Tube.create_from_rack_and_position(**kw)
+            tube = container_fac.create_from_rack_and_position(**kw)
         else:
-            tube = Tube(**kw)
+            tube = container_fac(**kw)
         return tube
 
     def __validate_rack(self, rack):
@@ -631,10 +644,15 @@ class SupplierSampleRegistrar(RegistrationTool):
      * Check that all molecule designs have a supplier molecule design.
     """
     def __init__(self, registration_items, report_directory=None,
+                 rack_specs_name='matrix0500',
+                 container_specs_name='matrix0500',
                  validation_files=None, **kw):
         RegistrationTool.__init__(self, registration_items,
-                                  report_directory=report_directory, **kw)
+                                  report_directory=report_directory,
+                                  **kw)
         self.__validation_files = validation_files
+        self.__rack_specs_name = rack_specs_name
+        self.__container_specs_name = container_specs_name
         self.__new_smd_sris = None
 
     def run(self):
@@ -654,6 +672,9 @@ class SupplierSampleRegistrar(RegistrationTool):
             sr = SampleRegistrar(self.registration_items,
                                  report_directory=self.report_directory,
                                  validation_files=self.__validation_files,
+                                 rack_specs_name=self.__rack_specs_name,
+                                 container_specs_name=
+                                        self.__container_specs_name,
                                  depending=True,
                                  log=self.log)
             sr.run()

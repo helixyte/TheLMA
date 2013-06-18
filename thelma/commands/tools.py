@@ -395,7 +395,19 @@ class SampleRegistrarCommand(_RegistrarCommand): # no __init__ pylint: disable=W
           dict(help='Comma-separated list of rack scanning files '
                     'for validation of tube positions.',
                type='string')
-          ),
+           ),
+          ('--rack-specs-name',
+           'rack_specs_name',
+           dict(help='Name of the rack specs to use for the racks to be '
+                     'registered.',
+                type='string'),
+           ),
+          ('--container-specs-name',
+           'container_specs_name',
+           dict(help='Name of the container specs to use for the containers '
+                     'to be registered.',
+                type='string'),
+           ),
          ]
     registration_resource = ISampleRegistrationItem
 
