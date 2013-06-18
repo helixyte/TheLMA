@@ -2,7 +2,6 @@
 Test case for manual experiment updating (experiment rack filler classes)
 """
 from everest.testing import check_attributes
-from thelma.automation.tools.semiconstants import get_experiment_type_order
 from thelma.automation.tools.experiment.manual \
     import ExperimentRackFillerIsoLess
 from thelma.automation.tools.experiment.manual \
@@ -13,16 +12,17 @@ from thelma.automation.tools.experiment.manual import ExperimentRackFillerScreen
 from thelma.automation.tools.experiment.manual import SampleInfoItem
 from thelma.automation.tools.metadata.transfection_utils \
     import TransfectionParameters
-from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
-from thelma.automation.tools.semiconstants import get_experiment_type_isoless
 from thelma.automation.tools.semiconstants \
     import get_experiment_type_manual_optimisation
 from thelma.automation.tools.semiconstants \
     import get_experiment_type_robot_optimisation
+from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
+from thelma.automation.tools.semiconstants import get_experiment_type_isoless
+from thelma.automation.tools.semiconstants import get_experiment_type_order
 from thelma.automation.tools.semiconstants import get_experiment_type_screening
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IMolecule
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.liquidtransfer import WorklistSeries

@@ -12,8 +12,8 @@ from thelma.automation.tools.metadata.transfection_utils \
                 import TransfectionParameters
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import get_experiment_metadata_type
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_trimmed_string
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.generation \
                 import PlannedWorklistGenerator
 from thelma.models.experiment import ExperimentDesign

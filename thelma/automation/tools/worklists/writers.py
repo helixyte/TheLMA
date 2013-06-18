@@ -3,9 +3,9 @@ This module deals with the creation of worklist files.
 
 AAB
 """
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_valid_number
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.writers import CsvWriter
 from thelma.models.liquidtransfer import PipettingSpecs
 from thelma.models.liquidtransfer import PlannedWorklist

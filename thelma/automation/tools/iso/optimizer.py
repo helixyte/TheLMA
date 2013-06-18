@@ -12,12 +12,11 @@ from thelma.automation.tools.iso.prep_utils import PrepIsoLayout
 from thelma.automation.tools.iso.prep_utils import get_stock_takeout_volume
 from thelma.automation.tools.semiconstants import get_rack_position_from_indices
 from thelma.automation.tools.stock.base import STOCK_ITEM_STATUS
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.base import create_in_term_for_db_queries
 from thelma.automation.tools.utils.iso import IsoPosition
-from thelma.automation.tools.worklists.base \
-        import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 
 
 __docformat__ = 'reStructuredText en'

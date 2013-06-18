@@ -8,10 +8,8 @@ from everest.entities.utils import get_root_aggregate
 from everest.testing import check_attributes
 from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants import get_96_rack_shape
-from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.utils.base import EMPTY_POSITION_TYPE
-from thelma.automation.tools.utils.base import EmptyPositionManager
 from thelma.automation.tools.utils.base import FIXED_POSITION_TYPE
 from thelma.automation.tools.utils.base import FLOATING_POSITION_TYPE
 from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
@@ -33,8 +31,7 @@ from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.base import round_up
 from thelma.automation.tools.utils.base import sort_rack_positions
 from thelma.automation.tools.utils.iso import IsoPosition
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import IMoleculeType
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
@@ -152,36 +149,6 @@ class ToolUtilsFunctionsTestCase(ToolsAndUtilsTestCase):
         self.assert_equal(value_map[1], ['string1', 'string2'])
 
 
-class EmptyPositionManagerTestCase(ToolsAndUtilsTestCase):
-
-    def set_up(self):
-        ToolsAndUtilsTestCase.set_up(self)
-        self.rack_shape = get_96_rack_shape()
-
-    def tear_down(self):
-        ToolsAndUtilsTestCase.tear_down(self)
-        del self.rack_shape
-
-    def test_has_and_get_position(self):
-        manager = EmptyPositionManager(rack_shape=self.rack_shape)
-        for rack_pos in get_positions_for_shape(self.rack_shape):
-            self.assert_true(manager.has_empty_positions())
-            manager_pos = manager.get_empty_position()
-            self.assert_equal(rack_pos, manager_pos)
-        self.assert_false(manager.has_empty_positions())
-        self.assert_raises(ValueError, manager.get_empty_position)
-
-    def test_add_position(self):
-        manager = EmptyPositionManager(rack_shape=self.rack_shape)
-        a1_pos = get_rack_position_from_label('A1')
-        first_pos = manager.get_empty_position()
-        self.assert_equal(a1_pos, first_pos)
-        second_pos = manager.get_empty_position()
-        self.assert_not_equal(a1_pos, second_pos)
-        self.assert_equal(second_pos.label, 'A2')
-        manager.add_empty_position(a1_pos)
-        third_pos = manager.get_empty_position()
-        self.assert_equal(third_pos, a1_pos)
 
 
 class MoleculeDesignPoolParametersTestCase(ToolsAndUtilsTestCase):

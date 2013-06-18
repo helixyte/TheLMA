@@ -21,13 +21,12 @@ from thelma.automation.tools.semiconstants \
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import get_reservoir_specs_deep_96
 from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import sort_rack_positions
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.base import DEAD_VOLUME_COEFFICIENT
 from thelma.automation.tools.worklists.base import LIMIT_TARGET_WELLS
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.writers import CsvColumnParameters
 from thelma.automation.tools.writers import CsvWriter
 from thelma.automation.tools.writers import TxtWriter

@@ -35,9 +35,8 @@ from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_item_status_managed
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.stock.base import get_default_stock_concentration
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.tubehandler import TubeTransferData
 from thelma.automation.tools.worklists.tubehandler import XL20WorklistWriter
 from thelma.automation.tools.writers import LINEBREAK_CHAR

@@ -11,12 +11,15 @@ from thelma.automation.tools.semiconstants \
 from thelma.automation.tools.semiconstants \
         import get_reservoir_specs_standard_96
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.tools.semiconstants import get_min_transfer_volume
 from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.stock.base import STOCK_MIN_TRANSFER_VOLUME
-from thelma.automation.tools.utils.base import EmptyPositionManager
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
 from thelma.automation.tools.utils.base import TransferTarget
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import round_up
@@ -25,11 +28,8 @@ from thelma.automation.tools.utils.iso import IsoAssociationData
 from thelma.automation.tools.utils.iso import IsoLayout
 from thelma.automation.tools.utils.iso import IsoValueDeterminer
 from thelma.automation.tools.utils.racksector import QuadrantIterator
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import MIN_BIOMEK_TRANSFER_VOLUME
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import get_biomek_dead_volume
+from thelma.automation.tools.worklists.base import EmptyPositionManager
+from thelma.automation.tools.worklists.base import get_dynamic_dead_volume
 from thelma.models.iso import IsoRequest
 from thelma.models.moleculedesign import MoleculeDesignPool
 
@@ -370,7 +370,7 @@ class PrepLayoutFinder(BaseAutomationTool):
                 number_target_wells = 0
             else:
                 number_target_wells = len(iso_positions)
-            original_dead_volume = get_biomek_dead_volume(
+            original_dead_volume = get_dynamic_dead_volume(
                                 target_well_number=number_target_wells,
                                 reservoir_specs=self._reservoir_specs)
             required_volume = original_dead_volume
@@ -419,7 +419,7 @@ class PrepLayoutFinder(BaseAutomationTool):
 
                 # increase dead volume if necessary
                 number_target_wells += 1
-                new_dead_volume = get_biomek_dead_volume(
+                new_dead_volume = get_dynamic_dead_volume(
                                     target_well_number=number_target_wells,
                                     reservoir_specs=self._reservoir_specs)
                 if not new_dead_volume == original_dead_volume:
@@ -470,8 +470,8 @@ class PrepLayoutFinder(BaseAutomationTool):
         for iso_pos_list in iso_conc_map.values():
             for iso_pos in iso_pos_list: all_iso_positions.append(iso_pos)
 
-        required_volume = get_biomek_dead_volume(len(all_iso_positions),
-                                                 self._reservoir_specs)
+        required_volume = get_dynamic_dead_volume(len(all_iso_positions),
+                                                  self._reservoir_specs)
         rack_positions = dict()
 
         for iso_pos in all_iso_positions:
@@ -723,14 +723,13 @@ class PrepLayoutFinder96(PrepLayoutFinder):
         Overwrite this method to create the preparation positions for the
         layout.
         """
-        min_transfer_volume = MIN_BIOMEK_TRANSFER_VOLUME
+        min_vol = get_min_transfer_volume(PIPETTING_SPECS_NAMES.BIOMEK)
 
         for pool, conc_map in all_concentration_maps.iteritems():
             if pool == MOCK_POSITION_TYPE:
                 self._create_prep_pos_for_mock(conc_map)
             else:
-                self._create_prep_positions_for_pool(pool, conc_map,
-                                                     min_transfer_volume)
+                self._create_prep_positions_for_pool(pool, conc_map, min_vol)
             if self.has_errors(): break
 
         self.__adjust_buffer_volumes()
@@ -742,7 +741,7 @@ class PrepLayoutFinder96(PrepLayoutFinder):
         """
         self.add_debug('Adjust buffer volumes ...')
 
-        min_vol = MIN_BIOMEK_TRANSFER_VOLUME
+        min_vol = get_min_transfer_volume(PIPETTING_SPECS_NAMES.BIOMEK)
 
         md_conc_map = self._prep_layout.get_md_pool_concentration_map()
         for conc_map in md_conc_map.values():
@@ -832,13 +831,13 @@ class PrepLayoutFinder384Optimisation(PrepLayoutFinder348):
         Overwrite this method to create the preparation positions for the
         layout.
         """
-        min_volume = MIN_BIOMEK_TRANSFER_VOLUME
+        min_vol = get_min_transfer_volume(PIPETTING_SPECS_NAMES.BIOMEK)
 
         for pool, conc_map in all_concentration_maps.iteritems():
             if pool == MOCK_POSITION_TYPE:
                 self._create_prep_pos_for_mock(conc_map)
             else:
-                self._create_prep_positions_for_pool(pool, conc_map, min_volume)
+                self._create_prep_positions_for_pool(pool, conc_map, min_vol)
 
     def _adjust_starting_well_volumes(self):
         """

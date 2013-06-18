@@ -14,9 +14,8 @@ from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import get_experiment_type_screening
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_item_status_managed
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IJobType
 from thelma.models.experiment import Experiment
 from thelma.models.experiment import ExperimentRack

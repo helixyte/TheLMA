@@ -14,7 +14,7 @@ from thelma.automation.tools.semiconstants import PLATE_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants import get_item_status_managed
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.models.container import WellSpecs
 from thelma.models.iso import ISO_STATUS
 from thelma.models.liquidtransfer import TRANSFER_TYPES

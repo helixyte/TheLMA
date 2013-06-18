@@ -5,6 +5,8 @@
 This module creates or updates an experiment metadata. It applies several
 parsers and tools.
 """
+from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
+from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
 from thelma.automation.handlers.experimentdesign \
     import ExperimentDesignParserHandler
 from thelma.automation.handlers.experimentpoolset \
@@ -25,27 +27,27 @@ from thelma.automation.tools.metadata.transfection_utils \
 from thelma.automation.tools.metadata.worklist \
     import ExperimentWorklistGenerator
 from thelma.automation.tools.semiconstants \
+    import get_experiment_type_manual_optimisation
+from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_standard_384
 from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_standard_96
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_experiment_metadata_type
-from thelma.automation.tools.semiconstants import get_experiment_type_manual_optimisation
+from thelma.automation.tools.semiconstants import get_min_transfer_volume
 from thelma.automation.tools.semiconstants import get_reservoir_specs_deep_96
 from thelma.automation.tools.stock.base import STOCK_CONCENTRATIONS
 from thelma.automation.tools.stock.base import get_default_stock_concentration
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.base import round_up
 from thelma.automation.tools.utils.racksector import QuadrantIterator
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import MIN_BIOMEK_TRANSFER_VOLUME
-from thelma.automation.tools.worklists.base import MIN_CYBIO_TRANSFER_VOLUME
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.iso import ISO_STATUS
@@ -1233,8 +1235,6 @@ class ExperimentMetadataGeneratorLibrary(ExperimentMetadataGenerator):
         return self.__library.iso_request.number_plates
 
 
-
-
 class ExperimentMetadataGeneratorManual(ExperimentMetadataGenerator):
     """
     An experiment metadata generator for manual optimisation scenarios.
@@ -1271,9 +1271,12 @@ class ExperimentMetadataGeneratorManual(ExperimentMetadataGenerator):
         Checks whether all ISO volumes are large enough to be pipetted
         with the CyBio.
         """
+        min_cybio_transfer_vol = get_min_transfer_volume(
+                                 PIPETTING_SPECS_NAMES.CYBIO)
+
         too_less_volume = []
         for rack_pos, tf_pos in self._source_layout.iterpositions():
-            if tf_pos.iso_volume < MIN_CYBIO_TRANSFER_VOLUME:
+            if tf_pos.iso_volume < min_cybio_transfer_vol:
                 too_less_volume.append(rack_pos.label)
 
         if len(too_less_volume) > 0:
@@ -1281,7 +1284,7 @@ class ExperimentMetadataGeneratorManual(ExperimentMetadataGenerator):
             msg = 'The minimum ISO volume you can order is %s ul. You have ' \
                   'ordered a smaller amount for the following rack ' \
                   'positions: %s.' \
-                  % (get_trimmed_string(MIN_CYBIO_TRANSFER_VOLUME),
+                  % (get_trimmed_string(min_cybio_transfer_vol),
                      too_less_volume)
             self.add_error(msg)
 
@@ -1327,12 +1330,14 @@ class ExperimentMetadataGeneratorOrder(ExperimentMetadataGenerator):
         we do not have an experiment design, this step is skipped).
         """
         handler = ExperimentMetadataGenerator._obtain_iso_request(self)
+        min_cybio_transfer_vol = get_min_transfer_volume(
+                                 PIPETTING_SPECS_NAMES.CYBIO)
 
         min_volume = []
         if handler is not None:
             for tf_pos in self._source_layout.working_positions():
                 tf_pos.iso_concentration = tf_pos.stock_concentration
-                if tf_pos.iso_volume < MIN_CYBIO_TRANSFER_VOLUME:
+                if tf_pos.iso_volume < min_cybio_transfer_vol:
                     info = '%s (%s, %.1f ul)' % (tf_pos.molecule_design_pool_id,
                                  tf_pos.rack_position.label, tf_pos.iso_volume)
                     min_volume.append(info)
@@ -1681,18 +1686,21 @@ class RobotSupportDeterminatorOpti(RobotSupportDeterminator):
         """
         volume_too_small = []
         volume_not_sufficient = []
+        min_biomek_transfer_vol = get_min_transfer_volume(
+                                              PIPETTING_SPECS_NAMES.BIOMEK)
 
         for rack_pos, tf_pos in self.source_layout.iterpositions():
 
             expected_volume = TransfectionParameters.calculate_iso_volume(
                 number_target_wells=self.__target_count_map[rack_pos],
-                number_replicates=self.number_replicates, use_cybio=False,
+                number_replicates=self.number_replicates,
+                pipetting_specs=get_pipetting_specs_biomek(),
                 iso_reservoir_spec=self._iso_reservoir_specs,
                 optimem_dil_factor=tf_pos.optimem_dil_factor)
             iso_vol = tf_pos.iso_volume
             if iso_vol is None:
                 self.__new_volumes_values[rack_pos] = expected_volume
-            elif iso_vol < MIN_BIOMEK_TRANSFER_VOLUME:
+            elif iso_vol < min_biomek_transfer_vol:
                 volume_too_small.append(str(rack_pos.label))
             elif (iso_vol - expected_volume) < -0.01:
                 info = '%s (found: %.1f ul, required: %.1f ul)' \
@@ -1706,7 +1714,7 @@ class RobotSupportDeterminatorOpti(RobotSupportDeterminator):
                   'is %s ul. If you want to order less volume, switch the ' \
                   'experiment type to "%s", please. Positions with invalid ' \
                   'volume: %s.' \
-                  % (get_trimmed_string(MIN_BIOMEK_TRANSFER_VOLUME),
+                  % (get_trimmed_string(min_biomek_transfer_vol),
                      get_experiment_type_manual_optimisation().display_name,
                      ', '.join(sorted(volume_too_small)))
             self.add_error(msg)
@@ -1905,20 +1913,23 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
         This method also has to make sure, that any ordered voluems are not
         not below the minimum volume.
         """
+        min_cybio_transfer_volume = get_min_transfer_volume(
+                                                    PIPETTING_SPECS_NAMES.CYBIO)
+
         required_volume = TransfectionParameters.calculate_iso_volume(
                             number_target_wells=self.number_design_racks,
                             number_replicates=self.number_replicates,
                             iso_reservoir_spec=self._iso_reservoir_specs,
                             optimem_dil_factor=self.__optimem_df,
-                            use_cybio=True)
+                            pipetting_specs=get_pipetting_specs_cybio())
 
         if self.handler_iso_volume is None:
-            iso_volume = max(MIN_CYBIO_TRANSFER_VOLUME, required_volume)
+            iso_volume = max(min_cybio_transfer_volume, required_volume)
         else:
-            if self.handler_iso_volume < MIN_CYBIO_TRANSFER_VOLUME:
+            if self.handler_iso_volume < min_cybio_transfer_volume:
                 msg = 'The minimum ISO volume you can order is %i ul. ' \
                       'You ordered %.1f ul.' \
-                       % (MIN_CYBIO_TRANSFER_VOLUME, self.handler_iso_volume)
+                       % (min_cybio_transfer_volume, self.handler_iso_volume)
                 self.add_error(msg)
             else:
                 iso_volume = self.handler_iso_volume
@@ -1953,6 +1964,8 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
         if self.source_layout.shape.name == RACK_SHAPE_NAMES.SHAPE_96:
             return iso_volume
 
+        min_cybio_transfer_volume = get_min_transfer_volume(
+                                                    PIPETTING_SPECS_NAMES.CYBIO)
         aliquot_dil_factor = 1
         max_dil_factor = PrepIsoParameters.MAX_DILUTION_FACTOR_CYBIO
         stock_conc = get_default_stock_concentration(
@@ -1982,9 +1995,9 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
             buff_vol = iso_volume - don_vol
             adjusted = False
 
-            if don_vol < MIN_CYBIO_TRANSFER_VOLUME:
-                don_vol = MIN_CYBIO_TRANSFER_VOLUME
-                buff_vol = MIN_CYBIO_TRANSFER_VOLUME * (aliquot_dil_factor - 1)
+            if don_vol < min_cybio_transfer_volume:
+                don_vol = min_cybio_transfer_volume
+                buff_vol = min_cybio_transfer_volume * (aliquot_dil_factor - 1)
                 adjusted = True
             # The buffer volume is always at least as big as the donation volume
             # because the dilution factor 2 at minimum.
@@ -1995,7 +2008,7 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
                       'because the requested ISO concentration is so low ' \
                       'that that it requires a larger dilution volume. ' \
                       'Assumed minimum transfer volume for the CyBio: %i ul. ' \
-                       % (new_iso_volume, MIN_CYBIO_TRANSFER_VOLUME)
+                       % (new_iso_volume, min_cybio_transfer_volume)
                 self.add_warning(msg)
                 return new_iso_volume
             else:

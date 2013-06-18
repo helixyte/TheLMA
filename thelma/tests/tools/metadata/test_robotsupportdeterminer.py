@@ -359,7 +359,7 @@ class RobotSupportDeterminerOptiTestCase(RobotSupportDeterminerTestCase):
 
     def test_volume_below_minimum(self):
         self._test_volume_below_minimum('The minimum ISO volume you can ' \
-                'order for optimisations is 3 ul. If you want to order less ' \
+                'order for optimisations is 2 ul. If you want to order less ' \
                 'volume, switch the experiment type to "manual ' \
                 'optimisation", please. Positions with invalid volume: ' \
                 'A1, B1, C1, D1, E1')

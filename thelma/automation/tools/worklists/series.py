@@ -7,8 +7,8 @@ from StringIO import StringIO
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_pipetting_specs
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.racksector import RackSectorTranslator
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.biomek \
     import ContainerDilutionWorklistWriter
 from thelma.automation.tools.worklists.biomek \

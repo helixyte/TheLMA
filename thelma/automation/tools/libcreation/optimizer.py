@@ -10,12 +10,11 @@ from thelma.automation.tools.iso.optimizer import IsoCandidate
 from thelma.automation.tools.iso.optimizer import OPTIMIZATION_QUERY
 from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
 from thelma.automation.tools.stock.base import STOCK_ITEM_STATUS
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.base import create_in_term_for_db_queries
 from thelma.automation.tools.utils.base import is_valid_number
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.models.moleculedesign import MoleculeDesignPool
 
 __docformat__ = 'reStructuredText en'

@@ -10,10 +10,9 @@ from thelma.automation.tools.metadata.transfection_utils \
     import TransfectionLayoutConverter
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import get_item_status_managed
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.models.liquidtransfer import ExecutedContainerTransfer
 from thelma.models.liquidtransfer import ExecutedRackTransfer
 from thelma.models.liquidtransfer import ExecutedWorklist

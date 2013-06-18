@@ -30,9 +30,9 @@ from thelma.automation.tools.libcreation.base import NUMBER_MOLECULE_DESIGNS
 from thelma.automation.tools.libcreation.base import NUMBER_SECTORS
 from thelma.automation.tools.libcreation.base import PREPARATION_PLATE_VOLUME
 from thelma.automation.tools.semiconstants import get_positions_for_shape
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.racksector import QuadrantIterator
 from thelma.automation.tools.utils.racksector import RackSectorTranslator
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.tubehandler import TubeTransferData
 from thelma.automation.tools.worklists.tubehandler import XL20WorklistWriter
 from thelma.automation.tools.writers import LINEBREAK_CHAR

@@ -6,8 +6,8 @@ Test cases for model classes related to molecule design libraries.
 from everest.testing import RdbContextManager
 from everest.testing import check_attributes
 from everest.testing import persist
-from thelma.automation.tools.worklists.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IIsoRequest
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.library import LibraryCreationIso

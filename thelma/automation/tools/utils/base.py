@@ -5,9 +5,6 @@
 Utility methods and classes for tools.
 """
 from math import ceil
-from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
 from thelma.models.moleculedesign import MoleculeDesignPool
 from thelma.models.moleculetype import MoleculeType
 from thelma.models.rack import RackPosition
@@ -22,7 +19,10 @@ __docformat__ = "reStructuredText en"
 
 __author__ = 'Anna-Antonia Berger'
 
-__all__ = ['ParameterSet',
+__all__ = ['MAX_PLATE_LABEL_LENGTH',
+           'VOLUME_CONVERSION_FACTOR',
+           'CONCENTRATION_CONVERSION_FACTOR',
+           'ParameterSet',
            'ParameterAliasValidator',
            'WorkingPosition',
            'WorkingLayout',
@@ -43,13 +43,16 @@ __all__ = ['ParameterSet',
            'TransferTarget',
            'TransferParameters',
            'TransferPosition',
-           'TransferLayout',
-           'EmptyPositionManager'
-           ]
+           'TransferLayout']
 
 
 #: The maximum length a rack label might have to be printable.
 MAX_PLATE_LABEL_LENGTH = 24
+
+#: Volumes are stored in litres (in the DB), we work in ul.
+VOLUME_CONVERSION_FACTOR = 1e6
+#: Concentration are stored in molars (in the DB), we work with nM.
+CONCENTRATION_CONVERSION_FACTOR = 1e9
 
 class ParameterSet(object):
     """
@@ -1490,71 +1493,4 @@ class TransferLayout(MoleculeDesignPoolLayout):
 
         if self._position_map.has_key(rack_position):
             del self._position_map[rack_position]
-
-
-class EmptyPositionManager(object):
-    """
-    Stores the empty positions of a layout and returns and removes
-    them on request.
-    """
-
-    def __init__(self, rack_shape):
-        """
-        Constructor:
-
-        :param rack_shape: The rack shape of the managed layout.
-        :type rack_shape: :class:`thelma.models.rack.RackShape`
-        """
-        #: The rack shape of the managed layout.
-        self.rack_shape = rack_shape
-
-        #: Contains all empty ISO positions.
-        self._all_empty_positions = set()
-
-        self._init_empty_positions()
-
-    def _init_empty_positions(self):
-        """
-        Initialises the maps.
-        """
-        for rack_pos in get_positions_for_shape(self.rack_shape):
-            self._all_empty_positions.add(rack_pos)
-
-    def has_empty_positions(self):
-        """
-        Returns *True*, if there are still empty positions left.
-        """
-        if len(self._all_empty_positions) > 0:
-            return True
-        else:
-            return False
-
-    def add_empty_position(self, rack_pos):
-        """
-        Adds an empty position.
-
-        :param rack_pos: The new empty rack pos.
-        :type rack_pos: :class:`thelma.models.rack.RackPosition`
-        """
-        self._all_empty_positions.add(rack_pos)
-
-    def get_empty_position(self):
-        """
-        Returns the position with the lowest column and row index
-        (and removes it from the pool).
-
-        :raises ValueError: If there is no empty position left.
-        """
-        picked_position = None
-
-        for rack_pos in get_positions_for_shape(self.rack_shape):
-            if rack_pos in self._all_empty_positions:
-                picked_position = rack_pos
-                break
-
-        if picked_position is None:
-            raise ValueError('No empty position left!')
-
-        self._all_empty_positions.discard(picked_position)
-        return picked_position
 

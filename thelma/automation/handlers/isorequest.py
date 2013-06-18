@@ -12,6 +12,8 @@ The tools are components of the :class:`ExperimentMetadataGenerator`.
 """
 from datetime import date
 from everest.entities.utils import get_root_aggregate
+from thelma.automation.tools.semiconstants import get_min_transfer_volume
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.handlers.base \
     import MoleculeDesignPoolLayoutParserHandler
 from thelma.automation.parsers.isorequest import IsoRequestParser
@@ -42,7 +44,6 @@ from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.iso import IsoParameters
 from thelma.automation.tools.utils.iso import IsoPosition
 from thelma.automation.tools.utils.racksector import QuadrantIterator
-from thelma.automation.tools.worklists.base import MIN_CYBIO_TRANSFER_VOLUME
 from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import IOrganization
@@ -1625,6 +1626,8 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
         Makes sure that the requested volumes can be obtained for the given
         concentrations.
         """
+        min_cybio_transfer_volume = get_min_transfer_volume(
+                                                    PIPETTING_SPECS_NAMES.CYBIO)
         insufficient_volumes = []
 
         for rack_pos, tf_pos in self.transfection_layout.iterpositions():
@@ -1637,12 +1640,12 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
             take_out_volume = tf_pos.iso_volume / dil_factor
             buffer_volume = tf_pos.iso_volume - take_out_volume
 
-            if take_out_volume < MIN_CYBIO_TRANSFER_VOLUME or \
-                                    buffer_volume < MIN_CYBIO_TRANSFER_VOLUME:
+            if take_out_volume < min_cybio_transfer_volume or \
+                                    buffer_volume < min_cybio_transfer_volume:
                 if take_out_volume < buffer_volume:
-                    required_volume = dil_factor * MIN_CYBIO_TRANSFER_VOLUME
+                    required_volume = dil_factor * min_cybio_transfer_volume
                 else:
-                    corr_factor = MIN_CYBIO_TRANSFER_VOLUME / buffer_volume
+                    corr_factor = min_cybio_transfer_volume / buffer_volume
                     required_volume = tf_pos.iso_volume * corr_factor
                 info = '%s (found %.1f ul, required: %.1f ul)' \
                         % (rack_pos.label, tf_pos.iso_volume, required_volume)
@@ -1654,7 +1657,7 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
                   '(assumed minimum volume for each buffer and sample ' \
                   '%s ul). Increase the requested volume or order stock ' \
                   'concentration, please. Details: %s.' \
-                  % (MIN_CYBIO_TRANSFER_VOLUME, insufficient_volumes)
+                  % (min_cybio_transfer_volume, insufficient_volumes)
             self.add_error(msg)
 
     def _sort_floatings(self):

@@ -28,9 +28,9 @@ from thelma.automation.tools.poolcreation.generation \
     import PoolCreationWorklistGenerator
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import get_positions_for_shape
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_valid_number
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.tubehandler import TubeTransferData
 from thelma.automation.tools.worklists.tubehandler import XL20WorklistWriter
 from thelma.automation.tools.writers import CsvColumnParameters

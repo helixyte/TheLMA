@@ -3,13 +3,14 @@ Test for BioMek worklist writers.
 
 AAB
 """
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.semiconstants import get_item_status_managed
+from thelma.automation.tools.semiconstants import get_min_transfer_volume
 from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.worklists.base import MIN_BIOMEK_TRANSFER_VOLUME
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.semiconstants import get_pipetting_specs_manual
+from thelma.automation.tools.semiconstants import get_rack_position_from_label
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.biomek \
     import ContainerDilutionWorklistWriter
 from thelma.automation.tools.worklists.biomek \
@@ -456,7 +457,8 @@ class ContainerDilutionWorklistWriterTestCase(BiomekWorklistWriterTestCase):
                                      'are not supported')
 
     def test_transfer_volume_too_small(self):
-        invalid_volume = MIN_BIOMEK_TRANSFER_VOLUME / 2.0
+        min_transfer_vol = get_min_transfer_volume(PIPETTING_SPECS_NAMES.BIOMEK)
+        invalid_volume = min_transfer_vol / 2.0
         self.target_positions['A1'] = ('mix1', invalid_volume)
         self.target_positions['B3'] = ('mix2', invalid_volume)
         self.__continue_setup()

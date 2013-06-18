@@ -21,18 +21,18 @@ from thelma.automation.tools.libcreation.base import LibraryBaseLayout
 from thelma.automation.tools.libcreation.base import LibraryBaseLayoutPosition
 from thelma.automation.tools.poolcreation.base \
     import calculate_single_design_stock_transfer_volume
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import get_96_rack_shape
+from thelma.automation.tools.semiconstants import get_min_transfer_volume
 from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.automation.tools.stock.base import get_default_stock_concentration
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.base import round_up
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import MIN_CYBIO_TRANSFER_VOLUME
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
 from thelma.models.iso import ISO_TYPES
 from thelma.models.iso import IsoRequest
 from thelma.models.library import MoleculeDesignLibrary
@@ -406,12 +406,14 @@ class PoolCreationWorklistGenerator(BaseAutomationTool):
             self.add_error(e)
             return None
 
+        min_cybio_transfer_vol = get_min_transfer_volume(
+                                                    PIPETTING_SPECS_NAMES.CYBIO)
         total_transfer_volume = stock_transfer_volume * self.number_designs
         buffer_volume = self.target_volume - total_transfer_volume
         if (buffer_volume < 0.01 and buffer_volume > 0):
             return None
-        elif buffer_volume < MIN_CYBIO_TRANSFER_VOLUME:
-            corr_factor = MIN_CYBIO_TRANSFER_VOLUME / buffer_volume
+        elif buffer_volume < min_cybio_transfer_vol:
+            corr_factor = min_cybio_transfer_vol / buffer_volume
             target_single_conc = float(self.target_concentration) \
                                  / self.number_designs
             dil_factor = self.stock_concentration / target_single_conc
@@ -423,7 +425,7 @@ class PoolCreationWorklistGenerator(BaseAutomationTool):
                   'less than %.1f ul per transfer (with the current values ' \
                   'it would need to pipet %s ul buffer). Please increase the ' \
                   'target volume to %i ul or lower the target concentration.' \
-                  % (self.target_volume, MIN_CYBIO_TRANSFER_VOLUME,
+                  % (self.target_volume, min_cybio_transfer_vol,
                      get_trimmed_string(buffer_volume),
                      round_up(adj_target_volume, 0))
             self.add_error(msg)

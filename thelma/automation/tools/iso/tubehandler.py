@@ -17,12 +17,12 @@ from everest.repositories.rdb import Session
 from sqlalchemy.orm.exc import NoResultFound
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.dummies import XL20Dummy
+from thelma.automation.tools.iso.prep_utils import ISO_LABELS
 from thelma.automation.tools.iso.prep_utils import IsoControlRackLayout
 from thelma.automation.tools.iso.prep_utils import IsoControlRackPosition
 from thelma.automation.tools.iso.prep_utils import PrepIsoAssociationData
 from thelma.automation.tools.iso.prep_utils import PrepIsoLayoutConverter
 from thelma.automation.tools.iso.prep_utils import RequestedStockSample
-from thelma.automation.tools.iso.prep_utils import ISO_LABELS
 from thelma.automation.tools.iso.stockworklist \
     import StockTransferWorklistGenerator384Controls
 from thelma.automation.tools.iso.stockworklist \
@@ -50,15 +50,14 @@ from thelma.automation.tools.stock.base import RackLocationQuery
 from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
 from thelma.automation.tools.stock.base import STOCK_ITEM_STATUS
 from thelma.automation.tools.stock.base import get_stock_tube_specs_db_term
-from thelma.automation.tools.utils.base import EmptyPositionManager
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
 from thelma.automation.tools.utils.base import TransferTarget
+from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.racksector import QuadrantIterator
 from thelma.automation.tools.utils.racksector import RackSectorTranslator
-from thelma.automation.tools.worklists.base \
-    import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.worklists.base import EmptyPositionManager
 from thelma.automation.tools.worklists.tubehandler \
     import BaseXL20WorklistWriter
 from thelma.automation.tools.writers import LINEBREAK_CHAR

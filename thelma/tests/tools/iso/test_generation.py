@@ -46,7 +46,7 @@ class IsoCreatorTestCase(ExperimentMetadataReadingTestCase):
         self.experiment_metadata = None
         self.source = None
         self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
-        self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.DEEP_96
+        self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_96
         self.pool_id = None
         self.expected_iso_labels = None
 
@@ -147,6 +147,11 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
         self._check_warning_messages('Did not find candidates for the ' \
                                      'following sample molecule design pools')
 
+    def test_result_96_deep_well(self):
+        self.number_of_isos = 1
+        self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.DEEP_96
+        self._check_result('valid_file_96_deep.xls')
+
     def test_result_384_opti(self):
         self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_384
         self.expected_iso_labels = ['123_iso1']
@@ -200,6 +205,7 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
         self.assert_is_none(self.iso_request.worklist_series)
 
     def test_with_compounds(self):
+        self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.DEEP_96
         self._check_result('with_compound.xls')
         self._check_warning_messages('Attention! There are compound pools ' \
                                      'among the molecule design pool IDs')
