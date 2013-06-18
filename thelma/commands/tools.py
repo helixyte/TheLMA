@@ -404,9 +404,9 @@ class SupplierSampleRegistrarCommand(_RegistrarCommand): # no __init__ pylint: d
     """
     Runs the supplier sample registrar (for registration of supplier samples).
     """
-    name = 'deliveryregistrar'
+    name = 'suppliersampleregistrar'
     tool = \
-        'thelma.automation.tools.stock.sampleregistration.DeliveryRegistrar'
+    'thelma.automation.tools.stock.sampleregistration.SupplierSampleRegistrar'
     option_defs = SampleRegistrarCommand.option_defs
     registration_resource = ISupplierSampleRegistrationItem
 
