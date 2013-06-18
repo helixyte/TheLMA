@@ -10,10 +10,10 @@ from thelma.automation.tools.experiment.base import ExperimentScreeningTool
 from thelma.automation.tools.experiment.base import ExperimentTool
 from thelma.automation.tools.metadata.transfection_utils \
         import TransfectionParameters
+from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.automation.tools.semiconstants import get_reservoir_spec
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import round_up
-from thelma.automation.tools.worklists.base import RESERVOIR_SPECS_NAMES
-from thelma.automation.tools.worklists.base import get_reservoir_spec
 from thelma.automation.tools.worklists.biomek \
         import ContainerDilutionWorklistWriter
 from thelma.automation.tools.worklists.biomek import BiomekWorklistWriter

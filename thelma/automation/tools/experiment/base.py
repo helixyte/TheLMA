@@ -11,7 +11,6 @@ used be series tools.
 AAB
 """
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.metadata.transfection_utils \
     import TransfectionLayoutConverter
 from thelma.automation.tools.metadata.transfection_utils \
@@ -22,9 +21,10 @@ from thelma.automation.tools.metadata.worklist \
     import ExperimentWorklistGenerator
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
+from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.automation.tools.semiconstants import get_reservoir_spec
 from thelma.automation.tools.utils.iso import IsoLayoutConverter
-from thelma.automation.tools.worklists.base import RESERVOIR_SPECS_NAMES
-from thelma.automation.tools.worklists.base import get_reservoir_spec
 from thelma.automation.tools.worklists.series import ContainerDilutionJob
 from thelma.automation.tools.worklists.series import ContainerTransferJob
 from thelma.automation.tools.worklists.series import RackTransferJob

@@ -16,6 +16,7 @@ from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.tools.semiconstants import get_pipetting_specs_manual
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.verifier import BaseRackVerifier
@@ -1201,21 +1202,23 @@ class IsoSampleStockRackJobCreator(BaseAutomationTool):
 
     def __create_transfer_jobs(self):
         """
-        Creates the transfer jobs.
+        In the physical lab most transfers will be performed with the CyBio.
+        However, since this is a stock transfer and the source containers
+        (tubes) might move, we want to track each transfer individually and
+        therefore need an adjusted pipetting spec.
         """
         self.add_debug('Create transfer jobs ...')
 
         sectors = self.sample_stock_racks.keys()
-        sectors.sort()
 
-        for sector_index in sectors:
+        for sector_index in sorted(sectors):
             stock_rack = self.sample_stock_racks[sector_index].rack
             worklist = self.sample_stock_racks[sector_index].planned_worklist
             transfer_job = ContainerTransferJob(index=sector_index,
                                 planned_worklist=worklist,
                                 target_rack=self.preparation_plate,
                                 source_rack=stock_rack,
-                                pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
+                                pipetting_specs=get_pipetting_specs_manual())
             transfer_job.min_transfer_volume = 1
             self._transfer_jobs.append(transfer_job)
 

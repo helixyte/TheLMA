@@ -12,7 +12,7 @@ from thelma.automation.handlers.base import BaseParserHandler
 from thelma.automation.parsers.libmembers import LibraryMemberParser
 from thelma.automation.tools.libcreation.base \
     import POOL_STOCK_RACK_CONCENTRATION
-from thelma.automation.tools.worklists.base \
+from thelma.automation.tools.utils.base \
     import CONCENTRATION_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeDesign
 from thelma.models.moleculedesign import MoleculeDesignPool
