@@ -310,7 +310,7 @@ class IsoBufferWorklistGeneratorOptiTestCase(
         # value: (md ID, iso conc, parent well, req_vol, transfer target
         # positions), estimated iso volume: 1 ul
         self.position_data = dict(A1=('md_1', 40000, None, 11, ['A1']),
-                                  A2=('md_1', 30000, 'A1', 11, ['A2']),
+                                  A2=('md_1', 35000, 'A1', 11, ['A2']),
                                   B1=('md_2', 40000, None, 11, ['B1']))
         self._continue_setup()
         self._test_and_expect_errors('buffer volume for some wells is too ' \

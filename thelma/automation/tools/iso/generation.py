@@ -12,6 +12,7 @@ from thelma.automation.tools.iso.optimizer import IsoOptimizer
 from thelma.automation.tools.iso.prep_utils import ISO_LABELS
 from thelma.automation.tools.iso.prep_utils import PrepIsoLayout
 from thelma.automation.tools.iso.preplayoutfinder import PrepLayoutFinder
+from thelma.automation.tools.stock.base import get_default_stock_concentration
 from thelma.automation.tools.iso.processingworklist \
     import IsoWorklistSeriesGenerator
 from thelma.automation.tools.semiconstants \
@@ -23,9 +24,9 @@ from thelma.automation.tools.semiconstants import PLATE_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_reservoir_specs_deep_96
-from thelma.automation.tools.stock.base import STOCK_CONCENTRATIONS
 from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import are_equal_values
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.iso import IsoLayoutConverter
 from thelma.automation.tools.utils.iso import IsoParameters
@@ -209,9 +210,7 @@ class IsoCreator(BaseAutomationTool):
             self.__get_iso_layout()
             self.__get_metadata()
         if not self.has_errors(): self.__find_preparation_layout()
-        if not self.has_errors():
-            self.__look_for_compounds()
-            self._determine_prep_plate_specs()
+        if not self.has_errors(): self._determine_prep_plate_specs()
         if not self.has_errors(): self.__add_suppliers_and_count_floatings()
         if not self.has_errors(): self.__find_molecule_design_pools()
         if not self.has_errors(): self.__run_optimizers()
@@ -289,6 +288,34 @@ class IsoCreator(BaseAutomationTool):
                 stock_conc = pool.default_stock_concentration \
                              * CONCENTRATION_CONVERSION_FACTOR
                 self.__floating_concentration = stock_conc
+                break
+            if pool_set.molecule_type.id == MOLECULE_TYPE_IDS.COMPOUND:
+                self.__check_compound_concentrations(pool_set)
+
+    def __check_compound_concentrations(self, pool_set):
+        """
+        Compounds designs have different stock concentrations, thus it might
+        be we produce incorrect ISO concentrations.
+        """
+        ref_conc = get_default_stock_concentration(MOLECULE_TYPE_IDS.COMPOUND)
+        diff_conc = []
+        for pool in pool_set:
+            stock_conc = round(pool.default_stock_concentration \
+                               * CONCENTRATION_CONVERSION_FACTOR, 1)
+            if are_equal_values(stock_conc, ref_conc): continue
+            info = '%s (%s)' % (pool.id, '{0:,}'.format(stock_conc))
+            diff_conc.append(info)
+
+        if len(diff_conc) > 0:
+            msg = 'Attention! There are compound pools among the molecule ' \
+                  'design pools for the floating positions. For these ' \
+                  'compounds positions, we assume a stock concentration of ' \
+                  '%s nM. Some floating pools have different concentrations: ' \
+                  '%s. Be aware, that you will receive a deviating ' \
+                  'concentrations for these, because all floating positions ' \
+                  'have to be treated the same way.' % (
+                   '{0:,}'.format(ref_conc), ', '.join(sorted(diff_conc)))
+            self.add_warning(msg)
 
     def __find_preparation_layout(self):
         """
@@ -450,7 +477,7 @@ class IsoCreator(BaseAutomationTool):
         for candidate in self.__fixed_candidates:
             pool_id = candidate.pool_id
             exp_conc = self.__fixed_concentrations[pool_id]
-            if not exp_conc == candidate.concentration: continue
+            if not are_equal_values(exp_conc, candidate.concentration): continue
             if self.__fixed_selection[pool_id] is None:
                 self.__fixed_selection[pool_id] = candidate
             elif candidate.container_barcode in self.requested_tubes:
@@ -466,7 +493,8 @@ class IsoCreator(BaseAutomationTool):
         iso_count = 0
 
         for candidate in self.__floating_candidates:
-            if not candidate.concentration == self.__floating_concentration:
+            if not are_equal_values(candidate.concentration,
+                                     self.__floating_concentration):
                 continue
             pool_id = candidate.pool_id
             found_pools.add(pool_id)
@@ -529,7 +557,7 @@ class IsoCreator(BaseAutomationTool):
                 exp_conc = self.__fixed_concentrations[pool_id]
             else:
                 exp_conc = self.__floating_concentration
-            if not candidate.concentration == exp_conc: continue
+            if not are_equal_values(candidate.concentration, exp_conc): continue
 
             if pool_id in used_floatings: continue
             found_pools.add(pool_id)
@@ -749,29 +777,6 @@ class IsoCreator(BaseAutomationTool):
         plate labels.
         """
         self.add_error('Abstract method: _adjust_one_plate_prep_plate_labels()')
-
-    def __look_for_compounds(self):
-        """
-        Compounds designs have different stock concentrations, thus it might
-        be we produce incorrect ISO concentrations.
-        """
-        has_compounds = False
-        for prep_pos in self._raw_prep_layout.working_positions():
-            if not prep_pos.is_fixed: continue
-            if prep_pos.molecule_design_pool.molecule_type.id \
-                                            == MOLECULE_TYPE_IDS.COMPOUND:
-                has_compounds = True
-                break
-
-        if has_compounds:
-            msg = 'Attention! There are compound pools among the molecule ' \
-                  'design pool IDs. For compounds in floating positions, we ' \
-                  'assume a stock concentration of %s nM. Please make sure, ' \
-                  'that this is the correct stock concentration for every ' \
-                  'compound on this plate because otherwise you might ' \
-                  'receive a deviating concentration.' % ('{0:,}'.format(
-                  STOCK_CONCENTRATIONS.COMPOUND_STOCK_CONCENTRATION))
-            self.add_warning(msg)
 
 
 class IsoGenerator(IsoCreator):

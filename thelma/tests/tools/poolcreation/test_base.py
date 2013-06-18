@@ -3,6 +3,7 @@ Tests for classes and constants involved in pool stock samples creation tasks.
 
 AAB
 """
+from everest.entities.utils import get_root_aggregate
 from thelma.automation.tools.poolcreation.base \
     import calculate_single_design_stock_transfer_volume
 from thelma.automation.tools.poolcreation.base \
@@ -46,7 +47,8 @@ class PoolCreationBaseFunctionTestCase(ToolsAndUtilsTestCase):
         self.assert_raises(ValueError, meth, **kw)
 
     def test_calculate_single_design_stock_transfer_volume_for_library(self):
-        pool = self._get_entity(IMoleculeDesignPool)
+        pool_agg = get_root_aggregate(IMoleculeDesignPool)
+        pool = pool_agg.get_by_id(1056000)
         pool_set = MoleculeDesignPoolSet(molecule_type=pool.molecule_type,
                                          molecule_design_pools=set([pool]))
         lib = MoleculeDesignLibrary(molecule_design_pool_set=pool_set,

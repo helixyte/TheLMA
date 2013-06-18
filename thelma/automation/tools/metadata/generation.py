@@ -7,6 +7,9 @@ parsers and tools.
 """
 from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
+from thelma.automation.tools.utils.base import are_equal_values
+from thelma.automation.tools.utils.base import is_larger_than
+from thelma.automation.tools.utils.base import is_smaller_than
 from thelma.automation.handlers.experimentdesign \
     import ExperimentDesignParserHandler
 from thelma.automation.handlers.experimentpoolset \
@@ -39,7 +42,6 @@ from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.semiconstants import get_min_transfer_volume
 from thelma.automation.tools.semiconstants import get_reservoir_specs_deep_96
-from thelma.automation.tools.stock.base import STOCK_CONCENTRATIONS
 from thelma.automation.tools.stock.base import get_default_stock_concentration
 from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
@@ -414,7 +416,36 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
                                                  self._pool_set.molecule_type)
                 self._source_layout.set_floating_stock_concentration(
                                             handler.get_stock_concentration())
+                self.__check_for_compound_pool_set()
                 self._check_set_designs()
+
+    def __check_for_compound_pool_set(self):
+        """
+        Compounds have very different stock concentration. Since all
+        floating positions must diluted with the same volumes we cannot
+        adhere these different concentrations.
+        """
+        if self._pool_set.molecule_type.id == MOLECULE_TYPE_IDS.COMPOUND:
+            ref_conc = get_default_stock_concentration(
+                                                    MOLECULE_TYPE_IDS.COMPOUND)
+            differing_conc = []
+            for pool in self._pool_set:
+                stock_conc = round(pool.default_stock_concentration \
+                                   * CONCENTRATION_CONVERSION_FACTOR, 1)
+                if are_equal_values(stock_conc, ref_conc): continue
+                info = '%s (%s nM)' % (pool.id, '{0:,}'.format(stock_conc))
+                differing_conc.append(info)
+            if len(differing_conc) > 0:
+                msg = 'Attention! You floating pool set for the floating ' \
+                      '(sample) positions consists of compounds. For ' \
+                      'compounds, we assume a stock concentration of %s nM. ' \
+                      'Some of the compounds in the set have a different ' \
+                      'stock concentration: %s. The ISO processing will not ' \
+                      'adhere the deviating concentrations. Talk to Anna ' \
+                      'or Michael for more information, please.' \
+                      % ('{0:,}'.format(ref_conc),
+                         ', '.join(sorted(differing_conc)))
+                self.add_warning(msg)
 
     def _check_set_designs(self):
         """
@@ -496,9 +527,9 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
             crit_iso_conc = TransfectionParameters.\
                             get_critical_iso_concentration(stock_conc)
 
-            if iso_concentration == stock_conc:
+            if are_equal_values(iso_concentration, stock_conc):
                 continue
-            elif iso_concentration > crit_iso_conc:
+            elif is_larger_than(iso_concentration, crit_iso_conc):
                 crit_fconc = TransfectionParameters.\
                         get_critical_final_concentration(stock_conc,
                                                     tf_pos.optimem_dil_factor)
@@ -509,7 +540,7 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
             else:
                 continue
 
-            if iso_concentration > stock_conc:
+            if is_larger_than(iso_concentration, stock_conc):
                 info = '%s (ordered: %.1f nM, stock: %.1f nM)' \
                        % (rack_pos.label, iso_concentration, stock_conc)
                 above_stock.append(info)
@@ -681,12 +712,11 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
 
     def __look_for_compounds(self):
         """
-        Compounds designs have different stock concentrations, thus it might
-        be we produce incorrect ISO concentrations.
+        Searches the non-floating positions for compounds (compounds have
+        very different stock concentrations).
         """
         compound_stock_concentrations = []
         found_compounds = set()
-        default_stock_conc = STOCK_CONCENTRATIONS.COMPOUND_STOCK_CONCENTRATION
 
         for tf_pos in self._source_layout.working_positions():
             if not tf_pos.is_fixed: continue
@@ -710,15 +740,13 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
                 found_compounds.add(pool.id)
 
         if len(compound_stock_concentrations) > 0:
-            msg = 'Attention! There are compounds among your molecule design ' \
-                  'pools. For compounds, we assume a stock concentration of ' \
-                  '%s nM. We have found the following stock concentrations: ' \
-                  '%s. Please make sure, that this is the correct stock ' \
-                  'concentration for every compound in your experiment since ' \
-                  'otherwise you might receive a deviating concentration. ' \
-                  'Talk to Michael or Anna, please.' \
-                   % ('{0:,}'.format(default_stock_conc),
-                      ', '.join(sorted(compound_stock_concentrations)))
+            msg = 'Attention! There are compounds among your control ' \
+                  'molecule design pools. We have found the following stock ' \
+                  'concentrations: %s. Please make sure, that this is the ' \
+                  'correct stock concentration for every compound in your ' \
+                  'experiment since otherwise you might receive a deviating ' \
+                  'concentration. Talk to Michael or Anna, please.' \
+                   % (', '.join(sorted(compound_stock_concentrations)))
             self.add_warning(msg)
 
     def __update_metadata(self):
@@ -1276,7 +1304,7 @@ class ExperimentMetadataGeneratorManual(ExperimentMetadataGenerator):
 
         too_less_volume = []
         for rack_pos, tf_pos in self._source_layout.iterpositions():
-            if tf_pos.iso_volume < min_cybio_transfer_vol:
+            if is_smaller_than(tf_pos.iso_volume, min_cybio_transfer_vol):
                 too_less_volume.append(rack_pos.label)
 
         if len(too_less_volume) > 0:
@@ -1337,7 +1365,7 @@ class ExperimentMetadataGeneratorOrder(ExperimentMetadataGenerator):
         if handler is not None:
             for tf_pos in self._source_layout.working_positions():
                 tf_pos.iso_concentration = tf_pos.stock_concentration
-                if tf_pos.iso_volume < min_cybio_transfer_vol:
+                if is_smaller_than(tf_pos.iso_volume, min_cybio_transfer_vol):
                     info = '%s (%s, %.1f ul)' % (tf_pos.molecule_design_pool_id,
                                  tf_pos.rack_position.label, tf_pos.iso_volume)
                     min_volume.append(info)
@@ -1469,7 +1497,7 @@ class RobotSupportDeterminator(BaseAutomationTool):
                 self.use_deep_well = True
             for tf_pos in self.source_layout.working_positions():
                 if not tf_pos.iso_volume is None:
-                    if tf_pos.iso_volume > max_vol:
+                    if is_larger_than(tf_pos.iso_volume, max_vol):
                         self.use_deep_well = True
                         break
 
@@ -1506,7 +1534,7 @@ class RobotSupportDeterminator(BaseAutomationTool):
                 if iso_conc is None:
                     missing_iso_conc.append(rack_pos.label)
                     continue
-                elif not iso_conc == expected_iso_conc:
+                elif not are_equal_values(iso_conc, expected_iso_conc):
                     self._has_compatible_concentrations = False
 
         else:
@@ -1700,9 +1728,9 @@ class RobotSupportDeterminatorOpti(RobotSupportDeterminator):
             iso_vol = tf_pos.iso_volume
             if iso_vol is None:
                 self.__new_volumes_values[rack_pos] = expected_volume
-            elif iso_vol < min_biomek_transfer_vol:
+            elif is_smaller_than(iso_vol, min_biomek_transfer_vol):
                 volume_too_small.append(str(rack_pos.label))
-            elif (iso_vol - expected_volume) < -0.01:
+            elif is_smaller_than(iso_vol, expected_volume):
                 info = '%s (found: %.1f ul, required: %.1f ul)' \
                         % (rack_pos.label, iso_vol, expected_volume)
                 volume_not_sufficient.append(info)
@@ -1748,7 +1776,7 @@ class RobotSupportDeterminatorOpti(RobotSupportDeterminator):
                 mm_volume = TransfectionParameters.\
                                 calculate_complete_volume(iso_vol,
                                         tf_pos.optimem_dil_factor)
-                if mm_volume > max_vol:
+                if is_larger_than(mm_volume, max_vol):
                     self.use_deep_well = True
                     self._iso_reservoir_specs = \
                                             get_reservoir_specs_deep_96()
@@ -1888,8 +1916,8 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
                                             sector_concentrations.iteritems():
                 if final_conc is None: continue
                 expected_iso_conc = final_conc * total_df
-                if not expected_iso_conc == self.__iso_concentrations[
-                                                                sector_index]:
+                if not are_equal_values(expected_iso_conc,
+                                    self.__iso_concentrations[sector_index]):
                     self._has_compatible_concentrations = False
                     msg = 'The concentrations you have ordered to not allow ' \
                           'robot-supported mastermix preparation. Worklist ' \
@@ -1926,7 +1954,8 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
         if self.handler_iso_volume is None:
             iso_volume = max(min_cybio_transfer_volume, required_volume)
         else:
-            if self.handler_iso_volume < min_cybio_transfer_volume:
+            if is_smaller_than(self.handler_iso_volume,
+                               min_cybio_transfer_volume):
                 msg = 'The minimum ISO volume you can order is %i ul. ' \
                       'You ordered %.1f ul.' \
                        % (min_cybio_transfer_volume, self.handler_iso_volume)
@@ -1939,7 +1968,7 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
                                                                  iso_volume)
 
         if not self.has_errors() and not self.handler_iso_volume is None:
-            if (self.__iso_volume - required_volume) < -0.01:
+            if is_smaller_than(self.__iso_volume, required_volume):
                 msg = 'If you want to prepare a standard mastermix (incl. ' \
                       'robot support) you need to order at least %s ul ' \
                       '(you ordered: %s ul). Robot support is disabled now. ' \
@@ -1978,11 +2007,11 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
             iso_conc = self.__iso_concentrations[sector_index]
             parent_concentrations.add(iso_conc)
 
-        while aliquot_dil_factor < max_dil_factor:
+        while is_smaller_than(aliquot_dil_factor, max_dil_factor):
             increment = False
             for iso_conc in parent_concentrations:
                 df = stock_conc / (iso_conc * aliquot_dil_factor)
-                if df > max_dil_factor: increment = True
+                if is_larger_than(df, max_dil_factor): increment = True
             if increment:
                 aliquot_dil_factor += 1
                 continue
@@ -1995,7 +2024,7 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
             buff_vol = iso_volume - don_vol
             adjusted = False
 
-            if don_vol < min_cybio_transfer_volume:
+            if is_smaller_than(don_vol, min_cybio_transfer_volume):
                 don_vol = min_cybio_transfer_volume
                 buff_vol = min_cybio_transfer_volume * (aliquot_dil_factor - 1)
                 adjusted = True
@@ -2024,7 +2053,7 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
             max_volume = std_96.max_volume * VOLUME_CONVERSION_FACTOR
             complete_volume = TransfectionParameters.calculate_complete_volume(
                                         self.__iso_volume, self.__optimem_df)
-            if complete_volume > max_volume:
+            if is_larger_than(complete_volume, max_volume):
                 self.use_deep_well = True
 
     def _replace_concentrations(self):
@@ -2162,7 +2191,7 @@ class RobotSupportDeterminatorLibrary(RobotSupportDeterminator):
 
         total_df = iso_conc / self.handler_final_conc
         required_df = total_df / non_optimem_df
-        if required_df < self.MIN_OPTIMEM_DILUTION_FACTOR:
+        if is_smaller_than(required_df, self.MIN_OPTIMEM_DILUTION_FACTOR):
             msg = 'The final concentration you have ordered is too large. ' \
                   'It requires an OptiMem dilution by the factor %.2f. The ' \
                   'allowed minimum dilution factor is %i. Please increase ' \
@@ -2181,7 +2210,7 @@ class RobotSupportDeterminatorLibrary(RobotSupportDeterminator):
                 if tf_pos.is_mock: continue
                 tf_pos.iso_concentration = iso_conc
 
-        if required_df > max_optimem_df:
+        if is_larger_than(required_df, max_optimem_df):
             msg = 'The final concentration you have ordered is too small ' \
                   'for the mastermix to be prepared in the source plate (it ' \
                   'requires an OptiMem dilution by the factor %.2f - the ' \
@@ -2211,7 +2240,7 @@ class RobotSupportDeterminatorLibrary(RobotSupportDeterminator):
 
         required_vol = self.number_design_racks * self.number_replicates \
                        * TransfectionParameters.TRANSFER_VOLUME
-        if required_vol > available_vol:
+        if is_larger_than(required_vol, available_vol):
             msg = 'Currently, the mastermix in the source plate would not ' \
                   'provide enough volume for all experiment cell plates ' \
                   '(required volume: %.1f ul, available (excl. dead volume): ' \
@@ -2549,7 +2578,7 @@ class WellAssociatorOptimisation(WellAssociator):
                 pass
             elif df is None:
                 tf_pos.reagent_dil_factor = self.__reagent_dilution_factor
-            elif not df == self.__reagent_dilution_factor:
+            elif not are_equal_values(df, self.__reagent_dilution_factor):
                 info = '%s (%s)' % (get_trimmed_string(df), rack_pos.label)
                 found_dfs.append(info)
 

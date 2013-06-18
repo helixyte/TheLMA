@@ -11,7 +11,7 @@ from thelma.automation.tools.iso.prep_utils import PrepIsoPosition
 from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.utils.base import TransferTarget
-from thelma.automation.tools.worklists.base \
+from thelma.automation.tools.utils.base \
     import CONCENTRATION_CONVERSION_FACTOR
 from thelma.interfaces import IOrganization
 from thelma.tests.tools.tooltestingutils import TestingLog

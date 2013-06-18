@@ -205,10 +205,14 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
         self.assert_is_none(self.iso_request.worklist_series)
 
     def test_with_compounds(self):
+        self.number_of_isos = 1
         self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.DEEP_96
         self._check_result('with_compound.xls')
         self._check_warning_messages('Attention! There are compound pools ' \
-                                     'among the molecule design pool IDs')
+             'among the molecule design pools for the floating positions. ' \
+             'For these compounds positions, we assume a stock concentration ' \
+             'of 5,000,000 nM. Some floating pools have different ' \
+             'concentrations: 277700 (11,603,070.7)')
         # If there is no stock sample use this part:
 #        self._continue_setup()
 #        self._test_and_expect_errors('Could not find valid stock tubes for ' \

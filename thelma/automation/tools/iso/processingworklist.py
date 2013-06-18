@@ -16,6 +16,7 @@ from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.stock.base import get_default_stock_concentration
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_trimmed_string
+from thelma.automation.tools.utils.base import is_smaller_than
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.iso import IsoLayoutConverter
 from thelma.automation.tools.utils.iso import IsoValueDeterminer
@@ -536,7 +537,7 @@ class IsoBufferWorklistGeneratorOptimisation(IsoBufferWorklistGenerator):
         """
         Checks whether the buffer volume is within the valid range.
         """
-        if (volume - self.__min_transfer_volume) < -0.01:
+        if is_smaller_than(volume, self.__min_transfer_volume):
             info = '%s (%.1f ul)' % (rack_pos.label, volume)
             self.__min_buffer_volume.append(info)
 

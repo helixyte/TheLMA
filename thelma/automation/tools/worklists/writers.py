@@ -13,6 +13,8 @@ from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.rack import Plate
 from thelma.models.rack import Rack
 from thelma.models.rack import RackPosition
+from thelma.automation.tools.utils.base import is_larger_than
+from thelma.automation.tools.utils.base import is_smaller_than
 
 
 __docformat__ = 'reStructuredText en'
@@ -30,9 +32,6 @@ class WorklistWriter(CsvWriter):
     #: The transfer type supported by this class
     #: (see :class:`thelma.models.liquidtransfer.TRANSFER_TYPES`).
     SUPPORTED_TRANSFER_TYPE = None
-
-    #: Error range used for floating point comparison.
-    _ERROR_RANGE = -0.01
 
     def __init__(self, planned_worklist, target_rack, pipetting_specs, log,
                  ignored_positions=None):
@@ -262,12 +261,12 @@ class WorklistWriter(CsvWriter):
         volume = transfer_volume * VOLUME_CONVERSION_FACTOR
 
         # Check the minimum and maximum transfer volume.
-        if volume - self._min_transfer_volume < self._ERROR_RANGE:
+        if is_smaller_than(volume, self._min_transfer_volume):
             error_msg = 'target %s (%.1f ul)' % (target_position.label, volume)
             self._transfer_volume_too_small.append(error_msg)
             return False
         if self.SUPPORTED_TRANSFER_TYPE == TRANSFER_TYPES.CONTAINER_TRANSFER \
-                        and volume > self._max_transfer_volume:
+                        and is_larger_than(volume, self._max_transfer_volume):
             error_msg = 'source %s (%.1f ul)' % (source_position, volume)
             self._transfer_volume_too_large.append(error_msg)
 
@@ -275,7 +274,7 @@ class WorklistWriter(CsvWriter):
         max_volume = self.__get_max_volume_for_target_container(target_position)
         if max_volume is None: return False
         sample_volume = self._target_volumes[target_position]
-        if max_volume - (sample_volume + volume) < self._ERROR_RANGE:
+        if is_smaller_than(max_volume, (sample_volume + volume)):
             error_msg = '%s (sample vol: %.1f, transfer vol: %.1f)' \
                         % (target_position, sample_volume, volume)
             self._target_volume_too_large.append(error_msg)
@@ -298,7 +297,7 @@ class WorklistWriter(CsvWriter):
         source_volume -= volume
         dead_volume = self.__get_dead_volume_for_source_container(
                                                                 source_position)
-        if source_volume - dead_volume < self._ERROR_RANGE:
+        if is_smaller_than(source_volume, dead_volume):
             self._source_volume_too_small.add(source_position.label)
             return False
         self._source_volumes[source_position] = source_volume

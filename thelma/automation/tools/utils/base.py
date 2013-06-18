@@ -22,6 +22,9 @@ __author__ = 'Anna-Antonia Berger'
 __all__ = ['MAX_PLATE_LABEL_LENGTH',
            'VOLUME_CONVERSION_FACTOR',
            'CONCENTRATION_CONVERSION_FACTOR',
+           'are_equal_values',
+           'is_smaller_than',
+           'is_larger_than',
            'ParameterSet',
            'ParameterAliasValidator',
            'WorkingPosition',
@@ -53,6 +56,69 @@ MAX_PLATE_LABEL_LENGTH = 24
 VOLUME_CONVERSION_FACTOR = 1e6
 #: Concentration are stored in molars (in the DB), we work with nM.
 CONCENTRATION_CONVERSION_FACTOR = 1e9
+
+#: This error range is used for floating point comparison.
+__ERROR_RANGE = 0.001
+
+def are_equal_values(value1, value2):
+    """
+    Compares 2 floating values (to circumvents python's floating point
+    inaccuracy which occurs already with number with only one decimal place
+    difference). Instead of comparing the values directly the method will
+    check whether the difference of the values is within a certain error
+    range.
+
+    :param value1: a floating value
+    :type value1: a number
+
+    :param value2: a floating value
+    :type value2: a number
+
+    :return: :class:`bool`
+    """
+    diff = value1 - value2
+    return (diff < __ERROR_RANGE and diff > (__ERROR_RANGE * -1))
+
+def is_smaller_than(value1, value2):
+    """
+    Checks whether the first given value is smaller than the second one.
+
+    This method serves to circumvents python's floating point
+    inaccuracy which occurs already with number with only one decimal place
+    difference). Instead of comparing the values directly the method will
+    check whether the difference of the values is below a certain values.
+
+    :param value1: a floating value (the one to be checked)
+    :type value1: a number
+
+    :param value2: a floating value (the reference value)
+    :type value2: a number
+
+    :return: :class:`bool`
+    """
+    diff = value1 - value2
+    return diff < (__ERROR_RANGE * -1)
+
+def is_larger_than(value1, value2):
+    """
+    Checks whether the first given value is larger than the second one.
+
+    This method serves to circumvents python's floating point
+    inaccuracy which occurs already with number with only one decimal place
+    difference). Instead of comparing the values directly the method will
+    check whether the difference of the values is above a certain values.
+
+    :param value1: a floating value (the one to be checked)
+    :type value1: a number
+
+    :param value2: a floating value (the reference value)
+    :type value2: a number
+
+    :return: :class:`bool`
+    """
+    diff = value1 - value2
+    return diff > __ERROR_RANGE
+
 
 class ParameterSet(object):
     """

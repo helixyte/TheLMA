@@ -10,7 +10,10 @@ from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import are_equal_values
 from thelma.automation.tools.utils.base import get_trimmed_string
+from thelma.automation.tools.utils.base import is_larger_than
+from thelma.automation.tools.utils.base import is_smaller_than
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.racksector import RackSectorTranslator
 from thelma.automation.tools.utils.racksector import check_rack_shape_match
@@ -58,9 +61,6 @@ class LiquidTransferExecutor(BaseAutomationTool):
     #: The transfer type supported by this class
     #: (see :class:`thelma.models.liquidtransfer.TRANSFER_TYPES`).
     SUPPORTED_TRANSFER_TYPE = None
-
-    #: Error range used for floating point comparison.
-    _ERROR_RANGE = -0.01
 
     def __init__(self, target_rack, user, pipetting_specs, log):
         """
@@ -276,7 +276,7 @@ class LiquidTransferExecutor(BaseAutomationTool):
             max_volume = self.__get_max_volume_for_target_container(trg_pos)
             if max_volume is None: continue
             final_volume = target_sample.final_volume
-            if (max_volume - final_volume) < self._ERROR_RANGE:
+            if is_smaller_than(max_volume, final_volume):
                 info = '%s (final vol: %.1f ul, max vol: %.0f ul)' \
                         % (trg_pos.label, final_volume, max_volume)
                 self._target_volume_too_large.append(info)
@@ -287,10 +287,10 @@ class LiquidTransferExecutor(BaseAutomationTool):
             dead_volume = self.__get_dead_volume_for_source_container(src_pos)
             if dead_volume is None: continue
             total_transfer_volume = source_sample.total_transfer_volume
-            if total_transfer_volume == 0: continue
+            if are_equal_values(total_transfer_volume, 0): continue
             required_volume = total_transfer_volume + dead_volume
             sample_volume = source_sample.volume
-            if (sample_volume - required_volume) < self._ERROR_RANGE:
+            if is_smaller_than(sample_volume, required_volume):
                 info = '%s (required: %.1f ul, found: %.1f ul)' \
                         % (src_pos.label, required_volume, sample_volume)
                 self._source_volume_too_small.append(info)
@@ -341,12 +341,12 @@ class LiquidTransferExecutor(BaseAutomationTool):
             info = '%.1f ul' % (transfer_volume)
         else:
             info = '%s (%.1f ul)' % (trg_position_label, transfer_volume)
-        if transfer_volume > self._max_transfer_volume and \
+        if is_larger_than(transfer_volume, self._max_transfer_volume) and \
                     not self.SUPPORTED_TRANSFER_TYPE == \
                     TRANSFER_TYPES.CONTAINER_DILUTION:
             self._transfer_volume_too_large.append(info)
             return False
-        elif transfer_volume < self._min_transfer_volume:
+        elif is_smaller_than(transfer_volume, self._min_transfer_volume):
             self._transfer_volume_too_small.append(info)
             return False
 
@@ -1385,7 +1385,7 @@ class TargetSample(SampleData):
         """
         final_volume = round(self.final_volume, 1)
         conv_final_volume = final_volume / VOLUME_CONVERSION_FACTOR
-        if conv_final_volume == 0:
+        if are_equal_values(final_volume, 0):
             return None
         elif container.sample is None:
             container.make_sample(conv_final_volume)

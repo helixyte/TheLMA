@@ -647,7 +647,7 @@ class ExperimentMetadataGeneratorOptiTestCase(
         self._continue_setup('opti_with_compound.xls')
         self._check_result()
         self._check_warning_messages('Attention! There are compounds among ' \
-                                     'your molecule design pools.')
+                                     'your control molecule design pools.')
 
     def test_unsupported_type(self):
         self._test_unsupported_type()
@@ -842,7 +842,15 @@ class ExperimentMetadataGeneratorScreenTestCase(
         self._continue_setup('screen_with_compound.xls')
         self._check_result()
         self._check_warning_messages('Attention! There are compounds among ' \
-                                     'your molecule design pools.')
+             'your control molecule design pools. We have found the ' \
+             'following stock concentrations: 277700 (11,603,070.7 nM), ' \
+             '277701 (13,475,389.1 nM)')
+        self._check_warning_messages('Attention! You floating pool set for ' \
+             'the floating (sample) positions consists of compounds. ' \
+             'For compounds, we assume a stock concentration of ' \
+             '5,000,000 nM. Some of the compounds in the set have a ' \
+             'different stock concentration: 283697 (10,000,000.0 nM), ' \
+             '283702 (10,000,000.0 nM), 283774 (10,000,000.0 nM)')
 
     def test_unsupported_type(self):
         self._test_unsupported_type()
@@ -1047,7 +1055,8 @@ class ExperimentMetadataGeneratorLibraryTestCase(
             self.iso_layout_values[pos_label] = 277700
         self._continue_setup('library_with_compound.xls')
         self._check_result()
-        self._check_warning_messages('compound')
+        self._check_warning_messages('Attention! There are compounds among ' \
+                                     'your control molecule design pools')
 
     def test_result_update_blocked_ISO_request(self):
         self._continue_setup_update(self.update_file, create_iso=True,
@@ -1179,7 +1188,7 @@ class ExperimentMetdadataGeneratorManualTestCase(
         self._continue_setup('manual_with_compound.xls')
         self._check_result()
         self._check_warning_messages('Attention! There are compounds among ' \
-                                     'your molecule design pools.')
+                                     'your control molecule design pools.')
 
     def test_unsupported_type(self):
         self._test_unsupported_type()
@@ -1331,7 +1340,7 @@ class ExperimentMetadataGeneratorOrderTestCase(
         add_tag = Tag('transfection', 'molecule_type', 'siRNA pool')
         self._has_tag(irl, add_tag)
         self._check_warning_messages('Attention! There are compounds among ' \
-                                     'your molecule design pools.')
+                                     'your control molecule design pools.')
 
     def test_result_update(self):
         self._continue_setup_update(self.update_file, create_iso=True,

@@ -12,8 +12,6 @@ The tools are components of the :class:`ExperimentMetadataGenerator`.
 """
 from datetime import date
 from everest.entities.utils import get_root_aggregate
-from thelma.automation.tools.semiconstants import get_min_transfer_volume
-from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.handlers.base \
     import MoleculeDesignPoolLayoutParserHandler
 from thelma.automation.parsers.isorequest import IsoRequestParser
@@ -28,9 +26,13 @@ from thelma.automation.tools.metadata.transfection_utils import \
         TransfectionPosition
 from thelma.automation.tools.semiconstants \
     import get_experiment_type_manual_optimisation
+from thelma.automation.tools.semiconstants \
+    import get_experiment_type_robot_optimisation
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import get_experiment_metadata_type
+from thelma.automation.tools.semiconstants import get_min_transfer_volume
 from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.utils.base import EMPTY_POSITION_TYPE
 from thelma.automation.tools.utils.base import FIXED_POSITION_TYPE
@@ -39,7 +41,10 @@ from thelma.automation.tools.utils.base import MAX_PLATE_LABEL_LENGTH
 from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
 from thelma.automation.tools.utils.base import UNTREATED_POSITION_TYPE
 from thelma.automation.tools.utils.base import add_list_map_element
+from thelma.automation.tools.utils.base import are_equal_values
 from thelma.automation.tools.utils.base import get_trimmed_string
+from thelma.automation.tools.utils.base import is_larger_than
+from thelma.automation.tools.utils.base import is_smaller_than
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.iso import IsoParameters
 from thelma.automation.tools.utils.iso import IsoPosition
@@ -699,9 +704,9 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
             if iso_conc is None: continue
             stock_conc = tf_pos.stock_concentration
 
-            if iso_conc > stock_conc:
+            if is_larger_than(iso_conc, stock_conc):
                 larger_than_stock_concentration.append(rack_pos.label)
-            elif iso_conc == stock_conc:
+            elif are_equal_values(iso_conc, stock_conc):
                 equals_stock_concentration.append(rack_pos.label)
 
         if len(equals_stock_concentration) > 0 and \
@@ -1197,7 +1202,7 @@ class IsoRequestParserHandlerScreen(IsoRequestParserHandler):
 
             if iso_conc_map.has_key(iso_conc):
                 fc = iso_conc_map[iso_conc]
-                if not fc == final_conc:
+                if not are_equal_values(fc, final_conc):
                     info = 'ISO %.1f nM (final concentrations: %1.f nM and ' \
                            '%.1f nM)' % (iso_conc, fc, final_conc)
                     invalid_concentrations.append(info)
@@ -1206,7 +1211,7 @@ class IsoRequestParserHandlerScreen(IsoRequestParserHandler):
 
             if final_conc_map.has_key(final_conc):
                 ic = final_conc_map[final_conc]
-                if not ic == iso_conc:
+                if not are_equal_values(ic, iso_conc):
                     info = 'final %.1f nM (ISO concentrations: %1.f nM and ' \
                            '%.1f nM)' % (final_conc, ic, iso_conc)
                     invalid_concentrations.append(info)
@@ -1551,9 +1556,9 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
             # Create position
             rack_pos = self._convert_to_rack_position(pos_container)
             tf_pos = TransfectionPosition(rack_position=rack_pos,
-                                molecule_design_pool=pool, iso_volume=iso_volume,
-                                iso_concentration=iso_conc,
-                                supplier=supplier)
+                            molecule_design_pool=pool, iso_volume=iso_volume,
+                            iso_concentration=iso_conc,
+                            supplier=supplier)
             self.transfection_layout.add_position(tf_pos)
 
     def _check_layout_validity(self, has_floatings): #pylint: disable=W0613
@@ -1584,7 +1589,7 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
                   'layouts of %s experiments. If you want to order multiple ' \
                   'wells switch to experiment type "%s", please.' \
                   % (self.SUPPORTED_SCENARIO,
-                     get_experiment_type_manual_optimisation().display_name)
+                     get_experiment_type_robot_optimisation().display_name)
             self.add_error(msg)
         else:
             self.__check_dilution_concentrations()
@@ -1634,15 +1639,15 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
             if not tf_pos.is_fixed: continue
             iso_conc = tf_pos.iso_concentration
             stock_conc = tf_pos.stock_concentration
-            if iso_conc == stock_conc: continue
+            if are_equal_values(iso_conc, stock_conc): continue
 
             dil_factor = stock_conc / iso_conc
             take_out_volume = tf_pos.iso_volume / dil_factor
             buffer_volume = tf_pos.iso_volume - take_out_volume
 
-            if take_out_volume < min_cybio_transfer_volume or \
-                                    buffer_volume < min_cybio_transfer_volume:
-                if take_out_volume < buffer_volume:
+            if is_smaller_than(take_out_volume, min_cybio_transfer_volume) or \
+                      is_smaller_than(buffer_volume, min_cybio_transfer_volume):
+                if is_smaller_than(take_out_volume, buffer_volume):
                     required_volume = dil_factor * min_cybio_transfer_volume
                 else:
                     corr_factor = min_cybio_transfer_volume / buffer_volume
