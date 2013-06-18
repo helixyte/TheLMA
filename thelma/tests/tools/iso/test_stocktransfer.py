@@ -9,6 +9,7 @@ from thelma.automation.tools.iso.prep_utils import IsoControlRackPosition
 from thelma.automation.tools.iso.prep_utils import PrepIsoLayout
 from thelma.automation.tools.iso.prep_utils import PrepIsoPosition
 from thelma.automation.tools.iso.prep_utils import RequestedStockSample
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.iso.stocktransfer \
     import IsoControlStockRackExecutor
 from thelma.automation.tools.iso.stocktransfer \
@@ -1199,7 +1200,8 @@ class IsoSampleStockRackJobCreator384TestCase(StockTaking384TestCase):
             expected_source_barcode = self.stock_racks[sector_index].barcode
             self.assert_equal(transfer_job.source_rack.barcode,
                               expected_source_barcode)
-            self.assert_true(transfer_job.is_biomek_transfer)
+            self.assert_equal(transfer_job.pipetting_specs.name,
+                              PIPETTING_SPECS_NAMES.MANUAL)
             self.assert_equal(transfer_job.min_transfer_volume, 1)
             self.assert_is_none(transfer_job.max_transfer_volume)
             marker = 'Q%i' % (sector_index + 1)

@@ -16,6 +16,7 @@ from thelma.automation.tools.iso.processingworklist \
 from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_item_status_future
+from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
 from thelma.automation.tools.semiconstants import get_reservoir_spec
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.series import ContainerDilutionJob
@@ -351,7 +352,7 @@ class IsoAliquotTool(IsoProcessingTool):
                         reservoir_specs=quarter_rs,
                         source_rack_barcode=self.ALIQUOT_BUFFER_PLATE_BARCODE,
                         ignored_positions=self._ignored_positions,
-                        is_biomek_transfer=True)
+                        pipetting_specs=get_pipetting_specs_biomek())
             self._transfer_jobs.append(buffer_job)
 
     def _execute_task(self):
@@ -371,8 +372,8 @@ class IsoAliquotWorklistWriter(IsoAliquotTool):
 
     NAME = 'ISO Aliquot Worklist Writer'
 
-    def __init__(self, iso, barcode, logging_level=logging.WARNING,
-                 add_default_handlers=False):
+    def __init__(self, iso, barcode, logging_level=None,
+                 add_default_handlers=None):
         """
         Constructor:
 

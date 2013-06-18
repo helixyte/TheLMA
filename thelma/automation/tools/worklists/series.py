@@ -19,7 +19,6 @@ from thelma.automation.tools.worklists.execution \
     import ContainerTransferWorklistExecutor
 from thelma.automation.tools.worklists.execution \
     import RackTransferExecutor
-from thelma.automation.tools.worklists.execution import WorklistExecutor
 from thelma.automation.tools.writers import LINEBREAK_CHAR
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.user import User
@@ -506,14 +505,9 @@ class SeriesTool(BaseAutomationTool):
         executor = transfer_job.get_executor(log=self.log, user=self.user)
 
         if not transfer_job.min_transfer_volume is None:
-            if isinstance(executor, WorklistExecutor):
-                executor.is_biomek_transfer = False
             executor.set_minimum_transfer_volume(
                                             transfer_job.min_transfer_volume)
         if not transfer_job.max_transfer_volume is None:
-            if isinstance(executor, WorklistExecutor):
-                executor.is_biomek_transfer = False
-            executor.is_biomek_transfer = False
             executor.set_maximum_transfer_volume(
                                             transfer_job.max_transfer_volume)
 
@@ -625,7 +619,11 @@ class SeriesWorklistWriter(SeriesTool):
             if writer is None and isinstance(transfer_job, RackTransferJob):
                 # Rack transfers are treated differently.
                 self.__write_rack_transfer_section(transfer_job)
-            elif not writer is None:
+            elif writer is None:
+                msg = 'Unable to find a writer for transfer job "%s".' \
+                      % (transfer_job)
+                self.add_warning(msg)
+            else:
                 stream = writer.get_result()
                 if stream is None:
                     msg = 'Error when trying to generate file for worklist ' \
