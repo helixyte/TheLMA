@@ -133,8 +133,7 @@ class Sample(Entity):
         self.molecule_type = mols[0].molecule_design.molecule_type
         self.concentration = self.sample_molecules[0].concentration
         self.sample_type = SAMPLE_TYPES.STOCK
-        # pylint: disable=W0201
-        return self
+        # pylint: enable=W0201
 
 
 class StockSample(Sample):

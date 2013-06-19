@@ -146,12 +146,13 @@ class SampleData(Entity):
     concentration = None
     #: Volume for the sample to register.
     volume = None
-    #: Barcode of the tube containing the sample to register.
-    tube_barcode = None
     #: Molecule type of the sample to register.
     molecule_type = None
     #: The molecule design pool associated with the sample to register.
     molecule_design_pool = None
+    #: Barcode of the tube containing the sample to register. This is
+    #: ``None`` if the samples are kept in wells.
+    tube_barcode = None
     #: The barcode of the rack this sample is located in (optional;
     #: requires `rack_position` to be given as well). If the rack does
     #: not exist, it is created.
@@ -160,14 +161,13 @@ class SampleData(Entity):
     #: requires `rack` to be given as well).
     rack_position = None
 
-    def __init__(self, supplier, concentration, volume, tube_barcode,
-                 molecule_type, molecule_design_pool, rack_barcode=None,
+    def __init__(self, supplier, concentration, volume, molecule_type,
+                 molecule_design_pool, tube_barcode=None, rack_barcode=None,
                  rack_position=None, **kw):
         Entity.__init__(self, **kw)
         self.supplier = supplier
         self.concentration = concentration
         self.volume = volume
-        self.tube_barcode = tube_barcode
         self.molecule_type = molecule_type
         self.molecule_design_pool = molecule_design_pool
         if (not rack_barcode is None and rack_position is None) \
@@ -175,6 +175,7 @@ class SampleData(Entity):
             raise ValueError('If a value for the `rack` parameter is given, '
                              '`rack_position` needs to be given as well, and '
                              'vice versa.')
+        self.tube_barcode = tube_barcode
         self.rack_barcode = rack_barcode
         self.rack_position = rack_position
 
@@ -194,12 +195,12 @@ class SampleRegistrationItem(SampleData):
     #: registration process).
     container = None
 
-    def __init__(self, supplier, concentration, volume,
-                 tube_barcode, molecule_design_pool, **kw):
+    def __init__(self, supplier, concentration, volume, molecule_design_pool,
+                 **kw):
         # For an internal sample registration, the pool is always known in
         # advance, so we can extract the molecule type from the pool.
         SampleData.__init__(self, supplier, concentration, volume,
-                            tube_barcode, molecule_design_pool.molecule_type,
+                            molecule_design_pool.molecule_type,
                             molecule_design_pool, **kw)
 
 
@@ -226,12 +227,11 @@ class SupplierSampleRegistrationItem(SampleData):
     supplier_molecule_design = None
 
     def __init__(self, supplier, product_id, concentration, volume,
-                 tube_barcode, molecule_type,
-                 molecule_design_pool_registration_item, **kw):
+                 molecule_type, molecule_design_pool_registration_item, **kw):
         # The molecule design pool is defined by the molecule design pool
         # registration item, so we pass None here.
         SampleData.__init__(self, supplier, concentration, volume,
-                            tube_barcode, molecule_type, None, **kw)
+                            molecule_type, None, **kw)
         self.supplier = supplier
         self.product_id = product_id
         self.molecule_design_pool_registration_item = \
@@ -418,12 +418,13 @@ class SampleRegistrar(RegistrationTool):
         self.__container_create_kw = None
         self.__rack_create_kw = None
         self.__new_rack_supplier_barcode_map = {}
+        self.__tube_check_needed = None
 
     def run(self):
         self.return_value = {}
         # Create new racks, if necessary.
         self.__check_racks()
-        if not self.has_errors():
+        if not self.has_errors() and self.__tube_check_needed is True:
             # Create new tubes, if necessary.
             self.__check_tubes()
         if not self.has_errors():
@@ -509,14 +510,18 @@ class SampleRegistrar(RegistrationTool):
         if self.__rack_create_kw is None:
             rack_specs_agg = get_root_aggregate(IRackSpecs)
             item_status_agg = get_root_aggregate(IItemStatus)
+            rack_specs = rack_specs_agg.get_by_slug(self.__rack_specs_name)
+            # This flag prevents the creation of new tubes if we are dealing
+            # with plates rather than tube racks.
+            self.__tube_check_needed = rack_specs.has_tubes
             self.__rack_create_kw = \
                 dict(label='',
-                     specs=rack_specs_agg.get_by_slug(self.__rack_specs_name),
+                     specs=rack_specs,
                      status=item_status_agg.get_by_slug(
                                             ITEM_STATUS_NAMES.MANAGED.lower())
                      )
         kw = self.__rack_create_kw.copy()
-        if kw['specs'].has_tubes:
+        if self.__tube_check_needed:
             rack_fac = TubeRack
         else:
             rack_fac = Plate
@@ -537,8 +542,9 @@ class SampleRegistrar(RegistrationTool):
                                             ITEM_STATUS_NAMES.MANAGED.lower())
                    )
         kw = self.__container_create_kw.copy()
-        is_tube = kw['specs'].has_barcode
-        if is_tube:
+        if kw['specs'].has_barcode != self.__tube_check_needed:
+            raise ValueError('Inconsistency in rack and tube specs detected.')
+        if self.__tube_check_needed:
             container_fac = Tube
             kw['barcode'] = sample_registration_item.tube_barcode
         else:
