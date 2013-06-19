@@ -99,6 +99,8 @@ class StockTransferExecutor(BaseAutomationTool): #pylint: disable=W0223
     def get_executed_stock_worklists(self):
         """
         Returns the executed worklists that have been generated (for reporting).
+        If the length of executed worklists is below 1 the submission to
+        the trac is cancelled without error message.
         """
         if self.return_value is None: return None
         return self._executed_worklists

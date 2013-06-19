@@ -304,8 +304,19 @@ class TracToolTestCase(ToolsAndUtilsTestCase):
 
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
+        self.tractor_api = None
+        self.set_up_as_add_on()
+
+    def set_up_as_add_on(self):
         self.tractor_api = self.get_tractor_api()
         self.check_tractor_api(self.tractor_api)
+
+    def tear_down(self):
+        ThelmaModelTestCase.tear_down(self)
+        self.tear_down_as_add_on()
+
+    def tear_down_as_add_on(self):
+        del self.tractor_api
 
     @classmethod
     def get_tractor_api(cls):

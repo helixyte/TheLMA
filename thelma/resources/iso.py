@@ -27,6 +27,7 @@ from thelma.automation.tools.iso.isoprocessing import IsoProcessingExecutor
 from thelma.automation.tools.iso.rackrecycling import IsoControlRackRecycler
 from thelma.automation.tools.iso.stocktransfer import IsoControlStockRackExecutor
 from thelma.automation.tools.iso.stocktransfer import IsoSampleStockRackExecutor
+from thelma.automation.tools.iso.uploadreport import StockTransferReportUploader
 from thelma.automation.tools.libcreation.iso import LibraryCreationIsoPopulator
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketAccepter
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketReassigner
@@ -303,12 +304,16 @@ class IsoRequestMember(Member):
     def __transfer_to_iso(self, iso):
         user = get_current_user()
         executor = IsoProcessingExecutor(iso=iso, user=user)
-        self.__run_tool(executor, 'Errors during transfer to ISO. --')
+        trac_updater = StockTransferReportUploader(executor=executor)
+        self.__run_tool(executor, 'Errors during transfer to ISO. --',
+                        trac_tool=trac_updater)
 
     def __transfer_stock(self, iso):
         user = get_current_user()
         executor = IsoSampleStockRackExecutor(iso=iso, user=user)
-        self.__run_tool(executor, 'Errors during stock transfer. --')
+        trac_updater = StockTransferReportUploader(executor=executor)
+        self.__run_tool(executor, 'Errors during stock transfer. --',
+                        trac_tool=trac_updater)
 
     def __update_control_stock_rack(self, iso, stock_rack_barcode):
         rack_aggregate = get_root_aggregate(IRack)
@@ -321,7 +326,9 @@ class IsoRequestMember(Member):
         user = get_current_user()
         executor = IsoControlStockRackExecutor(iso_job=iso.iso_job,
                                                user=user)
-        self.__run_tool(executor, 'Stock rack is not valid! --')
+        trac_updater = StockTransferReportUploader(executor=executor)
+        self.__run_tool(executor, 'Stock rack is not valid! --',
+                        trac_tool=trac_updater)
 
     def __generate_isos(self, number_of_new_isos,
                         optimizer_excluded_racks, optimizer_requested_tubes):
@@ -358,7 +365,7 @@ class IsoRequestMember(Member):
                                      isos=[iso], user=user)
                 iso.iso_job = iso_job
 
-    def __run_tool(self, tool, error_text):
+    def __run_tool(self, tool, error_text, trac_tool=None):
         tool_result = tool.get_result()
         # Check for errors.
         if tool_result is None or tool_result is False:
@@ -370,6 +377,11 @@ class IsoRequestMember(Member):
             reg = get_current_registry()
             msg_notifier = reg.getUtility(IUserMessageNotifier)
             msg_notifier.notify(" -- ".join(warnings))
+        if trac_tool is not None:
+            trac_tool.send_request()
+            if not trac_tool.transaction_completed():
+                errors = trac_tool.get_messages(logging.ERROR)
+                raise HTTPBadRequest(' -- '.join(errors)).exception
         return tool_result
 
     def __find_iso(self, iso_id):
