@@ -248,7 +248,6 @@ class ExperimentMetadataMember(Member):
                                         experiment_metadata=self_entity,
                                         experiment_metadata_link=url,
                                         iso_request_link=iso_url)
-                    YYY
                 self.__run_trac_tool(trac_updater,
                                      'Could not update the ticket: %s.')
 
@@ -259,7 +258,6 @@ class ExperimentMetadataMember(Member):
             exc_msg = str(tool.get_messages(logging.ERROR))
             raise HTTPBadRequest(error_msg_text % exc_msg).exception
         return tool.return_value
-
 
 
 class ExperimentMetadataCollection(Collection):
