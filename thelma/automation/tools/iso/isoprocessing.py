@@ -830,6 +830,9 @@ class IsoProcessingExecutor(IsoProcessingSeriesTool,
         """
         Returns the executed worklists that *deal with the stock transfer*
         (for stock transfer reporting).
+        We do not need to check whether there are stock transfer worklists
+        because the reporting tools cancels the submission automatically
+        if the length of the executed worklists list is below 1.
         """
         if self.return_value is None: return None
 
