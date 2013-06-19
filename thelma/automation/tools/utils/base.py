@@ -824,6 +824,15 @@ class MoleculeDesignPoolParameters(ParameterSet):
     #: design pool id).
     FLOATING_INDICATOR = 'md_'
 
+    #: These are the values allowed values for parameters that are always
+    #: *None* in untreated positions.
+    VALID_UNTREATED_NONE_REPLACERS = (None, UNTREATED_TYPE_VALUE.upper(),
+                                      WorkingPosition.NONE_REPLACER.upper())
+    #: These are the values allowed values for parameters that are always
+    #: *None* in mock positions.
+    VALID_MOCK_NONE_REPLACERS = (None, MOCK_TYPE_VALUE.upper(),
+                                 WorkingPosition.NONE_REPLACER.upper())
+
     @classmethod
     def get_position_type(cls, molecule_design_pool):
         """
@@ -857,6 +866,33 @@ class MoleculeDesignPoolParameters(ParameterSet):
 
         return position_type
 
+    @classmethod
+    def is_valid_untreated_value(cls, value):
+        """
+        Since untreated position lack some parameters (e.g. concentrations)
+        the values for these parameters must be *None* or a valid replacer.
+        Valid values for are *None*, \'None\' and \'untreated\'.
+        """
+        return cls.__is_valid_value(value, cls.VALID_UNTREATED_NONE_REPLACERS)
+
+    @classmethod
+    def is_valid_mock_value(cls, value):
+        """
+        Since mock position lack some parameters (e.g. concentrations)
+        the values for these parameters must be *None* or a valid replacer.
+        Valid values for are *None*, \'None\' and \'mock\'.
+        """
+        return cls.__is_valid_value(value, cls.VALID_MOCK_NONE_REPLACERS)
+
+    @classmethod
+    def __is_valid_value(cls, value, allowed_values):
+        """
+        Check whether the value is in the given list (case-insensitive).
+        """
+        value_upper = value
+        if isinstance(value, basestring): value_upper = value.upper()
+        return value_upper in allowed_values
+
 
 #: An alias for :attr:`MoleculeDesignPoolParameters.FIXED_TYPE_VALUE`.
 FIXED_POSITION_TYPE = MoleculeDesignPoolParameters.FIXED_TYPE_VALUE
@@ -877,6 +913,7 @@ class MoleculeDesignPoolPosition(WorkingPosition):
     """
 
     PARAMETER_SET = MoleculeDesignPoolParameters
+
 
     def __init__(self, rack_position, molecule_design_pool=None):
         """
@@ -1012,6 +1049,28 @@ class MoleculeDesignPoolPosition(WorkingPosition):
             return self.molecule_design_pool.molecule_type
         else:
             return None
+
+    @classmethod
+    def is_valid_untreated_value(cls, value):
+        """
+        Since untreated position lack some parameters (e.g. concentrations)
+        the values for these parameters must be *None* or a valid replacer.
+        Valid values for are *None*, \'None\' and \'untreated\'.
+
+        Invokes :func:`MoleculeDesignPoolParameters.is_valid_untreated_value`
+        """
+        return cls.PARAMETER_SET.is_valid_untreated_value(value)
+
+    @classmethod
+    def is_valid_mock_value(cls, value):
+        """
+        Since mock position lack some parameters (e.g. concentrations)
+        the values for these parameters must be *None* or a valid replacer.
+        Valid values for are *None*, \'None\' and \'mock\'.
+
+        Invokes :func:`MoleculeDesignPoolParameters.is_valid_mock_value`
+        """
+        return cls.PARAMETER_SET.is_valid_mock_value(value)
 
     def get_tag_set(self):
         """

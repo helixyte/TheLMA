@@ -16,6 +16,7 @@ from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from everest.resources.staging import create_staging_collection
 from pyramid.httpexceptions import HTTPBadRequest
+from thelma.automation.tools.metadata.ticket import IsoRequestTicketDescriptionRemover
 from thelma.automation.tools.metadata.ticket \
     import IsoRequestTicketDescriptionUpdater
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketActivator
@@ -200,10 +201,9 @@ class ExperimentMetadataMember(Member):
         if entity.ticket_number is None:
             # Create a new ticket and attach the ticket number.
             user = get_current_user()
-            em_label = entity.label
             ticket_creator = \
                 IsoRequestTicketCreator(requester=user,
-                                        experiment_metadata_label=em_label)
+                                        experiment_metadata=entity)
             entity.ticket_number = \
                 cls.__run_trac_tool(ticket_creator,
                                     'Could not update the ticket: %s.')
@@ -212,9 +212,10 @@ class ExperimentMetadataMember(Member):
     def update_from_data(self, data_element):
         prx = DataElementAttributeProxy(data_element)
         self_entity = self.get_entity()
-        if prx.number_replicates != self.number_replicates \
-           or prx.experiment_metadata_type.get('id') \
-              != self.experiment_metadata_type.id:
+        changed_num_reps = (prx.number_replicates != self.number_replicates)
+        changed_em_type = (prx.experiment_metadata_type.get('id') \
+                           != self.experiment_metadata_type.id)
+        if changed_em_type or changed_num_reps:
             if not self_entity.experiment_design is None:
                 # invalidate data to force a fresh upload of the XLS file
                 self_entity.experiment_design.experiment_design_racks = []
@@ -233,14 +234,21 @@ class ExperimentMetadataMember(Member):
                 self.__run_trac_tool(ticket_activator,
                                      'Could not update the ticket: %s.')
             else:
-                url = 'http://thelma/public//LOUICe.html#' \
-                      + self.path
-                iso_url = 'http://thelma/public//LOUICe.html#' \
-                          + self.iso_request.path
-                trac_updater = IsoRequestTicketDescriptionUpdater(
-                                    experiment_metadata=self_entity,
-                                    experiment_metadata_link=url,
-                                    iso_request_link=iso_url)
+                if changed_em_type or changed_num_reps:
+                    trac_updater = IsoRequestTicketDescriptionRemover(
+                                  experiment_metadata=self_entity,
+                                  changed_num_replicates=changed_num_reps,
+                                  changed_em_type=changed_em_type)
+                else:
+                    url = 'http://thelma/public//LOUICe.html#' \
+                          + self.path
+                    iso_url = 'http://thelma/public//LOUICe.html#' \
+                              + self.iso_request.path
+                    trac_updater = IsoRequestTicketDescriptionUpdater(
+                                        experiment_metadata=self_entity,
+                                        experiment_metadata_link=url,
+                                        iso_request_link=iso_url)
+                    YYY
                 self.__run_trac_tool(trac_updater,
                                      'Could not update the ticket: %s.')
 

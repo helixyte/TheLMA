@@ -6,6 +6,7 @@ from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.iso.prep_utils import PrepIsoLayout
 from thelma.automation.tools.iso.prep_utils import PrepIsoParameters
 from thelma.automation.tools.iso.prep_utils import PrepIsoPosition
+from thelma.automation.tools.utils.base import is_larger_than
 from thelma.automation.tools.semiconstants \
         import get_reservoir_specs_standard_384
 from thelma.automation.tools.semiconstants \
@@ -299,13 +300,14 @@ class PrepLayoutFinder(BaseAutomationTool):
             if stock_conc is None:
                 stock_conc = self._get_stock_concentration(iso_pos)
             iso_concentration = iso_pos.iso_concentration
-            if iso_concentration > stock_conc:
-                info = '%s (%s nM, stock: %s nM) ' \
-                        % (iso_pos.rack_position.label,
-                           get_trimmed_string(iso_concentration),
-                           get_trimmed_string(stock_conc))
-                concentration_too_high.append(info)
-                continue
+            if not iso_pos.is_mock:
+                if is_larger_than(iso_concentration, stock_conc):
+                    info = '%s (%s nM, stock: %s nM) ' \
+                            % (iso_pos.rack_position.label,
+                               get_trimmed_string(iso_concentration),
+                               get_trimmed_string(stock_conc))
+                    concentration_too_high.append(info)
+                    continue
             add_list_map_element(conc_map, iso_concentration, iso_pos)
 
         if len(concentration_too_high) > 0:
@@ -339,7 +341,7 @@ class PrepLayoutFinder(BaseAutomationTool):
 
         last_conc = stock_conc
         for prep_conc in sorted(conc_map, reverse=True):
-            if prep_conc is None: break
+            if PrepIsoParameters.is_valid_mock_value(prep_conc): break
             dil_factor = last_conc / prep_conc
             max_dil_factor = PrepIsoParameters.MAX_DILUTION_FACTOR_BIOMEK
             if dil_factor > max_dil_factor:

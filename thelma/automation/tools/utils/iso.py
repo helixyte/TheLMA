@@ -92,11 +92,6 @@ class IsoPosition(MoleculeDesignPoolPosition):
     #: IDs in an ISO layout)
     ANY_SUPPLIER_INDICATOR = 'any'
 
-    __VALID_UNTREATED_VALUES = (None, UNTREATED_POSITION_TYPE.upper(),
-                              MoleculeDesignPoolPosition.NONE_REPLACER.upper())
-    __VALID_MOCK_VALUES = (None, MOCK_POSITION_TYPE.upper(),
-                         MoleculeDesignPoolPosition.NONE_REPLACER.upper())
-
     def __init__(self, rack_position, molecule_design_pool=None,
                  iso_concentration=None, iso_volume=None, supplier=None):
         """
@@ -225,7 +220,8 @@ class IsoPosition(MoleculeDesignPoolPosition):
 
         :raises ValueError: if a value is invalid
         """
-        self.__check_specific_value(value_list, self.__VALID_UNTREATED_VALUES)
+        self.__check_specific_value(value_list,
+                          self.PARAMETER_SET.VALID_UNTREATED_NONE_REPLACERS)
 
     def _check_mock_values(self, value_list):
         """
@@ -234,30 +230,8 @@ class IsoPosition(MoleculeDesignPoolPosition):
         the value name (for error messages) as first element and the
         values as second element.
         """
-        self.__check_specific_value(value_list, self.__VALID_MOCK_VALUES)
-
-    @classmethod
-    def is_valid_untreated_value(cls, value):
-        """
-        Valid values for are *None*, \'None\' and \'untreated\'.
-        """
-        return cls.__is_valid_value(value, cls.__VALID_UNTREATED_VALUES)
-
-    @classmethod
-    def is_valid_mock_value(cls, value):
-        """
-        Valid values for are *None*, \'None\' and \'mock\'.
-        """
-        return cls.__is_valid_value(value, cls.__VALID_MOCK_VALUES)
-
-    @classmethod
-    def __is_valid_value(cls, value, allowed_values):
-        """
-        Check whether the value is in the given list (case-insensitive).
-        """
-        value_upper = value
-        if isinstance(value, basestring): value_upper = value.upper()
-        return value_upper in allowed_values
+        self.__check_specific_value(value_list,
+                            self.PARAMETER_SET.VALID_MOCK_NONE_REPLACERS)
 
     def __check_classes(self, value_list, allowed_classes):
         """

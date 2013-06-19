@@ -3,6 +3,8 @@ Tests ISO request ticket tools.
 """
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 from pyramid.threadlocal import get_current_registry
+from thelma.tests.tools.tooltestingutils import ExperimentMetadataReadingTestCase
+from thelma.automation.tools.metadata.ticket import IsoRequestTicketDescriptionRemover
 from thelma.automation.tools.metadata.generation \
     import ExperimentMetadataGenerator
 from thelma.automation.tools.metadata.ticket \
@@ -37,36 +39,63 @@ from tractor.ticket import RESOLUTION_ATTRIBUTE_VALUES
 from tractor.ticket import STATUS_ATTRIBUTE_VALUES
 
 
-class IsoRequestTicketCreatorTestCase(TracToolTestCase):
+class IsoRequestTicketTestCase(ExperimentMetadataReadingTestCase,
+                               TracToolTestCase):
 
     def set_up(self):
-        TracToolTestCase.set_up(self)
-        self.requester = self._get_entity(IUser, 'brehm')
-        self.em_label = 'ticket_creation_test_em'
+        ExperimentMetadataReadingTestCase.set_up(self)
+        TracToolTestCase.set_up_as_add_on(self)
+        self.TEST_FILE_PATH = 'thelma:tests/tools/metadata/report/'
+        self.VALID_FILE = 'valid_opti.xls'
+        self.em_requester = self._get_entity(IUser, 'brehm')
+        self.project = self._get_entity(IProject)
+        self.subproject = self._create_subproject(label='test_subproject',
+                                                  project=self.project)
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
+        self.experiment_metadata_label = 'ticket_update_test'
 
     def tear_down(self):
-        TracToolTestCase.tear_down(self)
-        del self.requester
-        del self.em_label
+        ExperimentMetadataReadingTestCase.tear_down(self)
+        TracToolTestCase.tear_down_as_add_on(self)
+        del self.project
+        del self.subproject
+        del self.experiment_type_id
+        del self.experiment_metadata_label
+
+    def _set_experiment_metadadata(self):
+        em_type = get_experiment_metadata_type(self.experiment_type_id)
+        self.experiment_metadata = ExperimentMetadata(
+                            label=self.experiment_metadata_label,
+                            subproject=self.subproject, number_replicates=1,
+                            experiment_metadata_type=em_type,
+                            ticket_number=0)
+
+    def _continue_setup(self, file_name=None):
+        ExperimentMetadataReadingTestCase._continue_setup(self)
+        self._create_tool()
+
+
+class IsoRequestTicketCreatorTestCase(IsoRequestTicketTestCase):
 
     def _create_tool(self):
-        self.tool = IsoRequestTicketCreator(requester=self.requester,
-                                    experiment_metadata_label=self.em_label)
+        self.tool = IsoRequestTicketCreator(requester=self.em_requester,
+                                experiment_metadata=self.experiment_metadata)
 
     def test_result(self):
-        self._create_tool()
+        self._continue_setup()
         ticket_id = self.tool.get_ticket_id()
         self.assert_true(self.tool.transaction_completed())
         self.assert_is_not_none(ticket_id)
 
-    def test_invalid_requester(self):
-        self.requester = self.requester.username
+    def test_invalid_input_values(self):
+        self._continue_setup()
+        req = self.em_requester
+        self.em_requester = self.em_requester.username
         self._test_and_expect_errors('requester must be a User object')
-
-    def test_invalid_label(self):
-        self.em_label = 123
-        self._test_and_expect_errors('experiment metadata label must be a ' \
-                                     'basestring')
+        self.em_requester = req
+        self.experiment_metadata = None
+        self._test_and_expect_errors('experiment metadata must be a ' \
+                                     'ExperimentMetadata')
 
 
 class IsoTicketDescriptionBuilderTestCase(FileCreatorTestCase):
@@ -231,67 +260,33 @@ class IsoTicketDescriptionBuilderTestCase(FileCreatorTestCase):
         self._test_and_expect_errors('use deep well value must be a bool')
 
 
-class IsoRequestTicketUpdateToolTestCase(TracToolTestCase):
+class IsoRequestTicketUpdateToolTestCase(IsoRequestTicketTestCase):
 
     def set_up(self):
-        TracToolTestCase.set_up(self)
-        self.experiment_metadata = None
+        IsoRequestTicketTestCase.set_up(self)
         self.iso_request = None
-        self.TEST_FILE_PATH = 'thelma:tests/tools/metadata/report/'
-        self.VALID_FILE = 'valid_opti.xls'
-        self.requester = self._get_entity(IUser, 'brehm')
-        self.project = self._get_entity(IProject)
-        self.subproject = self._create_subproject(label='test_subproject',
-                                                  project=self.project)
         self.ticket_id = None
-        self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
         self.experiment_metadata_label = 'ticket_update_test'
         self.em_link = 'http://em_test_link.lnk'
 
     def tear_down(self):
-        TracToolTestCase.tear_down(self)
-        del self.experiment_metadata
+        IsoRequestTicketTestCase.tear_down(self)
         del self.iso_request
-        del self.TEST_FILE_PATH
-        del self.VALID_FILE
-        del self.requester
-        del self.project
-        del self.subproject
         del self.ticket_id
-        del self.experiment_type_id
-        del self.experiment_metadata_label
         del self.em_link
 
-    def _continue_setup(self):
+    def _continue_setup(self): #pylint: disable=W0221
+        IsoRequestTicketTestCase._continue_setup(self,
+                                                 file_name=self.VALID_FILE)
+        self.iso_request = self.experiment_metadata.iso_request
         self._create_ticket()
-        self._create_test_experiment_design()
         self._create_tool()
 
     def _create_ticket(self):
-        ticket_creator = IsoRequestTicketCreator(requester=self.requester,
-                    experiment_metadata_label=self.experiment_metadata_label)
+        ticket_creator = IsoRequestTicketCreator(requester=self.em_requester,
+                                experiment_metadata=self.experiment_metadata)
         self.ticket_id = ticket_creator.get_ticket_id()
-
-    def _create_test_experiment_design(self):
-        ed_file = self.TEST_FILE_PATH + self.VALID_FILE
-        file_name = ed_file.split(':')
-        f = resource_filename(*file_name) # pylint: disable=W0142
-        stream = None
-        try:
-            stream = open(f, 'rb')
-            source = stream.read()
-        finally:
-            if not stream is None:
-                stream.close()
-        em_type = get_experiment_metadata_type(self.experiment_type_id)
-        em = ExperimentMetadata(label=self.experiment_metadata_label,
-                            subproject=self.subproject, number_replicates=1,
-                            experiment_metadata_type=em_type,
-                            ticket_number=self.ticket_id)
-        generator = ExperimentMetadataGenerator.create(stream=source,
-                            experiment_metadata=em, requester=self.requester)
-        self.experiment_metadata = generator.get_result()
-        self.iso_request = self.experiment_metadata.iso_request
+        self.experiment_metadata.ticket_number = self.ticket_id
 
     def _test_missing_ticket(self):
         self._continue_setup()
@@ -308,6 +303,68 @@ class IsoRequestTicketUpdateToolTestCase(TracToolTestCase):
         self.iso_request = self.experiment_metadata.experiment_design
         self.experiment_metadata = self.experiment_metadata.experiment_design
         self._test_and_expect_errors('Unknown ID-providing entity')
+
+
+class IsoRequestTicketDescriptionRemoverTestCase(
+                                         IsoRequestTicketUpdateToolTestCase):
+
+    def set_up(self):
+        IsoRequestTicketUpdateToolTestCase.set_up(self)
+        self.changed_em_type = True
+        self.changed_num_reps = True
+
+    def tear_down(self):
+        IsoRequestTicketUpdateToolTestCase.tear_down(self)
+        del self.changed_em_type
+        del self.changed_num_reps
+
+    def _create_tool(self):
+        self.tool = IsoRequestTicketDescriptionRemover(
+                           experiment_metadata=self.experiment_metadata,
+                           changed_num_replicates=self.changed_num_reps,
+                           changed_em_type=self.changed_em_type,
+                           add_default_handlers=True)
+
+    def __check_result(self):
+        self.tool.send_request()
+        self.assert_true(self.tool.transaction_completed())
+        updated_ticket = self.tool.return_value
+        self.assert_equal(updated_ticket.ticket_id, self.ticket_id)
+        self.assert_false('Link to experiment metadata' \
+                          in updated_ticket.description)
+
+    def test_result(self):
+        self._continue_setup()
+        # both true
+        self.__check_result()
+        # em type only
+        self.changed_num_reps = False
+        self._create_tool()
+        self.__check_result()
+        # num reps only
+        self.changed_num_reps = True
+        self.changed_em_type = False
+        self._create_tool()
+        self.__check_result()
+        # none of both
+        self.changed_num_reps = False
+        self._create_tool()
+        self._test_and_expect_errors('Neither the number of replicates nor ' \
+                 'the experiment metadata type have changed. The ticket ' \
+                 'description does not need to be removed.')
+
+    def test_invalid_id_providing_entity(self):
+        self._test_invalid_id_providing_entity()
+
+    def test_invalid_input_values(self):
+        self._continue_setup()
+        self.changed_em_type = 0.3
+        self._test_and_expect_errors('The "changed experiment metadata type" ' \
+                                'flag must be a bool object (obtained: float)')
+        self.changed_em_type = True
+        self.changed_num_reps = 0.4
+        self._test_and_expect_errors('The "changed number replicates type" ' \
+                                'flag must be a bool object (obtained: float).')
 
 
 class IsoRequestTicketDescriptionUpdaterTestCase(
@@ -346,7 +403,7 @@ class IsoRequestTicketDescriptionUpdaterTestCase(
         self.__check_result()
         desc = self.tool.return_value.description
         self.assert_true('Requester' in desc)
-        self.assert_true(self.requester.username in desc)
+        self.assert_true(self.em_requester.username in desc)
 
     def test_result_isoless(self):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.ISO_LESS
@@ -397,7 +454,7 @@ class IsoRequestTicketDescriptionUpdaterTestCase(
         self.assert_true(IsoRequestTicketDescriptionBuilder.\
                          get_use_deep_well_value(desc))
         self.assert_true(self.experiment_metadata_label in desc)
-        self.assert_true(self.requester.username in desc)
+        self.assert_true(self.em_requester.username in desc)
         self.assert_true(self.project.label in desc)
         self.assert_true(self.subproject.label in desc)
         self.assert_true(self.em_link in desc)
