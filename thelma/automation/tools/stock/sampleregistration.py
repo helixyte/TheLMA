@@ -939,6 +939,7 @@ class MoleculeDesignRegistrar(RegistrationTool):
                     cs_agg.add(struct)
                     new_css.add(struct)
                     md_structs.append(struct)
+		    cs_map[key] = struct
                 else:
                     # Use existing structure for the design.
                     md_structs.append(cs_map[key])
