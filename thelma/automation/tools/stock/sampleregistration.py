@@ -419,14 +419,24 @@ class SampleRegistrar(RegistrationTool):
         self.__rack_create_kw = None
         self.__new_rack_supplier_barcode_map = {}
         self.__tube_check_needed = None
+        self.__rack_specs = None
+        self.__container_specs = None
+        self.__status = None
 
     def run(self):
         self.return_value = {}
-        # Create new racks, if necessary.
+        # Fetch one semiconstants needed for new instances.
+        self.__prepare_semiconstants()
+        # Assign a rack to each registration item if we have rack barcodes
+        # (and create new racks, if necessary).
         self.__check_racks()
-        if not self.has_errors() and self.__tube_check_needed is True:
-            # Create new tubes, if necessary.
-            self.__check_tubes()
+        if not self.has_errors():
+            # Assign a container to each registration item (and create new
+            # tubes, if necessary).
+            if self.__tube_check_needed:
+                self.__check_tubes()
+            else:
+                self.__check_wells()
         if not self.has_errors():
             # Store supplier rack barcode -> Cenix rack barcode map.
             self.return_value['rack_barcodes'] = \
@@ -452,6 +462,19 @@ class SampleRegistrar(RegistrationTool):
                 # Update the sample registration item.
                 sri.stock_sample = stock_spl
             self.return_value['stock_samples'] = new_stock_spls
+
+    def __prepare_semiconstants(self):
+        container_specs_agg = get_root_aggregate(IContainerSpecs)
+        self.__container_specs = container_specs_agg.get_by_slug(
+                                              self.__container_specs_name)
+        self.__tube_check_needed = self.__container_specs.has_barcode
+        rack_specs_agg = get_root_aggregate(IRackSpecs)
+        self.__rack_specs = rack_specs_agg.get_by_slug(self.__rack_specs_name)
+        if self.__tube_check_needed != self.__rack_specs.has_tubes:
+            raise ValueError('Inconsistency in rack and tube specs detected.')
+        item_status_agg = get_root_aggregate(IItemStatus)
+        self.__status = item_status_agg.get_by_slug(
+                                            ITEM_STATUS_NAMES.MANAGED.lower())
 
     def __check_racks(self):
         rack_agg = get_root_aggregate(IRack)
@@ -506,21 +529,15 @@ class SampleRegistrar(RegistrationTool):
             sri.container = tube
         self.return_value['tubes'] = new_tubes
 
+    def __check_wells(self):
+        for sri in self.registration_items:
+            container = sri.rack.container_locations[sri.rack_position]
+            sri.container = container
+
     def __make_new_rack(self, sample_registration_item):
-        if self.__rack_create_kw is None:
-            rack_specs_agg = get_root_aggregate(IRackSpecs)
-            item_status_agg = get_root_aggregate(IItemStatus)
-            rack_specs = rack_specs_agg.get_by_slug(self.__rack_specs_name)
-            # This flag prevents the creation of new tubes if we are dealing
-            # with plates rather than tube racks.
-            self.__tube_check_needed = rack_specs.has_tubes
-            self.__rack_create_kw = \
-                dict(label='',
-                     specs=rack_specs,
-                     status=item_status_agg.get_by_slug(
-                                            ITEM_STATUS_NAMES.MANAGED.lower())
-                     )
-        kw = self.__rack_create_kw.copy()
+        kw = dict(label='',
+                  specs=self.__rack_specs,
+                  status=self.__status)
         if self.__tube_check_needed:
             rack_fac = TubeRack
         else:
@@ -532,18 +549,8 @@ class SampleRegistrar(RegistrationTool):
         return rack
 
     def __make_new_tube(self, sample_registration_item):
-        if self.__container_create_kw is None:
-            container_specs_agg = get_root_aggregate(IContainerSpecs)
-            item_status_agg = get_root_aggregate(IItemStatus)
-            self.__container_create_kw = \
-              dict(specs=container_specs_agg.get_by_slug(
-                                                self.__container_specs_name),
-                   status=item_status_agg.get_by_slug(
-                                            ITEM_STATUS_NAMES.MANAGED.lower())
-                   )
-        kw = self.__container_create_kw.copy()
-        if kw['specs'].has_barcode != self.__tube_check_needed:
-            raise ValueError('Inconsistency in rack and tube specs detected.')
+        kw = dict(specs=self.__container_specs,
+                  status=self.__status)
         if self.__tube_check_needed:
             container_fac = Tube
             kw['barcode'] = sample_registration_item.tube_barcode
