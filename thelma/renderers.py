@@ -284,7 +284,7 @@ class IsoWorklistRenderer(ZippedWorklistRenderer):
                      include_dummy_output=include_dummy_output)
         else:
             raise HTTPBadRequest("Shape parameter is missing or unknown.")
-        return self._run_tool(tool, always_abort=True)
+        return self._run_tool(tool, always_abort=False)
 
     def __create_transfer_worklist_stream(self, resource):
         entity = resource.get_entity()
