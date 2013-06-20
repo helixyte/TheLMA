@@ -907,7 +907,7 @@ class IsoRequestTicketReassigner(IsoRequestTicketUpdateTool):
     #: The name for the file with the missing molecule designs.
     MISSING_POOLS_FILE_NAME = 'missing_molecule_design_pools.csv'
     #: The file description for the missing molecule design file.
-    MISSING_POOLS_DESCRIPTION = 'Floating molecule design poll which have ' \
+    MISSING_POOLS_DESCRIPTION = 'Floating molecule design pools which have ' \
                             'not been added to at least 1 completed ISO.'
 
     def __init__(self, iso_request, completed=True,
