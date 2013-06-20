@@ -941,12 +941,16 @@ class TransfectionLayout(IsoLayout):
             hash_value = trps.rack_position_set.hash_value
             trps_map[hash_value] = trps
 
+        excluded_parameters = [IsoParameters.ISO_VOLUME,
+                               IsoParameters.ISO_CONCENTRATION]
+
         for trps in iso_rack_layout.tagged_rack_position_sets:
             hash_value = trps.rack_position_set
             tags = []
             for tag in trps.tags:
-                if tag.predicate in \
-                    cls.WORKING_POSITION_CLASS.PARAMETER_SET.ALL: continue
+                predicate = tag.predicate
+                if (predicate in excluded_parameters or not predicate in \
+                    cls.WORKING_POSITION_CLASS.PARAMETER_SET.ALL): continue
                 tags.append(tag)
             if trps_map.has_key(hash_value):
                 trps = trps_map[hash_value]
