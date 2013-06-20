@@ -79,9 +79,8 @@ class StockTransferReportTestCase(FileCreatorTestCase):
 
     def _create_ticket(self, user, iso_request):
         if self.CREATE_TICKET:
-            label = iso_request.experiment_metadata.label
             ticket_creator = IsoRequestTicketCreator(requester=user,
-                        experiment_metadata_label=label)
+                        experiment_metadata=iso_request.experiment_metadata)
             iso_request.experiment_metadata.ticket_number = \
                                             ticket_creator.get_ticket_id()
 

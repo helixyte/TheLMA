@@ -2,24 +2,21 @@
 Tests for metadata report tools.
 """
 
-from pkg_resources import resource_filename # pylint: disable=E0611,F0401
-from thelma.automation.tools.metadata.generation \
-    import ExperimentMetadataGenerator
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketCreator
 from thelma.automation.tools.metadata.uploadreport \
     import ExperimentMetadataAssignmentWriter
 from thelma.automation.tools.metadata.uploadreport \
     import ExperimentMetadataInfoWriter
 from thelma.automation.tools.metadata.uploadreport \
+    import ExperimentMetadataInfoWriterLibrary
+from thelma.automation.tools.metadata.uploadreport \
+    import ExperimentMetadataInfoWriterWarningOnly
+from thelma.automation.tools.metadata.uploadreport \
     import ExperimentMetadataIsoPlateWriter
 from thelma.automation.tools.metadata.uploadreport \
     import ExperimentMetadataReportUploader
 from thelma.automation.tools.metadata.uploadreport \
     import RequiredStockVolumeWriter
-from thelma.automation.tools.metadata.uploadreport \
-    import ExperimentMetadataInfoWriterWarningOnly
-from thelma.automation.tools.metadata.uploadreport \
-    import ExperimentMetadataInfoWriterLibrary
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.worklists.base import RESERVOIR_SPECS_NAMES
@@ -28,16 +25,19 @@ from thelma.interfaces import ISubproject
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from thelma.models.utils import get_user
+from thelma.tests.tools.tooltestingutils \
+    import ExperimentMetadataReadingTestCase
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
 from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import TracToolTestCase
 
 
-class ExperimentMetadataReportTestCase(FileCreatorTestCase):
+class ExperimentMetadataReportTestCase(FileCreatorTestCase,
+                                       ExperimentMetadataReadingTestCase):
 
     def set_up(self):
-        FileCreatorTestCase.set_up(self)
-        self.FILE_PATH = 'thelma:tests/tools/metadata/report/'
+        ExperimentMetadataReadingTestCase.set_up(self)
+        self.TEST_FILE_PATH = 'thelma:tests/tools/metadata/report/'
         self.WL_PATH = 'thelma:tests/tools/metadata/csv_files/'
         self.VALID_FILES = {
                     EXPERIMENT_SCENARIOS.OPTIMISATION : 'valid_opti.xls',
@@ -52,41 +52,33 @@ class ExperimentMetadataReportTestCase(FileCreatorTestCase):
         self.experiment_metadata = None
         self.ticket_number = 123
         self.experiment_metadata_label = 'EM Report Test'
-        self.requester = get_user('it')
+        self.em_requester = get_user('it')
         self.iso_request = None
         self.source_layout = None
 
     def tear_down(self):
-        FileCreatorTestCase.tear_down(self)
+        ExperimentMetadataReadingTestCase.tear_down(self)
+        del self.WL_PATH
         del self.log
         del self.experiment_type_id
         del self.generator
-        del self.experiment_metadata
-        del self.FILE_PATH
         del self.VALID_FILES
         del self.ticket_number
         del self.experiment_metadata_label
-        del self.requester
         del self.iso_request
         del self.source_layout
 
     def _continue_setup(self, file_name=None):
         if file_name is None:
             file_name = self.VALID_FILES[self.experiment_type_id]
-        self._parse_experiment_metadata(file_name)
+        self.generator = ExperimentMetadataReadingTestCase._continue_setup(
+                                                            self, file_name)
+        if not self.experiment_metadata is None:
+            self.iso_request = self.experiment_metadata.iso_request
+            self.source_layout = self.generator.get_source_layout()
         self._create_tool()
 
-    def _parse_experiment_metadata(self, em_xls_file):
-        ed_file = self.FILE_PATH + em_xls_file
-        file_name = ed_file.split(':')
-        f = resource_filename(*file_name) # pylint: disable=W0142
-        stream = None
-        try:
-            stream = open(f, 'rb')
-            source = stream.read()
-        finally:
-            if not stream is None:
-                stream.close()
+    def _set_experiment_metadadata(self):
         if self.experiment_metadata is None:
             em_type = get_experiment_metadata_type(self.experiment_type_id)
             self.experiment_metadata = ExperimentMetadata(
@@ -95,16 +87,10 @@ class ExperimentMetadataReportTestCase(FileCreatorTestCase):
                                 number_replicates=3,
                                 ticket_number=self.ticket_number,
                                 experiment_metadata_type=em_type)
-        self.generator = ExperimentMetadataGenerator.create(stream=source,
-                    experiment_metadata=self.experiment_metadata,
-                    requester=self.requester)
-        self.experiment_metadata = self.generator.get_result()
-        if not self.experiment_metadata is None:
-            self.iso_request = self.experiment_metadata.iso_request
-            self.source_layout = self.generator.get_source_layout()
 
     def _test_failed_generator(self, msg):
-        self.experiment_type_id = EXPERIMENT_SCENARIOS.MANUAL
+        self.raise_error = False
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.LIBRARY
         file_name = self.VALID_FILES[EXPERIMENT_SCENARIOS.OPTIMISATION]
         self._continue_setup(file_name)
         self._test_and_expect_errors(msg)
@@ -318,11 +304,12 @@ class ExperimentMetadataInfoWriterLibraryTestCase(
         self.assert_true(warn in tool_content)
 
     def test_invalid_input_values(self):
-        self._test_invalid_generator('The experiment metadata generator must ' \
-                            'be a ExperimentMetadataGeneratorLibrary object')
         self._test_failed_generator('The generator has errors')
         self.generator.reset()
         self._test_and_expect_errors('The generator has not run!')
+        self.experiment_metadata = None
+        self._test_invalid_generator('The experiment metadata generator must ' \
+                            'be a ExperimentMetadataGeneratorLibrary object')
 
     def test_invalid_generator_values(self):
         self._continue_setup()
@@ -394,20 +381,19 @@ class ExperimentMetadataReportUploaderTestCase(TracToolTestCase,
 
     def set_up(self):
         ExperimentMetadataReportTestCase.set_up(self)
-        TracToolTestCase.check_tractor_api(TracToolTestCase.get_tractor_api())
+        TracToolTestCase.set_up_as_add_on(self)
         self.em_link = 'http://em_test_link.lnk'
         self.ir_link = 'http://iso_request_test_link.lnk'
 
     def tear_down(self):
-        TracToolTestCase.tear_down(self)
+        ExperimentMetadataReportTestCase.tear_down(self)
+        TracToolTestCase.tear_down_as_add_on(self)
         del self.em_link
         del self.ir_link
 
     def _continue_setup(self, file_name=None):
-        if file_name is None:
-            file_name = self.VALID_FILES[self.experiment_type_id]
+        ExperimentMetadataReportTestCase._continue_setup(self, file_name)
         self._create_ticket()
-        self._parse_experiment_metadata(file_name)
         self._create_tool()
 
     def _create_tool(self):
@@ -416,9 +402,11 @@ class ExperimentMetadataReportUploaderTestCase(TracToolTestCase,
                             iso_request_link=self.ir_link)
 
     def _create_ticket(self):
-        ticket_creator = IsoRequestTicketCreator(requester=self.requester,
-                    experiment_metadata_label=self.experiment_metadata_label)
+        ticket_creator = IsoRequestTicketCreator(requester=self.em_requester,
+                    experiment_metadata=self.experiment_metadata)
         self.ticket_number = ticket_creator.get_ticket_id()
+        if not self.experiment_metadata is None:
+            self.experiment_metadata.ticket_number = self.ticket_number
 
     def __check_result(self, number_files):
         self._continue_setup()

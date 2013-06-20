@@ -278,16 +278,20 @@ class ExperimentMetadataReadingTestCase(FileReadingTestCase):
         FileReadingTestCase.set_up(self)
         self.experiment_metadata = None
         self.em_requester = get_user('it')
+        self.raise_error = True # raises an error if the experiment metadata
+        # reading fails
 
     def tear_down(self):
         FileReadingTestCase.tear_down(self)
         del self.experiment_metadata
+        del self.raise_error
 
     def _continue_setup(self, file_name=None):
         FileReadingTestCase._continue_setup(self, file_name=file_name)
         if self.experiment_metadata is None:
             self._set_experiment_metadadata()
-            self.__read_experiment_metadata_file()
+            generator = self.__read_experiment_metadata_file()
+            return generator
 
     def _set_experiment_metadadata(self):
         raise NotImplementedError('Abstract method')
@@ -297,7 +301,8 @@ class ExperimentMetadataReadingTestCase(FileReadingTestCase):
                       experiment_metadata=self.experiment_metadata,
                       requester=self.em_requester)
         self.experiment_metadata = em_generator.get_result()
-        self.assert_is_not_none(self.experiment_metadata)
+        if self.raise_error: self.assert_is_not_none(self.experiment_metadata)
+        return em_generator
 
 
 class TracToolTestCase(ToolsAndUtilsTestCase):
