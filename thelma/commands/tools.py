@@ -5,7 +5,7 @@ from everest.entities.utils import get_root_aggregate
 from everest.mime import JsonMime
 from everest.querying.specifications import eq
 from everest.repositories.interfaces import IRepositoryManager
-from everest.repositories.rdb import Session
+from everest.repositories.rdb import Session as session_maker
 from everest.representers.utils import as_representer
 from everest.resources.interfaces import IService
 from everest.resources.utils import get_collection_class
@@ -15,6 +15,8 @@ from paste.script.command import Command # pylint: disable=E0611,F0401
 from pyramid.path import DottedNameResolver
 from pyramid.registry import Registry
 from pyramid.testing import DummyRequest
+from sqlalchemy import event
+from sqlalchemy.orm.session import Session
 from thelma.automation.tools.stock.sampleregistration import \
     IMoleculeDesignPoolRegistrationItem
 from thelma.automation.tools.stock.sampleregistration import \
@@ -34,11 +36,6 @@ import logging
 import os
 import sys
 import transaction
-#from thelma.interfaces import ITubeTransfer
-#from thelma.automation.tools.libcreation.ticket \
-#    import LibraryCreationStockTransferReporter
-#from thelma.automation.tools.libcreation.ticket \
-#    import LibraryCreationTicketWorklistUploader
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['EmptyTubeRegistrarToolCommand',
@@ -122,7 +119,7 @@ class LazyOption(object):
         return self.__value_callback(tool_class, self.__option_value, options)
 
 
-class ToolCommand(Command): # no __init__ pylint: disable=W0232
+class ToolCommand(Command):
     """
     Abstract base class for paste commands which run a TheLMA tool from the
     command line.
@@ -147,6 +144,10 @@ class ToolCommand(Command): # no __init__ pylint: disable=W0232
     min_args = 2
     #: Maximum number of command line arguments.
     max_args = 2
+
+    def __init__(self, name):
+        Command.__init__(self, name)
+        self._report_callback = lambda : None
 
     @classmethod
     def make_standard_parser(verbose=True,
@@ -184,8 +185,8 @@ class ToolCommand(Command): # no __init__ pylint: disable=W0232
     @classmethod
     def report(cls, tool):
         """
-        Override this method in drived classes to perform reporting actions
-        after the tool has run and all data have been committed.
+        Override this method in derived classes to perform reporting actions
+        after the tool has run.
         """
         pass
 
@@ -229,7 +230,7 @@ class ToolCommand(Command): # no __init__ pylint: disable=W0232
         tool = tool_cls(**kw)
         try:
             tool.run()
-        except: # catch all pylint: disable=W0702
+        except:
             transaction.abort()
             raise
         else:
@@ -244,29 +245,31 @@ class ToolCommand(Command): # no __init__ pylint: disable=W0232
                       'repeat the run with the --ignore-warnings switch ' \
                       'to force changes to be committed. Warning messages:\n'
                 raise RuntimeError(msg + os.linesep.join(warn_msgs))
-            run_report = False
             try:
                 # This gives the tool command a chance to perform actions after
                 # the tool has run.
                 self.__target_class.finalize(tool)
+            except:
+                transaction.abort()
+                raise
+            else:
+                # Create a report of the run.
+                self.__run_report(tool)
                 # All good - check if we should commit.
                 if not self.options.simulate: # pylint: disable=E1101
                     transaction.commit()
                 else:
                     transaction.abort()
-                run_report = True
-            except: # catch all pylint: disable=W0702
-                transaction.abort()
-                raise
-            if run_report:
-                try:
-                    self.__target_class.report(tool)
-                except Exception as err: # catch all pylint: disable=W0703
-                    msg = 'There were errors during report generation ' \
-                          'after the transaction had already finished.' \
-                          'Error message: %s.' % str(err)
-                    raise RuntimeError(msg)
         config.end()
+
+    def __run_report(self, tool):
+        #
+        self._report_callback()
+        try:
+            self.__target_class.report(tool)
+        except:
+            transaction.abort()
+            raise
 
     def __setup_thelma(self, ini_file):
         here_dir = os.getcwd()
@@ -291,15 +294,17 @@ class ToolCommand(Command): # no __init__ pylint: disable=W0232
         # Set up repositories.
         repo_mgr = config.get_registered_utility(IRepositoryManager)
         repo_mgr.initialize_all()
-        #
+        # Start the everest service.
         srvc.start()
-        # Configure the session maker. We need the Zope transaction extension
-        # to not close the session such that we can write tool reports after
-        # the commit. Also, we do not expire objects on commit to avoid
-        # having to refresh the attributes needed for reporting.
-        Session.configure(extension=
-                                ZopeTransactionExtension(keep_session=True),
-                          expire_on_commit=False)
+        # Configure the session maker.
+        session_maker.configure(extension=ZopeTransactionExtension())
+        # Set up machinery to enforce a session.flush() just before the
+        # report is run so we have proper IDs in the output.
+        # FIXME: This should be encapsulated better, perhaps depending on
+        #        an option that selects the backend.
+        def on_session_begin(session, trx, conn): # pylint: disable=W0613
+            self._report_callback = lambda sess = session: sess.flush()
+        event.listen(Session, 'after_begin', on_session_begin)
         return config
 
 
@@ -400,12 +405,14 @@ class SampleRegistrarCommand(_RegistrarCommand): # no __init__ pylint: disable=W
            'rack_specs_name',
            dict(help='Name of the rack specs to use for the racks to be '
                      'registered.',
+                default='matrix0500',
                 type='string'),
            ),
           ('--container-specs-name',
            'container_specs_name',
            dict(help='Name of the container specs to use for the containers '
                      'to be registered.',
+                default='matrix0500',
                 type='string'),
            ),
          ]
