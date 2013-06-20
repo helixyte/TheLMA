@@ -192,17 +192,13 @@ class IsoJobWorklistRenderer(ZippedWorklistRenderer):
             optimizer_required_racks = optimizer_required_racks.split(',')
         else:
             optimizer_required_racks = None
+        include_dummy_output = params['include_dummy_output'] == 'true'
         tool = IsoXL20WorklistGenerator384Controls(iso_job=entity,
                                      destination_rack_barcode=barcode,
                                      excluded_racks=optimizer_excluded_racks,
-                                     requested_tubes=optimizer_required_racks)
-#        fillForTestings = params.get('fillForTestings')
-#        if fillForTestings == 'true':
-##            raise HTTPBadRequest('not available in production')
-#            creator = ControlStockRackCreator(iso_job=entity,
-#                                              stock_rack_barcode=barcode)
-#            creator.create_stock_rack()
-        return self._run_tool(tool)
+                                     requested_tubes=optimizer_required_racks,
+                                     include_dummy_output=include_dummy_output)
+        return self._run_tool(tool, always_abort=False)
 
     def __create_transfer_worklist(self, resource):
         entity = resource.get_entity()

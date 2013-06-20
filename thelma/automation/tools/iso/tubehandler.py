@@ -1032,6 +1032,7 @@ class IsoXL20WorklistGenerator384Controls(IsoXL20WorklistGenerator):
 
     def __init__(self, iso_job, destination_rack_barcode,
                  excluded_racks=None, requested_tubes=None,
+                 include_dummy_output=False,
                  logging_level=logging.WARNING, add_default_handlers=False):
         """
         Constructor:
@@ -1051,6 +1052,13 @@ class IsoXL20WorklistGenerator384Controls(IsoXL20WorklistGenerator):
             supposed to be used.
         :type requested_tubes: A list of rack barcodes.
 
+        :param include_dummy_output: Flag indicating if the
+            `thelma.tools.dummies.XL20Dummy` output writer should be run
+            at the end of the worklist generation. The resulting output file
+            is then included in the zip file.
+        :type include_dummy_output: :class:`bool`
+        :default include_dummy_output: *False*
+
         :param logging_level: the desired minimum log level
         :type logging_level: :class:`int` (or logging_level as
                          imported from :mod:`logging`)
@@ -1066,6 +1074,7 @@ class IsoXL20WorklistGenerator384Controls(IsoXL20WorklistGenerator):
                     destination_rack_barcode_map=barcode_map,
                     excluded_racks=excluded_racks,
                     requested_tubes=requested_tubes,
+                    include_dummy_output=include_dummy_output,
                     logging_level=logging_level,
                     add_default_handlers=add_default_handlers)
 
