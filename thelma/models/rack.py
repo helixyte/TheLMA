@@ -206,6 +206,10 @@ class TubeRack(Rack):
         if not self.is_empty(position):
             raise ValueError('Cannot put tube "%s" in occupied position "%s"'
                              % (tube.barcode, position.label))
+        if position.row_index >= self.rack_shape.number_rows \
+           or position.column_index >= self.rack_shape.number_columns:
+            raise ValueError('Invalid position "%s" for rack with specs '
+                             '"%s"' % (position.label, self.specs.label))
         new_location = ContainerLocation(tube, self, position)
         self.container_locations[position] = new_location
 

@@ -70,6 +70,17 @@ class TubeThelmaModelTestCase(ThelmaModelTestCase):
         self.assert_is_not_none(tube.slug)
         self.assert_equal(tube.position, attrs['position'])
 
+    def test_init_from_rack_and_invalid_position(self):
+        attrs = self.__get_data()
+        attrs['rack'] = self._create_tube_rack()
+        del attrs['location']
+        attrs['position'] = RackPosition.from_label('I1')
+        self.assert_raises(ValueError, Tube.create_from_rack_and_position,
+                           **attrs)
+        attrs['position'] = RackPosition.from_label('A13')
+        self.assert_raises(ValueError, Tube.create_from_rack_and_position,
+                           **attrs)
+
     def test_equality(self):
         tube1 = self._create_tube(id=1)
         tube2 = self._create_tube(id=2)
@@ -104,8 +115,8 @@ class WellThelmaModelTestCase(ThelmaModelTestCase):
         c1 = RackPosition.from_label('C1')
         d1 = RackPosition.from_label('D1')
         rack = self._create_plate()
-        well1 = self._create_well(id= -1, position=c1, rack=rack)
-        well2 = self._create_well(id= -2, position=d1, rack=rack)
+        well1 = self._create_well(id=-1, position=c1, rack=rack)
+        well2 = self._create_well(id=-2, position=d1, rack=rack)
         well3 = self._create_well()
         well3.id = well2.id
         self.assert_not_equal(well1, well2)
@@ -143,8 +154,8 @@ class TubeSpecsThelmaModelTestCase(ThelmaModelTestCase):
         check_attributes(tube_specs, attrs)
 
     def test_equality(self):
-        tube_specs1 = self._create_tube_specs(id= -1, label='ts1')
-        tube_specs2 = self._create_tube_specs(id= -2, label='ts2')
+        tube_specs1 = self._create_tube_specs(id=-1, label='ts1')
+        tube_specs2 = self._create_tube_specs(id=-2, label='ts2')
         tube_specs3 = self._create_tube_specs()
         tube_specs3.id = tube_specs2.id
         self.assert_not_equal(tube_specs1, tube_specs2)
@@ -187,9 +198,9 @@ class WellSpecsModelTest(ThelmaModelTestCase):
 
     def test_equality(self):
         attrs = self.__get_data()
-        well_specs1 = self._create_well_specs(id= -1,
+        well_specs1 = self._create_well_specs(id=-1,
                                               plate_specs=attrs['plate_specs'])
-        well_specs2 = self._create_well_specs(id= -2,
+        well_specs2 = self._create_well_specs(id=-2,
                                               plate_specs=attrs['plate_specs'])
         well_specs3 = self.__create_entity(attrs)
         well_specs3.id = well_specs2.id
