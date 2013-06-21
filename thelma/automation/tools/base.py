@@ -76,8 +76,12 @@ class BaseAutomationTool(ErrorRecording):
         :type run: :class:`boolean`
         :default run: *True*
         """
-        if run == True: self.run()
-        if not self.__depending: clear_semiconstant_caches()
+        if run == True:
+            try:
+                self.run()
+            finally:
+                if not self.__depending:
+                    clear_semiconstant_caches()
         return self.return_value
 
     def reset(self):
@@ -86,7 +90,9 @@ class BaseAutomationTool(ErrorRecording):
         """
         self._error_count = 0
         self.return_value = None
-        if not self.__depending: self.reset_log()
+        if not self.__depending:
+            self.reset_log()
+            clear_semiconstant_caches()
         self.add_info('Reset ...')
 
     def _get_additional_value(self, value):
