@@ -127,11 +127,11 @@ class IsoRequestMember(Member):
                'Library Creation')
 
     def __getitem__(self, name):
-        if name == 'completed_iso_plates':
+        if name == 'completed-iso-plates':
             iso_plates = create_staging_collection(IPlate)
             if self.iso_type == ISO_TYPES.STANDARD \
-               and self.experiment_metadata.is_type(
-                                            EXPERIMENT_METADATA_TYPES.MANUAL):
+               and self.experiment_metadata.experiment_metadata_type.id == \
+                                            EXPERIMENT_METADATA_TYPES.MANUAL:
                 # For standard, manual ISOs, the preparation plates are used
                 # to schedule the experiment jobs.
                 for iso in self.isos:
