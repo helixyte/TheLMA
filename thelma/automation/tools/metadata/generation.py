@@ -5,18 +5,12 @@
 This module creates or updates an experiment metadata. It applies several
 parsers and tools.
 """
-from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
-from thelma.automation.tools.utils.base import are_equal_values
-from thelma.automation.tools.utils.base import is_larger_than
-from thelma.automation.tools.utils.base import is_smaller_than
 from thelma.automation.handlers.experimentdesign \
     import ExperimentDesignParserHandler
 from thelma.automation.handlers.experimentpoolset \
     import ExperimentPoolSetParserHandler
 from thelma.automation.handlers.isorequest import IsoRequestParserHandler
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.iso.prep_utils import PrepIsoParameters
 from thelma.automation.tools.metadata.isolayoutfinder \
     import TransfectionLayoutFinder
 from thelma.automation.tools.metadata.transfection_utils \
@@ -40,13 +34,19 @@ from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_experiment_metadata_type
+from thelma.automation.tools.semiconstants import get_max_dilution_factor
 from thelma.automation.tools.semiconstants import get_min_transfer_volume
+from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
+from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.tools.semiconstants import get_reservoir_specs_deep_96
 from thelma.automation.tools.stock.base import get_default_stock_concentration
 from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import add_list_map_element
+from thelma.automation.tools.utils.base import are_equal_values
 from thelma.automation.tools.utils.base import get_trimmed_string
+from thelma.automation.tools.utils.base import is_larger_than
+from thelma.automation.tools.utils.base import is_smaller_than
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.base import round_up
 from thelma.automation.tools.utils.racksector import QuadrantIterator
@@ -761,7 +761,9 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
                                                       self.requester)
             # The ISO request owner must be maintained (important for running
             # ISO processing).
-            self._iso_request.owner = self.experiment_metadata.iso_request.owner
+            if not self.experiment_metadata.iso_request is None:
+                self._iso_request.owner = self.experiment_metadata.\
+                                          iso_request.owner
 
         new_em = ExperimentMetadata(
                     label=self.experiment_metadata.label,
@@ -2000,10 +2002,10 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
         if self.source_layout.shape.name == RACK_SHAPE_NAMES.SHAPE_96:
             return iso_volume
 
-        min_cybio_transfer_volume = get_min_transfer_volume(
-                                                    PIPETTING_SPECS_NAMES.CYBIO)
+        pip_specs = PIPETTING_SPECS_NAMES.CYBIO
+        min_cybio_transfer_volume = get_min_transfer_volume(pip_specs)
+        max_dil_factor = get_max_dilution_factor(pip_specs)
         aliquot_dil_factor = 1
-        max_dil_factor = PrepIsoParameters.MAX_DILUTION_FACTOR_CYBIO
         stock_conc = get_default_stock_concentration(
                                     self.source_layout.floating_molecule_type)
 

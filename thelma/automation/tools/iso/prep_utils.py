@@ -250,6 +250,7 @@ class PrepIsoParameters(TransferParameters):
     #: (without Biomek) in ul.
     WELL_MIN_TRANSFER_VOLUME = 1
 
+    #: TODO: remove in future milestones (replace with pipetting specs)
     #: The maximum dilution factor for a dilution step within the Biomek series.
     MAX_DILUTION_FACTOR_BIOMEK = 10
     #: The maximum dilution factor for a dilution step within a CyBio series.

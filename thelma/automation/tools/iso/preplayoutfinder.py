@@ -343,6 +343,7 @@ class PrepLayoutFinder(BaseAutomationTool):
         for prep_conc in sorted(conc_map, reverse=True):
             if PrepIsoParameters.is_valid_mock_value(prep_conc): break
             dil_factor = last_conc / prep_conc
+            # TODO: replace with pipetting specs
             max_dil_factor = PrepIsoParameters.MAX_DILUTION_FACTOR_BIOMEK
             if dil_factor > max_dil_factor:
                 intermediate_conc = last_conc / max_dil_factor
@@ -975,6 +976,7 @@ class PrepLayoutFinder384Screening(PrepLayoutFinder348):
 
         too_high = []
         parent_concentrations = set()
+        # TODO: replace with pipetting specs
         max_dil_factor = PrepIsoParameters.MAX_DILUTION_FACTOR_CYBIO
 
         for sector_index, iso_conc in self.__sector_concentrations.iteritems():
