@@ -7,6 +7,7 @@ from everest.testing import check_attributes
 from thelma.automation.tools.iso.generation import IsoGenerator
 from thelma.automation.tools.iso.prep_utils import PrepIsoLayoutConverter
 from thelma.automation.tools.iso.prep_utils import RequestedStockSample
+import logging
 from thelma.automation.tools.iso.stockworklist \
     import StockTransferWorklistGenerator384Single
 from thelma.automation.tools.iso.tubehandler \
@@ -740,9 +741,14 @@ class IsoXL20WorklistGeneratorTestCase(ExperimentMetadataReadingTestCase,
             self._set_excluded_racks(session)
             self._continue_setup()
             if causes_failure:
-                self._test_and_expect_errors(
-                                    'For some control molecule design pools ' \
-                                    'there are no valid stock tubes available')
+                self._test_and_expect_errors('Error when trying to pick ' \
+                                             'tubes for molecule design pools')
+                err_msg = ' '.join(self.tool.get_messages(logging.ERROR))
+                msg1 = 'For some control molecule design pools there are no ' \
+                       'valid stock tubes available'
+                msg2 = 'Did not find any tube!'
+                has_msg = (msg1 in err_msg) or (msg2 in err_msg)
+                self.assert_true(has_msg)
             else:
                 zip_stream = self.tool.get_result()
                 self.assert_is_not_none(zip_stream)
@@ -947,6 +953,7 @@ class IsoXL20WorklistGenerator96TestCase(IsoXL20WorklistGeneratorTestCase):
 
     def test_missing_floating_design(self):
         self.VALID_FILE = 'valid_file_96_floatings.xls'
+        self.pool_id = 205280
         self._test_missing_floating_sample()
         self.__check_racks(number_transfers=3)
 
