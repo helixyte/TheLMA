@@ -639,9 +639,9 @@ class IsoXL20WorklistGenerator96(IsoXL20WorklistGenerator):
 
         if len(control_pools) > 0:
             controls = list(control_pools)
-            controls.sort()
             msg = 'For some control molecule design pools there are no valid ' \
-                  'stock tubes available: %s.' % (controls)
+                  'stock tubes available: %s.' % (', '.join([str(cid) for cid \
+                                                  in sorted(controls)]))
             self.add_error(msg)
         else:
             for pool_id in sample_pools:
@@ -1403,7 +1403,8 @@ class StockTubePicker(BaseAutomationTool):
             msg = 'Some requested tubes differ from the ones scheduled ' \
                   'during ISO generation (%i molecule design pool(s)). The ' \
                   'scheduled tubes are replaced by the requested ones. ' \
-                  'Details: %s.' % (len(replaced_tubes), replaced_tubes)
+                  'Details: %s.' % (len(replaced_tubes),
+                                    ' - '.join(sorted(replaced_tubes)))
             self.add_warning(msg)
 
     def __select_tubes(self):

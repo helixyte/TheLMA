@@ -733,6 +733,28 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
             msg = 'There are no fixed positions in this ISO layout!'
             self.add_error(msg)
 
+    def _check_for_unrequired_untreated_positions(self):
+        """
+        Technically, untreated position are empty, they contain just cells.
+        The distinction serves documentational reasons only and is only
+        required in the experiment design. Thus, experiment metadata types
+        that provide separate *Transfection* and *ISO* sheets do not need
+        to mark untreated positions in the ISO layout. On the contrary,
+        marking them might mislead to the assumption that there was a transfer
+        connection between the ISO and experiment wells.
+        """
+        has_untreated = False
+        for tf_pos in self.transfection_layout.working_positions():
+            if tf_pos.is_untreated:
+                has_untreated = True
+                break
+        if has_untreated:
+            msg = 'There are untreated positions in your ISO layout! ' \
+                  'You do not need to mark them here, because the system ' \
+                  'considers them to be empty and will not transfer them ' \
+                  'to the experiment cell plates!'
+            self.add_warning(msg)
+
     def _sort_floatings(self):
         """
         By default, floating placeholders in the layout are sorted by position.
@@ -989,6 +1011,7 @@ class IsoRequestParserHandlerOpti(IsoRequestParserHandler):
         Checks scenario-dependent properties of the transfection layout.
         """
         IsoRequestParserHandler._check_layout_validity(self, has_floatings)
+        self._check_for_unrequired_untreated_positions()
 
         pool_count = self.transfection_layout.get_molecule_design_pool_count()
 

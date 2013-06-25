@@ -737,7 +737,7 @@ class RackTransferWriterTestCase(FileCreatorTestCase):
             e_lin = exp_lines[i]
             self.assert_equal(t_lin, e_lin)
 
-    def xtest_invalid_rack_transfer_jobs(self):
+    def test_invalid_rack_transfer_jobs(self):
         self._continue_setup()
         a1_pos = get_rack_position_from_label('A1')
         pct = PlannedContainerTransfer(volume=self.volume1,

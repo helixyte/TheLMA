@@ -759,6 +759,10 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
             self._iso_request.iso_layout = self._source_layout.\
                             create_merged_rack_layout(self._additional_trps,
                                                       self.requester)
+            # The ISO request owner must be maintained (important for running
+            # ISO processing).
+            self._iso_request.owner = self.experiment_metadata.iso_request.owner
+
         new_em = ExperimentMetadata(
                     label=self.experiment_metadata.label,
                     ticket_number=self._ticket_number,
@@ -1496,6 +1500,7 @@ class RobotSupportDeterminator(BaseAutomationTool):
                                                         self.number_replicates):
                 self.use_deep_well = True
             for tf_pos in self.source_layout.working_positions():
+                if tf_pos.is_untreated: continue
                 if not tf_pos.iso_volume is None:
                     if is_larger_than(tf_pos.iso_volume, max_vol):
                         self.use_deep_well = True
@@ -1718,6 +1723,7 @@ class RobotSupportDeterminatorOpti(RobotSupportDeterminator):
                                               PIPETTING_SPECS_NAMES.BIOMEK)
 
         for rack_pos, tf_pos in self.source_layout.iterpositions():
+            if tf_pos.is_untreated: continue
 
             expected_volume = TransfectionParameters.calculate_iso_volume(
                 number_target_wells=self.__target_count_map[rack_pos],
@@ -1770,6 +1776,7 @@ class RobotSupportDeterminatorOpti(RobotSupportDeterminator):
             max_vol = self._iso_reservoir_specs.max_volume \
                       * VOLUME_CONVERSION_FACTOR
             for rack_pos, tf_pos in self.source_layout.iterpositions():
+                if tf_pos.is_untreated: continue
                 iso_vol = tf_pos.iso_volume
                 if self.__new_volumes_values.has_key(rack_pos):
                     iso_vol = self.__new_volumes_values[rack_pos]
@@ -2548,8 +2555,12 @@ class WellAssociatorOptimisation(WellAssociator):
         dfs = set()
 
         for tf_pos in self.source_layout.working_positions():
-            names.add(tf_pos.reagent_name)
-            dfs.add(tf_pos.reagent_dil_factor)
+            rn = tf_pos.reagent_name
+            if tf_pos.is_valid_untreated_value(rn): continue
+            names.add(rn)
+            rdf = tf_pos.reagent_dil_factor
+            if tf_pos.is_valid_untreated_value(rdf): continue
+            dfs.add(rdf)
 
         if len(names) == 1: self.__reagent_name = list(names)[0]
         if len(dfs) == 1: self.__reagent_dilution_factor = list(dfs)[0]
@@ -2630,10 +2641,9 @@ class WellAssociatorOptimisation(WellAssociator):
             associated_positions[src_pos].append(trg_pos)
 
         if len(no_source_position) > 0:
-            no_source_position.sort()
             msg = 'Could not find source position for the following ' \
                   'positions in design rack "%s": %s.' \
-                  % (rack_label, no_source_position)
+                  % (rack_label, ' - '.join(sorted(no_source_position)))
             self.add_error(msg)
             return None
         else:
@@ -2681,7 +2691,6 @@ class WellAssociatorOptimisation(WellAssociator):
             associated_positions[src_pos] = [trg_pos]
 
         if len(no_source_position) > 0:
-            no_source_position.sort()
             msg = 'Could not find source position for the following ' \
                   'positions in design rack "%s": %s. It might also be ' \
                   'that there are not enough wells for the combinations of ' \
@@ -2689,7 +2698,8 @@ class WellAssociatorOptimisation(WellAssociator):
                   'combination of the four factors (molecule design pool ID, ' \
                   'reagent name, reagent dilution factor, final ' \
                   'concentration) even you do not specify the final ' \
-                  'concentration itself.' % (rack_label, no_source_position)
+                  'concentration itself.' % (rack_label,
+                                         ' - '.join(sorted(no_source_position)))
             self.add_error(msg)
             return None
         else:
