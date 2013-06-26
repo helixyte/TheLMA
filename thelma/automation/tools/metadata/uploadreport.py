@@ -976,13 +976,13 @@ class ExperimentMetadataReportUploader(BaseTracTool):
     NAME = 'Experiment Metadata Upload Reporter'
 
     #: The base comment for the upload.
-    BASE_COMMENT = 'Automated metadata excel file upload. %s'
+    BASE_COMMENT = 'Experiment metadata file upload. %s'
 
     #: The comment addition for experiments without ISO.
     ISO_LESS_COMMENT = 'There is no ISO request for this experiment set.'
 
     #: The comment addition for experiments with ISO.
-    ISO_COMMENT = 'The ISO volumes and concentrations have been %s. %s'
+    ISO_COMMENT = 'The ISO volumes and concentrations have been %s %s'
     #: Comment addition if robot support is not available.
     ROBOT_OPTION_YES = 'You can download !BioMek worklists for the ' \
                        'transfer from the ISO into cell plates.'

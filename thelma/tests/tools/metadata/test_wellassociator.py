@@ -6,6 +6,7 @@ in an experiment cell plate well.
 AAB
 """
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
+from thelma.automation.tools.metadata.transfection_utils import TransfectionPosition
 from thelma.automation.handlers.experimentdesign \
     import ExperimentDesignParserHandler
 from thelma.automation.handlers.isorequest import IsoRequestParserHandler
@@ -136,7 +137,8 @@ class WellAssociatorTestCase(ToolsAndUtilsTestCase):
             for rack_pos in layout_positions:
                 conc = concentration_map[rack_pos]
                 if rack_pos.label in self.mock_labels:
-                    self.assert_is_none(conc)
+                    self.assert_true(TransfectionPosition.\
+                                     is_valid_mock_value(conc))
                 else:
                     self.assert_equal(conc, final_conc)
 

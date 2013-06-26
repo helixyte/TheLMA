@@ -63,6 +63,7 @@ __all__ = ['SemiconstantCache',
            'get_pipetting_specs_biomek',
            'get_min_transfer_volume',
            'get_max_transfer_volume',
+           'get_max_dilution_factor',
            'RESERVOIR_SPECS_NAMES',
            'get_reservoir_spec',
            'get_reservoir_specs_standard_96',
@@ -439,6 +440,26 @@ class PIPETTING_SPECS_NAMES(SemiconstantCache):
 
         return pipetting_specs.max_transfer_volume * VOLUME_CONVERSION_FACTOR
 
+    @classmethod
+    def get_max_dilution_factor(cls, pipetting_specs):
+        """
+        Returns the maximum dilution factor (for a single transfer).
+        Pipetting larger dilution might result in inaccurate target
+        concentrations or inhomogenous mixing.
+
+        Invokes :func:`from_name`.
+
+        :param pipetting_specs: The pipetting specs whose maximum dilution
+            factor you want to get or its name.
+        :type pipetting_specs: :class:`basestring` or
+            :class:`thelma.models.liquidtransfer.PipettingSpecs`
+        :return: The maximum dilution factor for a single transfer.
+        """
+        if not isinstance(pipetting_specs, PipettingSpecs):
+            pipetting_specs = cls.from_name(pipetting_specs)
+
+        return pipetting_specs.max_dilution_factor
+
 #: A short cut for :func:`PIPETTING_SPECS_NAMES.from_name`.
 get_pipetting_specs = PIPETTING_SPECS_NAMES.from_name
 
@@ -454,10 +475,12 @@ def get_pipetting_specs_cybio():
 def get_pipetting_specs_biomek():
     return get_pipetting_specs(PIPETTING_SPECS_NAMES.BIOMEK)
 
-#: A short cut for :func:`PIPETTING_SPECS_NAMES.get_minimum_transfer_volume`.
+#: A short cut for :func:`PIPETTING_SPECS_NAMES.get_min_transfer_volume`.
 get_min_transfer_volume = PIPETTING_SPECS_NAMES.get_min_transfer_volume
-#: A short cut for :func:`PIPETTING_SPECS_NAMES.get_minimum_transfer_volume`.
+#: A short cut for :func:`PIPETTING_SPECS_NAMES.get_max_transfer_volume`.
 get_max_transfer_volume = PIPETTING_SPECS_NAMES.get_max_transfer_volume
+#: A short cut for :func:`PIPETTING_SPECS_NAMES.get_max_dilution_factor`.
+get_max_dilution_factor = PIPETTING_SPECS_NAMES.get_max_dilution_factor
 
 
 class RESERVOIR_SPECS_NAMES(SemiconstantCache):

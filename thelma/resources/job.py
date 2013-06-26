@@ -94,7 +94,7 @@ class ExperimentJobMember(JobMember):
         if status_title == 'manual_execution':
             tool = ExperimentRackFiller.create(exp_ent, user)
         elif status_title == 'robot_execution':
-            experiment_type = exp_ent.experiment_design.experiment_type
+            experiment_type = exp_ent.experiment_design.experiment_metadata_type
             if experiment_type.id == EXPERIMENT_METADATA_TYPES.OPTI:
                 tool = ExperimentExecutorOptimisation(exp_ent, user)
             elif experiment_type.id == EXPERIMENT_METADATA_TYPES.SCREEN:

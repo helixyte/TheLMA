@@ -184,11 +184,14 @@ class ExperimentMetadataMember(Member):
     def __getitem__(self, name):
         if name == 'tags':
             tags_dict = {}
-            if not self.experiment_design is None:
-                for rack in self.experiment_design.experiment_design_racks:
-                    for tp in rack.rack_layout.tagged_rack_position_sets:
-                        for tag in tp.tags:
-                            tags_dict[tag.get_entity().slug] = tag
+            if self.experiment_design is not None:
+                design_racks = self.experiment_design.experiment_design_racks
+            else: # order only type
+                design_racks = []
+            for rack in design_racks:
+                for tp in rack.rack_layout.tagged_rack_position_sets:
+                    for tag in tp.tags:
+                        tags_dict[tag.get_entity().slug] = tag
             tag_coll = create_staging_collection(ITag)
             for tag in tags_dict.values():
                 tag_coll.add(tag)

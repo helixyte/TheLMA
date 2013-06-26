@@ -148,11 +148,13 @@ class ExperimentMetadataGeneratorTestCase(ToolsAndUtilsTestCase):
 
     def __create_metadata(self):
         em_type = get_experiment_metadata_type(self.experiment_type_id)
+        iso_request = self._create_iso_request()
         self.experiment_metadata = ExperimentMetadata(label=self.label,
                     subproject=self._get_entity(ISubproject),
                     number_replicates=self.number_replicates,
                     experiment_metadata_type=em_type,
-                    ticket_number=self.ticket_number)
+                    ticket_number=self.ticket_number,
+                    iso_request=iso_request)
 
     def __create_iso(self):
         Iso(label='test_ISO', iso_request=self.experiment_metadata.iso_request)
