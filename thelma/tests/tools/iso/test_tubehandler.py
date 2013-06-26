@@ -741,8 +741,7 @@ class IsoXL20WorklistGeneratorTestCase(ExperimentMetadataReadingTestCase,
             self._set_excluded_racks(session)
             self._continue_setup()
             if causes_failure:
-                self._test_and_expect_errors('Error when trying to pick ' \
-                                             'tubes for molecule design pools')
+                self._test_and_expect_errors()
                 err_msg = ' '.join(self.tool.get_messages(logging.ERROR))
                 msg1 = 'For some control molecule design pools there are no ' \
                        'valid stock tubes available'
