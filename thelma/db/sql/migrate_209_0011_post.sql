@@ -23,7 +23,8 @@ CREATE TABLE tmp_position_map (
 	old_rack_position_id INTEGER NOT NULL
 	  REFERENCES old_rack_position (old_rack_position_id),
 	rack_position_id INTEGER NOT NULL
-	  REFERENCES rack_position (rack_position_id)
+	  REFERENCES rack_position (rack_position_id),
+	CONSTRAINT tmp_old_rack_position_pkey PRIMARY KEY (old_rack_position_id)
 );
 
 -- populate intermediate table, collect old rack positions from the
@@ -73,12 +74,13 @@ CREATE TABLE tmp_position_map (
 	old_rack_position_id INTEGER NOT NULL
 	  REFERENCES old_rack_position (old_rack_position_id),
 	rack_position_id INTEGER NOT NULL
-	  REFERENCES rack_position (rack_position_id)
+	  REFERENCES rack_position (rack_position_id),
+	  CONSTRAINT tmp_old_rack_position_pkey PRIMARY KEY (old_rack_position_id)
 );
 
 INSERT INTO tmp_position_map (old_rack_position_id, rack_position_id)
 	SELECT pos.old_rack_position_id, pos.rack_position_id
-	FROM (SELECT pcd.old_target_position_id AS old_rack_position_id,
+	FROM (SELECT DISTINCT pcd.old_target_position_id AS old_rack_position_id,
 	  rp.rack_position_id AS rack_position_id
 	 FROM planned_container_dilution pcd, old_rack_position orp,
 	   rack_position rp
@@ -101,12 +103,13 @@ CREATE TABLE tmp_position_map (
 	old_rack_position_id INTEGER NOT NULL
 	  REFERENCES old_rack_position (old_rack_position_id),
 	rack_position_id INTEGER NOT NULL
-	  REFERENCES rack_position (rack_position_id)
+	  REFERENCES rack_position (rack_position_id),
+  	CONSTRAINT tmp_old_rack_position_pkey PRIMARY KEY (old_rack_position_id)
 );
 
 INSERT INTO tmp_position_map (old_rack_position_id, rack_position_id)
 	SELECT pos.old_rack_position_id, pos.rack_position_id
-	FROM (SELECT pct.old_source_position_id AS old_rack_position_id,
+	FROM (SELECT DISTINCT pct.old_source_position_id AS old_rack_position_id,
 	  rp.rack_position_id AS rack_position_id
 	 FROM planned_container_transfer pct, old_rack_position orp,
 	   rack_position rp
@@ -129,12 +132,13 @@ CREATE TABLE tmp_position_map (
 	old_rack_position_id INTEGER NOT NULL
 	  REFERENCES old_rack_position (old_rack_position_id),
 	rack_position_id INTEGER NOT NULL
-	  REFERENCES rack_position (rack_position_id)
+	  REFERENCES rack_position (rack_position_id),
+  	CONSTRAINT tmp_old_rack_position_pkey PRIMARY KEY (old_rack_position_id)
 );
 
 INSERT INTO tmp_position_map (old_rack_position_id, rack_position_id)
 	SELECT pos.old_rack_position_id, pos.rack_position_id
-	FROM (SELECT pct.old_target_position_id AS old_rack_position_id,
+	FROM (SELECT DISTINCT pct.old_target_position_id AS old_rack_position_id,
 	  rp.rack_position_id AS rack_position_id
 	 FROM planned_container_transfer pct, old_rack_position orp,
 	   rack_position rp
@@ -158,12 +162,13 @@ CREATE TABLE tmp_position_map (
 	old_rack_position_id INTEGER NOT NULL
 	  REFERENCES old_rack_position (old_rack_position_id),
 	rack_position_id INTEGER NOT NULL
-	  REFERENCES rack_position (rack_position_id)
+	  REFERENCES rack_position (rack_position_id),
+  	CONSTRAINT tmp_old_rack_position_pkey PRIMARY KEY (old_rack_position_id)
 );
 
 INSERT INTO tmp_position_map (old_rack_position_id, rack_position_id)
 	SELECT pos.old_rack_position_id, pos.rack_position_id
-	FROM (SELECT rpsm.old_rack_position_id AS old_rack_position_id,
+	FROM (SELECT DISTINCT rpsm.old_rack_position_id AS old_rack_position_id,
 	  rp.rack_position_id AS rack_position_id
 	 FROM rack_position_set_member rpsm, old_rack_position orp, rack_position rp
 	 WHERE rpsm.old_rack_position_id = orp.old_rack_position_id
