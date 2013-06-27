@@ -29,7 +29,7 @@ begin
    join db_source ds ON ds.db_source_id = cdr.db_source_id
    where ds.db_name::text = 'RefSeq'::text;
    return null;
-end 
+end
 $$ language 'plpgsql';
 
 create trigger refresh_table_refseq_gene after update on current_db_release for each statement execute procedure refresh_table_refseq_gene();
@@ -49,11 +49,13 @@ insert into refseq_gene
 -- supplier_structure_annotation table.
 alter table supplier_molecule_design
     drop column sense_strand;
-  
-    
--- One more timezone-aware timestamp (cf. migration script 209.0007).
-alter table molecule 
-    alter column insert_date type timestamp with time zone using timestamp at time zone 'utc';
 
-  
+-- dropping the obsolete primer_pair_stock_view
+drop view primer_pair_stock_view;
+
+-- One more timezone-aware timestamp (cf. migration script 209.0007).
+alter table molecule
+    alter column insert_date type timestamp with time zone using insert_date at time zone 'utc';
+
+
 CREATE OR REPLACE VIEW db_version AS SELECT 209.0015 AS version;
