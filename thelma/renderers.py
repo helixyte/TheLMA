@@ -192,7 +192,8 @@ class IsoJobWorklistRenderer(ZippedWorklistRenderer):
             optimizer_required_racks = optimizer_required_racks.split(',')
         else:
             optimizer_required_racks = None
-        include_dummy_output = params['include_dummy_output'] == 'true'
+        include_dummy_output = \
+            params.get('include_dummy_output') == 'true'
         tool = IsoXL20WorklistGenerator384Controls(iso_job=entity,
                                      destination_rack_barcode=barcode,
                                      excluded_racks=optimizer_excluded_racks,
@@ -253,7 +254,7 @@ class IsoWorklistRenderer(ZippedWorklistRenderer):
         enforce_cybio_compatibility = params['enforce_multiple_racks'] == 'true'
         optimizer_excluded_racks = params['optimizer_excluded_racks']
         optimizer_required_racks = params['optimizer_required_racks']
-        include_dummy_output = params['include_dummy_output'] == 'true'
+        include_dummy_output = params.get('include_dummy_output') == 'true'
         if len(optimizer_excluded_racks) > 0:
             optimizer_excluded_racks = optimizer_excluded_racks.split(',')
         else:
