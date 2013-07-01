@@ -1,4 +1,4 @@
--e git+http://github.com/cenix/everest/#egg=everest
+-e git+http://github.com/fogathmann/everest-thelma@v15x/#egg=everest
 python-ldap>=2.3.11,<=2.3.99
 psycopg2>=2.5
 pyramid_exclog
