@@ -22,6 +22,8 @@ from thelma.models.tubetransfer import TubeTransfer
 from thelma.models.user import User
 from thelma.utils import get_utc_time
 import logging
+import os
+import glob
 
 __docformat__ = "reStructuredText en"
 
@@ -68,14 +70,14 @@ class RackScanningAdjuster(BaseAutomationTool):
     #: The maximum age a rack scanning timestamp may have.
     MAX_FILE_AGE = 1 # days
 
-    def __init__(self, rack_scanning_stream, adjust_database=False, user=None,
+    def __init__(self, rack_scanning_files, adjust_database=False, user=None,
                  logging_level=logging.WARNING, add_default_handlers=False):
         """
         Constructor:
 
-        :param rack_scanning_stream: The rack scanning stream, either
-            a single rack scanning file or a zip archive containing several
-            files.
+        :param rack_scanning_files The rack scanning stream, either
+            a single rack scanning file, as zip archive or as directory path
+            (if containing several files).
 
         :param adjust_database: Shall the DB be adjusted (*True*) or do
             you only want to have a report (*False*)?
@@ -98,8 +100,10 @@ class RackScanningAdjuster(BaseAutomationTool):
                                     add_default_handlers=add_default_handlers,
                                     depending=False)
 
-        #: The rack scanning stream (single file or zip archive).
-        self.rack_scanning_stream = rack_scanning_stream
+        #: The rack scanning stream (single file, zip archive or directory -
+        #: in case of an directory, :attr:`is_directory` must be *True*).
+        self.rack_scanning_files = rack_scanning_files
+
         #: Shall the DB be adjusted or do you only want to have a report?
         self.adjust_database = adjust_database
         #: The user who wants to update the database.
@@ -169,7 +173,7 @@ class RackScanningAdjuster(BaseAutomationTool):
         self.add_info('Start rack scanning adjust run ...')
 
         self.__check_input()
-        if not self.has_errors(): self.__parse_scanning_file()
+        if not self.has_errors(): self.__parse_scanning_files()
         if not self.has_errors(): self.__fetch_rack_data()
         if not self.has_errors(): self.__find_differences()
         if not self.has_errors(): self.__write_report_stream()
@@ -187,7 +191,7 @@ class RackScanningAdjuster(BaseAutomationTool):
         """
         self.add_debug('Check input values ...')
 
-        if self.rack_scanning_stream is None:
+        if self.rack_scanning_files is None:
             msg = 'The rack scanning stream is None!'
             self.add_error(msg)
 
@@ -196,7 +200,7 @@ class RackScanningAdjuster(BaseAutomationTool):
             if self.adjust_database:
                 self._check_input_class('user', self.user, User)
 
-    def __parse_scanning_file(self):
+    def __parse_scanning_files(self):
         """
         Parses the scanning file(s). The result are stored in
         :attr:`__file_layouts`.
@@ -205,12 +209,42 @@ class RackScanningAdjuster(BaseAutomationTool):
 
         self.__max_age = timedelta(days=self.MAX_FILE_AGE)
         self.__now = get_utc_time()
-        file_map = read_zip_archive(zip_stream=self.rack_scanning_stream)
+
+        file_map = self.__get_files_from_directory()
+        if file_map is None and not self.has_errors():
+            file_map = read_zip_archive(zip_stream=self.rack_scanning_files)
+
         if not file_map is None:
             for fn, stream in file_map.iteritems():
                 self.__parse_rack_scanning_file(stream, fn)
-        else:
-            self.__parse_rack_scanning_file(self.rack_scanning_stream)
+        elif not self.has_errors():
+            try:
+                stream = open(self.rack_scanning_files, 'r')
+            except IOError:
+                stream = self.rack_scanning_files
+            self.__parse_rack_scanning_file(stream)
+
+    def __get_files_from_directory(self):
+        """
+        Generates a file map with the file names as keys and streams as values
+        from the specified directory.
+        """
+        realpath = os.path.realpath(self.rack_scanning_files)
+        if not os.path.isdir(realpath):
+            return None
+
+        file_dir = os.path.realpath(self.rack_scanning_files)
+        file_map = dict()
+        for fn in glob.glob("%s/*.txt" % (file_dir)):
+            strm = open(fn, 'r')
+            file_map[fn] = strm
+
+        if len(file_map) < 1:
+            msg = 'There are no *.TXT files in the specified directory!'
+            self.add_error(msg)
+            return None
+
+        return file_map
 
     def __parse_rack_scanning_file(self, stream, file_name=None):
         """
