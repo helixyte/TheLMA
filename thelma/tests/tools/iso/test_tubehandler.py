@@ -952,7 +952,7 @@ class IsoXL20WorklistGenerator96TestCase(IsoXL20WorklistGeneratorTestCase):
 
     def test_missing_floating_design(self):
         self.VALID_FILE = 'valid_file_96_floatings.xls'
-        self.pool_id = 205280
+        self.pool_id = 205230
         self._test_missing_floating_sample()
         self.__check_racks(number_transfers=3)
 

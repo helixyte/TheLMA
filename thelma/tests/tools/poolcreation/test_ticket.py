@@ -285,7 +285,7 @@ class PoolCreationStockLogFileWriterTestCase(
             ect = ew.executed_transfers[0]
             sample = ect.source_container.sample
             md = sample.sample_molecules[0].molecule.molecule_design
-            mol = Molecule(molecule_design=md, supplier=None)
+            mol = Molecule(molecule_design=md, supplier=self.supplier)
             sample.make_sample_molecule(molecule=mol, concentration=1)
             break
         self._test_and_expect_errors('Some source container contain more ' \

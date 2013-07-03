@@ -24,6 +24,7 @@ from thelma.utils import get_utc_time
 import logging
 import os
 import glob
+from StringIO import StringIO
 
 __docformat__ = "reStructuredText en"
 
@@ -218,18 +219,28 @@ class RackScanningAdjuster(BaseAutomationTool):
             for fn, stream in file_map.iteritems():
                 self.__parse_rack_scanning_file(stream, fn)
         elif not self.has_errors():
-            try:
-                stream = open(self.rack_scanning_files, 'r')
-            except IOError:
+            if isinstance(self.rack_scanning_files, StringIO):
                 stream = self.rack_scanning_files
+            else:
+                try:
+                    stream = open(self.rack_scanning_files, 'r')
+                except IOError:
+                    stream = self.rack_scanning_files
+                except TypeError:
+                    stream = self.rack_scanning_files
             self.__parse_rack_scanning_file(stream)
 
     def __get_files_from_directory(self):
         """
         Generates a file map with the file names as keys and streams as values
-        from the specified directory.
+        from the specified directory. If the file is not a directory, *None*
+        is returned.
         """
-        realpath = os.path.realpath(self.rack_scanning_files)
+        try:
+            realpath = os.path.realpath(self.rack_scanning_files)
+        except AttributeError: # no path
+            return None
+
         if not os.path.isdir(realpath):
             return None
 
