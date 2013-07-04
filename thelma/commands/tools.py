@@ -172,7 +172,7 @@ class ToolCommand(Command):
         cls.__target_class = target_class
 
     @classmethod
-    def finalize(cls, tool):
+    def finalize(cls, tool, options):
         """
         Override this method in derived classes to perform actions after the
         tool has run.
@@ -180,7 +180,7 @@ class ToolCommand(Command):
         pass
 
     @classmethod
-    def report(cls, tool):
+    def report(cls, tool, options):
         """
         Override this method in derived classes to perform reporting actions
         after the tool has run.
@@ -245,7 +245,7 @@ class ToolCommand(Command):
             try:
                 # This gives the tool command a chance to perform actions after
                 # the tool has run.
-                self.__target_class.finalize(tool)
+                self.__target_class.finalize(tool, opts)
             except:
                 transaction.abort()
                 raise
@@ -263,7 +263,7 @@ class ToolCommand(Command):
         #
         self._report_callback()
         try:
-            self.__target_class.report(tool)
+            self.__target_class.report(tool, self.options) # pylint: disable=E1101
         except:
             transaction.abort()
             raise
@@ -319,7 +319,7 @@ class EmptyTubeRegistrarToolCommand(ToolCommand): # no __init__ pylint: disable=
                    ]
 
     @classmethod
-    def finalize(cls, tool):
+    def finalize(cls, tool, options):
         if not tool.has_errors():
             tube_agg = get_root_aggregate(ITube)
             for tube in tool.return_value:
@@ -357,7 +357,7 @@ class _RegistrarCommand(ToolCommand): # no __init__ pylint: disable=W0232
         return [rc.get_entity() for rc in rpr.from_stream(open(value, 'rU'))]
 
     @classmethod
-    def report(cls, tool):
+    def report(cls, tool, options):
         # Write out report files for registered items.
         tool.write_report()
 
@@ -459,7 +459,7 @@ class XL20ExecutorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
                    ]
 
     @classmethod
-    def finalize(cls, tool):
+    def finalize(cls, tool, options):
         if not tool.has_errors():
             tube_transfer_worklist_agg = get_root_aggregate(
                                                     ITubeTransferWorklist)
@@ -498,7 +498,7 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 
 # TODO: think about how to make this prettier
 #    @classmethod
-#    def finalize(cls, tool):
+#    def finalize(cls, tool, options):
 #        if not tool.has_errors():
 #            zip_stream = tool.return_value
 #            file_map = read_zip_archive(zip_stream)
@@ -543,7 +543,7 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #                   ]
 #
 #    @classmethod
-#    def finalize(cls, tool):
+#    def finalize(cls, tool, options):
 #        if not tool.has_errors():
 #            lib_agg = get_root_aggregate(IMoleculeDesignLibrary)
 #            lib_agg.add(tool.return_value)
@@ -631,7 +631,7 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #                   ]
 #
 #    @classmethod
-#    def finalize(cls, tool):
+#    def finalize(cls, tool, options):
 #        if not tool.has_errors():
 #            labels = []
 #            for lci in tool.return_value:
@@ -665,7 +665,7 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #
 #    # TODO: think about how to make this prettier
 #    @classmethod
-#    def finalize(cls, tool):
+#    def finalize(cls, tool, options):
 #        if not tool.has_errors():
 #            iso_label = tool.library_creation_iso.label
 #            fn = '/Users/berger/Desktop/%s.csv' % (iso_label)
@@ -758,7 +758,7 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #                   ]
 #
 ##    @classmethod
-##    def finalize(cls, tool):
+##    def finalize(cls, tool, options):
 ##        if not tool.has_errors():
 ##            uploader = LibraryCreationTicketWorklistUploader(
 ##                        library_creation_iso=tool.library_creation_iso,
@@ -803,7 +803,7 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #                   ]
 #
 ##    @classmethod
-##    def finalize(cls, tool):
+##    def finalize(cls, tool, options):
 ##        if not tool.has_errors():
 ##            reporter = LibraryCreationStockTransferReporter(
 ##                        executor=tool)
@@ -860,7 +860,7 @@ class PoolGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
                    ]
 
     @classmethod
-    def finalize(cls, tool):
+    def finalize(cls, tool, options):
         if not tool.has_errors():
             lib_agg = get_root_aggregate(IMoleculeDesignLibrary)
             lib_agg.add(tool.return_value)
@@ -970,7 +970,7 @@ class PoolCreationWorklistWriterToolCommand(ToolCommand): # no __init__ pylint: 
                    ]
 
 #    @classmethod
-#    def finalize(cls, tool):
+#    def finalize(cls, tool, options):
 #        if not tool.has_errors():
 #            uploader = PoolCreationTicketWorklistUploader(
 #                        pool_creation_iso=tool.pool_creation_iso,
@@ -1016,7 +1016,7 @@ class PoolCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: disabl
                    ]
 #
 #    @classmethod
-#    def finalize(cls, tool):
+#    def finalize(cls, tool, options):
 #        if not tool.has_errors():
 #            reporter = PoolCreationStockTransferReporter(
 #                        executor=tool)
@@ -1100,7 +1100,7 @@ class XL20DummyToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
 
     # TODO: think about how to make this prettier
     @classmethod
-    def finalize(cls, tool):
+    def finalize(cls, tool, options):
         if not tool.has_errors():
             fn = '/Users/berger/Desktop/xl20out.txt'
             o = open(fn, 'w')
