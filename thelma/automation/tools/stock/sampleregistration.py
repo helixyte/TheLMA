@@ -841,19 +841,24 @@ class MoleculeDesignPoolRegistrar(RegistrationTool):
         md_pool_agg = get_root_aggregate(IMoleculeDesignPool)
         mdpri_hash_map = {}
         hash_func = MoleculeDesignPool.make_member_hash
-        new_mdpris = []
+        new_mdpri_map = {}
         new_mds = self.return_value['molecule_designs']
         for mdpri in self.registration_items:
             # By definition, any mdpri that contains one or more new designs
             # must be new. We must treat this as a special case because
             # building member hash values with the new designs does not work
             # reliably since they may not have been flushed yet.
-            if any([mdri.molecule_design in new_mds
-                    for mdri in mdpri.molecule_design_registration_items]):
-                new_mdpris.append(mdpri)
+            mds = [mdri.molecule_design
+                   for mdri in mdpri.molecule_design_registration_items]
+            if any(md in new_mds for md in mds):
+                # We use the *structure* as key for the new pools map here
+                # as this is always available (unlike the design IDs, which
+                # may not have been generated at this point).
+                key = self.__make_new_mdpri_key(mdpri)
+                new_mdpri_map.setdefault(key, []).append(mdpri)
             else:
-                # For all others, we build a list of member hashes that we
-                # then query in a single DB call.
+                # For pools that consist only of existing designs, we build
+                # a list of member hashes that we query in a single DB call.
                 hash_val = \
                         hash_func([mdri.molecule_design
                                    for mdri in
@@ -869,23 +874,34 @@ class MoleculeDesignPoolRegistrar(RegistrationTool):
                 mdpri.molecule_design_pool = mdp
         else:
             existing_mdp_map = {}
-        # Find new molecule design pool registration items.
+        # Determine non-existing molecule design pool registration items and
+        # build up a map (this makes sure the same design is registered at
+        # most once.
         new_mdp_hashes = \
                 set(mdpri_hash_map.keys()).difference(existing_mdp_map.keys())
         for new_mdp_hash in new_mdp_hashes:
-            new_mdpris.append(mdpri_hash_map[new_mdp_hash])
-        if len(new_mdpris) > 0:
+            mdpri = mdpri_hash_map[new_mdp_hash]
+            key = self.__make_new_mdpri_key(mdpri)
+            new_mdpri_map.setdefault(key, []).append(mdpri)
+        if len(new_mdpri_map) > 0:
             new_md_pools = []
-            for mdpri in new_mdpris:
-                # Create new molecule design pool.
+            for mdpris in new_mdpri_map.values():
+                # We use the first mdp registration item to create a
+                # new pool and update all with the latter.
                 md_pool = MoleculeDesignPool(
                         set([mdri.molecule_design
                              for mdri in
-                             mdpri.molecule_design_registration_items]))
+                             mdpris[0].molecule_design_registration_items]))
                 md_pool_agg.add(md_pool)
                 new_md_pools.append(md_pool)
-                mdpri.molecule_design_pool = md_pool
+                for mdpri in mdpris:
+                    mdpri.molecule_design_pool = md_pool
             self.return_value['molecule_design_pools'] = new_md_pools
+
+    def __make_new_mdpri_key(self, mdpri):
+        mds = [mdri.molecule_design
+               for mdri in mdpri.molecule_design_registration_items]
+        return ','.join([md.structure_hash for md in mds])
 
 
 class MoleculeDesignRegistrar(RegistrationTool):
