@@ -131,6 +131,7 @@ class Sample(Entity):
         concentration = 0
         for sm in self.sample_molecules:
             concentration += sm.concentration
+        concentration = round(concentration, 10) # one decimal place if in nM
 
         self.molecule_design_pool = mdp
         self.supplier = mols[0].supplier

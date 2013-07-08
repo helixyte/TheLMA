@@ -1605,8 +1605,14 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
 
         if len(mdp_count) < 1:
             max_well_number = 0
+        elif len(mdp_count) > 96: # remove in future milestones
+            msg = 'You must not order more than 96 different molecule ' \
+                  'design pools for a manual optimisation. Talk to Anna, ' \
+                  'for a workaround, please.'
+            self.add_error(msg)
         else:
             max_well_number = max(mdp_count.values())
+
         if max_well_number > 1:
             msg = 'Each molecule design pool may occur only once for ISO ' \
                   'layouts of %s experiments. If you want to order multiple ' \

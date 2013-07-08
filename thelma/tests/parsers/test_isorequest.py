@@ -947,7 +947,7 @@ class IsoRequestOrderParserTestCase(IsoRequestParserTest):
 
     def test_plate_label_too_long(self):
         self._test_invalid_file('order_plate_label_too_long.xls',
-                'The maximum length for plate set labels is 24 characters ' \
+                'The maximum length for plate set labels is 20 characters ' \
                 '(obtained: "this_label_is_a_little_too_long", 31 characters)')
 
     def test_with_mock_positions(self):

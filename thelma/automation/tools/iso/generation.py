@@ -771,10 +771,9 @@ class IsoCreator(BaseAutomationTool):
 
     def _adjust_one_plate_prep_plate_labels(self, new_iso): #pylint: disable=W0613
         """
-        In case of manual experiment it can be that the preparation plate
-        is already the final cell plate. In this case, we want the
-        plates to have to set plate set labels instead of the preparation
-        plate labels.
+        In manual and order only experiment types the preparation plate is
+        already the final cell plate. In this case, we want the plates to
+        have to set plate set labels instead of the preparation plate labels.
         """
         self.add_error('Abstract method: _adjust_one_plate_prep_plate_labels()')
 
