@@ -50,7 +50,7 @@ __all__ = ['MAX_PLATE_LABEL_LENGTH',
 
 
 #: The maximum length a rack label might have to be printable.
-MAX_PLATE_LABEL_LENGTH = 24
+MAX_PLATE_LABEL_LENGTH = 20
 
 #: Volumes are stored in litres (in the DB), we work in ul.
 VOLUME_CONVERSION_FACTOR = 1e6

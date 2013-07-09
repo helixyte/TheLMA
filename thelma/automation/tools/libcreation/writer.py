@@ -376,7 +376,7 @@ class LibraryCreationWorklistWriter(BaseAutomationTool):
                       '(%s) that are located in positions that should be ' \
                       'empty: %s.' % ((sector_index + 1), barcode,
                                       ', '.join(sorted(add_tube)))
-                self.add_error(msg)
+                self.add_warning(msg)
 
     def __create_sample_stock_racks(self):
         """
@@ -391,6 +391,7 @@ class LibraryCreationWorklistWriter(BaseAutomationTool):
 
         if len(issrs) < 1:
             for sector_index, barcode in self.pool_stock_racks.iteritems():
+                if not worklists.has_key(sector_index): continue
                 rack = self.__rack_map[barcode]
                 worklist = worklists[sector_index]
                 IsoSampleStockRack(iso=self.library_creation_iso,
@@ -415,12 +416,13 @@ class LibraryCreationWorklistWriter(BaseAutomationTool):
         volume = MOLECULE_DESIGN_TRANSFER_VOLUME / VOLUME_CONVERSION_FACTOR
 
         for sector_index in self.pool_stock_racks.keys():
+            if not self.__translated_sectors.has_key(sector_index): continue
+            positions = self.__translated_sectors[sector_index]
             dest_rack_barcodes = self.tube_destination_racks[sector_index]
             label = self.SAMPLE_STOCK_WORKLIST_LABEL \
                     + (self.SAMPLE_STOCK_WORKLIST_DELIMITER.join(
                                                             dest_rack_barcodes))
             worklist = PlannedWorklist(label=label)
-            positions = self.__translated_sectors[sector_index]
             for rack_pos in positions:
                 pct = PlannedContainerTransfer(volume=volume,
                             source_position=rack_pos,
