@@ -413,9 +413,9 @@ class PoolCreationWorklistWriter(BaseAutomationTool):
 
         worklist = self.__create_takeout_worklist()
         issrs = self.pool_creation_iso.iso_sample_stock_racks
+        pool_rack = self.__rack_map[self.pool_stock_rack_barcode]
 
         if len(issrs) < 1:
-            pool_rack = self.__rack_map[self.pool_stock_rack_barcode]
             IsoSampleStockRack(iso=self.pool_creation_iso,
                                rack=pool_rack, sector_index=0,
                                planned_worklist=worklist)
