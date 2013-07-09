@@ -40,6 +40,7 @@ __all__ = ['LibraryCreationExecutor',
            'LibraryCreationStockRackVerifier',
            'LibraryCreationBufferWorklistTransferJobCreator']
 
+#TODO: create stock sampels
 
 class LibraryCreationExecutor(BaseAutomationTool):
     """
