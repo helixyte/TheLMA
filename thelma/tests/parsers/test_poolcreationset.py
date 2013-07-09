@@ -4,13 +4,14 @@ Tests the pool creation ISO request member parser and handler.
 AAB
 """
 
-from thelma.tests.tools.tooltestingutils import ParsingTestCase
-from thelma.automation.parsers.poolcreationset import PoolCreationSetParser
+from everest.entities.utils import get_root_aggregate
 from thelma.automation.handlers.poolcreationset \
     import PoolCreationSetParserHandler
-from everest.entities.utils import get_root_aggregate
+from thelma.automation.parsers.poolcreationset import PoolCreationSetParser
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeType
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
+from thelma.tests.tools.tooltestingutils import ParsingTestCase
 
 class PoolCreationSetParsingTestCase(ParsingTestCase):
 
@@ -136,11 +137,15 @@ class PoolCreationSetParserHandlerTestCase(PoolCreationSetParsingTestCase):
         self.assert_equal(len(exp_pools), len(pool_set))
         found_pool_ids = []
         found_md_lists = []
+        exp_stock_conc = 10000
         for pool in pool_set:
             found_pool_ids.append(pool.id)
             md_ids = []
             for md in pool: md_ids.append(md.id)
             found_md_lists.append(sorted(md_ids))
+            self.assert_equal(pool.default_stock_concentration \
+                              * CONCENTRATION_CONVERSION_FACTOR,
+                              exp_stock_conc)
         self.assert_equal(sorted(found_pool_ids), sorted(exp_pools.values()))
         if exp_md_lists is None:
             exp_md_lists = self._get_expected_molecule_design_ids()

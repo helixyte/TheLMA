@@ -82,6 +82,7 @@ class ExperimentPoolSetParserHandler(BaseParserHandler):
         db_ids = set()
         molecule_design_pools = set()
         stock_concentrations = set()
+
         iterator = agg.iterator()
         while True:
             try:

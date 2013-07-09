@@ -307,8 +307,12 @@ class LibraryCreationExecutor(BaseAutomationTool):
         """
         Converts the position in the ignored position list for the 384-well
         layout into 96-well position.
+
+        Positions for sectors that are not required (might be the case on the
+        last plate) are not checked.
         """
         for sector_index in range(NUMBER_SECTORS):
+            if not self.__library_sectors.has_key(sector_index): continue
             sector_positions = get_sector_positions(sector_index=sector_index,
                             rack_shape=get_384_rack_shape(),
                             number_sectors=NUMBER_SECTORS)
@@ -448,6 +452,8 @@ class LibraryCreationExecutor(BaseAutomationTool):
                 for rack_transfer in aliquot_worklist.planned_transfers:
                     current_index += 1
                     sector_index = rack_transfer.target_sector_index
+                    if not self.__library_sectors.has_key(sector_index):
+                        continue
                     prep_plate = self.__library_source_plates[sector_index]
                     rtj = RackTransferJob(index=current_index,
                                 planned_rack_transfer=rack_transfer,
@@ -713,7 +719,10 @@ class LibraryCreationBufferWorklistTransferJobCreator(BaseAutomationTool):
 
         :param ignored_positions: Target positions that shall be ignored
             during worklist execution (because there is no library position
-            for them).
+            for them). Regard that sectors which are not omitted completely
+            are not stored in the list (the sector index as key is missing).
+            In contrast, sectors without ignored positions have empty
+            lists as values.
         :type ignored_positions: :class:`dict` (rack position list mapped
             onto sector indices).
         """
@@ -725,7 +734,10 @@ class LibraryCreationBufferWorklistTransferJobCreator(BaseAutomationTool):
         self.pool_stock_racks = pool_stock_racks
         #: Target positions that shall be ignored during worklist execution
         #: (because there is no library position for them) mapped onto
-        #: sector indices.
+        #: sector indices. Regard that sectors which are not omitted completely
+        #: are not stored in the list (the sector index as key is missing). In
+        #: contrast, sectors without ignored positions have empty lists as
+        #: values.
         self.ignored_positions = ignored_positions
 
         #: The worklists of the ISO worklist series mapped onto indices.
@@ -813,6 +825,7 @@ class LibraryCreationBufferWorklistTransferJobCreator(BaseAutomationTool):
             worklist = self.__worklist_map[worklist_index]
             if not wl_marker in worklist.label: continue
             sector_index = int(worklist.label[-1]) - 1
+            if not self.ignored_positions.has_key(sector_index): continue
             pool_stock_rack = self.pool_stock_racks[sector_index]
             cdj = ContainerDilutionJob(index=job_index,
                         planned_worklist=worklist,
@@ -855,6 +868,7 @@ class LibraryCreationBufferWorklistTransferJobCreator(BaseAutomationTool):
             worklist = self.__worklist_map[worklist_index]
             if not wl_marker in worklist.label: continue
             sector_index = int(worklist.label[-1]) - 1
+            if not self.ignored_positions.has_key(sector_index): continue
             source_plate = self.__source_plates[sector_index]
             cdj = ContainerDilutionJob(index=job_index,
                        planned_worklist=worklist,
