@@ -312,7 +312,7 @@ class GenericSampleTransferParserTestCase(ParsingTestCase):
         self._check_warning_messages('The label that has been generated ' \
                 'for the new plate "Too_long_label1" ' \
                 '("alphaalpha_Too_long_label1") is longer than ' \
-                '24 characters (26 characters)')
+                '20 characters (26 characters)')
 
     def test_target_reservoir(self):
         self._test_invalid_file('target_reservoir.xls',

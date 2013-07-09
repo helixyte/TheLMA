@@ -626,7 +626,7 @@ class IsoXL20WorklistGeneratorTestCase(ExperimentMetadataReadingTestCase,
         self.pool_id = None
         self.tube_rack_agg = get_root_aggregate(ITubeRack)
         self.racks = dict()
-        self.aliquot_plate_labels = ['tubehandler_test#1']
+        self.aliquot_plate_labels = ['xl20_test#1']
 
     def tear_down(self):
         ExperimentMetadataReadingTestCase.tear_down(self)
@@ -1071,8 +1071,8 @@ class IsoXL20WorklistGenerator384SamplesTestCase(
 
     def test_result_all_quadrants(self):
         self.VALID_FILE = self.VALID_FILE_384_SCREEN
-        self.aliquot_plate_labels = ['p1-p2_double_repeats#1_a1',
-                                     'p1-p2_double_repeats#1_a2']
+        self.aliquot_plate_labels = ['xl20_test#1_a1',
+                                     'xl20_test#1_a2']
         self._continue_setup()
         zip_stream = self.tool.get_result()
         self.assert_is_not_none(zip_stream)
@@ -1092,8 +1092,8 @@ class IsoXL20WorklistGenerator384SamplesTestCase(
 
     def test_result_multiple_sectors(self):
         self.VALID_FILE = 'valid_file_384_screen_multi_sector.xls'
-        self.aliquot_plate_labels = ['p1-p2_double_repeats#1_a1',
-                                     'p1-p2_double_repeats#1_a2']
+        self.aliquot_plate_labels = ['screen_multi#1_a1',
+                                     'screen_multi#1_a2']
         self._continue_setup()
         zip_stream = self.tool.get_result()
         self.assert_is_not_none(zip_stream)
