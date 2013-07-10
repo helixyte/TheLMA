@@ -70,10 +70,12 @@ class PoolCreationSetParser(ExcelFileParser):
         self.add_info('Start parsing ...')
 
         wb = self.open_workbook()
-        self.sheet = self.get_sheet_by_name(wb, self.SHEET_NAME)
-        parsing_container = _PoolCreationSetParsingContainer(parser=self,
-                                                             sheet=self.sheet)
-        if not self.has_errors(): parsing_container.determine_column_indeces()
+        self.sheet = self.get_sheet_by_name(wb, self.SHEET_NAME,
+                                            raise_error=True)
+        if not self.has_errors():
+            parsing_container = _PoolCreationSetParsingContainer(parser=self,
+                                                            sheet=self.sheet)
+            parsing_container.determine_column_indeces()
         if not self.has_errors(): parsing_container.parse_columns()
         if not self.has_errors():
             self.add_info('Parsing completed.')

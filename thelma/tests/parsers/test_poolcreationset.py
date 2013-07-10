@@ -89,6 +89,10 @@ class PoolCreationSetParserTestCase(PoolCreationSetParsingTestCase):
         del exp_pools[3]
         self.__check_result('valid_file_mixed.xls', exp_md_lists, exp_pools)
 
+    def test_no_valid_sheet(self):
+        self.__test_and_expect_errors('no_valid_sheet.xls',
+                                  'There is no sheet called "Molecule Designs"')
+
     def test_no_valid_column(self):
         self.__test_and_expect_errors('no_column.xls',
                   'Unable to find a molecule design data column. A valid ' \
