@@ -15,7 +15,7 @@ from everest.entities.utils import get_root_aggregate
 from thelma.automation.handlers.base \
     import MoleculeDesignPoolLayoutParserHandler
 from thelma.automation.parsers.isorequest import IsoRequestParser
-from thelma.automation.tools.libcreation.base import LibraryBaseLayoutConverter
+#from thelma.automation.tools.libcreation.base import LibraryBaseLayoutConverter
 from thelma.automation.tools.metadata.transfection_utils \
     import TransfectionAssociationData
 from thelma.automation.tools.metadata.transfection_utils import \

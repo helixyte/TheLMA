@@ -66,8 +66,8 @@ from thelma.automation.tools.writers import create_zip_archive
 from thelma.interfaces import ITubeRack
 from thelma.models.iso import Iso
 from thelma.models.iso import IsoAliquotPlate
-from thelma.models.iso import IsoControlStockRack
-from thelma.models.iso import IsoSampleStockRack
+from thelma.models.iso import IsoJobStockRack
+from thelma.models.iso import IsoStockRack
 from thelma.models.job import IsoJob
 import logging
 

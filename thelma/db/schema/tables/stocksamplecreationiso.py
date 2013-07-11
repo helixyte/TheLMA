@@ -1,7 +1,8 @@
 """
-Library creation ISO table
+Stock sample creation ISO table
 """
 
+from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
@@ -14,10 +15,11 @@ __all__ = ['create_table']
 
 def create_table(metadata, iso_tbl):
     '''Table factory'''
-    tbl = Table('library_creation_iso', metadata,
+    tbl = Table('stock_sample_creation_iso', metadata,
                 Column('iso_id', Integer,
-                       ForeignKey(iso_tbl.c.iso_id),
-                       nullable=False, primary_key=True),
+                       ForeignKey(iso_tbl.c.iso_id,
+                                  ondelete='CASCADE', onupdate='CASCADE'),
+                       nullable=False),
                 Column('ticket_number', Integer,
                        CheckConstraint('ticket_number > 0'),
                        nullable=False),
@@ -25,5 +27,7 @@ def create_table(metadata, iso_tbl):
                        CheckConstraint('layout_number > 0'),
                        nullable=False),
                 )
+
+    PrimaryKeyConstraint(tbl.c.iso_id)
 
     return tbl

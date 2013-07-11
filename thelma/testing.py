@@ -5,7 +5,6 @@ NP
 """
 
 from datetime import datetime
-from everest.entities.utils import get_root_aggregate
 from everest.mime import AtomMime
 from everest.repositories.rdb import Session
 from everest.representers.atom import XML_NS_ATOM
@@ -13,10 +12,11 @@ from everest.representers.atom import XML_PREFIX_ATOM
 from everest.representers.utils import get_mapping_registry
 from everest.testing import EntityTestCase
 from everest.testing import FunctionalTestCase
+from everest.testing import RdbContextManager
 from everest.testing import ResourceTestCase
+from everest.testing import check_attributes
 from iso8601 import iso8601
 from lxml import etree
-from thelma.automation.tools.utils.iso import IsoLayout
 from thelma.interfaces import IContainer
 from thelma.interfaces import IDeviceType
 from thelma.interfaces import IExperiment
@@ -24,9 +24,7 @@ from thelma.interfaces import IExperimentDesign
 from thelma.interfaces import IExperimentDesignRack
 from thelma.interfaces import IExperimentMetadataType
 from thelma.interfaces import IIso
-from thelma.interfaces import IIsoRequest
 from thelma.interfaces import IItemStatus
-from thelma.interfaces import IJobType
 from thelma.interfaces import ILocationType
 from thelma.interfaces import IMolecule
 from thelma.interfaces import IMoleculeDesign
@@ -66,19 +64,18 @@ from thelma.models.experiment import ExperimentDesignRack
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.experiment import ExperimentRack
 from thelma.models.gene import Gene
-from thelma.models.iso import Iso
 from thelma.models.iso import IsoAliquotPlate
-from thelma.models.iso import IsoControlStockRack
+from thelma.models.iso import IsoJobStockRack
 from thelma.models.iso import IsoPreparationPlate
-from thelma.models.iso import IsoRequest
-from thelma.models.iso import IsoSampleStockRack
+from thelma.models.iso import IsoSectorPreparationPlate
+from thelma.models.iso import IsoSectorStockRack
+from thelma.models.iso import IsoStockRack
+from thelma.models.iso import LabIso
+from thelma.models.iso import LabIsoRequest
+from thelma.models.iso import StockSampleCreationIso
+from thelma.models.iso import StockSampleCreationIsoRequest
 from thelma.models.job import ExperimentJob
 from thelma.models.job import IsoJob
-from thelma.models.job import JOB_STATUS_TYPES
-from thelma.models.job import JobType
-from thelma.models.job import OtherJob
-from thelma.models.library import LibraryCreationIso
-from thelma.models.library import LibrarySourcePlate
 from thelma.models.library import MoleculeDesignLibrary
 from thelma.models.liquidtransfer import ExecutedContainerDilution
 from thelma.models.liquidtransfer import ExecutedContainerTransfer
@@ -128,7 +125,6 @@ from thelma.resources.experiment import ExperimentMember
 from thelma.resources.experiment import ExperimentRackMember
 from thelma.resources.gene import GeneMember
 from thelma.resources.job import JobMember
-from thelma.resources.jobtype import JobTypeMember
 from thelma.resources.location import LocationMember
 from thelma.resources.moleculetype import MoleculeTypeMember
 from thelma.resources.organization import OrganizationMember
@@ -145,6 +141,7 @@ from thelma.resources.subproject import SubprojectMember
 from tractor import make_api_from_config
 import pytz
 import transaction
+from everest.testing import persist
 
 __docformat__ = 'reStructuredText en'
 
@@ -262,11 +259,15 @@ class EntityCreatorMixin(object):
             kw['experiment_design'] = self._get_entity(IExperimentDesign)
         if not 'experiment_racks' in kw:
             kw['experiment_racks'] = [self._create_experiment_rack()]
-        return self._create_entity(Experiment, kw)
+        exp = self._create_entity(Experiment, kw)
+        self._create_experiment_job(experiments=[exp])
+        return exp
 
     def _create_experiment_design(self, **kw):
         if not 'rack_shape' in kw:
             kw['rack_shape'] = self._get_entity(IRackShape)
+        if not 'experiment_metadata' in kw:
+            kw['experiment_metadata'] = self._create_experiment_metadata()
         return self._create_entity(ExperimentDesign, kw)
 
     def _create_experiment_design_rack(self, **kw):
@@ -274,18 +275,13 @@ class EntityCreatorMixin(object):
             kw['label'] = 'TestExperimentDesignRack'
         if not 'rack_layout' in kw:
             kw['rack_layout'] = self._get_entity(IRackLayout)
+        if not 'experiment_design' in kw:
+            kw['experiment_design'] = self._create_experiment_design()
         return self._create_entity(ExperimentDesignRack, kw)
 
     def _create_experiment_job(self, **kw):
-#        kw['type'] = JOB_TYPES.RNAI_EXPERIMENT
-        jt_agg = get_root_aggregate(IJobType)
-        kw['job_type'] = jt_agg.get_by_id('11')
         if not 'label' in kw:
             kw['label'] = 'TestExperimentJob'
-        if not 'description' in kw:
-            kw['description'] = 'TestDescription'
-        if not 'status' in kw:
-            kw['status'] = JOB_STATUS_TYPES.QUEUED
         if not 'user' in kw:
             kw['user'] = self._get_entity(IUser, 'it')
         if not 'experiments' in kw:
@@ -299,6 +295,8 @@ class EntityCreatorMixin(object):
             kw['subproject'] = self._get_entity(ISubproject)
         if not 'number_replicates' in kw:
             kw['number_replicates'] = 3
+        if not 'ticket_number' in kw:
+            kw['ticket_number'] = 99999
         if not 'experiment_metadata_type' in kw:
             kw['experiment_metadata_type'] = self._get_entity(
                                                     IExperimentMetadataType)
@@ -320,23 +318,79 @@ class EntityCreatorMixin(object):
             kw['species'] = self._get_entity(ISpecies)
         return self._create_entity(Gene, kw)
 
-    def _create_iso(self, **kw):
+    def _create_iso_job(self, **kw):
+        if not 'isos' in kw:
+            iso_request = self._create_lab_iso_request()
+            kw['isos'] = [self._create_lab_iso(iso_request=iso_request)]
+        if not 'label' in kw:
+            kw['label'] = 'IsoJobTestLabel'
+        if not 'user' in kw:
+            kw['user'] = self._get_entity(IUser, 'it')
+        return self._create_entity(IsoJob, kw)
+
+    def _create_lab_iso_request(self, **kw):
+        if not 'label' in kw:
+            kw['label'] = 'LabIsoRequest.Label.Test'
+        if not 'requester' in kw:
+            kw['requester'] = self._get_entity(IUser, 'it')
+        if not 'iso_plate_reservoir_specs' is None:
+            kw['iso_plate_reservoir_specs'] = self._get_entity(IReservoirSpecs)
+        return self._create_entity(LabIsoRequest, kw)
+
+    def _create_stock_sample_creation_iso_request(self, **kw):
+        if not 'label' in kw:
+            kw['label'] = 'StockSampleCreationIsoRequest.Label.Test'
+        if not 'stock_volume' in kw:
+            kw['stock_volume'] = 0.0001
+        if not 'stock_concentration' in kw:
+            kw['stock_concentration'] = 0.0001
+        if not 'number_designs' in kw:
+            kw['number_designs'] = 2
+        return self._create_entity(StockSampleCreationIsoRequest, kw)
+
+    def _create_lab_iso(self, **kw):
         if not 'label' in kw:
             kw['label'] = 'TestISO'
         if not 'rack_layout' in kw:
-            kw['rack_layout'] = RackLayout(shape=self._get_entity(IRackShape))
-        if not 'iso_request' in kw:
-            kw['iso_request'] = self._get_entity(IIsoRequest)
-        return self._create_entity(Iso, kw)
+            kw['rack_layout'] = self._create_rack_layout()
+        return self._create_entity(LabIso, kw)
 
-    def _create_iso_aliquot_plate(self, **kw):
+    def _create_stock_sample_creation_iso(self, **kw):
+        if not 'label' in kw:
+            kw['label'] = 'Lib ISO 15'
+        if not 'ticket_number' in kw:
+            kw['ticket_number'] = 9876
+        if not 'layout_number' in kw:
+            kw['layout_number'] = 15
+        if not 'rack_layout' in kw:
+            kw['rack_layout'] = self._create_rack_layout()
+        return self._create_entity(StockSampleCreationIso, kw)
+
+    def _create_iso_stock_rack(self, **kw):
         if not 'iso' in kw:
             kw['iso'] = self._get_entity(IIso)
-        if not 'plate' in kw:
-            kw['plate'] = self._get_entity(IPlate)
-        return self._create_entity(IsoAliquotPlate, kw)
+        if not 'rack' in kw:
+            kw['rack'] = self._get_entity(ITubeRack)
+        if not 'rack_layout' in kw:
+            kw['rack_layout'] = self._create_rack_layout()
+        if not 'planned_worklist' in kw:
+            kw['planned_worklist'] = self._create_planned_worklist()
+        return self._create_entity(IsoStockRack, kw)
 
-    def _create_iso_control_stock_rack(self, **kw):
+    def _create_iso_sector_stock_rack(self, **kw):
+        if not 'iso' in kw:
+            kw['iso'] = self._get_entity(IIso)
+        if not 'rack' in kw:
+            kw['rack'] = self._get_entity(ITubeRack)
+        if not 'sector_index' in kw:
+            kw['sector_index'] = 0
+        if not 'rack_layout' in kw:
+            kw['rack_layout'] = self._create_rack_layout()
+        if not 'planned_worklist' in kw:
+            kw['planned_worklist'] = self._create_planned_worklist()
+        return self._create_entity(IsoSectorStockRack, kw)
+
+    def _create_iso_job_stock_rack(self, **kw):
         if not 'iso_job' in kw:
             kw['iso_job'] = self._create_iso_job()
         if not 'rack' in kw:
@@ -345,84 +399,36 @@ class EntityCreatorMixin(object):
             kw['rack_layout'] = self._create_rack_layout()
         if not 'planned_worklist' in kw:
             kw['planned_worklist'] = self._create_planned_worklist()
-        return self._create_entity(IsoControlStockRack, kw)
+        return self._create_entity(IsoJobStockRack, kw)
 
-    def _create_iso_job(self, **kw):
-        jt_agg = get_root_aggregate(IJobType)
-        kw['job_type'] = jt_agg.get_by_id('15')
-#        kw['type'] = JOB_TYPES.ISO_PROCESSING
-        if not 'isos' in kw:
-            kw['isos'] = [self._create_iso()]
-        if not 'label' in kw:
-            kw['label'] = 'IsoJobTestLabel'
-        if not 'user' in kw:
-            kw['user'] = self._get_entity(IUser, 'it')
-        return self._create_entity(IsoJob, kw)
+    def _create_iso_aliquot_plate(self, **kw):
+        if not 'iso' in kw:
+            kw['iso'] = self._get_entity(IIso)
+        if not 'rack' in kw:
+            kw['rack'] = self._get_entity(IPlate)
+        if not 'has_been_used' in kw:
+            kw['has_been_used'] = False
+        return self._create_entity(IsoAliquotPlate, kw)
 
     def _create_iso_preparation_plate(self, **kw):
         if not 'iso' in kw:
             kw['iso'] = self._get_entity(IIso)
-        if not 'plate' in kw:
-            kw['plate'] = self._get_entity(IPlate)
+        if not 'rack' in kw:
+            kw['rack'] = self._get_entity(IPlate)
+        if not 'rack_layout' in kw:
+            kw['rack_layout'] = self._create_rack_layout()
         return self._create_entity(IsoPreparationPlate, kw)
 
-    def _create_iso_rack_layout(self, **kw):
-        if not 'shape' in kw:
-            kw['shape'] = self._get_entity(IRackShape, key='8x12')
-        if not 'user' in kw:
-            kw['user'] = self._get_entity(IUser, key='it')
-        return self._create_entity(IsoLayout, kw)
-
-    def _create_iso_request(self, **kw):
-        if not 'iso_layout' in kw:
-            kw['iso_layout'] = self._create_rack_layout()
-        if not 'requester' in kw:
-            kw['requester'] = self._get_entity(IUser, 'it')
-        if not 'plate_set_label' in kw:
-            kw['plate_set_label'] = 'IsoRequest.PlateSetLabel.Test'
-        return self._create_entity(IsoRequest, kw)
-
-    def _create_iso_sample_stock_rack(self, **kw):
+    def _create_iso_sector_preparation_plate(self, **kw):
         if not 'iso' in kw:
             kw['iso'] = self._get_entity(IIso)
         if not 'rack' in kw:
-            kw['rack'] = self._get_entity(ITubeRack)
-        if not 'sector_index' in kw:
-            kw['sector_index'] = 0
-        if not 'planned_worklist' in kw:
-            kw['planned_worklist'] = self._create_planned_worklist()
-        return self._create_entity(IsoSampleStockRack, kw)
-
-    def _create_job_type(self, **kw):
-        if not 'name' in kw:
-            kw['name'] = 'TestJobTypeName'
-        if not 'label' in kw:
-            kw['label'] = 'TestJobTypeLabel'
-        if not 'xml' in kw:
-            kw['xml'] = '<xml>dummy_xml</xml>'
-        return self._create_entity(JobType, kw)
-
-    def _create_library_creation_iso(self, **kw):
-        if not 'label' in kw:
-            kw['label'] = 'Lib ISO 15'
-        if not 'ticket_number' in kw:
-            kw['ticket_number'] = 9876
-        if not 'layout_number' in kw:
-            kw['layout_number'] = 15
-        if not 'iso_request' in kw:
-            kw['iso_request'] = self._create_iso_request()
+            kw['rack'] = self._get_entity(IPlate)
         if not 'rack_layout' in kw:
             kw['rack_layout'] = self._create_rack_layout()
-        return self._create_entity(LibraryCreationIso, kw)
-
-    def _create_library_source_plate(self, **kw):
-        if not 'iso' in kw:
-            kw['iso'] = self._get_entity(IIso)
-        if not 'plate' in kw:
-            kw['plate'] = self._get_entity(IPlate)
         if not 'sector_index' in kw:
             kw['sector_index'] = 2
-        return self._create_entity(LibrarySourcePlate, kw)
+        return self._create_entity(IsoSectorPreparationPlate, kw)
 
     def _create_location_type(self, **kw):
         if not 'name' in kw:
@@ -449,7 +455,7 @@ class EntityCreatorMixin(object):
 
     def _create_molecule_design_library(self, **kw):
         if not 'label' in kw:
-            kw['label'] = 'MoleculeDesignLibrary.Label.Test'
+            kw['label'] = 'libtest'
         if not 'molecule_design_pool_set' in kw:
             kw['molecule_design_pool_set'] = \
                 self._create_molecule_design_pool_set()
@@ -476,21 +482,6 @@ class EntityCreatorMixin(object):
         if not 'name' in kw:
             kw['name'] = 'TestOrganization'
         return self._create_entity(Organization, kw)
-
-    def _create_other_job(self, **kw):
-        if not 'label' in kw:
-            kw['label'] = 'TestOtherJob.Label'
-        if not 'job_type' in kw:
-            kw['job_type'] = self._get_entity(IJobType, 'DILUTION')
-        if not 'subproject' in kw:
-            kw['subproject'] = self._get_entity(ISubproject)
-        if not 'description' in kw:
-            kw['description'] = 'TestDescription'
-        if not 'status' in kw:
-            kw['status'] = JOB_STATUS_TYPES.QUEUED
-        if not 'user' in kw:
-            kw['user'] = self._get_entity(IUser, 'it')
-        return self._create_entity(OtherJob, kw)
 
     def _create_planned_container_dilution(self, **kw):
         if not 'volume' in kw:
@@ -824,6 +815,51 @@ class ThelmaModelTestCase(EntityTestCase, EntityCreatorMixin):
         Session.remove()
         EntityTestCase.tear_down(self)
 
+class ThelmaEntityTestCase(ThelmaModelTestCase):
+
+    model_class = None
+
+    def _get_data(self):
+        raise NotImplementedError('Abstract method')
+
+    def _test_init(self, attrs=None, abstract_class=False):
+        if attrs is None:
+            attrs = self._get_data()
+        if abstract_class:
+            self.assert_raises(NotImplementedError, self.model_class, **attrs)
+        else:
+            entity = self.model_class(**attrs) #pylint: disable=E1102
+            self.assert_is_not_none(entity)
+            check_attributes(entity, attrs)
+            return entity
+
+    def _test_load(self):
+        with RdbContextManager() as session:
+            query = session.query(self.model_class)
+            entities = query.limit(2).all()
+            self.assert_equal(len(entities), 2)
+            for entity in entities:
+                self.assert_equal(entity.__class__, self.model_class)
+
+    def _test_persist(self):
+        with RdbContextManager() as session:
+            attrs = self._get_data()
+            persist(session, self.model_class, attrs, True)
+
+    def _test_id_based_equality(self, create_meth, alt_create_meth=None):
+        ent1 = create_meth(id= -1)
+        ent2 = create_meth(id= -2)
+        ent3 = create_meth(**self._get_data())
+        ent3.id = ent1.id
+        self.assert_not_equal(ent1, ent2)
+        self.assert_equal(ent1, ent3)
+        if alt_create_meth is None:
+            self.assert_not_equal(ent1, 1)
+        else:
+            alt_ent = alt_create_meth()
+            alt_ent.id = ent1.id
+            self.assert_not_equal(ent1, alt_ent)
+
 
 class ThelmaResourceTestCase(ResourceTestCase, EntityCreatorMixin):
     """
@@ -885,12 +921,8 @@ class ThelmaResourceTestCase(ResourceTestCase, EntityCreatorMixin):
         return self._create_member(GeneMember, gene)
 
     def _create_job_member(self):
-        job = self._create_other_job()
+        job = self._create_experiment_job()
         return self._create_member(JobMember, job)
-
-    def _create_job_type_member(self):
-        job_type = self._create_job_type()
-        return self._create_member(JobTypeMember, job_type)
 
     def _create_moleculetype_member(self):
         molecule_type = self._create_molecule_type()

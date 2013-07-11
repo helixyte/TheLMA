@@ -19,25 +19,26 @@ from thelma.db.schema.tables import experimentdesignrack
 from thelma.db.schema.tables import experimentdesigntaggedrackpositionset
 from thelma.db.schema.tables import experimentmetadata
 from thelma.db.schema.tables import experimentmetadataisorequest
-from thelma.db.schema.tables import experimentmetadatapoolset
 from thelma.db.schema.tables import experimentmetadatatype
 from thelma.db.schema.tables import experimentrack
 from thelma.db.schema.tables import experimentrackjob
 from thelma.db.schema.tables import experimentsourcerack
 from thelma.db.schema.tables import iso
 from thelma.db.schema.tables import isoaliquotplate
-from thelma.db.schema.tables import isocontrolstockrack
-from thelma.db.schema.tables import isojob
 from thelma.db.schema.tables import isojobmember
+from thelma.db.schema.tables import isojobstockrack
+from thelma.db.schema.tables import isoplate
 from thelma.db.schema.tables import isopoolset
 from thelma.db.schema.tables import isopreparationplate
 from thelma.db.schema.tables import isorequest
-from thelma.db.schema.tables import isosamplestockrack
+from thelma.db.schema.tables import isorequestpoolset
+from thelma.db.schema.tables import isorequestracklayout
+from thelma.db.schema.tables import isosectorpreparationplate
+from thelma.db.schema.tables import isosectorstockrack
+from thelma.db.schema.tables import isostockrack
 from thelma.db.schema.tables import itemstatus
 from thelma.db.schema.tables import job
-from thelma.db.schema.tables import jobtype
-from thelma.db.schema.tables import librarycreationiso
-from thelma.db.schema.tables import librarysourceplate
+from thelma.db.schema.tables import labisorequest
 from thelma.db.schema.tables import molecule
 from thelma.db.schema.tables import moleculedesign
 from thelma.db.schema.tables import moleculedesigngene
@@ -77,7 +78,10 @@ from thelma.db.schema.tables import samplemolecule
 from thelma.db.schema.tables import sampleregistration
 from thelma.db.schema.tables import singlesuppliermoleculedesign
 from thelma.db.schema.tables import species
+from thelma.db.schema.tables import stockrack
 from thelma.db.schema.tables import stocksample
+from thelma.db.schema.tables import stocksamplecreationiso
+from thelma.db.schema.tables import stocksamplecreationisorequest
 from thelma.db.schema.tables import subproject
 from thelma.db.schema.tables import suppliermoleculedesign
 from thelma.db.schema.tables import supplierstructureannotation
@@ -189,9 +193,7 @@ def initialize_tables(metadata):
 
     subproject_tbl = subproject.create_table(metadata, project_tbl)
 
-    job_type_tbl = jobtype.create_table(metadata)
-    job_tbl = job.create_table(metadata, job_type_tbl, dbuser_tbl,
-                               subproject_tbl)
+    job_tbl = job.create_table(metadata, dbuser_tbl)
 
     pipetting_specs_tbl = pipettingspecs.create_table(metadata)
     reservoir_specs_tbl = reservoirspecs.create_table(metadata, rack_shape_tbl)
@@ -230,8 +232,16 @@ def initialize_tables(metadata):
     tube_transfer_worklist_member_tbl = tubetransferworklistmember.create_table(
                         metadata, tube_transfer_tbl, tube_transfer_worklist_tbl)
 
-    iso_request_tbl = isorequest.create_table(metadata, rack_layout_tbl,
-                        dbuser_tbl)
+    iso_request_tbl = isorequest.create_table(metadata)
+    iso_request_rack_layout_tbl = isorequestracklayout.create_table(metadata,
+                                            iso_request_tbl, rack_layout_tbl)
+    iso_request_pool_set_tbl = isorequestpoolset.create_table(metadata,
+                                  iso_request_tbl, molecule_design_pool_set_tbl)
+    lab_iso_request_tbl = labisorequest.create_table(metadata, iso_request_tbl,
+                                            dbuser_tbl, reservoir_specs_tbl)
+    stock_sample_creation_iso_request = stocksamplecreationisorequest.\
+                                        create_table(metadata, iso_request_tbl)
+
     experiment_metadata_type_tbl = experimentmetadatatype.create_table(metadata)
     experiment_metadata_tbl = experimentmetadata.create_table(metadata,
                     subproject_tbl, experiment_metadata_type_tbl)
@@ -263,28 +273,28 @@ def initialize_tables(metadata):
     experiment_metadata_iso_request_tbl = experimentmetadataisorequest.\
                     create_table(metadata, experiment_metadata_tbl,
                                  iso_request_tbl)
-    experiment_metadata_pool_set_tbl = experimentmetadatapoolset.create_table(
-                            metadata, experiment_metadata_tbl,
-                            molecule_design_pool_set_tbl)
     iso_tbl = iso.create_table(metadata, iso_request_tbl, rack_layout_tbl)
-    library_creation_iso_tbl = librarycreationiso.create_table(metadata,
-                                                               iso_tbl)
-    library_source_plate_tbl = librarysourceplate.create_table(metadata,
-                                    library_creation_iso_tbl, rack_tbl)
+    stock_sample_creation_iso_tbl = stocksamplecreationiso.create_table(
+                                                            metadata, iso_tbl)
     iso_pool_set_tbl = isopoolset.create_table(metadata, iso_tbl,
                                                molecule_design_pool_set_tbl)
-    iso_job_tbl = isojob.create_table(metadata, job_tbl)
     iso_job_member_tbl = isojobmember.create_table(metadata, job_tbl, iso_tbl)
 
-    iso_control_tock_rack_tbl = isocontrolstockrack.create_table(metadata,
-                iso_job_tbl, rack_layout_tbl, rack_tbl, planned_worklist_tbl)
-    iso_sample_stock_rack_tbl = isosamplestockrack.create_table(metadata,
-                            iso_tbl, rack_tbl, planned_worklist_tbl)
-    iso_aliquot_plate_tbl = isoaliquotplate.create_table(metadata, iso_tbl,
-                                                        rack_tbl)
+    stock_rack_tbl = stockrack.create_table(metadata, rack_tbl, rack_layout_tbl,
+                                            planned_worklist_tbl)
+    iso_job_stock_rack_tbl = isojobstockrack.create_table(metadata,
+                                                    stock_rack_tbl, job_tbl)
+    iso_stock_rack_tbl = isostockrack.create_table(metadata, stock_rack_tbl,
+                                                   iso_tbl)
+    iso_sector_stock_rack_tbl = isosectorstockrack.create_table(metadata,
+                                                        stock_rack_tbl, iso_tbl)
+    iso_plate_tbl = isoplate.create_table(metadata, iso_tbl, rack_tbl)
+    iso_aliquot_plate_tbl = isoaliquotplate.create_table(metadata,
+                                                         iso_plate_tbl)
     iso_preparation_plate_tbl = isopreparationplate.create_table(metadata,
-                                                        iso_tbl, rack_tbl)
-
+                                             iso_plate_tbl, rack_layout_tbl)
+    iso_sector_preparation_plate_tbl = isosectorpreparationplate.create_table(
+                                      metadata, iso_plate_tbl, rack_layout_tbl)
     experiment_rack_job_tbl = experimentrackjob.create_table(
                     metadata, job_tbl, experiment_rack_tbl)
 

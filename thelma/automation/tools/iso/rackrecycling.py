@@ -14,7 +14,7 @@ from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import get_experiment_type_screening
 from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.models.iso import IsoControlStockRack
+from thelma.models.iso import IsoJobStockRack
 from thelma.models.job import IsoJob
 from thelma.models.rack import TubeRack
 import logging

@@ -75,7 +75,7 @@ class ExperimentDesignRackMember(Member):
     relation = "%s/experiment-design-rack" % RELATION_BASE_URL
     title = attribute_alias('label')
     label = terminal_attribute(str, 'label')
-    rack_layout = member_attribute(IRackLayout, 'layout')
+    rack_layout = member_attribute(IRackLayout, 'rack_layout')
     tags = collection_attribute(ITag, 'tags')
 
 
@@ -91,7 +91,7 @@ class ExperimentDesignMember(Member):
     title = terminal_attribute(str, 'slug')
     rack_shape = member_attribute(IRackShape, 'rack_shape')
     experiment_design_racks = collection_attribute(IExperimentDesignRack,
-                                                   'design_racks')
+                                                   'experiment_design_racks')
     experiments = collection_attribute(IExperiment, 'experiments')
     experiment_metadata = member_attribute(IExperimentMetadata,
                                            'experiment_metadata')

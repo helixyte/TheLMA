@@ -10,222 +10,88 @@ from everest.entities.utils import slug_from_string
 
 __docformat__ = 'reStructuredText en'
 
-__all__ = ['ISO_STATUS',
-           'ISO_TYPES',
-           'Iso',
+__all__ = ['ISO_TYPES',
            'IsoRequest',
-           'IsoControlStockRack',
-           'IsoSampleStockRack',
+           'LabIsoRequest',
+           'StockSampleCreationIsoRequest',
+           'ISO_STATUS',
+           'Iso',
+           'LabIso',
+           'StockSampleCreationIso',
+           'STOCK_RACK_TYPES',
+           'StockRack',
+           'IsoJobStockRack',
+           'IsoStockRack',
+           'IsoSectorStockRack',
+           'ISO_PLATE_TYPES',
+           'IsoAliquotPlate',
            'IsoPreparationPlate',
-           'IsoAliquotPlate']
-
-
-class ISO_STATUS(object):
-    QUEUED = 'queued' # no transfers to far
-    PREPARED = 'prepared' # contains controls
-    IN_PROGRESS = 'in_progress' # contains controls and samples
-    DONE = 'done' # aliquot plates are completed
-    CANCELLED = 'canceled'
-    REOPENED = 'reopened'
+           'IsoSectorPreparationPlate']
 
 
 class ISO_TYPES(object):
-    STANDARD = 'STANDARD'
-    LIBRARY_CREATION = 'LIBRARY_CREATION'
-
-
-class Iso(Entity):
-    """
-    ISO is the abbreviation for \'Internal Sample Order\'. An ISO
-    always corresponds to one rack (source rack in terms of experiments).
-    The layout for the rack to be delivered is defined by a
-    :class:`IsoRequest`, whereas the actual molecule designs to insert
-    are delivered from a molecule design set
-    (:class:`thelma.models.moleculedesign.MoleculeDesign`; both to be
-    addressed via the experiment metadata
-    :class:`thelma.models.experiment.ExperimentMetadata`)
-
-    **Equality condition**: equal :attr:`iso_request` and equal :attr:`label`
-    """
-
-    #: A (human-readable) label.
-    label = None
-    #: The ISO request holding the ISO rack layout for this ISO
-    #: (:class:`IsoRequest`)
-    iso_request = None
-    #: The status of the ISO.
-    status = None
-    #: comma separated list of stock racks id to be ignored by the optimizer
-    optimizer_excluded_racks = None
-    #: comma separated list of stock racks id to be used by the optimizer
-    optimizer_required_racks = None
-    #: The rack layout (:class:`thelma.models.racklayout.RackLayout`)
-    #: containing the information about how to set up the preparation plate.
-    rack_layout = None
-    #: The ISO job this ISO belongs to (:class:`IsoJob`).
-    iso_job = None
-    #: The ISO sample stocks rack for this ISO
-    #: (set of :class:`IsoSampleStockRack`).
-    iso_sample_stock_racks = None
-    #: The ISO preparation plate for this ISO (:class:`IsoPreparationPlate`).
-    iso_preparation_plate = None
-    #: The aliquot plates for this ISO (the plates actually ordered; set of
-    #: :class:`IsoAliquotPlate`).
-    iso_aliquot_plates = None
-    #: This set contains the molecule design pools applied to this ISO. The set
-    #: is a subset of the experiment metadata or library pool set.
-    molecule_design_pool_set = None
-
-    #: The type of the ISO (see :class:`ISO_TYPES` - standard or library
-    #: creation).
-    iso_type = None
-
-    #: the status the ISO is set to if no other status is specified (*queued*).
-    DEFAULT_STATUS = ISO_STATUS.QUEUED
-
-    def __init__(self, label, iso_request=None, iso_type=None,
-                 status=None, molecule_design_pool_set=None,
-                 optimizer_excluded_racks=None,
-                 optimizer_required_racks=None,
-                 rack_layout=None, iso_job=None,
-                 iso_preparation_plate=None,
-                 iso_sample_stock_racks=None,
-                 iso_aliquot_plates=None, **kw):
-        """
-        Constructor
-        """
-        Entity.__init__(self, **kw)
-        self.label = label
-        self.iso_request = iso_request
-        self.molecule_design_pool_set = molecule_design_pool_set
-        if status is None:
-            status = self.DEFAULT_STATUS
-        self.status = status
-        if iso_type is None:
-            iso_type = ISO_TYPES.STANDARD
-        self.iso_type = iso_type
-        self.optimizer_excluded_racks = optimizer_excluded_racks
-        self.optimizer_required_racks = optimizer_required_racks
-        self.rack_layout = rack_layout
-        self.iso_job = iso_job
-        self.iso_preparation_plate = iso_preparation_plate
-        if iso_aliquot_plates is None:
-            iso_aliquot_plates = []
-        self.iso_aliquot_plates = iso_aliquot_plates
-        if iso_sample_stock_racks is None:
-            iso_sample_stock_racks = []
-        self.iso_sample_stock_racks = iso_sample_stock_racks
-
-    @property
-    def slug(self):
-        #: For instances of this class, the slug is derived from the
-        #: :attr:`label`.
-        return slug_from_string(self.label)
-
-    @property
-    def control_stock_tube(self):
-        """
-        The control stock tube used for this ISO (assigned to the
-        :attr:`iso_job`).
-        """
-        return self.iso_job.iso_control_stock_rack
-
-    @property
-    def preparation_plate(self):
-        """
-        The preparation plate.
-        """
-        if self.iso_preparation_plate is None:
-            return None
-        else:
-            return self.iso_preparation_plate.plate
-
-    @property
-    def iso_aliquot_plates_plates(self):
-        if self.iso_aliquot_plates is None:
-            plates = None
-        else:
-            plates = [iap.plate for iap in self.iso_aliquot_plates]
-        return plates
-
-    def __eq__(self, other):
-        return (isinstance(other, Iso) \
-                and other.label == self.label \
-                and other.iso_request == self.iso_request)
-
-    def __str__(self):
-        return '%s' % (self.label)
-
-    def __repr__(self):
-        str_format = '<%s id: %s, label: %s, status: %s, ISO request: %s>'
-        params = (self.__class__.__name__, self.id, self.label, self.status,
-                  self.iso_request)
-        return str_format % params
+    #: Base type
+    BASE = 'BASE'
+    #: Plates ordered by the lab (via experiment metadata).
+    LAB = 'LAB'
+    #: Generates new pool stock tubes (includes library generations)
+    STOCK_SAMPLE_GENERATION = 'STOCK_SAMPLE_GEN'
 
 
 class IsoRequest(Entity):
     """
-    An ISO request provides all data required for the delivery of ISO racks
-    (:class:`thelma.models.rack.Rack`): Plate set label, delivery date,
-    requester (:class:`thelma.models.user.User`), the experiment metadata the ISO
-    request belongs to (:class:`thelma.models.experiment.ExperimentMetadata`, the
-    plate layout (:class:`thelma.models.racklayout.RackLayout`)
-    and a list of ISOs (:class:`Iso`).
-    There is one ISO request per experiment metadata that is shared by all
-    ISO belonging to it.
+    An ISO request is a task that requests solutions from the stock.
+    The samples can be used for experiments or to generate new pooled samples.
 
-    **Equality Condition**: equal :attr:`plate_set_label`
+    **Equality Condition**: equal :attr:`id`
     """
 
     #: The type of the associated ISOs. One of the constants defined in
     #: :class:`ISO_TYPES`.
-    iso_type = ISO_TYPES.STANDARD
-    #: The ISO rack layout defining the plate positions
-    #: (:class:`thelma.models.racklayout.RackLayout`).
-    iso_layout = None
-    #: The person making the ISO request.
-    requester = None
-    #: The person owning the ISO request.
+    iso_type = None
+    #: This label is also used for plate created in the course of this request.
+    label = None
+    #: The ISO rack layout (optional) containing about the plate positions
+    #: :class:`thelma.models.racklayout.RackLayout`). The data applies to
+    #: all ISOs. Its structure depends on the derived class.
+    rack_layout = None
+    #: The person owning the ISO request (in most cases the responsible
+    #: stock manager).
     owner = None
-    #: The data at which the ISO shall be delivered.
-    delivery_date = None
-    #: A label for the plates created due to the ISO.
-    plate_set_label = None
     #: A list of the ISOs (:class:`Iso`) associated with this sample order.
     isos = []
-    #: The experiment metadata
-    #: (:class:`thelma.models.experiment.ExperimentMetadata`)
-    #: this ISO request belongs to.
-    experiment_metadata = None
-    #: Number of plates to create per ISO
-    number_plates = None
-    #: The number of aliquot plates request for each single ISO.
+    #: The number of ISOs (roughly: number of plates) required to deliver all
+    #: samples if there no replicates or copies made.
+    expected_number_isos = None
+    #: The number of aliquot plates requested for each single ISO. Can be 0.
     number_aliquots = None
-    #: A comment (free text).
-    comment = None
     #: The worklist series (:class:`thelma.models.liquidtransfer.WorklistSeries`)
     #: contains the worklists for the ISO processing.
     worklist_series = None
+    #: The pool set (:class:`thelma.models.moleculedesign.MoleculeDesignPoolSet`)
+    #: for the request is optional. The type of pools included depends on the
+    #: derived class).
+    molecule_design_pool_set = None
 
-    def __init__(self, iso_layout, requester, plate_set_label, number_plates=1,
-                 number_aliquots=1, delivery_date=None, owner='', comment='',
-                 experiment_metadata=None, worklist_series=None,
-                 iso_type=ISO_TYPES.STANDARD, **kw):
+    def __init__(self, label, rack_layout=None, expected_number_isos=1,
+                 number_aliquots=1, owner='', worklist_series=None,
+                 molecule_design_pool_set=None, iso_type=None, **kw):
         """
         Constructor
         """
+        if self.__class__ is IsoRequest:
+            raise NotImplementedError('Abstract class')
         Entity.__init__(self, **kw)
-        self.iso_layout = iso_layout
-        self.requester = requester
-        self.number_plates = number_plates
-        self.number_aliquots = number_aliquots
-        self.delivery_date = delivery_date
-        self.owner = owner
-        self.plate_set_label = plate_set_label
-        self.comment = comment
-        self.experiment_metadata = experiment_metadata
-        self.worklist_series = worklist_series
+        if iso_type is None:
+            iso_type = ISO_TYPES.BASE
         self.iso_type = iso_type
+        self.label = label
+        self.rack_layout = rack_layout
+        self.expected_number_isos = expected_number_isos
+        self.number_aliquots = number_aliquots
+        self.owner = owner
+        self.worklist_series = worklist_series
+        self.molecule_design_pool_set = molecule_design_pool_set
 
     @property
     def slug(self):
@@ -242,6 +108,55 @@ class IsoRequest(Entity):
         return set([iso.iso_job for iso in self.isos \
                     if not iso.iso_job is None])
 
+    def __str__(self):
+        return '%s' % (self.id)
+
+    def __repr__(self):
+        str_format = '<%s label: %s, owner: %s, expected number of ISOs: ' \
+                     '%s, number of aliquots: %s>'
+        params = (self.__class__.__name__, self.label, self.owner,
+                  self.expected_number_isos, self.number_aliquots)
+        return str_format % params
+
+
+class LabIsoRequest(IsoRequest):
+    """
+    Lab ISO request are orders made by the lab to conduct experiments.
+
+    The :attr:`rack_layout` is a :class:`TransfectionLayout` and the
+    :attr:`molecule_design_pool_set` contains only pools for floating positions.
+
+    **Equality Condition**: equal :attr:`id`
+    """
+    #: The person requesting the soultions.
+    requester = None
+    #: The experiment metadata
+    #: (:class:`thelma.models.experiment.ExperimentMetadata`)
+    #: this lab ISO request belongs to.
+    experiment_metadata = None
+    #: The data at which the ISOs shall be delivered.
+    delivery_date = None
+    #: A comment made by the requester (free text, optional).
+    comment = None
+    #: The reservoir specs for the plates to be generated
+    #: (:attr:`iso_aliquot_plates` of the :class:`Iso`) define the volume
+    #: properties for the plates (important for calculations,
+    #: :class:`thelma.models.liquidtransferReservoirSpecs`).
+    iso_plate_reservoir_specs = None
+
+    def __init__(self, label, requester, delivery_date=None, comment=None,
+                 experiment_metadata=None, iso_plate_reservoir_specs=None,
+                 **kw):
+        """
+        Constructor
+        """
+        IsoRequest.__init__(self, label=label, iso_type=ISO_TYPES.LAB, **kw)
+        self.requester = requester
+        self.delivery_date = delivery_date
+        self.comment = comment
+        self.experiment_metadata = experiment_metadata
+        self.iso_plate_reservoir_specs = iso_plate_reservoir_specs
+
     @property
     def experiment_metadata_type(self):
         """
@@ -249,197 +164,558 @@ class IsoRequest(Entity):
         """
         return self.experiment_metadata.experiment_metadata_type
 
-    def __eq__(self, other):
-        return isinstance(other, IsoRequest) and other.id == self.id
 
-    def __str__(self):
-        return '%s' % (self.id)
-
-    def __repr__(self):
-        str_format = '<%s plate set label: %s, experiment metadata: %s, ' \
-                     'iso layout: %s, number plates: %s, number aliquots: %s>'
-        params = (self.__class__.__name__, self.plate_set_label,
-                  self.experiment_metadata, self.iso_layout,
-                  self.number_plates, self.number_aliquots)
-        return str_format % params
-
-
-class IsoControlStockRack(Entity):
+class StockSampleCreationIsoRequest(IsoRequest):
     """
-    This class contains the data required to generate the control samples
-    of a 384-well screening ISO. It comprises the stock rack, its expected
-    layout (:class:`IsoControlRackLayout`) planned worklist for the transfer
-    from stock rack to the preparation plate. There is only control molecule
-    designs in an ISO control stock rack.
+    Stock sample creation ISO request serve the generation of pooled stock
+    solutions from existing (single design) stock samples.
 
-    The stock rack is shared ISOs that belong to the job. Its rack shape is
-    always 8x12.
+    If the task comprises the generation of ready-to-use library plates
+    (see :class:`thelma.models.library.MoleculeDesignLibrary`) the
+    :attr:`rack_layout` is a :class:`LibraryBaseLayout`, otherwise we do not
+    have a rack layout.
+    The :attr:`molecule_design_pool_set` contains only (multi-design) pools
+    whose stock samples are to be generated.
 
-    :Note: ISO job for 96-well plates do not have a IsoControlStockRack.
-
-    **Equality Condition**: equal :attr:`iso_job`
+    **Equality Condition**: equal :attr:`id`
     """
+    #: The volume for each new stock sample to be generated in l.
+    stock_volume = None
+    #: The concentration for each new stock sample to be generated in M.
+    stock_concentration = None
+    #: The number of single molecule designs each new pool will consist of.
+    number_designs = None
 
-    #: The ISO job this ISO control stock belongs to
-    #: (:class:`thelma.models.job.IsoJob`).
-    iso_job = None
-    #: The stock rack (:class:`thelma.models.rack.TubeRack`).
-    rack = None
-    #: The rack layout containing the stock rack layout data.
-    rack_layout = None
-    #: The worklist used to transfer volume from the stock tubes to
-    #: the preparation plate
-    #: (:class:`thelma.models.liquidtransfer.PlannedWorklist`).
-    planned_worklist = None
+    #: The molecule design library for which the new pools are created
+    #: (optional, :class:`thelma.models.library.MoleculeDesignLibrary`).
+    molecule_design_library = None
 
-    def __init__(self, iso_job, rack, rack_layout, planned_worklist, **kw):
+    def __init__(self, label, stock_volume, stock_concentration,
+                 number_designs, molecule_design_library=None, **kw):
         """
         Constructor
         """
+        IsoRequest.__init__(self, label=label,
+                            iso_type=ISO_TYPES.STOCK_SAMPLE_GENERATION, **kw)
+        self.stock_volume = stock_volume
+        self.stock_concentration = stock_concentration
+        self.number_designs = number_designs
+        self.molecule_design_library = molecule_design_library
+
+    def __repr__(self):
+        str_format = '<%s label: %s, owner: %s, number designs: %s, stock ' \
+                     'volume: %s, stock concentration: %s, expected number ' \
+                     'of ISOs: %s, number of aliquots: %s>'
+        params = (self.__class__.__name__, self.label, self.owner,
+                  self.number_designs, self.stock_volume,
+                  self.stock_concentration, self.expected_number_isos,
+                  self.number_aliquots)
+        return str_format % params
+
+
+class ISO_STATUS(object):
+    """
+    These status apply mainly to ISOs that also generate plates.
+    """
+    #: no transfers to far
+    QUEUED = 'queued'
+    #: contains controls
+    PREPARED = 'prepared'
+    #: contains controls and samples
+    IN_PROGRESS = 'in_progress'
+    #: aliquot plates are completed
+    DONE = 'done'
+    #: aborted ISOs cannot be reopened
+    CANCELLED = 'canceled'
+    #: you can reopened to create further aliquots (only some cases)
+    REOPENED = 'reopened'
+
+
+class Iso(Entity):
+    """
+    ISO is the abbreviation for \'Internal Sample Order\'. An ISO
+    always results in the generation of rack having sample with defined
+    volumes and concentrations in defined positions. This can be a source plate
+    in terms of experiments or new sample stock racks for stock sample
+    generation ISOs). If the resulting rack is a plate it is possible to
+    deliver several replicates.
+
+    An ISO is always connected to an :class:`IsoRequest`. The ISO request
+    contains general data that applies to all ISOs it contains. In contrast,
+    an ISO focuses on the data specific for the rack to be created and on
+    information required to track and facilitate the (physical) processing.
+
+    **Equality condition**: equal :attr:`iso_request` and equal :attr:`label`
+    """
+
+    #: The type of the ISO (see :class:`ISO_TYPES` - lab or stock sample
+    #: creation).
+    iso_type = None
+
+    #: A (human-readable) label, this usually contains a running number
+    #: within the :class:`IsoRequest`.
+    label = None
+    #: The status of the ISO is used to determine which next steps are allowed.
+    status = None
+    #: The ISO request holding general data for this ISO (:class:`IsoRequest`).
+    iso_request = None
+    #: The rack layout (:class:`thelma.models.racklayout.RackLayout`)
+    #: containing specific information for the rack to be created. The structure
+    #: of the layout depends on the :class:`iso_type`.
+    rack_layout = None
+    #: The ISO job this ISO belongs to (:class:`IsoJob`).
+    iso_job = None
+
+    #: The ISO stocks rack for this ISO (set of :class:`IsoStockRack`) provide
+    #: samples that are only used in the processing of this ISO and not by
+    #: other ISOs in the same :attr:`iso_job`.
+    iso_stock_racks = None
+    #: The ISO stocks rack for this ISO (set of :class:`IsoStockRack`) provide
+    #: samples that are only used in the processing of a certain sector of
+    #: this ISO and not by other ISOs in the same :attr:`iso_job`.
+    iso_sector_stock_racks = None
+    #: These plates are used to pre-dilute samples, they are not passed
+    #: to the lab (list of :class:`IsoPreparationPlate`).
+    iso_preparation_plates = None
+    #: These are the actual final plates this ISO was meant to create
+    #: (list of :class:`IsoAliquotPlate`).
+    iso_aliquot_plates = None
+
+    #: This set contains the molecule design pools specific to this ISO. The set
+    #: is a subset of the :attr:`iso_request` pool set.
+    molecule_design_pool_set = None
+
+    #: comma separated list of stock racks id to be ignored by the optimizer
+    optimizer_excluded_racks = None
+    #: comma separated list of stock racks id to be used by the optimizer
+    optimizer_required_racks = None
+
+    #: the status the ISO is set to if no other status is specified (*queued*).
+    DEFAULT_STATUS = ISO_STATUS.QUEUED
+
+    def __init__(self, label, iso_request=None,
+                 status=None, molecule_design_pool_set=None,
+                 optimizer_excluded_racks=None,
+                 optimizer_required_racks=None,
+                 rack_layout=None, iso_job=None,
+                 iso_stock_racks=None,
+                 iso_sector_stock_racks=None,
+                 iso_preparation_plates=None,
+                 iso_aliquot_plates=None,
+                 iso_type=None, **kw):
+        """
+        Constructor
+        """
+        if self.__class__ is Iso:
+            raise NotImplementedError('Abstract class')
         Entity.__init__(self, **kw)
+        if iso_type is None:
+            iso_type = ISO_TYPES.BASE
+        self.iso_type = iso_type
+        self.label = label
+        if status is None:
+            status = self.DEFAULT_STATUS
+        self.status = status
+        self.iso_request = iso_request
+        self.rack_layout = rack_layout
         self.iso_job = iso_job
+        if iso_stock_racks is None:
+            iso_stock_racks = []
+        self.iso_stock_racks = iso_stock_racks
+        if iso_sector_stock_racks is None:
+            iso_sector_stock_racks = []
+        self.iso_sector_stock_racks = iso_sector_stock_racks
+        if iso_preparation_plates is None:
+            iso_preparation_plates = []
+        self.iso_preparation_plates = iso_preparation_plates
+        if iso_aliquot_plates is None:
+            iso_aliquot_plates = []
+        self.iso_aliquot_plates = iso_aliquot_plates
+        self.molecule_design_pool_set = molecule_design_pool_set
+        self.optimizer_excluded_racks = optimizer_excluded_racks
+        self.optimizer_required_racks = optimizer_required_racks
+
+    @property
+    def slug(self):
+        #: For instances of this class, the slug is derived from the
+        #: :attr:`label`.
+        return slug_from_string(self.label)
+
+    @property
+    def iso_job_stock_rack(self):
+        """
+        The ISO job stock tube used for this ISO (assigned to the
+        :attr:`iso_job`).
+        """
+        if self.iso_job is None: return None
+        return self.iso_job.iso_job_stock_rack
+
+    def __eq__(self, other):
+        return (isinstance(other, Iso) \
+                and other.label == self.label \
+                and other.iso_request == self.iso_request)
+
+    def __str__(self):
+        return '%s' % (self.label)
+
+    def __repr__(self):
+        str_format = '<%s, label: %s, status: %s>'
+        params = (self.__class__.__name__, self.label, self.status)
+        return str_format % params
+
+
+class LabIso(Iso):
+    """
+    This special kind of :class:`Iso` generates plates for experiments in the
+    lab.
+
+    The :attr:`rack_layout` is a YYY, the :attr:`molecule_design_pool_set` is
+    optional an only contains pools specific to this ISOs (floating position
+    pools).
+
+    **Equality condition**: equal :attr:`iso_request` and equal :attr:`label`
+    """
+
+    def __init__(self, label, **kw):
+        """
+        Constructor
+        """
+        Iso.__init__(self, label=label, iso_type=ISO_TYPES.LAB, **kw)
+
+
+class StockSampleCreationIso(Iso):
+    """
+    This special :class:`Iso` serves the generation of new (pooled) stock
+    samples (in tube racks).
+
+    The rack layout is a :class:`StockSampleCreationLayout` and the contains
+    the pools that are generated by this ISO.
+
+    **Equality condition**: equal :attr:`iso_request` and equal
+        :attr:`layout_number`
+    """
+    #: The number of the Trac ticket.
+    ticket_number = None
+    #: The number of the layout this ISO deals with (a running number
+    #: within the ISO request).
+    layout_number = None
+
+    #: The sector preparations plates for this ISO (only if the ISOs is part of
+    #: a ISO request that creates also plates for an molecule design library)
+    iso_sector_prepartion_plates = None
+
+    def __init__(self, label, ticket_number, layout_number,
+                 iso_sector_prepartion_plates=None, **kw):
+        """
+        Constructor
+        """
+        Iso.__init__(self, label=label,
+                     iso_type=ISO_TYPES.STOCK_SAMPLE_GENERATION, **kw)
+        self.ticket_number = ticket_number
+        self.layout_number = layout_number
+        if iso_sector_prepartion_plates is None:
+            iso_sector_prepartion_plates = []
+        self.iso_sector_prepartion_plates = iso_sector_prepartion_plates
+
+    def __eq__(self, other):
+        return Iso.__eq__(self, other) and \
+            other.layout_number == self.layout_number
+
+    def __repr__(self):
+        str_format = '<%s, label: %s, ticket number: %i, ' \
+                     'layout_number: %i, status: %s>'
+        params = (self.__class__.__name__, self.label,
+                  self.ticket_number, self.layout_number, self.status)
+        return str_format % params
+
+
+class STOCK_RACK_TYPES(object):
+    #: base class
+    STOCK_RACK = 'STOCK_RACK'
+    #: for samples shared by all ISOs of an ISO job
+    ISO_JOB = 'ISO_JOB'
+    #: for samples specific to an ISO
+    ISO = 'ISO'
+    #: for samples specific to an a particular ISO quadrant
+    SECTOR = 'SECTOR'
+
+
+class StockRack(Entity):
+    """
+    This is a base class for stock rack used for ISO processing. Since the
+    tubes in the racks can be moved the samples in the rack have to be checked
+    before usage.
+
+    **Equality Condition**: equal :attr:`id`
+    """
+    #: The type of the stock rack (see :class:`STOCK_RACK_TYPES`).
+    stock_rack_type = None
+
+    #: The stock rack (:class:`thelma.models.rack.TubeRack`).
+    rack = None
+    #: The rack layout containing the molecule design pool and transfer data
+    #: (:class:`StockRackLayout`).
+    rack_layout = None
+    #: The worklist (:class:`thelma.models.liquidtransfer.PlannedWorklist`)
+    #: used to transfer volume from the stock tubes to a target container -
+    #: this is always a :class:`CONTAINER_TRANSFER` type even if we use a
+    #: CyBio, because tubes in stock racks can move and the state during the
+    #: transfer might no be constant.
+    planned_worklist = None
+
+    def __init__(self, rack, rack_layout, planned_worklist,
+                 stock_rack_type=None, **kw):
+        """
+        Constructor
+        """
+        if self.__class__ is StockRack:
+            raise NotImplementedError('Abstract class')
+        Entity.__init__(self, **kw)
+        if stock_rack_type is None:
+            stock_rack_type = STOCK_RACK_TYPES.STOCK_RACK
+        self.stock_rack_type = stock_rack_type
         self.rack = rack
         self.rack_layout = rack_layout
         self.planned_worklist = planned_worklist
 
     def __eq__(self, other):
-        return isinstance(other, IsoControlStockRack) and \
-                self.iso_job == other.iso_job
+        return isinstance(other, self.__class__) and self.id == other.id
 
     def __str__(self):
-        return self.id
+        return self.rack.barcode
 
     def __repr__(self):
-        str_format = '<%s id: %s, ISO job: %s, stock rack: %s>'
+        str_format = '<%s id: %s, rack: %s>'
+        params = (self.__class__.__name__, self.id, self.rack.barcode)
+        return str_format % params
+
+
+class IsoJobStockRack(StockRack):
+    """
+    This is a special :class:`StockRack` for an :class:`IsoJob`.
+    It contains samples that are passed to all ISOs of an ISO job (such
+    as controls for a screening or library screening ISOs).
+
+    **Equality Condition**: equal :attr:`id`
+    """
+    #: The ISO job this stock belongs to (:class:`thelma.models.job.IsoJob`).
+    iso_job = None
+
+    def __init__(self, iso_job, rack, rack_layout, planned_worklist, **kw):
+        """
+        Constructor
+        """
+        StockRack.__init__(self, rack=rack, rack_layout=rack_layout,
+                           planned_worklist=planned_worklist,
+                           stock_rack_type=STOCK_RACK_TYPES.ISO_JOB, **kw)
+        self.iso_job = iso_job
+
+    def __repr__(self):
+        str_format = '<%s id: %s, ISO job: %s, rack: %s>'
         params = (self.__class__.__name__, self.id, self.iso_job,
                   self.rack.barcode)
         return str_format % params
 
 
-class IsoSampleStockRack(Entity):
+class IsoStockRack(StockRack):
     """
-    This class represents a rack holding the stock tubes that are required
-    to generate a particular ISO. ISOs for 96-well plates do only have
-    one ISO sample stock rack which contains both the molecule designs for
-    controls and sample. ISOs for 384-well plates might contain up to
-    four ISO sample stock racks that contain molecule designs for only the
-    samples (floating positions). The molecule designs for the controls
-    are provided separately by the IsoControlStockRack of the ISO job of the
-    ISO.
-    IsoSampleStockRacks have a rack shape of 8x12.
+    This is a special :class:`StockRack` for an :class:`Iso`.
+    It contains samples that are specific to a certain ISO (as opposed to
+    samples that are shared by all ISOs of an ISO job).
+    There can be several ISO stock racks for an ISO.
 
-    **Equality Condition**: equal :attr:`iso` and equal :attr:`tube_rack`
+    **Equality Condition**: equal :attr:`id`
     """
 
-    #: The ISO this sample stock rack belongs to (:class:`ISO`).
+    #: The ISO this stock rack belongs to (:class:`Iso`).
     iso = None
-    #: The stock rack (:class:`thelma.models.rack.TubeRack`).
-    rack = None
-    #: The sector index for reformatting (transfer from 4 96-well plates
-    #: to 1 384-well plate). We use Z-configuration (the sector for 96-well
-    #: ISO is always 1).
-    sector_index = None
-    #: The worklist that has been used to transfer volume from the stock
-    #: in the rack (:class:`thelma.models.liquidtransfer.PlannedWorklist`)
-    planned_worklist = None
 
-    def __init__(self, iso, rack, sector_index, planned_worklist=None,
+    def __init__(self, iso, rack, rack_layout, planned_worklist, **kw):
+        """
+        Constructor
+        """
+        StockRack.__init__(self, rack=rack, rack_layout=rack_layout,
+                           planned_worklist=planned_worklist,
+                           stock_rack_type=STOCK_RACK_TYPES.ISO, **kw)
+        self.iso = iso
+
+    def __repr__(self):
+        str_format = '<%s id: %s, ISO: %s, rack: %s>'
+        params = (self.__class__.__name__, self.id, self.iso, self.rack.barcode)
+        return str_format % params
+
+
+class IsoSectorStockRack(StockRack):
+    """
+    This is a special :class:`StockRack` (actually even ISO stock rack, but
+    SQLalchemy does not support nested inheritance)for samples that a
+    associated with a certain sector (quadrant) of an ISO rack. Typically,
+    this is linked to the usage of the CyBio robot.
+    Sector indices are 0-based.
+
+    Sectors a listed in Z-configuration, e.g. : ::
+
+    0 1
+    2 3
+
+    **Equality Condition**: equal :attr:`id`
+    """
+    #: The ISO this stock rack belongs to (:class:`Iso`).
+    iso = None
+    #: The sector index this stock rack is responsible for (0-based).
+    sector_index = None
+
+    def __init__(self, rack, iso, sector_index, rack_layout, planned_worklist,
                  **kw):
         """
         Constructor
         """
-        Entity.__init__(self, **kw)
+        StockRack.__init__(self, rack=rack, rack_layout=rack_layout,
+                              planned_worklist=planned_worklist,
+                              stock_rack_type=STOCK_RACK_TYPES.SECTOR, **kw)
         self.iso = iso
-        self.rack = rack
         self.sector_index = sector_index
-        self.planned_worklist = planned_worklist
-
-    def __eq__(self, other):
-        return isinstance(other, IsoSampleStockRack) and \
-                self.iso == other.iso and \
-                self.rack == other.rack
-
-    def __str__(self):
-        return self.id
 
     def __repr__(self):
-        str_format = '<%s id: %s, ISO: %s, tube rack: %s, sector index: %s>'
+        str_format = '<%s id: %s, ISO: %s, rack: %s, sector index: %s>'
         params = (self.__class__.__name__, self.id, self.iso, self.rack.barcode,
                   self.sector_index)
         return str_format % params
 
 
-class IsoPreparationPlate(Entity):
-    """
-    This class represents a plate serving as source plate (and sometimes
-    backup) for an ISO aliquot plate.
+class ISO_PLATE_TYPES(object):
+    #: base class
+    ISO_PLATE = 'ISO_PLATE'
+    #: the plates passed to the lab (might be replicates)
+    ALIQUOT = 'ALIQUOT'
+    # intermediate plate for pre-dilutions (optional)
+    PREPARATION = 'PREPARATION'
+    #: A preparation plate for a particular sector (quadrant) used in library
+    #: creation processes.
+    SECTOR_PREPARATION = 'SECTOR_PREP'
 
-    **Equality Condition**: equal :attr:`iso` and equal :attr:`plate`
-    """
 
-    #: The ISO this preparation plate belongs to (:class:`Iso`).
+class IsoPlate(Entity):
+    """
+    This is an abstract base class for plates that are involved in ISO
+    processing.
+
+    **Equality Condition**: equal :attr:`iso` and equal :attr:`rack`
+    """
+    #: The type of the ISO plate (see :class:`ISO_PLATE_TYPES`).
+    iso_plate_type = None
+    #: The ISO this plate belongs to.
     iso = None
-    #: The plate being the preparation plate (:class:`thelma.models.rack.Plate`).
-    plate = None
+    #: The actual plate (:class:`thelma.models.rack.Plate`)
+    rack = None
 
-    def __init__(self, iso, plate, **kw):
+    def __init__(self, rack, iso, iso_plate_type=None, **kw):
         """
         Constructor
         """
         Entity.__init__(self, **kw)
+        if self.__class__ is IsoPlate:
+            raise NotImplementedError('Abstract class')
+        if iso_plate_type is None:
+            iso_plate_type = ISO_PLATE_TYPES.ISO_PLATE
+        self.iso_plate_type = iso_plate_type
         self.iso = iso
-        self.plate = plate
+        self.rack = rack
 
     def __eq__(self, other):
-        return isinstance(other, IsoPreparationPlate) and \
+        return isinstance(other, self.__class__) and \
                 self.iso == other.iso and \
-                self.plate == other.plate
+                self.rack == other.rack
 
     def __str__(self):
-        return self.id
+        return self.rack.barcode
 
     def __repr__(self):
-        str_format = '<%s id: %s, ISO: %s, plate: %s>'
-        params = (self.__class__.__name__, self.id, self.iso, self.plate)
+        str_format = '<%s id: %s, plate: %s, iso: %s>'
+        params = (self.__class__.__name__, self.id, self.rack.barcode, self.iso)
         return str_format % params
 
 
-class IsoAliquotPlate(Entity):
+class IsoAliquotPlate(IsoPlate):
     """
     This class represents an official ISO plate, that is a plate that has
-    been ordered from the stock management (via ISO request).
+    been ordered from the stock management (via ISO request) and is passed
+    to the lab or (in case of a library) a ready-to-use library plate.
+    They contain samples of defined volume and concentrations in defined
+    positions.
 
-    **Equality Condition**: equal :attr:`iso` and equal :attr:`plate`
+    **Equality Condition**: equal :attr:`iso` and equal :attr:`rack`
     """
-    #: The ISO this preparation plate belongs to (:class:`Iso`).
-    iso = None
-    #: The plate being the aliquot plate (:class:`thelma.models.rack.Plate`).
-    plate = None
+    #: Marks whether a plate has already been included in an experiment before.
+    has_been_used = None
 
-    def __init__(self, iso, plate, **kw):
+    def __init__(self, iso, rack, has_been_used=False, **kw):
         """
         Constructor
         """
-        Entity.__init__(self, **kw)
-        self.iso = iso
-        self.plate = plate
+        IsoPlate.__init__(self, iso=iso, rack=rack,
+                          iso_plate_type=ISO_PLATE_TYPES.ALIQUOT, **kw)
+        self.has_been_used = has_been_used
 
-    @property
-    def iso_preparation_plate(self):
+
+class IsoPreparationPlate(IsoPlate):
+    """
+    Preparation plates are used to pre-dilute samples before there are
+    transferred to an :class:`IsoAliquotPlate`.
+
+    **Equality Condition**: equal :attr:`iso` and equal :attr:`rack`
+    """
+    #: Contains the data to prepare the samples (pool IDs, transfer targets,
+    #: volumes, concentrations, etc.).
+    rack_layout = None
+
+    def __init__(self, iso, rack, rack_layout, **kw):
         """
-        The ISO preparation plate this aliquot plate has been derived from.
+        Constructor
         """
-        return self.iso.iso_preparation_plate
+        IsoPlate.__init__(self, iso=iso, rack=rack,
+                          iso_plate_type=ISO_PLATE_TYPES.PREPARATION, **kw)
+        self.rack_layout = rack_layout
+
+
+class IsoSectorPreparationPlate(IsoPlate):
+    """
+    A special :class:`IsoPlate` (actually even ISO preparation plate, but
+    SQLalchemy does not support nested inheritance) that deals with samples of
+    a particular rack sector (quadrant). Typically, this is linked to the usage
+    of the CyBio robot.
+    Sector indices are 0-based.
+
+    Sectors a listed in Z-configuration, e.g. : ::
+
+    0 1
+    2 3
+
+    **Equality Condition**: equal :attr:`iso`, :attr:`rack` and
+        :attr:`sector_index`
+    """
+    #: Contains the data to prepare the samples (pool IDs, transfer targets,
+    #: volumes, concentrations, etc.).
+    rack_layout = None
+    #: The sector index this ISO preparation plate is responsible for (0-based).
+    sector_index = None
+
+    def __init__(self, iso, rack, sector_index, rack_layout, **kw):
+        """
+        Constructor
+        """
+        IsoPlate.__init__(self, iso=iso, rack=rack,
+                          iso_plate_type=ISO_PLATE_TYPES.SECTOR_PREPARATION,
+                          **kw)
+        self.rack_layout = rack_layout
+        self.sector_index = sector_index
 
     def __eq__(self, other):
-        return (isinstance(other, IsoAliquotPlate)) and \
-                self.iso == other.iso and \
-                self.plate == other.plate
-
-    def __str__(self):
-        return self.id
+        return IsoPlate.__eq__(self, other) and \
+               other.sector_index == self.sector_index
 
     def __repr__(self):
-        str_format = '<%s id: %s, ISO: %s, plate: %s>'
-        params = (self.__class__.__name__, self.id, self.iso, self.plate)
+        str_format = '<%s id: %s, ISO: %s, rack: %s, sector index: %s>'
+        params = (self.__class__.__name__, self.id, self.iso, self.rack.barcode,
+                  self.sector_index)
         return str_format % params

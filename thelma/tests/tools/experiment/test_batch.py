@@ -16,7 +16,6 @@ from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_item_status_managed
 from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.interfaces import IJobType
 from thelma.models.experiment import Experiment
 from thelma.models.experiment import ExperimentRack
 from thelma.models.job import ExperimentJob
@@ -118,12 +117,8 @@ class ExperimentBatchTestCase(ToolsAndUtilsTestCase):
                 counter += 1
 
     def __create_experiment_job(self):
-        jt = self._get_entity(IJobType, 'rnai-experiment')
         experiment_job = ExperimentJob(label='batch_test_experiment_job',
-                            job_type=jt,
-                            experiments=[self.experiment1, self.experiment2],
-                            subproject=self.experiment1.experiment_design.\
-                                            experiment_metadata.subproject)
+                            experiments=[self.experiment1, self.experiment2])
         self.experiment_jobs = [experiment_job]
 
     def _test_one_updated_experiment(self, expect_experiments=True):

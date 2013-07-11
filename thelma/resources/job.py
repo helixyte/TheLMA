@@ -21,10 +21,9 @@ from thelma.automation.tools.experiment.executor \
 from thelma.automation.tools.experiment.manual import ExperimentRackFiller
 from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 from thelma.interfaces import IExperiment
+from thelma.interfaces import IIso
 from thelma.interfaces import IItemStatus
-from thelma.interfaces import IJobType
 from thelma.interfaces import IRack
-from thelma.interfaces import ISubproject
 from thelma.interfaces import IUser
 from thelma.models.experiment import EXPERIMENT_METADATA_TYPES
 from thelma.models.utils import get_current_user
@@ -46,21 +45,17 @@ class JobMember(Member):
     relation = '%s/job' % RELATION_BASE_URL
 
     label = terminal_attribute(str, 'label')
-    description = terminal_attribute(str, 'description')
-    job_type = member_attribute(IJobType, 'job_type')
     user = member_attribute(IUser, 'user')
-    subproject = member_attribute(ISubproject, 'subproject')
-    status = terminal_attribute(str, 'status')
-    start_time = terminal_attribute(datetime, 'start_time')
-    end_time = terminal_attribute(datetime, 'end_time')
-
-class ExperimentJobMember(JobMember):
-    experiments = collection_attribute(IExperiment, 'experiments')
+    creation_time = terminal_attribute(datetime, 'creation_time')
 
     @property
     def title(self):
         entity = self.get_entity()
         return '%s: %s' % (entity.job_type, entity.label)
+
+
+class ExperimentJobMember(JobMember):
+    experiments = collection_attribute(IExperiment, 'experiments')
 
     def __getitem__(self, name):
         if name == 'experiments':
@@ -121,13 +116,14 @@ class ExperimentJobMember(JobMember):
 class IsoJobMember(JobMember):
     relation = "%s/iso_job" % RELATION_BASE_URL
 
-    iso_control_stock_rack = member_attribute(IRack,
-                                              'iso_control_stock_rack.rack')
+    isos = collection_attribute(IIso, 'isos')
+    iso_job_stock_rack = member_attribute(IRack, 'iso_job_stock_rack.rack')
 
-    @property
-    def title(self):
-        entity = self.get_entity()
-        return '%s: %s' % (entity.job_type, entity.label)
+    def __getitem__(self, name):
+        if name == 'isos':
+            return self.isos
+        else:
+            raise KeyError(name)
 
 
 class JobCollection(Collection):
@@ -138,12 +134,12 @@ class JobCollection(Collection):
 class IsoJobCollection(JobCollection):
     title = 'Iso Jobs'
     root_name = 'iso-jobs'
-    description = 'Manage Iso jobs'
-    default_order = DescendingOrderSpecification('start_time')
+    description = 'Manage ISO jobs'
+    default_order = DescendingOrderSpecification('creation_time')
 
 
 class ExperimentJobCollection(JobCollection):
     title = 'Experiment Jobs'
     root_name = 'experiment-jobs'
     description = 'Manage Experiment jobs'
-    default_order = DescendingOrderSpecification('start_time')
+    default_order = DescendingOrderSpecification('creation_time')

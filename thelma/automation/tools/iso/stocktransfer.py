@@ -30,7 +30,7 @@ from thelma.automation.tools.writers import create_zip_archive
 from thelma.automation.tools.writers import merge_csv_streams
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import Iso
-from thelma.models.iso import IsoSampleStockRack
+from thelma.models.iso import IsoStockRack
 from thelma.models.job import IsoJob
 from thelma.models.liquidtransfer import PlannedRackTransfer
 from thelma.models.rack import Plate

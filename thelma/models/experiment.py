@@ -62,12 +62,15 @@ class ExperimentMetadataType(Entity):
 class Experiment(Entity):
     """
     The cell plate racks of an experiment are all derived from the
-    same source rack. Also, they are treated in the same way
-    (meaning their layouts is defined by the same
+    same source rack (if there is a source rack). Also, they are treated in
+    the same way (meaning their layouts is defined by the same
     :class:`ExperimentDesignRack`).
+    The number of expeirment racks is the product of the number of replicates
+    (stored at the experiment metadata) and the number of design racks
+    (design racks are stored at the :attr:`experiment_design`).
 
-    **Equality Condition**: not implemented yet
-            Anna:eqaul :attr:`design` and :attr:`source_rack`
+    **Equality Condition**: equal :attr:`experiment_design` and \
+        :attr:`source_rack`
     """
     #: The label of the experiment.
     label = None
@@ -121,8 +124,7 @@ class ExperimentRack(Entity):
     (:class:`thelma.models.rack.Rack`) used in an
     experiment (:class:`Experiment`).
 
-    **Equality Condition**: not implemented yet
-            Anna: equal :attr:`id`
+    **Equality Condition**: equal :attr:`id`
     """
     #: The experiment (:class:`Experiment`)
     #: this rack belongs to.
@@ -147,10 +149,6 @@ class ExperimentRack(Entity):
         # FIXME: Remove when ignore on read is available. #pylint:disable=W0511
         data.pop('source_rack', None)
         return cls(**data) # ** spylint: disable=W0142
-
-    def __eq__(self, other):
-        return (isinstance(other, ExperimentRack) \
-                and other.id == self.id)
 
     def __str__(self):
         return str(self.id)
@@ -187,7 +185,7 @@ class ExperimentDesign(Entity):
     rack_shape = None
     #: A list of the design racks (:class:`ExperimentDesignRack`)
     #: defined by this design.
-    design_racks = []
+    experiment_design_racks = []
     #: The experiment metadata (:class:`ExperimentMetadata`) this experiment
     #: design belongs to.
     experiment_metadata = None
@@ -199,13 +197,14 @@ class ExperimentDesign(Entity):
     experiments = []
 
     def __init__(self, rack_shape=None, experiment_design_racks=None,
-                 worklist_series=None, **kw):
+                 worklist_series=None, experiment_metadata=None, **kw):
         Entity.__init__(self, **kw)
         if experiment_design_racks is None:
             experiment_design_racks = []
-        self.design_racks = experiment_design_racks
+        self.experiment_design_racks = experiment_design_racks
         self.rack_shape = rack_shape
         self.worklist_series = worklist_series
+        self.experiment_metadata = experiment_metadata
 
     @property
     def experiment_metadata_type(self):
@@ -246,7 +245,7 @@ class ExperimentDesignRack(Entity):
     instances of a cell plate rack (:class:`ExperimentRack`).
     Design racks are virtual, they do *not* exist as physical racks.
 
-    **Equality Condition**: Anna: equal :attr:`id`
+    **Equality Condition**: :attr:`id`
     """
     #: The ID of the object in the DB.
     id = None
@@ -254,7 +253,7 @@ class ExperimentDesignRack(Entity):
     label = None
     #: The layout (:class:`thelma.models.racklayout.RackLayout`),
     #: i.e. the tag-and-positions information.
-    layout = None
+    rack_layout = None
     #: The experiment design (:class:`ExperimentDesign`) this design rack
     #: is defined by.
     experiment_design = None
@@ -269,14 +268,14 @@ class ExperimentDesignRack(Entity):
                  **kw):
         Entity.__init__(self, **kw)
         self.label = label
-        self.layout = rack_layout
+        self.rack_layout = rack_layout
         self.experiment_design = experiment_design
         self.worklist_series = worklist_series
 
     @property
     def tags(self):
         tags_dict = {}
-        for tp in self.layout.tagged_rack_position_sets:
+        for tp in self.rack_layout.tagged_rack_position_sets:
             for tag in tp.tags:
                 tags_dict[tag.slug] = tag
 #        tag_coll = create_staging_collection(ITag)
@@ -294,7 +293,7 @@ class ExperimentDesignRack(Entity):
     def __repr__(self):
         str_format = '<%s id: %s, label: %s, design: %s, layout: %s>'
         params = (self.__class__.__name__, self.id, self.label,
-                  self.experiment_design, self.layout)
+                  self.experiment_design, self.rack_layout)
         return str_format % params
 
 
@@ -308,7 +307,7 @@ class ExperimentMetadata(Entity):
     the subproject (:class:`thelma.models.subproject.Subproject`) all this
     is related to.
 
-    **Equality Condition**: equal :attr:`subproject` and :attr:`name`
+    **Equality Condition**: equal :attr:`subproject` and :attr:`label`
     """
 
     #: The (human-readable) name of the experiment metadata.
@@ -319,9 +318,9 @@ class ExperimentMetadata(Entity):
     #: The experiment design containing the meta data for the
     #: experiments (:class:`thelma.models.experiment.ExperimentDesign`)
     experiment_design = None
-    #: The sample plan (:class:`thelma.models.iso.IsoRequest`) storing
+    #: The sample plan (:class:`thelma.models.iso.LabIsoRequest`) storing
     #: the ISO layouts.
-    iso_request = None
+    lab_iso_request = None
     #: The number of replicate plates (cell plates).
     number_replicates = None
     #: The date the experiment metadata was created in the database.
@@ -337,14 +336,14 @@ class ExperimentMetadata(Entity):
 
     def __init__(self, label, subproject, number_replicates,
                  experiment_metadata_type, experiment_design=None,
-                 ticket_number=None, iso_request=None,
+                 ticket_number=None, lab_iso_request=None,
                  molecule_design_pool_set=None, creation_date=None,
                  **kw):
         Entity.__init__(self, **kw)
         self.label = label
         self.subproject = subproject
         self.experiment_design = experiment_design
-        self.iso_request = iso_request
+        self.lab_iso_request = lab_iso_request
         self.number_replicates = number_replicates
         self.ticket_number = ticket_number
         self.molecule_design_pool_set = molecule_design_pool_set
@@ -361,7 +360,7 @@ class ExperimentMetadata(Entity):
 
     @classmethod
     def create_from_data(cls, data):
-        if not 'iso_request' in data:
+        if not 'lab_iso_request' in data:
             # We need to initialize an empty ExperimentMetadata record.
             rack_shapes_agg = get_root_aggregate(IRackShape)
             rack_shape = rack_shapes_agg.get_by_slug('8x12')

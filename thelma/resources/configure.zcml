@@ -1298,13 +1298,23 @@
     </resource>
 
 
-    <!-- Library Creation ISO -->
+    <!-- Lab ISO -->
 
     <resource
-        interface="thelma.interfaces.ILibraryCreationIso"
-        member=".library.LibraryCreationIsoMember"
-        collection_root_name="library-collection-isos"
-        entity="thelma.models.library.LibraryCreationIso"
+        interface="thelma.interfaces.ILabIso"
+        member=".iso.LabIsoMember"
+        collection_root_name="lab-collection-isos"
+        entity="thelma.models.iso.LabIso"
+    >
+    </resource>
+
+    <!-- Stock Sample Creation ISO -->
+
+    <resource
+        interface="thelma.interfaces.IStockSampleCreationIso"
+        member=".iso.StockSampleCreationIsoMember"
+        collection_root_name="stock-sample-creation-collection-isos"
+        entity="thelma.models.iso.StockSampleCreationIso"
     >
     </resource>
 
@@ -1394,22 +1404,40 @@
         </representer>
     </resource>
 
-    <!-- Iso Sample Stock Rack -->
+	<!-- Lab ISO request -->
+
+	<resource
+        interface="thelma.interfaces.ILabIsoRequest"
+        member=".iso.LabIsoRequestMember"
+        collection_root_name="lab-iso-requests"
+        entity="thelma.models.iso.LabIsoRequest"
+    >
+    </resource>
+
+	<resource
+        interface="thelma.interfaces.IStockSampleCreationIsoRequest"
+        member=".iso.StockSampleCreationIsoRequestMember"
+        collection_root_name="stock-sample-creation-iso-requests"
+        entity="thelma.models.iso.StockSampleCreationIsoRequest"
+    >
+    </resource>
+
+    <!-- ISO Stock Rack -->
 
     <resource
-        interface="thelma.interfaces.IIsoSampleStockRack"
-        member=".iso.IsoSampleStockRackMember"
-        collection=".iso.IsoSampleStockRackCollection"
-        entity="thelma.models.iso.IsoSampleStockRack"
+        interface="thelma.interfaces.IIsoStockRack"
+        member=".iso.IsoStockRackMember"
+        collection=".iso.IsoStockRackCollection"
+        entity="thelma.models.iso.IsoStockRack"
         expose="false"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
                 name="xml_schema"
-                value="thelma:schemata/IsoSampleStockRack.xsd" />
+                value="thelma:schemata/IsoStockRack.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/isosamplestockrack" />
+                value="http://schemata.cenix-bioscience.com/isostockrack" />
             <option
                 name="xml_prefix"
                 value="iss" />
@@ -1505,11 +1533,6 @@
             <option
                 name="xml_prefix"
                 value="j" />
-            <attribute name="subproject">
-                <option
-                    name="write_as_link"
-                    value="true" />
-            </attribute>
         </representer>
         <representer
             kind="member"
@@ -1551,7 +1574,7 @@
             <option
                 name="xml_tag"
                 value="iso_job" />
-            <attribute name="iso_control_stock_rack">
+            <attribute name="iso_job_stock_rack">
                 <option
                     name="namespace"
                     value="http://schemata.cenix-bioscience.com/job" />
@@ -1562,7 +1585,7 @@
                     name="write_as_link"
                     value="false" />
             </attribute>
-            <attribute name="iso_control_stock_rack.containers">
+            <attribute name="iso_job_stock_rack.containers">
                 <option
                     name="write_as_link"
                     value="true" />
@@ -1654,44 +1677,6 @@
 
         </representer>
 
-    </resource>
-
-
-    <!-- Job Type -->
-
-    <resource
-        interface="thelma.interfaces.IJobType"
-        member=".jobtype.JobTypeMember"
-        collection=".jobtype.JobTypeCollection"
-        entity="thelma.models.job.JobType"
-    >
-        <representer content_type="everest.mime.XmlMime">
-            <option
-                name="xml_schema"
-                value="thelma:schemata/JobType.xsd" />
-            <option
-                name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/jobtype" />
-            <option
-                name="xml_prefix"
-                value="jt" />
-        </representer>
-        <representer
-            kind="member"
-            content_type="everest.mime.XmlMime"
-        >
-            <option
-                name="xml_tag"
-                value="job_type" />
-        </representer>
-        <representer
-            kind="collection"
-            content_type="everest.mime.XmlMime"
-        >
-            <option
-                name="xml_tag"
-                value="job_types" />
-        </representer>
     </resource>
 
 

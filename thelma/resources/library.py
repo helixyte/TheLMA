@@ -4,12 +4,10 @@ from everest.resources.descriptors import terminal_attribute
 from thelma.interfaces import IIsoRequest
 from thelma.interfaces import IMoleculeDesignPoolSet
 from thelma.resources.base import RELATION_BASE_URL
-from thelma.resources.iso import IsoMember
 
 __docformat__ = 'reStructuredText en'
 
-__all__ = ['LibraryCreationIsoMember',
-           'MoleculeDesignLibraryMember',
+__all__ = ['MoleculeDesignLibraryMember',
            ]
 
 
@@ -26,9 +24,3 @@ class MoleculeDesignLibraryMember(Member):
     def title(self):
         return self.label
 
-
-
-class LibraryCreationIsoMember(IsoMember):
-
-    ticket_number = terminal_attribute(int, 'ticket_number')
-    layout_number = terminal_attribute(int, 'layout_number')

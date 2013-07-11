@@ -28,16 +28,18 @@ from thelma.db.mappers import gene
 from thelma.db.mappers import golddesign
 from thelma.db.mappers import iso
 from thelma.db.mappers import isoaliquotplate
-from thelma.db.mappers import isocontrolstockrack
 from thelma.db.mappers import isojob
+from thelma.db.mappers import isojobstockrack
+from thelma.db.mappers import isoplate
 from thelma.db.mappers import isopreparationplate
 from thelma.db.mappers import isorequest
-from thelma.db.mappers import isosamplestockrack
+from thelma.db.mappers import isosectorpreparationplate
+from thelma.db.mappers import isosectorstockrack
+from thelma.db.mappers import isostockrack
 from thelma.db.mappers import itemstatus
 from thelma.db.mappers import job
-from thelma.db.mappers import jobtype
-from thelma.db.mappers import librarycreationiso
-from thelma.db.mappers import librarysourceplate
+from thelma.db.mappers import labiso
+from thelma.db.mappers import labisorequest
 from thelma.db.mappers import longdsrnadesign
 from thelma.db.mappers import mirnainhibitordesign
 from thelma.db.mappers import mirnamimicdesign
@@ -51,7 +53,6 @@ from thelma.db.mappers import moleculedesignset
 from thelma.db.mappers import moleculetype
 from thelma.db.mappers import nucleicacidchemicalstructure
 from thelma.db.mappers import organization
-from thelma.db.mappers import otherjob
 from thelma.db.mappers import pipettingspecs
 from thelma.db.mappers import plannedcontainerdilution
 from thelma.db.mappers import plannedcontainertransfer
@@ -77,7 +78,10 @@ from thelma.db.mappers import species
 from thelma.db.mappers import ssrnadesign
 from thelma.db.mappers import standardmoleculedesignset
 from thelma.db.mappers import stockinfo
+from thelma.db.mappers import stockrack
 from thelma.db.mappers import stocksample
+from thelma.db.mappers import stocksamplecreationiso
+from thelma.db.mappers import stocksamplecreationisorequest
 from thelma.db.mappers import subproject
 from thelma.db.mappers import suppliermoleculedesign
 from thelma.db.mappers import supplierstructureannotation
@@ -177,7 +181,7 @@ def initialize_mappers(tables, views):
                                         tables['molecule_design_set_member'])
 
     moleculedesignlibrary.create_mapper(tables['molecule_design_library'],
-                                tables['iso_request'],
+                                tables['stock_sample_creation_iso_request'],
                                 tables['molecule_design_library_iso_request'])
     standardmoleculedesignset.create_mapper(
                                 molecule_design_set_mapper)
@@ -236,9 +240,7 @@ def initialize_mappers(tables, views):
     rackposition.create_mapper(tables['rack_position'])
     racklayout.create_mapper(tables['rack_layout'])
 
-    jobtype.create_mapper(tables['job_type'])
-    job_mapper = job.create_mapper(tables['job'])
-    otherjob.create_mapper(job_mapper, tables['job'])
+    job_mapper = job.create_mapper(tables['new_job'])
 
     # FIXME: pylint: disable=W0511
     #        Need to get rid of the "new_" prefix.
@@ -251,11 +253,9 @@ def initialize_mappers(tables, views):
     experimentrack.create_mapper(tables['new_experiment_rack'])
     experimentmetadatatype.create_mapper(tables['experiment_metadata_type'])
     experimentmetadata.create_mapper(tables['experiment_metadata'],
-                        tables['experiment_metadata_iso_request'],
-                        tables['experiment_metadata_pool_set'])
-    experimentjob.create_mapper(job_mapper, tables['job'],
+                        tables['experiment_metadata_iso_request'])
+    experimentjob.create_mapper(job_mapper, tables['new_job'],
                                 tables['new_experiment'])
-
 
     project.create_mapper(tables['project'])
     subproject.create_mapper(tables['subproject'])
@@ -263,21 +263,38 @@ def initialize_mappers(tables, views):
     userpreferences.create_mapper(tables['user_preferences'])
 
 
-    iso_mapper = iso.create_mapper(tables['iso'], tables['iso_job'],
-                      tables['iso_job_member'],
-                      tables['iso_pool_set'])
-    librarycreationiso.create_mapper(iso_mapper, tables['library_creation_iso'])
-    librarysourceplate.create_mapper(tables['library_source_plate'])
-
-    isorequest.create_mapper(tables['iso_request'],
+    iso_request_mapper = isorequest.create_mapper(tables['iso_request'],
+                             tables['iso_request_rack_layout'],
                              tables['worklist_series_iso_request'],
-                             tables['experiment_metadata_iso_request'])
-    isojob.create_mapper(job_mapper, tables['iso_job'], tables['iso'],
+                             tables['iso_request_pool_set'])
+    labisorequest.create_mapper(iso_request_mapper, tables['lab_iso_request'],
+                                tables['experiment_metadata_iso_request'],
+                                tables['reservoir_specs'])
+    stocksamplecreationisorequest.create_mapper(iso_request_mapper,
+                                tables['stock_sample_creation_iso_request'],
+                                tables['molecule_design_library_iso_request'],
+                                tables['molecule_design_library'])
+    iso_mapper = iso.create_mapper(tables['iso'], tables['new_job'],
+                      tables['iso_job_member'], tables['iso_pool_set'])
+    labiso.create_mapper(iso_mapper, tables['iso'])
+    stocksamplecreationiso.create_mapper(iso_mapper,
+                                         tables['stock_sample_creation_iso'])
+    isojob.create_mapper(job_mapper, tables['new_job'],
                          tables['iso_job_member'])
-    isocontrolstockrack.create_mapper(tables['iso_control_stock_rack'])
-    isosamplestockrack.create_mapper(tables['iso_sample_stock_rack'])
-    isoaliquotplate.create_mapper(tables['iso_aliquot_plate'])
-    isopreparationplate.create_mapper(tables['iso_preparation_plate'])
+    stock_rack_mapper = stockrack.create_mapper(tables['stock_rack'])
+    isojobstockrack.create_mapper(stock_rack_mapper,
+                                  tables['iso_job_stock_rack'])
+    isostockrack.create_mapper(stock_rack_mapper, tables['iso_stock_rack'])
+    isosectorstockrack.create_mapper(stock_rack_mapper,
+                                     tables['iso_sector_stock_rack'])
+
+    iso_plate_mapper = isoplate.create_mapper(tables['iso_plate'])
+    isoaliquotplate.create_mapper(iso_plate_mapper,
+                                  tables['iso_aliquot_plate'])
+    isopreparationplate.create_mapper(iso_plate_mapper,
+                                      tables['iso_preparation_plate'])
+    isosectorpreparationplate.create_mapper(iso_plate_mapper,
+                                        tables['iso_sector_preparation_plate'])
 
     pipettingspecs.create_mapper(tables['pipetting_specs'])
     reservoirspecs.create_mapper(tables['reservoir_specs'])
