@@ -17,6 +17,10 @@ from pyramid.registry import Registry
 from pyramid.testing import DummyRequest
 from sqlalchemy import event
 from sqlalchemy.orm.session import Session
+from thelma.automation.tools.poolcreation.ticket \
+    import PoolCreationStockTransferReporter
+from thelma.automation.tools.poolcreation.ticket \
+    import PoolCreationTicketWorklistUploader
 from thelma.automation.tools.stock.sampleregistration import \
     IMoleculeDesignPoolRegistrationItem
 from thelma.automation.tools.stock.sampleregistration import \
@@ -757,18 +761,18 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #                    ),
 #                   ]
 #
-##    @classmethod
-##    def finalize(cls, tool, options):
-##        if not tool.has_errors():
-##            uploader = LibraryCreationTicketWorklistUploader(
-##                        library_creation_iso=tool.library_creation_iso,
-##                        file_map=tool.return_value)
-##            uploader.send_request()
-##            if not uploader.transaction_completed():
-##                msg = 'Error during transmission to Trac!'
-##                print msg
-
-
+#    @classmethod
+#    def finalize(cls, tool, options):
+#        if not tool.has_errors() and not options.simulate:
+#            uploader = LibraryCreationTicketWorklistUploader(
+#                        library_creation_iso=tool.library_creation_iso,
+#                        file_map=tool.return_value)
+#            uploader.send_request()
+#            if not uploader.transaction_completed():
+#                msg = 'Error during transmission to Trac!'
+#                print msg
+#
+#
 #class LibraryCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
 #
 #    @classmethod
@@ -802,15 +806,15 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #                   )
 #                   ]
 #
-##    @classmethod
-##    def finalize(cls, tool, options):
-##        if not tool.has_errors():
-##            reporter = LibraryCreationStockTransferReporter(
-##                        executor=tool)
-##            reporter.send_request()
-##            if not reporter.transaction_completed():
-##                msg = 'Error during transmission to Trac!'
-##                print msg
+#    @classmethod
+#    def finalize(cls, tool, options):
+#        if not tool.has_errors() and not options.simulate:
+#            reporter = LibraryCreationStockTransferReporter(
+#                        executor=tool)
+#            reporter.send_request()
+#            if not reporter.transaction_completed():
+#                msg = 'Error during transmission to Trac!'
+#                print msg
 
 
 class PoolGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
@@ -969,16 +973,16 @@ class PoolCreationWorklistWriterToolCommand(ToolCommand): # no __init__ pylint: 
                     ),
                    ]
 
-#    @classmethod
-#    def finalize(cls, tool, options):
-#        if not tool.has_errors():
-#            uploader = PoolCreationTicketWorklistUploader(
-#                        pool_creation_iso=tool.pool_creation_iso,
-#                        file_map=tool.return_value)
-#            uploader.send_request()
-#            if not uploader.transaction_completed():
-#                msg = 'Error during transmission to Trac!'
-#                print msg
+    @classmethod
+    def finalize(cls, tool, options):
+        if not tool.has_errors() and not options.simulate:
+            uploader = PoolCreationTicketWorklistUploader(
+                        pool_creation_iso=tool.pool_creation_iso,
+                        file_map=tool.return_value)
+            uploader.send_request()
+            if not uploader.transaction_completed():
+                msg = 'Error during transmission to Trac!'
+                print msg
 
 
 class PoolCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
@@ -1014,16 +1018,16 @@ class PoolCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: disabl
                          callback=_user_callback),
                    )
                    ]
-#
-#    @classmethod
-#    def finalize(cls, tool, options):
-#        if not tool.has_errors():
-#            reporter = PoolCreationStockTransferReporter(
-#                        executor=tool)
-#            reporter.send_request()
-#            if not reporter.transaction_completed():
-#                msg = 'Error during transmission to Trac!'
-#                print msg
+
+    @classmethod
+    def finalize(cls, tool, options):
+        if not tool.has_errors() and not options.simulate:
+            reporter = PoolCreationStockTransferReporter(
+                        executor=tool)
+            reporter.send_request()
+            if not reporter.transaction_completed():
+                msg = 'Error during transmission to Trac!'
+                print msg
 
 
 class StockAuditToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
