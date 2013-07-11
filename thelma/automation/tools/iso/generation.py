@@ -13,6 +13,7 @@ from thelma.automation.tools.iso.prep_utils import ISO_LABELS
 from thelma.automation.tools.iso.prep_utils import PrepIsoLayout
 from thelma.automation.tools.iso.preplayoutfinder import PrepLayoutFinder
 from thelma.automation.tools.stock.base import get_default_stock_concentration
+from thelma.automation.tools.iso.optimizer import IsoVolumeSpecificOptimizer
 from thelma.automation.tools.iso.processingworklist \
     import IsoWorklistSeriesGenerator
 from thelma.automation.tools.semiconstants \
@@ -418,7 +419,7 @@ class IsoCreator(BaseAutomationTool):
         if self.__iso_layout.shape.name == RACK_SHAPE_NAMES.SHAPE_96:
             if self._number_floatings < 1:
                 self.__fixed_candidates = self.__get_candidates(
-                                                self.__fixed_pools, 'fixed')
+                        self.__fixed_pools, 'fixed', summarize_volumes=False)
             else:
                 pool_ids = set()
                 for pool_id in self.__fixed_pools: pool_ids.add(pool_id)
@@ -428,20 +429,28 @@ class IsoCreator(BaseAutomationTool):
                                                           'fixed and floating')
         elif self.__iso_layout.shape.name == RACK_SHAPE_NAMES.SHAPE_384:
             self.__fixed_candidates = self.__get_candidates(self.__fixed_pools,
-                                                            'fixed')
+                        'fixed', summarize_volumes=False)
             if self._number_floatings > 0:
                 floating_designs = set(self._floating_pools.keys())
                 self.__floating_candidates = self.__get_candidates(
                                         floating_designs, 'floating')
 
-    def __get_candidates(self, molecule_design_pools, pos_type):
+    def __get_candidates(self, molecule_design_pools, pos_type,
+                         summarize_volumes=True):
         """
         Runs one particular optimiser and returns the resulting candidate
-        list.
+        list. If :attr:`summarize_volume` is *True* the normal optimizer will
+        be used, otherwise we will use the one that runs a query for each
+        volume occuring.
         """
-        optimizer = IsoOptimizer(molecule_design_pools=molecule_design_pools,
-                             preparation_layout=self._raw_prep_layout,
-                             log=self.log, excluded_racks=self.excluded_racks)
+        kw = dict(molecule_design_pools=molecule_design_pools,
+                  preparation_layout=self._raw_prep_layout,
+                  log=self.log, excluded_racks=self.excluded_racks)
+        if summarize_volumes:
+            optimizer_cls = IsoOptimizer
+        else:
+            optimizer_cls = IsoVolumeSpecificOptimizer
+        optimizer = optimizer_cls(**kw)
         candidates = optimizer.get_result()
 
         if candidates is None:

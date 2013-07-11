@@ -28,7 +28,7 @@ __all__ = ['IsoOptimizer',
 
 class IsoOptimizer(BaseAutomationTool):
     """
-    Runs the optimisation query for the given set of molecule designs.
+    Runs the optimisation query for the given set of molecule design pools.
 
     **Return Value:** The ISO candidates of the query result
         (in unchanged order).
@@ -459,3 +459,313 @@ class IsoCandidate(object):
 
     def __ne__(self, other):
         return not (self.__eq__(other))
+
+
+class IsoVolumeSpecificOptimizer(BaseAutomationTool):
+    """
+    This special optimizer runs a query for each volume found instead of
+    using the maximum volume.
+
+    :Note: This class is a hack that should become expendable due to the
+    ISO processing revision.
+
+    **Return Value:** The ISO candidates of the query result
+        (in unchanged order).
+    """
+    NAME = 'ISO Volume Specific Optimizer'
+
+    def __init__(self, molecule_design_pools, preparation_layout, log,
+                 excluded_racks=None):
+        """
+        Constructor:
+
+        :param molecule_design_pools: The molecule design pool IDs for which
+            to run the query.
+        :type molecule_design_pools: :class:`set` of molecule design pool IDs
+
+        :param preparation_layout: The (abstract) preparation layout for
+            the ISO request.
+        :type preparation_layout: :class:`preparation_layout`
+
+        :param log: The log to record events.
+        :type log: :class:`thelma.ThelmaLog`
+
+        :param excluded_racks: A list of barcodes from stock racks that shall
+            not be used for molecule design picking.
+        :type excluded_racks: A list of rack barcodes
+        """
+        BaseAutomationTool.__init__(self, log=log)
+
+        #: The molecule design pool IDs for which to run the query.
+        self.molecule_design_pools = molecule_design_pools
+        #: The (abstract) preparation layout for the ISO request.
+        self.prep_layout = preparation_layout
+
+        if excluded_racks is None: excluded_racks = []
+        #: A list of barcodes from stock racks that shall not be used for
+        #: molecule design picking.
+        self.excluded_racks = excluded_racks
+
+        #: The DB session used for the queries.
+        self.__session = None
+
+        #: All available stock samples for the queued molecule design pools
+        #: (filtered by supplier, if applicable) mapped onto pool IDs.
+        self.__stock_samples = None
+
+        #: The pool ID for each take out volume.
+        self.__volume_map = None
+
+        #: The ISO candidates for each molecule design in unchaged order.
+        self.__candidates = None
+
+    def reset(self):
+        """
+        Resets the initialisation values.
+        """
+        BaseAutomationTool.reset(self)
+        self.__session = None
+        self.__stock_samples = dict()
+        self.__candidates = []
+        self.__volume_map = dict()
+
+    def run(self):
+        """
+        Runs the tool.
+        """
+        self.reset()
+        self.add_info('Optimisation query is prepared ...')
+        self.__check_input()
+        if not self.has_errors():
+            self.__initialize_session()
+            self.__get_stock_sample_ids()
+        if not self.has_errors():
+            self.__sort_by_volumes()
+        if not self.has_errors():
+            self.__run_queries()
+        if not self.has_errors():
+            self.return_value = self.__candidates
+            self.add_info('Query run completed.')
+
+    def __initialize_session(self):
+        """
+        Initialises a session for ORM operations.
+        """
+        self.__session = Session()
+
+    def __check_input(self):
+        """
+        Checks the input values.
+        """
+        self.add_debug('Check input values ...')
+
+        self._check_input_class('preparation plate layout', self.prep_layout,
+                                PrepIsoLayout)
+
+        if self._check_input_class('molecule design pool list',
+                                   self.molecule_design_pools, set):
+            for pool_id in self.molecule_design_pools:
+                if not self._check_input_class('molecule design pool ID',
+                                               pool_id, int): break
+            if len(self.molecule_design_pools) < 1:
+                self.add_error('The molecule design pool list is empty!')
+
+        if self._check_input_class('excluded racks list',
+                                       self.excluded_racks, list):
+            for excl_rack in self.excluded_racks:
+                if not self._check_input_class('excluded rack barcode',
+                                               excl_rack, basestring): break
+
+    def __get_stock_sample_ids(self):
+        """
+        Runs as DB query fetching all stock samples available for the pools.
+        """
+        self.add_debug('Get stock sample IDs ...')
+
+        base_query = 'SELECT stock_sample.sample_id AS sample_id, ' \
+                     '  stock_sample.molecule_design_set_id AS pool_id ' \
+                     'FROM stock_sample ' \
+                     'WHERE stock_sample.molecule_design_set_id IN %s'
+        result_values = ('sample_id', 'pool_id')
+
+        supplier_map = self.__sort_pools_by_supplier()
+        for supplier_id, pool_ids in supplier_map.iteritems():
+            pool_tuple = create_in_term_for_db_queries(pool_ids)
+            query_statement = base_query % (pool_tuple)
+            if supplier_id != IsoPosition.ANY_SUPPLIER_INDICATOR:
+                supplier_constraint = ' AND stock_sample.supplier_id = %i' \
+                                     % (supplier_id)
+                query_statement += supplier_constraint
+
+            results = self.__session.query(*result_values).from_statement(
+                                           query_statement).all()
+            for record in results:
+                sample_id = record[0]
+                pool_id = record[1]
+                add_list_map_element(self.__stock_samples, pool_id, sample_id)
+
+        if len(self.__stock_samples) < 1:
+            msg = 'Could not find stock sample IDs for the given molecule ' \
+                  'design pools and suppliers!'
+            self.add_error(msg)
+
+    def __sort_pools_by_supplier(self):
+        """
+        Pools without supplier specification are marked with 'any'.
+        """
+        sorted_pools = dict()
+
+        supplier_map = self.prep_layout.get_supplier_map()
+        for pool_id in self.molecule_design_pools:
+            if supplier_map.has_key(pool_id):
+                supplier_id = supplier_map[pool_id]
+            else:
+                supplier_id = IsoPosition.ANY_SUPPLIER_INDICATOR
+            add_list_map_element(sorted_pools, supplier_id, pool_id)
+
+        return sorted_pools
+
+    def __sort_by_volumes(self):
+        """
+        Gets the take out volume for each pool.
+        """
+        self.add_debug('Sort by volumes ...')
+
+        is_floating = []
+        volumes = dict()
+
+        for prep_pos in self.prep_layout.working_positions():
+            if prep_pos.is_mock: continue
+            pool_id = prep_pos.molecule_design_pool_id
+            if not pool_id in self.molecule_design_pools: continue
+            if prep_pos.is_floating:
+                is_floating.append(pool_id)
+                continue
+            volume = prep_pos.get_stock_takeout_volume()
+            if volume is None: continue # happens if not a starting well
+            if not volumes.has_key(pool_id): volumes[pool_id] = 0
+            volumes[pool_id] += volume
+
+        if len(is_floating) > 0:
+            msg = 'Volume specific optimizing is not allowed for floating ' \
+                   'positions. The following pools belongt to floating ' \
+                   'positions: %s.' \
+                   % (', '.join([str(pi) for pi in sorted(is_floating)]))
+            self.add_error(msg)
+        else:
+            for pool_id, volume in volumes.iteritems():
+                add_list_map_element(self.__volume_map, volume, pool_id)
+
+    def __run_queries(self):
+        """
+        Prepares and sends the optimisation query.
+        """
+        self.add_debug('Run optimisation queries ...')
+
+        no_result_msg = 'The optimisation query did not return any result.'
+        for volume, pool_ids in self.__volume_map.iteritems():
+            params = self.__fetch_query_parameters(volume, pool_ids)
+            opt_query = OPTIMIZATION_QUERY.QUERY_TEMPLATE % (params)
+            query_values = OPTIMIZATION_QUERY.QUERY_RESULT_VALUES
+
+            try:
+                #pylint: disable=W0142
+                results = self.__session.query(*query_values).\
+                                            from_statement(opt_query).all()
+                #pylint: enable=W0142
+            except NoResultFound:
+                self.add_error(no_result_msg)
+            else:
+                for record in results:
+                    candidate = IsoCandidate.create_from_query_result(record)
+                    if not candidate.rack_barcode in self.excluded_racks:
+                        self.__candidates.append(candidate)
+
+        if len(self.__candidates) < 1: self.add_error(no_result_msg)
+
+    def __fetch_query_parameters(self, volume_in_ul, pool_ids):
+        """
+        Creates a tuple containing the values to be inserted into the
+        SQL optimisation query template.
+        """
+        # fetch all parameters
+        concentration_clause = self.__get_stock_concentration_clause(pool_ids)
+        volume = volume_in_ul / VOLUME_CONVERSION_FACTOR
+        query_sample_ids = []
+        for pool_id in pool_ids:
+            query_sample_ids.extend(self.__stock_samples[pool_id])
+        sample_string = create_in_term_for_db_queries(query_sample_ids)
+
+        base_params = (STOCK_ITEM_STATUS, sample_string, concentration_clause,
+                       volume)
+
+        # compile parameters
+        params_list = []
+        for param in base_params: params_list.append(param)
+        for param in base_params: params_list.append(param)
+        return tuple(params_list)
+
+    def __get_volume(self):
+        """
+        Determines the largest volume needed.
+        """
+        floating_volume = 0
+        fixed_volume = 0
+
+        prep_layout_pools = set()
+        for prep_pos in self.prep_layout.working_positions():
+            if prep_pos.is_mock: continue
+            if not prep_pos.parent_well is None: continue
+            if prep_pos.is_floating:
+                volume = get_stock_takeout_volume(
+                            stock_concentration=self.prep_layout.\
+                                                floating_stock_concentration,
+                            required_volume=prep_pos.required_volume,
+                            concentration=prep_pos.prep_concentration)
+                floating_volume = max(floating_volume, volume)
+            else:
+                volume = prep_pos.get_stock_takeout_volume()
+                pool_id = prep_pos.molecule_design_pool_id
+                if not pool_id in self.molecule_design_pools: continue
+                prep_layout_pools.add(pool_id)
+                fixed_volume = max(fixed_volume, volume)
+
+        fixed_only = True
+        floating_only = True
+        for pool_id in self.molecule_design_pools:
+            if not pool_id in prep_layout_pools:
+                fixed_only = False
+            else:
+                floating_only = False
+
+        if fixed_only:
+            return fixed_volume
+        elif floating_only:
+            return floating_volume
+        else:
+            volume = max(fixed_volume, floating_volume)
+            return volume
+
+    def __get_stock_concentration_clause(self, pool_ids):
+        """
+        There is two different clauses, depending on whether we have one
+        or several different stock concentrations.
+        """
+        self.add_debug('Determine stock concentration ...')
+
+        concentrations = set()
+        for prep_pos in self.prep_layout.working_positions():
+            if not prep_pos.molecule_design_pool_id in pool_ids: continue
+            stock_conc = prep_pos.stock_concentration
+            if not stock_conc is None: concentrations.add(stock_conc)
+
+        if len(concentrations) == 1:
+            conc = list(concentrations)[0] / CONCENTRATION_CONVERSION_FACTOR
+            clause = OPTIMIZATION_QUERY.CONCENTRATION_EQUALS_CLAUSE % (conc)
+        else:
+            corr_values = []
+            for conc in concentrations:
+                corr_values.append(conc / CONCENTRATION_CONVERSION_FACTOR)
+            in_tuple = create_in_term_for_db_queries(corr_values)
+            clause = OPTIMIZATION_QUERY.CONCENTRATION_IN_CLAUSE % (in_tuple)
+        return clause
