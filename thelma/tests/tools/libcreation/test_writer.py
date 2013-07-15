@@ -775,7 +775,10 @@ class LibraryCreationWorklistWriterTestCase(
                         status=get_item_status_managed(),
                         barcode='1222', rack=rack,
                         position=get_rack_position_from_label('A1'))
-            self._test_and_expect_errors('located in positions that should ' \
+            file_map = self.tool.get_result()
+            self.__check_file_map(file_map)
+            self.__check_iso()
+            self._check_warning_messages('located in positions that should ' \
                                          'be empty')
 
     def test_invalid_pool_stock_rack_not_empty(self):

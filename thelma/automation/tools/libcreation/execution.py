@@ -40,10 +40,11 @@
 #           'LibraryCreationStockRackVerifier',
 #           'LibraryCreationBufferWorklistTransferJobCreator']
 #
+##TODO: create stock samples
 #
 #class LibraryCreationExecutor(BaseAutomationTool):
 #    """
-#    Executes the worklist file for a library creation ISO (including
+#    Executes the worklist file for a pool stock sample creation ISO (including
 #    tube handler worklists). This comprises:
 #
 #        - tube handler worklist execution (requires file upload)
@@ -61,10 +62,10 @@
 #        """
 #        Constructor:
 #
-#        :param library_creation_iso: The library creation ISO for which to
-#            execute the worklists.
-#        :type library_creation_iso:
-#            :class:`thelma.models.library.LibraryCreationIso`
+#        :param stock_sample_creation_iso: The pool stock sample creation ISO
+#            for which to execute the worklists.
+#        :type stock_sample_creation_iso:
+#            :class:`thelma.models.iso.StockSampleCreationIso`
 #
 #        :param user: The user conducting the execution.
 #        :type user: :class:`thelma.models.user.User`
@@ -83,8 +84,8 @@
 #                                    add_default_handlers=add_default_handlers,
 #                                    depending=False)
 #
-#        #: The library creation ISO for which to execute the worklists.
-#        self.library_creation_iso = library_creation_iso
+#        #: The stock sample creation ISO for which to execute the worklists.
+#        self.stock_sample_creation_iso = stock_sample_creation_iso
 #        #: The user conducting the execution.
 #        self.user = user
 #
@@ -149,8 +150,8 @@
 #        if not self.has_errors(): self.__create_aliquot_transfer_jobs()
 #        if not self.has_errors(): self.__execute_transfer_jobs()
 #        if not self.has_errors():
-#            self.library_creation_iso.status = ISO_STATUS.DONE
-#            self.return_value = self.library_creation_iso
+#            self.stock_sample_creation_iso.status = ISO_STATUS.DONE
+#            self.return_value = self.stock_sample_creation_iso
 #            self.add_info('Transfer execution completed.')
 #
 #    def get_executed_stock_worklists(self):
@@ -174,7 +175,7 @@
 #        """
 #        Returns the ISO. Required for reporting.
 #        """
-#        return self.library_creation_iso
+#        return self.stock_sample_creation_iso
 #
 #    def __check_input(self):
 #        """
@@ -182,9 +183,9 @@
 #        """
 #        self.add_debug('Check input values ...')
 #
-#        if self._check_input_class('library creation ISO',
-#                            self.library_creation_iso, LibraryCreationIso):
-#            status = self.library_creation_iso.status
+#        if self._check_input_class('stock sample creation ISO',
+#                        self.stock_sample_creation_iso, StockSampleCreationIso):
+#            status = self.stock_sample_creation_iso.status
 #            if not status == ISO_STATUS.QUEUED:
 #                msg = 'Unexpected ISO status: "%s"' % (status)
 #                self.add_error(msg)
@@ -198,7 +199,7 @@
 #        self.add_debug('Fetch library layout ...')
 #
 #        converter = LibraryLayoutConverter(log=self.log,
-#                            rack_layout=self.library_creation_iso.rack_layout)
+#                        rack_layout=self.stock_sample_creation_iso.rack_layout)
 #        self.__library_layout = converter.get_result()
 #
 #        if self.__library_layout is None:
@@ -225,7 +226,7 @@
 #        tube_rack_agg = get_root_aggregate(ITubeRack)
 #        not_found = []
 #
-#        for issr in self.library_creation_iso.iso_sample_stock_racks:
+#        for issr in self.stock_sample_creation_iso.iso_sector_stock_racks:
 #            self.__sample_stock_racks[issr.sector_index] = issr
 #            label = issr.planned_worklist.label
 #            starting_index = len(writer_cls.SAMPLE_STOCK_WORKLIST_LABEL)
@@ -254,7 +255,7 @@
 #        """
 #        self.add_debug('Get library source plates ...')
 #
-#        for lsp in self.library_creation_iso.library_source_plates:
+#        for lsp in self.stock_sample_creation_iso.library_source_plates:
 #            self.__library_source_plates[lsp.sector_index] = lsp.plate
 #
 #    def __verify_single_md_stock_racks(self):
@@ -307,8 +308,12 @@
 #        """
 #        Converts the position in the ignored position list for the 384-well
 #        layout into 96-well position.
+#
+#        Positions for sectors that are not required (might be the case on the
+#        last plate) are not checked.
 #        """
 #        for sector_index in range(NUMBER_SECTORS):
+#            if not self.__library_sectors.has_key(sector_index): continue
 #            sector_positions = get_sector_positions(sector_index=sector_index,
 #                            rack_shape=get_384_rack_shape(),
 #                            number_sectors=NUMBER_SECTORS)
@@ -448,6 +453,8 @@
 #                for rack_transfer in aliquot_worklist.planned_transfers:
 #                    current_index += 1
 #                    sector_index = rack_transfer.target_sector_index
+#                    if not self.__library_sectors.has_key(sector_index):
+#                        continue
 #                    prep_plate = self.__library_source_plates[sector_index]
 #                    rtj = RackTransferJob(index=current_index,
 #                                planned_rack_transfer=rack_transfer,
@@ -713,7 +720,10 @@
 #
 #        :param ignored_positions: Target positions that shall be ignored
 #            during worklist execution (because there is no library position
-#            for them).
+#            for them). Regard that sectors which are not omitted completely
+#            are not stored in the list (the sector index as key is missing).
+#            In contrast, sectors without ignored positions have empty
+#            lists as values.
 #        :type ignored_positions: :class:`dict` (rack position list mapped
 #            onto sector indices).
 #        """
@@ -725,7 +735,10 @@
 #        self.pool_stock_racks = pool_stock_racks
 #        #: Target positions that shall be ignored during worklist execution
 #        #: (because there is no library position for them) mapped onto
-#        #: sector indices.
+#        #: sector indices. Regard that sectors which are not omitted completely
+#        #: are not stored in the list (the sector index as key is missing). In
+#        #: contrast, sectors without ignored positions have empty lists as
+#        #: values.
 #        self.ignored_positions = ignored_positions
 #
 #        #: The worklists of the ISO worklist series mapped onto indices.
@@ -813,6 +826,7 @@
 #            worklist = self.__worklist_map[worklist_index]
 #            if not wl_marker in worklist.label: continue
 #            sector_index = int(worklist.label[-1]) - 1
+#            if not self.ignored_positions.has_key(sector_index): continue
 #            pool_stock_rack = self.pool_stock_racks[sector_index]
 #            cdj = ContainerDilutionJob(index=job_index,
 #                        planned_worklist=worklist,
@@ -855,6 +869,7 @@
 #            worklist = self.__worklist_map[worklist_index]
 #            if not wl_marker in worklist.label: continue
 #            sector_index = int(worklist.label[-1]) - 1
+#            if not self.ignored_positions.has_key(sector_index): continue
 #            source_plate = self.__source_plates[sector_index]
 #            cdj = ContainerDilutionJob(index=job_index,
 #                       planned_worklist=worklist,

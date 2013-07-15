@@ -10,6 +10,8 @@ from everest.entities.utils import get_root_aggregate
 from everest.querying.specifications import cntd
 from thelma.automation.handlers.base import BaseParserHandler
 from thelma.automation.parsers.poolcreationset import PoolCreationSetParser
+from thelma.automation.tools.stock.base import get_default_stock_concentration
+from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IMoleculeDesignPool
@@ -254,9 +256,15 @@ class PoolCreationSetParserHandler(BaseParserHandler):
         """
         self.add_debug('Find pool IDs for molecule design sets ...')
 
+        stock_conc = (get_default_stock_concentration(
+                             molecule_type=self.__molecule_type,
+                             number_designs=self.__number_molecule_designs)) \
+                             / CONCENTRATION_CONVERSION_FACTOR
+
         for md_ids in self.__pools_to_find:
             mds = set()
             for md_id in md_ids: mds.add(self.__md_map[md_id])
             pool = MoleculeDesignPool.create_from_data(dict(
-                                                    molecule_designs=mds))
+                                        molecule_designs=mds,
+                                        default_stock_concentration=stock_conc))
             self.__pools.add(pool)

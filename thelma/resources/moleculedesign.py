@@ -81,10 +81,10 @@ class MoleculeDesignPoolMember(MoleculeDesignSetMember):
 #    stock_samples = collection_attribute(IStockSample, 'stock_samples')
 #    member_hash = terminal_attribute(str, 'member_hash')
     number_designs = terminal_attribute(int, 'number_designs')
+    genes = collection_attribute(IGene, 'genes')
     supplier_molecule_designs = \
             collection_attribute(ISupplierMoleculeDesign,
                                  'supplier_molecule_designs')
-    genes = collection_attribute(IGene, 'genes')
 
 
 class MoleculeDesignSetCollection(Collection):

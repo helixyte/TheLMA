@@ -8,6 +8,7 @@
     xmlns:mt="http://schemata.cenix-bioscience.com/moleculetype"
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
     xmlns:smd="http://schemata.cenix-bioscience.com/suppliermoleculedesign"
+    xmlns:g="http://schemata.cenix-bioscience.com/gene"
 >
     <import
         schemaLocation="Shared.xsd"
@@ -28,11 +29,16 @@
     </import>
 
     <import
+        schemaLocation="Gene.xsd"
+        namespace="http://schemata.cenix-bioscience.com/gene"
+    >
+    </import>
+
+    <import
         schemaLocation="SupplierMoleculeDesign.xsd"
         namespace="http://schemata.cenix-bioscience.com/suppliermoleculedesign"
     >
     </import>
-
 
     <group name="MoleculeDesignSetBase">
         <sequence>
@@ -84,6 +90,8 @@
                             name="number_designs"
                             type="integer"
                         >
+                        </element>
+                        <element ref="g:genes">
                         </element>
                         <element ref="smd:supplier_molecule_designs">
                         </element>

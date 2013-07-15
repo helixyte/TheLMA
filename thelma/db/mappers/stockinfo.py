@@ -25,9 +25,11 @@ def create_mapper(stock_info_vw, molecule_design_set_gene_tbl, refseq_gene_tbl):
                      stock_info_vw.c.concentration],
         properties=dict(
             molecule_design_pool=relationship(MoleculeDesignPool,
+                                              uselist=False,
                                               lazy='joined'
                                               ),
             molecule_type=relationship(MoleculeType,
+                                       uselist=False,
                                        lazy='joined'),
             genes=relationship(Gene, viewonly=True,
                                primaryjoin=(mdsg.c.molecule_design_set_id ==

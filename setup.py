@@ -19,19 +19,17 @@ install_requirements.append('everest')
 install_requirements.append('tractor')
 
 tests_requirements = install_requirements + [
-    'nose>=1.1.2,<=1.1.99',
-    'nosexcover>=1.0.4,<=1.0.99',
-    'coverage==3.4',
-    'webtest>=1.3.1,<=1.3.99',
+    'nose-cov',
+    'webtest',
     ]
 
 setup(name='TheLMA',
-      version='1.4.1b0',
+      version='1.5.0',
       description='TheLMA',
       long_description=README + '\n\n' + CHANGES,
       classifiers=[
         "Programming Language :: Python",
-        "Framework :: BFG",
+        "Framework :: everest",
         "Topic :: Internet :: WWW/HTTP",
         "Topic :: Internet :: WWW/HTTP :: WSGI :: Application",
         ],

@@ -242,34 +242,35 @@ class ContainerLocationTestCase(ThelmaModelTestCase):
 
     def test_move_tube(self):
         with RdbContextManager() as session:
+            rack = self._create_tube_rack()
             tube = Tube.create_from_rack_and_position(
                         specs=self._get_entity(ITubeSpecs, key='matrix0500'),
                         status=self._get_entity(IItemStatus, key='managed'),
                         barcode='0111111111',
-                        rack=self.rack,
+                        rack=rack,
                         position=self.position)
             self.assert_true(tube.location.position is self.position)
-            self.assert_true(tube.location.rack is self.rack)
+            self.assert_true(tube.location.rack is rack)
             self.assert_true(tube.location.container is tube)
             self.assert_true(
-                    self.rack.container_locations[self.position].container
+                    rack.container_locations[self.position].container
                     is tube)
             #
             empty_position = RackPosition.from_indices(0, 0)
             new_position = RackPosition.from_indices(0, 3)
             # Move within same rack.
-            self.rack.move_tube(self.position, new_position)
+            rack.move_tube(self.position, new_position)
             session.flush()
             self.assert_true(tube.location.position is new_position)
             # Move to other rack.
             new_rack = self._create_tube_rack(label='TestDestTubeRack')
-            self.rack.remove_tube(tube)
+            rack.remove_tube(tube)
             # Removing again raises error.
-            self.assert_raises(ValueError, self.rack.remove_tube, tube)
+            self.assert_raises(ValueError, rack.remove_tube, tube)
             #
             new_rack.add_tube(tube, new_position)
             # Adding again raises error.
-            self.assert_raises(ValueError, self.rack.add_tube, tube,
+            self.assert_raises(ValueError, rack.add_tube, tube,
                                empty_position)
             session.flush()
             self.assert_true(tube.location.rack is new_rack)

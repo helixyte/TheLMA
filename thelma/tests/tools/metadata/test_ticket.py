@@ -322,8 +322,7 @@ class IsoRequestTicketDescriptionRemoverTestCase(
         self.tool = IsoRequestTicketDescriptionRemover(
                            experiment_metadata=self.experiment_metadata,
                            changed_num_replicates=self.changed_num_reps,
-                           changed_em_type=self.changed_em_type,
-                           add_default_handlers=True)
+                           changed_em_type=self.changed_em_type)
 
     def __check_result(self):
         self.tool.send_request()

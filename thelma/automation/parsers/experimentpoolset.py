@@ -177,9 +177,10 @@ class ExperimentPoolSetParser(ExcelFileParser):
                                              self.column_index)
             if cell_value is None:
                 cell_name = self.get_cell_name(row_index, self.column_index)
-                msg = 'Empty Cell in Row %i. Molecule design set parsing ' \
-                      'is aborted. Continue parsing of the remaining sheets.' \
-                       % (row_index + 1)
+                msg = 'Empty Cell in Row %i. Molecule design pool set ' \
+                      'parsing is stopped here. All pool that have been ' \
+                      'found so far are stored. Continue parsing of the ' \
+                      'remaining sheets.' % (row_index + 1)
                 le = ExcelFileParsingLogEvent(self.NAME, self.SHEET_NAME,
                                               cell_name, msg)
                 self.add_warning(le)

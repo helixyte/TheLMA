@@ -128,10 +128,15 @@ class Sample(Entity):
                             dict(molecule_designs=[mol.molecule_design
                                                    for mol in mols]))
         # Setting attributes outside __init__ pylint: disable=W0201
+        concentration = 0
+        for sm in self.sample_molecules:
+            concentration += sm.concentration
+        concentration = round(concentration, 10) # one decimal place if in nM
+
         self.molecule_design_pool = mdp
         self.supplier = mols[0].supplier
         self.molecule_type = mols[0].molecule_design.molecule_type
-        self.concentration = self.sample_molecules[0].concentration
+        self.concentration = concentration
         self.sample_type = SAMPLE_TYPES.STOCK
         # pylint: enable=W0201
 

@@ -105,7 +105,7 @@ class IsoXL20WorklistGenerator(BaseAutomationTool):
     #: part of the file name will be the ISO label.
     REPORT_FILE_SUFFIX = '%s_XL20_generation_report.txt'
     #: The suffix for the file name of the XL20 dummy output writer.
-    DUMMY_OUTPUT_FILE_SUFFIX = '%s_XL20_dummy_output.txt'
+    DUMMY_OUTPUT_FILE_SUFFIX = '%s_XL20_dummy_output.tpo'
 
     #: The name of the supported rack shape.
     RACK_SHAPE_NAME = None

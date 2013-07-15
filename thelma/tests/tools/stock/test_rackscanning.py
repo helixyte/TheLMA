@@ -155,7 +155,7 @@ class RackScanningAdjusterTestCase(FileCreatorTestCase):
 
     def _create_tool(self):
         self.tool = RackScanningAdjuster(user=self.executor_user,
-                            rack_scanning_stream=self.rack_scanning_stream,
+                            rack_scanning_files=self.rack_scanning_stream,
                             adjust_database=self.adjust_database)
 
     def _test_and_expect_errors(self, msg=None):
@@ -230,7 +230,6 @@ class RackScanningAdjusterTestCase(FileCreatorTestCase):
             self.new_racks.append(rack)
             session.add(rack)
         session.commit()
-#            self.rack_agg.add(rack)
 
     def __check_result(self):
         with RdbContextManager() as session:

@@ -34,7 +34,6 @@
 #           'PoolCreationStockRackVerifier',
 #           ]
 #
-## TODO: create stock samples
 #
 #class PoolCreationExecutor(BaseAutomationTool):
 #    """
@@ -48,7 +47,7 @@
 #
 #    **Return Value:** the updated ISO
 #    """
-#    NAME = 'LibraryCreationXL20Executor'
+#    NAME = 'Pool Creation Executor'
 #
 #    #: The barcode for the buffer source reservoir.
 #    BUFFER_RESERVOIR_BARCODE = 'buffer_reservoir'
@@ -134,8 +133,7 @@
 #        if not self.has_errors(): self.__create_buffer_transfer_job()
 #        if not self.has_errors(): self.__create_stock_transfer_jobs()
 #        if not self.has_errors(): self.__execute_transfer_jobs()
-##        if not self.has_errors(): self.__create_stock_samples()
-#        # TODO: get running and activate
+#        if not self.has_errors(): self.__create_stock_samples()
 #        if not self.has_errors():
 #            self.pool_creation_iso.status = ISO_STATUS.DONE
 #            self.return_value = self.pool_creation_iso
@@ -330,78 +328,63 @@
 #                ert = executed_items[i]
 #                executed_worklist.executed_transfers.append(ert)
 #
-## TODO: get this running
-##    def __create_stock_samples(self):
-##        """
-##        Converts the new pool samples into :class:`StockSample` entities.
-##
-##        We also compare expected and found molecule designs again. This has
-##        in theory already been done by the verifier. However, we have done a
-##        transfer in between and we want to exclude the (slight) chance that
-##        something went wrong during this process since afterwards it will hardly
-##        be possible to reconstruct the course of events and in case of the
-##        stock we better double-check.
-##        """
-##        self.add_debug('Generate stock samples ...')
-##
-##        mismatch = []
-##        diff_supplier = []
-##
-##        for tube in self.__sample_stock_rack.rack.containers:
-##            sample = tube.sample
-##            if sample is None: continue
-##            # check whether expected pool
-##            rack_pos = tube.location.position
-##            lib_pos = self.__library_layout.get_working_position(rack_pos)
-##            pool = lib_pos.pool
-##            exp_mds = set()
-##            for md in pool: exp_mds.add(md.id)
-##            found_mds = set()
-##            conc = 0
-##            suppliers = set()
-##            for sm in sample.sample_molecules:
-##                md_id = sm.molecule.molecule_design.id
-##                found_mds.add(md_id)
-##                conc += sm.concentration
-##                suppliers.add(sm.molecule.supplier)
-##            if not exp_mds == found_mds:
-##                info = '%s (pool: %s, expected designs: %s, found designs: ' \
-##                       '%s)' % (rack_pos, pool,
-##                                '-'.join(sorted([str(ei for ei in exp_mds)])),
-##                                '-'.join(sorted([str(ei for ei in found_mds)])))
-##                mismatch.append(info)
-##                continue
-##            if len(suppliers) > 1:
-##                info = '%s (pool: %s, found: %s)' % (rack_pos, pool,
-##                       ', '.join(sorted([str(s.name) for s in suppliers])))
-##                diff_supplier.append(info)
-##                continue
-##            else:
-##                supplier = list(suppliers)[0]
-##
-##            # generate stock sample
-###            ss = StockSample(volume=sample.volume,
-###                             container=tube,
-###                             molecule_design_pool=pool,
-###                             supplier=supplier,
-###                             molecule_type=pool.molecule_type,
-###                             concentration=conc)
-###            ss.sample_molecules = sample.sample_molecules
-###            ss.register()
-###            del sample
-##        StockSample.from_sample(sample, pool)
-##
-##        if len(mismatch) > 0:
-##            msg = 'The molecule designs for the following stock sample do ' \
-##                  'not match the expected designs for this sample. This ' \
-##                  'should not happen. Talk to the IT department, please. ' \
-##                  'Details: %s.' % (','.join(sorted(mismatch)))
-##            self.add_error(msg)
-##        if len(diff_supplier) > 0:
-##            msg = 'The designs for some of the pools originate from ' \
-##                  'different suppliers: %s.' \
-##                   % (', '.join(sorted(diff_supplier)))
-##            self.add_error(msg)
+#    def __create_stock_samples(self):
+#        """
+#        Converts the new pool samples into :class:`StockSample` entities.
+#
+#        We also compare expected and found molecule designs again. This has
+#        in theory already been done by the verifier. However, we have done a
+#        transfer in between and we want to exclude the (slight) chance that
+#        something went wrong during this process since afterwards it will hardly
+#        be possible to reconstruct the course of events and in case of the
+#        stock we better double-check.
+#        """
+#        self.add_debug('Generate stock samples ...')
+#
+#        mismatch = []
+#        diff_supplier = []
+#
+#        for tube in self.__sample_stock_rack.rack.containers:
+#            sample = tube.sample
+#            if sample is None: continue
+#            # check whether expected pool
+#            rack_pos = tube.location.position
+#            lib_pos = self.__library_layout.get_working_position(rack_pos)
+#            pool = lib_pos.pool
+#            exp_mds = set()
+#            for md in pool: exp_mds.add(md.id)
+#            found_mds = set()
+#            suppliers = set()
+#            for sm in sample.sample_molecules:
+#                md_id = sm.molecule.molecule_design.id
+#                found_mds.add(md_id)
+#                suppliers.add(sm.molecule.supplier)
+#            if not exp_mds == found_mds:
+#                info = '%s (pool: %s, expected designs: %s, found designs: ' \
+#                       '%s)' % (rack_pos, pool,
+#                                '-'.join(sorted([str(ei for ei in exp_mds)])),
+#                                '-'.join(sorted([str(ei for ei in found_mds)])))
+#                mismatch.append(info)
+#                continue
+#            if len(suppliers) > 1:
+#                info = '%s (pool: %s, found: %s)' % (rack_pos, pool,
+#                       ', '.join(sorted([str(s.name) for s in suppliers])))
+#                diff_supplier.append(info)
+#                continue
+#            else:
+#                sample.convert_to_stock_sample()
+#
+#        if len(mismatch) > 0:
+#            msg = 'The molecule designs for the following stock sample do ' \
+#                  'not match the expected designs for this sample. This ' \
+#                  'should not happen. Talk to the IT department, please. ' \
+#                  'Details: %s.' % (','.join(sorted(mismatch)))
+#            self.add_error(msg)
+#        if len(diff_supplier) > 0:
+#            msg = 'The designs for some of the pools originate from ' \
+#                  'different suppliers: %s.' \
+#                   % (', '.join(sorted(diff_supplier)))
+#            self.add_error(msg)
 #
 #
 #class PoolCreationStockRackVerifier(BaseAutomationTool):

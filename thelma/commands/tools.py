@@ -3,7 +3,7 @@ Run tool command.
 """
 from everest.entities.utils import get_root_aggregate
 from everest.mime import JsonMime
-from everest.querying.specifications import eq
+from everest.querying.specifications import eq # pylint: disable=W0611
 from everest.repositories.interfaces import IRepositoryManager
 from everest.repositories.rdb import Session as session_maker
 from everest.representers.utils import as_representer
@@ -25,7 +25,6 @@ from thelma.automation.tools.stock.sampleregistration import \
     ISampleRegistrationItem
 from thelma.automation.tools.stock.sampleregistration import \
     ISupplierSampleRegistrationItem
-from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import ITube
 from thelma.interfaces import ITubeTransferWorklist
 from thelma.interfaces import IUser
@@ -38,11 +37,6 @@ import transaction
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['EmptyTubeRegistrarToolCommand',
-           'LibraryCreationExecutorToolCommand',
-           'LibraryCreationWorklistWriterToolCommand',
-           'LibraryGeneratorToolCommand',
-           'LibraryIsoGeneratorToolCommand',
-           'LibraryIsoPopulatorToolCommand',
            'MetaToolCommand',
            'ToolCommand',
            'XL20ExecutorToolCommand',
@@ -149,7 +143,8 @@ class ToolCommand(Command):
         self._report_callback = lambda : None
 
     @classmethod
-    def make_standard_parser(verbose=True,
+    def make_standard_parser(cls,
+                             verbose=True,
                              interactive=False,
                              no_interactive=False,
                              simulate=False,
@@ -174,7 +169,7 @@ class ToolCommand(Command):
         cls.__target_class = target_class
 
     @classmethod
-    def finalize(cls, tool):
+    def finalize(cls, tool, options):
         """
         Override this method in derived classes to perform actions after the
         tool has run.
@@ -182,7 +177,7 @@ class ToolCommand(Command):
         pass
 
     @classmethod
-    def report(cls, tool):
+    def report(cls, tool, options):
         """
         Override this method in derived classes to perform reporting actions
         after the tool has run.
@@ -247,7 +242,7 @@ class ToolCommand(Command):
             try:
                 # This gives the tool command a chance to perform actions after
                 # the tool has run.
-                self.__target_class.finalize(tool)
+                self.__target_class.finalize(tool, opts)
             except:
                 transaction.abort()
                 raise
@@ -265,7 +260,7 @@ class ToolCommand(Command):
         #
         self._report_callback()
         try:
-            self.__target_class.report(tool)
+            self.__target_class.report(tool, self.options) # pylint: disable=E1101
         except:
             transaction.abort()
             raise
@@ -321,7 +316,7 @@ class EmptyTubeRegistrarToolCommand(ToolCommand): # no __init__ pylint: disable=
                    ]
 
     @classmethod
-    def finalize(cls, tool):
+    def finalize(cls, tool, options):
         if not tool.has_errors():
             tube_agg = get_root_aggregate(ITube)
             for tube in tool.return_value:
@@ -359,7 +354,7 @@ class _RegistrarCommand(ToolCommand): # no __init__ pylint: disable=W0232
         return [rc.get_entity() for rc in rpr.from_stream(open(value, 'rU'))]
 
     @classmethod
-    def report(cls, tool):
+    def report(cls, tool, options):
         # Write out report files for registered items.
         tool.write_report()
 
@@ -461,7 +456,7 @@ class XL20ExecutorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
                    ]
 
     @classmethod
-    def finalize(cls, tool):
+    def finalize(cls, tool, options):
         if not tool.has_errors():
             tube_transfer_worklist_agg = get_root_aggregate(
                                                     ITubeTransferWorklist)
@@ -500,7 +495,7 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 
 # TODO: think about how to make this prettier
 #    @classmethod
-#    def finalize(cls, tool):
+#    def finalize(cls, tool, options):
 #        if not tool.has_errors():
 #            zip_stream = tool.return_value
 #            file_map = read_zip_archive(zip_stream)
@@ -545,7 +540,7 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #                   ]
 #
 #    @classmethod
-#    def finalize(cls, tool):
+#    def finalize(cls, tool, options):
 #        if not tool.has_errors():
 #            lib_agg = get_root_aggregate(IMoleculeDesignLibrary)
 #            lib_agg.add(tool.return_value)
@@ -633,7 +628,7 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #                   ]
 #
 #    @classmethod
-#    def finalize(cls, tool):
+#    def finalize(cls, tool, options):
 #        if not tool.has_errors():
 #            labels = []
 #            for lci in tool.return_value:
@@ -667,7 +662,7 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #
 #    # TODO: think about how to make this prettier
 #    @classmethod
-#    def finalize(cls, tool):
+#    def finalize(cls, tool, options):
 #        if not tool.has_errors():
 #            iso_label = tool.library_creation_iso.label
 #            fn = '/Users/berger/Desktop/%s.csv' % (iso_label)
@@ -759,16 +754,16 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #                    ),
 #                   ]
 #
-##    @classmethod
-##    def finalize(cls, tool):
-##        if not tool.has_errors():
-##            uploader = LibraryCreationTicketWorklistUploader(
-##                        library_creation_iso=tool.library_creation_iso,
-##                        file_map=tool.return_value)
-##            uploader.send_request()
-##            if not uploader.transaction_completed():
-##                msg = 'Error during transmission to Trac!'
-##                print msg
+#    @classmethod
+#    def finalize(cls, tool, options):
+#        if not tool.has_errors() and not options.simulate:
+#            uploader = LibraryCreationTicketWorklistUploader(
+#                        library_creation_iso=tool.library_creation_iso,
+#                        file_map=tool.return_value)
+#            uploader.send_request()
+#            if not uploader.transaction_completed():
+#                msg = 'Error during transmission to Trac!'
+#                print msg
 #
 #
 #class LibraryCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
@@ -804,15 +799,228 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #                   )
 #                   ]
 #
-##    @classmethod
-##    def finalize(cls, tool):
-##        if not tool.has_errors():
-##            reporter = LibraryCreationStockTransferReporter(
-##                        executor=tool)
-##            reporter.send_request()
-##            if not reporter.transaction_completed():
-##                msg = 'Error during transmission to Trac!'
-##                print msg
+#    @classmethod
+#    def finalize(cls, tool, options):
+#        if not tool.has_errors() and not options.simulate:
+#            reporter = LibraryCreationStockTransferReporter(
+#                        executor=tool)
+#            reporter.send_request()
+#            if not reporter.transaction_completed():
+#                msg = 'Error during transmission to Trac!'
+#                print msg
+
+
+#class PoolGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
+#    """
+#    Runs the pool stock sample creator tool.
+#    """
+#    _excel_file_callback = LazyOption(lambda cls, value, options:
+#                                            open(value, 'rb').read())
+#    _user_callback = \
+#            LazyOption(lambda cls, value, options:
+#                            get_root_aggregate(IUser).get_by_slug(value))
+#    name = 'poolcreationlibrarygenerator'
+#    tool = 'thelma.automation.tools.poolcreation.generation:PoolCreationLibraryGenerator'
+#    option_defs = [('--iso-request-label',
+#                    'iso_request_label',
+#                    dict(help='Name of the molecule design and ISO request '
+#                              'library to create.'
+#                         )
+#                    ),
+#                   ('--excel-file',
+#                    'stream',
+#                    dict(help='Path for the Excel file to load.',
+#                         action='callback',
+#                         type='string',
+#                         callback=_excel_file_callback)
+#                    ),
+#                   ('--requester',
+#                    'requester',
+#                    dict(help='User name to use as the owner of the Trac '
+#                              'ticket.',
+#                         action='callback',
+#                         type='string',
+#                         callback=_user_callback),
+#                   ),
+#                   ('--target-volume',
+#                    'target_volume',
+#                    dict(help='The final volume for the new pool stock '
+#                              'samples in ul.',
+#                         type='int'),
+#                    ),
+#                   ('--target-concentration',
+#                    'target_concentration',
+#                    dict(help='The final pool concentration for the new pool '
+#                              'stock samples in nM.',
+#                         type='int'),
+#                    )
+#                   ]
+#
+#    @classmethod
+#    def finalize(cls, tool, options):
+#        if not tool.has_errors():
+#            lib_agg = get_root_aggregate(IMoleculeDesignLibrary)
+#            lib_agg.add(tool.return_value)
+#
+#
+#class PoolCreationIsoGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
+#    """
+#    Creates ISOs for a pool stock sample creation ISO request.
+#    """
+#
+#    @classmethod
+#    def get_iso_request(cls, value):
+#        agg = get_root_aggregate(IIsoRequest)
+#        agg.filter = eq(label=value)
+#        return list(agg.iterator())[0]
+#
+#    _iso_request_callback = LazyOption(lambda cls, value, options: # pylint: disable=W0108
+#                    PoolCreationIsoGeneratorToolCommand.get_iso_request(value))
+#
+#    name = 'poolcreationisogenerator'
+#    tool = 'thelma.automation.tools.poolcreation.ticket:PoolCreationIsoCreator'
+#    option_defs = [('--iso-request-label',
+#                    'iso_request',
+#                    dict(help='The plate set label of the ISO request whose ' \
+#                              'ISOs to create.',
+#                        action='callback',
+#                        type='string',
+#                        callback=_iso_request_callback),
+#                    )
+#                   ]
+#
+#
+#class PoolCreationIsoPopulatorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
+#    """
+#    Populates ISOs for a pool stock sample creation ISO request.
+#    """
+#
+#    @classmethod
+#    def get_library(cls, value):
+#        agg = get_root_aggregate(IMoleculeDesignLibrary)
+#        agg.filter = eq(label=value)
+#        return list(agg.iterator())[0]
+#
+#    _library_callback = LazyOption(lambda cls, value, options: # pylint: disable=W0108
+#                    PoolCreationIsoPopulatorToolCommand.get_library(value))
+#
+#    name = 'poolcreationisopopulator'
+#    tool = 'thelma.automation.tools.poolcreation.iso:PoolCreationIsoPopulator'
+#    option_defs = [('--pool-creation-library',
+#                    'pool_creation_library',
+#                    dict(help='The label of the pool creation library whose ' \
+#                              'ISOs to populate.',
+#                        action='callback',
+#                        type='string',
+#                        callback=_library_callback),
+#                    ),
+#                   ('--number-isos',
+#                    'number_isos',
+#                    dict(help='The number of ISOs ordered.',
+#                         type='int')
+#                    ),
+#                   ]
+#
+#
+#class PoolCreationWorklistWriterToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
+#
+#    @classmethod
+#    def get_iso(cls, value):
+#        agg = get_root_aggregate(IStockSampleCreationIso)
+#        agg.filter = eq(label=value)
+#        return list(agg.iterator())[0]
+#
+#    _iso_callback = LazyOption(lambda cls, value, options: # pylint: disable=W0108
+#                    PoolCreationWorklistWriterToolCommand.get_iso(value))
+#
+#    _tube_destination_racks_callback = LazyOption(lambda cls, value, options:
+#                                                  value.split(','))
+#
+#    name = 'poolcreationworklistwriter'
+#    tool = 'thelma.automation.tools.poolcreation.writer:PoolCreationWorklistWriter'
+#    option_defs = [('--iso',
+#                    'pool_creation_iso',
+#                    dict(help='Label of the pool creation ISO for which ' \
+#                              'you want to get worklist files.',
+#                        action='callback',
+#                        type='string',
+#                        callback=_iso_callback),
+#                    ),
+#                   ('--tube-destination-racks',
+#                    'tube_destination_racks',
+#                    dict(help='The barcodes for the tube handler destination ' \
+#                              'racks (for the single molecule design tubes - ' \
+#                              'these racks have to be empty). Pass the ' \
+#                              'barcodes comma-separated and without white ' \
+#                              'spaces).',
+#                        action='callback',
+#                        type='string',
+#                        callback=_tube_destination_racks_callback)
+#                    ),
+#                   ('--pool-stock-rack',
+#                    'pool_stock_rack_barcode',
+#                    dict(help='The barcodes for the rack that will contain ' \
+#                              'the pool stock tubes. This rack has to ' \
+#                              'have empty tubes in defined positions.',
+#                         type='string')
+#                    ),
+#                   ]
+#
+#    @classmethod
+#    def finalize(cls, tool, options):
+#        if not tool.has_errors() and not options.simulate:
+#            uploader = PoolCreationTicketWorklistUploader(
+#                        pool_creation_iso=tool.pool_creation_iso,
+#                        file_map=tool.return_value)
+#            uploader.send_request()
+#            if not uploader.transaction_completed():
+#                msg = 'Error during transmission to Trac!'
+#                print msg
+#
+#
+#class PoolCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
+#
+#    @classmethod
+#    def get_iso(cls, value):
+#        agg = get_root_aggregate(IStockSampleCreationIso)
+#        agg.filter = eq(label=value)
+#        return list(agg.iterator())[0]
+#
+#    _iso_callback = \
+#        LazyOption(lambda cls, value, options: # pylint: disable=W0108
+#                   PoolCreationExecutorToolCommand.get_iso(value))
+#    _user_callback = \
+#        LazyOption(lambda cls, value, options:
+#                        get_root_aggregate(IUser).get_by_slug(value))
+#
+#    name = 'poolcreationexecutor'
+#    tool = 'thelma.automation.tools.poolcreation.execution:PoolCreationExecutor'
+#    option_defs = [('--iso',
+#                    'pool_creation_iso',
+#                    dict(help='Label of the stock sample creation ISO which ' \
+#                              'you want to update.',
+#                        action='callback',
+#                        type='string',
+#                        callback=_iso_callback),
+#                    ),
+#                   ('--user',
+#                    'user',
+#                    dict(help='User name of the user who performs the update.',
+#                         action='callback',
+#                         type='string',
+#                         callback=_user_callback),
+#                   )
+#                   ]
+#
+#    @classmethod
+#    def finalize(cls, tool, options):
+#        if not tool.has_errors() and not options.simulate:
+#            reporter = PoolCreationStockTransferReporter(
+#                        executor=tool)
+#            reporter.send_request()
+#            if not reporter.transaction_completed():
+#                msg = 'Error during transmission to Trac!'
+#                print msg
 
 
 class StockAuditToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
@@ -829,6 +1037,42 @@ class StockAuditToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
                     dict(help='Output file to write the stock audit report '
                               'to.')
                     )
+                   ]
+
+
+class RackScanningAdjusterToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
+
+    _user_callback = \
+        LazyOption(lambda cls, value, options:
+                                get_root_aggregate(IUser).get_by_slug(value))
+
+    name = 'rackscanningadjuster'
+    tool = 'thelma.automation.tools.stock.rackscanning:RackScanningAdjuster'
+
+    option_defs = [('--scanfiles',
+                    'rack_scanning_files',
+                    dict(help='This can be a single file, a zip file or a ' \
+                              'directory (in which case all *.TXT files are ' \
+                              'read).',
+                         type='string',
+                         ),
+                    ),
+                   ('--adjust-db',
+                    'adjust_database',
+                    dict(help='Shall the DB be adjusted (specified) or do you ' \
+                              'only want to have a report (not specified)?',
+                         action='store_true',
+                         default=False,
+                         )
+                    ),
+                   ('--user',
+                    'user',
+                    dict(help='User name how executes the update ' \
+                              '(if applicable).',
+                         action='callback',
+                         type='string',
+                         callback=_user_callback),
+                   )
                    ]
 
 
@@ -853,7 +1097,7 @@ class XL20DummyToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
 
     # TODO: think about how to make this prettier
     @classmethod
-    def finalize(cls, tool):
+    def finalize(cls, tool, options):
         if not tool.has_errors():
             fn = '/Users/berger/Desktop/xl20out.txt'
             o = open(fn, 'w')
