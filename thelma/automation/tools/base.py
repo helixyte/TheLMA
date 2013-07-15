@@ -3,8 +3,8 @@
 :Author: AAB, berger at cenix-bioscience dot com
 """
 
-from thelma.automation.errors import ErrorRecording
 from thelma import ThelmaLog
+from thelma.automation.errors import ErrorRecording
 from thelma.automation.tools.semiconstants import clear_semiconstant_caches
 from thelma.automation.tools.semiconstants import initialize_semiconstant_caches
 
@@ -92,7 +92,7 @@ class BaseAutomationTool(ErrorRecording):
         self.return_value = None
         if not self.__depending:
             self.reset_log()
-            clear_semiconstant_caches()
+            initialize_semiconstant_caches()
         self.add_info('Reset ...')
 
     def _get_additional_value(self, value):
