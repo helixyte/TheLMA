@@ -152,6 +152,7 @@ def initialize_mappers(tables, views):
                        tables['molecule_design_pool'])
     species.create_mapper(tables['species'])
     stockinfo.create_mapper(views['stock_info_view'],
+                            tables['molecule_design_set'],
                             tables['molecule_design_set_gene'],
                             tables['refseq_gene'])
     chemical_structure_mapper = \

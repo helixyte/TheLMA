@@ -13,9 +13,11 @@ __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
 
 
-def create_mapper(stock_info_vw, molecule_design_set_gene_tbl, refseq_gene_tbl):
+def create_mapper(stock_info_vw, molecule_design_set_tbl,
+                  molecule_design_set_gene_tbl, refseq_gene_tbl):
     "Mapper factory."
     siv = stock_info_vw
+    mds = molecule_design_set_tbl
     mdsg = molecule_design_set_gene_tbl
     rsg = refseq_gene_tbl
     m = mapper(StockInfo, stock_info_vw,
@@ -24,10 +26,14 @@ def create_mapper(stock_info_vw, molecule_design_set_gene_tbl, refseq_gene_tbl):
         primary_key=[stock_info_vw.c.molecule_design_set_id,
                      stock_info_vw.c.concentration],
         properties=dict(
-            molecule_design_pool=relationship(MoleculeDesignPool,
-                                              uselist=False,
-                                              lazy='joined'
-                                              ),
+            molecule_design_pool=
+                    relationship(MoleculeDesignPool,
+                                 primaryjoin=(mds.c.molecule_design_set_id ==
+                                                siv.c.molecule_design_set_id),
+                                 foreign_keys=[siv.c.molecule_design_set_id],
+                                 uselist=False,
+                                 lazy='joined'
+                                 ),
             molecule_type=relationship(MoleculeType,
                                        uselist=False,
                                        lazy='joined'),
