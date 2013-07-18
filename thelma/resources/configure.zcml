@@ -1159,6 +1159,15 @@
                     value="true" />
             </attribute>
         </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.CsvMime"
+        >
+            <attribute name="id">
+                <option
+                    name="ignore"
+                    value="true" />
+        </representer>
     </resource>
 
 
