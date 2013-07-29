@@ -25,7 +25,7 @@ class ChemicalStructureCollectionTestCase(ThelmaFunctionalTestCase):
     def test_filter_by_molecule_type(self):
         moltype_href = 'http://localhost/molecule-types/sirna/'
         res = self.app.get(self.path,
-            params=dict(q='molecule-designs.molecule-type:equal-to:%s' \
+            params=dict(q='molecule-designs.molecule-type:equal-to:"%s"' \
                           % moltype_href),
             status=200)
         self.assert_true(not res is None)
@@ -33,7 +33,7 @@ class ChemicalStructureCollectionTestCase(ThelmaFunctionalTestCase):
     def test_filter_by_modification(self):
         moltype_href = 'http://localhost/molecule-types/cloned-dsdna'
         res = self.app.get(self.path,
-            params=dict(q='molecule-designs.molecule-type:equal-to:%s' \
+            params=dict(q='molecule-designs.molecule-type:equal-to:"%s"' \
                           '~structure-type-id:equal-to:"MODIFICATION"' \
                           % moltype_href),
             status=200)
