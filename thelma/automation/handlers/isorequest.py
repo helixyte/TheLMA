@@ -393,12 +393,16 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
             may_be_none = container.has_layout
 
         error_list = self.__invalid_lookup[parameter]
-        if self._is_valid_numerical(metadata_value, 'default value',
-                                    may_be_none, error_list):
+        if not self._is_valid_numerical(metadata_value, 'default value',
+                                        may_be_none, error_list):
+            return False
+        elif (parameter == TransfectionParameters.REAGENT_DIL_FACTOR \
+                        and not metadata_value is None and metadata_value < 1):
+            self._invalid_df.append('default value')
+            return False
+        else:
             self._metadata_lookup[parameter] = metadata_value
             return True
-        else:
-            return False
 
     def _is_valid_numerical(self, value, pos_label, may_be_none, error_list):
         """
@@ -652,9 +656,9 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
 
         if len(self._invalid_df) > 0:
             msg = 'Invalid or missing reagent dilution factor for rack ' \
-                  'positions: %s. The dilution factor must be a positive ' \
-                  'number! Untreated position may have the values "None" ' \
-                  'or "untreated".' % (', '.join(sorted(self._invalid_df)))
+                  'positions: %s. The dilution factor must be 1 or larger! ' \
+                  'Untreated position may have the values "None" or ' \
+                  '"untreated".' % (', '.join(sorted(self._invalid_df)))
             self.add_error(msg)
 
         if len(self._invalid_fconc) > 0:
@@ -1003,8 +1007,15 @@ class IsoRequestParserHandlerOpti(IsoRequestParserHandler):
         rack position.
         """
         parameter = TransfectionParameters.REAGENT_DIL_FACTOR
-        return self._get_numerical_parameter_value(parameter, pos_label, False,
-                                                   is_untreated)
+        rdf = self._get_numerical_parameter_value(parameter, pos_label, False,
+                                                  is_untreated)
+        if rdf is None:
+            return None
+        elif rdf < 1:
+            self._invalid_df.append(pos_label)
+            return None
+        else:
+            return rdf
 
     def _check_layout_validity(self, has_floatings):
         """
@@ -1390,15 +1401,15 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
         """
         Returns the name of the transfection reagent to be used.
         """
-        if self.return_value is None: return None
-        return self._reagent_name_metadata
+        return self._get_additional_value(self._reagent_name_metadata)
 
     def get_reagent_dil_factor(self):
         """
         Returns the final transfection reagent dilution factor.
         """
-        if self.return_value is None: return None
-        return self._metadata_lookup[TransfectionParameters.REAGENT_DIL_FACTOR]
+
+        return self._get_additional_value(self._metadata_lookup[
+                                    TransfectionParameters.REAGENT_DIL_FACTOR])
 
     def _get_metadata_values(self):
         """
