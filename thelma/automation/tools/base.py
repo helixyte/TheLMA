@@ -3,7 +3,7 @@
 :Author: AAB, berger at cenix-bioscience dot com
 """
 
-from thelma.automation.errors import ErrorRecording
+from thelma.automation.errors import EventRecording
 from thelma import ThelmaLog
 from thelma.automation.tools.semiconstants import clear_semiconstant_caches
 from thelma.automation.tools.semiconstants import initialize_semiconstant_caches
@@ -13,7 +13,7 @@ __docformat__ = 'reStructuredText en'
 __all__ = ['BaseAutomationTool']
 
 
-class BaseAutomationTool(ErrorRecording):
+class BaseAutomationTool(EventRecording):
     """
     This is an abstract base class. For all helper and automation tools.
     Its main purpose is to provide logging and registration attributes.

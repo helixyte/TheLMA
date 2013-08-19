@@ -1,5 +1,5 @@
 """
-ISO control stock rack mapper
+ISO job stock rack mapper
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship

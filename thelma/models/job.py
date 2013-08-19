@@ -6,6 +6,7 @@ AAB, Created on Jun 22, 2011
 
 from everest.entities.base import Entity
 from thelma.utils import get_utc_time
+from thelma.models.iso import IsoJobPreparationPlate
 
 __docformat__ = 'reStructuredText en'
 
@@ -31,7 +32,7 @@ class JOB_TYPES(object):
     ISO = 'ISO'
 
 
-class  Job(Entity):
+class Job(Entity):
     """
     Jobs group entities that represent (laboratory) tasks. Tasks belonging to
     the same job are typically conducted together in one run (physically).
@@ -110,7 +111,8 @@ class ExperimentJob(Job):
 class IsoJob(Job):
     """
     A job class grouping :class:`Iso` entities. All ISOs must belong to the
-    same :class:`IsoRequest`. They might share an :class:`IsoJobStockRack`.
+    same :class:`IsoRequest`. They might share an :class:`IsoJobStockRack`
+    and an :class:`IsoJobPreparationPlate`.
 
     **Equality Condition**: equal :attr:`id`
     """
@@ -121,6 +123,11 @@ class IsoJob(Job):
     #: used in this job (not every ISO job needs one,
     #: :class:`thelma.models.iso.IsoJobStockRack`)
     iso_job_stock_rack = None
+    #: The plate used to predilute controls before there are transferred
+    #: to the ISO plates. The samples in this plate serve as source for all
+    #: ISOs in this job (not every ISO job needs one,
+    #: :class:`thelma.models.iso.IsoJobPreparationPlate`).
+    iso_job_preparation_plate = None
 
     def __init__(self, label, user, isos, **kw):
         """
@@ -147,6 +154,19 @@ class IsoJob(Job):
                 raise ValueError(msg)
 
         return iso_request
+
+    def add_preparation_plate(self, plate, rack_layout):
+        """
+        Adds an :class:`IsoJobPreparationPlate`.
+
+        :param plate: The plate to be added.
+        :type plate: :class:`thelma.models.rack.Plate`
+
+        :param rack_layout: The rack layout containing the plate data.
+        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
+        """
+        IsoJobPreparationPlate(iso_job=self, rack=plate,
+                               rack_layout=rack_layout)
 
     def __len__(self):
         return len(self.isos)

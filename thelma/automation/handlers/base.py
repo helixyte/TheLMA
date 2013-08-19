@@ -9,7 +9,7 @@ Handlers can also access the parsing logs.
 """
 
 from everest.entities.utils import get_root_aggregate
-from thelma.automation.errors import ErrorRecording
+from thelma.automation.errors import EventRecording
 from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.semiconstants import get_rack_position_from_indices
@@ -25,7 +25,7 @@ __all__ = ['BaseParserHandler',
            'MoleculeDesignPoolLayoutParserHandler']
 
 
-class BaseParserHandler(ErrorRecording):
+class BaseParserHandler(EventRecording):
     """
     This is an abstract base class for all parser handlers integrated into
     Thelma. Handlers initializes and run parsers and transform

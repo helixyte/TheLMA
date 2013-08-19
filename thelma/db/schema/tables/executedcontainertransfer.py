@@ -7,7 +7,7 @@ from sqlalchemy import Integer
 from sqlalchemy import Table
 
 __docformat__ = 'reStructuredText en'
-__all__ = ['create_mapper']
+__all__ = ['create_table']
 
 
 def create_table(metadata, executed_transfer_tbl, container_tbl):

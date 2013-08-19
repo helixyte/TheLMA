@@ -26,6 +26,7 @@ from thelma.db.schema.tables import experimentsourcerack
 from thelma.db.schema.tables import iso
 from thelma.db.schema.tables import isoaliquotplate
 from thelma.db.schema.tables import isojobmember
+from thelma.db.schema.tables import isojobpreparationplate
 from thelma.db.schema.tables import isojobstockrack
 from thelma.db.schema.tables import isoplate
 from thelma.db.schema.tables import isopoolset
@@ -295,6 +296,9 @@ def initialize_tables(metadata):
                                              iso_plate_tbl, rack_layout_tbl)
     iso_sector_preparation_plate_tbl = isosectorpreparationplate.create_table(
                                       metadata, iso_plate_tbl, rack_layout_tbl)
+    iso_job_preparation_plate_tbl = isojobpreparationplate.create_table(
+                                metadata, rack_tbl, job_tbl, rack_layout_tbl)
+
     experiment_rack_job_tbl = experimentrackjob.create_table(
                     metadata, job_tbl, experiment_rack_tbl)
 

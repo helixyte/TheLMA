@@ -7,7 +7,7 @@ AAB
 
 
 from pyramid.threadlocal import get_current_registry
-from thelma.automation.errors import ErrorRecording
+from thelma.automation.errors import EventRecording
 from thelma import ThelmaLog
 from thelma.interfaces import ITractor
 import logging
@@ -18,7 +18,7 @@ __all__ = ['BaseTracTool',
            ]
 
 
-class BaseTracTool(ErrorRecording):
+class BaseTracTool(EventRecording):
     """
     A base class for tools that send trac requests.
     """

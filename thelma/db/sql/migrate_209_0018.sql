@@ -86,4 +86,20 @@ DROP TABLE tmp_jobs_to_delete;
 
 DROP TABLE iso_job;
 
+
+-- ISO job plates are new, there is nothing to be migrated
+
+CREATE TABLE iso_job_preparation_plate (
+  iso_job_preparation_plate_id SERIAL PRIMARY KEY,
+  rack_id INTEGER NOT NULL REFERENCES rack (rack_id),
+  rack_layout_id INTEGER NOT NULL
+    REFERENCES rack_layout (rack_layout_id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  job_id INTEGER NOT NULL
+    REFERENCES job (job_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT iso_job_unique_preparation_plate UNIQUE (rack_id)
+);
+
+
 CREATE OR REPLACE VIEW db_version AS SELECT 209.0018 AS version;

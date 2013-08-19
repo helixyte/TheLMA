@@ -26,7 +26,8 @@ __all__ = ['ISO_TYPES',
            'ISO_PLATE_TYPES',
            'IsoAliquotPlate',
            'IsoPreparationPlate',
-           'IsoSectorPreparationPlate']
+           'IsoSectorPreparationPlate',
+           'IsoJobPreparationPlate']
 
 
 class ISO_TYPES(object):
@@ -369,9 +370,9 @@ class LabIso(Iso):
     This special kind of :class:`Iso` generates plates for experiments in the
     lab.
 
-    The :attr:`rack_layout` is a YYY, the :attr:`molecule_design_pool_set` is
-    optional an only contains pools specific to this ISOs (floating position
-    pools).
+    The :attr:`rack_layout` is a :class:IsoPlateLayout`,
+    the :attr:`molecule_design_pool_set` is optional an only contains pools
+    specific to this ISOs (floating position pools).
 
     **Equality condition**: equal :attr:`iso_request` and equal :attr:`label`
     """
@@ -381,6 +382,27 @@ class LabIso(Iso):
         Constructor
         """
         Iso.__init__(self, label=label, iso_type=ISO_TYPES.LAB, **kw)
+
+    def add_aliquot_plate(self, plate):
+        """
+        Adds an :class:`IsoAliquotPlate`.
+
+        :param plate: The plate to be added.
+        :type plate: :class:`thelma.models.rack.Plate`
+        """
+        IsoAliquotPlate(iso=self, rack=plate)
+
+    def add_preparation_plate(self, plate, rack_layout):
+        """
+        Adds an :class:`IsoPreparationPlate`.
+
+        :param plate: The plate to be added.
+        :type plate: :class:`thelma.models.rack.Plate`
+
+        :param rack_layout: The rack layout containing the plate data.
+        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
+        """
+        IsoPreparationPlate(iso=self, rack=plate, rack_layout=rack_layout)
 
 
 class StockSampleCreationIso(Iso):
@@ -498,7 +520,7 @@ class IsoJobStockRack(StockRack):
 
     **Equality Condition**: equal :attr:`id`
     """
-    #: The ISO job this stock belongs to (:class:`thelma.models.job.IsoJob`).
+    #: The ISO job this rack belongs to (:class:`thelma.models.job.IsoJob`).
     iso_job = None
 
     def __init__(self, iso_job, rack, rack_layout, planned_worklist, **kw):
@@ -718,4 +740,45 @@ class IsoSectorPreparationPlate(IsoPlate):
         str_format = '<%s id: %s, ISO: %s, rack: %s, sector index: %s>'
         params = (self.__class__.__name__, self.id, self.iso, self.rack.barcode,
                   self.sector_index)
+        return str_format % params
+
+
+class IsoJobPreparationPlate(Entity):
+    """
+    Preparation plates are used to pre-dilute samples before there are
+    transferred to other plates. Unlike normal :class:`IsoPreparationPlate`,
+    the ISO job preparation plate is a source plate for several ISOs
+    (all belonging to the same :class:`IsoJob`).
+
+    **Equality Condition**: equal :attr:`iso_job` and equal :attr:`rack`
+    """
+
+    #: The ISO job this plate belongs to (:class:`thelma.models.job.IsoJob`).
+    iso_job = None
+    #: The actual plate (:class:`thelma.models.rack.Plate`)
+    rack = None
+    #: The rack layout containing the molecule design pool and transfer data
+    #: (:class:`IsoPlateLayout`).
+    rack_layout = None
+
+    def __init__(self, iso_job, rack, rack_layout, **kw):
+        """
+        Constructor
+        """
+        Entity.__init__(self, **kw)
+        self.iso_job = iso_job
+        self.rack = rack
+        self.rack_layout = rack_layout
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and \
+                self.rack == other.rack and \
+                self.iso_job == other.iso_job
+
+    def __str__(self):
+        return self.rack
+
+    def __repr__(self):
+        str_format = '<%s id: %s, rack: %s, ISO job: %s>'
+        params = (self.__class__.__name__, self.id, self.rack, self.iso_job)
         return str_format % params

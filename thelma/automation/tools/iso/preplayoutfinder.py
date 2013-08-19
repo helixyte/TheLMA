@@ -25,9 +25,9 @@ from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import round_up
 from thelma.automation.tools.utils.base import sort_rack_positions
-from thelma.automation.tools.utils.iso import IsoAssociationData
-from thelma.automation.tools.utils.iso import IsoLayout
-from thelma.automation.tools.utils.iso import IsoValueDeterminer
+from thelma.automation.tools.utils.iso import IsoRequestAssociationData
+from thelma.automation.tools.utils.iso import IsoRequestLayout
+from thelma.automation.tools.utils.iso import IsoRequestValueDeterminer
 from thelma.automation.tools.utils.racksector import QuadrantIterator
 from thelma.automation.tools.worklists.base import EmptyPositionManager
 from thelma.automation.tools.worklists.base import get_dynamic_dead_volume
@@ -115,8 +115,6 @@ class PrepLayoutFinder(BaseAutomationTool):
         self._pool_map = None
         #: The reservoir specs of the preparation plate.
         self._reservoir_specs = None
-        #: The molecule type for the floating positions.
-        self._floating_mol_type = None
 
         #: The ISO preparation layout to fill.
         self._prep_layout = None
@@ -135,7 +133,6 @@ class PrepLayoutFinder(BaseAutomationTool):
         BaseAutomationTool.reset(self)
         self._pool_map = dict()
         self._reservoir_specs = None
-        self._floating_mol_type = None
         self._prep_layout = None
         self._number_aliquots = None
         self.__empty_pos_manager = None
@@ -188,7 +185,7 @@ class PrepLayoutFinder(BaseAutomationTool):
         """
         self.add_debug('Check input values ...')
 
-        self._check_input_class('ISO layout', self.iso_layout, IsoLayout)
+        self._check_input_class('ISO layout', self.iso_layout, IsoRequestLayout)
         self._check_input_class('ISO request', self.iso_request, IsoRequest)
 
     def __check_rack_shape(self):
@@ -936,7 +933,7 @@ class PrepLayoutFinder384Screening(PrepLayoutFinder348):
         """
         Determines the ISO volume for controls and samples in screening cases.
         """
-        volume_determiner = IsoValueDeterminer(iso_layout=self.iso_layout,
+        volume_determiner = IsoRequestValueDeterminer(iso_layout=self.iso_layout,
                             attribute_name='iso_volume', log=self.log,
                             number_sectors=1, ignore_mock=True)
         sector_values = volume_determiner.get_result()
@@ -955,7 +952,7 @@ class PrepLayoutFinder384Screening(PrepLayoutFinder348):
         self.add_debug('Get association data ...')
 
         try:
-            association_data = IsoAssociationData(log=self.log,
+            association_data = IsoRequestAssociationData(log=self.log,
                                                   iso_layout=self.iso_layout)
         except ValueError:
             msg = 'Error when trying to associate rack sectors by ' \
@@ -1146,7 +1143,8 @@ class PrepLayoutFinderManual(PrepLayoutFinder):
         """
         Runs the tool.
         """
-        if self._check_input_class('ISO layout', self.iso_layout, IsoLayout):
+        if self._check_input_class('ISO layout', self.iso_layout,
+                                   IsoRequestLayout):
 
             prep_layout = PrepIsoLayout(shape=self.iso_layout.shape)
             for rack_pos, iso_pos in self.iso_layout.iterpositions():
@@ -1175,7 +1173,8 @@ class PrepLayoutFinderOrderOnly(PrepLayoutFinder):
         simplfied :func:`run` method.
         """
 
-        if self._check_input_class('ISO layout', self.iso_layout, IsoLayout):
+        if self._check_input_class('ISO layout', self.iso_layout,
+                                   IsoRequestLayout):
 
             invalid_concentration = []
 

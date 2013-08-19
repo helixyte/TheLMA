@@ -16,8 +16,8 @@ from thelma.automation.tools.utils.base import get_converted_number
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.converters import TransferLayoutConverter
-from thelma.automation.tools.utils.iso import IsoParameters
-from thelma.automation.tools.utils.iso import IsoPosition
+from thelma.automation.tools.utils.iso import IsoRequestParameters
+from thelma.automation.tools.utils.iso import IsoRequestPosition
 from thelma.automation.tools.utils.racksector import AssociationData
 from thelma.automation.tools.utils.racksector import RackSectorAssociator
 from thelma.automation.tools.utils.racksector import ValueDeterminer
@@ -219,7 +219,7 @@ class PrepIsoParameters(TransferParameters):
 
     #: The target well are the ISO position of the ISO layout.
     #: The volume is the ISO volume.
-    ISO_POSITIONS = TransferParameters.TARGET_WELLS
+    ISO_POSITIONS = TransferParameters.TRANSFER_TARGETS
 
     REQUIRED = [MOLECULE_DESIGN_POOL, PREP_CONCENTRATION, REQUIRED_VOLUME,
                 POSITION_TYPE]
@@ -419,7 +419,7 @@ class PrepIsoPosition(TransferPosition):
         :param transfer_targets: The transfer targets are the ISO positions
              of the ISO layout. The transfer volume is the same as the ISO
              volume.
-        type transfer_targets: List of transfer target objects.
+        :type transfer_targets: List of transfer target objects.
         """
         return PrepIsoPosition(rack_position=rack_position,
                        molecule_design_pool=MOCK_POSITION_TYPE,
@@ -777,7 +777,7 @@ class PrepIsoLayoutConverter(TransferLayoutConverter):
                                     self.PARAMETER_SET.PREP_CONCENTRATION]
         req_volume = parameter_map[self.PARAMETER_SET.REQUIRED_VOLUME]
         parent_well = parameter_map[self.PARAMETER_SET.PARENT_WELL]
-        transfer_targets = parameter_map[self.PARAMETER_SET.TARGET_WELLS]
+        transfer_targets = parameter_map[self.PARAMETER_SET.TRANSFER_TARGETS]
 
         # Additional dilution series position do not have to have associated
         # ISO positions.
@@ -1106,11 +1106,11 @@ class IsoControlRackParameters(TransferParameters):
 
 
     #: The molecule design pool (tag value: molecule design pool id).
-    MOLECULE_DESIGN_POOL = MoleculeDesignPoolParameters.MOLECULE_DESIGN_POOL
+    MOLECULE_DESIGN_POOL = TransferParameters.MOLECULE_DESIGN_POOL
 
     #: The target well are the preparation position of the preparation layout.
     #: The volume is the stock take out volume.
-    PREP_POSITIONS = TransferParameters.TARGET_WELLS
+    PREP_POSITIONS = TransferParameters.TRANSFER_TARGETS
 
     REQUIRED = [MOLECULE_DESIGN_POOL, PREP_POSITIONS]
     ALL = [MOLECULE_DESIGN_POOL, PREP_POSITIONS]
@@ -1255,7 +1255,7 @@ class IsoControlRackLayoutConverter(TransferLayoutConverter):
         """
         rack_position = parameter_map[self._RACK_POSITION_KEY]
         pool_id = parameter_map[self.PARAMETER_SET.MOLECULE_DESIGN_POOL]
-        transfer_targets = parameter_map[self.PARAMETER_SET.TARGET_WELLS]
+        transfer_targets = parameter_map[self.PARAMETER_SET.TRANSFER_TARGETS]
 
         if pool_id is None and transfer_targets is None:
             return None
@@ -1316,7 +1316,7 @@ class IsoControlRackLayoutConverter(TransferLayoutConverter):
         duplicate_pools = working_layout.get_duplicate_molecule_design_pools()
         if len(duplicate_pools) > 0:
             msg = 'There are duplicate molecule design pools in the control ' \
-                  'layout. This is a programming error, please contact the ' \
+                  'layout. This is a programming error, please contact ' \
                   'the IT department.'
             self.add_error(msg)
 

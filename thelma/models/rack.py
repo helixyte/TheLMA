@@ -322,6 +322,12 @@ class RackShape(Entity):
         return (rack_position.row_index < (self.number_rows) and
                 rack_position.column_index < (self.number_columns))
 
+    def __len__(self):
+        """
+        The number of positions for this rack shape.
+        """
+        return self.number_rows * self.number_columns
+
     def __eq__(self, other):
         """Equality operator
 
@@ -616,6 +622,14 @@ class RackPosition(Entity):
         return isinstance(other, RackPosition) \
                and self._row_index == other.row_index \
                and self._column_index == other.column_index
+
+    def __cmp__(self, other):
+        if self._row_index < other.row_index:
+            return -1
+        elif self._row_index > other.row_index:
+            return 1
+        else:
+            return cmp(self._column_index, other.column_index)
 
     def __hash__(self):
         return hash((self._row_index, self._column_index))

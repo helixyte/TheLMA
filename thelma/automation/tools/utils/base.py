@@ -13,6 +13,7 @@ from thelma.models.racklayout import RackLayout
 from thelma.models.tagging import Tag
 from thelma.models.tagging import TaggedRackPositionSet
 from thelma.models.utils import get_user
+from sqlalchemy.orm.exc import NoResultFound
 
 
 __docformat__ = "reStructuredText en"
@@ -62,7 +63,7 @@ __ERROR_RANGE = 0.001
 
 def are_equal_values(value1, value2):
     """
-    Compares 2 floating values (to circumvents python's floating point
+    Compares 2 floating values (to circumvent python's floating point
     inaccuracy which occurs already with number with only one decimal place
     difference). Instead of comparing the values directly the method will
     check whether the difference of the values is within a certain error
@@ -83,7 +84,7 @@ def is_smaller_than(value1, value2):
     """
     Checks whether the first given value is smaller than the second one.
 
-    This method serves to circumvents python's floating point
+    This method serves to circumvent python's floating point
     inaccuracy which occurs already with number with only one decimal place
     difference). Instead of comparing the values directly the method will
     check whether the difference of the values is below a certain values.
@@ -103,7 +104,7 @@ def is_larger_than(value1, value2):
     """
     Checks whether the first given value is larger than the second one.
 
-    This method serves to circumvents python's floating point
+    This method serves to circumvent python's floating point
     inaccuracy which occurs already with number with only one decimal place
     difference). Instead of comparing the values directly the method will
     check whether the difference of the values is above a certain values.
@@ -128,11 +129,6 @@ class ParameterSet(object):
 
     The values of the parameters also work as default tag predicate for
     tags of the parameter.
-
-    Subclasses so far are
-    :class:`thelma.automation.tools.utils.iso.IsoParameters`
-    :class:`thelma.automation.tools.utils.base.TransferParameters`
-    :class:`TransfectionParameters` and :class:`PrepIsoParameters`
     """
 
     #: The domain for the tags to be generated.
@@ -400,7 +396,7 @@ class WorkingLayout(object):
     """
 
     #: The working position class this layout is associated with.
-    WORKING_POSITION_CLASS = None
+    WORKING_POSITION_CLS = None
 
     def __init__(self, shape):
         """
@@ -428,10 +424,10 @@ class WorkingLayout(object):
         :raises TypeError: If the added position is not a
             :attr:`WORKING_POSITION_CLASS` object.
         """
-        if not (isinstance(working_position, self.WORKING_POSITION_CLASS)):
+        if not (isinstance(working_position, self.WORKING_POSITION_CLS)):
             msg = 'A position to be added must be a %s object (obtained ' \
-                  'type: %s).' % (self.WORKING_POSITION_CLASS,
-                                  working_position.__class__)
+                  'type: %s).' % (self.WORKING_POSITION_CLS,
+                                  working_position.__class__.__name__)
             raise TypeError(msg)
 
         self._position_map[working_position.rack_position] = working_position
@@ -768,6 +764,87 @@ def add_list_map_element(value_map, map_key, new_element):
     if not value_map.has_key(map_key):
         value_map[map_key] = []
     value_map[map_key].append(new_element)
+
+
+class CustomQuery(object):
+    """
+    Creates and runs a DB query. The results are converted into candidates list.
+    """
+    #: The raw query without values for the variable clauses.
+    QUERY_TEMPLATE = None
+    #: The query result column names in the order in which there are expected.
+    COLUMN_NAMES = None
+
+    #: The type of the collection storing the query results
+    #: (default: :class:`list`).
+    RESULT_COLLECTION_CLS = list
+
+    def __init__(self, session):
+        """
+        Constructor:
+
+        :param session: The DB session to be used.
+        """
+        #: The DB session to be used.
+        self.session = session
+
+        #: The completed query including search values (use
+        #: :func:`create_sql_statement` to generate).
+        self.sql_statement = None
+        #: A dictionary or list containing the query results.
+        self._results = None
+
+    def create_sql_statement(self):
+        """
+        Creates the :attr:`sql_statement` by inserting the search values into
+        the :attr:`QUERY_TEMPLATE`.
+        """
+        params = self._get_params_for_sql_statement()
+        self.sql_statement = self.QUERY_TEMPLATE % params
+
+    def _get_params_for_sql_statement(self):
+        """
+        Returns a tuple of parameters to be inserted into the
+        :attr:`QUERY_TEMPLATE` in order to create the :attr:`sql_statement`.
+        """
+        raise NotImplementedError('Abstract method')
+
+    def run(self):
+        """
+        Runs the query and converts its results to a :class:`TubeCandidate`s.
+        Also generates the query if this has not been done yet.
+
+        Attention: Candidates from former runs are removed!
+
+        :raise ValueError: If there is not at least one result for the query
+        """
+        if self.sql_statement is None:
+            self.create_sql_statement()
+
+        self._results = self.RESULT_COLLECTION_CLS() #pylint: disable=E1102
+        column_names = tuple(self.COLUMN_NAMES)
+        try:
+            results = self.session.query(*column_names).from_statement(
+                                                    self.sql_statement).all()
+        except NoResultFound:
+            raise ValueError('The tube picking query did not return any ' \
+                             'result!')
+        else:
+            for record in results:
+                self._store_result(record)
+
+    def _store_result(self, result_record):
+        """
+        Converts a result record into a storage object (if applicable) and
+        stores it in the :attr:`_results` list.
+        """
+        raise NotImplementedError('Abstract method')
+
+    def get_query_results(self):
+        """
+        Returns the result collection.
+        """
+        return self._results
 
 
 class MoleculeDesignPoolParameters(ParameterSet):
@@ -1114,7 +1191,7 @@ class MoleculeDesignPoolLayout(WorkingLayout):
     data.
     """
 
-    WORKING_POSITION_CLASS = MoleculeDesignPoolPosition
+    WORKING_POSITION_CLS = MoleculeDesignPoolPosition
 
     def __init__(self, shape):
         """
@@ -1367,39 +1444,54 @@ class TransferTarget(object):
 
 class TransferParameters(MoleculeDesignPoolParameters):
     """
-    A list of transfer parameters.
+    A list of transfer parameters. The subclasses might have different
+    sets of transfer targets. The sets are handled separately.
     """
 
     #: The domain for transfer-related tags.
     DOMAIN = 'sample_transfer'
 
-    #: A list of target wells.
-    TARGET_WELLS = 'target_wells'
     #: The molecule design pool (tag value: molecule design pool id).
     MOLECULE_DESIGN_POOL = MoleculeDesignPoolParameters.MOLECULE_DESIGN_POOL
     #: The position type (fixed, floating, mock or empty).
     POS_TYPE = MoleculeDesignPoolParameters.POS_TYPE
 
+    #: A list of :class:`TransferTarget` objects. This is the main transfer
+    #: target set that is inherited by all subclasses.
+    TRANSFER_TARGETS = 'transfer_targets'
+    #: Do there have to be transfer targets for the given parameter?
+    #: (default for :attr:`TRANSFER_TARGETS` : *False*)
+    MUST_HAVE_TRANSFER_TARGETS = {TRANSFER_TARGETS : False}
+
+    #: All parameters that deal with transfer targets.
+    TRANSFER_TARGET_PARAMETERS = [TRANSFER_TARGETS]
+
     #: A list of the attributes/parameters that need to be set.
-    REQUIRED = [TARGET_WELLS, MOLECULE_DESIGN_POOL]
-    #: A list of all available attributes/parameters.
-    ALL = [TARGET_WELLS, MOLECULE_DESIGN_POOL, POS_TYPE]
+    REQUIRED = [TRANSFER_TARGETS, MOLECULE_DESIGN_POOL]
+    ALL = [TRANSFER_TARGETS, MOLECULE_DESIGN_POOL, POS_TYPE]
 
-    #: A map storing alias predicates for each parameter.
-    ALIAS_MAP = {TARGET_WELLS : [],
-                 MOLECULE_DESIGN_POOL : MoleculeDesignPoolParameters.ALIAS_MAP[
-                                                        MOLECULE_DESIGN_POOL],
-                 POS_TYPE : MoleculeDesignPoolParameters.ALIAS_MAP[POS_TYPE]}
+    ALIAS_MAP = MoleculeDesignPoolParameters.ALIAS_MAP + {
+                                        TRANSFER_TARGETS : ['target_wells']}
 
-    DOMAIN_MAP = {TARGET_WELLS : DOMAIN,
+    DOMAIN_MAP = {TRANSFER_TARGETS : DOMAIN,
                   MOLECULE_DESIGN_POOL : MoleculeDesignPoolParameters.DOMAIN,
                   POS_TYPE : MoleculeDesignPoolParameters.DOMAIN}
+
+    @classmethod
+    def must_have_transfer_targets(cls, parameter_name):
+        """
+        Do there have to be transfer targets for the given parameter?
+        """
+        return cls.MUST_HAVE_TRANSFER_TARGETS[parameter_name]
 
 
 class TransferPosition(MoleculeDesignPoolPosition):
     """
     This class represents the source position for a sample transfer. The
     rack position is at this the *source position* in the source plate.
+
+    The subclasses might have different sets of transfer targets. The sets
+    are handled separately (association is made via the )
 
     **Equality condition**: equal :attr:`rack_position` and
         :attr:`target_positions`.
@@ -1426,6 +1518,9 @@ class TransferPosition(MoleculeDesignPoolPosition):
             or :class:`basestring`
 
         :param transfer_targets: The target positions and transfer volumes.
+            Some subclasses require transfer targets, in others there are
+            optional. This is set in the :attr:`MUST_HAVE_TRANSFER_TARGETS`
+            lookup of the :attr:`PARAMETER_SET`.
         :type transfer_targets: list of :class:`TransferTarget`
         """
         if self.__class__ == TransferPosition:
@@ -1434,51 +1529,88 @@ class TransferPosition(MoleculeDesignPoolPosition):
         MoleculeDesignPoolPosition.__init__(self, rack_position=rack_position,
                                     molecule_design_pool=molecule_design_pool)
 
-        if transfer_targets is None:
-            transfer_targets = []
-        elif not isinstance(transfer_targets, list):
-            msg = 'The transfer target must be passed as list (obtained: %s).' \
-                  % (transfer_targets.__class__.__name__)
+        #: The target positions and transfer volumes. Some subclasses require
+        #: transfer targets, in others there are optional. This is set in
+        #: the :attr:`MUST_HAVE_TRANSFER_TARGETS` attribute of the
+        #: :attr:`PARAMETER_SET`.
+        self.transfer_targets = self._check_transfer_targets(
+                        self.PARAMETER_SET.TRANSFER_TARGETS, transfer_targets)
+
+    def _check_transfer_targets(self, parameter_name, target_list,
+                                name='transfer targets'):
+        """
+        Checks the type and presence of transfer targets for the given
+        parameter.
+        """
+        if target_list is None:
+            if self.PARAMETER_SET.must_have_transfer_targets(parameter_name):
+                msg = 'A %s must have at least one transfer target!' \
+                       % (self.__class__.__name__)
+                raise ValueError(msg)
+            else:
+                return []
+        elif not isinstance(target_list, list):
+            msg = 'The %s must be passed as list (obtained: %s).' \
+                  % (name, target_list.__class__.__name__)
             raise TypeError(msg)
         else:
-            for tt in transfer_targets:
+            for tt in target_list:
                 if not isinstance(tt, TransferTarget):
                     msg = 'The transfer target must be TransferTarget objects ' \
                           '(obtained: %s).' % (tt.__class__.__name__)
                     raise TypeError(msg)
+            return target_list
 
-        #: The target positions and transfer volumes.
-        self.transfer_targets = transfer_targets
-
-    def add_transfer_target(self, transfer_target):
+    def get_transfer_target_list(self, parameter_name=None):
         """
-        Adds a target well to the :attr:`transfer_targets`.
+        Returns the target list for the given parameter name. If you do not
+        pass a name, the default list (:attr:`transfer_targets`) is returned.
+        """
+        if parameter_name is None or \
+                        parameter_name == self.PARAMETER_SET.TRANSFER_TARGETS:
+            return self.transfer_targets
+        return None
+
+    def add_transfer_target(self, transfer_target, parameter_name=None):
+        """
+        Adds a transfer target for the given parameter. If you do not
+        specifify a parameter, the default list (:attr:`transfer_targets`)
+        will be used.
 
         :param transfer_target: The target well to be added.
         :type transfer_target: :class:`TransferTarget`
+
+        :param parameter_name: The name of the parameter the transfer target
+            belongs to.
+        :type parameter_name: :class:`str` (parameter in the
+            :attr:`PARAMETER_SET`).
+        :default parameter_name: *None* (TRANSFER_TARGETS)
+
         :raises TypeError: If the transfer target has wrong type.
         :raises ValueError: If the well is already present.
         """
+        target_list = self.get_transfer_target_list(parameter_name)
+
         if not isinstance(transfer_target, TransferTarget):
             msg = 'Transfer targets wells must be TransferTarget objects' \
                   '(obtained: %s, type: %s).' % (transfer_target,
                                         transfer_target.__class__.__name__)
             raise TypeError(msg)
 
-        for tt in self.transfer_targets:
+        for tt in target_list:
             if tt.position_label == transfer_target.position_label:
                 raise ValueError('Duplicate target position %s.' \
                                  % (tt.position_label))
 
-        self.transfer_targets.append(transfer_target)
+        target_list.append(transfer_target)
 
     def get_parameter_tag(self, parameter):
         """
         The method needs to be overwritten because the value for the molecule
         designs tag is a concatenated string.
         """
-        if parameter == self.PARAMETER_SET.TARGET_WELLS:
-            return self.get_targets_tag()
+        if parameter in self.PARAMETER_SET.TRANSFER_TARGET_PARAMETERS:
+            return self.get_targets_tag(parameter)
         else:
             return MoleculeDesignPoolPosition.get_parameter_tag(self, parameter)
 
@@ -1488,9 +1620,9 @@ class TransferPosition(MoleculeDesignPoolPosition):
         """
         tag_set = set()
         for parameter in self.PARAMETER_SET.ALL:
-            if parameter == self.PARAMETER_SET.TARGET_WELLS \
-                        and len(self.transfer_targets) == 0: continue
-
+            if parameter in self.PARAMETER_SET.TRANSFER_TARGET_PARAMETERS \
+                    and len(self.get_transfer_target_list(parameter)) == 0:
+                continue
             value = self.get_parameter_value(parameter)
             if not parameter is self.PARAMETER_SET.REQUIRED and value is None:
                 continue
@@ -1498,14 +1630,15 @@ class TransferPosition(MoleculeDesignPoolPosition):
             tag_set.add(tag)
         return tag_set
 
-    def get_targets_tag_value(self):
+    def get_targets_tag_value(self, parameter_name=None):
         """
-        Returns the target well tag value.
+        Returns the target well tag value of the specified parameter
+        (by default: :attr:`TRANSFER_TARGETS`).
         """
+        target_list = self.get_transfer_target_list(parameter_name)
         targets = []
-        for tt in self.transfer_targets: targets.append(tt.target_info)
-        targets.sort()
-        return self.TARGETS_DELIMITER.join(targets)
+        for tt in target_list: targets.append(tt.target_info)
+        return self.TARGETS_DELIMITER.join(sorted(targets))
 
     @classmethod
     def parse_target_tag_value(cls, target_tag_value):
@@ -1519,23 +1652,24 @@ class TransferPosition(MoleculeDesignPoolPosition):
             duplicate targets.
         """
         tokens = target_tag_value.split(cls.TARGETS_DELIMITER)
-        transfer_targets = []
+        target_list = []
         for token in tokens:
             tt = TransferTarget.parse_info_string(token)
-            if tt in transfer_targets:
+            if tt in target_list:
                 msg = 'Duplicate transfer target: %s!' % (tt.position_label)
                 raise ValueError(msg)
-            transfer_targets.append(tt)
+            target_list.append(tt)
 
-        return transfer_targets
+        return target_list
 
-    def get_targets_tag(self):
+    def get_targets_tag(self, parameter_name=None):
         """
-        Returns the target well tag.
+        Returns the transfer target tag forrthe specified parameter
+        (by default: :attr:`TRANSFER_TARGETS`).
         """
         return Tag(TransferParameters.DOMAIN,
-                   self.PARAMETER_SET.TARGET_WELLS,
-                   self.get_targets_tag_value())
+                   self.PARAMETER_SET.TRANSFER_TARGETS,
+                   self.get_targets_tag_value(parameter_name))
 
     def _get_parameter_values_map(self):
         """
@@ -1543,7 +1677,8 @@ class TransferPosition(MoleculeDesignPoolPosition):
         """
         parameter_map = MoleculeDesignPoolPosition._get_parameter_values_map(
                                                                         self)
-        parameter_map[self.PARAMETER_SET.TARGET_WELLS] = self.transfer_targets
+        parameter_map[self.PARAMETER_SET.TRANSFER_TARGETS] = \
+                                                        self.transfer_targets
         return parameter_map
 
     def __eq__(self, other):
@@ -1565,7 +1700,12 @@ class TransferLayout(MoleculeDesignPoolLayout):
     to generate rack layouts for liquid transfer plans (sample transfer type).
     """
     #: The working position class this layout is associated with.
-    WORKING_POSITION_CLASS = TransferPosition
+    WORKING_POSITION_CLS = TransferPosition
+
+    #: Short cut to the transfer target parameters of the working position
+    #: parameter set.
+    _TRANSFER_TARGET_PARAMETERS = WORKING_POSITION_CLS.PARAMETER_SET.\
+                                  TRANSFER_TARGET_PARAMETERS
 
     def __init__(self, shape):
         """
@@ -1578,9 +1718,11 @@ class TransferLayout(MoleculeDesignPoolLayout):
             raise NotImplementedError('Abstract class')
         MoleculeDesignPoolLayout.__init__(self, shape=shape)
 
-        #: Target wells as key and the referring source well as value
-        #: (rack position as labels).
-        self._target_well_map = dict()
+        #: The transfer targets for each transfer target parameter mapped
+        #: onto rack positions.
+        self._transfer_target_map = dict()
+        for parameter in self._TRANSFER_TARGET_PARAMETERS:
+            self._transfer_target_map[parameter] = dict()
 
     def add_position(self, working_position):
         """
@@ -1591,20 +1733,23 @@ class TransferLayout(MoleculeDesignPoolLayout):
         :raises TypeError: If the added position is not a
             :class:`TransferPosition` object.
         """
-        if not isinstance(working_position, self.WORKING_POSITION_CLASS):
+        if not isinstance(working_position, self.WORKING_POSITION_CLS):
             msg = 'A position to be added must be a %s object (obtained ' \
-                  'type: %s).' % (self.WORKING_POSITION_CLASS,
-                                  working_position.__class__)
+                  'type: %s).' % (self.WORKING_POSITION_CLS,
+                                  working_position.__class__.__name__)
             raise TypeError(msg)
 
-        if not len(working_position.transfer_targets) < 1:
-            for tt in working_position.transfer_targets:
-                if self._target_well_map.has_key(tt.position_label):
-                    msg = 'Duplicate target well %s!' % (tt.position_label)
-                    raise ValueError(msg)
-                else:
-                    source_label = working_position.rack_position.label
-                    self._target_well_map[tt.position_label] = source_label
+        for parameter in self._TRANSFER_TARGET_PARAMETERS:
+            target_list = working_position.get_transfer_target_list(parameter)
+            tt_map = self._transfer_target_map[parameter]
+            if not len(target_list) < 1:
+                for tt in target_list:
+                    if tt_map.has_key(tt.position_label):
+                        msg = 'Duplicate target well %s!' % (tt.position_label)
+                        raise ValueError(msg)
+                    else:
+                        source_label = working_position.rack_position.label
+                        tt_map[tt.position_label] = source_label
 
         MoleculeDesignPoolLayout.add_position(self, working_position)
 
@@ -1612,10 +1757,15 @@ class TransferLayout(MoleculeDesignPoolLayout):
         """
         Deletes the working position for that rack position.
         """
-        transfer_pos = self._position_map[rack_position]
-        for tt in transfer_pos.transfer_targets:
-            del self._target_well_map[tt.position_label]
+        tp = self._position_map[rack_position]
 
-        if self._position_map.has_key(rack_position):
+        if tp is not None:
+            for parameter in self._TRANSFER_TARGET_PARAMETERS:
+                target_list = tp.get_transfer_target_list(parameter)
+                tt_map = self._transfer_target_map[parameter]
+                for tt in target_list:
+                    del tt_map[tt.position_label]
+
+        if tp is not None:
             del self._position_map[rack_position]
 
