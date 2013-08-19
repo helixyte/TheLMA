@@ -63,7 +63,7 @@ class MoleculeDesign(Entity):
         Entity.__init__(self, **kw)
         if self.__class__ is MoleculeDesign:
             raise NotImplementedError('Abstract class')
-        if molecule_type.name.lower() != self._molecule_type_id.lower():
+        if molecule_type.id.lower() != self._molecule_type_id.lower():
             raise ValueError('Invalid molecule type %s for %s design.'
                              % (molecule_type.id, self.__class__))
         self.molecule_type = molecule_type
