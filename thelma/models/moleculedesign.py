@@ -16,7 +16,6 @@ __all__ = ['AmpliconDesign',
            'CompoundDesign',
            'DoubleStrandedDesign',
            'EsiRnaDesign',
-           'GoldDesign',
            'LongDoubleStrandedRnaDesign',
            'MOLECULE_DESIGN_SET_TYPES',
            'MiRnaInhibitorDesign',
@@ -27,8 +26,6 @@ __all__ = ['AmpliconDesign',
            'MoleculeDesignSet',
            'SiRnaDesign',
            'SingleStrandedDesign',
-           'SingleStrandedRnaDesign',
-           'TitanDesign',
            ]
 
 
@@ -99,10 +96,6 @@ class MoleculeDesign(Entity):
             entity_cls = AmpliconDesign
         elif mol_type_id == MOLECULE_TYPE_IDS.SIRNA:
             entity_cls = SiRnaDesign
-        elif mol_type_id == MOLECULE_TYPE_IDS.TITAN:
-            entity_cls = TitanDesign
-        elif mol_type_id == MOLECULE_TYPE_IDS.GOLD:
-            entity_cls = GoldDesign
         elif mol_type_id == MOLECULE_TYPE_IDS.CLND_DSDNA:
             entity_cls = ClonedDsDnaDesign
         elif mol_type_id == MOLECULE_TYPE_IDS.MIRNA_INHI:
@@ -287,11 +280,6 @@ class EsiRnaDesign(DoubleStrandedDesign, RnaDesign):
     _molecule_type_id = MOLECULE_TYPE_IDS.ESI_RNA
 
 
-# FIXME: This needs to be removed after the migratioin
-class SingleStrandedRnaDesign(SingleStrandedDesign, RnaDesign):
-    _molecule_type_id = MOLECULE_TYPE_IDS.SSRNA
-
-
 class LongDoubleStrandedRnaDesign(DoubleStrandedDesign, RnaDesign):
     """
     Long double stranded RNA molecule design.
@@ -343,27 +331,6 @@ class SiRnaDesign(DoubleStrandedDesign, RnaDesign):
             raise ValueError('%s designs require exactly two nucleic acid '
                              'structures and at most one modification '
                              'structure.' % cls._molecule_type_id)
-
-
-class TitanDesign(DoubleStrandedDesign, RnaDesign):
-    """
-    Titan molecule design.
-
-    Titan molecule designs are a variant of short double-stranded RNA with
-    elaborate overhang bp requirements. They were an early knockdown reagent
-    candidate before siRNA was settled upon.
-    """
-    _molecule_type_id = MOLECULE_TYPE_IDS.TITAN
-
-
-class GoldDesign(DoubleStrandedDesign, RnaDesign):
-    """
-    Gold molecule design.
-
-    Gold molecule designs are short hairpin RNA whose structure resembles an
-    siRNA with a connecting loop. They are used for gene knockdown.
-    """
-    _molecule_type_id = MOLECULE_TYPE_IDS.GOLD
 
 
 class ClonedDsDnaDesign(DoubleStrandedDesign, DnaDesign):

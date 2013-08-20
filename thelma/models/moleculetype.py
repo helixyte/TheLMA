@@ -18,12 +18,9 @@ class MOLECULE_TYPE_IDS(object):
     Known molecule types.
     """
     # FIXME: reconcile with `thelma.data.moleculetype` # pylint:disable=W0511
-    SSRNA = 'SSRNA'
     SSDNA = 'SSDNA'
     AMPLICON = 'AMPLICON'
     SIRNA = 'SIRNA'
-    GOLD = 'GOLD'
-    TITAN = 'TITAN'
     COMPOUND = 'COMPOUND'
     LONG_DSRNA = 'LONG_DSRNA'
     ANTI_MIR = 'ANTI_MIR'
@@ -63,6 +60,8 @@ class MoleculeType(Entity):
 
     def __init__(self, name, default_stock_concentration,
                  description='', thaw_time=0, modifications=None, **kw):
+        if not 'id' in kw:
+            kw['id'] = name.lower()
         Entity.__init__(self, **kw)
         self.name = name
         self.default_stock_concentration = default_stock_concentration
@@ -76,9 +75,6 @@ class MoleculeType(Entity):
         #: For instances of this class, the slug is derived from the
         #: :attr:`name`.
         return slug_from_string(self.name)
-
-    def __eq__(self, other):
-        return (isinstance(other, MoleculeType) and self.name == other.name)
 
     def __str__(self):
         return self.id

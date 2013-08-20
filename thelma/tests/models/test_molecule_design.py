@@ -122,7 +122,7 @@ class SiRnaDesignModelTest(ThelmaModelTestCase):
         self.assert_equal(len(sirna.genes), 0)
 
     def test_wrong_molecule_type(self):
-        wrong_type = self._create_molecule_type(name=MOLECULE_TYPE_IDS.GOLD)
+        wrong_type = self._create_molecule_type(name=MOLECULE_TYPE_IDS.SSDNA)
         self.assert_raises(ValueError, SiRnaDesign,
                            wrong_type,
                            chemical_structures=
@@ -152,7 +152,7 @@ class CompoundDesignModelTest(ThelmaModelTestCase):
         check_attributes(cd, self.init_data)
 
     def test_wrong_molecule_type(self):
-        wrong_type = self._create_molecule_type(name=MOLECULE_TYPE_IDS.GOLD)
+        wrong_type = self._create_molecule_type(name=MOLECULE_TYPE_IDS.SSDNA)
         tup = (wrong_type, self.smiles)
         self.assert_raises(ValueError, CompoundDesign, *tup) # pylint: disable=W0142
 

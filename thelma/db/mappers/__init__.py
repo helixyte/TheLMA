@@ -25,7 +25,6 @@ from thelma.db.mappers import experimentmetadata
 from thelma.db.mappers import experimentmetadatatype
 from thelma.db.mappers import experimentrack
 from thelma.db.mappers import gene
-from thelma.db.mappers import golddesign
 from thelma.db.mappers import iso
 from thelma.db.mappers import isoaliquotplate
 from thelma.db.mappers import isocontrolstockrack
@@ -74,7 +73,6 @@ from thelma.db.mappers import samplemolecule
 from thelma.db.mappers import sampleregistration
 from thelma.db.mappers import sirnadesign
 from thelma.db.mappers import species
-from thelma.db.mappers import ssrnadesign
 from thelma.db.mappers import standardmoleculedesignset
 from thelma.db.mappers import stockinfo
 from thelma.db.mappers import stocksample
@@ -85,7 +83,6 @@ from thelma.db.mappers import tag
 from thelma.db.mappers import tagged
 from thelma.db.mappers import taggedrackpositionset
 from thelma.db.mappers import tagging
-from thelma.db.mappers import titandesign
 from thelma.db.mappers import tube
 from thelma.db.mappers import tuberack
 from thelma.db.mappers import tuberackspecs
@@ -195,8 +192,6 @@ def initialize_mappers(tables, views):
                         )
     compounddesign.create_mapper(molecule_design_mapper,
                                  tables['molecule_design'])
-    ssrnadesign.create_mapper(molecule_design_mapper,
-                              tables['molecule_design'])
     antimirdesign.create_mapper(molecule_design_mapper,
                                 tables['molecule_design'])
     cloneddsdnadesign.create_mapper(molecule_design_mapper,
@@ -211,10 +206,6 @@ def initialize_mappers(tables, views):
                                  tables['molecule_design'])
     sirnadesign.create_mapper(molecule_design_mapper,
                               tables['molecule_design'])
-    titandesign.create_mapper(molecule_design_mapper,
-                              tables['molecule_design'])
-    golddesign.create_mapper(molecule_design_mapper,
-                             tables['molecule_design'])
     mirnainhibitordesign.create_mapper(molecule_design_mapper,
                                        tables['molecule_design'])
     mirnamimicdesign.create_mapper(molecule_design_mapper,
