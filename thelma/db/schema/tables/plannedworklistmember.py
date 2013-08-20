@@ -8,7 +8,7 @@ from sqlalchemy import Table
 from sqlalchemy.schema import PrimaryKeyConstraint
 
 __docformat__ = 'reStructuredText en'
-__all__ = ['create_mapper']
+__all__ = ['create_table']
 
 
 def create_table(metadata, planned_worklist_tbl, planned_transfer_tbl):

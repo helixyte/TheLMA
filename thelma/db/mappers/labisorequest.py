@@ -7,6 +7,7 @@ from thelma.models.experiment import ExperimentMetadata
 from thelma.models.iso import ISO_TYPES
 from thelma.models.iso import LabIsoRequest
 from thelma.models.liquidtransfer import ReservoirSpecs
+from thelma.models.racklayout import RackLayout
 from thelma.models.user import User
 
 __docformat__ = "reStructuredText en"
@@ -27,8 +28,12 @@ def create_mapper(iso_request_mapper,
                inherits=iso_request_mapper,
                properties=dict(
                     requester=relationship(User, uselist=False),
+                    rack_layout=relationship(RackLayout, uselist=False,
+                                cascade='all,delete,delete-orphan',
+                                single_parent=True),
                     experiment_metadata=relationship(ExperimentMetadata,
-                                             secondary=emir, uselist=False),
+                                             secondary=emir, uselist=False,
+                                             back_populates='lab_iso_request'),
                     iso_plate_reservoir_specs=relationship(ReservoirSpecs,
                            uselist=False,
                            primaryjoin=lir.c.iso_plate_reservoir_specs_id == \

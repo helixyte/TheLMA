@@ -4,7 +4,7 @@
 -- The old Celma jobs are maintained (including the DB infrastructure), however,
 -- TheLMA jobs are migrated to the new table and removed from the old one.
 
-SELECT assert('(select version from db_version) = 209.0017');
+SELECT assert('(select version from db_version) = 17.1');
 
 CREATE TABLE new_job (
   job_id SERIAL PRIMARY KEY,
@@ -102,4 +102,4 @@ CREATE TABLE iso_job_preparation_plate (
 );
 
 
-CREATE OR REPLACE VIEW db_version AS SELECT 209.0018 AS version;
+CREATE OR REPLACE VIEW db_version AS SELECT 17.2 AS version;

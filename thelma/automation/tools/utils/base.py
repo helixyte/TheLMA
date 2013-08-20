@@ -14,6 +14,7 @@ from thelma.models.tagging import Tag
 from thelma.models.tagging import TaggedRackPositionSet
 from thelma.models.utils import get_user
 from sqlalchemy.orm.exc import NoResultFound
+from thelma.automation.tools.utils.converters import BaseLayoutConverter
 
 
 __docformat__ = "reStructuredText en"
@@ -39,9 +40,11 @@ __all__ = ['MAX_PLATE_LABEL_LENGTH',
            'MoleculeDesignPoolParameters',
            'FIXED_POSITION_TYPE',
            'FLOATING_POSITION_TYPE',
+           'LIBRARY_POSITION_TYPE',
            'EMPTY_POSITION_TYPE',
            'MOCK_POSITION_TYPE',
            'UNTREATED_POSITION_TYPE',
+           'UNTRANSFECTED_POSITION_TYPE',
            'MoleculeDesignPoolPosition',
            'MoleculeDesignPoolLayout',
            'TransferTarget',
@@ -278,7 +281,6 @@ class WorkingPosition(object):
     #: String that is used for a tag if a value is *None*
     NONE_REPLACER = 'None'
 
-
     def __init__(self, rack_position):
         """
         Constructor:
@@ -374,6 +376,19 @@ class WorkingPosition(object):
         if value is None: return value
         string_value = get_trimmed_string(value)
         return string_value
+
+    @classmethod
+    def parse_boolean_tag_value(cls, boolean_str):
+        """
+        Converts a boolean tag value into a boolean.
+
+        :raise ValueError: If the value is not *True* or *False*.
+        """
+        values = {str(True) : True, str(False) : False}
+        if not boolean_str.has_key(boolean_str):
+            raise ValueError('Invalid string for boolean conversion: %s' \
+                             % (boolean_str))
+        return values[boolean_str]
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and \
@@ -851,20 +866,23 @@ class MoleculeDesignPoolParameters(ParameterSet):
     """
     The base parameter for layouts containing molecule design pool data.
 
-    There are five possible types:
+    There are six possible types:
 
         * FIXED: In final state, volume and concentration have to be set.
                  The molecule design pool must be a valid specific design pool.
         * FLOATING: In final state, volume and concentration have to be set. The
                  molecule design pool can be a placeholder for a real molecule
                  design pool.
+        * LIBRARY: Library position contain samples. However, the samples are
+                 already present in ready-to-use plates and need not be prepared
+                 anymore. Accordingly, their data cannot be altered.
         * MOCK: In final state, volume and concentration have to be set,
                  however, there is no molecule design pool.
         * EMPTY: The position is and will remain empty. All values are None.
                  Empty values are not stored in the rack layout.
-        * UNTREATED: Untreated positions are treated like empty positions. The
-                 distinction is requested by the scientists (to mark that
-                 their might still be cells, for instance).
+        * UNTREATED/UNTRANSFECTED: Untreated positions are treated like empty
+                 positions. The distinction is requested by the scientists
+                 (to mark that their might still be cells, for instance).
     """
     DOMAIN = 'molecule_design_pool'
 
@@ -883,6 +901,8 @@ class MoleculeDesignPoolParameters(ParameterSet):
     FIXED_TYPE_VALUE = 'fixed'
     #: The value for floating type positions.
     FLOATING_TYPE_VALUE = 'floating'
+    #: The value for library type positions.
+    LIBRARY_TYPE_VALUE = 'library'
     #: The value for empty type positions.
     EMPTY_TYPE_VALUE = 'empty'
     #: The value for mock type positions.
@@ -892,6 +912,10 @@ class MoleculeDesignPoolParameters(ParameterSet):
     #: an own position type, however during conversion into a working layout
     #: they will create empty positions.
     UNTREATED_TYPE_VALUE = 'untreated'
+    #: See :attr:`UNTREATED_TYPE_VALUE`.
+    UNTRANSFECTED_TYPE_VALUE = 'untransfected'
+    #: These positions types are regarded as untreated (empty).
+    __UNTREATED_TYPES = (UNTREATED_TYPE_VALUE, UNTRANSFECTED_TYPE_VALUE)
 
     #: Not all layouts allow for untreated positions. Use the flag to specify.
     ALLOWS_UNTREATED_POSITIONS = True
@@ -904,7 +928,8 @@ class MoleculeDesignPoolParameters(ParameterSet):
     #: These are the values allowed values for parameters that are always
     #: *None* in untreated positions.
     VALID_UNTREATED_NONE_REPLACERS = (None, UNTREATED_TYPE_VALUE.upper(),
-                                      WorkingPosition.NONE_REPLACER.upper())
+                                      WorkingPosition.NONE_REPLACER.upper(),
+                                      UNTRANSFECTED_TYPE_VALUE.upper())
     #: These are the values allowed values for parameters that are always
     #: *None* in mock positions.
     VALID_MOCK_NONE_REPLACERS = (None, MOCK_TYPE_VALUE.upper(),
@@ -921,11 +946,13 @@ class MoleculeDesignPoolParameters(ParameterSet):
         if molecule_design_pool is None:
             position_type = cls.EMPTY_TYPE_VALUE
         elif isinstance(molecule_design_pool, basestring) and \
-                molecule_design_pool.lower() == cls.UNTREATED_TYPE_VALUE:
+                molecule_design_pool.lower() in cls.__UNTREATED_TYPES:
             position_type = cls.UNTREATED_TYPE_VALUE
         elif isinstance(molecule_design_pool, basestring) and \
                 molecule_design_pool.lower() == cls.MOCK_TYPE_VALUE:
             position_type = cls.MOCK_TYPE_VALUE
+        elif isinstance(molecule_design_pool, cls.LIBRARY_TYPE_VALUE):
+            position_type = cls.LIBRARY_TYPE_VALUE
         elif isinstance(molecule_design_pool, basestring) and \
                 cls.FLOATING_INDICATOR in molecule_design_pool:
             position_type = cls.FLOATING_TYPE_VALUE
@@ -936,12 +963,19 @@ class MoleculeDesignPoolParameters(ParameterSet):
                   % (molecule_design_pool)
             raise ValueError(msg)
 
-        if position_type == cls.UNTREATED_TYPE_VALUE and \
+        if position_type in cls.__UNTREATED_TYPES and \
                                         not cls.ALLOWS_UNTREATED_POSITIONS:
-            msg = 'Untreated positions are not allowed!'
+            msg = 'Untreated and untransfected positions are not allowed!'
             raise ValueError(msg)
 
         return position_type
+
+    @classmethod
+    def is_untreated_type(cls, molecule_design_pool):
+        """
+        Is the molecule design pool an untreated (or untransfected) type?
+        """
+        return molecule_design_pool in cls.__UNTREATED_TYPES
 
     @classmethod
     def is_valid_untreated_value(cls, value):
@@ -975,12 +1009,17 @@ class MoleculeDesignPoolParameters(ParameterSet):
 FIXED_POSITION_TYPE = MoleculeDesignPoolParameters.FIXED_TYPE_VALUE
 #: An alias for :attr:`MoleculeDesignPoolParameters.FLOATING_TYPE_VALUE`.
 FLOATING_POSITION_TYPE = MoleculeDesignPoolParameters.FLOATING_TYPE_VALUE
+#: An alias for :attr:`MoleculeDesignPoolParameters.LIBRARY_TYPE_VALUE`.
+LIBRARY_POSITION_TYPE = MoleculeDesignPoolParameters.LIBRARY_TYPE_VALUE
 #: An alias for :attr:`MoleculeDesignPoolParameters.EMPTY_TYPE_VALUE`.
 EMPTY_POSITION_TYPE = MoleculeDesignPoolParameters.EMPTY_TYPE_VALUE
 #: An alias for :attr:`MoleculeDesignPoolParameters.MOCK_TYPE_VALUE`.
 MOCK_POSITION_TYPE = MoleculeDesignPoolParameters.MOCK_TYPE_VALUE
 #: An alias for :attr:`MoleculeDesignPoolParameters.UNTREATED_TYPE_VALUE`.
 UNTREATED_POSITION_TYPE = MoleculeDesignPoolParameters.UNTREATED_TYPE_VALUE
+#: An alias for :attr:`MoleculeDesignPoolParameters.UNTRANSFECTED_TYPE_VALUE`.
+UNTRANSFECTED_POSITION_TYPE = MoleculeDesignPoolParameters.\
+                              UNTRANSFECTED_TYPE_VALUE
 
 
 class MoleculeDesignPoolPosition(WorkingPosition):
@@ -1055,11 +1094,11 @@ class MoleculeDesignPoolPosition(WorkingPosition):
             return False
 
     @property
-    def is_untreated(self):
+    def is_untreated_type(self):
         """
         If *True* this position represents an untreated position.
         """
-        if self.position_type == self.PARAMETER_SET.UNTREATED_TYPE_VALUE:
+        if self.PARAMETER_SET.is_untreated_type(self.position_type):
             return True
         else:
             return False
@@ -1070,6 +1109,16 @@ class MoleculeDesignPoolPosition(WorkingPosition):
         If *True* this position represents a mock position.
         """
         if self.position_type == self.PARAMETER_SET.MOCK_TYPE_VALUE:
+            return True
+        else:
+            return False
+
+    @property
+    def is_library(self):
+        """
+        If *True* this position represents a library position.
+        """
+        if self.position_type == self.PARAMETER_SET.LIBRARY_TYPE_VALUE:
             return True
         else:
             return False
@@ -1154,7 +1203,7 @@ class MoleculeDesignPoolPosition(WorkingPosition):
         Empty and untreated position return only the position type tag.
         All other return all value tags.
         """
-        if self.is_empty and not self.is_untreated:
+        if self.is_empty and not self.is_untreated_type:
             return set([self.get_parameter_tag(self.PARAMETER_SET.POS_TYPE)])
         else:
             return WorkingPosition.get_tag_set(self)
@@ -1353,7 +1402,7 @@ class MoleculeDesignPoolLayout(WorkingLayout):
 
             del_positions = []
             for rack_pos, pool_pos in self._position_map.iteritems():
-                if pool_pos.is_untreated: continue
+                if pool_pos.is_untreated_type: continue
                 if pool_pos.is_empty: del_positions.append(rack_pos)
             for rack_pos in del_positions: del self._position_map[rack_pos]
 
@@ -1769,3 +1818,125 @@ class TransferLayout(MoleculeDesignPoolLayout):
         if tp is not None:
             del self._position_map[rack_position]
 
+
+class LibraryLayoutParameters(ParameterSet):
+    """
+    Marks which position in library are reserved for library position.
+    """
+    DOMAIN = 'library_base_layout'
+
+    #: If *True* the position in a library plate will contain a library sample.
+    IS_LIBRARY_POS = 'is_library_position'
+
+    REQUIRED = [IS_LIBRARY_POS]
+    ALL = [IS_LIBRARY_POS]
+
+    ALIAS_MAP = {IS_LIBRARY_POS : ['is_sample_position']}
+    DOMAIN_MAP = {IS_LIBRARY_POS : DOMAIN}
+
+
+class LibraryLayoutPosition(WorkingPosition):
+    """
+    There is actually only one value for a position in a library layout
+    and this is the availability for library samples.
+
+    **Equality condition**: equal :attr:`rack_position` and
+        :attr:`is_sample_pos`
+    """
+    PARAMETER_SET = LibraryLayoutParameters
+
+    def __init__(self, rack_position, is_library_position=True):
+        """
+        Constructor:
+
+        :param rack_position: The rack position.
+        :type rack_position: :class:`thelma.models.rack.RackPosition`.
+
+        :param is_library_position: Is this position reserved for library
+            positions?
+        :type is_library_position: :class:`bool`
+        """
+        WorkingPosition.__init__(self, rack_position)
+
+        if not isinstance(is_library_position, bool):
+            msg = 'The "library position" flag must be a bool (obtained: %s).' \
+                  % (is_library_position.__class__.__name__)
+            raise TypeError(msg)
+
+        #: Is this position reserved for library samples?
+        self.is_library_position = is_library_position
+
+    def _get_parameter_values_map(self):
+        """
+        Returns a map with key = parameter name, value = associated attribute.
+        """
+        return {self.PARAMETER_SET.IS_LIBRARY_POS : self.is_library_position}
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and \
+                other.rack_position == self.rack_position and \
+                other.is_library_position == self.is_library_position
+
+    def __repr__(self):
+        str_format = '<%s rack position: %s, is library position: %s>'
+        params = (self.__class__.__name__, self.rack_position,
+                  self.is_library_position)
+        return str_format % params
+
+
+class LibraryLayout(WorkingLayout):
+    """
+    Defines which position in a library may contain library samples.
+    """
+    WORKING_POSITION_CLASS = LibraryLayoutPosition
+
+    def __init__(self, shape):
+        """
+        Constructor:
+
+        :param shape: The rack shape.
+        :type shape: :class:`thelma.models.rack.RackShape`
+        """
+        WorkingLayout.__init__(self, shape)
+
+        #: You cannot add new positions to a closed layout.
+        self.is_closed = False
+
+    def add_position(self, working_position):
+        """
+        Adds a :class:`Working_position` to the layout.
+
+        :param working_position: The working position to be added.
+        :type working_position: :class:`LibraryBaseLayoutPosition`
+
+        :raises ValueError: If the added position is not a
+            :attr:`WORKING_POSITION_CLASS` object.
+        :raises AttributeError: If the layout is closed.
+        :raises TypeError: if the position has the wrong type
+        """
+        if not self.is_closed:
+            WorkingLayout.add_position(self, working_position)
+        else:
+            raise AttributeError('The layout is closed!')
+
+    def close(self):
+        """
+        Removes all positions that may not contain samples.
+        """
+        if not self.is_closed:
+
+            del_positions = []
+            for rack_pos, libbase_pos in self._position_map.iteritems():
+                if not libbase_pos.is_sample_position:
+                    del_positions.append(rack_pos)
+
+            for rack_pos in del_positions: del self._position_map[rack_pos]
+
+            self.is_closed = True
+
+    def create_rack_layout(self):
+        """
+        The layout is closed before rack layout creation.
+        """
+        self.close()
+        return WorkingLayout.create_rack_layout(self)

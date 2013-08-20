@@ -15,7 +15,6 @@ from thelma.automation.tools.metadata.transfection_utils \
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
-from thelma.automation.tools.utils.base import UNTREATED_POSITION_TYPE
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.models.experiment import ExperimentDesign
@@ -339,17 +338,15 @@ class ExperimentDesignParserHandler(MoleculeDesignPoolLayoutParserHandler):
                 if value is None: continue
 
                 pool = pool_map[rack_pos]
-                is_mock = (pool == MOCK_POSITION_TYPE)
-                is_untreated = (pool == UNTREATED_POSITION_TYPE)
 
-                if is_mock:
+                if (pool == MOCK_POSITION_TYPE):
                     if parameter == TransfectionParameters.FINAL_CONCENTRATION \
                                 and not TransfectionPosition.\
                                         is_valid_mock_value(value):
                         add_list_map_element(invalid_mock, parameter,
                                              rack_pos.label)
 
-                elif is_untreated:
+                elif TransfectionParameters.is_untreated_type(pool):
                     if parameter in (TransfectionParameters.FINAL_CONCENTRATION,
                                 TransfectionParameters.REAGENT_DIL_FACTOR) \
                                 and not TransfectionPosition.\
@@ -404,8 +401,7 @@ class ExperimentDesignParserHandler(MoleculeDesignPoolLayoutParserHandler):
                 if reagent_name is None: continue
 
                 pool = pool_map[rack_pos]
-                is_untreated = (pool == UNTREATED_POSITION_TYPE)
-                if is_untreated:
+                if TransfectionParameters.is_untreated_type(pool):
                     if not TransfectionPosition.is_valid_untreated_value(
                                                                 reagent_name):
                         invalid_untreated.append(rack_pos.label)
@@ -445,7 +441,7 @@ class ExperimentDesignParserHandler(MoleculeDesignPoolLayoutParserHandler):
             pool_id = pool_map[rack_pos]
 
             is_untreated = (isinstance(pool_id, basestring) and \
-                            pool_id.lower() == UNTREATED_POSITION_TYPE)
+                      TransfectionParameters.is_untreated_type(pool_id.lower()))
             if is_untreated: continue
 
             if pool_id is None: # Empty position should not have values

@@ -15,7 +15,6 @@ from everest.entities.utils import get_root_aggregate
 from thelma.automation.handlers.base \
     import MoleculeDesignPoolLayoutParserHandler
 from thelma.automation.parsers.isorequest import IsoRequestParser
-#from thelma.automation.tools.libcreation.base import LibraryBaseLayoutConverter
 from thelma.automation.tools.metadata.transfection_utils \
     import TransfectionAssociationData
 from thelma.automation.tools.metadata.transfection_utils import \
@@ -32,13 +31,16 @@ from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import get_experiment_metadata_type
+from thelma.automation.tools.semiconstants import get_experiment_type_library
 from thelma.automation.tools.semiconstants import get_min_transfer_volume
 from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.utils.base import EMPTY_POSITION_TYPE
 from thelma.automation.tools.utils.base import FIXED_POSITION_TYPE
 from thelma.automation.tools.utils.base import FLOATING_POSITION_TYPE
+from thelma.automation.tools.utils.base import LIBRARY_POSITION_TYPE
 from thelma.automation.tools.utils.base import MAX_PLATE_LABEL_LENGTH
 from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
+from thelma.automation.tools.utils.base import UNTRANSFECTED_POSITION_TYPE
 from thelma.automation.tools.utils.base import UNTREATED_POSITION_TYPE
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.base import are_equal_values
@@ -46,8 +48,9 @@ from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_larger_than
 from thelma.automation.tools.utils.base import is_smaller_than
 from thelma.automation.tools.utils.base import is_valid_number
-from thelma.automation.tools.utils.iso import IsoParameters
-from thelma.automation.tools.utils.iso import IsoPosition
+from thelma.automation.tools.utils.converters import LibraryLayoutConverter
+from thelma.automation.tools.utils.iso import IsoRequestParameters
+from thelma.automation.tools.utils.iso import IsoRequestPosition
 from thelma.automation.tools.utils.racksector import QuadrantIterator
 from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeDesignPool
@@ -103,8 +106,9 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
     ALLOWS_STOCK_CONCENTRATION = False
     #: By default, all position types are allowed.
     ALLOWED_POSITION_TYPES = [FIXED_POSITION_TYPE, FLOATING_POSITION_TYPE,
-                              MOCK_POSITION_TYPE, UNTREATED_POSITION_TYPE,
-                              EMPTY_POSITION_TYPE]
+                              LIBRARY_POSITION_TYPE, MOCK_POSITION_TYPE,
+                              UNTREATED_POSITION_TYPE,
+                              UNTRANSFECTED_POSITION_TYPE, EMPTY_POSITION_TYPE]
 
     #: A list of parameters that do not need to specified at all.
     OPTIONAL_PARAMETERS = None
@@ -112,8 +116,9 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
     REQUIRED_METADATA = None
     #: A list of metadata values that are allowed be specified as metadata.
     ALLOWED_METADATA = [PLATE_SET_LABEL_KEY, DELIVERY_DATE_KEY, COMMENT_KEY,
-                        NUMBER_ALIQUOT_KEY, IsoParameters.ISO_CONCENTRATION,
-                        IsoParameters.ISO_VOLUME, IsoParameters.SUPPLIER,
+                        NUMBER_ALIQUOT_KEY, IsoRequestParameters.ISO_VOLUME,
+                        IsoRequestParameters.ISO_CONCENTRATION,
+                        IsoRequestParameters.SUPPLIER,
                         TransfectionParameters.FINAL_CONCENTRATION,
                         TransfectionParameters.REAGENT_NAME,
                         TransfectionParameters.REAGENT_DIL_FACTOR]
@@ -124,8 +129,8 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
     TRANSFECTION_LAYOUT_PARAMETERS = None
 
     #: A list of numerical parameter values.
-    _NUMERICAL_PARAMETERS = [IsoParameters.ISO_VOLUME,
-                             IsoParameters.ISO_CONCENTRATION,
+    _NUMERICAL_PARAMETERS = [IsoRequestParameters.ISO_VOLUME,
+                             IsoRequestParameters.ISO_CONCENTRATION,
                              TransfectionParameters.FINAL_CONCENTRATION,
                              TransfectionParameters.REAGENT_DIL_FACTOR]
 
@@ -197,13 +202,14 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         self._invalid_position_type = dict()
 
         # lookups for numerical values
-        self.__invalid_lookup = {IsoParameters.ISO_VOLUME : self._invalid_vol,
-            IsoParameters.ISO_CONCENTRATION : self._invalid_conc,
+        self.__invalid_lookup = {
+            IsoRequestParameters.ISO_VOLUME : self._invalid_vol,
+            IsoRequestParameters.ISO_CONCENTRATION : self._invalid_conc,
             TransfectionParameters.FINAL_CONCENTRATION : self._invalid_fconc,
             TransfectionParameters.REAGENT_DIL_FACTOR : self._invalid_df}
         self._metadata_lookup = {
-            IsoParameters.ISO_VOLUME : None,
-            IsoParameters.ISO_CONCENTRATION : None,
+            IsoRequestParameters.ISO_VOLUME : None,
+            IsoRequestParameters.ISO_CONCENTRATION : None,
             TransfectionParameters.FINAL_CONCENTRATION : None,
             TransfectionParameters.REAGENT_DIL_FACTOR : None}
 
@@ -268,7 +274,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         MoleculeDesignPoolLayoutParserHandler._initialize_parser_keys(self)
 
         self.parser.molecule_design_parameter = \
-                                            IsoParameters.MOLECULE_DESIGN_POOL
+                                    IsoRequestParameters.MOLECULE_DESIGN_POOL
 
         self.parser.layout_parameters = self.__get_layout_parameters()
         self.parser.optional_parameters = self.OPTIONAL_PARAMETERS
@@ -282,8 +288,8 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         """
         valid_parameters = {}
         for parameter in self.ISO_LAYOUT_PARAMETERS:
-            if parameter == IsoParameters.POS_TYPE: continue
-            alias_list = IsoParameters.get_all_alias(parameter)
+            if parameter == IsoRequestParameters.POS_TYPE: continue
+            alias_list = IsoRequestParameters.get_all_alias(parameter)
             valid_parameters[parameter] = alias_list
         for parameter in self.TRANSFECTION_LAYOUT_PARAMETERS:
             alias_list = TransfectionParameters.get_all_alias(parameter)
@@ -369,7 +375,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         else:
             self._reagent_name_metadata = reagent_name
 
-        supplier_name = self.parser.metadata_value_map[IsoParameters.SUPPLIER]
+        supplier_name = self.parser.metadata_value_map[IsoRequestParameters.SUPPLIER]
         supplier = self._get_supplier_for_name(supplier_name)
         if supplier is None and len(self._unknown_supplier) > 0:
             is_valid_metadata = False
@@ -425,7 +431,8 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         elif supplier_name is None or len(supplier_name) < 2:
             return None
         elif isinstance(supplier_name, basestring) and \
-                supplier_name.lower() == IsoPosition.ANY_SUPPLIER_INDICATOR:
+                supplier_name.lower() == IsoRequestPosition.\
+                                         ANY_SUPPLIER_INDICATOR:
             return None
 
         supplier = self._organization_agg.get_by_slug(supplier_name.lower())
@@ -548,7 +555,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         Returns the ISO concentration for the given rack position.
         """
         iso_conc = self._get_numerical_parameter_value(
-                IsoParameters.ISO_CONCENTRATION, pos_label, is_mock,
+                IsoRequestParameters.ISO_CONCENTRATION, pos_label, is_mock,
                 is_untreated, may_be_none)
         if iso_conc is None: return None
 
@@ -563,7 +570,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         """
         Helper function returning the ISO volume for the given rack position.
         """
-        parameter = IsoParameters.ISO_VOLUME
+        parameter = IsoRequestParameters.ISO_VOLUME
         return self._get_numerical_parameter_value(parameter, pos_label,
                                          is_mock, is_untreated, may_be_none)
 
@@ -578,7 +585,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         if self._supplier_metadata is not None:
             return self._supplier_metadata
 
-        container = self.parser.parameter_map[IsoParameters.SUPPLIER]
+        container = self.parser.parameter_map[IsoRequestParameters.SUPPLIER]
         supplier_name = self._get_value_for_rack_pos(container, pos_label)
         if supplier_name is None: return None
 
@@ -745,7 +752,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         """
         has_untreated = False
         for tf_pos in self.transfection_layout.working_positions():
-            if tf_pos.is_untreated:
+            if tf_pos.is_untreated_type:
                 has_untreated = True
                 break
         if has_untreated:
@@ -773,7 +780,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
             old_placeholder = tf_pos.molecule_design_pool
             if not old_new_map.has_key(old_placeholder):
                 counter += 1
-                new_placeholder = '%s%03i' % (IsoParameters.FLOATING_INDICATOR,
+                new_placeholder = '%s%03i' % (IsoRequestParameters.FLOATING_INDICATOR,
                                               counter)
                 old_new_map[old_placeholder] = new_placeholder
             else:
@@ -894,13 +901,13 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         tags (valid occurrences have already been removed from the found tags
         before).
         """
-        for parameter in IsoParameters.ALL:
+        for parameter in IsoRequestParameters.ALL:
             self.__forbidden_add_tag_params[parameter] = False
-            validator = IsoParameters.create_validator_from_parameter(parameter)
+            validator = IsoRequestParameters.create_validator_from_parameter(parameter)
             self.__forbidden_add_tag_validators[parameter] = validator
 
         for parameter in TransfectionParameters.ALL:
-            if parameter in IsoParameters.ALL: continue
+            if parameter in IsoRequestParameters.ALL: continue
             self.__forbidden_add_tag_params[parameter] = False
             validator = TransfectionParameters.create_validator_from_parameter(
                                                                      parameter)
@@ -947,13 +954,13 @@ class IsoRequestParserHandlerOpti(IsoRequestParserHandler):
     """
     SUPPORTED_SCENARIO = EXPERIMENT_SCENARIOS.OPTIMISATION
 
-    OPTIONAL_PARAMETERS = [IsoParameters.SUPPLIER,
-                           IsoParameters.ISO_VOLUME,
-                           IsoParameters.ISO_CONCENTRATION,
+    OPTIONAL_PARAMETERS = [IsoRequestParameters.SUPPLIER,
+                           IsoRequestParameters.ISO_VOLUME,
+                           IsoRequestParameters.ISO_CONCENTRATION,
                            TransfectionParameters.FINAL_CONCENTRATION]
     REQUIRED_METADATA = [IsoRequestParserHandler.PLATE_SET_LABEL_KEY]
 
-    ISO_LAYOUT_PARAMETERS = IsoParameters.ALL
+    ISO_LAYOUT_PARAMETERS = IsoRequestParameters.ALL
     TRANSFECTION_LAYOUT_PARAMETERS = [
                             TransfectionParameters.FINAL_CONCENTRATION,
                             TransfectionParameters.REAGENT_NAME,
@@ -963,7 +970,7 @@ class IsoRequestParserHandlerOpti(IsoRequestParserHandler):
         self.add_debug('Create transfection positions ...')
 
         parameter_map = self.parser.parameter_map
-        pool_container = parameter_map[IsoParameters.MOLECULE_DESIGN_POOL]
+        pool_container = parameter_map[IsoRequestParameters.MOLECULE_DESIGN_POOL]
 
         for pos_container in self.parser.shape.position_containers:
             pos_label = pos_container.label
@@ -974,7 +981,7 @@ class IsoRequestParserHandlerOpti(IsoRequestParserHandler):
             if pool is None: continue
 
             is_mock = (pool == MOCK_POSITION_TYPE)
-            is_untreated = (pool == UNTREATED_POSITION_TYPE)
+            is_untreated = TransfectionParameters.is_untreated_type(pool)
 
             supplier = self._get_supplier(pos_label, pool)
             iso_volume = self._get_iso_volume(pos_label, False, is_untreated,
@@ -1031,16 +1038,16 @@ class IsoRequestParserHandlerScreen(IsoRequestParserHandler):
     """
     SUPPORTED_SCENARIO = EXPERIMENT_SCENARIOS.SCREENING
 
-    OPTIONAL_PARAMETERS = [IsoParameters.SUPPLIER,
-                           IsoParameters.ISO_CONCENTRATION,
-                           IsoParameters.ISO_VOLUME]
+    OPTIONAL_PARAMETERS = [IsoRequestParameters.SUPPLIER,
+                           IsoRequestParameters.ISO_CONCENTRATION,
+                           IsoRequestParameters.ISO_VOLUME]
     REQUIRED_METADATA = [IsoRequestParserHandler.PLATE_SET_LABEL_KEY,
                          IsoRequestParserHandler.NUMBER_ALIQUOT_KEY,
                          TransfectionParameters.REAGENT_NAME,
                          TransfectionParameters.REAGENT_DIL_FACTOR]
 
-    ISO_LAYOUT_PARAMETERS = [IsoParameters.MOLECULE_DESIGN_POOL,
-                             IsoParameters.ISO_CONCENTRATION]
+    ISO_LAYOUT_PARAMETERS = [IsoRequestParameters.MOLECULE_DESIGN_POOL,
+                             IsoRequestParameters.ISO_CONCENTRATION]
     TRANSFECTION_LAYOUT_PARAMETERS = [
                                     TransfectionParameters.FINAL_CONCENTRATION]
 
@@ -1087,14 +1094,14 @@ class IsoRequestParserHandlerScreen(IsoRequestParserHandler):
         Returns the ISO volume from the sheet (there is only a metadata value).
         """
         if self.return_value is None: return None
-        return self._metadata_lookup[IsoParameters.ISO_VOLUME]
+        return self._metadata_lookup[IsoRequestParameters.ISO_VOLUME]
 
     def _create_positions(self):
         self.add_debug('Create transfection positions ...')
 
         parameter_map = self.parser.parameter_map
-        pool_container = parameter_map[IsoParameters.MOLECULE_DESIGN_POOL]
-        iso_volume = self._metadata_lookup[IsoParameters.ISO_VOLUME]
+        pool_container = parameter_map[IsoRequestParameters.MOLECULE_DESIGN_POOL]
+        iso_volume = self._metadata_lookup[IsoRequestParameters.ISO_VOLUME]
         reagent_df = self._metadata_lookup[
                                     TransfectionParameters.REAGENT_DIL_FACTOR]
 
@@ -1107,7 +1114,7 @@ class IsoRequestParserHandlerScreen(IsoRequestParserHandler):
             pool = self._get_molecule_design_pool_for_id(pool_id, pos_label)
             if pool is None: continue
             is_mock = (pool == MOCK_POSITION_TYPE)
-            is_untreated = (pool == UNTREATED_POSITION_TYPE)
+            is_untreated = TransfectionParameters.is_untreated_type(pool)
 
             final_conc = self._get_final_concentration(pos_label, is_mock,
                                                        is_untreated)
@@ -1274,7 +1281,7 @@ class IsoRequestParserHandlerScreen(IsoRequestParserHandler):
                     if new_placeholder is None:
                         counter += 1
                         new_placeholder = '%s%03i' % (
-                                IsoParameters.FLOATING_INDICATOR, counter)
+                                IsoRequestParameters.FLOATING_INDICATOR, counter)
                     tf_pos.molecule_design_pool = new_placeholder
                     concentrations.add(tf_pos.final_concentration)
 
@@ -1326,19 +1333,19 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
     """
     SUPPORTED_SCENARIO = EXPERIMENT_SCENARIOS.LIBRARY
 
-    OPTIONAL_PARAMETERS = [IsoParameters.SUPPLIER]
+    OPTIONAL_PARAMETERS = [IsoRequestParameters.SUPPLIER]
     REQUIRED_METADATA = [IsoRequestParserHandler.LIBRARY_KEY,
                          TransfectionParameters.FINAL_CONCENTRATION,
                          TransfectionParameters.REAGENT_NAME,
                          TransfectionParameters.REAGENT_DIL_FACTOR]
 
-    ISO_LAYOUT_PARAMETERS = [IsoParameters.MOLECULE_DESIGN_POOL]
+    ISO_LAYOUT_PARAMETERS = [IsoRequestParameters.MOLECULE_DESIGN_POOL]
     TRANSFECTION_LAYOUT_PARAMETERS = []
 
     ALLOWED_METADATA = [IsoRequestParserHandler.DELIVERY_DATE_KEY,
                         IsoRequestParserHandler.COMMENT_KEY,
                         IsoRequestParserHandler.LIBRARY_KEY,
-                        IsoParameters.SUPPLIER,
+                        IsoRequestParameters.SUPPLIER,
                         TransfectionParameters.FINAL_CONCENTRATION,
                         TransfectionParameters.REAGENT_NAME,
                         TransfectionParameters.REAGENT_DIL_FACTOR]
@@ -1367,10 +1374,14 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
         #: Contains the sample positions blocked by the library.
         self.__lib_base_layout = None
 
+        # List for error collection.
+        self.__floating_positions = None
+
     def reset(self):
         IsoRequestParserHandler.reset(self)
         self.__library = None
         self.__lib_base_layout = None
+        self.__floating_positions = []
 
     def get_library(self):
         """
@@ -1424,8 +1435,8 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
         must contain samples and which are allowed to take up other
         ISO position types).
         """
-        converter = LibraryBaseLayoutConverter(log=self.log,
-                    rack_layout=self.__library.iso_request.iso_layout)
+        converter = LibraryLayoutConverter(log=self.log,
+                    rack_layout=self.__library.rack_layout)
         self.__lib_base_layout = converter.get_result()
 
         if self.__lib_base_layout is None:
@@ -1441,7 +1452,7 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
         self.add_debug('Create transfection positions ...')
 
         parameter_map = self.parser.parameter_map
-        pool_container = parameter_map[IsoParameters.MOLECULE_DESIGN_POOL]
+        pool_container = parameter_map[IsoRequestParameters.MOLECULE_DESIGN_POOL]
         final_conc = self._metadata_lookup[
                                     TransfectionParameters.FINAL_CONCENTRATION]
         reagent_df = self._metadata_lookup[
@@ -1460,12 +1471,20 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
                 passed_supplier = None
 
             rack_pos = self._convert_to_rack_position(pos_container)
-            if pool == UNTREATED_POSITION_TYPE:
+            if TransfectionParameters.is_untreated_type(pool):
                 tf_pos = TransfectionPosition.create_untreated_position(
-                          rack_position=rack_pos)
+                          rack_position=rack_pos, position_type=pool)
             elif pool == MOCK_POSITION_TYPE:
                 tf_pos = TransfectionPosition.create_mock_position(
                           rack_position=rack_pos,
+                          reagent_name=self._reagent_name_metadata,
+                          reagent_dil_factor=reagent_df)
+            elif pool == FLOATING_POSITION_TYPE:
+                self.__floating_positions.append(pos_label)
+            elif pool == LIBRARY_POSITION_TYPE:
+                tf_pos = TransfectionPosition.create_library_position(
+                          rack_position=rack_pos,
+                          final_concentration=final_conc,
                           reagent_name=self._reagent_name_metadata,
                           reagent_dil_factor=reagent_df)
             else:
@@ -1476,6 +1495,14 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
                           reagent_dil_factor=reagent_df,
                           supplier=passed_supplier)
             self.transfection_layout.add_position(tf_pos)
+
+    def _record_errors(self):
+        if len(self.__floating_positions) > 0:
+            msg = 'Floating positions are not allowed in ISO request ' \
+                  'layout for %s epxeriments! Details: %s.' \
+                   % (get_experiment_type_library().display_name,
+                      ', '.join(sorted(self.__floating_positions)))
+            self.add_error(msg)
 
     def _check_layout_validity(self, has_floatings): #pylint: disable=W0613
         """
@@ -1536,23 +1563,24 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
     """
     SUPPORTED_SCENARIO = EXPERIMENT_SCENARIOS.MANUAL
 
-    OPTIONAL_PARAMETERS = [IsoParameters.SUPPLIER]
+    OPTIONAL_PARAMETERS = [IsoRequestParameters.SUPPLIER]
     REQUIRED_METADATA = [IsoRequestParserHandler.PLATE_SET_LABEL_KEY]
     ALLOWED_METADATA = [IsoRequestParserHandler.PLATE_SET_LABEL_KEY,
                         IsoRequestParserHandler.DELIVERY_DATE_KEY,
                         IsoRequestParserHandler.COMMENT_KEY,
-                        IsoParameters.ISO_CONCENTRATION,
-                        IsoParameters.ISO_VOLUME, IsoParameters.SUPPLIER]
+                        IsoRequestParameters.ISO_CONCENTRATION,
+                        IsoRequestParameters.ISO_VOLUME,
+                        IsoRequestParameters.SUPPLIER]
 
     ALLOWS_STOCK_CONCENTRATION = True
     ALLOWED_POSITION_TYPES = [FIXED_POSITION_TYPE, EMPTY_POSITION_TYPE]
 
-    ISO_LAYOUT_PARAMETERS = IsoParameters.ALL
+    ISO_LAYOUT_PARAMETERS = IsoRequestParameters.ALL
     TRANSFECTION_LAYOUT_PARAMETERS = []
 
     #: A list of numerical parameter values.
-    _NUMERICAL_PARAMETERS = [IsoParameters.ISO_VOLUME,
-                             IsoParameters.ISO_CONCENTRATION]
+    _NUMERICAL_PARAMETERS = [IsoRequestParameters.ISO_VOLUME,
+                             IsoRequestParameters.ISO_CONCENTRATION]
 
     def _create_positions(self):
         """
@@ -1561,7 +1589,7 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
         self.add_debug('Create transfection positions ...')
 
         parameter_map = self.parser.parameter_map
-        pool_container = parameter_map[IsoParameters.MOLECULE_DESIGN_POOL]
+        pool_container = parameter_map[IsoRequestParameters.MOLECULE_DESIGN_POOL]
 
         for pos_container in self.parser.shape.position_containers:
             pos_label = pos_container.label
@@ -1719,16 +1747,17 @@ class IsoRequestParserHandlerOrder(IsoRequestParserHandler):
     ALLOWED_METADATA = [IsoRequestParserHandler.PLATE_SET_LABEL_KEY,
                         IsoRequestParserHandler.DELIVERY_DATE_KEY,
                         IsoRequestParserHandler.COMMENT_KEY,
-                        IsoParameters.ISO_VOLUME, IsoParameters.SUPPLIER]
-    OPTIONAL_PARAMETERS = [IsoParameters.SUPPLIER]
+                        IsoRequestParameters.ISO_VOLUME,
+                        IsoRequestParameters.SUPPLIER]
+    OPTIONAL_PARAMETERS = [IsoRequestParameters.SUPPLIER]
     REQUIRED_METADATA = [IsoRequestParserHandler.PLATE_SET_LABEL_KEY]
 
-    ISO_LAYOUT_PARAMETERS = [IsoParameters.MOLECULE_DESIGN_POOL,
-                             IsoParameters.ISO_VOLUME,
-                             IsoParameters.SUPPLIER]
+    ISO_LAYOUT_PARAMETERS = [IsoRequestParameters.MOLECULE_DESIGN_POOL,
+                             IsoRequestParameters.ISO_VOLUME,
+                             IsoRequestParameters.SUPPLIER]
     TRANSFECTION_LAYOUT_PARAMETERS = []
 
-    _NUMERICAL_PARAMETERS = [IsoParameters.ISO_VOLUME]
+    _NUMERICAL_PARAMETERS = [IsoRequestParameters.ISO_VOLUME]
 
     def _get_plate_set_label(self, metadata_value_map):
         """
@@ -1756,7 +1785,8 @@ class IsoRequestParserHandlerOrder(IsoRequestParserHandler):
         self.add_debug('Create transfection positions ...')
 
         parameter_map = self.parser.parameter_map
-        pool_container = parameter_map[IsoParameters.MOLECULE_DESIGN_POOL]
+        pool_container = parameter_map[
+                                    IsoRequestParameters.MOLECULE_DESIGN_POOL]
 
         for pos_container in self.parser.shape.position_containers:
             pos_label = pos_container.label

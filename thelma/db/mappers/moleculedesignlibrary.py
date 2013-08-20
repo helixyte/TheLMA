@@ -5,8 +5,10 @@ from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
 from thelma.models.iso import StockSampleCreationIsoRequest
+from thelma.models.library import LibraryPlate
 from thelma.models.library import MoleculeDesignLibrary
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
+from thelma.models.racklayout import RackLayout
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']
@@ -27,7 +29,11 @@ def create_mapper(molecule_design_library_tbl,
                properties=dict(
                     molecule_design_pool_set=
                         relationship(MoleculeDesignPoolSet,
-                                     uselist=False),
+                                     uselist=False,
+                                     cascade='all,delete-orphan'),
+                    rack_layout=relationship(RackLayout, uselist=False,
+                                cascade='all,delete,delete-orphan',
+                                single_parent=True),
                     iso_request=relationship(StockSampleCreationIsoRequest,
                                              uselist=False,
                             back_populates='molecule_design_library',
@@ -35,6 +41,11 @@ def create_mapper(molecule_design_library_tbl,
                                          mdlir.c.molecule_design_library_id),
                             secondaryjoin=(mdlir.c.iso_request_id == \
                                            sscir.c.iso_request_id),
-                            secondary=mdlir))
+                            secondary=mdlir,
+                            cascade='all,delete-orphan'),
+                    library_plates=relationship(LibraryPlate,
+                                    back_populates='molecule_design_library',
+                                    cascade='all,delete-orphan')
+                               )
                )
     return m

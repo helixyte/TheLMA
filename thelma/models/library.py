@@ -24,17 +24,30 @@ class MoleculeDesignLibrary(Entity):
     final_volume = None
     #: The final concentration in a ready-to-use plate in M.
     final_concentration = None
+    #: The number of different layouts for this molecule design library.
+    number_layouts = None
+    #: The rack layout (:class:`thelma.models.racklayout.RackLayout`, working
+    #: layout type: :class:`LibraryLayout`) defines which rack position are
+    #: reserved for library samples.
+    rack_layout = None
+
+    #: The library plates for this library (:class:`LibraryPlate`).
+    library_plates = None
+
     #: The ISO request used to generate this library
     #: (:class:`thelma.models.iso.IsoRequest`).
     iso_request = None
 
-    def __init__(self, molecule_design_pool_set, label,
-                 final_volume, final_concentration, iso_request=None, **kw):
+    def __init__(self, molecule_design_pool_set, label, final_volume,
+                 final_concentration, number_layouts, rack_layout,
+                 iso_request=None, **kw):
         Entity.__init__(self, **kw)
         self.molecule_design_pool_set = molecule_design_pool_set
         self.label = label
         self.final_volume = final_volume
         self.final_concentration = final_concentration
+        self.number_layouts = number_layouts
+        self.rack_layout = rack_layout
         self.iso_request = iso_request
 
     @property
@@ -56,7 +69,54 @@ class MoleculeDesignLibrary(Entity):
         return self.label
 
     def __repr__(self):
-        str_format = '<%s id: %s, label: %s, molecule design set: %s>'
+        str_format = '<%s id: %s, label: %s, number layouts: %s, ' \
+                     'molecule design set: %s>'
         params = (self.__class__.__name__, self.id, self.label,
-                  self.molecule_design_pool_set)
+                  self.number_layouts, self.molecule_design_pool_set)
         return str_format % params
+
+
+class LibraryPlate(Entity):
+    """
+    Represents a ready-to-use plates being part of a screening library.
+    These plates usually already contain samples but have some positions
+    free for controls or other position types.
+
+    **Equality Condition:** equal :attr:`id`
+    """
+    #: The library this plate belongs to (:class:`MoleculeDesignLibrary`).
+    molecule_design_library = None
+    #: The plate entity (:class:`thelma.models.rack.Rack`).
+    rack = None
+    #: The number of the layout this plate contains (a running number
+    #: within the library).
+    layout_number = None
+    #: Marks whether a plate is still available for experiments.
+    has_been_used = None
+
+    #: Library plates can be used by lab ISOs instead of aliquot plates
+    #: (:class:`thelma.models.iso.LabIso`).
+    lab_iso = None
+
+    def __init__(self, molecule_design_library, rack, layout_number,
+                 has_been_used=False, **kw):
+        """
+        Constructor
+        """
+        Entity.__init__(self, **kw)
+        self.molecule_design_library = molecule_design_library
+        self.rack = rack
+        self.layout_number = layout_number
+        self.has_been_used = has_been_used
+
+    def __str__(self):
+        return self.rack
+
+    def __repr__(self):
+        str_format = '<%s id: %s, rack: %s, library: %s, layout number: %s, ' \
+                     'has been used: %s>'
+        params = (self.__class__.__name__, self.id, self.rack,
+                  self.molecule_design_library, self.layout_number,
+                  self.has_been_used)
+        return str_format % params
+

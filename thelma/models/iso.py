@@ -52,10 +52,6 @@ class IsoRequest(Entity):
     iso_type = None
     #: This label is also used for plate created in the course of this request.
     label = None
-    #: The ISO rack layout (optional) containing about the plate positions
-    #: :class:`thelma.models.racklayout.RackLayout`). The data applies to
-    #: all ISOs. Its structure depends on the derived class.
-    rack_layout = None
     #: The person owning the ISO request (in most cases the responsible
     #: stock manager).
     owner = None
@@ -74,9 +70,13 @@ class IsoRequest(Entity):
     #: derived class).
     molecule_design_pool_set = None
 
-    def __init__(self, label, rack_layout=None, expected_number_isos=1,
-                 number_aliquots=1, owner='', worklist_series=None,
-                 molecule_design_pool_set=None, iso_type=None, **kw):
+    #: The function of this libary depends on subclass. In any case it is
+    #: optional. Type: :class:`thelma.models.library.MoleculeDesignLibrary`.
+    molecule_design_library = None
+
+    def __init__(self, label, expected_number_isos=1, number_aliquots=1,
+                 owner='', worklist_series=None, molecule_design_pool_set=None,
+                 molecule_design_library=None, iso_type=None, **kw):
         """
         Constructor
         """
@@ -87,12 +87,12 @@ class IsoRequest(Entity):
             iso_type = ISO_TYPES.BASE
         self.iso_type = iso_type
         self.label = label
-        self.rack_layout = rack_layout
         self.expected_number_isos = expected_number_isos
         self.number_aliquots = number_aliquots
         self.owner = owner
         self.worklist_series = worklist_series
         self.molecule_design_pool_set = molecule_design_pool_set
+        self.molecule_design_library = molecule_design_library
 
     @property
     def slug(self):
@@ -124,8 +124,11 @@ class LabIsoRequest(IsoRequest):
     """
     Lab ISO request are orders made by the lab to conduct experiments.
 
-    The :attr:`rack_layout` is a :class:`TransfectionLayout` and the
-    :attr:`molecule_design_pool_set` contains only pools for floating positions.
+    The :attr:`molecule_design_pool_set` contains only pools for floating
+    positions.
+    If there is a :attr:`molecule_design_library` attached to the ISO request,
+    the ISO request deals with the completion of the library plates in order
+    to conduct experiments.
 
     **Equality Condition**: equal :attr:`id`
     """
@@ -135,6 +138,10 @@ class LabIsoRequest(IsoRequest):
     #: (:class:`thelma.models.experiment.ExperimentMetadata`)
     #: this lab ISO request belongs to.
     experiment_metadata = None
+    #: The ISO rack layout (:class:`thelma.models.racklayout.RackLayout`,
+    #: working layout type: :class:`TransfectionLayout`) contains data about
+    #: the plate positions. The data applies to all ISOs.
+    rack_layout = None
     #: The data at which the ISOs shall be delivered.
     delivery_date = None
     #: A comment made by the requester (free text, optional).
@@ -145,14 +152,15 @@ class LabIsoRequest(IsoRequest):
     #: :class:`thelma.models.liquidtransferReservoirSpecs`).
     iso_plate_reservoir_specs = None
 
-    def __init__(self, label, requester, delivery_date=None, comment=None,
-                 experiment_metadata=None, iso_plate_reservoir_specs=None,
-                 **kw):
+    def __init__(self, label, requester, rack_layout, delivery_date=None,
+                 comment=None, experiment_metadata=None,
+                 iso_plate_reservoir_specs=None, **kw):
         """
         Constructor
         """
         IsoRequest.__init__(self, label=label, iso_type=ISO_TYPES.LAB, **kw)
         self.requester = requester
+        self.rack_layout = rack_layout
         self.delivery_date = delivery_date
         self.comment = comment
         self.experiment_metadata = experiment_metadata
@@ -171,12 +179,10 @@ class StockSampleCreationIsoRequest(IsoRequest):
     Stock sample creation ISO request serve the generation of pooled stock
     solutions from existing (single design) stock samples.
 
-    If the task comprises the generation of ready-to-use library plates
-    (see :class:`thelma.models.library.MoleculeDesignLibrary`) the
-    :attr:`rack_layout` is a :class:`LibraryBaseLayout`, otherwise we do not
-    have a rack layout.
     The :attr:`molecule_design_pool_set` contains only (multi-design) pools
     whose stock samples are to be generated.
+    If there is a :attr:`molecule_design_library` attached to the ISO request,
+    the ISO request serves the creation of this library.
 
     **Equality Condition**: equal :attr:`id`
     """
@@ -187,12 +193,8 @@ class StockSampleCreationIsoRequest(IsoRequest):
     #: The number of single molecule designs each new pool will consist of.
     number_designs = None
 
-    #: The molecule design library for which the new pools are created
-    #: (optional, :class:`thelma.models.library.MoleculeDesignLibrary`).
-    molecule_design_library = None
-
-    def __init__(self, label, stock_volume, stock_concentration,
-                 number_designs, molecule_design_library=None, **kw):
+    def __init__(self, label, stock_volume, stock_concentration, number_designs,
+                 **kw):
         """
         Constructor
         """
@@ -201,7 +203,6 @@ class StockSampleCreationIsoRequest(IsoRequest):
         self.stock_volume = stock_volume
         self.stock_concentration = stock_concentration
         self.number_designs = number_designs
-        self.molecule_design_library = molecule_design_library
 
     def __repr__(self):
         str_format = '<%s label: %s, owner: %s, number designs: %s, stock ' \
@@ -377,11 +378,16 @@ class LabIso(Iso):
     **Equality condition**: equal :attr:`iso_request` and equal :attr:`label`
     """
 
+    #: In case of lab ISOs we use pre-existing library plates instead of
+    #: creating aliquot plates (:class:`thelma.models.library.LibraryPlate`).
+    library_plates = None
+
     def __init__(self, label, **kw):
         """
         Constructor
         """
         Iso.__init__(self, label=label, iso_type=ISO_TYPES.LAB, **kw)
+        self.library_plates = []
 
     def add_aliquot_plate(self, plate):
         """
@@ -668,7 +674,7 @@ class IsoAliquotPlate(IsoPlate):
 
     **Equality Condition**: equal :attr:`iso` and equal :attr:`rack`
     """
-    #: Marks whether a plate has already been included in an experiment before.
+    #: Marks whether a plate is still available for experiments.
     has_been_used = None
 
     def __init__(self, iso, rack, has_been_used=False, **kw):

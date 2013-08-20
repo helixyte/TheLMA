@@ -28,18 +28,19 @@ from thelma.db.schema.tables import isoaliquotplate
 from thelma.db.schema.tables import isojobmember
 from thelma.db.schema.tables import isojobpreparationplate
 from thelma.db.schema.tables import isojobstockrack
+from thelma.db.schema.tables import isolibraryplate
 from thelma.db.schema.tables import isoplate
 from thelma.db.schema.tables import isopoolset
 from thelma.db.schema.tables import isopreparationplate
 from thelma.db.schema.tables import isorequest
 from thelma.db.schema.tables import isorequestpoolset
-from thelma.db.schema.tables import isorequestracklayout
 from thelma.db.schema.tables import isosectorpreparationplate
 from thelma.db.schema.tables import isosectorstockrack
 from thelma.db.schema.tables import isostockrack
 from thelma.db.schema.tables import itemstatus
 from thelma.db.schema.tables import job
 from thelma.db.schema.tables import labisorequest
+from thelma.db.schema.tables import libraryplate
 from thelma.db.schema.tables import molecule
 from thelma.db.schema.tables import moleculedesign
 from thelma.db.schema.tables import moleculedesigngene
@@ -234,12 +235,10 @@ def initialize_tables(metadata):
                         metadata, tube_transfer_tbl, tube_transfer_worklist_tbl)
 
     iso_request_tbl = isorequest.create_table(metadata)
-    iso_request_rack_layout_tbl = isorequestracklayout.create_table(metadata,
-                                            iso_request_tbl, rack_layout_tbl)
     iso_request_pool_set_tbl = isorequestpoolset.create_table(metadata,
                                   iso_request_tbl, molecule_design_pool_set_tbl)
     lab_iso_request_tbl = labisorequest.create_table(metadata, iso_request_tbl,
-                                            dbuser_tbl, reservoir_specs_tbl)
+                            dbuser_tbl, rack_layout_tbl, reservoir_specs_tbl)
     stock_sample_creation_iso_request = stocksamplecreationisorequest.\
                                         create_table(metadata, iso_request_tbl)
 
@@ -303,8 +302,12 @@ def initialize_tables(metadata):
                     metadata, job_tbl, experiment_rack_tbl)
 
     molecule_design_library_tbl = moleculedesignlibrary.create_table(metadata,
-                                                molecule_design_pool_set_tbl)
+                                rack_layout_tbl, molecule_design_pool_set_tbl)
     molecule_design_library_iso_request_tbl = moleculedesignlibraryisorequest.\
             create_table(metadata, molecule_design_library_tbl, iso_request_tbl)
+    library_plate_tbl = libraryplate.create_table(metadata,
+                                        molecule_design_library_tbl, rack_tbl)
+    iso_library_plate_tbl = isolibraryplate.create_table(metadata, iso_tbl,
+                                                         library_plate_tbl)
 
 #pylint: enable=W0612

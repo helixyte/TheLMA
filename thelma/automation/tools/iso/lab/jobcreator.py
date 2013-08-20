@@ -5,6 +5,7 @@ Tools involved in lab ISO generation.
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.iso.jobcreator import IsoJobCreator
 from thelma.automation.tools.iso.lab.base import LABELS
+from thelma.automation.tools.iso.lab.library.planner import LibraryIsoPlanner
 from thelma.automation.tools.iso.lab.planner import LabIsoBuilder
 from thelma.automation.tools.iso.lab.planner import LabIsoPlanner
 from thelma.models.iso import ISO_TYPES
@@ -91,10 +92,15 @@ class LabIsoJobCreator(IsoJobCreator):
         plates.
         The planner also runs the optimizer that picks tube candidates.
         """
-        planner = LabIsoPlanner(log=self.log, iso_request=self.iso_request,
-                                number_isos=self.number_isos,
-                                excluded_racks=self.excluded_racks,
-                                requested_tubes=self.requested_tubes)
+        kw = dict(log=self.log, iso_request=self.iso_request,
+                   number_isos=self.number_isos,
+                   excluded_racks=self.excluded_racks,
+                   requested_tubes=self.requested_tubes)
+
+        planner_cls = LabIsoPlanner
+        if self.iso_request.molecule_design_library is not None:
+            planner_cls = LibraryIsoPlanner
+        planner = planner_cls(**kw)
         self._builder = planner.get_result()
 
         if self._builder is None:

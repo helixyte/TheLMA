@@ -40,6 +40,7 @@ from thelma.db.mappers import itemstatus
 from thelma.db.mappers import job
 from thelma.db.mappers import labiso
 from thelma.db.mappers import labisorequest
+from thelma.db.mappers import libraryplate
 from thelma.db.mappers import longdsrnadesign
 from thelma.db.mappers import mirnainhibitordesign
 from thelma.db.mappers import mirnamimicdesign
@@ -183,6 +184,7 @@ def initialize_mappers(tables, views):
     moleculedesignlibrary.create_mapper(tables['molecule_design_library'],
                                 tables['stock_sample_creation_iso_request'],
                                 tables['molecule_design_library_iso_request'])
+    libraryplate.create_mapper(tables['library_plate'])
     standardmoleculedesignset.create_mapper(
                                 molecule_design_set_mapper)
     moleculedesignpool.create_mapper(
@@ -264,7 +266,6 @@ def initialize_mappers(tables, views):
 
 
     iso_request_mapper = isorequest.create_mapper(tables['iso_request'],
-                             tables['iso_request_rack_layout'],
                              tables['worklist_series_iso_request'],
                              tables['iso_request_pool_set'])
     labisorequest.create_mapper(iso_request_mapper, tables['lab_iso_request'],

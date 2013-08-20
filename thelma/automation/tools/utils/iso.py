@@ -10,9 +10,9 @@ from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
 from thelma.automation.tools.utils.base import MoleculeDesignPoolLayout
 from thelma.automation.tools.utils.base import MoleculeDesignPoolParameters
 from thelma.automation.tools.utils.base import MoleculeDesignPoolPosition
-from thelma.automation.tools.utils.base import UNTREATED_POSITION_TYPE
 from thelma.automation.tools.utils.base import get_converted_number
 from thelma.automation.tools.utils.base import is_valid_number
+from thelma.automation.tools.utils.base import LIBRARY_POSITION_TYPE
 from thelma.automation.tools.utils.converters \
     import MoleculeDesignPoolLayoutConverter
 from thelma.automation.tools.utils.racksector import AssociationData
@@ -139,7 +139,7 @@ class IsoRequestPosition(MoleculeDesignPoolPosition):
         volume_base_tpl = ('ISO volume', self.iso_volume)
         supplier_base_tpl = ('supplier', self.supplier)
 
-        if self.is_untreated:
+        if self.is_untreated_type:
             self._check_none_value([supplier_base_tpl])
             self._check_untreated_values([volume_base_tpl,
                                           concentration_base_tpl])
@@ -250,7 +250,20 @@ class IsoRequestPosition(MoleculeDesignPoolPosition):
                 raise TypeError(msg)
 
     @classmethod
-    def create_mock_position(cls, rack_position, iso_volume):
+    def create_library_position(cls, rack_position, **kw):
+        """
+        Creates a library ISO position.
+
+        :param rack_position: The rack position.
+        :type rack_position: :class:`thelma.models.rack.RackPosition`.
+
+        :return: library type IsoPosition
+        """
+        return cls(rack_position=rack_position,
+                   molecule_design_pool=LIBRARY_POSITION_TYPE, **kw)
+
+    @classmethod
+    def create_mock_position(cls, rack_position, iso_volume, **kw):
         """
         Creates a mock ISO position.
 
@@ -258,13 +271,13 @@ class IsoRequestPosition(MoleculeDesignPoolPosition):
         :type rack_position: :class:`thelma.models.rack.RackPosition`.
 
         :param iso_volume: The volume requested from the stock management.
-        :type iso_volume: positive number
+        :type iso_volume: positive number, unit ul
 
         :return: mock type IsoPosition
         """
-        return IsoRequestPosition(rack_position=rack_position,
-                       molecule_design_pool=cls.PARAMETER_SET.MOCK_TYPE_VALUE,
-                       iso_volume=iso_volume)
+        return cls(rack_position=rack_position,
+                   molecule_design_pool=cls.PARAMETER_SET.MOCK_TYPE_VALUE,
+                   iso_volume=iso_volume, **kw)
 
     def _get_parameter_values_map(self):
         """
@@ -431,8 +444,8 @@ class IsoRequestLayoutConverter(MoleculeDesignPoolLayoutConverter):
         invalid = False
 
         if pos_type == EMPTY_POSITION_TYPE or \
-                                pos_type == UNTREATED_POSITION_TYPE:
-            if pos_type == UNTREATED_POSITION_TYPE:
+                                self.PARAMETER_SET.is_untreated_type(pos_type):
+            if self.PARAMETER_SET.is_untreated_type(pos_type):
                 pos_type = EMPTY_POSITION_TYPE
                 volume, concentration = None, None
             if not volume is None:

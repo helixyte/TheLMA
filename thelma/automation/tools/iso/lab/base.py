@@ -3,10 +3,12 @@ Base classes and constants involved in lab ISO processing tasks.
 
 AAB
 """
+from thelma.automation.tools.utils.base import LIBRARY_POSITION_TYPE
 from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
 from thelma.automation.tools.utils.base import TransferLayout
 from thelma.automation.tools.utils.base import TransferParameters
 from thelma.automation.tools.utils.base import TransferPosition
+from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.base import get_converted_number
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_valid_number
@@ -16,7 +18,6 @@ from thelma.automation.tools.utils.racksector import AssociationData
 from thelma.automation.tools.utils.racksector import RackSectorAssociator
 from thelma.automation.tools.utils.racksector import ValueDeterminer
 from thelma.models.organization import Organization
-from thelma.automation.tools.utils.base import add_list_map_element
 
 __all__ = ['get_stock_takeout_volume',
            'IsoPlateParameters',
@@ -340,17 +341,17 @@ class IsoPlateParameters(TransferParameters):
     REQUIRED = TransferParameters + [CONCENTRATION, VOLUME]
     ALL = REQUIRED + [STOCK_TUBE_BARCODE, STOCK_RACK_BARCODE, TRANSFER_TARGETS]
 
-    ALIAS_MAP = TransferParameters.ALIAS_MAP + {
+    ALIAS_MAP = TransferParameters.ALIAS_MAP.update({
                  CONCENTRATION : ['preparation_concentration'],
                  VOLUME : ['required_volume'],
                  STOCK_TUBE_BARCODE : [],
-                 STOCK_RACK_BARCODE : []}
+                 STOCK_RACK_BARCODE : []})
 
-    DOMAIN_MAP = TransferParameters.DOMAIN_MAP + {
+    DOMAIN_MAP = TransferParameters.DOMAIN_MAP.update({
                  CONCENTRATION : DOMAIN,
                  VOLUME : DOMAIN,
                  STOCK_TUBE_BARCODE : DOMAIN,
-                 STOCK_RACK_BARCODE : DOMAIN}
+                 STOCK_RACK_BARCODE : DOMAIN})
 
 
 class IsoPlatePosition(TransferPosition):
@@ -463,7 +464,7 @@ class IsoPlatePosition(TransferPosition):
     @classmethod
     def create_mock_position(cls, rack_position, volume):
         """
-        Returns a preparation position with mock molecule design pool.
+        Returns an ISO plate position with mock molecule design pool.
 
         :param rack_position: The position within the rack.
         :type rack_position: :class:`thelma.models.rack.RackPosition`
@@ -475,6 +476,27 @@ class IsoPlatePosition(TransferPosition):
         return cls(rack_position=rack_position,
                    molecule_design_pool=MOCK_POSITION_TYPE,
                    position_type=MOCK_POSITION_TYPE, volume=volume)
+
+    @classmethod
+    def create_library_position(cls, rack_position, concentration, volume):
+        """
+        Returns a library type ISO plate position with the given values.
+        The samples are already present in the plates.
+
+        :param rack_position: The position within the rack.
+        :type rack_position: :class:`thelma.models.rack.RackPosition`
+
+        :param concentration: The pool concentration in the plate *in nM*.
+        :type concentration: positive number, unit nM
+
+        :param volume: The volume in the plate *in ul*.
+        :type volume: positive number, unit ul
+        """
+        return cls(rack_position=rack_position,
+                   molecule_design_pool=LIBRARY_POSITION_TYPE,
+                   position_type=LIBRARY_POSITION_TYPE,
+                   concentration=concentration,
+                   volume=volume)
 
     @property
     def is_inactivated(self):

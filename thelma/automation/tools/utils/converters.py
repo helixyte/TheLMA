@@ -10,6 +10,9 @@ from everest.entities.utils import get_root_aggregate
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.utils.base import FIXED_POSITION_TYPE
+from thelma.automation.tools.utils.base import LibraryLayout
+from thelma.automation.tools.utils.base import LibraryLayoutParameters
+from thelma.automation.tools.utils.base import LibraryLayoutPosition
 from thelma.automation.tools.utils.base import MoleculeDesignPoolLayout
 from thelma.automation.tools.utils.base import MoleculeDesignPoolParameters
 from thelma.automation.tools.utils.base import MoleculeDesignPoolPosition
@@ -21,14 +24,14 @@ from thelma.automation.tools.utils.base import is_valid_number
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.racklayout import RackLayout
 
-
 __docformat__ = 'reStructuredText en'
 
 __author__ = 'Anna-Antonia Berger'
 
 __all__ = ['BaseLayoutConverter',
            'TransferLayoutConverter',
-           'MoleculeDesignPoolLayoutConverter']
+           'MoleculeDesignPoolLayoutConverter',
+           'LibraryLayoutConverter']
 
 
 class BaseLayoutConverter(BaseAutomationTool):
@@ -222,7 +225,7 @@ class BaseLayoutConverter(BaseAutomationTool):
         working position, otherwise there are records stored in the
         intermediate error sotrage lists and *None* is returned.
         """
-        self.add_error('Abstract method: _get_position_init_values()')
+        raise NotImplementedError('Abstract method')
 
     def __record_common_errors(self):
         """
@@ -242,7 +245,7 @@ class BaseLayoutConverter(BaseAutomationTool):
         specification might spam the log, that's why you can store the
         referring rack position and launch the log events here.
         """
-        self.add_error('Abstract method: _record_additional_position_errors()')
+        raise NotImplementedError('Abstract method')
 
     def __create_layout_from_map(self):
         """
@@ -280,14 +283,14 @@ class BaseLayoutConverter(BaseAutomationTool):
         kw = dict(shape=shape)
         return self.WORKING_LAYOUT_CLS(**kw) #pylint: disable=E1102
 
-    def _perform_layout_validity_checks(self, working_layout): #pylint: disable=W0613
+    def _perform_layout_validity_checks(self, working_layout):
         """
         Use this method to check the validity of the generated layout.
         """
-        self.add_error('Abstract method: _initialize_working_layout()')
+        raise NotImplementedError('Abstract method')
 
 
-class MoleculeDesignPoolLayoutConverter(BaseLayoutConverter):
+class MoleculeDesignPoolLayoutConverter(BaseLayoutConverter): #pylint: disable=W0223
     """
     Abstract base class converting an rack_layout into an molecule design pool
     layout
@@ -394,7 +397,7 @@ class MoleculeDesignPoolLayoutConverter(BaseLayoutConverter):
         working_layout.close()
 
 
-class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter):
+class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter): #pylint: disable=W0223
     """
     Converts an rack_layout into a TransferLayout
     (:class:`thelma.automation.tools.utils.transfer.TransferLayout`).
@@ -572,3 +575,69 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter):
         Use this method to check the validity of the generated layout.
         """
         pass
+
+
+class LibraryLayoutConverter(BaseLayoutConverter):
+    """
+    Converts a :class:`thelma.models.racklayout.RackLayout` into a
+    :class:`LibraryBaseLayout`.
+
+    """
+    NAME = 'Library Layout Converter'
+
+    PARAMETER_SET = LibraryLayoutParameters
+    WORKING_POSITION_CLS = LibraryLayoutPosition
+    WORKING_LAYOUT_CLASS = LibraryLayout
+
+    def __init__(self, rack_layout, log):
+        """
+        Constructor:
+
+        :param rack_layout: The rack layout containing the ISO data.
+        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
+
+        :param log: The ThelmaLog you want to write in. If the
+            log is None, the object will create a new log.
+        :type log: :class:`thelma.ThelmaLog`
+        """
+        BaseLayoutConverter.__init__(self, rack_layout, log=log)
+
+        # intermediate storage of invalid rack positions
+        self.__invalid_flag = None
+
+    def reset(self):
+        BaseLayoutConverter.reset(self)
+        self.__invalid_flag = []
+
+    def _get_position_init_values(self, parameter_map):
+        is_lib_pos_str = parameter_map[self.PARAMETER_SET.IS_LIBRARY_POS]
+        rack_pos = parameter_map[self._RACK_POSITION_KEY]
+        pos_label = rack_pos.label
+        if is_lib_pos_str is None: return None
+
+        try:
+            is_lib_pos = self.WORKING_POSITION_CLS.parse_boolean_tag_value(
+                                                                is_lib_pos_str)
+        except ValueError:
+            info = '%s (%s)' % (pos_label, is_lib_pos_str)
+            self.__invalid_flag.append(info)
+            return None
+
+        return dict(rack_position=rack_pos, is_library_position=is_lib_pos)
+
+    def _record_additional_position_errors(self):
+        """
+        Records specific errors that have been collection during position
+        generation.
+        """
+        if len(self.__invalid_flag) > 0:
+            msg = 'The "sample position" flag must be a boolean. The values ' \
+                  'for some positions are invalid. Details: %s.' \
+                  % (', '.join(sorted(self.__invalid_flag)))
+            self.add_error(msg)
+
+    def _perform_layout_validity_checks(self, working_layout):
+        """
+        We do not check anything but we close the layout.
+        """
+        working_layout.close()

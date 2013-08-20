@@ -12,7 +12,8 @@ from sqlalchemy.schema import PrimaryKeyConstraint
 __docformat__ = "reStructuredText en"
 __all__ = ['create_table']
 
-def create_table(metadata, iso_request_tbl, user_tbl, reservoir_specs_tbl):
+def create_table(metadata, iso_request_tbl, user_tbl, rack_layout_tbl,
+                 reservoir_specs_tbl):
     "Table factory"
     tbl = Table('lab_iso_request', metadata,
                 Column('iso_request_id', Integer,
@@ -24,6 +25,10 @@ def create_table(metadata, iso_request_tbl, user_tbl, reservoir_specs_tbl):
                        nullable=False),
                 Column('delivery_date', Date),
                 Column('comment', Text),
+                Column('rack_layout_id', Integer,
+                       ForeignKey(rack_layout_tbl.c.rack_layout_id,
+                                  onupdate='CASCADE', ondelete='CASCADE'),
+                       nullable=False),
                 Column('iso_plate_reservoir_specs_id', Integer,
                        ForeignKey(reservoir_specs_tbl.c.reservoir_specs_id,
                                   ondelete='NO ACTION', onupdate='NO ACTION'),

@@ -6,9 +6,11 @@
 
  IMPORTANT: before starting assert we have only one library in the DB
  that does not belong to a stock sample pool creation iso request
- (as opposed to a proper library)!
+ (as opposed to a proper library)! The name of the library must be 'poollib'
+ In addition, make sure all ISO requests for libraries and pool creations
+ are set to 'LIBRARY_CREATION'!
 
-SELECT assert('(select version from db_version) = 209.0016');
+SELECT assert('(select version from db_version) = 16.1');
 
 
 -- ISO request: create 2 subtypes, rename available types and migrate data,
@@ -32,6 +34,9 @@ CREATE TABLE lab_iso_request (
   comment VARCHAR,
   requester_id INTEGER NOT NULL
     REFERENCES db_user (db_user_id),
+  rack_layout_id INTEGER NOT NULL
+    REFERENCES rack_layout (rack_layout_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
   iso_plate_reservoir_specs_id INTEGER
     REFERENCES reservoir_specs (reservoir_specs_id),
   CONSTRAINT lab_iso_request_pkey PRIMARY KEY (iso_request_id)
@@ -66,8 +71,8 @@ ALTER TABLE iso_request ADD CONSTRAINT valid_iso_request_iso_type
 ALTER TABLE iso_request ALTER COLUMN iso_type DROP DEFAULT;
 
 INSERT INTO lab_iso_request
-    (iso_request_id, delivery_date, comment, requester_id)
-  SELECT iso_request_id, delivery_date, comment, requester_id
+    (iso_request_id, delivery_date, comment, rack_layout_id, requester_id)
+  SELECT iso_request_id, delivery_date, comment, rack_layout_id, requester_id
   FROM iso_request
   WHERE iso_type = 'LAB';
 
@@ -145,23 +150,49 @@ ALTER TABLE stock_sample_creation_iso_request
   ALTER COLUMN number_designs DROP DEFAULT;
 
 
-CREATE TABLE iso_request_rack_layout (
-  iso_request_id INTEGER NOT NULL
-    REFERENCES iso_request (iso_request_id)
-    ON DELETE CASCADE ON UPDATE CASCADE,
-  rack_layout_id INTEGER NOT NULL
-    REFERENCES rack_layout (rack_layout_id)
-    ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT iso_request_rack_layout_pkey PRIMARY KEY (iso_request_id)
-);
+-- Delete all library that only serve pool creation (instead of libary creation)
 
-INSERT INTO iso_request_rack_layout (iso_request_id, rack_layout_id)
-  SELECT iso_request_id, rack_layout_id
-  FROM iso_request
-  WHERE iso_type = 'LAB' OR label = 'poollib';
+DELETE FROM molecule_design_library
+  WHERE NOT label='poollib';
 
+-- the molecule design library gets a number of layouts and a rack layout column
+-- this data may be redundant as long library are generated in-house, but as
+-- soon there is no ISO request for the library anymore we cannot get this
+-- number conveniently anymore
+
+ALTER TABLE molecule_design_library ADD COLUMN number_layouts INTEGER;
+ALTER TABLE molecule_design_library
+  ADD CONSTRAINT positive_molecule_design_library_number_layouts
+  CHECK (number_layouts > 0);
+
+UPDATE molecule_design_library
+  SET number_layouts = (
+    SELECT ir.expected_number_isos
+    FROM iso_request ir, molecule_design_library_iso_request mdlir
+    WHERE ir.iso_request_id = mdlir.iso_request_id
+    AND mdlir.molecule_design_library_id =
+    	molecule_design_library.molecule_design_library_id
+  );
+
+ALTER TABLE molecule_design_library ALTER COLUMN number_layouts SET NOT NULL;
+
+ALTER TABLE molecule_design_library ADD COLUMN rack_layout_id INTEGER
+  REFERENCES rack_layout (rack_layout_id)
+  ON UPDATE CASCADE ON DELETE CASCADE;
+
+UPDATE molecule_design_library
+  SET rack_layout_id = (
+    SELECT ir.rack_layout_id
+    FROM iso_request ir, molecule_design_library_iso_request mdlir
+    WHERE ir.iso_request_id = mdlir.iso_request_id
+    AND mdlir.molecule_design_library_id =
+    	molecule_design_library.molecule_design_library_id
+  );
+
+ALTER TABLE molecule_design_library ALTER COLUMN rack_layout_id SET NOT NULL;
 
 ALTER TABLE iso_request DROP COLUMN rack_layout_id;
+
 
 -- ISO requests might have pool sets now (the pool set of the experiment
 -- metadata is moved here)
@@ -379,5 +410,43 @@ INSERT INTO iso_sector_preparation_plate
 
 DROP TABLE library_source_plate;
 
+-- Library plates - these contain the aliquot plates of the existing library
 
-CREATE OR REPLACE VIEW db_version AS SELECT 209.0017 AS version;
+CREATE TABLE library_plate (
+  library_plate_id SERIAL PRIMARY KEY,
+  molecule_design_library_id INTEGER NOT NULL
+    REFERENCES molecule_design_library (molecule_design_library_id)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  rack_id INTEGER NOT NULL
+    REFERENCES rack (rack_id)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  layout_number INTEGER NOT NULL,
+  has_been_used BOOLEAN NOT NULL DEFAULT FALSE,
+  CONSTRAINT library_plate_layout_number_greater_zero CHECK (layout_number > 0)
+);
+
+-- we should only have the poollib library in the DB at this point
+INSERT INTO library_plate
+  (molecule_design_library_id, rack_id, layout_number)
+  SELECT mdl.molecule_design_library_id, ip.rack_id, ssci.layout_number
+  FROM molecule_design_library mdl, molecule_design_library_iso_request mdlir,
+       iso i, stock_sample_creation_iso ssci, iso_plate ip
+  WHERE mdl.label = 'poollib'
+  AND mdl.molecule_design_library_id = mdlir.molecule_design_library_id
+  AND mdlir.iso_request_id = i.iso_request_id
+  AND i.iso_id = ssci.iso_id
+  AND ip.iso_id = i.iso_id
+  AND ip.iso_plate_type = 'ALIQUOT';
+
+-- linking library plates to ISOs (there is no data for this table yet)
+
+CREATE TABLE iso_library_plate (
+  iso_id INTEGER NOT NULL REFERENCES iso (iso_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  library_plate_id INTEGER NOT NULL REFERENCES library_plate (library_plate_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT iso_library_plate_pkey PRIMARY KEY (library_plate_id)
+);
+
+
+CREATE OR REPLACE VIEW db_version AS SELECT 17.1 AS version;

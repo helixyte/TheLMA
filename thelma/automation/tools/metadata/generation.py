@@ -314,7 +314,7 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
         self.add_debug('Search for ISOs and experiments ...')
 
         self.__has_isos = False
-        iso_request = self.experiment_metadata.iso_request
+        iso_request = self.experiment_metadata.lab_iso_request
         if not iso_request is None:
             for iso in iso_request.isos:
                 if not iso.status == ISO_STATUS.CANCELLED:
@@ -501,7 +501,7 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
 
         if not self.has_errors():
             self._source_layout.close()
-            for design_rack in self._experiment_design.design_racks:
+            for design_rack in self._experiment_design.experiment_design_racks:
                 new_rack_layout = self._source_layout.\
                     complete_rack_layout_with_screening_tags(design_rack.layout,
                                   self._iso_request.iso_layout, self.requester)
@@ -517,7 +517,7 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
         above_crit = []
 
         for rack_pos, tf_pos in self._source_layout.iterpositions():
-            if tf_pos.is_mock or tf_pos.is_untreated: continue
+            if tf_pos.is_mock or tf_pos.is_untreated_type: continue
             if tf_pos.is_floating:
                 stock_conc = self._source_layout.floating_stock_concentration
             else:
@@ -625,7 +625,7 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
         """
         self.add_debug('Check blocked ISO request ...')
 
-        old_iso_request = self.experiment_metadata.iso_request
+        old_iso_request = self.experiment_metadata.lab_iso_request
 
         changed_attributes = []
         if old_iso_request.number_aliquots != \
@@ -669,8 +669,8 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
 
         differences = []
         current_design_racks = self.experiment_metadata.experiment_design.\
-                                                                    design_racks
-        new_design_racks = self._experiment_design.design_racks
+                                                        experiment_design_racks
+        new_design_racks = self._experiment_design.experiment_design_racks
         if not len(current_design_racks) == len(new_design_racks):
             differences.append('different number of design racks')
 
@@ -761,16 +761,16 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
                                                       self.requester)
             # The ISO request owner must be maintained (important for running
             # ISO processing).
-            if not self.experiment_metadata.iso_request is None:
+            if not self.experiment_metadata.lab_iso_request is None:
                 self._iso_request.owner = self.experiment_metadata.\
-                                          iso_request.owner
+                                          lab_iso_request.owner
 
         new_em = ExperimentMetadata(
                     label=self.experiment_metadata.label,
                     ticket_number=self._ticket_number,
                     subproject=self.experiment_metadata.subproject,
                     experiment_design=self._experiment_design,
-                    iso_request=self._iso_request,
+                    lab_iso_request=self._iso_request,
                     number_replicates=
                             self.experiment_metadata.number_replicates,
                     molecule_design_pool_set=self._pool_set,
@@ -1111,7 +1111,8 @@ class ExperimentMetadataGeneratorScreen(ExperimentMetadataGenerator):
         determinator = RobotSupportDeterminatorScreen(log=self.log,
                 source_layout=self._source_layout,
                 number_replicates=self.experiment_metadata.number_replicates,
-                number_design_racks=len(self._experiment_design.design_racks),
+                number_design_racks=len(self._experiment_design.\
+                                        experiment_design_racks),
                 handler_iso_volume=self.__handler_iso_volume,
                 association_data=self.__association_data)
         self._source_layout = determinator.get_result()
@@ -1239,7 +1240,8 @@ class ExperimentMetadataGeneratorLibrary(ExperimentMetadataGenerator):
         determinator = RobotSupportDeterminatorLibrary(log=self.log,
                 source_layout=self._source_layout,
                 number_replicates=self.experiment_metadata.number_replicates,
-                number_design_racks=len(self._experiment_design.design_racks),
+                number_design_racks=len(self._experiment_design.\
+                                        experiment_design_racks),
                 library=self.__library,
                 handler_final_concentration=final_conc)
         self._source_layout = determinator.get_result()
@@ -1266,7 +1268,7 @@ class ExperimentMetadataGeneratorLibrary(ExperimentMetadataGenerator):
         The plate number is defined by the library.
         """
         self.add_debug('Determine number of plates ...')
-        return self.__library.iso_request.number_plates
+        return self.__library.number_layouts
 
 
 class ExperimentMetadataGeneratorManual(ExperimentMetadataGenerator):
@@ -1502,7 +1504,7 @@ class RobotSupportDeterminator(BaseAutomationTool):
                                                         self.number_replicates):
                 self.use_deep_well = True
             for tf_pos in self.source_layout.working_positions():
-                if tf_pos.is_untreated: continue
+                if tf_pos.is_untreated_type: continue
                 if not tf_pos.iso_volume is None:
                     if is_larger_than(tf_pos.iso_volume, max_vol):
                         self.use_deep_well = True
@@ -1534,7 +1536,7 @@ class RobotSupportDeterminator(BaseAutomationTool):
         if self._layout_has_iso_concentrations:
 
             for rack_pos, tf_pos in self.source_layout.iterpositions():
-                if tf_pos.is_mock or tf_pos.is_untreated: continue
+                if tf_pos.is_mock or tf_pos.is_untreated_type: continue
                 iso_conc = tf_pos.iso_concentration
                 expected_iso_conc = tf_pos.final_concentration \
                                     * tf_pos.get_total_dilution_factor()
@@ -1546,7 +1548,7 @@ class RobotSupportDeterminator(BaseAutomationTool):
 
         else:
             for rack_pos, tf_pos in self.source_layout.iterpositions():
-                if tf_pos.is_mock or tf_pos.is_untreated: continue
+                if tf_pos.is_mock or tf_pos.is_untreated_type: continue
                 iso_conc = tf_pos.final_concentration \
                            * tf_pos.get_total_dilution_factor()
                 self._new_concentration_values[rack_pos] = iso_conc
@@ -1725,7 +1727,7 @@ class RobotSupportDeterminatorOpti(RobotSupportDeterminator):
                                               PIPETTING_SPECS_NAMES.BIOMEK)
 
         for rack_pos, tf_pos in self.source_layout.iterpositions():
-            if tf_pos.is_untreated: continue
+            if tf_pos.is_untreated_type: continue
 
             expected_volume = TransfectionParameters.calculate_iso_volume(
                 number_target_wells=self.__target_count_map[rack_pos],
@@ -1778,7 +1780,7 @@ class RobotSupportDeterminatorOpti(RobotSupportDeterminator):
             max_vol = self._iso_reservoir_specs.max_volume \
                       * VOLUME_CONVERSION_FACTOR
             for rack_pos, tf_pos in self.source_layout.iterpositions():
-                if tf_pos.is_untreated: continue
+                if tf_pos.is_untreated_type: continue
                 iso_vol = tf_pos.iso_volume
                 if self.__new_volumes_values.has_key(rack_pos):
                     iso_vol = self.__new_volumes_values[rack_pos]
@@ -2078,7 +2080,7 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
             for quadrant_wps in quad_iter.get_all_quadrants(self.source_layout):
                 for sector_index, tf_pos in quadrant_wps.iteritems():
                     if tf_pos is None: continue
-                    if tf_pos.is_mock or tf_pos.is_untreated: continue
+                    if tf_pos.is_mock or tf_pos.is_untreated_type: continue
                     iso_conc = self.__iso_concentrations[sector_index]
                     tf_pos.iso_concentration = iso_conc
 
@@ -2087,7 +2089,7 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
         Replaces the ISO volumes in the layout by :attr:`__iso_volume`.
         """
         for tf_pos in self.source_layout.working_positions():
-            if tf_pos.is_untreated: continue
+            if tf_pos.is_untreated_type: continue
             tf_pos.iso_volume = self.__iso_volume
 
 
@@ -2214,7 +2216,7 @@ class RobotSupportDeterminatorLibrary(RobotSupportDeterminator):
             iso_conc = round(iso_conc, 1)
             optimem_df = round(required_df, 1)
             for tf_pos in self.source_layout.working_positions():
-                if tf_pos.is_untreated: continue
+                if tf_pos.is_untreated_type: continue
                 tf_pos.set_optimem_dilution_factor(optimem_df)
                 if tf_pos.is_mock: continue
                 tf_pos.iso_concentration = iso_conc
@@ -2262,7 +2264,7 @@ class RobotSupportDeterminatorLibrary(RobotSupportDeterminator):
             # in any case.
             iso_vol = int(self.__iso_volume)
             for tf_pos in self.source_layout.working_positions():
-                if tf_pos.is_untreated: continue
+                if tf_pos.is_untreated_type: continue
                 tf_pos.iso_volume = iso_vol
 
     def _complete_layout(self):
@@ -2507,7 +2509,7 @@ class WellAssociatorOptimisation(WellAssociator):
         # Full hash values simplify well associations.
 
         for rack_pos, tf_pos in self.source_layout.iterpositions():
-            if tf_pos.is_untreated: continue
+            if tf_pos.is_untreated_type: continue
             if self.source_has_final_concentrations:
                 # a full hash may occur only once per source layout
                 self._source_data_map[tf_pos.hash_full] = rack_pos

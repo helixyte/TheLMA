@@ -12,19 +12,18 @@ from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.utils.base import EMPTY_POSITION_TYPE
 from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
-from thelma.automation.tools.utils.base import UNTREATED_POSITION_TYPE
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_converted_number
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.base import round_up
-from thelma.automation.tools.utils.iso import IsoAssociationData
-from thelma.automation.tools.utils.iso import IsoLayout
-from thelma.automation.tools.utils.iso import IsoLayoutConverter
-from thelma.automation.tools.utils.iso import IsoParameters
-from thelma.automation.tools.utils.iso import IsoPosition
-from thelma.automation.tools.utils.iso import IsoRackSectorAssociator
-from thelma.automation.tools.utils.iso import IsoValueDeterminer
+from thelma.automation.tools.utils.iso import IsoRequestAssociationData
+from thelma.automation.tools.utils.iso import IsoRequestLayout
+from thelma.automation.tools.utils.iso import IsoRequestLayoutConverter
+from thelma.automation.tools.utils.iso import IsoRequestParameters
+from thelma.automation.tools.utils.iso import IsoRequestPosition
+from thelma.automation.tools.utils.iso import IsoRequestRackSectorAssociator
+from thelma.automation.tools.utils.iso import IsoRequestValueDeterminer
 from thelma.automation.tools.worklists.base import get_dynamic_dead_volume
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 from thelma.models.moleculetype import MoleculeType
@@ -44,7 +43,7 @@ __all__ = ['TransfectionParameters',
            'TransfectionAssociationData']
 
 
-class TransfectionParameters(IsoParameters):
+class TransfectionParameters(IsoRequestParameters):
     """
     This a list of parameters required to generate a BioMek transfection
     worklist when translating an ISO plate into a cell plate.
@@ -56,15 +55,15 @@ class TransfectionParameters(IsoParameters):
     #: The final RNAi concentration in the assay.
     FINAL_CONCENTRATION = 'final_concentration'
     #: The molecule design pool (tag value: molecule design pool id).
-    MOLECULE_DESIGN_POOL = IsoParameters.MOLECULE_DESIGN_POOL
+    MOLECULE_DESIGN_POOL = IsoRequestParameters.MOLECULE_DESIGN_POOL
     #: The volume requested in the ISO in ul.
-    ISO_VOLUME = IsoParameters.ISO_VOLUME
+    ISO_VOLUME = IsoRequestParameters.ISO_VOLUME
     #: The concentration requested in the ISO in nM.
-    ISO_CONCENTRATION = IsoParameters.ISO_CONCENTRATION
+    ISO_CONCENTRATION = IsoRequestParameters.ISO_CONCENTRATION
     #: The position type (fixed, floating or empty).
-    POS_TYPE = IsoParameters.POS_TYPE
+    POS_TYPE = IsoRequestParameters.POS_TYPE
     #: The supplier for the molecule design pool (tag value: organization name).
-    SUPPLIER = IsoParameters.SUPPLIER
+    SUPPLIER = IsoRequestParameters.SUPPLIER
     #: The name of the RNAi reagent.
     REAGENT_NAME = 'reagent_name'
     #: The final dilution factor of the RNAi reagent in the cell plate.
@@ -82,27 +81,18 @@ class TransfectionParameters(IsoParameters):
            REAGENT_DIL_FACTOR, OPTIMEM_DIL_FACTOR]
 
     #: A map storing alias predicates for each parameter.
-    ALIAS_MAP = {FINAL_CONCENTRATION : [],
-                 MOLECULE_DESIGN_POOL :
-                                  IsoParameters.ALIAS_MAP[MOLECULE_DESIGN_POOL],
-                 ISO_VOLUME : IsoParameters.ALIAS_MAP[ISO_VOLUME],
-                 ISO_CONCENTRATION : IsoParameters.ALIAS_MAP[ISO_CONCENTRATION],
-                 SUPPLIER : IsoParameters.ALIAS_MAP[SUPPLIER],
-                 POS_TYPE : IsoParameters.ALIAS_MAP[POS_TYPE],
+    ALIAS_MAP = IsoRequestParameters.ALIAS_MAP.update({
+                 FINAL_CONCENTRATION : [],
                  REAGENT_NAME : [],
                  REAGENT_DIL_FACTOR : ['reagent_concentration'],
-                 OPTIMEM_DIL_FACTOR : []}
+                 OPTIMEM_DIL_FACTOR : []})
 
     #: Maps tag predicates on domains.
-    DOMAIN_MAP = {FINAL_CONCENTRATION : DOMAIN,
-                  MOLECULE_DESIGN_POOL : IsoParameters.DOMAIN,
-                  ISO_VOLUME : IsoParameters.DOMAIN,
-                  ISO_CONCENTRATION : IsoParameters.DOMAIN,
-                  POS_TYPE : IsoParameters.DOMAIN,
-                  SUPPLIER : IsoParameters.DOMAIN,
+    DOMAIN_MAP = IsoRequestParameters.DOMAIN_MAP.update({
+                  FINAL_CONCENTRATION : DOMAIN,
                   REAGENT_NAME : DOMAIN,
                   REAGENT_DIL_FACTOR : DOMAIN,
-                  OPTIMEM_DIL_FACTOR : DOMAIN}
+                  OPTIMEM_DIL_FACTOR : DOMAIN})
 
     # Constants for calculations
 
@@ -110,7 +100,7 @@ class TransfectionParameters(IsoParameters):
     TRANSFER_VOLUME = 5
 
     #: The minimum volume that can be requested by the stockmanagement.
-    MINIMUM_ISO_VOLUME = IsoParameters.MINIMUM_ISO_VOLUME
+    MINIMUM_ISO_VOLUME = IsoRequestParameters.MINIMUM_ISO_VOLUME
 
     #: The dilution factor for the transfection reagent dilution (mastermix
     #: step - as opposed to the final dilution factor of the reagent itself
@@ -415,7 +405,7 @@ class TransfectionParameters(IsoParameters):
             return optimem_df
 
 
-class TransfectionPosition(IsoPosition):
+class TransfectionPosition(IsoRequestPosition):
     """
     This class represents a source position in an ISO layout. The target
     positions are the target in the final cell (experiment) plate.
@@ -462,7 +452,7 @@ class TransfectionPosition(IsoPosition):
             reagent in the cell plate.
         :type final_concentration: positive number
         """
-        IsoPosition.__init__(self, rack_position=rack_position,
+        IsoRequestPosition.__init__(self, rack_position=rack_position,
                              molecule_design_pool=molecule_design_pool,
                              iso_volume=iso_volume,
                              iso_concentration=iso_concentration,
@@ -489,7 +479,7 @@ class TransfectionPosition(IsoPosition):
         tf_attrs = [('reagent name', self.reagent_name),
                     ('reagent dilution factor', self.reagent_dil_factor),
                     ('final concentration', self.final_concentration)]
-        if self.is_untreated:
+        if self.is_untreated_type:
             self._check_untreated_values(tf_attrs)
         elif self.is_empty:
             self._check_none_value(tf_attrs)
@@ -584,7 +574,7 @@ class TransfectionPosition(IsoPosition):
         """
         Returns the tag set for this working position.
         """
-        if self.is_empty and not self.is_untreated:
+        if self.is_empty and not self.is_untreated_type:
             return set([self.get_parameter_tag(self.PARAMETER_SET.POS_TYPE)])
 
         tag_set = set()
@@ -726,39 +716,55 @@ class TransfectionPosition(IsoPosition):
 
     # different number arguments #pylint: disable=W0221
     @classmethod
-    def create_mock_position(cls, rack_position, iso_volume=None,
-                     reagent_name=None, reagent_dil_factor=None,
-                     final_concentration=IsoPosition.NONE_REPLACER):
+    def create_library_position(cls, rack_position, final_concentration,
+                                reagent_name, reagent_dil_factor):
         """
         Creates a transfection position representing a mock well.
 
         :return: A transfection position.
         """
-        return TransfectionPosition(rack_position=rack_position,
-                        molecule_design_pool=cls.PARAMETER_SET.MOCK_TYPE_VALUE,
-                        reagent_name=reagent_name,
-                        reagent_dil_factor=reagent_dil_factor,
-                        iso_volume=iso_volume,
-                        final_concentration=final_concentration)
+        kw = dict(final_concentration=final_concentration,
+                  reagent_name=reagent_name,
+                  reagent_dil_factor=reagent_dil_factor)
+        return IsoRequestPosition.create_library_position(
+                        rack_position=rack_position, **kw)
+
     #pylint: enable=W0221
 
     # different number arguments #pylint: disable=W0221
     @classmethod
-    def create_untreated_position(cls, rack_position,
-                        reagent_name=IsoPosition.NONE_REPLACER,
-                        reagent_dil_factor=IsoPosition.NONE_REPLACER,
-                        final_concentration=IsoPosition.NONE_REPLACER):
+    def create_mock_position(cls, rack_position, iso_volume=None,
+                     reagent_name=None, reagent_dil_factor=None,
+                     final_concentration=IsoRequestPosition.NONE_REPLACER):
+        """
+        Creates a transfection position representing a mock well.
+
+        :return: A transfection position.
+        """
+        kw = dict(reagent_name=reagent_name,
+                  reagent_dil_factor=reagent_dil_factor,
+                  final_concentration=final_concentration)
+        return IsoRequestPosition.create_mock_position(rack_position,
+                                                       iso_volume, **kw)
+    #pylint: enable=W0221
+
+    # different number arguments #pylint: disable=W0221
+    @classmethod
+    def create_untreated_position(cls, rack_position, position_type,
+                        reagent_name=IsoRequestPosition.NONE_REPLACER,
+                        reagent_dil_factor=IsoRequestPosition.NONE_REPLACER,
+                        final_concentration=IsoRequestPosition.NONE_REPLACER):
         """
         Creates a transfection position representing an untreated (empty) well.
 
         :return: A transfection position.
         """
         return TransfectionPosition(rack_position=rack_position,
-                        molecule_design_pool=UNTREATED_POSITION_TYPE,
+                        molecule_design_pool=position_type,
                         reagent_name=reagent_name,
                         reagent_dil_factor=reagent_dil_factor,
                         final_concentration=final_concentration)
-        #pylint: enable=W0221
+    #pylint: enable=W0221
 
     def copy(self):
         """
@@ -794,7 +800,7 @@ class TransfectionPosition(IsoPosition):
         return str_format % params
 
 
-class TransfectionLayout(IsoLayout):
+class TransfectionLayout(IsoRequestLayout):
     """
     A working container for transfection positions. Transfection positions
     contain data about the ISO, the mastermix and transfer parameters.
@@ -866,11 +872,11 @@ class TransfectionLayout(IsoLayout):
         """
         Returns the ISO layout for this transfection layout.
 
-        :rtype: :class:`thelma.automation.tools.utils.iso.IsoLayout`
+        :rtype: :class:`thelma.automation.tools.utils.iso.IsoRequestLayout`
         """
-        iso_layout = IsoLayout(shape=self.shape)
+        iso_layout = IsoRequestLayout(shape=self.shape)
         for rack_pos, tf_pos in self._position_map.iteritems():
-            iso_pos = IsoPosition(rack_position=rack_pos,
+            iso_pos = IsoRequestPosition(rack_position=rack_pos,
                             molecule_design_pool=tf_pos.molecule_design_pool,
                             iso_concentration=tf_pos.iso_concentration,
                             iso_volume=tf_pos.iso_volume)
@@ -941,8 +947,8 @@ class TransfectionLayout(IsoLayout):
             hash_value = trps.rack_position_set.hash_value
             trps_map[hash_value] = trps
 
-        excluded_parameters = [IsoParameters.ISO_VOLUME,
-                               IsoParameters.ISO_CONCENTRATION]
+        excluded_parameters = [IsoRequestParameters.ISO_VOLUME,
+                               IsoRequestParameters.ISO_CONCENTRATION]
 
         for trps in iso_rack_layout.tagged_rack_position_sets:
             hash_value = trps.rack_position_set
@@ -1040,9 +1046,9 @@ class TransfectionLayout(IsoLayout):
             tf1 = layout1.get_working_position(rack_pos)
             tf2 = layout2.get_working_position(rack_pos)
             if tf1 is None and tf2 is None: continue
-            if tf1 is not None and (tf1.is_untreated or tf1.is_empty):
+            if tf1 is not None and (tf1.is_untreated_type or tf1.is_empty):
                 tf1 = None
-            if tf2 is not None and (tf2.is_untreated or tf2.is_empty):
+            if tf2 is not None and (tf2.is_untreated_type or tf2.is_empty):
                 tf2 = None
             if tf1 is None and tf2 is None:
                 continue
@@ -1052,7 +1058,7 @@ class TransfectionLayout(IsoLayout):
         return True
 
 
-class TransfectionLayoutConverter(IsoLayoutConverter):
+class TransfectionLayoutConverter(IsoRequestLayoutConverter):
     """
     Converts a rack layout into a IdQuartetLayout. These layouts types are
     only used to ensure layout uniqueness.
@@ -1092,7 +1098,7 @@ class TransfectionLayoutConverter(IsoLayoutConverter):
             log is None, the object will create a new log.
         :type log: :class:`thelma.ThelmaLog`
         """
-        IsoLayoutConverter.__init__(self, rack_layout=rack_layout, log=log)
+        IsoRequestLayoutConverter.__init__(self, rack_layout=rack_layout, log=log)
 
         #: Defines if certain parameters are allowed to be missing (final
         #: concentration, reaagent name, reagent dil factor).
@@ -1122,7 +1128,7 @@ class TransfectionLayoutConverter(IsoLayoutConverter):
         """
         Resets all attributes except for the :attr:`rack_layout`.
         """
-        IsoLayoutConverter.reset(self)
+        IsoRequestLayoutConverter.reset(self)
         self.__invalid_dil_factor = []
         self.__invalid_name = []
         self.__invalid_final_concentration = []
@@ -1230,7 +1236,7 @@ class TransfectionLayoutConverter(IsoLayoutConverter):
             error_list = self.__empty_and_values
             for value_name, value in empty_values.iteritems():
                 if not value is None: invalid_values.append(value_name)
-        elif pos_type == UNTREATED_POSITION_TYPE:
+        elif self.PARAMETER_SET.is_untreated_type(pos_type):
             error_list = self.__untreated_and_values
             for value_name, value in empty_values.iteritems():
                 if not TransfectionPosition.is_valid_untreated_value(value):
@@ -1246,7 +1252,7 @@ class TransfectionLayoutConverter(IsoLayoutConverter):
         invalid = False
         if self.__is_iso_layout:
             is_mock = False
-            if md_pool == IsoParameters.MOCK_TYPE_VALUE: is_mock = True
+            if md_pool == IsoRequestParameters.MOCK_TYPE_VALUE: is_mock = True
             invalid = self._check_volume_and_concentration(iso_vol, iso_conc,
                                                            pos_label, is_mock)
             if optimem_dil_factor is not None and \
@@ -1283,7 +1289,7 @@ class TransfectionLayoutConverter(IsoLayoutConverter):
             invalid = True
 
         if self.__is_mastermix_template and final_conc is None and \
-                                not pos_type == IsoParameters.MOCK_TYPE_VALUE:
+                                not pos_type == IsoRequestParameters.MOCK_TYPE_VALUE:
             self.__missing_final_conc.append(rack_position.label)
             invalid = True
         if not final_conc is None:
@@ -1316,7 +1322,7 @@ class TransfectionLayoutConverter(IsoLayoutConverter):
         """
         Records errors that habe been collected for rack positions.
         """
-        IsoLayoutConverter._record_additional_position_errors(self)
+        IsoRequestLayoutConverter._record_additional_position_errors(self)
 
         if len(self.__invalid_name) > 0:
             msg = 'The following rack positions have invalid reagent names: ' \
@@ -1371,7 +1377,7 @@ class TransfectionLayoutConverter(IsoLayoutConverter):
 
         if len(self.__untreated_and_values) > 0:
             msg = 'There are invalid parameter specifications for some ' \
-                  'untreated positions: %s.' \
+                  'untreated or untransfected positions: %s.' \
                    % (', '.join(sorted(self.__untreated_and_values)))
             self.add_error(msg)
 
@@ -1419,7 +1425,7 @@ class TransfectionLayoutConverter(IsoLayoutConverter):
             self.add_error(msg)
 
 
-class TransfectionRackSectorAssociator(IsoRackSectorAssociator):
+class TransfectionRackSectorAssociator(IsoRequestRackSectorAssociator):
     """
     This is a special rack sector determiner. It sorts the transfection
     positions by final concentration. The molecule design pools of parent and
@@ -1448,13 +1454,14 @@ class TransfectionRackSectorAssociator(IsoRackSectorAssociator):
             log is None, the object will create a new log.
         :type log: :class:`thelma.ThelmaLog`
         """
-        IsoRackSectorAssociator.__init__(self, iso_layout=transfection_layout,
+        IsoRequestRackSectorAssociator.__init__(self,
+                                         iso_layout=transfection_layout,
                                          log=log, ignore_mock=True,
                                          number_sectors=number_sectors,
                                          has_distinct_floatings=False)
 
 
-class TransfectionAssociationData(IsoAssociationData):
+class TransfectionAssociationData(IsoRequestAssociationData):
     """
     A helper class determining and storing associated rack sectors, parent
     sectors and sector concentrations (ISO and final) for an transfection
@@ -1467,13 +1474,13 @@ class TransfectionAssociationData(IsoAssociationData):
         Constructor:
 
         :param iso_layout: The ISO layout whose sectors to associate.
-        :type iso_layout: :class:`IsoLayout`
+        :type iso_layout: :class:`IsoRequestLayout`
 
         :param log: The log to write into (not stored in the object).
         :type log: :class:`thelma.ThelmaLog`
         """
-        IsoAssociationData.__init__(self, iso_layout=transfection_layout,
-                                    log=log, has_distinct_floatings=False)
+        IsoRequestAssociationData.__init__(self, iso_layout=transfection_layout,
+                                          log=log, has_distinct_floatings=False)
 
         self.__iso_concentrations = None
         self.__find_iso_concentrations(transfection_layout, log)
@@ -1497,7 +1504,7 @@ class TransfectionAssociationData(IsoAssociationData):
         """
         Finds the ISO concentration for each rack sector.
         """
-        determiner = IsoValueDeterminer(iso_layout=transfection_layout,
+        determiner = IsoRequestValueDeterminer(iso_layout=transfection_layout,
                                     attribute_name='iso_concentration',
                                     log=log, number_sectors=self.number_sectors)
         self.__iso_concentrations = determiner.get_result()
