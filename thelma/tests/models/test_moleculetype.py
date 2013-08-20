@@ -47,7 +47,8 @@ class MoleculeTypeModelTest(ThelmaModelTestCase):
         self.assert_equal(mt.slug, slug)
 
     def test_molecule_type_equality(self):
-        mt1 = MoleculeType(self.name, self.default_stock_concentration)
+        mt1 = MoleculeType(self.name, self.default_stock_concentration,
+                           id=self.name)
         mt2 = MoleculeType(MOLECULE_TYPE_IDS.SIRNA, 5e-5)
         mt3 = MoleculeType(MOLECULE_TYPE_IDS.SIRNA, 5e-5)
         self.assert_not_equal(mt1, mt2)
