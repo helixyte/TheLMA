@@ -383,10 +383,10 @@ class IsoProcessingTestCase(ToolsAndUtilsTestCase):
         self._create_tool()
         self.assert_is_not_none(self.tool.get_result())
 
-    def _test_no_verification(self):
+    def _test_no_verification(self, pos_label='A1'):
         self.setup_includes_stock_transfer = False
         self._continue_setup()
-        a1_pos = get_rack_position_from_label('A1')
+        a1_pos = get_rack_position_from_label(pos_label)
         self.preparation_layout.del_position(a1_pos)
         self.iso.rack_layout = self.preparation_layout.create_rack_layout()
         self._test_and_expect_errors('The stock racks are not compatible ' \
@@ -1534,7 +1534,7 @@ class IsoProcessingWorklistWriter384TestCase(IsoProcessing384TestCase,
         self._test_verification_error()
 
     def test_no_verification(self):
-        self._test_no_verification()
+        self._test_no_verification('B1')
 
     def test_stock_transfer_error(self):
         self.setup_includes_stock_transfer = False
@@ -1664,7 +1664,7 @@ class IsoProcessingExecutor384TestCase(IsoProcessing384TestCase):
         self._test_verification_error()
 
     def test_no_verification(self):
-        self._test_no_verification()
+        self._test_no_verification('B1')
 
     def test_state_detection_error(self):
         self._test_state_detection_error()

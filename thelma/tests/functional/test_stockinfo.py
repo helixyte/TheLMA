@@ -23,8 +23,9 @@ class StockInfoCollectionTestCase(ThelmaFunctionalTestCase):
 
     def test_load_by_molecule_type(self):
         res = self.app.get(self.path,
-                           params=dict(q='molecule-type:equal-to:'
-                                       'http://thelma/molecule-types/sirna/')
+                           params=dict(
+                                    q='molecule-type:equal-to:'
+                                    '"http://thelma/molecule-types/sirna/"')
                            )
         self.assert_true(not res is None)
 

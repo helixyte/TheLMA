@@ -1143,18 +1143,6 @@ class IsoSampleStockRackVerifier384TestCase(StockTaking384TestCase):
         self._check_error_messages('Some molecule designs in stock tube rack ' \
             '09999911 (sector 1) do not match the expected molecule design:')
 
-    def test_not_covered_by_stock_rack(self):
-        self._continue_setup()
-        self.position_data['E1'] = (205210, 10000, None, 30, 'fixed')
-        self.preparation_layout = PrepIsoLayout(get_384_rack_shape())
-        self._create_preparation_layout()
-        self._create_tool()
-        compatible = self.tool.get_result()
-        self.assert_is_not_none(compatible)
-        self.assert_false(compatible)
-        self._check_error_messages('The following preparation positions are ' \
-                                   'not covered by a stock rack')
-
 
 class IsoSampleStockRackJobCreator384TestCase(StockTaking384TestCase):
 

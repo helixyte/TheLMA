@@ -3,8 +3,8 @@
 :Author: AAB, berger at cenix-bioscience dot com
 """
 
-from thelma.automation.errors import EventRecording
 from thelma import ThelmaLog
+from thelma.automation.errors import EventRecording
 from thelma.automation.tools.semiconstants import clear_semiconstant_caches
 from thelma.automation.tools.semiconstants import initialize_semiconstant_caches
 
@@ -47,7 +47,7 @@ class BaseAutomationTool(EventRecording):
         :type depending: :class:`bool`
         :default depending: *True*
         """
-        ErrorRecording.__init__(self, log, logging_level, add_default_handlers)
+        EventRecording.__init__(self, log, logging_level, add_default_handlers)
 
         #: Defines whether a tool can be initialized directly (*False*) of if
         #: it is always called by other tools (*True*). Depending tools cannot
@@ -92,7 +92,7 @@ class BaseAutomationTool(EventRecording):
         self.return_value = None
         if not self.__depending:
             self.reset_log()
-            clear_semiconstant_caches()
+            initialize_semiconstant_caches()
         self.add_info('Reset ...')
 
     def _get_additional_value(self, value):

@@ -853,7 +853,7 @@ class IsoSampleStockRackTool(BaseAutomationTool):
 class IsoSampleStockRackVerifier(BaseAutomationTool):
     """
     Verifies the validity of the sample stock rack for an 384-well ISO. The
-    association of is made base on the tranfer worklists.
+    association of is made base on the transfer worklists.
 
     **Return Value: ** boolean
     """
@@ -1066,17 +1066,19 @@ class IsoSampleStockRackVerifier(BaseAutomationTool):
         Makes sure that all starting preparation positions have been checked.
         """
 
+        is_384_shape = (self.preparation_layout.shape.name \
+                        == RACK_SHAPE_NAMES.SHAPE_384)
+
         # Filter mocks and controls
         pool_map = dict()
         for rack_pos, prep_pos in self.preparation_layout.iterpositions():
             if not prep_pos.parent_well is None: continue
             if prep_pos.is_mock or prep_pos.is_inactivated: continue
+            if prep_pos.is_fixed and is_384_shape: continue
             if not rack_pos in self.__checked_prep_positions:
                 pool_id = prep_pos.molecule_design_pool_id
                 if not pool_map.has_key(pool_id):
                     pool_map[pool_id] = rack_pos.label
-                else:
-                    pool_map[pool_id] = None
 
         missing_prep_positions = []
         for pos_label in pool_map.values():

@@ -34,7 +34,7 @@ class MoleculeDesignCollectionTestCase(ThelmaFunctionalTestCase):
     def test_filter_by_molecule_type(self):
         moltype_href = 'http://localhost/molecule-types/sirna/'
         res = self.app.get(self.path,
-            params=dict(q='molecule-type:equal-to:%s' % moltype_href,
+            params=dict(q='molecule-type:equal-to:"%s"' % moltype_href,
                         size=3),
             status=200)
         self.assert_true(not res is None)
@@ -43,7 +43,7 @@ class MoleculeDesignCollectionTestCase(ThelmaFunctionalTestCase):
         # TODO: create a separate series of tests for paging issues # pylint: disable-msg=W0511
         moltype_href = 'http://localhost/molecule-types/sirna/'
         res = self.app.get(self.path,
-            params=dict(q='molecule-type:equal-to:%s' % moltype_href,
+            params=dict(q='molecule-type:equal-to:"%s"' % moltype_href,
                         size=3),
             status=200)
         self.assert_true(not res is None)

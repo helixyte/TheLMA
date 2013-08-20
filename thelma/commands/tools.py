@@ -2,6 +2,7 @@
 Run tool command.
 """
 from everest.entities.utils import get_root_aggregate
+from everest.resources.interfaces import IMemberResource
 from everest.mime import JsonMime
 from everest.querying.specifications import eq # pylint: disable=W0611
 from everest.repositories.interfaces import IRepositoryManager
@@ -29,6 +30,7 @@ from thelma.interfaces import ITube
 from thelma.interfaces import ITubeTransferWorklist
 from thelma.interfaces import IUser
 from thelma.run import create_config
+from zope.interface import providedBy as provided_by # pylint: disable=E0611,F0401
 from zope.sqlalchemy import ZopeTransactionExtension # pylint: disable=E0611,F0401
 import logging
 import os
@@ -351,7 +353,13 @@ class _RegistrarCommand(ToolCommand): # no __init__ pylint: disable=W0232
             options.report_directory = os.path.dirname(value)
         coll_cls = get_collection_class(cls.registration_resource)
         rpr = as_representer(object.__new__(coll_cls), JsonMime)
-        return [rc.get_entity() for rc in rpr.from_stream(open(value, 'rU'))]
+        reg_items = rpr.from_stream(open(value, 'rU'))
+        # FIXME: This should be treated properly in everest.
+        if IMemberResource in provided_by(reg_items):
+            ents = [reg_items.get_entity()]
+        else:
+            ents = [rc.get_entity() for rc in reg_items]
+        return ents
 
     @classmethod
     def report(cls, tool, options):

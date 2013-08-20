@@ -51,7 +51,7 @@ class GeneCollectionTestCase(ThelmaFunctionalTestCase):
     def test_filter_by_species(self):
         expected_species_href = 'http://localhost/species/mouse/'
         res = self.app.get(self.path,
-            params=dict(q='species:equal-to:%s' % expected_species_href,
+            params=dict(q='species:equal-to:"%s"' % expected_species_href,
                         size=4),
             status=200)
         self.assert_true(not res is None)
