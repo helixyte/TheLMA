@@ -387,6 +387,8 @@ class SampleRegistrar(RegistrationTool):
       molecule_design_pools : list of molecule design pools created.
       supplier_rack_barcodes : dictionary supplier barcode -> Cenix barcode
     """
+    NAME = 'SampleRegistrar'
+
     def __init__(self, registration_items, report_directory=None,
                  rack_specs_name='matrix0500',
                  container_specs_name='matrix0500',
@@ -418,9 +420,16 @@ class SampleRegistrar(RegistrationTool):
         self.__container_create_kw = None
         self.__rack_create_kw = None
         self.__new_rack_supplier_barcode_map = {}
+        # True if the registration items have tubes as containers.
         self.__tube_check_needed = None
+        # True if all registration items have location information (rack
+        # barcode and rack position).
+        self.__has_location_info = None
+        # The rack specs used by the registration items.
         self.__rack_specs = None
+        # The container specs used by the registration items.
         self.__container_specs = None
+        # The item status used by the registration items.
         self.__status = None
 
     def run(self):
@@ -428,7 +437,9 @@ class SampleRegistrar(RegistrationTool):
         # Fetch one semiconstants needed for new instances.
         self.__prepare_semiconstants()
         # Assign a rack to each registration item if we have rack barcodes
-        # (and create new racks, if necessary).
+        # (and create new racks, if necessary). This also ensures that we
+        # have location information either for all or for none of the
+        # registration items.
         self.__check_racks()
         if not self.has_errors():
             # Assign a container to each registration item (and create new
@@ -441,7 +452,9 @@ class SampleRegistrar(RegistrationTool):
             # Store supplier rack barcode -> Cenix rack barcode map.
             self.return_value['rack_barcodes'] = \
                         self.__new_rack_supplier_barcode_map.items()
-        if not self.has_errors() and not self.__validation_files is None:
+        if not self.has_errors() and self.__has_location_info:
+            # The registration items have location information that needs
+            # to be validated.
             self.__validate_locations()
         if not self.has_errors():
             new_stock_spls = []
@@ -478,17 +491,23 @@ class SampleRegistrar(RegistrationTool):
 
     def __check_racks(self):
         rack_agg = get_root_aggregate(IRack)
-        bcs = [getattr(sri, 'rack_barcode')
-               for sri in self.registration_items
-               if not getattr(sri, 'rack_barcode') is None]
-        if len(bcs) > 0 and len(bcs) != len(self.registration_items):
-            msg = 'Some sample registration items contain rack ' \
-                  'barcodes, but not all of them do.'
+        loc_infos = [(getattr(sri, 'rack_barcode'),
+                     getattr(sri, 'rack_position'))
+                    for sri in self.registration_items
+                    if not (getattr(sri, 'rack_barcode') is None
+                            or getattr(sri, 'rack_position') is None)]
+        self.__has_location_info = len(loc_infos) > 0
+        if self.__has_location_info \
+           and len(loc_infos) != len(self.registration_items):
+            msg = 'Some sample registration items contain location ' \
+                  'information (rack barcode and rack position), but ' \
+                  'not all of them do.'
             self.add_error(msg)
         else:
             new_racks = []
-            if len(bcs) > 0:
-                rack_agg.filter = cntd(barcode=bcs)
+            if self.__has_location_info:
+                rack_agg.filter = cntd(barcode=[loc_info[0]
+                                                for loc_info in loc_infos])
                 rack_map = dict([(rack.barcode, rack)
                                  for rack in rack_agg.iterator()])
                 for sri in self.registration_items:
@@ -584,6 +603,20 @@ class SampleRegistrar(RegistrationTool):
         return valid
 
     def __validate_locations(self):
+        for sri in self.registration_items:
+            if sri.rack_position != sri.container.location.position \
+               or sri.rack.barcode != sri.container.location.rack.barcode:
+                msg = 'Location information in the registration item ' \
+                      '(%s@%s) differs from actual location information ' \
+                      '(%s@%s)' % \
+                      (sri.rack.barcode, sri.rack_position.label,
+                       sri.container.location.rack.barcode,
+                       sri.container.location.position.label)
+                self.add_error(msg)
+        if not self.has_errors() and not self.__validation_files is None:
+            self.__validate_locations_from_scanfile()
+
+    def __validate_locations_from_scanfile(self):
         # Note: rack scanning files for racks which are not referenced in
         # the delivery are ignored.
         rsl_map = self.__read_rack_scanning_files()
@@ -656,6 +689,8 @@ class SupplierSampleRegistrar(RegistrationTool):
        :class:`SampleRegistrar` to register samples.
      * Check that all molecule designs have a supplier molecule design.
     """
+    NAME = 'SuppplierSampleRegistrar'
+
     def __init__(self, registration_items, report_directory=None,
                  rack_specs_name='matrix0500',
                  container_specs_name='matrix0500',
@@ -813,6 +848,8 @@ class MoleculeDesignPoolRegistrar(RegistrationTool):
     """
     Molecule design pool registration utility.
     """
+    NAME = 'MoleculeDesignPoolRegistrar'
+
     def __init__(self, registration_items, report_directory=None, **kw):
         RegistrationTool.__init__(self, registration_items,
                                   report_directory=report_directory, **kw)
@@ -916,6 +953,8 @@ class MoleculeDesignRegistrar(RegistrationTool):
        structure_type_id and representation as key) or create a new one;
      * Create new molecule designs using the created/found structures.
     """
+    NAME = 'MoleculeDesignRegistrar'
+
     def __init__(self, registration_items, report_directory=None, **kw):
         """
         :param design_registration_items: sequence of design registration

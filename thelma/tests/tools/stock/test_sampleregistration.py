@@ -2,6 +2,7 @@
 Unit tests for sampleregistration.
 """
 from csv import DictReader
+from everest.entities.utils import get_root_aggregate
 from everest.mime import JsonMime
 from everest.representers.utils import as_representer
 from everest.resources.utils import get_collection_class
@@ -10,13 +11,19 @@ from thelma.automation.tools.stock.sampleregistration import \
                                     ISupplierSampleRegistrationItem
 from thelma.automation.tools.stock.sampleregistration import \
                                     SupplierSampleRegistrar
+from thelma.interfaces import IContainerSpecs
+from thelma.interfaces import IItemStatus
+from thelma.interfaces import ITube
+from thelma.models.container import Tube
 from thelma.models.rack import Rack
+from thelma.models.rack import RackPosition
+from thelma.models.status import ITEM_STATUSES
 from thelma.testing import ThelmaResourceTestCase
+import glob
 import logging
 import os
 import shutil
 import tempfile
-import glob
 #from thelma.automation.tools.stock.sampleregistration import SampleRegistrar
 #from thelma.automation.tools.stock.sampleregistration import \
 #                                    ISampleRegistrationItem
@@ -86,6 +93,28 @@ class SampleRegistrationWithLocationsTestCase(_SampleRegistrationTestCase):
         self.assert_equal(len(reg_data['racks']), 1)
 
 
+class SampleRegistrationWithInvalidLocationTestCase(
+                                                _SampleRegistrationTestCase):
+    delivery_file = 'thelma:tests/tools/stock/registration/' \
+                    'ambion_delivery_samples_with_locations.json'
+
+    def test_delivery(self):
+        status = self._get_entity(IItemStatus, ITEM_STATUSES.MANAGED.lower())
+        specs = self._get_entity(IContainerSpecs, 'matrix0500')
+        rack = self._create_tube_rack()
+        pos = RackPosition.from_label('B1')
+        tube = Tube.create_from_rack_and_position(specs, status, '9999999998',
+                                                  rack, pos)
+        agg = get_root_aggregate(ITube)
+        agg.add(tube)
+        dlv_reg = self._make_registrar()
+        dlv_reg.run()
+        self.assert_true(dlv_reg.has_errors())
+        err_msg = os.linesep.join(dlv_reg.get_messages(logging.ERROR))
+        msg = '@A1) differs from actual location'
+        self.assert_not_equal(err_msg.find(msg), -1)
+
+
 class _SampleRegistrationWithScanfileTestCase(
                                     SampleRegistrationWithLocationsTestCase):
     scan_file = None
@@ -150,6 +179,7 @@ class SampleRegistrationWithInvalidScanfileTestCase(
         err_msg = os.linesep.join(dlv_reg.get_messages(logging.ERROR))
         self.assert_not_equal(
                 err_msg.find('expected 9999999998, found 9999999999'), -1)
+
 
 #class SampleRegistrarTestCase(ThelmaResourceTestCase):
 #    def set_up(self):
