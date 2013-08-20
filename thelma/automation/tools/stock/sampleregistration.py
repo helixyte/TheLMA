@@ -858,20 +858,22 @@ class MoleculeDesignPoolRegistrar(RegistrationTool):
                 new_mdpri_map.setdefault(key, []).append(mdpri)
             else:
                 # For pools that consist only of existing designs, we build
-                # a list of member hashes that we query in a single DB call.
+                # a map with member hashes as keys so we can query with a
+                # single DB call.
                 hash_val = \
                         hash_func([mdri.molecule_design
                                    for mdri in
                                    mdpri.molecule_design_registration_items])
-                mdpri_hash_map[hash_val] = mdpri
+                mdpri_hash_map.setdefault(hash_val, []).append(mdpri)
         if len(mdpri_hash_map) > 0:
             md_pool_agg.filter = cntd(member_hash=mdpri_hash_map.keys())
             existing_mdp_map = dict([(mdp.member_hash, mdp)
                                      for mdp in md_pool_agg.iterator()])
             # Update existing molecule design pool registration items.
             for hash_val, mdp in existing_mdp_map.iteritems():
-                mdpri = mdpri_hash_map[hash_val]
-                mdpri.molecule_design_pool = mdp
+                mdpris = mdpri_hash_map[hash_val]
+                for mdpri in mdpris:
+                    mdpri.molecule_design_pool = mdp
         else:
             existing_mdp_map = {}
         # Determine non-existing molecule design pool registration items and

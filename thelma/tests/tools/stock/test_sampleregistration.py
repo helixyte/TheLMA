@@ -64,6 +64,19 @@ class SampleRegistrationTestCase(_SampleRegistrationTestCase):
         self.assert_equal(len(reg_data['racks']), 0)
 
 
+class DuplicateSampleRegistrationTestCase(_SampleRegistrationTestCase):
+    delivery_file = 'thelma:tests/tools/stock/registration/' \
+                    'ambion_delivery_samples_duplicates.json'
+
+    def test_delivery(self):
+        dlv_reg = self._make_registrar()
+        dlv_reg.run()
+        self.assert_false(dlv_reg.has_errors())
+        reg_data = dlv_reg.return_value
+        self.assert_equal(len(reg_data['molecule_designs']), 0)
+        self.assert_equal(len(reg_data['tubes']), 2)
+
+
 class SampleRegistrationWithLocationsTestCase(_SampleRegistrationTestCase):
     delivery_file = 'thelma:tests/tools/stock/registration/' \
                     'ambion_delivery_samples_with_locations.json'
