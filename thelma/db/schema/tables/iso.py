@@ -31,6 +31,9 @@ def create_table(metadata, iso_request_tbl, rack_layout_tbl):
                          % (ISO_TYPES.BASE, ISO_TYPES.LAB,
                             ISO_TYPES.STOCK_SAMPLE_GENERATION)),
                          nullable=False),
+                Column('number_stock_racks', Integer,
+                       CheckConstraint('number_stock_racks >= 0'),
+                       nullable=False),
                 Column('optimizer_excluded_racks', String, nullable=True),
                 Column('optimizer_required_racks', String, nullable=True)
                 )

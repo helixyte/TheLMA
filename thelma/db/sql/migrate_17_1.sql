@@ -222,7 +222,8 @@ INSERT INTO iso_request_pool_set
 
 DROP TABLE experiment_metadata_pool_set;
 
--- ISOs: adjust subtype, rename available types and migrate data
+-- ISOs: adjust subtype, rename available types, add stock rack number
+-- and migrate data
 
 ALTER TABLE library_creation_iso RENAME TO stock_sample_creation_iso;
 ALTER TABLE stock_sample_creation_iso
@@ -251,6 +252,25 @@ ALTER TABLE iso ADD CONSTRAINT valid_iso_type
   CHECK (iso_type IN ('BASE', 'LAB', 'STOCK_SAMPLE_GEN'));
 ALTER TABLE iso ALTER COLUMN iso_type DROP DEFAULT;
 
+ALTER TABLE iso ADD COLUMN number_stock_racks INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE iso ADD CONSTRAINT iso_number_stock_racks_non_negative
+  CHECK (number_stock_racks >= 0);
+UPDATE iso
+  SET number_stock_racks = 4
+  WHERE iso_id IN (
+    SELECT iso_id
+    FROM iso i, experiment_metadata_iso_request emir, experiment_metadata em,
+         rack_layout rl
+    WHERE i.iso_request_id = emir.iso_request_id
+    AND emir.experiment_metadata_id = em.experiment_metadata_id
+    AND em.experiment_metadata_type_id = 'SCREEN'
+    AND i.rack_layout_id = rl.rack_layout_id
+    AND rl.rack_shape_name = '16x24'
+    AND i.iso_type='LAB');
+UPDATE iso
+  SET number_stock_racks = 3
+  WHERE iso_type = 'STOCK_SAMPLE_GEN';
+ALTER TABLE iso ALTER COLUMN number_stock_racks DROP DEFAULT;
 
 -- Stock racks: create base table, rename sample and controls stock racks
 -- and migrate data

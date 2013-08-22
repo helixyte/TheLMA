@@ -16,6 +16,7 @@ from thelma.automation.tools.iso.lab.base import get_stock_takeout_volume
 from thelma.automation.tools.semiconstants \
     import get_plate_specs_from_reservoir_specs
 from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
+from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_max_dilution_factor
@@ -48,11 +49,12 @@ from thelma.automation.tools.worklists.base import get_dynamic_dead_volume
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import LabIso
 from thelma.models.iso import LabIsoRequest
-from thelma.models.liquidtransfer import PlannedContainerDilution
-from thelma.models.liquidtransfer import PlannedContainerTransfer
-from thelma.models.liquidtransfer import PlannedRackTransfer
+from thelma.models.liquidtransfer import PlannedRackSampleTransfer
+from thelma.models.liquidtransfer import PlannedSampleDilution
+from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 
+__docformat__ = 'reStructuredText en'
 
 __all__ = ['LabIsoBuilder',
            'LabIsoPlanner',
@@ -328,7 +330,9 @@ class LabIsoBuilder(object):
             pool_set = MoleculeDesignPoolSet(molecule_type=pool_set_type,
                                              molecule_design_pools=pools)
 
+        number_stock_racks = self._get_number_stock_racks()
         iso = LabIso(label=iso_label, iso_request=self.iso_request,
+                     number_stock_racks=number_stock_racks,
                      molecule_design_pool_set=pool_set,
                      rack_layout=aliquot_layout.create_rack_layout(),
                      optimizer_excluded_racks=self.__exluded_racks,
@@ -372,6 +376,16 @@ class LabIsoBuilder(object):
             copy_layout.add_working_position(copy_pos)
 
         return copy_layout
+
+    def _get_number_stock_racks(self):
+        """
+        Returns the (maximum) number of stock racks for an ISO.
+        """
+        #TODO: check and adjust (on the fly pool generation?)
+        if self.iso_layout.shape == RACK_SHAPE_NAMES.SHAPE_96:
+            return 1
+        else:
+            return 4
 
     def _add_final_iso_plates(self, iso):
         """
@@ -1594,9 +1608,9 @@ class _LayoutPlanner(BaseAutomationTool):
             rack_positions = self._get_rack_positions_for_container(
                                                             container)
             for rack_pos in rack_positions:
-                pcd = PlannedContainerDilution(volume=volume,
-                       target_position=rack_pos, diluent_info=DILUENT_INFO)
-                self.builder.add_dilution(pcd, plate_marker)
+                psd = PlannedSampleDilution.get_entity(volume=volume,
+                            target_position=rack_pos, diluent_info=DILUENT_INFO)
+                self.builder.add_dilution(psd, plate_marker)
 
         # transfer
         if len(container.targets) > 0:
@@ -2648,9 +2662,9 @@ class _LocationContainer(object):
         transfers = dict()
         for child_container, transfer_vol in self.targets.iteritems():
             kw = self._get_planned_transfer_kw(child_container)
-            vol = round(transfer_vol / VOLUME_CONVERSION_FACTOR, 7)
+            vol = round(transfer_vol, 1)
             kw['volume'] = vol
-            pt = self._PLANNED_TRANSFER_CLS(**kw) #pylint: disable=E1102
+            pt = self._PLANNED_TRANSFER_CLS.get_entity(**kw)
             add_list_map_element(transfers, child_container.plate_marker, pt)
 
         return transfers
@@ -2711,7 +2725,7 @@ class SectorContainer(_LocationContainer):
 
     LOCATION_ATTR_NAME = 'sector_index'
     _PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.CYBIO
-    _PLANNED_TRANSFER_CLS = PlannedRackTransfer
+    _PLANNED_TRANSFER_CLS = PlannedRackSampleTransfer
 
     def __init__(self, number_sectors, **kw):
         """
@@ -2777,7 +2791,7 @@ class RackPositionContainer(_LocationContainer):
 
     LOCATION_ATTR_NAME = 'rack_position'
     _PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
-    _PLANNED_TRANSFER_CLS = PlannedContainerTransfer
+    _PLANNED_TRANSFER_CLS = PlannedSampleTransfer
 
     def __init__(self, pool, position_type, **kw):
         """

@@ -119,17 +119,20 @@ class IsoJob(Job):
 
     #: The ISOs belonging to this job.
     isos = []
+    #: The maximum number if ISO stock racks for this ISO job.
+    number_stock_racks = None
+
     #: The rack containing the stock tubes for the controls that are
     #: used in this job (not every ISO job needs one,
     #: :class:`thelma.models.iso.IsoJobStockRack`)
-    iso_job_stock_rack = None
+    iso_job_stock_racks = None
     #: The plate used to predilute controls before there are transferred
     #: to the ISO plates. The samples in this plate serve as source for all
     #: ISOs in this job (not every ISO job needs one,
     #: :class:`thelma.models.iso.IsoJobPreparationPlate`).
     iso_job_preparation_plate = None
 
-    def __init__(self, label, user, isos, **kw):
+    def __init__(self, label, user, isos, number_stock_racks, **kw):
         """
         Constructor
         """
@@ -137,6 +140,7 @@ class IsoJob(Job):
             raise ValueError('An ISO job must consist of at least 1 ISO!')
         Job.__init__(self, label=label, user=user, job_type=JOB_TYPES.ISO, **kw)
         self.isos = isos
+        self.number_stock_racks = number_stock_racks
 
     @property
     def iso_request(self):

@@ -20,8 +20,8 @@ def create_mapper(job_mapper, job_tbl, iso_job_member_tbl):
                inherits=job_mapper,
                polymorphic_identity=JOB_TYPES.ISO,
                properties=dict(
-                    iso_job_stock_rack=relationship(IsoJobStockRack,
-                                    uselist=False, back_populates='iso_job',
+                    iso_job_stock_racks=relationship(IsoJobStockRack,
+                                    back_populates='iso_job',
                                     cascade='all, delete-orphan'),
                     iso_job_preparation_plate=relationship(
                                     IsoJobPreparationPlate, uselist=False,

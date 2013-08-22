@@ -18,9 +18,9 @@ from thelma.automation.tools.worklists.generation \
                 import PlannedWorklistGenerator
 from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadataType
-from thelma.models.liquidtransfer import PlannedContainerDilution
-from thelma.models.liquidtransfer import PlannedContainerTransfer
-from thelma.models.liquidtransfer import PlannedRackTransfer
+from thelma.models.liquidtransfer import PlannedRackSampleTransfer
+from thelma.models.liquidtransfer import PlannedSampleDilution
+from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.liquidtransfer import WorklistSeries
 from thelma.models.liquidtransfer import WorklistSeriesMember
 
@@ -448,7 +448,7 @@ class OptimemWorklistGenerator(PlannedWorklistGenerator):
         self._label = '%s%s' % (self.experiment_metadata_label,
                                 self.WORKLIST_SUFFIX)
 
-    def _create_planned_transfers(self):
+    def _create_planned_liquid_transfers(self):
         """
         Generates the planned container dilution for the worklist.
         """
@@ -458,18 +458,17 @@ class OptimemWorklistGenerator(PlannedWorklistGenerator):
             if tf_pos.is_empty: continue
             volume = self.__determine_volume(tf_pos)
             target_position = rack_pos
-            pcd = PlannedContainerDilution(volume=volume,
+            psd = PlannedSampleDilution.get_entity(volume=volume,
                                            target_position=target_position,
                                            diluent_info=self.DILUENT_INFO)
-            self._add_planned_transfer(pcd)
+            self._add_planned_transfer(psd)
 
     def __determine_volume(self, transfection_pos):
         """
         Determines the volume of the diluent.
         """
         dil_factor = transfection_pos.optimem_dil_factor
-        volume = float(transfection_pos.iso_volume) * (dil_factor - 1)
-        return volume / VOLUME_CONVERSION_FACTOR
+        return float(transfection_pos.iso_volume) * (dil_factor - 1)
 
 
 class ReagentWorklistGenerator(PlannedWorklistGenerator):
@@ -532,7 +531,7 @@ class ReagentWorklistGenerator(PlannedWorklistGenerator):
         self._label = '%s%s' % (self.experiment_metadata_label,
                                 self.WORKLIST_SUFFIX)
 
-    def _create_planned_transfers(self):
+    def _create_planned_liquid_transfers(self):
         """
         Generates the planned container dilutions for the worklist.
         """
@@ -543,7 +542,6 @@ class ReagentWorklistGenerator(PlannedWorklistGenerator):
         for rack_pos, tf_pos in self.transfection_layout.iterpositions():
             if tf_pos.is_empty: continue
             dil_volume = tf_pos.calculate_reagent_dilution_volume()
-            volume = dil_volume / VOLUME_CONVERSION_FACTOR
             ini_dil_factor = TransfectionParameters.\
                                 calculate_initial_reagent_dilution(
                                 float(tf_pos.reagent_dil_factor))
@@ -555,10 +553,10 @@ class ReagentWorklistGenerator(PlannedWorklistGenerator):
             rdf_str = get_trimmed_string(tf_pos.reagent_dil_factor)
             diluent_info = '%s (%s)' % (tf_pos.reagent_name, rdf_str)
 
-            pcd = PlannedContainerDilution(volume=volume,
+            psd = PlannedSampleDilution.get_entity(volume=dil_volume,
                                            target_position=rack_pos,
                                            diluent_info=diluent_info)
-            self._add_planned_transfer(pcd)
+            self._add_planned_transfer(psd)
 
         if len(invalid_dil_factor) > 0:
             msg = 'Invalid dilution reagent factor for rack positions: %s. ' \
@@ -624,7 +622,7 @@ class BiomekTransferWorklistGenerator(PlannedWorklistGenerator):
         """
         self._label = '%s%s' % (self.label, self.WORKLIST_SUFFIX)
 
-    def _create_planned_transfers(self):
+    def _create_planned_liquid_transfers(self):
         """
         Generates the planned container transfers for the worklist.
         """
@@ -636,10 +634,10 @@ class BiomekTransferWorklistGenerator(PlannedWorklistGenerator):
         for rack_pos, tf_pos in self.transfection_layout.iterpositions():
             if tf_pos.is_empty: continue
             for target_pos in tf_pos.cell_plate_positions:
-                pct = PlannedContainerTransfer(volume=volume,
+                pst = PlannedSampleTransfer.get_entity(volume=volume,
                             source_position=rack_pos,
                             target_position=target_pos)
-                self._add_planned_transfer(pct)
+                self._add_planned_transfer(pst)
 
 
 class CybioTransferWorklistGenerator(PlannedWorklistGenerator):
@@ -697,17 +695,16 @@ class CybioTransferWorklistGenerator(PlannedWorklistGenerator):
         self._label = '%s%s' % (self.experiment_metadata_label,
                                 self.WORKLIST_SUFFIX)
 
-    def _create_planned_transfers(self):
+    def _create_planned_liquid_transfers(self):
         """
         Generates the planned rack transfer for the worklist.
         """
-        volume = TransfectionParameters.TRANSFER_VOLUME \
-                 / VOLUME_CONVERSION_FACTOR
-        prt = PlannedRackTransfer(volume=volume,
+        volume = TransfectionParameters.TRANSFER_VOLUME
+        prst = PlannedRackSampleTransfer.get_entity(volume=volume,
                                   source_sector_index=self.SOURCE_SECTOR_INDEX,
                                   target_sector_index=self.TARGET_SECTOR_INDEX,
-                                  sector_number=self.SECTOR_NUMBER)
-        self._add_planned_transfer(prt)
+                                  number_sectors=self.SECTOR_NUMBER)
+        self._add_planned_transfer(prst)
 
 
 class CellSuspensionWorklistGenerator(PlannedWorklistGenerator):
@@ -769,7 +766,7 @@ class CellSuspensionWorklistGenerator(PlannedWorklistGenerator):
         """
         self._label = '%s%s' % (self.label, self.WORKLIST_SUFFIX)
 
-    def _create_planned_transfers(self):
+    def _create_planned_liquid_transfers(self):
         """
         Generates the planned container dilutions for the worklist.
         """
@@ -781,8 +778,8 @@ class CellSuspensionWorklistGenerator(PlannedWorklistGenerator):
         for tf_pos in self.transfection_layout.working_positions():
             if tf_pos.is_empty: continue
             for target_pos in tf_pos.cell_plate_positions:
-                pcd = PlannedContainerDilution(volume=volume,
+                psd = PlannedSampleDilution.get_entity(volume=volume,
                                     target_position=target_pos,
                                     diluent_info=self.DILUENT_INFO)
-                self._add_planned_transfer(pcd)
+                self._add_planned_transfer(psd)
 

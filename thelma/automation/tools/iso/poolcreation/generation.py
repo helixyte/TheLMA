@@ -12,6 +12,7 @@ molecule designs (:class:`IsoSectorStockRack`s of the resulting ISOs).
 AAB
 """
 from math import ceil
+from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.automation.handlers.poolcreationset \
     import PoolCreationSetParserHandler
 from thelma.automation.tools.base import BaseAutomationTool
@@ -27,7 +28,7 @@ from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.models.iso import StockSampleCreationIsoRequest
-from thelma.models.liquidtransfer import PlannedContainerDilution
+from thelma.models.liquidtransfer import PlannedSampleDilution
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import WorklistSeries
 from thelma.models.user import User
@@ -367,10 +368,10 @@ class StockSampleCreationWorklistGenerator(BaseAutomationTool):
         if buffer_volume is not None:
             volume = buffer_volume / VOLUME_CONVERSION_FACTOR
             wl_label = self.BUFFER_WORKLIST_LABEL % (self.iso_request_label)
-            wl = PlannedWorklist(label=wl_label)
+            wl = PlannedWorklist(label=wl_label,
+                                 transfer_type=TRANSFER_TYPES.SAMPLE_DILUTION)
             for rack_pos in get_positions_for_shape(RACK_SHAPE_NAMES.SHAPE_96):
-                pcd = PlannedContainerDilution(volume=volume,
-                                               target_position=rack_pos,
-                                               diluent_info=self.DILUENT_INFO)
-                wl.planned_transfers.append(pcd)
+                psd = PlannedSampleDilution(volume=volume,
+                      target_position=rack_pos, diluent_info=self.DILUENT_INFO)
+                wl.planned_liquid_transfers.append(psd)
             self.__worklist_series.add_worklist(self.BUFFER_WORKLIST_INDEX, wl)

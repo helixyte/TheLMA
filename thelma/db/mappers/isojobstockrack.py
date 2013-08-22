@@ -17,7 +17,7 @@ def create_mapper(stock_rack_mapper, iso_job_stock_rack_tbl):
                inherits=stock_rack_mapper,
                properties=dict(
                     iso_job=relationship(IsoJob, uselist=False,
-                        back_populates='iso_job_stock_rack'),
+                        back_populates='iso_job_stock_racks'),
                     ),
                polymorphic_identity=STOCK_RACK_TYPES.ISO_JOB,
                )

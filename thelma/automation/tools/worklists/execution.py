@@ -1,5 +1,5 @@
 """
-Classes for the execution of planned transfers and worklists.
+Classes for the execution of planned liquid transfers and worklists.
 
 AAB
 """
@@ -18,14 +18,14 @@ from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.racksector import RackSectorTranslator
 from thelma.automation.tools.utils.racksector import check_rack_shape_match
 from thelma.automation.tools.utils.racksector import get_sector_positions
-from thelma.models.liquidtransfer import ExecutedContainerDilution
-from thelma.models.liquidtransfer import ExecutedContainerTransfer
-from thelma.models.liquidtransfer import ExecutedRackTransfer
+from thelma.models.liquidtransfer import ExecutedSampleDilution
+from thelma.models.liquidtransfer import ExecutedSampleTransfer
+from thelma.models.liquidtransfer import ExecutedRackSampleTransfer
 from thelma.models.liquidtransfer import ExecutedWorklist
 from thelma.models.liquidtransfer import PipettingSpecs
-from thelma.models.liquidtransfer import PlannedContainerDilution
-from thelma.models.liquidtransfer import PlannedContainerTransfer
-from thelma.models.liquidtransfer import PlannedRackTransfer
+from thelma.models.liquidtransfer import PlannedSampleDilution
+from thelma.models.liquidtransfer import PlannedSampleTransfer
+from thelma.models.liquidtransfer import PlannedRackSampleTransfer
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import ReservoirSpecs
 from thelma.models.liquidtransfer import TRANSFER_TYPES
@@ -52,7 +52,7 @@ __all__ = ['LiquidTransferExecutor',
 
 class LiquidTransferExecutor(BaseAutomationTool):
     """
-    An abstract tool for the execution of a planned transfer or
+    An abstract tool for the execution of a planned liquid transfer or
     planned transfer worklist (rack-based).
 
     **Return Value*:* executed worklist or transfer
@@ -60,7 +60,7 @@ class LiquidTransferExecutor(BaseAutomationTool):
 
     #: The transfer type supported by this class
     #: (see :class:`thelma.models.liquidtransfer.TRANSFER_TYPES`).
-    SUPPORTED_TRANSFER_TYPE = None
+    TRANSFER_TYPE = None
 
     def __init__(self, target_rack, user, pipetting_specs, log):
         """
@@ -172,7 +172,7 @@ class LiquidTransferExecutor(BaseAutomationTool):
         if not self.has_errors():
             self._init_target_data()
             self._init_source_data()
-        if not self.has_errors(): self._register_planned_transfers()
+        if not self.has_errors(): self._register_planned_liquid_transfers()
         if not self.has_errors():
             self.__check_resulting_volumes()
             self._record_errors()
@@ -224,13 +224,13 @@ class LiquidTransferExecutor(BaseAutomationTool):
         """
         Initialises the source rack related values and lookups.
         """
-        self.add_error('Abstract method: _init_source_data()')
+        raise NotImplementedError('Abstract method.')
 
-    def _register_planned_transfers(self):
+    def _register_planned_liquid_transfers(self):
         """
-        Registers the planned transfers and checks the transfer volumes.
+        Registers the planned liquid transfers and checks the transfer volumes.
         """
-        self.add_error('Abstract method: _register_planned_transfers()')
+        raise NotImplementedError('Abstract method.')
 
     def _get_target_sample(self, rack_pos):
         """
@@ -323,7 +323,7 @@ class LiquidTransferExecutor(BaseAutomationTool):
         else:
             return self._source_dead_volume
 
-    def _is_valid_transfer_volume(self, planned_transfer):
+    def _is_valid_transfer_volume(self, planned_liquid_transfer):
         """
         Checks whether the volume is in valid range for Biomek transfers.
         """
@@ -334,16 +334,16 @@ class LiquidTransferExecutor(BaseAutomationTool):
             self._max_transfer_volume = self.pipetting_specs.\
                                 max_transfer_volume * VOLUME_CONVERSION_FACTOR
 
-        transfer_volume = planned_transfer.volume * VOLUME_CONVERSION_FACTOR
+        transfer_volume = planned_liquid_transfer.volume \
+                          * VOLUME_CONVERSION_FACTOR
         try:
-            trg_position_label = planned_transfer.target_position.label
+            trg_position_label = planned_liquid_transfer.target_position.label
         except AttributeError:
             info = '%.1f ul' % (transfer_volume)
         else:
             info = '%s (%.1f ul)' % (trg_position_label, transfer_volume)
         if is_larger_than(transfer_volume, self._max_transfer_volume) and \
-                    not self.SUPPORTED_TRANSFER_TYPE == \
-                    TRANSFER_TYPES.CONTAINER_DILUTION:
+                    not self.TRANSFER_TYPE == TRANSFER_TYPES.SAMPLE_DILUTION:
             self._transfer_volume_too_large.append(info)
             return False
         elif is_smaller_than(transfer_volume, self._min_transfer_volume):
@@ -393,7 +393,7 @@ class LiquidTransferExecutor(BaseAutomationTool):
 
         if len(self._transfer_volume_too_large) > 0:
             meth = self.add_error
-            if self.SUPPORTED_TRANSFER_TYPE == TRANSFER_TYPES.CONTAINER_DILUTION:
+            if self.TRANSFER_TYPE == TRANSFER_TYPES.SAMPLE_DILUTION:
                 meth = self.add_warning
             msg = 'Some transfer volumes are larger than the allowed maximum ' \
                   'transfer volume of %s ul: %s.' % (
@@ -403,8 +403,8 @@ class LiquidTransferExecutor(BaseAutomationTool):
 
     def __execute_transfers(self):
         """
-        Updates the racks or containers and creates the executed transfers.
-        This method has to set the return value.
+        Updates the racks or containers and creates the executed liauid
+        transfers. This method has to set the return value.
         """
         self.add_debug('Execute transfers ...')
         self._update_racks()
@@ -430,17 +430,17 @@ class LiquidTransferExecutor(BaseAutomationTool):
 
     def _create_executed_items(self):
         """
-        Creates the executed transfers and worklists. This method should
+        Creates the executed liquid transfers and worklists. This method should
         also set the return value.
         """
-        self.add_error('Abstract method: _create_executed_items()')
+        raise NotImplementedError('Abstract method.')
 
-    def _create_executed_transfer(self, planned_transfer): #pylint: disable=W0613
+    def _create_executed_liquid_transfer(self, planned_liquid_transfer):
         """
-        Creates the executed transfer for a planned transfer and stored it
-        in the :attr:`_executed_worklist`.
+        Creates the executed lqiuid transfer for a planned liquid transfer
+        and stores it in the :attr:`_executed_worklist`.
         """
-        self.add_error('Abstract method: _create_executed_transfer()')
+        raise NotImplementedError('Abstract method.')
 
     def __update_target_rack_status(self):
         """
@@ -468,7 +468,7 @@ class LiquidTransferExecutor(BaseAutomationTool):
         """
         Returns the tubes of the target container (for status updates).
         """
-        self.add_error('Abstract method: _get_target_tubes()')
+        raise NotImplementedError('Abstract method.')
 
 
 class WorklistExecutor(LiquidTransferExecutor):
@@ -515,7 +515,7 @@ class WorklistExecutor(LiquidTransferExecutor):
 
         if ignored_positions is None: ignored_positions = []
         #: A list of positions that will not be included in the DB execution
-        #: (even if there are planned transfers for them).
+        #: (even if there are planned liquid transfers for them).
         self.ignored_positions = ignored_positions
 
         #: The executed worklist.
@@ -542,44 +542,44 @@ class WorklistExecutor(LiquidTransferExecutor):
                 if not self._check_input_class('ignored rack position',
                                     rack_pos, RackPosition): break
 
-    def _register_planned_transfers(self):
+    def _register_planned_liquid_transfers(self):
         """
-        Registers the planned transfers and checks the transfer volumes.
+        Registers the planned liquid transfers and checks the transfer volumes.
         """
         self.add_debug('Register transfers ...')
 
-        for planned_transfer in self.planned_worklist.planned_transfers:
-            if not self.__is_valid_transfer_type(planned_transfer): break
-            if not self._is_valid_transfer_volume(planned_transfer): continue
-            self._register_transfer(planned_transfer)
+        for plt in self.planned_worklist.planned_liquid_transfers:
+            if not self.__is_valid_transfer_type(plt): break
+            if not self._is_valid_transfer_volume(plt): continue
+            self._register_transfer(plt)
 
-    def __is_valid_transfer_type(self, planned_transfer):
+    def __is_valid_transfer_type(self, planned_liquid_transfer):
         """
-        Checks whether the passed planned transfers has the correct type.
+        Checks whether the passed planned liquid transfers has the correct type.
         """
-        if not planned_transfer.type == self.SUPPORTED_TRANSFER_TYPE:
+        if not planned_liquid_transfer.transfer_type == self.TRANSFER_TYPE:
             msg = 'Some transfers planned in the worklist are not supported: ' \
-                  '%s. Supported type: %s.' % (planned_transfer.type,
-                                               self.SUPPORTED_TRANSFER_TYPE)
+                  '%s. Supported type: %s.' \
+                   % (planned_liquid_transfer.transfer_type, self.TRANSFER_TYPE)
             self.add_error(msg)
             return False
 
         return True
 
-    def _register_transfer(self, planned_transfer): #pylint: disable=W0613
+    def _register_transfer(self, planned_liquid_transfer):
         """
-        Registers a particular planned transfer.
+        Registers a particular planned liquid transfer.
         """
-        self.add_error('Abstract method: _register_transfer()')
+        raise NotImplementedError('Abstract method.')
 
     def _create_executed_items(self):
         """
-        Creates the executed transfers and worklists.
+        Creates the executed liquid transfers and worklists.
         """
         self._executed_worklist = ExecutedWorklist(
                                         planned_worklist=self.planned_worklist)
-        for pt in self.planned_worklist.planned_transfers:
-            self._create_executed_transfer(pt)
+        for plt in self.planned_worklist.planned_liquid_transfers:
+            self._create_executed_liquid_transfer(plt)
 
         if not self.has_errors(): self.return_value = self._executed_worklist
 
@@ -588,7 +588,7 @@ class WorklistExecutor(LiquidTransferExecutor):
         Returns the tubes of the target container (for status updates).
         """
         tubes = []
-        for pt in self.planned_worklist.planned_transfers:
+        for pt in self.planned_worklist.planned_liquid_transfers:
             tube = self._target_containers[pt.target_position]
             tubes.append(tube)
 
@@ -605,7 +605,7 @@ class ContainerDilutionWorklistExecutor(WorklistExecutor):
 
     NAME = 'Container Dilution Worklist Executor'
 
-    SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.CONTAINER_DILUTION
+    TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_DILUTION
 
     def __init__(self, planned_worklist, target_rack, user, reservoir_specs,
                  pipetting_specs, log, ignored_positions=None):
@@ -664,12 +664,11 @@ class ContainerDilutionWorklistExecutor(WorklistExecutor):
         """
         pass
 
-    def _register_transfer(self, planned_transfer):
+    def _register_transfer(self, planned_liquid_transfer):
         """
-        Registers a particular planned transfer.
-        Planned transfers are planned container dilutions.
+        Planned liquid transfers are planned container dilutions.
         """
-        trg_pos = planned_transfer.target_position
+        trg_pos = planned_liquid_transfer.target_position
 
         if trg_pos in self.ignored_positions:
             pass
@@ -677,23 +676,23 @@ class ContainerDilutionWorklistExecutor(WorklistExecutor):
             self._target_container_missing.append(trg_pos.label)
         else:
             target_sample = self._get_target_sample(trg_pos)
-            target_sample.create_and_add_transfer(planned_transfer)
+            target_sample.create_and_add_transfer(planned_liquid_transfer)
 
-    def _create_executed_transfer(self, planned_transfer): #pylint: disable=W0613
+    def _create_executed_liquid_transfer(self, planned_liquid_transfer):
         """
-        Creates the executed transfer for a planned transfer and stored it
-        in the :attr:`_executed_worklist`.
+        Creates the executed liquid transfer for a planned liquid transfer
+        and stored it in the :attr:`_executed_worklist`.
         """
 
-        target_pos = planned_transfer.target_position
+        target_pos = planned_liquid_transfer.target_position
         if not target_pos in self.ignored_positions:
             container = self._target_containers[target_pos]
-            executed_transfer = ExecutedContainerDilution(user=self.user,
-                                    target_container=container,
-                                    reservoir_specs=self.reservoir_specs,
-                                    planned_container_dilution=planned_transfer,
-                                    timestamp=self.now)
-            self._executed_worklist.executed_transfers.append(executed_transfer)
+            elt = ExecutedSampleDilution(user=self.user,
+                                target_container=container,
+                                reservoir_specs=self.reservoir_specs,
+                                planned_sample_dilution=planned_liquid_transfer,
+                                timestamp=self.now)
+            self._executed_worklist.executed_liquid_transfers.append(elt)
 
 
 class ContainerTransferWorklistExecutor(WorklistExecutor):
@@ -706,7 +705,7 @@ class ContainerTransferWorklistExecutor(WorklistExecutor):
 
     NAME = 'Container Transfer Worklist Executor'
 
-    SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.CONTAINER_TRANSFER
+    TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_TRANSFER
 
     def __init__(self, planned_worklist, user, target_rack, source_rack, log,
                  pipetting_specs, ignored_positions=None):
@@ -769,13 +768,12 @@ class ContainerTransferWorklistExecutor(WorklistExecutor):
             self._source_dead_volume = well_specs.dead_volume \
                                       * VOLUME_CONVERSION_FACTOR
 
-    def _register_transfer(self, planned_transfer):
+    def _register_transfer(self, planned_liquid_transfer):
         """
-        Registers a particular planned transfer.
-        Planned transfers are planned container transfers.
+        Planned liquid transfers are planned container transfers.
         """
-        trg_pos = planned_transfer.target_position
-        src_pos = planned_transfer.source_position
+        trg_pos = planned_liquid_transfer.target_position
+        src_pos = planned_liquid_transfer.source_position
 
         if src_pos in self.ignored_positions:
             pass
@@ -787,7 +785,7 @@ class ContainerTransferWorklistExecutor(WorklistExecutor):
             source_sample = self._get_source_sample(src_pos)
             if not source_sample is None:
                 transfer_sample = source_sample.create_and_add_transfer(
-                                                            planned_transfer)
+                                                        planned_liquid_transfer)
                 target_sample = self._get_target_sample(trg_pos)
                 target_sample.add_transfer(transfer_sample)
 
@@ -798,23 +796,23 @@ class ContainerTransferWorklistExecutor(WorklistExecutor):
         WorklistExecutor._update_racks(self)
         self._update_rack(self.source_rack, self._source_samples)
 
-    def _create_executed_transfer(self, planned_transfer): #pylint: disable=W0613
+    def _create_executed_liquid_transfer(self, planned_liquid_transfer):
         """
-        Creates the executed transfer for a planned transfer and stored it
-        in the :attr:`_executed_worklist`.
+        Creates the executed liquid transfer for a planned liquid transfer
+        and stored it in the :attr:`_executed_worklist`.
         """
 
-        source_pos = planned_transfer.source_position
+        source_pos = planned_liquid_transfer.source_position
         if not source_pos in self.ignored_positions:
             source_container = self._source_containers[source_pos]
             target_container = self._target_containers[
-                                            planned_transfer.target_position]
-            executed_transfer = ExecutedContainerTransfer(user=self.user,
+                                        planned_liquid_transfer.target_position]
+            elt = ExecutedSampleTransfer(user=self.user,
                             source_container=source_container,
                             target_container=target_container,
-                            planned_container_transfer=planned_transfer,
+                            planned_sample_transfer=planned_liquid_transfer,
                             timestamp=self.now)
-            self._executed_worklist.executed_transfers.append(executed_transfer)
+            self._executed_worklist.executed_liquid_transfers.append(elt)
 
 
 class RackTransferExecutor(LiquidTransferExecutor):
@@ -829,7 +827,7 @@ class RackTransferExecutor(LiquidTransferExecutor):
 
     NAME = 'Rack Transfer Executor'
 
-    SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.RACK_TRANSFER
+    TRANSFER_TYPE = TRANSFER_TYPES.RACK_SAMPLE_TRANSFER
 
     def __init__(self, planned_rack_transfer, target_rack, source_rack, user,
                  log, pipetting_specs=None):
@@ -894,8 +892,8 @@ class RackTransferExecutor(LiquidTransferExecutor):
         """
         LiquidTransferExecutor._check_input(self)
 
-        self._check_input_class('planned rack transfer',
-                                self.planned_rack_transfer, PlannedRackTransfer)
+        self._check_input_class('planned rack sample transfer',
+                        self.planned_rack_transfer, PlannedRackSampleTransfer)
         self._check_input_class('source rack', self.source_rack, Rack)
 
     def _init_source_data(self):
@@ -987,9 +985,9 @@ class RackTransferExecutor(LiquidTransferExecutor):
                       src_shape, trg_shape)
             self.add_error(msg)
 
-    def _register_planned_transfers(self):
+    def _register_planned_liquid_transfers(self):
         """
-        Registers the planned transfers. The transfer volume is equal for
+        Registers the planned liquid transfers. The transfer volume is equal for
         all single transfers and has already been checked before in the
         :func:`_init_source_data` method.
         """
@@ -1024,13 +1022,21 @@ class RackTransferExecutor(LiquidTransferExecutor):
 
     def _create_executed_items(self):
         """
-        Creates the executed transfers and worklists. This method should
+        Creates the executed liquid transfers and worklists. This method should
         also set the return value.
         """
-        self.return_value = ExecutedRackTransfer(source_rack=self.source_rack,
+        self.return_value = ExecutedRackSampleTransfer(
+                        source_rack=self.source_rack,
                         target_rack=self.target_rack, user=self.user,
                         planned_rack_transfer=self.planned_rack_transfer,
                         timestamp=self.now)
+
+    def _create_executed_liquid_transfer(self, planned_liquid_transfer):
+        """
+        Creating of the executed items is already handled in
+        :func:`_create_executed_items`.
+        """
+        pass
 
     def _update_racks(self):
         """
@@ -1187,8 +1193,7 @@ class SampleData(object):
 class TransferredSample(SampleData):
     """
     A special :class:`SampleData` class for transferred volumes.
-    Transfer sample do not get updated. They can return executed transfers
-    however.
+    Transfer sample do not get updated.
     """
 
     def __init__(self, volume):
@@ -1265,25 +1270,26 @@ class SourceSample(SampleData):
 
         return total_transfer_volume
 
-    def create_and_add_transfer(self, planned_transfer):
+    def create_and_add_transfer(self, planned_liquid_transfer):
         """
         Creates, registers and returns a :class:`TransferredSample` object using
-        a planned transfer as input.
+        a planned liquid transfer as input.
 
-        :param planned_transfer: The planned transfer.
-        :type: :class:`thelma.models.liquidtransfer.PlannedRackTransfer` or
-            :class:`thelma.models.liquidtransfer.PlannedContainerTransfer`
+        :param planned_liquid_transfer: The planned liquid transfer.
+        :type: :class:`thelma.models.liquidtransfer.PlannedSampleTransfer` or
+            :class:`thelma.models.liquidtransfer.PlannedRackSampleTransfer`
         :raises TypeErrors: in case of invalid planned transfer type
 
         :return: The generated :class:`TransferredSample` object.
         """
-        valid_types = (PlannedContainerTransfer, PlannedRackTransfer)
-        if not isinstance(planned_transfer, valid_types):
+        valid_types = (PlannedSampleTransfer, PlannedRackSampleTransfer)
+        if not isinstance(planned_liquid_transfer, valid_types):
             msg = 'Unsupported type "%s"' \
-                   % (planned_transfer.__class__.__name__)
+                   % (planned_liquid_transfer.__class__.__name__)
             raise TypeError(msg)
 
-        transfer_sample = TransferredSample(volume=planned_transfer.volume)
+        transfer_sample = TransferredSample(volume=\
+                                            planned_liquid_transfer.volume)
         transfer_sample.add_source_sample_components(self._sample_components)
         self.__transfers.append(transfer_sample)
 
@@ -1341,27 +1347,27 @@ class TargetSample(SampleData):
         if self.__transfer is None: return self.volume
         return self.volume + self.__transfer.volume
 
-    def create_and_add_transfer(self, planned_container_dilution):
+    def create_and_add_transfer(self, planned_sample_dilution):
         """
         Creates, registers and returns a :class:`TransferredSample` object using
         a planned container dilution as input.
 
         :Note: invokes :func:`add_transfer`
 
-        :param planned_transfer: The planned container dilution.
-        :type: :class:`thelma.models.liquidtransfer.PlannedContainerDilution`
-        :raises TypeErrors: in case of invalid planned transfer type
+        :param planned_sample_dilution: The planned container dilution.
+        :type: :class:`thelma.models.liquidtransfer.PlannedSampleDilution`
+        :raises TypeErrors: in case of invalid transfer type
         :raises AttributeError: If there is already a transfer present.
 
         :return: The generated :class:`TransferredSample` object.
         """
-        if not isinstance(planned_container_dilution, PlannedContainerDilution):
+        if not isinstance(planned_sample_dilution, PlannedSampleDilution):
             msg = 'Unsupported type "%s"' \
-                   % (planned_container_dilution.__class__.__name__)
+                   % (planned_sample_dilution.__class__.__name__)
             raise TypeError(msg)
 
         transfer_sample = TransferredSample(volume=\
-                                            planned_container_dilution.volume)
+                                            planned_sample_dilution.volume)
         self.add_transfer(transfer_sample)
 
         return transfer_sample

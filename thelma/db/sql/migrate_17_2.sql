@@ -85,6 +85,18 @@ DELETE FROM job oj
 DROP TABLE tmp_jobs_to_delete;
 
 DROP TABLE iso_job;
+CREATE TABLE iso_job (
+  job_id INTEGER NOT NULL REFERENCES new_job (job_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  number_stock_racks INTEGER NOT NULL,
+  CONSTRAINT iso_job_pkey PRIMARY KEY (job_id),
+  CONSTRAINT job_number_stock_racks_non_negative
+    CHECK (number_stock_racks >= 0));
+
+INSERT INTO iso_job (job_id, number_stock_racks)
+  SELECT job_id, 1 AS number_stock_racks
+  FROM new_job
+  WHERE job_type = 'ISO';
 
 
 -- ISO job plates are new, there is nothing to be migrated
@@ -100,6 +112,8 @@ CREATE TABLE iso_job_preparation_plate (
     ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT iso_job_unique_preparation_plate UNIQUE (rack_id)
 );
+
+-- add number stock racks column to ISO job
 
 
 CREATE OR REPLACE VIEW db_version AS SELECT 17.2 AS version;

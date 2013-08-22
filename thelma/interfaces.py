@@ -107,27 +107,27 @@ class IDevice(Interface):
     """
 
 
-class IExecutedTransfer(Interface):
+class IExecutedLiquidTransfer(Interface):
     """
     Marker interface indicating participation in executed transfer resources.
     """
 
 
-class IExecutedContainerDilution(Interface):
+class IExecutedSampleDilution(Interface):
     """
     Marker interface indicating participation in executed container dilution
     resources.
     """
 
 
-class IExecutedContainerTransfer(Interface):
+class IExecutedSampleTransfer(Interface):
     """
     Marker interface indicating participation in executed container transfer
     resources.
     """
 
 
-class IExecutedRackTransfer(Interface):
+class IExecutedRackSampleTransfer(Interface):
     """
     Marker interface indicating participation in executed rack transfer
     resources.
@@ -319,27 +319,27 @@ class IOrganization(Interface):
     """
 
 
-class IPlannedTransfer(Interface):
+class IPlannedLiquidTransfer(Interface):
     """
     Marker interface indicating participation in planned transfer resources
     """
 
 
-class IPlannedContainerDilution(Interface):
+class IPlannedSampleDilution(Interface):
     """
     Marker interface indicating participation in planned container dilution
     resources
     """
 
 
-class IPlannedContainerTransfer(Interface):
+class IPlannedSampleTransfer(Interface):
     """
     Marker interface indicating participation in planned container transfer
     resources
     """
 
 
-class IPlannedRackTransfer(Interface):
+class IPlannedRackSampleTransfer(Interface):
     """
     Marker interface indicating participation in planned rack transfer resources
     """

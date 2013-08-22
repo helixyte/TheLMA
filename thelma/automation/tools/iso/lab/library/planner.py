@@ -7,6 +7,8 @@ from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.models.iso import ISO_STATUS
 from thelma.automation.tools.iso.lab.base import IsoPlatePosition
 
+__docformat__ = 'reStructuredText en'
+
 __all__ = ['LibraryIsoBuilder',
            'LibraryIsoPlanner']
 
@@ -81,6 +83,13 @@ class LibraryIsoBuilder(LabIsoBuilder):
                                 concentration=ir_pos.iso_concentration,
                                 volume=ir_pos.iso_volume)
             iso_plate_layout.add_position(lib_pos)
+
+    def _get_number_stock_racks(self):
+        """
+        There are no ISO-specific pools add, just pools that are shared by
+        all ISOs in the job.
+        """
+        return 0
 
     def _add_final_iso_plates(self, iso):
         """

@@ -10,6 +10,7 @@ from thelma.automation.tools.iso.lab.planner import LabIsoBuilder
 from thelma.automation.tools.iso.lab.planner import LabIsoPlanner
 from thelma.models.iso import ISO_TYPES
 from thelma.models.liquidtransfer import PlannedWorklist
+from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.liquidtransfer import WorklistSeries
 
 
@@ -221,7 +222,8 @@ class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
             worklist_label = self.__create_worklist_label(plate_marker)
             if not dilution_map.has_key(plate_marker): continue
             planned_dilutions = dilution_map[plate_marker]
-            self.__create_worklist(worklist_label, planned_dilutions)
+            self.__create_worklist(worklist_label, planned_dilutions,
+                                   TRANSFER_TYPES.SAMPLE_DILUTION)
 
     def __create_transfer_worklist(self):
         """
@@ -254,7 +256,8 @@ class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
             pts = transfer_map[ancestor_count]
             worklist_label = self.__create_worklist_label(plate_marker,
                                                           plate_marker)
-            self.__create_worklist(worklist_label, pts)
+            transfer_type = pts[0].transfer_type
+            self.__create_worklist(worklist_label, pts, transfer_type)
 
     def __create_interplate_worklists(self, source_plate_marker, transfer_map):
         """
@@ -272,7 +275,8 @@ class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
             worklist_label = self.__create_worklist_label(trg_plate_marker,
                                                           source_plate_marker)
             pts = transfer_map[trg_plate_marker]
-            self.__create_worklist(worklist_label, pts)
+            transfer_type = pts[0].transfer_type
+            self.__create_worklist(worklist_label, pts, transfer_type)
 
     def __create_worklist_label(self, target_plate_marker,
                                 source_plate_marker=None):
@@ -285,13 +289,15 @@ class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
                     target_plate_marker=target_plate_marker,
                     source_plate_marker=source_plate_marker)
 
-    def __create_worklist(self, worklist_label, planned_transfers):
+    def __create_worklist(self, worklist_label, planned_liquid_transfers,
+                          transfer_type):
         """
         Convenience function generating a worklist and adding it to the
         worklist series. The indices for the worklists are subsequent numbers.
         """
         worklist = PlannedWorklist(label=worklist_label,
-                                   planned_transfers=planned_transfers)
+                           transfer_type=transfer_type,
+                           planned_liquid_transfers=planned_liquid_transfers)
         worklist_number = self.__get_current_worklist_number()
         self.__worklist_series.add_worklist(worklist_number, worklist)
 

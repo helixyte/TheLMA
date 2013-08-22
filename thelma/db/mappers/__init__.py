@@ -12,10 +12,10 @@ from thelma.db.mappers import containerspecs
 from thelma.db.mappers import device
 from thelma.db.mappers import devicetype
 from thelma.db.mappers import esirnadesign
-from thelma.db.mappers import executedcontainerdilution
-from thelma.db.mappers import executedcontainertransfer
-from thelma.db.mappers import executedracktransfer
-from thelma.db.mappers import executedtransfer
+from thelma.db.mappers import executedsampledilution
+from thelma.db.mappers import executedsampletransfer
+from thelma.db.mappers import executedracksampletransfer
+from thelma.db.mappers import executedliquidtransfer
 from thelma.db.mappers import executedworklist
 from thelma.db.mappers import experiment
 from thelma.db.mappers import experimentdesign
@@ -55,10 +55,10 @@ from thelma.db.mappers import moleculetype
 from thelma.db.mappers import nucleicacidchemicalstructure
 from thelma.db.mappers import organization
 from thelma.db.mappers import pipettingspecs
-from thelma.db.mappers import plannedcontainerdilution
-from thelma.db.mappers import plannedcontainertransfer
-from thelma.db.mappers import plannedracktransfer
-from thelma.db.mappers import plannedtransfer
+from thelma.db.mappers import plannedsampledilution
+from thelma.db.mappers import plannedsampletransfer
+from thelma.db.mappers import plannedracksampletransfer
+from thelma.db.mappers import plannedliquidtransfer
 from thelma.db.mappers import plannedworklist
 from thelma.db.mappers import plate
 from thelma.db.mappers import platespecs
@@ -300,37 +300,31 @@ def initialize_mappers(tables, views):
 
     pipettingspecs.create_mapper(tables['pipetting_specs'])
     reservoirspecs.create_mapper(tables['reservoir_specs'])
-    planned_transfer_mapper = plannedtransfer.create_mapper(
-                    tables['planned_transfer'], tables['planned_worklist'],
-                    tables['planned_worklist_member'])
-    plannedcontainerdilution.create_mapper(planned_transfer_mapper,
-                            tables['planned_container_dilution'],
-                            tables['rack_position'])
-    plannedcontainertransfer.create_mapper(planned_transfer_mapper,
-                            tables['planned_container_transfer'],
-                            tables['rack_position'])
-    plannedracktransfer.create_mapper(planned_transfer_mapper,
-                            tables['planned_rack_transfer'])
+    planned_liquid_transfer_mapper = plannedliquidtransfer.create_mapper(
+                                            tables['planned_liquid_transfer'])
+    plannedsampledilution.create_mapper(planned_liquid_transfer_mapper,
+                    tables['planned_sample_dilution'], tables['rack_position'])
+
+    plannedsampletransfer.create_mapper(planned_liquid_transfer_mapper,
+                    tables['planned_sample_transfer'], tables['rack_position'])
+    plannedracksampletransfer.create_mapper(planned_liquid_transfer_mapper,
+                    tables['planned_rack_sample_transfer'])
     plannedworklist.create_mapper(tables['planned_worklist'],
-                                  tables['planned_transfer'],
+                                  tables['planned_liquid_transfer'],
                                   tables['planned_worklist_member'])
     worklistseries.create_mapper(tables['worklist_series'])
     worklistseriesmember.create_mapper(tables['worklist_series_member'])
-    executed_transfer_mapper = executedtransfer.create_mapper(
-                                                tables['executed_transfer'])
-    executedcontainerdilution.create_mapper(executed_transfer_mapper,
-                            tables['executed_container_dilution'],
-                            tables['container'])
-    executedcontainertransfer.create_mapper(executed_transfer_mapper,
-                            tables['executed_container_transfer'],
-                            tables['container'])
-    executedracktransfer.create_mapper(executed_transfer_mapper,
-                            tables['executed_rack_transfer'],
-                            tables['rack'])
+    executed_liquid_transfer_mapper = executedliquidtransfer.create_mapper(
+                                      tables['executed_liquid_transfer'])
+    executedsampledilution.create_mapper(executed_liquid_transfer_mapper,
+                    tables['executed_sample_dilution'], tables['container'])
+    executedsampletransfer.create_mapper(executed_liquid_transfer_mapper,
+                    tables['executed_sample_transfer'], tables['container'])
+    executedracksampletransfer.create_mapper(executed_liquid_transfer_mapper,
+                    tables['executed_rack_sample_transfer'], tables['rack'])
     executedworklist.create_mapper(tables['executed_worklist'],
-                                   tables['executed_transfer'],
+                                   tables['executed_liquid_transfer'],
                                    tables['executed_worklist_member'])
-
     tubetransfer.create_mapper(tables['tube_transfer'], tables['rack'],
                                tables['rack_position'])
     tubetransferworklist.create_mapper(tables['tube_transfer_worklist'],

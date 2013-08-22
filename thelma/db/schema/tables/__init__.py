@@ -7,10 +7,10 @@ from thelma.db.schema.tables import containerspecs
 from thelma.db.schema.tables import containment
 from thelma.db.schema.tables import device
 from thelma.db.schema.tables import devicetype
-from thelma.db.schema.tables import executedcontainerdilution
-from thelma.db.schema.tables import executedcontainertransfer
-from thelma.db.schema.tables import executedracktransfer
-from thelma.db.schema.tables import executedtransfer
+from thelma.db.schema.tables import executedliquidtransfer
+from thelma.db.schema.tables import executedracksampletransfer
+from thelma.db.schema.tables import executedsampledilution
+from thelma.db.schema.tables import executedsampletransfer
 from thelma.db.schema.tables import executedworklist
 from thelma.db.schema.tables import executedworklistmember
 from thelma.db.schema.tables import experiment
@@ -25,6 +25,7 @@ from thelma.db.schema.tables import experimentrackjob
 from thelma.db.schema.tables import experimentsourcerack
 from thelma.db.schema.tables import iso
 from thelma.db.schema.tables import isoaliquotplate
+from thelma.db.schema.tables import isojob
 from thelma.db.schema.tables import isojobmember
 from thelma.db.schema.tables import isojobpreparationplate
 from thelma.db.schema.tables import isojobstockrack
@@ -56,10 +57,10 @@ from thelma.db.schema.tables import moleculedesignstructure
 from thelma.db.schema.tables import moleculetype
 from thelma.db.schema.tables import organization
 from thelma.db.schema.tables import pipettingspecs
-from thelma.db.schema.tables import plannedcontainerdilution
-from thelma.db.schema.tables import plannedcontainertransfer
-from thelma.db.schema.tables import plannedracktransfer
-from thelma.db.schema.tables import plannedtransfer
+from thelma.db.schema.tables import plannedliquidtransfer
+from thelma.db.schema.tables import plannedracksampletransfer
+from thelma.db.schema.tables import plannedsampledilution
+from thelma.db.schema.tables import plannedsampletransfer
 from thelma.db.schema.tables import plannedworklist
 from thelma.db.schema.tables import plannedworklistmember
 from thelma.db.schema.tables import pooledsuppliermoleculedesign
@@ -199,33 +200,33 @@ def initialize_tables(metadata):
 
     pipetting_specs_tbl = pipettingspecs.create_table(metadata)
     reservoir_specs_tbl = reservoirspecs.create_table(metadata, rack_shape_tbl)
-    planned_transfer_tbl = plannedtransfer.create_table(metadata)
-    planned_container_dilution_tbl = plannedcontainerdilution.create_table(
-                            metadata, planned_transfer_tbl, rack_position_tbl)
-    planned_container_transfer_tbl = plannedcontainertransfer.create_table(
-                            metadata, planned_transfer_tbl, rack_position_tbl)
-    planned_rack_transfer_tbl = plannedracktransfer.create_table(metadata,
-                            planned_transfer_tbl)
+    planned_liquid_transfer_tbl = plannedliquidtransfer.create_table(metadata)
+    planned_sample_dilution_tbl = plannedsampledilution.create_table(metadata,
+                                 planned_liquid_transfer_tbl, rack_position_tbl)
+    planned_sample_transfer_tbl = plannedsampletransfer.create_table(metadata,
+                                planned_liquid_transfer_tbl, rack_position_tbl)
+    planned_rack_sample_transfer_tbl = plannedracksampletransfer.create_table(
+                                      metadata, planned_liquid_transfer_tbl)
     planned_worklist_tbl = plannedworklist.create_table(metadata)
     planned_worklist_member_tbl = plannedworklistmember.create_table(metadata,
-                            planned_worklist_tbl, planned_transfer_tbl)
+                            planned_worklist_tbl, planned_liquid_transfer_tbl)
     worklist_series_tbl = worklistseries.create_table(metadata)
     worklist_series_member_tbl = worklistseriesmember.create_table(metadata,
                             worklist_series_tbl, planned_worklist_tbl)
 
-    executed_transfer_tbl = executedtransfer.create_table(metadata,
-                            planned_transfer_tbl, dbuser_tbl)
-    executed_container_dilution_tbl = executedcontainerdilution.create_table(
-                            metadata, executed_transfer_tbl, container_tbl,
+    executed_liquid_transfer_tbl = executedliquidtransfer.create_table(metadata,
+                            planned_liquid_transfer_tbl, dbuser_tbl)
+    executed_sample_dilution_tbl = executedsampledilution.create_table(metadata,
+                            executed_liquid_transfer_tbl, container_tbl,
                             reservoir_specs_tbl)
-    executed_container_transfer_tbl = executedcontainertransfer.create_table(
-                            metadata, executed_transfer_tbl, container_tbl)
-    executed_rack_transfer_tbl = executedracktransfer.create_table(metadata,
-                            executed_transfer_tbl, rack_tbl)
+    executed_sample_transfer_tbl = executedsampletransfer.create_table(metadata,
+                            executed_liquid_transfer_tbl, container_tbl)
+    executed_rack_sample_transfer_tbl = executedracksampletransfer.create_table(
+                            metadata, executed_liquid_transfer_tbl, rack_tbl)
     executed_worklist_tbl = executedworklist.create_table(metadata,
                                                         planned_worklist_tbl)
     executed_worklist_member_tbl = executedworklistmember.create_table(metadata,
-                            executed_worklist_tbl, executed_transfer_tbl)
+                            executed_worklist_tbl, executed_liquid_transfer_tbl)
 
     tube_transfer_tbl = tubetransfer.create_table(metadata, container_tbl,
                                                   rack_tbl, rack_position_tbl)
@@ -278,6 +279,7 @@ def initialize_tables(metadata):
                                                             metadata, iso_tbl)
     iso_pool_set_tbl = isopoolset.create_table(metadata, iso_tbl,
                                                molecule_design_pool_set_tbl)
+    iso_job_tbl = isojob.create_table(metadata, job_tbl)
     iso_job_member_tbl = isojobmember.create_table(metadata, job_tbl, iso_tbl)
 
     stock_rack_tbl = stockrack.create_table(metadata, rack_tbl, rack_layout_tbl,

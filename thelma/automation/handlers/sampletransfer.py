@@ -18,14 +18,14 @@ from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_reservoir_spec
 from thelma.automation.tools.utils.base import MAX_PLATE_LABEL_LENGTH
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.worklists.base import TRANSFER_ROLES
 from thelma.interfaces import IPlate
 from thelma.interfaces import IRackShape
-from thelma.models.liquidtransfer import PlannedContainerDilution
-from thelma.models.liquidtransfer import PlannedContainerTransfer
+from thelma.models.liquidtransfer import PlannedSampleDilution
+from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.liquidtransfer import PlannedWorklist
+from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.liquidtransfer import WorklistSeries
 
 __docformat__ = 'reStructuredText en'
@@ -252,17 +252,18 @@ class GenericSampleTransferPlanParserHandler(LayoutParserHandler):
             step_container = self.parser.step_containers[step_number]
             if not self.__has_consistent_rack_shapes(step_container): break
 
-            is_dilution = self.__is_dilution(step_container)
-            if is_dilution is None: break
+            transfer_type = self.__get_transfer_type(step_container)
+            if transfer_type is None: break
             if not self.__has_only_plates_as_target(step_container): break
 
-            planned_transfers = self.__get_planned_transfers(step_container,
-                                                             is_dilution)
-            if planned_transfers is None: break
+            planned_liquid_transfers = self.__get_planned_liquid_transfers(
+                                                step_container, transfer_type)
+            if planned_liquid_transfers is None: break
 
             wl_label = '%s_%i' % (self.parser.worklist_prefix, step_number)
             worklist = PlannedWorklist(label=wl_label,
-                                       planned_transfers=planned_transfers)
+                            transfer_type=transfer_type,
+                            planned_liquid_transfers=planned_liquid_transfers)
             self.__worklist_series.add_worklist(step_number, worklist)
 
             for role, rack_ids in step_container.rack_containers.iteritems():
@@ -292,9 +293,9 @@ class GenericSampleTransferPlanParserHandler(LayoutParserHandler):
 
         return True
 
-    def __is_dilution(self, step_container):
+    def __get_transfer_type(self, step_container):
         """
-        Returns *True* for sample dilutions and *False* for sample transfers.
+        Possible types are SAMPLE_DILUTION and SAMPLE_TRANSFER.
         """
         is_dilution = False
 
@@ -312,7 +313,11 @@ class GenericSampleTransferPlanParserHandler(LayoutParserHandler):
                 self.add_error(msg)
                 return None
 
-        return is_dilution
+        if is_dilution:
+            transfer_type = TRANSFER_TYPES.SAMPLE_DILUTION
+        else:
+            transfer_type = TRANSFER_TYPES.SAMPLE_TRANSFER
+        return transfer_type
 
     def __has_only_plates_as_target(self, step_container):
         """
@@ -328,20 +333,18 @@ class GenericSampleTransferPlanParserHandler(LayoutParserHandler):
 
         return True
 
-    def __get_planned_transfers(self, step_container, is_dilution):
+    def __get_planned_liquid_transfers(self, step_container, transfer_type):
         """
-        Create :class:`PlannedContainerDilution`s for dilution (requires
+        Create :class:`PlannedSampleDilution`s for dilution (requires
         valid diluent), otherwise it creates
-        :class:`PlannedContainerTransfer`s.
+        :class:`PlannedSampleTransfer`s.
         """
-        planned_transfers = []
+        planned_liquid_transfers = []
         for transfer_container in step_container.get_transfer_containers():
             src_positions = transfer_container.get_source_positions()
             trg_positions = transfer_container.get_target_positions()
-            volume = float(transfer_container.volume) \
-                     / VOLUME_CONVERSION_FACTOR
-
-            if is_dilution:
+            volume = float(transfer_container.volume)
+            if transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
                 diluent = transfer_container.diluent
                 if diluent is None or not len(str(diluent)) > 1:
                     msg = 'A diluent must be at least 2 characters long! ' \
@@ -353,21 +356,20 @@ class GenericSampleTransferPlanParserHandler(LayoutParserHandler):
 
             for trg_pos_container in trg_positions:
                 trg_pos = self._convert_to_rack_position(trg_pos_container)
-                if is_dilution:
-                    pcd = PlannedContainerDilution(volume=volume,
-                                target_position=trg_pos,
-                                diluent_info=str(transfer_container.diluent))
-                    planned_transfers.append(pcd)
+                kw = dict(target_position=trg_pos, volume=volume)
+                if transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
+                    kw['diluent_info'] = str(transfer_container.diluent)
+                    psd = PlannedSampleDilution.get_entity(**kw)
+                    planned_liquid_transfers.append(psd)
                 else:
                     for src_pos_container in src_positions:
                         src_pos = self._convert_to_rack_position(
                                                             src_pos_container)
-                        pct = PlannedContainerTransfer(volume=volume,
-                                                source_position=src_pos,
-                                                target_position=trg_pos)
-                        planned_transfers.append(pct)
+                        kw['source_position'] = src_pos
+                        pst = PlannedSampleTransfer.get_entity(**kw)
+                        planned_liquid_transfers.append(pst)
 
-        return planned_transfers
+        return planned_liquid_transfers
 
 
 class RackOrReservoirItem(object):

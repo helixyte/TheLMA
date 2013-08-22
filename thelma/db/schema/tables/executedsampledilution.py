@@ -1,5 +1,5 @@
 """
-Executed container dilution table.
+Executed sample dilution table.
 """
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
@@ -10,18 +10,22 @@ __docformat__ = 'reStructuredText en'
 __all__ = ['create_table']
 
 
-def create_table(metadata, executed_transfer_tbl, container_tbl,
+def create_table(metadata, executed_liquid_transfer_tbl, container_tbl,
                  reservoir_specs_tbl):
     "Table factory."
-    tbl = Table('executed_container_dilution', metadata,
+    tbl = Table('executed_sample_dilution', metadata,
                 Column('executed_transfer_id', Integer,
-                       ForeignKey(executed_transfer_tbl.c.executed_transfer_id),
+                       ForeignKey(executed_liquid_transfer_tbl.c.\
+                                  executed_liquid_transfer_id,
+                                  ondelete='CASCADE'),
                        nullable=False, primary_key=True),
                 Column('target_container_id', Integer,
-                       ForeignKey(container_tbl.c.container_id),
+                       ForeignKey(container_tbl.c.container_id,
+                                  onupdate='CASCADE'),
                        nullable=False),
                 Column('reservoir_specs_id', Integer,
-                       ForeignKey(reservoir_specs_tbl.c.reservoir_specs_id),
+                       ForeignKey(reservoir_specs_tbl.c.reservoir_specs_id,
+                                  onupdate='CASCADE'),
                        nullable=False)
                 )
     return tbl

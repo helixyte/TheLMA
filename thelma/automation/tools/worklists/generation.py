@@ -13,7 +13,6 @@ __all__ = ['PlannedWorklistGenerator'
            ]
 
 
-
 class PlannedWorklistGenerator(BaseAutomationTool):
     """
     This is an abstract tool generating a worklist
@@ -31,9 +30,8 @@ class PlannedWorklistGenerator(BaseAutomationTool):
         """
         BaseAutomationTool.__init__(self, log=log)
 
-        #: The planned worklist to generate
-        #: (:class:`thelma.models.liquidtransfer.PlannedWorklist`).
-        self._planned_worklist = None
+        #: The planned liquid transfers for the worklist.
+        self._planned_liquid_transfers = None
         #: The label for the worklist (:class:`str`).
         self._label = None
 
@@ -42,7 +40,7 @@ class PlannedWorklistGenerator(BaseAutomationTool):
         Resets all values except for the input values.
         """
         BaseAutomationTool.reset(self)
-        self._planned_worklist = None
+        self._planned_liquid_transfers = []
         self._label = None
 
     def run(self):
@@ -55,33 +53,53 @@ class PlannedWorklistGenerator(BaseAutomationTool):
         self._check_input()
         if not self.has_errors(): self._set_label()
         if not self.has_errors():
-            self._planned_worklist = PlannedWorklist(label=self._label)
-            self._create_planned_transfers()
+            self._create_planned_liquid_transfers()
+            transfer_type = self.__get_transfer_type()
         if not self.has_errors():
-            self.return_value = self._planned_worklist
+            planned_worklist = PlannedWorklist(label=self._label,
+                     transfer_type=transfer_type,
+                     planned_liquid_transfers=self._planned_liquid_transfers)
+            self.return_value = planned_worklist
             self.add_info('Planned worklist generation completed.')
 
     def _check_input(self):
         """
         Checks the input values.
         """
-        self.add_error('Abstract method: _check_input()')
+        raise NotImplementedError('Abstract method.')
 
     def _set_label(self):
         """
         Use this method to set label for the planned worklist.
         """
-        self.add_error('Abstract method: _set_label()')
+        raise NotImplementedError('Abstract method.')
 
-    def _create_planned_transfers(self):
+    def _create_planned_liquid_transfers(self):
         """
-        Overwrite this method to create the planned transfer belonging to
+        Overwrite this method to create the planned liquid transfer belonging to
         the worklist.
         """
-        self.add_error('Abstract method: _create_planned_transfers')
+        raise NotImplementedError('Abstract method.')
 
     def _add_planned_transfer(self, planned_transfer):
         """
         Adds a planned transfer to the worklist.
         """
-        self._planned_worklist.planned_transfers.append(planned_transfer)
+        self._planned_liquid_transfers.append(planned_transfer)
+
+    def __get_transfer_type(self):
+        """
+        Also makes sure that there is only one distinct transfer type.
+        """
+        transfer_types = set()
+        for pt in self._planned_liquid_transfers:
+            transfer_types.add(pt.transfer_type)
+
+        if len(transfer_types) > 1:
+            msg = 'The planned transfers for this worklist "%s" have ' \
+                  'different types: %s!' % (self._label,
+                   ', '.join(sorted(list(transfer_types))))
+            self.add_error(msg)
+            return None
+        else:
+            return list(transfer_types)[0]

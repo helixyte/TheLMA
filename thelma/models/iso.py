@@ -268,6 +268,9 @@ class Iso(Entity):
     #: The ISO job this ISO belongs to (:class:`IsoJob`).
     iso_job = None
 
+    #: The maximum number if ISO stock racks (all ISO types) for this ISO.
+    number_stock_racks = None
+
     #: The ISO stocks rack for this ISO (set of :class:`IsoStockRack`) provide
     #: samples that are only used in the processing of this ISO and not by
     #: other ISOs in the same :attr:`iso_job`.
@@ -295,7 +298,7 @@ class Iso(Entity):
     #: the status the ISO is set to if no other status is specified (*queued*).
     DEFAULT_STATUS = ISO_STATUS.QUEUED
 
-    def __init__(self, label, iso_request=None,
+    def __init__(self, label, number_stock_racks, iso_request=None,
                  status=None, molecule_design_pool_set=None,
                  optimizer_excluded_racks=None,
                  optimizer_required_racks=None,
@@ -315,6 +318,7 @@ class Iso(Entity):
             iso_type = ISO_TYPES.BASE
         self.iso_type = iso_type
         self.label = label
+        self.number_stock_racks = number_stock_racks
         if status is None:
             status = self.DEFAULT_STATUS
         self.status = status
