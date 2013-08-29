@@ -13,17 +13,18 @@ __docformat__ = "reStructuredText en"
 __all__ = ['create_table']
 
 
-def create_table(metadata, rack_tbl, rack_layout_tbl, planned_worklist_tbl):
+def create_table(metadata, rack_tbl, rack_layout_tbl, worklist_series_tbl):
     "Table factory."
     tbl = Table('stock_rack', metadata,
                 Column('stock_rack_id', Integer, primary_key=True),
+                Column('label', String(20), nullable=False),
                 Column('rack_id', Integer, ForeignKey(rack_tbl.c.rack_id),
                        nullable=False),
                 Column('rack_layout_id', Integer,
                        ForeignKey(rack_layout_tbl.c.rack_layout_id,
                                   onupdate='CASCADE', ondelete='CASCADE')),
-                Column('planned_worklist_id', Integer,
-                       ForeignKey(planned_worklist_tbl.c.planned_worklist_id,
+                Column('worklist_series_id', Integer,
+                       ForeignKey(worklist_series_tbl.c.worklist_series_id,
                                   onupdate='CASCADE', ondelete='CASCADE'),
                        nullable=False),
                 Column('stock_rack_type', String(10),

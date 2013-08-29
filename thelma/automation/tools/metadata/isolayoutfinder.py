@@ -60,9 +60,9 @@ from thelma.automation.tools.metadata.transfection_utils \
 from thelma.automation.tools.metadata.transfection_utils \
     import TransfectionPosition
 from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.iso import IsoParameters
+from thelma.automation.tools.utils.iso import IsoRequestParameters
 from thelma.automation.tools.worklists.optimiser import BiomekLayoutOptimizer
-from thelma.automation.tools.worklists.optimiser import TransferItemData
+from thelma.automation.tools.worklists.optimiser import TransferItem
 from thelma.models.experiment import ExperimentDesign
 
 __docformat__ = 'reStructuredText en'
@@ -201,8 +201,9 @@ class TransfectionLayoutFinder(BaseAutomationTool):
             if self.__placeholder_maps.has_key(old_placeholder):
                 new_placeholder = self.__placeholder_maps[old_placeholder]
             else:
-                new_placeholder = '%s%03i' % (IsoParameters.FLOATING_INDICATOR,
-                                              len(self.__placeholder_maps) + 1)
+                new_placeholder = '%s%03i' % (
+                                        IsoRequestParameters.FLOATING_INDICATOR,
+                                        len(self.__placeholder_maps) + 1)
                 self.__placeholder_maps[old_placeholder] = new_placeholder
             tf_pos.molecule_design_pool = new_placeholder
 
@@ -219,10 +220,10 @@ class TransfectionLayoutFinder(BaseAutomationTool):
         layout. If so, a warning is issued.
         """
 
-        vol_validator = IsoParameters.create_validator_from_parameter(
-                                                IsoParameters.ISO_VOLUME)
-        conc_validator = IsoParameters.create_validator_from_parameter(
-                                                IsoParameters.ISO_CONCENTRATION)
+        vol_validator = IsoRequestParameters.create_validator_from_parameter(
+                                        IsoRequestParameters.ISO_VOLUME)
+        conc_validator = IsoRequestParameters.create_validator_from_parameter(
+                                        IsoRequestParameters.ISO_CONCENTRATION)
 
         has_vol = False
         has_conc = False
@@ -263,13 +264,15 @@ class TransfectionLayoutFinder(BaseAutomationTool):
             self.add_error(msg)
 
 
-class TransfectionTransferItem(TransferItemData):
+class TransfectionTransferItem(TransferItem):
     """
-    A special :class:`TransferItemData` for :class:`TransfectionPosition`
+    A special :class:`TransferItem` for :class:`TransfectionPosition`
     objects (using the full hash).
     """
 
-    HASH_NAME = 'hash_full'
+    def _get_hash_value(self):
+        return self.working_pos.hash_full
+
 
 
 class TransfectionLayoutOptimizer(BiomekLayoutOptimizer):
@@ -320,7 +323,7 @@ class TransfectionLayoutOptimizer(BiomekLayoutOptimizer):
 
     def _find_hash_values(self):
         """
-        Initialises :attr:`__hash_values` and :attr:`__column_maps`.
+        Initialises :attr:`_hash_values` and :attr:`_column_maps`.
         """
         self.add_debug('Sort hash values ...')
 
@@ -344,7 +347,7 @@ class TransfectionLayoutOptimizer(BiomekLayoutOptimizer):
         positions as keys and template working positions as values).
         Return *None* if one-to-one sorting is not possible.
 
-        This is some sort sort of short cut for the very simple layouts.
+        This is some sort of short cut for the very simple layouts.
         In one-to-one sorting mode we simply assign the rack position of the
         earliest occurrence of a design rack transfection position. If the
         position is already occupied, the process is aborted and we switch

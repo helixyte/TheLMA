@@ -3,6 +3,7 @@ Base constants and functions for stock-=related tasks.
 
 AAB
 """
+from thelma.automation.tools.utils.base import CustomQuery
 from thelma.automation.tools.utils.base import create_in_term_for_db_queries
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 from thelma.models.moleculetype import MoleculeType
@@ -110,28 +111,34 @@ class STOCK_CONCENTRATIONS(object):
 get_default_stock_concentration = STOCK_CONCENTRATIONS.from_molecule_type
 
 
-class RackLocationQuery(object):
+class RackLocationQuery(CustomQuery):
     """
     This query determines the barcoded locations of the passed racks.
+
+    The query results is the
     """
 
-    # The query statement.
-    QUERY = 'SELECT r.barcode AS rack_barcode, bl.name AS location_name, ' \
-                'bl.index AS location_index ' \
-            'FROM rack r, barcoded_location bl, rack_barcoded_location rbl ' \
-            'WHERE r.barcode IN %s' \
-            'AND rbl.rack_id = r.rack_id ' \
-            'AND rbl.barcoded_location_id = bl.barcoded_location_id'
+    QUERY_TEMPLATE = '''
+    SELECT r.barcode AS rack_barcode,
+      bl.name AS location_name,
+      bl.index AS location_index
+    FROM rack r, barcoded_location bl, rack_barcoded_location rbl
+    WHERE r.barcode IN %s
+    AND rbl.rack_id = r.rack_id
+    AND rbl.barcoded_location_id = bl.barcoded_location_id'''
 
-    #: The query result column (required to parse the query results).
-    QUERY_RESULTS = ('rack_barcode', 'location_name', 'location_index')
+    __RACK_BARCODE_COL_NAME = 'rack_barcode'
+    __LOCATION_NAME_COL_NAME = 'location_name'
+    __LOCATION_INDEX_COL_NAME = 'location_index'
 
-    #: The index of the rack barcode within the query result.
-    RACK_BARCODE_INDEX = 0
-    #: The index of the location name within the query result.
-    LOCATION_NAME_INDEX = 1
-    #: The index of the location index within the query result.
-    LOCATION_INDEX_INDEX = 2
+    COLUMN_NAMES = [__RACK_BARCODE_COL_NAME, __LOCATION_NAME_COL_NAME,
+                    __LOCATION_INDEX_COL_NAME]
+
+    __RACK_BARCODE_INDEX = COLUMN_NAMES.index(__RACK_BARCODE_COL_NAME)
+    __LOCATION_NAME_INDEX = COLUMN_NAMES.index(__LOCATION_NAME_COL_NAME)
+    __LOCATION_INDEX_INDEX = COLUMN_NAMES.index(__LOCATION_INDEX_COL_NAME)
+
+    RESULT_COLLECTION_CLS = dict
 
     def __init__(self, rack_barcodes):
         """
@@ -140,39 +147,23 @@ class RackLocationQuery(object):
         :param rack_barcodes: The rack barcodes as list.
         :type rack_barcodes: :class:`list` (or iterable)
         """
-        #: Stores the location name for each rack barcode.
-        self.location_names = dict()
-        #: Stores the location index for each rack barcode.
-        self.location_indices = dict()
+        CustomQuery.__init__(self)
+        #: The rack barcodes as list.
+        self.rack_barcodes = rack_barcodes
 
-        for rack_barcode in rack_barcodes:
-            self.location_names[rack_barcode] = None
-            self.location_indices[rack_barcode] = None
+    def _get_params_for_sql_statement(self):
+        return create_in_term_for_db_queries(self.rack_barcodes, as_string=True)
 
-    def run(self, session):
-        """
-        Runs the query using the provided session.
-        """
-        rack_term = create_in_term_for_db_queries(self.location_names.keys(),
-                                                  as_string=True)
-        statement = self.QUERY % (rack_term)
-
-        #pylint: disable=W0142
-        results = session.query(*self.QUERY_RESULTS).\
-                  from_statement(statement).all()
-        #pylint: enable=W0142
-
-        for record in results:
-            rack_barcode = record[self.RACK_BARCODE_INDEX]
-            self.location_names[rack_barcode] = record[self.LOCATION_NAME_INDEX]
-            self.location_indices[rack_barcode] = \
-                                               record[self.LOCATION_INDEX_INDEX]
-
-    def __str__(self):
-        return self.__class__.__name__
+    def _store_result(self, result_record):
+        rack_barcode = result_record[self.__RACK_BARCODE_INDEX]
+        loc_name = result_record[self.__LOCATION_NAME_INDEX]
+        loc_index = result_record[self.__LOCATION_INDEX_INDEX]
+        if not loc_index is None:
+            loc_name += ', index: %s' % (loc_index)
+        self._results[rack_barcode] = loc_name
 
     def __repr__(self):
         str_format = '<%s number of barcodes: %s>'
-        params = (self.__class__.__name__, len(self.location_names))
+        params = (self.__class__.__name__, len(self.rack_barcodes))
         return str_format % params
 

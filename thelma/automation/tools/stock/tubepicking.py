@@ -10,9 +10,7 @@ also possible to try to minimize the number of stock racks used instead.
 
 AAB
 """
-from everest.repositories.rdb import Session
 from sqlalchemy.orm.collections import InstrumentedSet
-from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.semiconstants import get_rack_position_from_indices
 from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
 from thelma.automation.tools.stock.base import STOCK_ITEM_STATUS
@@ -24,13 +22,19 @@ from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.base import create_in_term_for_db_queries
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.models.moleculedesign import MoleculeDesignPool
+from thelma.automation.tools.base import SessionTool
 
 __docformat__ = 'reStructuredText en'
 
 __all__ = ['get_stock_tube_specs_db_term',
            'StockSampleQuery',
+           'TubePoolQuery',
            'TubeCandidate',
-           'TubePickingQuery']
+           'TubePickingQuery',
+           'SinglePoolQuery',
+           'MultiPoolQuery',
+           'OptimizingQuery',
+           'TubePicker']
 
 
 def get_stock_tube_specs_db_term():
@@ -70,11 +74,9 @@ class StockSampleQuery(CustomQuery):
     __POOL_INDEX = COLUMN_NAMES.index(__POOL_COL_NAME)
     __STOCK_SAMPLE_INDEX = COLUMN_NAMES.index(__STOCK_SAMPLE_COL_NAME)
 
-    def __init__(self, session, pool_ids, concentration, minimum_volume=None):
+    def __init__(self, pool_ids, concentration, minimum_volume=None):
         """
         Constructor:
-
-        :param session: The DB session to be used.
 
         :param pool_ids: The molecule design pool IDs for which you want to
             find stock samples.
@@ -88,7 +90,7 @@ class StockSampleQuery(CustomQuery):
             If you do pass a minimum volume all samples are accepted.
         :type minimum_volume: positive number, unit ul
         """
-        CustomQuery.__init__(self, session=session)
+        CustomQuery.__init__(self)
         #: The molecule design pool IDs for which to find stock samples.
         self.pool_ids = pool_ids
         #: The concentration of the stock sample *in nM*.
@@ -111,6 +113,51 @@ class StockSampleQuery(CustomQuery):
         pool_id = result_record[self.__POOL_INDEX]
         stock_sample_id = result_record[self.__STOCK_SAMPLE_INDEX]
         add_list_map_element(self._results, pool_id, stock_sample_id)
+
+
+class TubePoolQuery(CustomQuery):
+    """
+    This query is used to find the pool IDs for a set of tubes.
+
+    The results are stored in a dictionary (pool IDs mapped onto tube barcodes).
+    """
+    QUERY_TEMPLATE = 'SELECT ss.molecule_design_set_id AS pool_id, ' \
+                     '  cb.barcode AS tube_barcode ' \
+                     'FROM stock_sample ss, sample s, container_barcode cb ' \
+                     'WHERE ss.sample_id = s.sample_id ' \
+                     'AND s.container_id = cb.container_id ' \
+                     'AND cb.barcode IN %s;'
+
+    __POOL_COL_NAME = 'pool_id'
+    __TUBE_BARCODE_COL_NAME = 'stock_sample_id'
+
+    COLUMN_NAMES = [__POOL_COL_NAME, __TUBE_BARCODE_COL_NAME]
+
+    __POOL_INDEX = COLUMN_NAMES.index(__POOL_COL_NAME)
+    __TUBE_BARCODE_INDEX = COLUMN_NAMES.index(__TUBE_BARCODE_COL_NAME)
+
+    RESULT_COLLECTION_CLS = map
+
+    def __init__(self, tube_barcodes):
+        """
+        Constructor:
+
+        :param requested_tubes: A list of barcodes from stock tubes.
+        :type requested_tubes: :class:`list`
+        """
+        CustomQuery.__init__(self)
+
+        #: A list of barcodes from stock tubes.
+        self.tube_barcodes = tube_barcodes
+
+    def _get_params_for_sql_statement(self):
+        return create_in_term_for_db_queries(self.tube_barcodes, as_string=True)
+
+    def _store_result(self, result_record):
+        pool_id = result_record[self.__POOL_INDEX]
+        tube_barcode = result_record[self.__TUBE_BARCODE_INDEX]
+        self._results[tube_barcode] = pool_id
+
 
 
 class TubeCandidate(object):
@@ -271,11 +318,9 @@ class _PoolQuery(TubePickingQuery):
 
     CANDIDATE_CLS = TubeCandidate
 
-    def __init__(self, session, concentration, minimum_volume=None):
+    def __init__(self, concentration, minimum_volume=None):
         """
         Constructor:
-
-        :param session: The DB session to be used.
 
         :param concentration: The concentration of the stock sample *in nM*.
         :type concentration: positive number, unit nM
@@ -285,7 +330,7 @@ class _PoolQuery(TubePickingQuery):
             If you do pass a minimum volume all tubes are accepted.
         :type minimum_volume: positive number, unit ul
         """
-        TubePickingQuery.__init__(self, session=session)
+        TubePickingQuery.__init__(self)
 
         #: The concentration of the stock sample *in nM*.
         self.concentration = concentration
@@ -321,15 +366,17 @@ class SinglePoolQuery(_PoolQuery):
     """
     Used if there is you look for a tube for one particular molecule
     design pool.
+
+    The query results are a list of valid :class:`TubeCandidate` objects.
     """
 
     _POOL_OPERATOR = '='
 
-    def __init__(self, session, pool_id, concentration, minimum_volume=None):
+    RESULT_COLLECTION_CLS = list
+
+    def __init__(self, pool_id, concentration, minimum_volume=None):
         """
         Constructor:
-
-        :param session: The DB session to be used.
 
         :param pool_id: The ID of the molecule design pool you need a tuube for.
         :type pool_id: :class:`int`
@@ -342,13 +389,20 @@ class SinglePoolQuery(_PoolQuery):
             If you do pass a minimum volume all tubes are accepted.
         :type minimum_volume: positive number, unit ul
         """
-        _PoolQuery.__init__(self, session=session, concentration=concentration,
+        _PoolQuery.__init__(self, concentration=concentration,
                             minimum_volume=minimum_volume)
-        #: The ID of the molecule design pool you need a tuube for.
+        #: The ID of the molecule design pool you need a tube for.
         self.pool_id = pool_id
 
     def _get_pool_id_term(self):
         return self.pool_id
+
+    def _store_result(self, result_record):
+        """
+        Since there is only one pool we do not need to map the candidates.
+        """
+        candidate = self._create_candidate_from_query_result(result_record)
+        self._results.append(candidate)
 
 
 class MultiPoolQuery(_PoolQuery):
@@ -359,11 +413,9 @@ class MultiPoolQuery(_PoolQuery):
 
     _POOL_OPERATOR = 'IN'
 
-    def __init__(self, session, pool_ids, concentration, minimum_volume=None):
+    def __init__(self, pool_ids, concentration, minimum_volume=None):
         """
         Constructor:
-
-        :param session: The DB session to be used.
 
         :param pool_ids: The ID of the molecule design pools you need tubes for.
         :type pool_ids: iterable of :class:`int`
@@ -376,7 +428,7 @@ class MultiPoolQuery(_PoolQuery):
             If you do pass a minimum volume all tubes are accepted.
         :type minimum_volume: positive number, unit ul
         """
-        _PoolQuery.__init__(self, session=session, concentration=concentration,
+        _PoolQuery.__init__(self, concentration=concentration,
                             minimum_volume=minimum_volume)
 
         #: The ID of the molecule design pools you need tubes for.
@@ -432,7 +484,7 @@ class OptimizingQuery(TubePickingQuery):
 
     IGNORE_COLUMNS = ['total_candidates']
 
-    def __init__(self, session, sample_ids):
+    def __init__(self, sample_ids):
         """
         Constructor:
 
@@ -442,7 +494,7 @@ class OptimizingQuery(TubePickingQuery):
             former queries (e.g. the :class:`StockSampleQuery`).
         :type sample_ids: collection of :class:`int`
         """
-        TubePickingQuery.__init__(self, session=session)
+        TubePickingQuery.__init__(self)
         #: The IDs for the single molecule design pool stock samples.
         self.sample_ids = sample_ids
 
@@ -455,7 +507,7 @@ class OptimizingQuery(TubePickingQuery):
         self._results.append(candidate)
 
 
-class TubePicker(BaseAutomationTool):
+class TubePicker(SessionTool):
     """
     A base tool that picks tube for a set of molecule design pools and one
     concentration. It is possible to exclude certain racks and request special
@@ -497,7 +549,7 @@ class TubePicker(BaseAutomationTool):
             not be used for molecule design picking.
         :type excluded_racks: A list of rack barcodes
         """
-        BaseAutomationTool.__init__(self, log=log)
+        SessionTool.__init__(self, log=log)
 
         #: The molecule design pool IDs for which to run the query.
         self.molecule_design_pools = molecule_design_pools
@@ -518,9 +570,6 @@ class TubePicker(BaseAutomationTool):
         #: (for fixed positions).
         self.requested_tubes = set(requested_tubes)
 
-        #: The DB session used for the queries.
-        self._session = None
-
         #: The pools mapped onto their IDs.
         self._pool_map = None
         #: Stores the suitable stock sample IDs for the pools. The results are
@@ -540,8 +589,7 @@ class TubePicker(BaseAutomationTool):
         return self._get_additional_value(self._unsorted_candidates)
 
     def reset(self):
-        BaseAutomationTool.reset(self)
-        self._session = None
+        SessionTool.reset(self)
         self._pool_map = dict()
         self._stock_samples = []
         self._unsorted_candidates = []
@@ -552,14 +600,12 @@ class TubePicker(BaseAutomationTool):
         self.add_info('Start tube picking ...')
 
         self._check_input()
-        if not self.has_errors(): self.__initialize_session()
         if not self.has_errors(): self._create_pool_map()
         if not self.has_errors(): self._get_stock_samples()
         if not self.has_errors(): self._run_optimizer()
 
         if not self.has_errors():
             self.return_value = self._picked_candidates
-            del self._session
             self.add_info('Tube picker run completed.')
 
     def _check_input(self):
@@ -592,22 +638,10 @@ class TubePicker(BaseAutomationTool):
                   '(obtained: %s).' % (self.stock_concentration)
             self.add_error(msg)
 
-        if self._check_input_class('excluded racks list',
-                                       self.excluded_racks, list):
-            for excl_rack in self.excluded_racks:
-                if not self._check_input_class('excluded rack barcode',
-                                               excl_rack, basestring): break
-        if self._check_input_class('requested tubes list',
-                                       self.requested_tubes, set):
-            for req_tube in self.requested_tubes:
-                if not self._check_input_class('requested tube barcode',
-                                               req_tube, basestring): break
-
-    def __initialize_session(self):
-        """
-        Initialises a session for ORM operations.
-        """
-        self._session = Session()
+        self._check_input_list_classes('excluded rack', self.excluded_racks,
+                                       basestring, may_be_empty=True)
+        self._check_input_list_classes('requested tube', self.requested_tubes,
+                                       basestring, may_be_empty=True)
 
     def _create_pool_map(self):
         """
@@ -623,13 +657,10 @@ class TubePicker(BaseAutomationTool):
         """
         self.add_debug('Get stock samples ...')
 
-        query = StockSampleQuery(session=self._session,
-                                 pool_ids=self._pool_map.keys(),
+        query = StockSampleQuery(pool_ids=self._pool_map.keys(),
                                  concentration=self.stock_concentration,
                                  minimum_volume=self.take_out_volume)
-        self._run_and_record_error(query.run,
-                       base_msg='Error when trying to query stock samples: ',
-                       error_types=set(ValueError))
+        self._run_query(query, 'Error when trying to query stock samples: ')
 
         if not self.has_errors():
             sample_map = query.get_query_results()
@@ -656,11 +687,8 @@ class TubePicker(BaseAutomationTool):
         """
         self.add_debug('Run optimizing query ...')
 
-        query = OptimizingQuery(session=self._session,
-                                sample_ids=self._stock_samples)
-        self._run_and_record_error(meth=query.run,
-                        base_msg='Error when trying to run optimizing query: ',
-                        error_types=set(ValueError))
+        query = OptimizingQuery(sample_ids=self._stock_samples)
+        self._run_query(query, 'Error when trying to run optimizing query: ')
 
         if not self.has_errors():
             candidates = query.get_query_results()

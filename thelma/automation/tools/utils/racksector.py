@@ -10,6 +10,7 @@ from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.semiconstants import get_rack_position_from_indices
 from thelma.automation.tools.utils.base import WorkingPosition
 from thelma.automation.tools.utils.base import add_list_map_element
+from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 
 
 __docformat__ = 'reStructuredText en'
@@ -903,7 +904,7 @@ class RackSectorAssociator(BaseAutomationTool):
         """
         Determines and checks the association for each quadrant.
         """
-        quadrant_iterator = QuadrantIterator(number_sectors=4)
+        quadrant_iterator = QuadrantIterator(number_sectors=self.number_sectors)
         for quadrant_wps in quadrant_iterator.get_all_quadrants(self.layout):
             associated_sectors = self.__associate_pool_sets(quadrant_wps)
             if associated_sectors is None: break
@@ -914,21 +915,19 @@ class RackSectorAssociator(BaseAutomationTool):
         sectors accordingly. The sectors associations must be the same
         for the whole layout (except for empty positions).
         """
-        md_pools = dict()
+        pools = dict()
 
         for sector_index, working_position in quadrant_wps.iteritems():
-            md_pool = self._get_molecule_design_pool(working_position)
-            if not md_pools.has_key(md_pool):
-                md_pools[md_pool] = []
-            md_pools[md_pool].append(sector_index)
+            pool = self._get_molecule_design_pool(working_position)
+            add_list_map_element(pools, pool, sector_index)
 
         all_associated_sectors = []
         for sectors in self._associated_sectors:
             for sector_index in sectors:
                 all_associated_sectors.append(sector_index)
 
-        for md_pool, sectors in md_pools.iteritems():
-            if md_pool == WorkingPosition.NONE_REPLACER: continue
+        for pool, sectors in pools.iteritems():
+            if pool == WorkingPosition.NONE_REPLACER: continue
             sectors.sort()
             present = False
             for sector_index in sectors:
@@ -949,7 +948,7 @@ class RackSectorAssociator(BaseAutomationTool):
                 self.add_error(msg)
                 return None
 
-        return md_pools.values()
+        return pools.values()
 
     def _get_molecule_design_pool(self, layout_pos): #pylint: disable=W0613
         """
@@ -988,6 +987,8 @@ class AssociationData(object):
     :Note: All attributes are immutable.
     """
 
+    __SECTOR_NUMBER_384 = 4
+
     def __init__(self, layout, log, record_errors=True):
         """
         Constructor:
@@ -1010,6 +1011,12 @@ class AssociationData(object):
         self._sector_concentrations = None
         #: The parent sector for each sector.
         self._parent_sectors = dict()
+
+        number_sectors = 1
+        if layout.shape.name == RACK_SHAPE_NAMES.SHAPE_384:
+            number_sectors = self.__SECTOR_NUMBER_384
+        #: The number of sectors depends on the rack shape.
+        self._number_sectors = number_sectors
 
         self.__associate(layout, log, record_errors)
 
@@ -1038,9 +1045,9 @@ class AssociationData(object):
     @property
     def number_sectors(self):
         """
-        The number of rack sectors.
+        The number of sectors depends on the rack shape.
         """
-        return len(self._sector_concentrations)
+        return self._number_sectors
 
     def __associate(self, layout, log, record_errors):
         """
@@ -1051,15 +1058,42 @@ class AssociationData(object):
 
         if len(concentrations) == 1:
             conc = list(concentrations)[0]
-            self._sector_concentrations = {0 : conc}
-            self._associated_sectors = [[0]]
-            self._parent_sectors = {0 : None}
+            if self.number_sectors == 1:
+                self._sector_concentrations = {0 : conc}
+                self._associated_sectors = [[0]]
+                self._parent_sectors = {0 : None}
+            else: # number sectors = 4
+                sectors = self.__find_present_sector(layout, log)
+                self._associated_sectors = []
+                for sector_index in sorted(sectors):
+                    self._sector_concentrations[sector_index] = conc
+                    self._parent_sectors[sector_index] = None
+                    self._associated_sectors.append([sector_index])
         else:
             self.__find_relationships(layout, log, record_errors)
 
     def _find_concentrations(self, layout):
         """
         Finds all different concentrations in the layout.
+        """
+        raise NotImplementedError('Abstract method.')
+
+    def __find_present_sector(self, layout, log):
+        """
+        Returns the indices of sectors that have values (assummes a 384-position
+        layout).
+        """
+        value_determiner = self._init_value_determiner(layout, log)
+        sector_values = value_determiner.get_result()
+        present_sectors = []
+        for sector_index, value in sector_values.iteritems():
+            if value is not None: present_sectors.append(sector_index)
+        return present_sectors
+
+    def _init_value_determiner(self, layout, log):
+        """
+        Initialises a value determiner. It is used to find the sectors that
+        are present in 384-position layout with independent sectors.
         """
         raise NotImplementedError('Abstract method.')
 

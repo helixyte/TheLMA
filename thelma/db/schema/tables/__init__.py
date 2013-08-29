@@ -283,7 +283,7 @@ def initialize_tables(metadata):
     iso_job_member_tbl = isojobmember.create_table(metadata, job_tbl, iso_tbl)
 
     stock_rack_tbl = stockrack.create_table(metadata, rack_tbl, rack_layout_tbl,
-                                            planned_worklist_tbl)
+                                            worklist_series_tbl)
     iso_job_stock_rack_tbl = isojobstockrack.create_table(metadata,
                                                     stock_rack_tbl, job_tbl)
     iso_stock_rack_tbl = isostockrack.create_table(metadata, stock_rack_tbl,

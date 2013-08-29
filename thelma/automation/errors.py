@@ -274,6 +274,77 @@ class EventRecording(object):
             return False
         return True
 
+    def _check_input_list_classes(self, item_name, list_obj, item_cls,
+                                  may_be_empty=False):
+        """
+        Checks whether a list and the objects it contains have the expected
+        class and a length of at least 1 and records an error, if applicable.
+
+        :param item_name: The name under which a list item shall be referenced
+            in the error message.
+        :type item_name: :class:`str
+
+        :param list_obj: The list to be tested.
+        :type list_obj: :class:`list`
+
+        :param item_cls: The expected class for the list items.
+        :type item_cls: any
+
+        :param may_be_empty: May the list be empty?
+        :type may_be_empty: :class:`bool`
+        :default may_be_empty: *False*
+        """
+        list_name = '%s list' % (item_name)
+        if self._check_input_class(list_name, list_obj, list):
+
+            for item in list_obj:
+                if not self._check_input_class(item_name, item, item_cls):
+                    break
+            if len(list_obj) < 1 and not may_be_empty:
+                msg = 'The %s is empty!' % (list_name)
+                self.add_error(msg)
+
+    def _check_input_map_classes(self, map_obj, map_name, key_name, key_cls,
+                                 value_name, value_cls, may_be_empty=False):
+        """
+        Checks whether a maps and the objects it contains have the expected
+        class and a length of at least 1 and records an error, if applicable.
+
+        :param map_obj: The map to be tested.
+        :type map_obj: :class:`dict`
+
+        :param map_name: The name under which the map shall be referenced
+            in the error message.
+        :type map_name: :class:`str
+
+        :param key_name: The name under which a map key item be referenced
+            in the error message.
+        :type key_name: :class:`str
+
+        :param value_name: The name under which a mape value shall be
+            referenced in the error message.
+        :type value_name: :class:`str
+
+        :param key_cls: The expected class for the map keys.
+        :type key_cls: any
+
+        :param value_cls: The expected class for the map values.
+        :type value_cls: any
+
+        :param may_be_empty: May the list be empty?
+        :type may_be_empty: :class:`bool`
+        :default may_be_empty: *False*
+        """
+        if self._check_input_class(map_name, map_obj, dict):
+
+            for k, v in map_obj.iteritems():
+                if not self._check_input_class(key_name, k, key_cls): break
+                if not self._check_input_class(value_name, v, value_cls): break
+
+            if len(map_obj) < 1 and not may_be_empty:
+                msg = 'The %s is empty!' % (map_name)
+                self.add_error(msg)
+
     def _run_and_record_error(self, meth, base_msg, error_types=None, **kw):
         """
         Convenience method that runs a method and catches errors of the
@@ -283,7 +354,7 @@ class EventRecording(object):
         :param meth: The method to be called.
 
         :param base_msg: This message is put in front of the potential error
-            message.
+            message. If the message is *None* there is no error recorded.
         :type base_msg: :class:`str`
 
         :param error_types: Error classes that shall be caught.
@@ -293,19 +364,20 @@ class EventRecording(object):
 
         :return: The method return value or *None* (in case of exception)
         """
-        filler = ': '
-        if base_msg.endswith(filler):
-            filler = ''
-        elif base_msg.endswith(':'):
-            filler = ' '
-        base_msg += filler
+        if base_msg is not None:
+            filler = ': '
+            if base_msg.endswith(filler):
+                filler = ''
+            elif base_msg.endswith(':'):
+                filler = ' '
+            base_msg += filler
         if error_types is None:
             error_types = set(ValueError, TypeError, AttributeError)
 
         try:
             return_value = meth(**kw)
         except StandardError as e:
-            if e.__class__ in error_types:
+            if e.__class__ in error_types and not base_msg is None:
                 self.add_error(base_msg + e)
             else:
                 raise e

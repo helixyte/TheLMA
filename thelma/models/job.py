@@ -123,14 +123,14 @@ class IsoJob(Job):
     number_stock_racks = None
 
     #: The rack containing the stock tubes for the controls that are
-    #: used in this job (not every ISO job needs one,
+    #: used in this job (not every ISO job needs some, list of
     #: :class:`thelma.models.iso.IsoJobStockRack`)
     iso_job_stock_racks = None
-    #: The plate used to predilute controls before there are transferred
+    #: The plates used to predilute controls before there are transferred
     #: to the ISO plates. The samples in this plate serve as source for all
-    #: ISOs in this job (not every ISO job needs one,
+    #: ISOs in this job (not every ISO job needs some, list of
     #: :class:`thelma.models.iso.IsoJobPreparationPlate`).
-    iso_job_preparation_plate = None
+    iso_job_preparation_plates = None
 
     def __init__(self, label, user, isos, number_stock_racks, **kw):
         """

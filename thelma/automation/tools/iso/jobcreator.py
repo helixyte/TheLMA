@@ -127,17 +127,10 @@ class IsoJobCreator(BaseAutomationTool):
                   '(obtained: %s).' % (self.number_isos)
             self.add_error(msg)
 
-        if self._check_input_class('excluded racks list',
-                                       self.excluded_racks, list):
-            for excl_rack in self.excluded_racks:
-                if not self._check_input_class('excluded rack barcode',
-                                               excl_rack, basestring): break
-
-        if self._check_input_class('requested tubes list',
-                                       self.requested_tubes, list):
-            for req_tube in self.requested_tubes:
-                if not self._check_input_class('requested tube barcode',
-                                               req_tube, basestring): break
+        self._check_input_list_classes('excluded rack', self.excluded_racks,
+                                       basestring, may_be_empty=True)
+        self._check_input_list_classes('requested tube', self.requested_tubes,
+                                       basestring, may_be_empty=True)
 
     def _get_isos(self):
         """
@@ -162,13 +155,23 @@ class IsoJobCreator(BaseAutomationTool):
         Creates an :class:`IsoJob` summarizing the ISOs. The label for
         the job is derived from the ISO request label.
         """
+        self.add_debug('Create ISO job ...')
+
         job_num = LABELS.get_new_job_number(iso_request=self.iso_request)
         ticket_number = self.iso_request.experiment_metadata.ticket_number
         job_label = LABELS.create_job_label(ticket_number=ticket_number,
                                             job_number=job_num)
+        number_stock_racks = self._get_number_stock_racks()
         self._iso_job = IsoJob(label=job_label, user=self.job_owner,
-                               isos=self._isos)
+                               isos=self._isos,
+                               number_stock_racks=number_stock_racks)
         self._create_iso_job_racks()
+
+    def _get_number_stock_racks(self):
+        """
+        Returns the (maximum) number of stock racks expected for this ISO job.
+        """
+        raise NotImplementedError('Abstract method.')
 
     def _create_iso_job_racks(self):
         """
@@ -263,17 +266,10 @@ class IsoProvider(BaseAutomationTool):
                   '(obtained: %s).' % (self.number_isos)
             self.add_error(msg)
 
-        if self._check_input_class('excluded racks list',
-                                       self.excluded_racks, list):
-            for excl_rack in self.excluded_racks:
-                if not self._check_input_class('excluded rack barcode',
-                                               excl_rack, basestring): break
-
-        if self._check_input_class('requested tubes list',
-                                       self.requested_tubes, list):
-            for req_tube in self.requested_tubes:
-                if not self._check_input_class('requested tube barcode',
-                                               req_tube, basestring): break
+        self._check_input_list_classes('excluded rack', self.excluded_racks,
+                                       basestring, may_be_empty=True)
+        self._check_input_list_classes('requested tube', self.requested_tubes,
+                                       basestring, may_be_empty=True)
 
     def _collect_iso_data(self):
         """

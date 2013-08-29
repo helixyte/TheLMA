@@ -18,25 +18,31 @@ from thelma.automation.tools.utils.racksector import AssociationData
 from thelma.automation.tools.utils.racksector import RackSectorAssociator
 from thelma.automation.tools.utils.racksector import ValueDeterminer
 from thelma.models.organization import Organization
+from thelma.automation.tools.utils.base import TransferTarget
 
 __all__ = ['get_stock_takeout_volume',
-           'IsoPlateParameters',
-           'IsoPlatePosition',
-           'IsoPlateLayout',
-           'IsoPlateLayoutConverter',
+           'LabIsoRackContainer',
+           'LabIsoParameters',
+           'LabIsoPosition',
+           'LabIsoLayout',
+           'LabIsoLayoutConverter',
            'IsoPlateValueDeterminer',
            'IsoPlateSectorAssociator',
            'IsoPlateAssociationData',
-           'IsoPrepPlateParameters',
-           'IsoPrepPlatePosition',
-           'IsoPrepPlateLayout',
-           'IsoPrepPlateLayoutConverter']
+           'FinalLabIsoParameters',
+           'FinalLabIsoPosition',
+           'FinalLabIsoLayout',
+           'FinalLabIsoLayoutConverter',
+           'LabIsoPrepParameters',
+           'LabIsoPrepPosition',
+           'LabIsoPrepLayout',
+           'LabIsoPrepLayoutConverter']
 
 
 def get_stock_takeout_volume(stock_concentration, final_volume, concentration):
     """
     Returns the volume that needs to be taken out of the stock in
-    order to set up the desired concentration (round to 1 decimal
+    order to set up the desired concentration (*in ul* round to 1 decimal
     place).
 
     :param stock_concentration: The stock concentration for the given
@@ -50,7 +56,7 @@ def get_stock_takeout_volume(stock_concentration, final_volume, concentration):
     :param concentration: The concentration for the target position *in nM*.
     :type concentration: positive number
 
-    :return: The volume to be taken from the stock in ul.
+    :return: The volume to be taken from the stock *in ul*.
     """
     dil_factor = stock_concentration / float(concentration)
     take_out_volume = final_volume / dil_factor
@@ -64,7 +70,7 @@ DILUENT_INFO = 'annealing buffer'
 
 class LABELS(object):
     """
-    Generates and parses worklist and plate labels involved in lab ISO
+    Generates and parses worklist and rack labels involved in lab ISO
     processing.
     """
     #: The character used in the labels to separate the value parts.
@@ -72,16 +78,15 @@ class LABELS(object):
     #: This character is used seperate running numbers from value parts.
     NUMBERING_CHAR = '#'
 
-
-    #: Marker for ticket number in keyword dictionaries.
-    MARKER_TICKET_NUMBER = 'ticket_number'
-    #: Marker for things related in aliquot processing.
-    ROLE_ALIQUOT = 'a'
-    #: Marker for things related in preparation processing.
+    #: Marker for final ISO plates.
+    ROLE_FINAL = 'a'
+    #: Marker for plates related in preparation processing.
     ROLE_PREPARATION_ISO = 'p'
-    #: Marker for things related to job processing (occurs if there are
-    #: flaotings positions in a layout).
+    #: Marker for plates related to job processing (occurs if there are
+    #: floatings positions in a layout).
     ROLE_PREPARATION_JOB = 'jp'
+    #: Marker for stock racks.
+    ROLE_STOCK = 's'
 
     #: Marker for worklist counts (to facilitate worklist ordering and
     #: distinguish intraplate transfer worklists).
@@ -91,17 +96,17 @@ class LABELS(object):
     #: Marker for worklist target racks in keyword dictionaries.
     MARKER_WORKLIST_TARGET = 'target_rack_marker'
 
-    #: Marker for plates. The role can be :attr:`ROLE_ALIQUOT`,
-    #: :attr:`ROLE_PREPARATION`, or :att:`ROLE_JOB_PREPARATION`.
-    MARKER_PLATE_ROLE = 'plate_role'
-    #: Used to distinguish plates having the same role.
-    MARKER_PLATE_NUM = 'plate_num'
-    #: Marker for plate marker (see :func:`create_plate_marker`).
-    MARKER_PLATE_MARKER = 'plate_marker'
+    #: Marker for ticket number in keyword dictionaries.
+    MARKER_TICKET_NUMBER = 'ticket_number'
+    #: Marker for racks. The role can be :attr:`ROLE_FINAL`, :attr:`ROLE_STOCK`,
+    #: :attr:`ROLE_PREPARATION` or :attr:`ROLE_JOB_PREPARATION`.
+    MARKER_RACK_ROLE = 'rack_role'
+    #: Used to distinguish racks having the same role.
+    MARKER_RACK_NUM = 'rack_num'
+    #: Marker for racks markers (see :func:`create_rack_marker`).
+    MARKER_RACK_MARKER = 'rack_marker'
     #: Marker for ISO or ISO job number.
     MARKER_ENTITY_NUM = 'entity_num'
-    #: Marker for ISO or ISO job labels.
-    MARKER_ENTITY_LABEL = 'entity_label'
 
     #: For transfer worklists. Located between source and target rack.
     __FILL_WORKLIST_TRANSFER = 'to'
@@ -193,49 +198,52 @@ class LABELS(object):
         return cls.__parse_int_str(value_parts[2])
 
     @classmethod
-    def create_plate_marker(cls, plate_role, plate_number=None):
+    def create_rack_marker(cls, rack_role, rack_number=None):
         """
-        A plate marker contains a role and (optionally) a plate number.
+        A rack marker contains a role and (optionally) a rack number.
         """
-        value_parts = [plate_role]
-        if plate_number is not None:
-            plate_num = cls.__get_int_str(plate_number)
-            value_parts += [plate_num]
+        value_parts = [rack_role]
+        if rack_number is not None:
+            rack_num = cls.__get_int_str(rack_number)
+            value_parts += [rack_num]
             return cls.__create_label(value_parts, for_numbering=True)
         else:
-            return plate_role
+            return rack_role
 
     @classmethod
-    def parse_plate_marker(cls, plate_marker):
+    def parse_rack_marker(cls, rack_marker):
         """
-        A plate marker contains a role and (optionally) a plate number.
+        A rack marker contains a role and (optionally) a rack number.
+        If the rack marker is a :attr:LIBRARY_PLACEHOLDER`, the role is
+        final plate (without number).
         """
-        value_parts = cls.__get_value_parts(plate_marker, for_numbering=True)
-        values = {cls.MARKER_PLATE_ROLE : value_parts[0]}
+        value_parts = cls.__get_value_parts(rack_marker, for_numbering=True)
+        values = {cls.MARKER_RACK_ROLE : value_parts[0]}
         if len(value_parts) > 1:
-            plate_num = cls.__parse_int_str(value_parts[1])
-            values[cls.MARKER_PLATE_NUM] = plate_num
+            rack_num = cls.__parse_int_str(value_parts[1])
+            values[cls.MARKER_RACK_NUM] = rack_num
         return values
 
     @classmethod
-    def create_plate_label(cls, plate_marker, entity_label):
+    def create_rack_label(cls, rack_marker, entity_label):
         """
-        The plate label contains the ISO or ISO job label and a plate marker.
+        The rack label contains the ISO or ISO job label and a rack marker.
         """
-        value_parts = [entity_label, plate_marker]
+        value_parts = [entity_label, rack_marker]
         return cls.__create_label(value_parts)
 
     @classmethod
-    def parse_plate_label(cls, plate_label):
+    def parse_rack_label(cls, plate_label):
         """
-        The plate label contains the ticket ID and ISO or ISO job number,
-        and a plate marker (plate role and (optionally) plate number).
+        The rack label contains the ticket ID and ISO or ISO job number,
+        and a rack marker (rack role and (optionally) rack number).
         """
         value_parts = cls.__get_value_parts(plate_label)
         ticket_number = cls.__parse_int_str(value_parts[0])
         entity_num = cls.__parse_int_str(value_parts[2])
-        plate_marker = value_parts[3]
-        values = cls.parse_plate_marker(plate_marker)
+        rack_marker = value_parts[3]
+        value_parts[cls.MARKER_RACK_MARKER] = rack_marker
+        values = cls.parse_rack_marker(rack_marker)
         values[cls.MARKER_TICKET_NUMBER] = ticket_number
         values[cls.MARKER_ENTITY_NUM] = entity_num
         return values
@@ -243,31 +251,31 @@ class LABELS(object):
 
     @classmethod
     def create_worklist_label(cls, ticket_number, worklist_number,
-                              target_plate_marker, source_plate_marker=None):
+                              target_rack_marker, source_rack_marker=None):
         """
         Creates a label for a series worklist. The worklist label always
         contains the ticket number and a worklist number. Transfer worklists
-        then continue with the source plate marker, a filler and the target
-        plate marker (source and target marker can be equal) whereas dilution
-        worklists contain the target plate marker and a (different) filler.
+        then continue with the source rack marker, a filler and the target
+        rack marker (source and target marker can be equal) whereas dilution
+        worklists contain the target rack marker and a (different) filler.
         """
         ticket_str = cls.__get_int_str(ticket_number)
         num_str = cls.__get_int_str(worklist_number)
         value_parts = [ticket_str, num_str]
-        if source_plate_marker is None:
-            value_parts += [target_plate_marker, cls.__FILL_WORKLIST_DILUTION]
+        if source_rack_marker is None:
+            value_parts += [target_rack_marker, cls.__FILL_WORKLIST_DILUTION]
         else:
-            value_parts += [source_plate_marker, cls.__FILL_WORKLIST_TRANSFER,
-                           target_plate_marker]
+            value_parts += [source_rack_marker, cls.__FILL_WORKLIST_TRANSFER,
+                           target_rack_marker]
         return cls.__create_label(value_parts)
 
     @classmethod
     def parse_worklist_label(cls, worklist_label):
         """
         Series worklist labels always contain the ticket number and a worklist
-        number. Transfer worklists then continue with the source plate marker,
-        a filler and the target plate marker (source and target marker can be
-        equal) whereas dilution worklists contain the target plate marker
+        number. Transfer worklists then continue with the source rack marker,
+        a filler and the target rack marker (source and target marker can be
+        equal) whereas dilution worklists contain the target rack marker
         and a (different) filler.
         """
         value_parts = cls.__get_value_parts(worklist_label)
@@ -315,7 +323,68 @@ class LABELS(object):
         return int(value_str)
 
 
-class IsoPlateParameters(TransferParameters):
+class LabIsoRackContainer(object):
+    """
+    A helper class storing the role and rack marker for a rack involved
+    in ISO processing.
+    """
+    def __init__(self, rack, label=None, rack_marker=None, role=None):
+        """
+        Constructor:
+
+        :param rack: The rack or plate.
+        :type rack: :class:`thelma.models.rack.Rack`
+
+        :param label: The rack or stock rack label.
+        :type label: :class:`basestring`
+        :default label: *None* (is taken from the :param:`rack`).
+
+        :param rack_marker: Contains the rack role and number
+            (see :func:`LABELS.create_rack_marker`).
+        :type rack_marker: :class:`basestring`
+        :default rack_marker: *None* (is parsed from the :param:`label`).
+
+        :param role: Final, preparation or stock preparation plate or stock rack
+            (see :class:`LABELS`).
+        :type role: *ROLE* value from :class:`LABELS`
+        :default role: *None* (is parsed from the :param:`label`).
+        """
+        #: The rack or plate.
+        self.rack = rack
+
+        if label is None:
+            label = rack.label
+        #: The rack or stock rack label.
+        self.label = label
+
+        if rack_marker is None or role is None:
+            values = LABELS.parse_rack_label(label)
+            if rack_marker is None:
+                rack_marker = values[LABELS.MARKER_RACK_MARKER]
+            if role is None:
+                role = values[LABELS.MARKER_RACK_ROLE]
+
+        #: Contains the rack role and number (see
+        #: :func:`LABELS.create_rack_marker`).
+        self.rack_marker = rack_marker
+        #: Final, preparation or stock preparation plate or stock rack
+        #: (see :class:`LABELS`).
+        self.role = role
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and other.rack == self.rack
+
+    def __str__(self):
+        return self.label
+
+    def __repr__(self):
+        str_format = '<%s rack: %s, label: %s>'
+        params = (self.__class__.__name__, self.rack, self.label)
+        return str_format % params
+
+
+
+class LabIsoParameters(TransferParameters):
     """
     These parameters are involved in the preparation of lab ISOs.
     """
@@ -338,35 +407,44 @@ class IsoPlateParameters(TransferParameters):
     #: The transfer target *within the same plate*.
     TRANSFER_TARGETS = TransferParameters.TRANSFER_TARGETS
 
-    REQUIRED = TransferParameters + [CONCENTRATION, VOLUME]
-    ALL = REQUIRED + [STOCK_TUBE_BARCODE, STOCK_RACK_BARCODE, TRANSFER_TARGETS]
+    #: The (lowest) sector index in the final ISO plate (only for samples
+    #: that are transferred via the CyBio).
+    SECTOR_INDEX = 'sector_index'
+    #: The plate marker (see :class:`LABELS`) for the source stock rack (only
+    #: for starting wells).
+    STOCK_RACK_MARKER = 'stock_rack_marker'
 
-    ALIAS_MAP = TransferParameters.ALIAS_MAP.update({
+
+    REQUIRED = TransferParameters + [CONCENTRATION, VOLUME]
+    ALL = REQUIRED + [STOCK_TUBE_BARCODE, STOCK_RACK_BARCODE, TRANSFER_TARGETS,
+                      SECTOR_INDEX, STOCK_RACK_MARKER]
+
+    ALIAS_MAP = dict(TransferParameters.ALIAS_MAP, **{
                  CONCENTRATION : ['preparation_concentration'],
                  VOLUME : ['required_volume'],
-                 STOCK_TUBE_BARCODE : [],
-                 STOCK_RACK_BARCODE : []})
+                 STOCK_TUBE_BARCODE : [], STOCK_RACK_BARCODE : [],
+                 SECTOR_INDEX : [], STOCK_RACK_MARKER : []})
 
-    DOMAIN_MAP = TransferParameters.DOMAIN_MAP.update({
-                 CONCENTRATION : DOMAIN,
-                 VOLUME : DOMAIN,
-                 STOCK_TUBE_BARCODE : DOMAIN,
-                 STOCK_RACK_BARCODE : DOMAIN})
+    DOMAIN_MAP = dict(TransferParameters.DOMAIN_MAP, **{
+                 CONCENTRATION : DOMAIN, VOLUME : DOMAIN,
+                 STOCK_TUBE_BARCODE : DOMAIN, STOCK_RACK_BARCODE : DOMAIN,
+                 SECTOR_INDEX : DOMAIN, STOCK_RACK_MARKER : DOMAIN})
 
 
-class IsoPlatePosition(TransferPosition):
+class LabIsoPosition(TransferPosition):
     """
     Represents a position in a plate involved in lab ISO processing.
     """
-    PARAMETER_SET = IsoPlateParameters
+    PARAMETER_SET = LabIsoParameters
 
     #: Used in the ISO planning phase to mark a staring position for which
     #: there is no tube barcode yet.
-    TEMP_TUBE_BARCODE = 'to be defined'
+    TEMP_STOCK_DATA = 'to be defined'
 
     def __init__(self, rack_position, molecule_design_pool, position_type,
                  concentration, volume, transfer_targets=None,
-                 stock_tube_barcode=None, stock_rack_barcode=None):
+                 stock_tube_barcode=None, stock_rack_barcode=None,
+                 sector_index=None, stock_rack_marker=None):
         """
         Constructor:
 
@@ -398,6 +476,14 @@ class IsoPlatePosition(TransferPosition):
         :param stock_rack_barcode: The barcode of the stock rack of the prime
             hit of the optimisation query.
         :type stock_rack_barcode: :class:`str`
+
+        :param sector_index: The (lowest) sector index in the final ISO plate
+            (only for samples that are transferred via the CyBio).
+        :type sector_index: non-negative integer
+
+        :param stock_rack_marker: The plate marker (see :class:`LABELS`) for
+            the source stock rack (only for starting wells).
+        :type stock_rack_marker: :class:`str`
         """
         TransferPosition.__init__(self, rack_position=rack_position,
                                   molecule_design_pool=molecule_design_pool,
@@ -430,6 +516,17 @@ class IsoPlatePosition(TransferPosition):
             msg = 'The stock rack barcode must be a string (obtained: %s).' \
                    % (stock_rack_barcode.__class__.__name__)
             raise TypeError(msg)
+        if not sector_index is None and not is_valid_number(sector_index,
+                                        may_be_zero=True, is_integer=True):
+            msg = 'The sector index must be a non-negative integer (obtained: ' \
+                  '%s).' % (sector_index)
+            raise ValueError(msg)
+        if not stock_rack_marker is None and \
+                (not isinstance(stock_rack_marker, basestring) or \
+                 len(stock_rack_marker) < 2):
+            msg = 'The stock rack marker must be a string of at least 2 ' \
+                  'characters length (obtained: %s).' % (stock_rack_marker)
+            raise TypeError(msg)
 
         if not stock_tube_barcode is None:
             stock_tube_barcode = str(stock_tube_barcode)
@@ -455,11 +552,18 @@ class IsoPlatePosition(TransferPosition):
         #: the DB).
         self._supplier = None
 
+        #: The (lowest) sector index in the final ISO plate (only for samples
+        #: that are transferred via the CyBio).
+        self.sector_index = sector_index
+        #: The plate marker (see :class:`LABELS`) for the source stock rack
+        #: (only for starting wells).
+        self.stock_rack_marker = stock_rack_marker
+
         if self.is_mock:
-            self.prep_concentration = None
+            self.concentration = None
             self.stock_rack_barcode = None
             self.stock_tube_barcode = None
-            self.parent_well = None
+            self.stock_rack_marker = None
 
     @classmethod
     def create_mock_position(cls, rack_position, volume):
@@ -477,47 +581,26 @@ class IsoPlatePosition(TransferPosition):
                    molecule_design_pool=MOCK_POSITION_TYPE,
                    position_type=MOCK_POSITION_TYPE, volume=volume)
 
-    @classmethod
-    def create_library_position(cls, rack_position, concentration, volume):
-        """
-        Returns a library type ISO plate position with the given values.
-        The samples are already present in the plates.
-
-        :param rack_position: The position within the rack.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`
-
-        :param concentration: The pool concentration in the plate *in nM*.
-        :type concentration: positive number, unit nM
-
-        :param volume: The volume in the plate *in ul*.
-        :type volume: positive number, unit ul
-        """
-        return cls(rack_position=rack_position,
-                   molecule_design_pool=LIBRARY_POSITION_TYPE,
-                   position_type=LIBRARY_POSITION_TYPE,
-                   concentration=concentration,
-                   volume=volume)
-
     @property
     def is_inactivated(self):
         """
         A position is set to inactivated if the tube picker has not been
         capable to find a valid stock tube.
         """
-        if self.stock_tube_barcode is None and not self.is_mock:
-            return True
-        else:
-            return False
+        if not (self.is_fixed or self.is_floating): return False
+        return (self.stock_rack_marker is not None and \
+                self.stock_tube_barcode is None)
 
     def inactivate(self):
         """
-        Inactivates the position (setting stock rack barcode to *None*).
+        Inactivates the position (setting stock tube and barcode to *None*).
         A position is set to inactivated if there is no suitable stock tube
         found. Only floating positions can be inactivated.
 
         :raises AttributeError: If the position is not a floating position.
         """
         if self.is_floating:
+            self.stock_tube_barcode = None
             self.stock_rack_barcode = None
         else:
             raise AttributeError('%s positions must not be inactivated!' \
@@ -530,20 +613,20 @@ class IsoPlatePosition(TransferPosition):
         (instead as from other wells). Thus, a starting position must have
         a stock tube barcode set.
         """
-        if self.is_mock: return False
-        return (self.stock_tube_barcode is not None)
+        if not (self.is_floating or self.is_fixed): return False
+        return (self.stock_rack_marker is not None)
 
     def get_stock_takeout_volume(self):
         """
         Returns the volume that needs to be taken out of the stock in
-        order to set up the desired concentration (round to 1 decimal
+        order to set up the desired concentration (*in ul* rounded to 1 decimal
         place).
         Return *None* for non-starting wells (= wells without
         :attr:`stock_tube_barcode`) and *0* for mock positions.
 
         :raise ValueError: if the stock concentration is *None*
 
-        :rtype: :class:`float`
+        :rtype: :class:`float`, unit ul
         """
         if not self.is_starting_well: return None
         if self.stock_concentration is None:
@@ -554,11 +637,11 @@ class IsoPlatePosition(TransferPosition):
 
     def create_completed_copy(self, tube_candidate):
         """
-        Returns a copy of this IsoPlatePosition that has a specific molecule
+        Returns a copy of this LabIsoPosition that has a specific molecule
         design pool (in case of floating positions) and, if this position is
         a starting well also defined stock tube barcode and stock rack barcode.
         A well is regarded as starting well if its current
-        :attr:`stock_tube_barcode` is equal to the :attr:`TEMP_TUBE_BARCODE`.
+        :attr:`stock_tube_barcode` is equal to the :attr:`TEMP_STOCK_DATA`.
 
         :param tube_candidate: The tube candidate used to complete the position
             data.
@@ -568,7 +651,7 @@ class IsoPlatePosition(TransferPosition):
             position, if (in case of fixed positions) if the pool of tube
             candidate and position do not match or if there is already a
             non-placeholde stock tube barcode set.
-        :return: The IsoPlatePosition or *None* if any value is invalid.
+        :return: The LabIsoPosition or *None* if any value is invalid.
         """
         if self.is_floating:
             if not isinstance(self.molecule_design_pool, basestring):
@@ -583,7 +666,7 @@ class IsoPlatePosition(TransferPosition):
                       '(%s) do not match!' % (pool, tube_candidate.pool)
                 raise ValueError(msg)
 
-        if self.stock_tube_barcode == self.TEMP_TUBE_BARCODE:
+        if self.stock_tube_barcode == self.TEMP_STOCK_DATA:
             stock_tube_barcode = tube_candidate.tube_barcode
             stock_rack_barcode = tube_candidate.rack_barcode
         elif self.stock_tube_barcode is not None:
@@ -602,6 +685,15 @@ class IsoPlatePosition(TransferPosition):
                          volume=self.volume,
                          transfer_targets=self.transfer_targets)
         return plate_pos
+
+    def as_transfer_target(self):
+        """
+        Returns a :class:`TransferTarget` for a :class:`StockRackPosition`.
+        For starting wells only.
+        """
+        return TransferTarget(rack_position=self.rack_position,
+                              transfer_volume=self.get_stock_takeout_volume(),
+                              target_rack_marker=self.stock_rack_marker)
 
     def set_supplier(self, supplier):
         """
@@ -639,6 +731,10 @@ class IsoPlatePosition(TransferPosition):
                                                         self.stock_tube_barcode
         parameters[self.PARAMETER_SET.STOCK_RACK_BARCODE] = \
                                                         self.stock_rack_barcode
+        parameters[self.PARAMETER_SET.SECTOR_INDEX] = self.sector_index
+        parameters[self.PARAMETER_SET.STOCK_RACK_MARKER] = \
+                                                      self.stock_rack_marker
+        return parameters
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) \
@@ -657,11 +753,15 @@ class IsoPlatePosition(TransferPosition):
         return str_format % params
 
 
-class IsoPlateLayout(TransferLayout):
+class LabIsoLayout(TransferLayout):
     """
     Represents a plate in a lab ISO preparation process.
     """
-    WORKING_POSITION_CLS = IsoPlatePosition
+    WORKING_POSITION_CLS = LabIsoPosition
+
+    #: Is used to indicate working position without sector indices in sector
+    #: maps (see :func:`get_sector_map`).
+    NO_SECTOR_MARKER = 'no sector'
 
     def get_sorted_floating_positions(self):
         """
@@ -695,6 +795,22 @@ class IsoPlateLayout(TransferLayout):
 
         return starting_wells
 
+    def get_sector_map(self):
+        """
+        Sorts the plate positions by sector index. Positions without sector
+        index are marked using the :attr:`NO_SECTOR_MARKER` key.
+        Only floating and fixed positions are regarded.
+        """
+        sector_map = dict()
+        for plate_pos in self._position_map.values():
+            if not (plate_pos.is_floating or plate_pos.is_fixed): continue
+            if plate_pos.sector_index is None:
+                sector_marker = self.NO_SECTOR_MARKER
+            else:
+                sector_marker = plate_pos.sector_index
+            add_list_map_element(sector_map, sector_marker, plate_pos)
+        return sector_map
+
     def get_supplier_map(self):
         """
         Returns a dictionary mapping supplier IDs onto the molecule design pool
@@ -715,16 +831,38 @@ class IsoPlateLayout(TransferLayout):
 
         return supplier_map
 
+    def create_rack_layout(self):
+        """
+        Also makes sure all starting wells have non-temporary data (otherwise
+        and AttributeError is raised).
+        """
+        self.__check_starting_wells()
+        return TransferLayout.create_rack_layout(self)
 
-class IsoPlateLayoutConverter(TransferLayoutConverter):
+    def __check_starting_wells(self):
+        """
+        If there is still starting wells with temporary stock data in the layout
+        the layout mut not be converted into a rack layout and a error is
+        raised.
+        """
+        tmp_value = self.WORKING_POSITION_CLS.TEMP_STOCK_DATA
+        for plate_pos in self._position_map.values():
+            if not plate_pos.is_starting_well: continue
+            if plate_pos.stock_tube_barcode == tmp_value or \
+                                plate_pos.stock_rack_marker == tmp_value:
+                raise AttributeError('There are still starting wells without ' \
+                                     'stock data in the layout!')
+
+
+class LabIsoLayoutConverter(TransferLayoutConverter):
     """
-    Converts a :class:`RackLayout` into a :class:`IsoPlateLayout`.
+    Converts a :class:`RackLayout` into a :class:`LabIsoLayout`.
     """
     NAME = 'ISO Plate Layout Converter'
 
-    PARAMETER_SET = IsoPlateParameters
-    WORKING_LAYOUT_CLS = IsoPlateLayout
-    WORKING_POSITION_CLS = IsoPlatePosition
+    PARAMETER_SET = LabIsoParameters
+    WORKING_LAYOUT_CLS = LabIsoLayout
+    WORKING_POSITION_CLS = LabIsoPosition
 
     def __init__(self, rack_layout, log):
         """
@@ -886,14 +1024,14 @@ class IsoPlateValueDeterminer(ValueDeterminer):
 
     NAME = 'Preparation Rack Sector Value Determiner'
 
-    WORKING_LAYOUT_CLS = IsoPlateLayout
+    WORKING_LAYOUT_CLS = LabIsoLayout
 
     def __init__(self, iso_plate_layout, attribute_name, log, number_sectors=4):
         """
         Constructor:
 
         :param iso_plate_layout: The ISO plate layout whose positions to check.
-        :type iso_plate_layout: :class:`IsoPlateLayout`
+        :type iso_plate_layout: :class:`LabIsoLayout`
 
         :param attribute_name: The name of the attribute to be determined.
         :type attribute_name: :class:`str`
@@ -925,7 +1063,7 @@ class IsoPlateSectorAssociator(RackSectorAssociator):
     NAME = 'ISO plate sector associator'
 
     _SECTOR_ATTR_NAME = 'concentration'
-    LAYOUT_CLS = IsoPlateLayout
+    LAYOUT_CLS = LabIsoLayout
 
 
     def __init__(self, iso_plate_layout, log, number_sectors=4):
@@ -933,7 +1071,7 @@ class IsoPlateSectorAssociator(RackSectorAssociator):
         Constructor:
 
         :param iso_plate_layout: The ISO plate layout whose positions to check.
-        :type iso_plate_layout: :class:`IsoPlateLayout`
+        :type iso_plate_layout: :class:`LabIsoLayout`
 
         :param number_sectors: The number of rack sectors.
         :type number_sectors: :class:`int`
@@ -968,7 +1106,7 @@ class IsoPlateAssociationData(AssociationData):
 
         :param iso_plate_layout: The ISO plate layout whose sectors to
             associate.
-        :type iso_plate_layout: :class:`IsoPlateLayout`
+        :type iso_plate_layout: :class:`LabIsoLayout`
 
         :param log: The ThelmaLog you want to write in.
         :type log: :class:`thelma.ThelmaLog`
@@ -993,6 +1131,12 @@ class IsoPlateAssociationData(AssociationData):
         for plate_pos in iso_plate_layout.working_positions():
             concentrations.add(plate_pos.concentration)
         return concentrations
+
+    def _init_value_determiner(self, layout, log):
+        value_determiner = IsoPlateValueDeterminer(iso_plate_layout=layout,
+                                attribute_name='concentration',
+                                log=log, number_sectors=self._number_sectors)
+        return value_determiner
 
     def _init_associator(self, layout, log):
         """
@@ -1020,40 +1164,37 @@ class IsoPlateAssociationData(AssociationData):
             raise ValueError(msg)
 
 
-class IsoPrepPlateParameters(IsoPlateParameters):
+class FinalLabIsoParameters(LabIsoParameters):
     """
-    These parameters describe ISO preparation plate. In addition to normal
-    ISO plates, these plates have transfer targets on a different plate
-    (the ISO aliquot plate).
+    These parameters describe a final ISO plate (aliquot or library plate to
+    be comppleted). In addition to normal ISO plates, we have mark whether
+    a sample originates from an ISO job or an ISO.
     """
+    DOMAIN = 'final_iso_plate'
 
-    DOMAIN = 'iso_prep_plate'
+    #: Is the pool for this position handled by the ISO job (*True*) or the
+    #: ISO (*False*)?
+    FROM_JOB = 'from_job'
 
-    #: The transfer targets *on the ISO aliquot plate*.
-    ALIQUOT_TRANSFER_TARGETS = 'aliquot_transfer_targets'
-    TRANSFER_TARGET_PARAMETERS = IsoPlateParameters.TRANSFER_TARGET_PARAMETERS \
-                                 + [ALIQUOT_TRANSFER_TARGETS]
-    MUST_HAVE_TRANSFER_TARGETS = IsoPlateParameters.MUST_HAVE_TRANSFER_TARGETS \
-                                 + {ALIQUOT_TRANSFER_TARGETS : True}
-
-    REQUIRED = IsoPlateParameters.REQUIRED + [ALIQUOT_TRANSFER_TARGETS]
-    ALL = IsoPlateParameters.ALL + [ALIQUOT_TRANSFER_TARGETS]
-
-    ALIAS_MAP = IsoPlateParameters.ALIAS_MAP + {
-                    ALIQUOT_TRANSFER_TARGETS : []}
-    DOMAIN_MAP = IsoPlateParameters.DOMAIN_MAP + {
-                    ALIQUOT_TRANSFER_TARGETS : DOMAIN}
+    ALL = LabIsoParameters.ALL + [FROM_JOB]
+    ALIAS_MAP = dict(LabIsoParameters.ALIAS_MAP, **{FROM_JOB : []})
+    DOMAIN_MAP = dict(LabIsoParameters.DOMAIN_MAP, **{FROM_JOB : DOMAIN})
 
 
-class IsoPrepPlatePosition(IsoPlatePosition):
+class FinalLabIsoPosition(LabIsoPosition):
     """
-    Represents a position in an ISO preparation plate.
+    This position reflects a position in an final ISO plate. In addition to
+    normal ISO plates, we have mark whether an sample originates from an ISO job
+    or an ISO.
     """
-    PARAMETER_SET = IsoPrepPlateParameters
+    PARAMETER_SET = FinalLabIsoParameters
+
+    RECORD_FALSE_VALUES = False
 
     def __init__(self, rack_position, molecule_design_pool, position_type,
-                 concentration, volume, aliquot_targets, transfer_targets=None,
-                 stock_tube_barcode=None, stock_rack_barcode=None):
+                 concentration, volume, from_job=False, transfer_targets=None,
+                 stock_tube_barcode=None, stock_rack_barcode=None,
+                 sector_index=None, stock_rack_marker=None):
         """
         Constructor:
 
@@ -1075,9 +1216,212 @@ class IsoPrepPlatePosition(IsoPlatePosition):
             but before usage as source well).
         :type volume: positive number, unit ul
 
-        :param aliquot_targets: The transfer targets on a different (=aliquot)
-            plate. There must be at least one.
-        :type aliquot_targets: List of :class:`TransferTarget` objects
+        :param from_job: Is the pool for this position handled by the ISO job
+            (*True*) or the ISO (*False*)?
+        :type from_job: :class:`bool`
+        :default from_job: *False*
+
+        :param transfer_targets: The transfer targets *within the same plate*.
+        type transfer_targets: List of transfer target objects.
+
+        :param stock_tube_barcode: The barcode of the stock tube of the prime
+            hit of the optimisation query.
+        :type stock_tube_barcode: :class:`str`
+
+        :param stock_rack_barcode: The barcode of the stock rack of the prime
+            hit of the optimisation query.
+        :type stock_rack_barcode: :class:`str`
+
+        :param sector_index: The sector index within in the plate (only for
+            samples that are transferred via the CyBio).
+        :type sector_index: non-negative integer
+
+        :param stock_rack_marker: The plate marker (see :class:`LABELS`) for
+            the source stock rack (only for starting wells).
+        :type stock_rack_marker: :class:`str`
+        """
+        LabIsoPosition.__init__(self, rack_position=rack_position,
+                                  molecule_design_pool=molecule_design_pool,
+                                  position_type=position_type,
+                                  concentration=concentration,
+                                  volume=volume,
+                                  transfer_targets=transfer_targets,
+                                  stock_tube_barcode=stock_tube_barcode,
+                                  stock_rack_barcode=stock_rack_barcode,
+                                  sector_index=sector_index,
+                                  stock_rack_marker=stock_rack_marker)
+
+        #: Is the pool for this position handled by the ISO job (*True*) or
+        #: the ISO (*False*)?
+        self.from_job = from_job
+
+    @classmethod
+    def from_iso_plate_position(cls, from_job, iso_plate_pos):
+        """
+        Factory method creating an :class:`FinalLabIsoPosition` from
+        a normal :class:`LabIsoPosition`.
+
+        :param from_job: Does the sample originate from ISO job processing
+            (*True*) or the ISO processing (*False*)?
+        :type from_job: :class:`bool`
+
+        :param iso_plate_pos: The ISO plate position containing the values
+            for this final ISO position.
+        :type iso_plate_pos: :class:`LabIsoPosition`
+        """
+        attr_names = ('rack_position', 'molecule_design_pool', 'position_type',
+                      'concentration', 'volume', 'transfer_targets',
+                      'stock_tube_barcode', 'stock_rack_barcode')
+        kw = dict()
+        for attr_name in attr_names:
+            value = getattr(iso_plate_pos, attr_name)
+            kw[attr_name] = value
+        kw['from_job'] = from_job
+        return FinalLabIsoPosition(**kw)
+
+    @classmethod
+    def create_library_position(cls, rack_position, concentration, volume):
+        """
+        Returns a library type ISO plate position with the given values.
+        The samples are already present in the plates.
+
+        :param rack_position: The position within the rack.
+        :type rack_position: :class:`thelma.models.rack.RackPosition`
+
+        :param concentration: The pool concentration in the plate *in nM*.
+        :type concentration: positive number, unit nM
+
+        :param volume: The volume in the plate *in ul*.
+        :type volume: positive number, unit ul
+        """
+        return cls(rack_position=rack_position,
+                   molecule_design_pool=LIBRARY_POSITION_TYPE,
+                   position_type=LIBRARY_POSITION_TYPE,
+                   concentration=concentration,
+                   volume=volume)
+
+    def _get_parameter_values_map(self):
+        parameters = LabIsoPosition._get_parameter_values_map(self)
+        parameters[self.PARAMETER_SET.FROM_JOB] = self.from_job
+        return parameters
+
+
+class FinalLabIsoLayout(LabIsoLayout):
+    """
+    Represents an final ISO plate (:class:`IsoAliquotPlate`) or (for
+    library screenings) a library plate (:class:`IsoLibraryPlate`)
+    to be completed..
+    """
+    WORKING_POSITION_CLS = FinalLabIsoPosition
+
+
+class FinalLabIsoLayoutConverter(LabIsoLayoutConverter):
+    """
+    Converts a :class:`RackLayout` into a :class:`FinalLabIsoLayout`.
+    """
+    NAME = 'ISO Final Plate Layout Converter'
+
+    PARAMETER_SET = FinalLabIsoParameters
+    WORKING_LAYOUT_CLS = FinalLabIsoLayout
+    WORKING_POSITION_CLS = FinalLabIsoPosition
+
+    def __init__(self, rack_layout, log):
+        """
+        Constructor:
+
+        :param rack_layout: The rack layout containing the plate data.
+        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
+
+        :param log: The ThelmaLog you want to write in. If the
+            log is None, the object will create a new log.
+        :type log: :class:`thelma.ThelmaLog`
+        """
+        LabIsoLayoutConverter.__init__(self, rack_layout=rack_layout, log=log)
+
+        # intermediate error storage
+        self.__invalid_from_job = None
+
+    def reset(self):
+        LabIsoLayoutConverter.reset(self)
+        self.__invalid_from_job = []
+
+    def _get_position_init_values(self, parameter_map):
+        rack_position = parameter_map[self._RACK_POSITION_KEY]
+        from_job_str = parameter_map[self.PARAMETER_SET.FROM_JOB]
+
+        kw = LabIsoLayoutConverter._get_position_init_values(self,
+                                                               parameter_map)
+        from_job = self._get_boolean_value(from_job_str, rack_position.label,
+                                           self.__invalid_from_job)
+        if from_job is None or kw is None: return None
+        kw['from_job'] = from_job
+        return kw
+
+    def _record_additional_position_errors(self):
+        LabIsoLayoutConverter._record_additional_position_errors(self)
+        self._record_invalid_boolean_error('from job', self.__invalid_from_job)
+
+
+class LabIsoPrepParameters(LabIsoParameters):
+    """
+    These parameters describe ISO preparation plate. In addition to normal
+    ISO plates, these plates have transfer targets on a different plate
+    (the final ISO plate).
+    """
+
+    DOMAIN = 'iso_prep_plate'
+
+    #: The transfer targets *on the final ISO plate*.
+    EXTERNAL_TRANSFER_TARGETS = 'external_transfer_targets'
+    TRANSFER_TARGET_PARAMETERS = LabIsoParameters.TRANSFER_TARGET_PARAMETERS \
+                                 + [EXTERNAL_TRANSFER_TARGETS]
+    MUST_HAVE_TRANSFER_TARGETS = \
+                            dict(LabIsoParameters.MUST_HAVE_TRANSFER_TARGETS,
+                                 {EXTERNAL_TRANSFER_TARGETS : True})
+
+    REQUIRED = LabIsoParameters.REQUIRED + [EXTERNAL_TRANSFER_TARGETS]
+    ALL = LabIsoParameters.ALL + [EXTERNAL_TRANSFER_TARGETS]
+
+    ALIAS_MAP = dict(LabIsoParameters.ALIAS_MAP, **{
+                    EXTERNAL_TRANSFER_TARGETS : []})
+    DOMAIN_MAP = dict(LabIsoParameters.DOMAIN_MAP, **{
+                    EXTERNAL_TRANSFER_TARGETS : DOMAIN})
+
+
+class LabIsoPrepPosition(LabIsoPosition):
+    """
+    Represents a position in an ISO preparation plate.
+    """
+    PARAMETER_SET = LabIsoPrepParameters
+
+    def __init__(self, rack_position, molecule_design_pool, position_type,
+                 concentration, volume, external_targets, transfer_targets=None,
+                 stock_tube_barcode=None, stock_rack_barcode=None,
+                 sector_index=None, stock_rack_marker=None):
+        """
+        Constructor:
+
+        :param rack_position: The position within the rack.
+        :type rack_position: :class:`thelma.models.rack.RackPosition`
+
+        :param molecule_design_pool: The molecule design pool for this position.
+        :type molecule_design_pool:  placeholder or
+            :class:`thelma.models.moleculedesign.MoleculeDesignPool`
+
+        :param position_type: The position type (fixed, floating or mock).
+        :type position_type: :class:`str`
+
+        :param concentration: The target concentration in the plate after
+            all additions and dilutions.
+        :type concentration: positive number, unit nM
+
+        :param volume: The maximum volume in the plate (after all dilutions
+            but before usage as source well).
+        :type volume: positive number, unit ul
+
+        :param external_targets: The transfer targets on a different
+            (= final ISO) plate. There must be at least one.
+        :type external_targets: List of :class:`TransferTarget` objects
 
         :param transfer_targets: The transfer targets *within the same plate*.
         type transfer_targets: List of :class:`TransferTarget` objects
@@ -1089,54 +1433,67 @@ class IsoPrepPlatePosition(IsoPlatePosition):
         :param stock_rack_barcode: The barcode of the stock rack of the prime
             hit of the optimisation query.
         :type stock_rack_barcode: :class:`str`
+
+        :param sector_index: The sector index within in the plate (only for
+            samples that are transferred via the CyBio).
+        :type sector_index: non-negative integer
+
+        :param stock_rack_marker: The plate marker (see :class:`LABELS`) for
+            the source stock rack (only for starting wells).
+        :type stock_rack_marker: :class:`str`
         """
-        IsoPlatePosition.__init__(self, rack_position=rack_position,
+        LabIsoPosition.__init__(self, rack_position=rack_position,
                                   molecule_design_pool=molecule_design_pool,
                                   position_type=position_type,
                                   concentration=concentration,
                                   volume=volume,
                                   transfer_targets=transfer_targets,
                                   stock_tube_barcode=stock_tube_barcode,
-                                  stock_rack_barcode=stock_rack_barcode)
+                                  stock_rack_barcode=stock_rack_barcode,
+                                  sector_index=sector_index,
+                                  stock_rack_marker=stock_rack_marker)
 
-        #: The transfer targets on the aliquot plate. There must be at least 1.
-        self.aliquot_targets = self._check_transfer_targets(
-                                    self.PARAMETER_SET.ALIQUOT_TRANSFER_TARGETS,
-                                    aliquot_targets, 'aliquot plate targets')
+        #: The transfer targets on the final ISO plate. There must be at
+        #: least 1.
+        self.external_targets = self._check_transfer_targets(
+                                self.PARAMETER_SET.EXTERNAL_TRANSFER_TARGETS,
+                                external_targets, 'external plate targets')
 
     def _get_parameter_values_map(self):
-        parameters = IsoPlatePosition._get_parameter_values_map(self)
-        parameters[self.PARAMETER_SET.ALIQUOT_TRANSFER_TARGETS] = \
-                                                        self.aliquot_targets
+        parameters = LabIsoPosition._get_parameter_values_map(self)
+        parameters[self.PARAMETER_SET.EXTERNAL_TRANSFER_TARGETS] = \
+                                                        self.external_targets
         return parameters
 
 
-class IsoPrepPlateLayout(IsoPlateLayout):
+class LabIsoPrepLayout(LabIsoLayout):
     """
     Represents a lab ISO preparation plate.
     """
-    WORKING_POSITION_CLS = IsoPrepPlatePosition
+    WORKING_POSITION_CLS = LabIsoPrepPosition
 
 
-class IsoPrepPlateLayoutConverter(IsoPlateLayoutConverter):
+class LabIsoPrepLayoutConverter(LabIsoLayoutConverter):
     """
-    Converts a :class:`RackLayout` into a :class:`IsoPrepPlateLayout`.
+    Converts a :class:`RackLayout` into a :class:`LabIsoPrepLayout`.
     """
     NAME = 'ISO Preparation Plate Layout Converter'
 
-    PARAMETER_SET = IsoPrepPlateParameters
-    WORKING_LAYOUT_CLS = IsoPrepPlateLayout
-    WORKING_POSITION_CLS = IsoPrepPlatePosition
+    PARAMETER_SET = LabIsoPrepParameters
+    WORKING_LAYOUT_CLS = LabIsoPrepLayout
+    WORKING_POSITION_CLS = LabIsoPrepPosition
 
     def _get_position_init_values(self, parameter_map):
         rack_position = parameter_map[self._RACK_POSITION_KEY]
-        aliquot_targets = parameter_map[
-                                self.PARAMETER_SET.ALIQUOT_TRANSFER_TARGETS]
-        if not self._are_valid_transfer_targets(aliquot_targets,
-                    rack_position, self.PARAMETER_SET.ALIQUOT_TRANSFER_TARGETS):
+        external_targets = parameter_map[
+                                self.PARAMETER_SET.EXTERNAL_TRANSFER_TARGETS]
+
+        kw = LabIsoLayoutConverter._get_position_init_values(self,
+                                                               parameter_map)
+        if not self._are_valid_transfer_targets(external_targets,
+                   rack_position, self.PARAMETER_SET.EXTERNAL_TRANSFER_TARGETS):
             return None
 
-        kw = IsoPlateLayoutConverter._get_position_init_values(self,
-                                                               parameter_map)
-        kw['aliquot_targets'] = aliquot_targets
-        return aliquot_targets
+        if not kw is None: kw['external_targets'] = external_targets
+        return kw
+

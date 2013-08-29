@@ -39,6 +39,7 @@ CREATE TABLE lab_iso_request (
     ON UPDATE CASCADE ON DELETE CASCADE,
   iso_plate_reservoir_specs_id INTEGER
     REFERENCES reservoir_specs (reservoir_specs_id),
+  process_job_first BOOLEAN NOT NULL,
   CONSTRAINT lab_iso_request_pkey PRIMARY KEY (iso_request_id)
 );
 
@@ -71,8 +72,10 @@ ALTER TABLE iso_request ADD CONSTRAINT valid_iso_request_iso_type
 ALTER TABLE iso_request ALTER COLUMN iso_type DROP DEFAULT;
 
 INSERT INTO lab_iso_request
-    (iso_request_id, delivery_date, comment, rack_layout_id, requester_id)
-  SELECT iso_request_id, delivery_date, comment, rack_layout_id, requester_id
+    (iso_request_id, delivery_date, comment, rack_layout_id, requester_id,
+     process_job_first)
+  SELECT iso_request_id, delivery_date, comment, rack_layout_id, requester_id,
+  	true AS process_job_first
   FROM iso_request
   WHERE iso_type = 'LAB';
 
@@ -277,9 +280,10 @@ ALTER TABLE iso ALTER COLUMN number_stock_racks DROP DEFAULT;
 
 CREATE TABLE stock_rack (
   stock_rack_id SERIAL PRIMARY KEY,
+  label VARCHAR(20) NOT NULL,
   rack_id INTEGER NOT NULL REFERENCES rack (rack_id),
-  planned_worklist_id INTEGER NOT NULL
-    REFERENCES planned_worklist (planned_worklist_id)
+  worklist_series_id INTEGER NOT NULL
+    REFERENCES worklist_series (worklist_series_id)
     ON UPDATE CASCADE ON DELETE CASCADE,
   rack_layout_id INTEGER
     REFERENCES rack_layout (rack_layout_id)
@@ -322,31 +326,51 @@ CREATE TABLE iso_sector_stock_rack (
     CHECK (sector_index >= 0)
 );
 
-INSERT INTO stock_rack (rack_id, planned_worklist_id, rack_layout_id,
-      stock_rack_type)
-  SELECT rack_id, planned_worklist_id, rack_layout_id,
-    'ISO_JOB' AS stock_rack_type
-  FROM iso_control_stock_rack;
+ALTER TABLE worklist_series ADD COLUMN
+  planned_worklist_id INTEGER UNIQUE
+    REFERENCES planned_worklist (planned_worklist_id);
+
+INSERT INTO worklist_series (planned_worklist_id)
+  SELECT planned_worklist_id FROM iso_control_stock_rack;
+INSERT INTO worklist_series (planned_worklist_id)
+  SELECT planned_worklist_id FROM iso_sample_stock_rack;
+INSERT INTO worklist_series_member
+  (worklist_series_id, planned_worklist_id, index)
+  SELECT worklist_series_id, planned_worklist_id, 0 AS index
+  FROM worklist_series
+  WHERE planned_worklist_id IS NOT NULL;
+
+INSERT INTO stock_rack (rack_id, worklist_series_id, rack_layout_id,
+      stock_rack_type, label)
+  SELECT icsr.rack_id, ws.worklist_series_id, icsr.rack_layout_id,
+    'ISO_JOB' AS stock_rack_type, 'default' AS label
+  FROM iso_control_stock_rack icsr, worklist_series ws
+  WHERE icsr.planned_worklist_id = ws.planned_worklist_id;
 
 INSERT INTO iso_job_stock_rack (stock_rack_id, job_id)
   SELECT sr.stock_rack_id, icsr.job_id
-  FROM stock_rack sr, iso_control_stock_rack icsr
-  WHERE sr.planned_worklist_id = icsr.planned_worklist_id
+  FROM stock_rack sr, iso_control_stock_rack icsr, worklist_series ws
+  WHERE sr.worklist_series_id = ws.worklist_series_id
+  AND ws.planned_worklist_id = icsr.planned_worklist_id
   AND sr.rack_layout_id = icsr.rack_layout_id;
 
 DROP TABLE iso_control_stock_rack;
 
-INSERT INTO stock_rack (rack_id, planned_worklist_id, stock_rack_type)
-  SELECT rack_id, planned_worklist_id, 'SECTOR' AS stock_rack_type
-  FROM iso_sample_stock_rack;
+INSERT INTO stock_rack (rack_id, worklist_series_id, stock_rack_type, label)
+  SELECT issr.rack_id, ws.worklist_series_id, 'SECTOR' AS stock_rack_type,
+    'default' AS label
+  FROM iso_sample_stock_rack issr, worklist_series ws
+  WHERE issr.planned_worklist_id = ws.planned_worklist_id;
 
 INSERT INTO iso_sector_stock_rack (stock_rack_id, iso_id, sector_index)
   SELECT sr.stock_rack_id, issr.iso_id, issr.sector_index
-  FROM stock_rack sr, iso_sample_stock_rack issr
-  WHERE sr.planned_worklist_id = issr.planned_worklist_id
+  FROM stock_rack sr, iso_sample_stock_rack issr, worklist_series ws
+  WHERE sr.worklist_series_id = ws.worklist_series_id
+  AND ws.planned_worklist_id = issr.planned_worklist_id
   AND sr.rack_id = issr.rack_id;
 
 DROP TABLE iso_sample_stock_rack;
+ALTER TABLE worklist_series DROP COLUMN planned_worklist_id;
 
 -- ISO plates: create base table and subtypes and migrate data
 

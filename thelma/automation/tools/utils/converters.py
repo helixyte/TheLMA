@@ -16,9 +16,11 @@ from thelma.automation.tools.utils.base import LibraryLayoutPosition
 from thelma.automation.tools.utils.base import MoleculeDesignPoolLayout
 from thelma.automation.tools.utils.base import MoleculeDesignPoolParameters
 from thelma.automation.tools.utils.base import MoleculeDesignPoolPosition
+from thelma.automation.tools.utils.base import ParameterSet
 from thelma.automation.tools.utils.base import TransferLayout
 from thelma.automation.tools.utils.base import TransferParameters
 from thelma.automation.tools.utils.base import TransferPosition
+from thelma.automation.tools.utils.base import WorkingLayout
 from thelma.automation.tools.utils.base import WorkingPosition
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.interfaces import IMoleculeDesignPool
@@ -43,12 +45,12 @@ class BaseLayoutConverter(BaseAutomationTool):
 
     #: The parameter set for the
     #: (:class:`thelma.automation.tools.utils.base.ParameterSet`)
-    PARAMETER_SET = None
+    PARAMETER_SET = ParameterSet
     #: The class of layout to be generated (subclass of :class:`WorkingLayout`)
-    WORKING_LAYOUT_CLS = None
+    WORKING_LAYOUT_CLS = WorkingLayout
     #: The class of the working positions to be generated (subclass of
     #: :class:`WorkingPosition`).
-    WORKING_POSITION_CLS = None
+    WORKING_POSITION_CLS = WorkingPosition
 
     # A key for the rack position in the parameter map generated during
     # the conversion.
@@ -206,7 +208,7 @@ class BaseLayoutConverter(BaseAutomationTool):
 
         return parameter_map
 
-    def __obtain_working_position(self, parameter_map): #pylint: disable=W0613
+    def __obtain_working_position(self, parameter_map):
         """
         Derives a working position from a parameter map (including validity
         checks). Invokes :func:`_get_position_keywords_and_values`.
@@ -217,7 +219,7 @@ class BaseLayoutConverter(BaseAutomationTool):
         working_pos = self.WORKING_POSITION_CLS(**kw) #pylint: disable=E1102
         return working_pos
 
-    def _get_position_init_values(self, parameter_map): #pylint: disable=W0613
+    def _get_position_init_values(self, parameter_map):
         """
         Derives all values required to initialize new working position
         (including validity checks) as keyqord dictionary. If everything
@@ -226,6 +228,24 @@ class BaseLayoutConverter(BaseAutomationTool):
         intermediate error sotrage lists and *None* is returned.
         """
         raise NotImplementedError('Abstract method')
+
+    def _get_boolean_value(self, bool_str, pos_label, error_list):
+        """
+        Helper function converting a boolean string into boolean. If the
+        conversion fails an error is recorded and None is returned.
+        """
+        if self.WORKING_POSITION_CLS.RECORD_FALSE_VALUES and bool_str is None:
+            return False
+
+        try:
+            bool_value = self.WORKING_POSITION_CLS.parse_boolean_tag_value(
+                                                                    bool_str)
+        except ValueError:
+            info = '%s (%s)' % (pos_label, bool_str)
+            error_list.append(info)
+            return None
+
+        return bool_value
 
     def __record_common_errors(self):
         """
@@ -246,6 +266,17 @@ class BaseLayoutConverter(BaseAutomationTool):
         referring rack position and launch the log events here.
         """
         raise NotImplementedError('Abstract method')
+
+    def _record_invalid_boolean_error(self, flag_name, error_list):
+        """
+        Helper method recording the error messsage for invalid booleans
+        (see :func:`_record_additional_position_errors`).
+        """
+        if len(error_list) > 0:
+            msg = 'The "%s" flag must be a boolean. The values for ' \
+                  'some positions are invalid. Details: %s.' \
+                   % (flag_name, ', '.join(sorted(error_list)))
+            self.add_error(msg)
 
     def __create_layout_from_map(self):
         """
@@ -615,14 +646,9 @@ class LibraryLayoutConverter(BaseLayoutConverter):
         pos_label = rack_pos.label
         if is_lib_pos_str is None: return None
 
-        try:
-            is_lib_pos = self.WORKING_POSITION_CLS.parse_boolean_tag_value(
-                                                                is_lib_pos_str)
-        except ValueError:
-            info = '%s (%s)' % (pos_label, is_lib_pos_str)
-            self.__invalid_flag.append(info)
-            return None
-
+        is_lib_pos = self._get_boolean_value(is_lib_pos_str, pos_label,
+                                             self.__invalid_flag)
+        if is_lib_pos is None: return None
         return dict(rack_position=rack_pos, is_library_position=is_lib_pos)
 
     def _record_additional_position_errors(self):
@@ -630,11 +656,8 @@ class LibraryLayoutConverter(BaseLayoutConverter):
         Records specific errors that have been collection during position
         generation.
         """
-        if len(self.__invalid_flag) > 0:
-            msg = 'The "sample position" flag must be a boolean. The values ' \
-                  'for some positions are invalid. Details: %s.' \
-                  % (', '.join(sorted(self.__invalid_flag)))
-            self.add_error(msg)
+        self._record_invalid_boolean_error('sample position',
+                                           self.__invalid_flag)
 
     def _perform_layout_validity_checks(self, working_layout):
         """

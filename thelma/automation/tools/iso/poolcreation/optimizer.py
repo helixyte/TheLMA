@@ -116,13 +116,10 @@ class StockSampleCreationTubePicker(TubePicker):
         """
         self.add_debug('Get single molecule design pool ...')
 
-        query = SingleDesignPoolQuery(session=self._session,
-                                      molecule_design_ids=self.__md_map.keys())
+        query = SingleDesignPoolQuery(molecule_design_ids=self.__md_map.keys())
 
-        self._run_and_record_error(meth=query.run,
-            base_msg='Error when trying to query single molecule design pools:',
-            error_type=ValueError)
-
+        self._run_query(query, base_error_msg='Error when trying to query ' \
+                                              'single molecule design pools: ')
         if not self.has_errors():
             self.__single_pool_map = query.get_query_results()
             if not len(self.__single_pool_map) == len(self.__md_map):
@@ -322,17 +319,15 @@ class SingleDesignPoolQuery(CustomQuery):
     __POOL_ID_INDEX = COLUMN_NAMES.index(__POOL_ID_COL_NAME)
     __MOLECULE_DESIGN_INDEX = COLUMN_NAMES.index(__MOLECULE_DESIGN_COL_NAME)
 
-    def __init__(self, session, molecule_design_ids):
+    def __init__(self, molecule_design_ids):
         """
         Constructor:
-
-        :param session: The DB session to be used.
 
         :param molecule_design_ids: The molecule design IDs for which you
             want to find the pool IDs.
         :type molecule_design_ids: :class:`list`
         """
-        CustomQuery.__init__(self, session=session)
+        CustomQuery.__init__(self)
         #: The molecule design IDs for which you want to find the pool IDs.
         self.molecule_design_ids = molecule_design_ids
 

@@ -641,6 +641,18 @@ class WorklistSeries(Entity):
 
         raise ValueError('There is no worklist for index %i!' % (wl_index))
 
+    def get_sorted_worklists(self):
+        """
+        Returns the worklists of this series sorted by index.
+        """
+        worklist_map = dict()
+        for wsm in self.worklist_series_members:
+            worklist_map[wsm.index] = wsm.planned_worklist
+        sorted_worklists = []
+        for i in sorted(worklist_map.keys()):
+            sorted_worklists.append(worklist_map[i])
+        return sorted_worklists
+
     def __eq__(self, other):
         return (isinstance(other, WorklistSeries) and self.id == other.id)
 

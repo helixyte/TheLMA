@@ -1,11 +1,11 @@
 """
 An adjusted planner for library screening ISO generation.
 """
+from thelma.automation.tools.iso.lab.base import FinalLabIsoPosition
 from thelma.automation.tools.iso.lab.planner import LabIsoBuilder
 from thelma.automation.tools.iso.lab.planner import LabIsoPlanner
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.models.iso import ISO_STATUS
-from thelma.automation.tools.iso.lab.base import IsoPlatePosition
 
 __docformat__ = 'reStructuredText en'
 
@@ -19,6 +19,7 @@ class LibraryIsoBuilder(LabIsoBuilder):
     ISOs there are no ISO preparation or aliquot plates but pre-existing library
     plates.
     """
+
     def __init__(self, iso_request, excluded_racks, requested_tubes):
         """
         Constructor
@@ -78,18 +79,11 @@ class LibraryIsoBuilder(LabIsoBuilder):
         """
         for ir_pos in self.__iso_request_layout.get_working_positions():
             if not ir_pos.is_library: continue
-            lib_pos = IsoPlatePosition.create_library_position(
+            lib_pos = FinalLabIsoPosition.create_library_position(
                                 rack_position=ir_pos.rack_position,
                                 concentration=ir_pos.iso_concentration,
                                 volume=ir_pos.iso_volume)
             iso_plate_layout.add_position(lib_pos)
-
-    def _get_number_stock_racks(self):
-        """
-        There are no ISO-specific pools add, just pools that are shared by
-        all ISOs in the job.
-        """
-        return 0
 
     def _add_final_iso_plates(self, iso):
         """

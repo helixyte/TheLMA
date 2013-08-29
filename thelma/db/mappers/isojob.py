@@ -23,8 +23,8 @@ def create_mapper(job_mapper, job_tbl, iso_job_member_tbl):
                     iso_job_stock_racks=relationship(IsoJobStockRack,
                                     back_populates='iso_job',
                                     cascade='all, delete-orphan'),
-                    iso_job_preparation_plate=relationship(
-                                    IsoJobPreparationPlate, uselist=False,
+                    iso_job_preparation_plates=relationship(
+                                    IsoJobPreparationPlate,
                                     back_populates='iso_job',
                                     cascade='all, delete-orphan'),
                     isos=relationship(Iso, secondary=iso_job_member_tbl,

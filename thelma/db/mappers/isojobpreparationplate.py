@@ -20,7 +20,7 @@ def create_mapper(iso_job_preparation_plate_tbl):
                     rack=relationship(Rack, uselist=False),
                     rack_layout=relationship(RackLayout, uselist=False),
                     iso_job=relationship(IsoJob, uselist=False,
-                        back_populates='iso_job_preparation_plate'),
+                        back_populates='iso_job_preparation_plates'),
                     ),
                )
     return m

@@ -53,8 +53,6 @@ CREATE TABLE tmp_used_worklists (
 INSERT INTO tmp_used_worklists (planned_worklist_id)
   SELECT DISTINCT planned_worklist_id FROM executed_worklist;
 INSERT INTO tmp_used_worklists (planned_worklist_id)
-  SELECT DISTINCT planned_worklist_id FROM stock_rack;
-INSERT INTO tmp_used_worklists (planned_worklist_id)
   SELECT DISTINCT planned_worklist_id FROM worklist_series_member;
 
 DELETE FROM planned_worklist
@@ -520,8 +518,8 @@ UPDATE transfer_type SET name = 'SAMPLE_TRANSFER'
  WHERE name = 'CONTAINER_TRANSFER';
 UPDATE transfer_type SET name = 'RACK_SAMPLE_TRANSFER'
  WHERE name = 'RACK_TRANSFER';
--- alter modification permissions
 
+-- alter modification permissions
 
 REVOKE UPDATE, DELETE ON TABLE planned_liquid_transfer FROM knime, thelma;
 REVOKE UPDATE, DELETE ON TABLE planned_sample_dilution FROM knime, thelma;

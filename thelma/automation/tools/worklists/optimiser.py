@@ -9,14 +9,67 @@ from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.semiconstants import get_rack_position_from_indices
 from thelma.automation.tools.utils.base import add_list_map_element
+from thelma.automation.tools.utils.base import WorkingLayout
 
 
 __docformat__ = 'reStructuredText en'
 
-__all__ = ['BiomekLayoutOptimizer',
-           'TransferItemData',
+__all__ = ['TransferItem',
+           'BiomekLayoutOptimizer',
            'TransferSubcolumn',
            'SourceSubcolumn']
+
+
+class TransferItem(object):
+    """
+    A container object for convenience purposes. Represents a future source
+    position.
+    """
+
+    def __init__(self, working_pos):
+        """
+        Constructor:
+
+        :param working_pos: An object providing a hash value and a rack position
+            (usually the first occurrence of item having that hash value).
+        :type working_pos: :class:`WorkingPosition` subclass
+        """
+        #: The transfection position storing the transfection data.
+        self.working_pos = working_pos
+        #: The hash value (full hash) of the :attr:`tf_pos`.
+        self.hash_value = self._get_hash_value()
+
+        #: Target row index of first occurence (used to determine, whether
+        #: further transfer items can be pipetted in the same movement).
+        self.target_row_index = working_pos.rack_position.row_index
+
+    def _get_hash_value(self):
+        """
+        Derives the hash value from the working position this item deals with.
+        """
+        raise NotImplementedError('Abstract method.')
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and \
+                other.hash_value == self.hash_value
+
+    def __ne__(self, other):
+        return not (self.__eq__(other))
+
+    def __cmp__(self, other):
+        return cmp(self.hash_value, other.hash_value)
+
+    def __hash__(self):
+        return hash(self.hash_value)
+
+    def __str__(self):
+        return self.hash_value
+
+    def __repr__(self):
+        str_format = '%s %s, row index: %i'
+        params = (self.__class__.__name__, self.hash_value,
+                  self.target_row_index)
+        return str_format % params
 
 
 class BiomekLayoutOptimizer(BaseAutomationTool):
@@ -34,9 +87,9 @@ class BiomekLayoutOptimizer(BaseAutomationTool):
     """
 
     #: The class of the source layout (:Class:`WorkingLayout` subclass).
-    SOURCE_LAYOUT_CLS = None
-    #: The used :class:`TransferItemData` subclass.
-    TRANSFER_ITEM_CLASS = None
+    SOURCE_LAYOUT_CLS = WorkingLayout
+    #: The used :class:`TransferItem` subclass.
+    TRANSFER_ITEM_CLASS = TransferItem
 
     def __init__(self, log):
         """
@@ -123,13 +176,13 @@ class BiomekLayoutOptimizer(BaseAutomationTool):
         """
         Checks the initialisation values.
         """
-        self.add_error('Abstract method: _check_input()')
+        raise NotImplementedError('Abstract method.')
 
     def _find_hash_values(self):
         """
-        Initialises :attr:`__hash_values` and :attr:`__column_maps`.
+        Initialises :attr:`_hash_values` and :attr:`_column_maps`.
         """
-        self.add_error('Abstract method: _find_hash_values()')
+        raise NotImplementedError('Abstract method.')
 
     def __init_source_layout(self):
         """
@@ -164,16 +217,14 @@ class BiomekLayoutOptimizer(BaseAutomationTool):
                 self.__src_min_row_distance = 0
             self.__have_equal_shape = self.__source_rack_shape \
                                       == target_layout_shape
-            #pylint: disable=E1102
             self._source_layout = self.SOURCE_LAYOUT_CLS(
                                             shape=self.__source_rack_shape)
-            #pylint: enable=E1102
 
     def _get_target_layout_shape(self):
         """
         Returns the rack shape of the target layout.
         """
-        self.add_error('Abstract method: _get_target_layout_shape()')
+        raise NotImplementedError('Abstract method.')
 
     def __sort_one_to_one(self):
         """
@@ -234,9 +285,7 @@ class BiomekLayoutOptimizer(BaseAutomationTool):
         used_hash_values = set()
 
         for working_pos in sorted_working_positions:
-            #pylint: disable=E1102
             tid = self.TRANSFER_ITEM_CLASS(working_pos=working_pos)
-            #pylint: enable=E1102
             if tid.hash_value in used_hash_values: continue
             used_hash_values.add(tid.hash_value)
             picked_subcolumn = None
@@ -403,56 +452,7 @@ class BiomekLayoutOptimizer(BaseAutomationTool):
         Creates a new source position and places it onto the given
         position of the source layout.
         """
-        self.add_error('Abstract method: _add_source_position()')
-
-
-class TransferItemData(object):
-    """
-    A container object for convenience purposes. Represents a future source
-    position.
-    """
-
-    #: The name of the hash value attribute.
-    HASH_NAME = None
-
-    def __init__(self, working_pos):
-        """
-        Constructor:
-
-        :param working_pos: An object providing a hash value and a rack position
-            (usually the first occurrence of item having that hash value).
-        :type working_pos: :class:`WorkingPosition` subclass
-        """
-        #: The transfection position storing the transfection data.
-        self.working_pos = working_pos
-        #: The hash value (full hash) of the :attr:`tf_pos`.
-        self.hash_value = getattr(working_pos, self.HASH_NAME)
-
-        #: Target row index of first occurence (used to determine, whether
-        #: further transfer items can be pipetted in the same movement).
-        self.target_row_index = working_pos.rack_position.row_index
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and \
-                other.hash_value == self.hash_value
-
-    def __ne__(self, other):
-        return not (self.__eq__(other))
-
-    def __cmp__(self, other):
-        return cmp(self.hash_value, other.hash_value)
-
-    def __hash__(self):
-        return hash(self.hash_value)
-
-    def __str__(self):
-        return self.hash_value
-
-    def __repr__(self):
-        str_format = '%s %s, row index: %i'
-        params = (self.__class__.__name__, self.hash_value,
-                  self.target_row_index)
-        return str_format % params
+        raise NotImplementedError('Abstract method.')
 
 
 class TransferSubcolumn(object):

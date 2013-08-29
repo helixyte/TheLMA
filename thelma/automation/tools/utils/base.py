@@ -5,6 +5,7 @@
 Utility methods and classes for tools.
 """
 from math import ceil
+from sqlalchemy.orm.exc import NoResultFound
 from thelma.models.moleculedesign import MoleculeDesignPool
 from thelma.models.moleculetype import MoleculeType
 from thelma.models.rack import RackPosition
@@ -13,8 +14,6 @@ from thelma.models.racklayout import RackLayout
 from thelma.models.tagging import Tag
 from thelma.models.tagging import TaggedRackPositionSet
 from thelma.models.utils import get_user
-from sqlalchemy.orm.exc import NoResultFound
-from thelma.automation.tools.utils.converters import BaseLayoutConverter
 
 
 __docformat__ = "reStructuredText en"
@@ -143,7 +142,9 @@ class ParameterSet(object):
     ALL = None
 
     #: A map storing alias predicates for each parameter.
-    ALIAS_MAP = None
+    ALIAS_MAP = dict()
+    #: A map storing the domains for each parameter.
+    DOMAIN_MAP = dict()
 
     @classmethod
     def is_valid_parameter(cls, parameter):
@@ -276,10 +277,14 @@ class WorkingPosition(object):
 
     #: The parameter set this working position is associated with
     #: (subclass of :class:`thelma.automation.tools.utils.base.ParameterSet`).
-    PARAMETER_SET = None
+    PARAMETER_SET = ParameterSet
 
     #: String that is used for a tag if a value is *None*
     NONE_REPLACER = 'None'
+
+    #: If *False* boolean parameters with a false value are not converted
+    #: into tags (default: *True*).
+    RECORD_FALSE_VALUES = True
 
     def __init__(self, rack_position):
         """
@@ -306,7 +311,6 @@ class WorkingPosition(object):
         :type parameter: :class:`string`
         :return: the attribute mapped onto that parameter
         """
-
         if not parameter in self.PARAMETER_SET.ALL:
             return None
         parameter_values = self._get_parameter_values_map()
@@ -325,6 +329,9 @@ class WorkingPosition(object):
 
         if value is None:
             value = self.NONE_REPLACER
+        elif isinstance(value, bool) and \
+                            not self.RECORD_FALSE_VALUES and value == False:
+            return None
         else:
             value = self.get_value_string(value)
 
@@ -335,16 +342,17 @@ class WorkingPosition(object):
         """
         Returns the tag set for this working position.
         """
-
         tag_set = set()
         for parameter in self.PARAMETER_SET.REQUIRED:
             tag = self.get_parameter_tag(parameter)
+            if tag is None: continue
             tag_set.add(tag)
 
         for parameter in self.PARAMETER_SET.ALL:
             if parameter in self.PARAMETER_SET.REQUIRED: continue
             if self.get_parameter_value(parameter) is None: continue
             tag = self.get_parameter_tag(parameter)
+            if tag is None: continue
             tag_set.add(tag)
 
         return tag_set
@@ -411,7 +419,7 @@ class WorkingLayout(object):
     """
 
     #: The working position class this layout is associated with.
-    WORKING_POSITION_CLS = None
+    WORKING_POSITION_CLS = WorkingPosition
 
     def __init__(self, shape):
         """
@@ -794,15 +802,12 @@ class CustomQuery(object):
     #: (default: :class:`list`).
     RESULT_COLLECTION_CLS = list
 
-    def __init__(self, session):
+    def __init__(self):
         """
         Constructor:
 
         :param session: The DB session to be used.
         """
-        #: The DB session to be used.
-        self.session = session
-
         #: The completed query including search values (use
         #: :func:`create_sql_statement` to generate).
         self.sql_statement = None
@@ -824,12 +829,14 @@ class CustomQuery(object):
         """
         raise NotImplementedError('Abstract method')
 
-    def run(self):
+    def run(self, session):
         """
         Runs the query and converts its results to a :class:`TubeCandidate`s.
         Also generates the query if this has not been done yet.
 
         Attention: Candidates from former runs are removed!
+
+        :param session: The DB session to be used.
 
         :raise ValueError: If there is not at least one result for the query
         """
@@ -839,7 +846,7 @@ class CustomQuery(object):
         self._results = self.RESULT_COLLECTION_CLS() #pylint: disable=E1102
         column_names = tuple(self.COLUMN_NAMES)
         try:
-            results = self.session.query(*column_names).from_statement(
+            results = session.query(*column_names).from_statement(
                                                     self.sql_statement).all()
         except NoResultFound:
             raise ValueError('The tube picking query did not return any ' \
@@ -860,6 +867,12 @@ class CustomQuery(object):
         Returns the result collection.
         """
         return self._results
+
+    def __str__(self):
+        return self.__class__.__name__
+
+    def __repr__(self):
+        return self.__class__.__name__
 
 
 class MoleculeDesignPoolParameters(ParameterSet):
@@ -1418,7 +1431,7 @@ class TransferTarget(object):
     #: string.
     INFO_DELIMITER = ':'
 
-    def __init__(self, rack_position, transfer_volume):
+    def __init__(self, rack_position, transfer_volume, target_rack_marker=None):
         """
         Constructor:
 
@@ -1427,6 +1440,10 @@ class TransferTarget(object):
 
         :param transfer_volume: The volume to be transferred.
         :type transfer_volume: A number.
+
+        :param target_rack_marker: A marker for the target plate (optional).
+        :type target_rack_marker: :class:`str`
+        :default target_rack_marker: *None*
         """
         if isinstance(rack_position, RackPosition):
             label = rack_position.label
@@ -1442,19 +1459,28 @@ class TransferTarget(object):
                   '(obtained: %s).' % (transfer_volume)
             raise ValueError(msg)
 
+        if not target_rack_marker is None and \
+                            not isinstance(target_rack_marker, basestring):
+            msg = 'The tarvget rack marker must be string (obtained: %s)!' \
+                  % (target_rack_marker.__class__.__name__)
+            raise TypeError(msg)
+
         #: The target position the liquid shall be added to.
         self.position_label = label
         #: The volume to be transferred.
         self.transfer_volume = get_converted_number(transfer_volume)
+        #: A marker for the target plate (optional).
+        self.target_rack_marker = target_rack_marker
 
     @property
     def target_info(self):
         """
         Returns a string encoding the data of this transfer target.
         """
-        volume_string = get_trimmed_string(self.transfer_volume)
-        return '%s%s%s' % (self.position_label, self.INFO_DELIMITER,
-                           volume_string)
+        values = [self.position_label, get_trimmed_string(self.transfer_volume)]
+        if not self.target_rack_marker is None:
+            values.append(self.target_rack_marker)
+        return self.INFO_DELIMITER.join(values)
 
     @classmethod
     def parse_info_string(cls, info_string):
@@ -1660,24 +1686,11 @@ class TransferPosition(MoleculeDesignPoolPosition):
         """
         if parameter in self.PARAMETER_SET.TRANSFER_TARGET_PARAMETERS:
             return self.get_targets_tag(parameter)
+        elif parameter in self.PARAMETER_SET.TRANSFER_TARGET_PARAMETERS \
+                    and len(self.get_transfer_target_list(parameter)) == 0:
+            return None
         else:
             return MoleculeDesignPoolPosition.get_parameter_tag(self, parameter)
-
-    def get_tag_set(self):
-        """
-        Returns the tag set for this working position.
-        """
-        tag_set = set()
-        for parameter in self.PARAMETER_SET.ALL:
-            if parameter in self.PARAMETER_SET.TRANSFER_TARGET_PARAMETERS \
-                    and len(self.get_transfer_target_list(parameter)) == 0:
-                continue
-            value = self.get_parameter_value(parameter)
-            if not parameter is self.PARAMETER_SET.REQUIRED and value is None:
-                continue
-            tag = self.get_parameter_tag(parameter)
-            tag_set.add(tag)
-        return tag_set
 
     def get_targets_tag_value(self, parameter_name=None):
         """
@@ -1844,6 +1857,8 @@ class LibraryLayoutPosition(WorkingPosition):
         :attr:`is_sample_pos`
     """
     PARAMETER_SET = LibraryLayoutParameters
+
+    RECORD_FALSE_VALUES = False
 
     def __init__(self, rack_position, is_library_position=True):
         """

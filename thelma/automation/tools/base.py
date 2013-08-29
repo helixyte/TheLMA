@@ -4,6 +4,7 @@
 """
 
 from thelma import ThelmaLog
+from everest.repositories.rdb import Session
 from thelma.automation.errors import EventRecording
 from thelma.automation.tools.semiconstants import clear_semiconstant_caches
 from thelma.automation.tools.semiconstants import initialize_semiconstant_caches
@@ -108,3 +109,57 @@ class BaseAutomationTool(EventRecording):
     def __str__(self):
         return '<Tool %s, errors: %i>' % (self.NAME, self.log.error_count)
 
+
+class SessionTool(BaseAutomationTool): # pylint: disable=W0223
+    """
+    Abstract base class for tools that run queries.
+    """
+
+    def __init__(self, log=None,
+                 logging_level=None,
+                 add_default_handlers=False,
+                 depending=True):
+        """
+        Constructor:
+
+        :param log: The ThelmaLog you want to write into. If the
+            log is None, the object will create a new log.
+        :type log: :class:`thelma.ThelmaLog`
+
+        :param logging_level: defines the least severe level of logging
+                    event the log will record
+
+        :param add_default_handlers: If *True* the log will automatically add
+            the default handler upon instantiation.
+        :type add_default_handlers: :class:`boolean`
+
+        :param depending: Defines whether a tool can be initialized directly
+            (*False*) of if it is always called by other tools (*True*).
+            Depending tools cannot initialize and reset logs but must
+            return a external one.
+        :type depending: :class:`bool`
+        :default depending: *True*
+        """
+        BaseAutomationTool.__init__(self, log=log, logging_level=logging_level,
+                                    add_default_handlers=add_default_handlers,
+                                    depending=depending)
+
+        #: The DB session used for the queries.
+        self.__session = None
+
+    def reset(self):
+        BaseAutomationTool.reset(self)
+        self.__session = Session()
+
+    def _run_query(self, query, base_error_msg):
+        """
+        Helper method running a :class:`CustomQuery` and recording errors
+        if necessary. If the message is *None* there is no error recorded.
+        """
+        self._run_and_record_error(query.run, base_msg=base_error_msg,
+                                   error_types=set(ValueError),
+                                   session=self.__session)
+
+    def run(self):
+        BaseAutomationTool.run(self)
+        del self.__session

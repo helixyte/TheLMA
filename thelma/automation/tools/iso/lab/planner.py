@@ -7,17 +7,18 @@ AAB
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.iso.jobcreator import IsoProvider
 from thelma.automation.tools.iso.lab.base import DILUENT_INFO
-from thelma.automation.tools.iso.lab.base import IsoPlateLayout
-from thelma.automation.tools.iso.lab.base import IsoPlatePosition
-from thelma.automation.tools.iso.lab.base import IsoPrepPlateLayout
-from thelma.automation.tools.iso.lab.base import IsoPrepPlatePosition
+from thelma.automation.tools.iso.lab.base import FinalLabIsoLayout
+from thelma.automation.tools.iso.lab.base import FinalLabIsoPosition
 from thelma.automation.tools.iso.lab.base import LABELS
+from thelma.automation.tools.iso.lab.base import LabIsoPosition
+from thelma.automation.tools.iso.lab.base import LabIsoPrepLayout
+from thelma.automation.tools.iso.lab.base import LabIsoPrepPosition
 from thelma.automation.tools.iso.lab.base import get_stock_takeout_volume
 from thelma.automation.tools.semiconstants \
     import get_plate_specs_from_reservoir_specs
 from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
-from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_max_dilution_factor
 from thelma.automation.tools.semiconstants import get_min_transfer_volume
@@ -80,7 +81,6 @@ __all__ = ['LabIsoBuilder',
            'RackPositionPlateContainer']
 
 
-
 class LabIsoBuilder(object):
     """
     Helper storage class that collects all layout and planned transfer data.
@@ -120,21 +120,21 @@ class LabIsoBuilder(object):
         self.__requested_tubes = requested_tubes
         if len(requested_tubes) < 1: self.__requested_tubes = None
 
-        #: The layout for the ISO plates (:class:`IsoPlateLayout`).
-        self.iso_layout = IsoPlateLayout(
-                              iso_request.iso_plate_reservoir_specs.rack_shape)
-        #: The layouts for the preparation plates (:class:`IsoPrepPlateLayout`)
+        kw = dict(shape=iso_request.iso_plate_reservoir_specs.rack_shape)
+        #: The layout for the ISO plates (:class:`LabIsoLayout`).
+        self.final_iso_layout = FinalLabIsoLayout(**kw)
+        #: The layouts for the preparation plates (:class:`LabIsoPrepLayout`)
         #: mapped onto plate markers.
         self.preparation_layouts = dict()
         #: The layouts for ISO job preparation plates
-        #: (:class:`IsoPrepPlateLayout`) mapped onto plate markers.
+        #: (:class:`LabIsoPrepLayout`) mapped onto plate markers.
         self.job_layouts = dict()
 
         iso_plate_specs = get_plate_specs_from_reservoir_specs(
                           self.iso_request.iso_plate_reservoir_specs)
-        #: The plate specs for the plates mapped onto plate markers (aliquot
-        #: specs are mapped onto the role marker of :class:`LABELS`).
-        self.plate_specs = {LABELS.ROLE_ALIQUOT : iso_plate_specs}
+        #: The plate specs for the plates mapped onto plate markers (final plate
+        #: specs are mapped onto the aliquot role marker of :class:`LABELS`).
+        self.plate_specs = {LABELS.ROLE_FINAL : iso_plate_specs}
 
         #: The planned dilutions for each layout mapped onto plate markers.
         self.planned_dilutions = dict()
@@ -159,16 +159,16 @@ class LabIsoBuilder(object):
         #: candidates).
         self.__isos_to_generate = None
 
-    def add_iso_plate_position(self, plate_pos):
+    def add_final_iso_plate_position(self, plate_pos):
         """
         Convenience method adding a new ISO plate position to the
         :attr:`iso_layout`.
         """
-        self.iso_layout.add_position(plate_pos)
+        self.final_iso_layout.add_position(plate_pos)
 
     def add_preparation_layout(self, plate_marker, prep_layout, plate_specs):
         """
-        Adds a :class:`IsoPrepPlateLayout` for a particular preparation plate
+        Adds a :class:`LabIsoPrepLayout` for a particular preparation plate
         and records the :class:`PlateSpecs`.
         """
         self.preparation_layouts[plate_marker] = prep_layout
@@ -177,7 +177,7 @@ class LabIsoBuilder(object):
     def add_job_preparation_layout(self, plate_marker, prep_layout,
                                    plate_specs):
         """
-        Adds a :class:`IsoPrepPlateLayout` for a particular ISO job
+        Adds a :class:`LabIsoPrepLayout` for a particular ISO job
         preparation plate and records the :class:`PlateSpecs`.
         """
         self.job_layouts[plate_marker] = prep_layout
@@ -188,7 +188,7 @@ class LabIsoBuilder(object):
         Convenience functions returning all layouts mapped onto their
         plate markers.
         """
-        layouts = {LABELS.ROLE_ALIQUOT : self.iso_layout}
+        layouts = {LABELS.ROLE_FINAL : self.final_iso_layout}
         layouts.update(self.preparation_layouts)
         layouts.update(self.job_layouts)
         return layouts
@@ -320,25 +320,28 @@ class LabIsoBuilder(object):
         iso_label = LABELS.create_iso_label(ticket_number=self.ticket_number,
                                             iso_number=iso_number)
 
-        aliquot_layout = self.__create_layout_without_floatings(self.iso_layout)
+        final_layout = self.__create_layout_without_floatings(
+                                                        self.final_iso_layout)
         floating_map = dict()
         pools = set()
-        self._fill_iso_plate_layout(aliquot_layout, floating_map, pools)
-
+        self._fill_iso_plate_layout(final_layout, floating_map, pools)
         pool_set = None
         if len(pools) > 0:
             pool_set = MoleculeDesignPoolSet(molecule_type=pool_set_type,
                                              molecule_design_pools=pools)
 
-        number_stock_racks = self._get_number_stock_racks()
+        prep_layouts = self.__complete_iso_preparation_layouts(floating_map)
+        iso_layouts = {LABELS.ROLE_FINAL : final_layout}.update(prep_layouts)
+        number_stock_racks = self.distribute_pools_to_stock_racks(iso_layouts,
+                                                                  for_job=False)
         iso = LabIso(label=iso_label, iso_request=self.iso_request,
                      number_stock_racks=number_stock_racks,
                      molecule_design_pool_set=pool_set,
-                     rack_layout=aliquot_layout.create_rack_layout(),
+                     rack_layout=final_layout.create_rack_layout(),
                      optimizer_excluded_racks=self.__exluded_racks,
                      optimizer_required_racks=self.__requested_tubes)
         self._add_final_iso_plates(iso)
-        self.__create_iso_preparation_plates(iso, floating_map)
+        self.__create_iso_preparation_plates(iso, prep_layouts)
         return iso
 
     def _fill_iso_plate_layout(self, iso_plate_layout, floating_map, pools):
@@ -346,7 +349,7 @@ class LabIsoBuilder(object):
         Add additional positions to the final ISO layout (fixed and mock
         positions are already included).
         """
-        for plate_pos in self.iso_layout.get_sorted_floating_positions():
+        for plate_pos in self.final_iso_layout.get_sorted_floating_positions():
             if len(self.__floating_candidates) < 1: break
             placeholder = plate_pos.molecule_design_pool
             if not floating_map.has_key(placeholder):
@@ -370,60 +373,62 @@ class LabIsoBuilder(object):
                                                 plate_pos.molecule_design_pool]
                 copy_pos = plate_pos.create_completed_copy(candidate)
             elif plate_pos.is_mock:
-                copy_pos = IsoPlatePosition.create_mock_position(
+                copy_pos = LabIsoPosition.create_mock_position(
                                        rack_position=plate_pos.rack_position,
                                        volume=plate_pos.volume)
             copy_layout.add_working_position(copy_pos)
 
         return copy_layout
 
-    def _get_number_stock_racks(self):
-        """
-        Returns the (maximum) number of stock racks for an ISO.
-        """
-        #TODO: check and adjust (on the fly pool generation?)
-        if self.iso_layout.shape == RACK_SHAPE_NAMES.SHAPE_96:
-            return 1
-        else:
-            return 4
-
     def _add_final_iso_plates(self, iso):
         """
         Creates or attaches the final ISO plates to the given ISO.
-        By default, we create and add ISO aliquot plates.
+        By default, we create and add :class:`IsoAliquotPlate` objects.
         """
         num_aliquots = self.iso_request.number_aliquots
-        plate_specs = self.plate_specs[LABELS.ROLE_ALIQUOT]
+        plate_specs = self.plate_specs[LABELS.ROLE_FINAL]
 
         for i in range(num_aliquots):
             plate_number = i + 1
             if num_aliquots == 1:
                 plate_number = None
-            plate_marker = LABELS.create_plate_marker(LABELS.ROLE_ALIQUOT,
-                                                      plate_number=plate_number)
-            label = LABELS.create_plate_label(plate_marker=plate_marker,
-                                              entity_label=iso.label)
+            plate_marker = LABELS.create_rack_marker(LABELS.ROLE_FINAL,
+                                                     rack_number=plate_number)
+            label = LABELS.create_rack_label(rack_marker=plate_marker,
+                                             entity_label=iso.label)
             plate = plate_specs.create_rack(self, label=label,
                                             status=self.__plate_status)
             iso.add_aliquot_plate(plate=plate)
 
-    def __create_iso_preparation_plates(self, iso, floating_map):
+    def __complete_iso_preparation_layouts(self, floating_map):
         """
-        Helper function.
+        Helper function creating a completed copy of an ISO preparation
+        layout (with pools for floatings and stock data).
         """
         single_plate = (len(self.preparation_layouts) == 1)
+        completed_layouts = dict()
         for plate_marker, prep_layout in self.preparation_layouts.iteritems():
             use_marker = self.__strip_plate_marker(plate_marker, single_plate)
             copy_layout = self.__create_layout_without_floatings(prep_layout)
             self.__add_floating_positions(prep_layout, copy_layout,
                                           floating_map)
-            label = LABELS.create_plate_label(plate_marker=use_marker,
-                                              entity_label=iso.label)
+            completed_layouts[use_marker] = copy_layout
+
+        return completed_layouts
+
+    def __create_iso_preparation_plates(self, iso, layouts):
+        """
+        Helper function creation an :class:`IsoPreparationPlate` for each
+        layout.
+        """
+        for plate_marker, layout in layouts.iteritems():
+            label = LABELS.create_rack_label(rack_marker=plate_marker,
+                                             entity_label=iso.label)
             plate_specs = self.plate_specs[plate_marker]
             plate = plate_specs.create_rack(self, label=label,
                                             status=self.__plate_status)
             iso.add_preparation_plate(plate=plate,
-                                  rack_layout=copy_layout.create_rack_layout())
+                                  rack_layout=layout.create_rack_layout())
 
     def __strip_plate_marker(self, plate_marker, is_single_plate):
         """
@@ -432,17 +437,17 @@ class LabIsoBuilder(object):
         """
         if not is_single_plate: return plate_marker
 
-        value_parts = LABELS.parse_plate_marker(plate_marker)
-        if value_parts[LABELS.MARKER_PLATE_NUM] == 1:
-            role = value_parts[LABELS.MARKER_PLATE_ROLE]
-            return LABELS.create_plate_marker(plate_role=role)
+        value_parts = LABELS.parse_rack_marker(plate_marker)
+        if value_parts[LABELS.MARKER_RACK_NUM] == 1:
+            role = value_parts[LABELS.MARKER_RACK_ROLE]
+            return LABELS.create_rack_marker(rack_role=role)
         else:
             return plate_marker
 
     def __add_floating_positions(self, template_layout, copy_layout,
                                  floating_map):
         """
-        Uses the floating map from the ISO aliquot layout completion. For
+        Uses the floating map from the final ISO layout completion. For
         placeholders that are not in the map we do not create positions
         (we assume to have run out of tube candidates).
         """
@@ -453,21 +458,140 @@ class LabIsoBuilder(object):
             copy_pos = plate_pos.create_completed_copy(candidate)
             copy_layout.add_working_position(copy_pos)
 
-    def create_job_preparation_plates(self, iso_job):
+    def complete_job_preparation_plates(self):
         """
-        Creates the job preparation plates for this run (if there are any).
-        Returns an empty list, if there no plates for the job.
+        Returns a completed copy of an ISO job preparation layout (with stock
+        data).
         """
         single_plate = (len(self.job_layouts) == 1)
+        completed_layouts = dict()
         for plate_marker, layout in self.job_layouts.iteritems():
             use_marker = self.__strip_plate_marker(plate_marker, single_plate)
+            copy_layout = self.__create_layout_without_floatings(layout)
+            completed_layouts[use_marker] = copy_layout
+
+        return completed_layouts
+
+    def create_job_preparation_plates(self, iso_job, layouts):
+        """
+        Creates the job preparation plates each layout.
+        """
+        for plate_marker, layout in layouts.iteritems():
             plate_specs = self.plate_specs[plate_marker]
-            label = LABELS.create_plate_label(plate_marker=use_marker,
-                                              entity_label=iso_job.label)
+            label = LABELS.create_rack_label(rack_marker=plate_marker,
+                                             entity_label=iso_job.label)
             plate = plate_specs.create_rack(label=label,
                                             status=self.__plate_status)
             iso_job.add_preparation_plate(plate=plate,
                                       rack_layout=layout.create_rack_layout())
+
+    def distribute_pools_to_stock_racks(self, layouts, for_job):
+        """
+        Attaches stock rack marker to the starting position in the passed
+        layouts. Sector positions (= positions transferred via the CyBio)
+        gain an own stock rack for each distinct sector since all samples
+        have to be transferred together. For all other positions we try
+        to exploit the stock rack capacity.
+        """
+        stock_rack_count = 0
+        pos_map = dict()
+        for plate_marker, layout in layouts.iteritems():
+            is_final_plate = (plate_marker == LABELS.ROLE_FINAL)
+            sector_map = layout.get_sector_map()
+            stock_rack_count = self.__assign_sector_stock_racks(
+                                    stock_rack_count, sector_map, for_job,
+                                    is_final_plate)
+            if not sector_map.has_key(layout.NO_SECTOR_MARKER): continue
+            remaining_positions = sector_map[layout.NO_SECTOR_MARKER]
+            for plate_pos in remaining_positions:
+                if not self.__accept_starting_well(plate_pos, is_final_plate,
+                                                   for_job): continue
+                add_list_map_element(pos_map, plate_pos.molecule_design_pool,
+                                     plate_pos)
+
+        stock_rack_count = self.__assign_position_stock_racks(pos_map,
+                                                              stock_rack_count)
+
+        return stock_rack_count
+
+    def __assign_sector_stock_racks(self, rack_count, sector_map, from_job,
+                                    is_final_plate):
+        """
+        Assigns stock rack markers to ISO plate starting positions that are
+        transferred by the CyBio (i.e. that have a sector index).
+        Since all samples of a stock rack are transferred together there must
+        not be other samples in the stock racks and the rack contents cannot
+        be condensed.
+        """
+
+        # We figure out if a sector is already covered might comparing the
+        # pool IDs of the first floating positions or the last position at all.
+        sector_hash = dict()
+        for sector_index, positions in sector_map.iteritems():
+            if sector_index == LabIsoPrepLayout.NO_SECTOR_MARKER: continue
+            plate_pos = None
+            for plate_pos in positions:
+                if plate_pos.is_floating: break
+            if not plate_pos.is_starting_well: continue
+            if not self.__accept_starting_well(plate_pos, is_final_plate,
+                                               from_job): continue
+            pool_id = plate_pos.molecule_design_pool.id
+            if sector_hash.has_key(pool_id):
+                rack_marker = sector_hash[pool_id]
+            else:
+                rack_marker = self.__create_stock_rack_marker(rack_count)
+                sector_hash[pool_id] = rack_marker
+            for plate_pos in positions:
+                plate_pos.stock_rack_marker = rack_marker
+
+        return rack_count
+
+    def __assign_position_stock_racks(self, pos_map, current_rack_count):
+        """
+        Assigns stock rack markers to ISO plate starting positions that are
+        not transferred by the CyBio but independently for each position.
+        We exploit the capacity of the stock racks.
+        """
+        shape96 = get_96_rack_shape()
+        stock_rack_positions = {}
+        for pool in sorted(pos_map.keys()):
+            used_rack = None
+            for rack_marker in sorted(stock_rack_positions.keys()):
+                if stock_rack_positions[rack_marker] > 0:
+                    used_rack = rack_marker
+                    break
+            if used_rack is None:
+                used_rack = self.__create_stock_rack_marker(
+                                                    current_rack_count)
+                num_positions = shape96.size
+                stock_rack_positions[used_rack] = num_positions
+            plate_positions = pos_map[pool]
+            for plate_pos in plate_positions:
+                plate_pos.stock_rack_marker = used_rack
+            stock_rack_positions[used_rack] -= 1
+
+        return current_rack_count
+
+    def __create_stock_rack_marker(self, current_rack_count):
+        """
+        Helper function incrementing the stock rack count and create a new
+        rack marker.
+        """
+        current_rack_count += 1
+        plate_marker = LABELS.create_rack_marker(LABELS.ROLE_STOCK,
+                                                 current_rack_count)
+        return plate_marker
+
+    def __accept_starting_well(self, plate_pos, from_final_plate, from_job):
+        """
+        Helper function determinating whether a plate position is accepted as
+        starting well. In final plate positions we have to regard whether a
+        position originates from job or ISO processing.
+        Preparation plates are separated for Job and ISO anyway.
+        """
+        if not plate_pos.is_starting_well: return False
+        if not from_final_plate: return True
+        return (plate_pos.from_job == from_job)
 
     def __str__(self):
         return self.ticket_number
@@ -563,7 +687,7 @@ class LabIsoPlanner(IsoProvider):
 
         #: The pool containers for all fixed positions covered by the job
         #: (happens if we have flaoting positions). These pool containers
-        #: contain both aliquot and preparation positions. If controls are
+        #: contain both final and preparation positions. If controls are
         #: also part of the sector preparation they are only starting wells.
         self.__job_pool_containers = None
 
@@ -630,6 +754,8 @@ class LabIsoPlanner(IsoProvider):
         creates pool containers for all pools and determines some basic data
         concerning floating positions.
         """
+        self.add_debug('Analyse ISO request ...')
+
         self.__collect_pools()
         self._has_floatings = (self.__number_floatings > 0)
         if self._has_floatings:
@@ -740,7 +866,7 @@ class LabIsoPlanner(IsoProvider):
 
         shape_size = self.iso_request.iso_plate_reservoir_specs.rack_shape.size
         if shape_size == 384:
-            self.__try_sorting_into_sectors_384()
+            if self._has_floatings: self.__try_sorting_into_sectors_384()
         else:
             self.__try_sorting_into_sectors_96()
 
@@ -788,6 +914,10 @@ class LabIsoPlanner(IsoProvider):
                   'sectors! In the current layout samples would be ' \
                   'treated differently!'
             self.add_error(msg)
+
+        # TODO: determine during experiment metadata upload
+        if not self.__controls_in_quadrants and self._has_floatings:
+            self.iso_request.process_job_first = False
 
     def __try_sorting_into_sectors_96(self):
         """
@@ -1020,10 +1150,10 @@ class LabIsoPlanner(IsoProvider):
         """
         if self.__mock_container is not None:
             for ir_pos in self.__mock_container.target_working_positions:
-                plate_pos = IsoPlatePosition.create_mock_position(
+                plate_pos = FinalLabIsoPosition.create_mock_position(
                                             rack_position=ir_pos.rack_position,
                                             volume=ir_pos.volume)
-                self._builder.add_iso_plate_position(plate_pos)
+                self._builder.add_final_iso_plate_position(plate_pos)
 
     def __find_fixed_candidates(self):
         """
@@ -1308,6 +1438,13 @@ class IsoPlanningAssociationData(AssociationData):
                 concentrations.add(ir_pos.iso_concentration)
         return concentrations
 
+    def _init_value_determiner(self, layout, log):
+        value_determiner = IsoPlanningValueDeterminer(iso_request_layout=layout,
+                                 regard_controls=self.__regard_controls,
+                                 attribute_name='iso_concentration',
+                                 log=log, number_sectors=self._number_sectors)
+        return value_determiner
+
     def _init_associator(self, layout, log):
         associator = IsoPlanningSectorAssociator(layout=layout, log=log,
                                      regard_controls=self.__regard_controls)
@@ -1336,7 +1473,7 @@ class _LayoutPlanner(BaseAutomationTool):
     Abstract base class. The planner finds preparation routes for a bunch
     of :class:`_LocationContainers` (the classes depend on the subclass
     implementation) by means of a :class:`_LocationAssigner`. The resulting data
-    is converted into :class:`IsoPlatePosition` and :class:`PlannedTransfer`
+    is converted into :class:`LabIsoPosition` and :class:`PlannedTransfer`
     objects and stored in the :class:`LabIsoBuilder`.
 
     The finding of the preparation routes involves complete simulation for
@@ -1553,7 +1690,7 @@ class _LayoutPlanner(BaseAutomationTool):
         """
         Converts container data to layout positions and planned transfers.
         """
-        self._store_aliquot_positions()
+        self._store_final_iso_positions()
 
         if self._prep_plate_containers is not None:
             plate_specs = get_plate_specs_from_reservoir_specs(
@@ -1562,10 +1699,10 @@ class _LayoutPlanner(BaseAutomationTool):
 
         self.__store_planned_transfers()
 
-    def _store_aliquot_positions(self):
+    def _store_final_iso_positions(self):
         """
-        Generates :class:`IsoPlatePosition` objects from aliquot containers
-        adds them to the ISO layout in the :attr:`builder`. We use the
+        Generates :class:`FinalLabIsoPosition` objects from a final containers
+        and adds them to the ISO layout in the :attr:`builder`. We use the
         :attr:`_requested_containers` list because it is free of clones
         and contains each requested location once.
         """
@@ -1588,7 +1725,7 @@ class _LayoutPlanner(BaseAutomationTool):
 
         if self._prep_plate_containers is not None:
             for prep_plate in self._prep_plate_containers.values():
-                for container in prep_plate.get_location_containers():
+                for container in prep_plate.get_containers():
                     self.__record_transfers_for_container(container)
 
     def __record_transfers_for_container(self, container):
@@ -1596,8 +1733,8 @@ class _LayoutPlanner(BaseAutomationTool):
         Container dilutions are recorded if the volume is larger than 0.
         Container and rack are only recorded if there are are child containers.
         """
-        if container.is_aliquot_container:
-            plate_marker = LABELS.ROLE_ALIQUOT
+        if container.is_final_container:
+            plate_marker = LABELS.ROLE_FINAL
         else:
             plate_marker = container.plate_marker
 
@@ -1698,12 +1835,8 @@ class SectorPlanner(_LayoutPlanner):
                                    IsoPlanningAssociationData):
             self._number_sectors = self.association_data.number_sectors
 
-        if self._check_input_class('sector map', self.sector_positions, dict):
-            for sector_index, pos_list in self.sector_positions.iteritems():
-                if not self._check_input_class('sector index', sector_index,
-                                               int): break
-                if not self._check_input_class('position list', pos_list, list):
-                    break
+        self._check_input_map_classes(self.sector_positions, 'sector map',
+                    'sector index', int, 'position list', list)
 
         if not is_valid_number(self.stock_concentration):
             msg = 'The stock concentration must be a positive number ' \
@@ -1726,9 +1859,10 @@ class SectorPlanner(_LayoutPlanner):
                 parent_conc = sector_concentrations[parent_sector]
             kw = dict(sector_index=sector_index,
                       number_sectors=self._number_sectors)
-            container = SectorContainer.create_aliquot_container(volume=volume,
-                        location=sector_index, parent_concentration=parent_conc,
-                        target_concentration=conc, **kw)
+            container = SectorContainer.create_final_plate_container(
+                                    volume=volume, location=sector_index,
+                                    parent_concentration=parent_conc,
+                                    target_concentration=conc, **kw)
             self._requested_containers[sector_index] = container
 
         for sector_index, container in self._requested_containers.iteritems():
@@ -1756,7 +1890,7 @@ class SectorPlanner(_LayoutPlanner):
                 coupled_containers.append(container)
             self._coupled_requested_containers[str(c)] = coupled_containers
 
-    def _store_aliquot_positions(self):
+    def _store_final_iso_positions(self):
         """
         Uses the :attr:`sector_positions` map to determine which position
         of the sectors have to be recorded.
@@ -1765,23 +1899,26 @@ class SectorPlanner(_LayoutPlanner):
             sector_index = container.sector_index
 
             translators = dict()
-            for child_container, transfer_vol in container.targets.iteritems():
+            for child_container in container.targets.values():
                 target_sector = child_container.location
                 translator = RackSectorTranslator(
                                 number_sectors=self._number_sectors,
                                 source_sector_index=sector_index,
                                 target_sector_index=target_sector,
                                 enforce_type=RackSectorTranslator.MANY_TO_MANY)
-                translators[transfer_vol] = translator
+                translators[child_container] = translator
 
             for ir_pos in self.sector_positions[sector_index]:
                 tts = []
-                for transfer_vol, translator in translators.iteritems():
-                    rack_pos = translator.translate(ir_pos.rack_position)
-                    tt = TransferTarget(rack_pos, transfer_vol)
+                for child_container, transfer_vol in container.targets.\
+                                                     iteritems():
+                    translator = translators[child_container]
+                    trg_pos = translator.translate(ir_pos.rack_position)
+                    tt = TransferTarget(trg_pos, transfer_vol,
+                                        container.plate_marker)
                     tts.append(tt)
                 aliquot_pos = container.create_aliquot_position(ir_pos, tts)
-                self.builder.add_iso_plate_position(aliquot_pos)
+                self.builder.add_final_iso_plate_position(aliquot_pos)
                 add_list_map_element(self.__container_position_map, container,
                                      ir_pos.rack_position)
 
@@ -1802,16 +1939,19 @@ class SectorPlanner(_LayoutPlanner):
                            prep_to_aliquot_type : dict()}
 
         for label, plate_container in self._prep_plate_containers.iteritems():
-            layout = IsoPrepPlateLayout(shape=prep_shape)
-            for container in plate_container.get_location_containers():
+            layout = LabIsoPrepLayout(shape=prep_shape)
+            for container in plate_container.get_containers():
                 pos_map = self.__get_preparation_rack_positions(container,
                             translator_map, behaviours, aliquot_to_prep_type)
                 prep_sector = container.location
                 for src_pos, ir_pos in pos_map.iteritems():
+                    final_pos = self.builder.final_iso_layout.\
+                                get_working_position(ir_pos.rack_position)
+                    ir_sector = final_pos.sector_index
                     prep_tts = []
                     aliquot_tts = []
                     for child, transfer_vol in container.targets.iteritems():
-                        if child.is_aliquot_container:
+                        if child.is_final_container:
                             transfer_type = prep_to_aliquot_type
                             tts = aliquot_tts
                         else:
@@ -1820,9 +1960,10 @@ class SectorPlanner(_LayoutPlanner):
                         target_pos = self.__get_rack_position(src_pos,
                                      prep_sector, child.location, transfer_type,
                                      behaviours, translator_map)
-                        tts.append(TransferTarget(target_pos, transfer_vol))
+                        tts.append(TransferTarget(target_pos, transfer_vol,
+                                                  child.plate_marker))
                     prep_pos = container.create_preparation_position(ir_pos,
-                                                      prep_tts, aliquot_tts)
+                                         prep_tts, aliquot_tts, ir_sector)
                     layout.add_position(prep_pos)
                     add_list_map_element(self.__container_position_map,
                                          container, prep_pos.rack_position)
@@ -1856,15 +1997,15 @@ class SectorPlanner(_LayoutPlanner):
         """
         Returns the rack positions and ISO request positions for the given
         preparation container. The positions are derived from the
-        :attr:`sector_positions` map using the sector index of the nearest
-        aliquot container descandant.
+        :attr:`sector_positions` map using the lowest sector index of the
+        final plate container descandants.
         """
         prep_sector = prep_container.location
-        aliquot_sector = None
+        aliquot_sectors = set()
         for child_container in prep_container.get_descendants():
-            if child_container.is_aliquot_container:
-                aliquot_sector = child_container.sector_index
-                break
+            if child_container.is_final_container:
+                aliquot_sectors.add(child_container.sector_index)
+        aliquot_sector = min(aliquot_sectors)
 
         pos_map = dict()
         translator = self.__get_translator(aliquot_to_prep_type, translator_map,
@@ -1928,6 +2069,9 @@ class RackPositionPlanner(_LayoutPlanner):
 
     #: The :class:`RackPositionLocationAssigner` class for this planner.
     _LOCATION_ASSIGNER_CLS = RackPositionLocationAssigner
+    #: The value for the :attr:`from_job` attribute of final ISO plate
+    #: positions.
+    FROM_JOB = False
 
     def __init__(self, log, iso_request, builder, pool_containers):
         """
@@ -1953,11 +2097,8 @@ class RackPositionPlanner(_LayoutPlanner):
 
     def _check_input(self):
         _LayoutPlanner._check_input(self)
-        if self._check_input_class('pool container list', self.pool_containers,
-                                   list):
-            for pool_container in self.pool_containers:
-                if not self._check_input_class('pool container', pool_container,
-                                               PoolContainer): break
+        self._check_input_list_classes('pool container', self.pool_containers,
+                                       PoolContainer)
 
     def _register_requested_plate_containers(self):
         """
@@ -2012,7 +2153,7 @@ class RackPositionPlanner(_LayoutPlanner):
                 containers.append(container)
             self._coupled_requested_containers[c] = containers
 
-    def _store_aliquot_positions(self):
+    def _store_final_iso_positions(self):
         """
         Except for the targets, everything is already stored in the container.
         """
@@ -2020,30 +2161,33 @@ class RackPositionPlanner(_LayoutPlanner):
             tts = []
             for child_container, transfer_vol in container.targets.iteritems():
                 tt = TransferTarget(rack_position=child_container.rack_position,
-                                    transfer_volume=transfer_vol)
+                                transfer_volume=transfer_vol,
+                                target_rack_marker=child_container.plate_marker)
                 tts.append(tt)
-            aliquot_pos = container.create_aliquot_position(tts)
-            self.builder.add_iso_plate_position(aliquot_pos)
+
+            final_pos = container.create_final_iso_plate_position(tts,
+                                                                  self.FROM_JOB)
+            self.builder.add_final_iso_plate_position(final_pos)
 
     def _create_preparation_layouts(self, plate_specs):
         prep_shape = self._picked_assigner.preparation_reservoir_specs.\
                      rack_shape
 
         for plate_marker, prep_plate in self._prep_plate_containers.iteritems():
-            layout = IsoPrepPlateLayout(shape=prep_shape)
-            for container in prep_plate.get_location_containers():
-                aliquot_tts = []
+            layout = LabIsoPrepLayout(shape=prep_shape)
+            for container in prep_plate.get_containers():
+                final_tts = []
                 prep_tts = []
                 for child_container, transfer_vol in container.targets.\
                                                      iteritems():
                     tt = TransferTarget(child_container.rack_position,
-                                        transfer_vol)
-                    if child_container.is_aliquot_container:
-                        aliquot_tts.append(tt)
+                                    transfer_vol, child_container.plate_marker)
+                    if child_container.is_final_container:
+                        final_tts.append(tt)
                     else:
                         prep_tts.append(tt)
                 prep_pos = container.create_preparation_position(prep_tts,
-                                                                 aliquot_tts)
+                                                                 final_tts)
                 layout.add_position(prep_pos)
             self._store_preparation_layout(plate_marker, layout, plate_specs)
 
@@ -2069,6 +2213,7 @@ class JobRackPositionPlanner(RackPositionPlanner):
     NAME = 'Job Rack Position Planner'
 
     _LOCATION_ASSIGNER_CLS = JobRackPositionAssigner
+    FROM_JOB = True
 
     def __init__(self, log, iso_request, builder, pool_containers,
                  number_copies):
@@ -2139,13 +2284,24 @@ class JobRackPositionPlanner(RackPositionPlanner):
             self.add_error('The position classes in the pool containers ' \
                            'are inconsistent!')
 
-    def _store_aliquot_positions(self):
+    def _store_final_iso_positions(self):
         """
         The pool positions in the pool containers may already be part of
         the layout (if the controls are covered by sector preparation).
+        If they are there, their stock tube data must be removed.
+
         """
         if self.__record_requested_containers:
-            RackPositionPlanner._store_aliquot_positions(self)
+            RackPositionPlanner._store_final_iso_positions(self)
+        else:
+            for pool_container in self.pool_containers:
+                for plate_pos in pool_container:
+                    if not isinstance(plate_pos, FinalLabIsoPosition):
+                        continue
+                    requested_container = self._requested_containers[
+                                                    plate_pos.rack_position]
+                    if not requested_container.from_stock:
+                        plate_pos.stock_tube_barcode = None
 
     def _store_preparation_layout(self, plate_marker, prep_layout, plate_specs):
         """
@@ -2217,7 +2373,7 @@ class _LocationContainer(object):
     _PLANNED_TRANSFER_CLS = None
 
     def __init__(self, volume, target_concentration, parent_concentration,
-                 is_aliquot_container=False):
+                 is_final_container=False):
         """
         Constructor
 
@@ -2235,9 +2391,9 @@ class _LocationContainer(object):
             container or stock) for this sample *after all transfers in nM*.
         :type parent_concentration: positive number, unit nM
 
-        :param is_aliquot_container: Does this container belong to an aliquot
+        :param is_final_container: Does this container belong to a final ISO
             plate (if so, its location and sample data cannot be altered).
-        :type is_aliquot_container: :class:`bool`
+        :type is_final_container: :class:`bool`
         """
         if isinstance(self, _LocationContainer):
             raise NotImplementedError('Abstract class.')
@@ -2249,12 +2405,12 @@ class _LocationContainer(object):
         #: The concentration of the source (parent container or stock) for
         #: this sample *after all transfers in nM*.
         self.__parent_concentration = parent_concentration
-        #: Does this container belong to an aliquot plate?
-        self.__is_aliquot_container = is_aliquot_container
+        #: Does this container belong to a final ISO plate?
+        self.__is_final_container = is_final_container
 
-        #: Can sample (volume) data be altered? Is always *False* for aliquot
-        #: containers.
-        self.__allows_modification = not self.__is_aliquot_container
+        #: Can sample (volume) data be altered? Is always *False* for final
+        #: plate containers.
+        self.__allows_modification = not self.__is_final_container
         #: The minimum transfer volume for the supported pipetting specs *in ul*
         self.__min_transfer_volume = get_min_transfer_volume(
                                      self._PIPETTING_SPECS_NAME)
@@ -2268,7 +2424,7 @@ class _LocationContainer(object):
         self.plate_marker = None
 
         #: A temporary ID used to distinguish container also if they have
-        #: equal values (might be the case for aliquots).
+        #: equal values (might be tthe case if copy number are larger 1).
         self.__id = _CONTAINER_IDS.get_container_id()
         #: The dead volume that must remain in a plate.
         self.__dead_volume = 0
@@ -2304,17 +2460,17 @@ class _LocationContainer(object):
         return self.__volume + self.__dead_volume + sum(self.targets.values())
 
     @property
-    def is_aliquot_container(self):
+    def is_final_container(self):
         """
-        Does this container belong to an aliquot plate?
+        Does this container belong to a final ISO plate?
         """
-        return self.__is_aliquot_container
+        return self.__is_final_container
 
     @property
     def allows_modification(self):
         """
         Smaple and location modification is forbidden, if the container is an
-        aliquot container or if there clones of it (see :func:`clone`).
+        final plate container or if there clones of it (see :func:`clone`).
         """
         return self.__allows_modification
 
@@ -2433,12 +2589,12 @@ class _LocationContainer(object):
             return parent_ancestor_count + 1
 
     @classmethod
-    def create_aliquot_container(cls, location, volume, target_concentration,
-                                 parent_concentration, **kw):
+    def create_final_plate_container(cls, location, volume,
+                            target_concentration, parent_concentration, **kw):
         """
-        Factory method creating an aliquot container.
+        Factory method creating an final ISO plate container.
         """
-        kw['is_aliquot_container'] = True
+        kw['is_final_container'] = True
         kw['volume'] = volume
         kw['target_concentration'] = target_concentration
         kw['parent_concentration'] = parent_concentration
@@ -2482,7 +2638,7 @@ class _LocationContainer(object):
 
     def increase_volume(self, new_volume):
         """
-        Is only allowed if modification is enabled (non-aliquot containers
+        Is only allowed if modification is enabled (non-final containers
         without clones). The volume must not be lower than the current one.
 
         :param new_volume: The new volume *in ul*.
@@ -2515,7 +2671,7 @@ class _LocationContainer(object):
         :param dead_volume: The new dead volume *in ul*.
         :type dead_volume: positive number
 
-        :raises AttributeError: If the container reflects an aliquot position.
+        :raises AttributeError: If the container reflects an final position.
         """
         if not self.__allows_modification:
             raise AttributeError('Adjusting the dead volume for this ' \
@@ -2553,7 +2709,7 @@ class _LocationContainer(object):
         kw['volume'] = 0
         kw['target_concentration'] = target_concentration
         kw['parent_concentration'] = self.__parent_concentration
-        kw['is_aliquot_container'] = False
+        kw['is_final_container'] = False
         prep_container = self.__class__(**kw)
         prep_container.set_dead_volume(dead_volume)
         return prep_container
@@ -2603,37 +2759,31 @@ class _LocationContainer(object):
         clone.disable_modification()
         return clone
 
-    def _to_iso_plate_position(self, rack_pos, pool, position_type,
-                               transfer_targets):
+    def _to_iso_plate_position(self, pos_cls, rack_pos, pool, position_type,
+                               transfer_targets, **kw):
         """
-        Creates an :class:`IsoPlatePosition` for an final ISO layout.
+        Creates an :class:`FinalLabIsoPosition` or
+        :class:`LabIsoPrepPosition` for an final ISO layout.
         """
-        kw = self.__get_iso_plate_position_base_kw(rack_pos, pool,
+        base_kw = self.__get_iso_plate_position_base_kw(rack_pos, pool,
                                   position_type, transfer_targets)
-        return IsoPlatePosition(**kw)
-
-    def _to_preparation_position(self, rack_pos, pool, position_type,
-                                 prep_targets, aliquot_targets):
-        """
-        Creates an :class:`IsoPrepPlatePosition` for an preparation plate
-        layout.
-        """
-        kw = self.__get_iso_plate_position_base_kw(rack_pos, pool,
-                                  position_type, prep_targets)
-        kw['aliquot_targets'] = aliquot_targets
-        return IsoPrepPlatePosition(**kw)
+        base_kw.update(kw)
+        return pos_cls(**kw)
 
     def __get_iso_plate_position_base_kw(self, rack_pos, pool, position_type,
                                          transfer_targets):
         if self.from_stock:
-            stock_tube_barcode = IsoPlatePosition.TEMP_TUBE_BARCODE
+            stock_tube_barcode = LabIsoPosition.TEMP_STOCK_DATA
+            stock_rack_marker = LabIsoPosition.TEMP_STOCK_DATA
         else:
             stock_tube_barcode = None
+            stock_rack_marker = None
         return dict(rack_position=rack_pos, molecule_design_pool=pool,
                     position_type=position_type, volume=self.full_volume,
                     concentration=self.__target_concentration,
                     transfer_targets=transfer_targets,
-                    stock_tube_barcode=stock_tube_barcode)
+                    stock_tube_barcode=stock_tube_barcode,
+                    stock_rack_marker=stock_rack_marker)
 
     def get_buffer_volume(self):
         """
@@ -2731,7 +2881,7 @@ class SectorContainer(_LocationContainer):
         """
         Constructor
 
-        :param number_sectors: The total number of rack sectors for an aliquot
+        :param number_sectors: The total number of rack sectors for a final ISO
             plate (usually 1 or 4).
         :type number_sectors: positive integer
         """
@@ -2744,27 +2894,31 @@ class SectorContainer(_LocationContainer):
 
     def create_aliquot_position(self, iso_request_pos, transfer_targets):
         """
-        Creates a particular :class:`IsoPlatePosition` for an aliquot
+        Creates a particular :class:`FinalLabIsoPosition` for a final ISO
         plate layout using the data of an :class:IsoRequestPosition`.
         """
-        return self._to_iso_plate_position(
+        from_job = iso_request_pos.is_floating
+        return self._to_iso_plate_position(pos_cls=FinalLabIsoPosition,
                             rack_pos=iso_request_pos.rack_position,
                             pool=iso_request_pos.molecule_design_pool,
                             position_type=iso_request_pos.position_type,
-                            transfer_targets=transfer_targets)
+                            transfer_targets=transfer_targets,
+                            from_job=from_job,
+                            sector_index=self.sector_index)
 
     def create_preparation_position(self, iso_request_pos, preparation_targets,
-                                    aliquot_targets):
+                                    external_targets, sector_index):
         """
-        Creates a particular :class:`IsoPrepPlatePosition` for an preparation
+        Creates a particular :class:`LabIsoPrepPosition` for an preparation
         plate layout using the data of an :class:IsoRequestPosition`.
         """
-        return self._to_preparation_position(
+        return self._to_iso_plate_position(pos_cls=LabIsoPrepPosition,
                             rack_pos=iso_request_pos.rack_position,
                             pool=iso_request_pos.molecule_design_pool,
                             position_type=iso_request_pos.position_type,
-                            prep_targets=preparation_targets,
-                            aliquot_targets=aliquot_targets)
+                            transfer_targets=preparation_targets,
+                            external_targets=external_targets,
+                            sector_index=sector_index)
 
     def _get_planned_transfer_kw(self, child_container):
         return dict(source_sector_index=self.sector_index,
@@ -2820,7 +2974,7 @@ class RackPositionContainer(_LocationContainer):
         """
         kw = dict(pool=iso_request_pos.molecule_design_pool,
                   position_type=iso_request_pos.position_type)
-        return cls.create_aliquot_container(
+        return cls.create_final_plate_container(
                   location=iso_request_pos.rack_position,
                   volume=iso_request_pos.iso_volume,
                   target_concentration=iso_request_pos.iso_concentration,
@@ -2830,7 +2984,7 @@ class RackPositionContainer(_LocationContainer):
     def from_iso_plate_position(cls, plate_pos, stock_concentration):
         """
         Factory method creating an rack position container with immutable
-        volume from an :class:`IsoPlatePosition`.
+        volume from an :class:`LabIsoPosition`.
         """
         container = cls(rack_position=plate_pos.rack_position,
                 pool=plate_pos.molecule_design_pool,
@@ -2841,24 +2995,27 @@ class RackPositionContainer(_LocationContainer):
         container.disable_modification()
         return container
 
-    def create_iso_plate_position(self, transfer_targets):
+    def create_final_iso_plate_position(self, transfer_targets, from_job):
         """
-        Creates a particular :class:`IsoPlatePosition` for an final ISO
+        Creates a particular :class:`FinalLabIsoPosition` for a final ISO
         plate layout.
         """
-        return self._to_iso_plate_position(rack_pos=self.rack_position,
-                             pool=self.pool, position_type=self.position_type,
-                             transfer_targets=transfer_targets)
+        return self._to_iso_plate_position(pos_cls=FinalLabIsoPosition,
+                            rack_pos=self.rack_position,
+                            pool=self.pool, position_type=self.position_type,
+                            transfer_targets=transfer_targets,
+                            from_job=from_job)
 
-    def create_preparation_position(self, preparation_targets, aliquot_targets):
+    def create_preparation_position(self, preparation_targets, final_targets):
         """
-        Creates a particular :class:`IsoPrepPlatePosition` for an preparation
+        Creates a particular :class:`LabIsoPrepPosition` for an preparation
         plate layout from a :class:`PoolContainer` object.
         """
-        return self._to_preparation_position(rack_pos=self.rack_position,
+        return self._to_iso_plate_position(LabIsoPrepPosition,
+                            rack_pos=self.rack_position,
                             pool=self.pool, position_type=self.position_type,
-                            prep_targets=preparation_targets,
-                            aliquot_targets=aliquot_targets)
+                            transfer_targets=preparation_targets,
+                            external_targets=final_targets)
 
     def _get_planned_transfer_kw(self, child_container):
         return dict(source_position=self.rack_position,
@@ -2899,7 +3056,7 @@ class _LocationAssigner(object):
         #: The :class:`ReservoirSpecs` for potential preparation plates.
         self._prep_specs = prep_reservoir_specs
 
-        #: The target containers that shall be prepared (usually aliquot
+        #: The target containers that shall be prepared (usually final plate
         #: containers).
         self.__requested_containers = []
 
@@ -2922,18 +3079,18 @@ class _LocationAssigner(object):
         self.__available_prep_locations = self._get_locations_for_prep_specs()
 
         #: The preparation containers mapped onto full volumes.
-        self._volume_map = None
+        self.__volume_map = None
 
         #: The preparation containers that have been created.
         self._prep_containers = None
-        #: The preparation containers sorted by generation (aliquot containers
+        #: The preparation containers sorted by generation (final containers
         #: first).
-        self._sorted_prep_containers = None
+        self.__sorted_prep_containers = None
         #: The preferred location for each preparation container.
-        self._preferred_prep_locations = None
+        self.__preferred_prep_locations = None
         #: The :class:`_PlateContainer` for each preparation plate, mapped
         #: onto plate marker.
-        self._prep_plate_containers = None
+        self.__prep_plate_containers = None
 
     @property
     def preparation_reservoir_specs(self):
@@ -2970,7 +3127,7 @@ class _LocationAssigner(object):
         """
         if self._prep_containers is None:
             self._prep_containers = []
-            self._preferred_prep_locations = dict()
+            self.__preferred_prep_locations = dict()
 
         # stores all prep containers for this ID mapped onto target conc
         prep_containers = dict()
@@ -2996,15 +3153,15 @@ class _LocationAssigner(object):
             self.__requested_containers.append(requested_container)
             stock_list.append(requested_container)
 
-        # first we check the volumes that are directly derived from the stock
-        from_stock.sort(reverse=True)
-        for container in from_stock:
-            self.__prepare_container(container, prep_containers)
-
-        # second we check whether smaller concentrations, if possible we derive
+        # first we check whether smaller concentrations, if possible we derive
         # them from larger concentration among the requested containers
         not_from_stock.sort()
         for container in not_from_stock:
+            self.__prepare_container(container, prep_containers)
+
+        # second we check the volumes that are directly derived from the stock
+        from_stock.sort(reverse=True)
+        for container in from_stock:
             self.__prepare_container(container, prep_containers)
 
         # store all containers
@@ -3017,17 +3174,20 @@ class _LocationAssigner(object):
         cannot be derived directly from the stock) and stores them in the
         container map.
         """
-        while self.__requires_intermediate_position(container):
+        has_valid_origin = False
+        while not has_valid_origin:
             prep_container = self.__find_suitable_source_container(container,
                                                              prep_containers)
             if prep_container is not None:
                 container.set_parent_container(prep_container)
-                break
-
-            prep_container = self.__create_new_prep_container(container,
-                                                     container.location)
-            self.__store_prep_container(prep_containers, prep_container)
-            container = prep_container
+                has_valid_origin = True
+            elif not self.__requires_intermediate_position(container):
+                has_valid_origin = True
+            else:
+                prep_container = self.__create_new_prep_container(container,
+                                                         container.location)
+                self.__store_prep_container(prep_containers, prep_container)
+                container = prep_container
 
     def __store_prep_container(self, container_map, prep_container):
         """
@@ -3113,7 +3273,7 @@ class _LocationAssigner(object):
         """
         prep_container = self.__determine_preparation_values(target_container)
         target_container.set_parent_container(prep_container)
-        self._preferred_prep_locations[prep_container] = preferred_location
+        self.__preferred_prep_locations[prep_container] = preferred_location
         return prep_container
 
     def __determine_preparation_values(self, target_container):
@@ -3203,7 +3363,7 @@ class _LocationAssigner(object):
         dead volumes (if the pipetting specs request dynamic dead volumes)
         an determines the maximum volume for all preparation containers.
         """
-        if self.has_preparation_containers() and self._volume_map is None:
+        if self.has_preparation_containers() and self.__volume_map is None:
             self.__sort_prep_container_by_generation()
             self.__adjust_container_dead_volumes()
             self.__create_volume_map()
@@ -3237,9 +3397,9 @@ class _LocationAssigner(object):
             add_list_map_element(min_generation_map, min(generations),
                                  container)
 
-        self._sorted_prep_containers = []
+        self.__sorted_prep_containers = []
         for generation in sorted(min_generation_map.keys()):
-            self._sorted_prep_containers.extend(min_generation_map[generation])
+            self.__sorted_prep_containers.extend(min_generation_map[generation])
 
     def __adjust_container_dead_volumes(self):
         """
@@ -3249,7 +3409,7 @@ class _LocationAssigner(object):
         """
         dynamic = self.__robot_specs.has_dynamic_dead_volume
         if dynamic:
-            for container in self._sorted_prep_containers:
+            for container in self.__sorted_prep_containers:
                 self.__adjust_dead_volume_for_target_number(container)
 
     def __adjust_dead_volume_for_target_number(self, container):
@@ -3268,11 +3428,11 @@ class _LocationAssigner(object):
         """
         Sorts preparation containers by (full) volume.
         """
-        self._volume_map = dict()
-        for container in self._sorted_prep_containers:
+        self.__volume_map = dict()
+        for container in self.__sorted_prep_containers:
             container_vol = container.full_volume
             container_vol = round(container_vol, 1)
-            add_list_map_element(self._volume_map, container_vol,
+            add_list_map_element(self.__volume_map, container_vol,
                                  container)
 
     def get_max_preparation_volume(self):
@@ -3285,13 +3445,13 @@ class _LocationAssigner(object):
         :raise AttributeError: If you did not invoke :func:`add_container` and
             :func:`process_preparation_containers` before.
         """
-        if self._volume_map is None:
+        if self.__volume_map is None:
             msg = 'The layout generation is not completed yet. Please call ' \
                   'add_containers() and process_preparation_containers() ' \
                   'before.'
             raise AttributeError(msg)
 
-        return max(self._volume_map.keys())
+        return max(self.__volume_map.keys())
 
     def get_number_preparation_plates(self):
         """
@@ -3314,13 +3474,13 @@ class _LocationAssigner(object):
         :raise AttributeError: If you did not invoke :func:`add_container` and
             :func:`process_preparation_containers` before.
         """
-        if self._volume_map is None:
+        if self.__volume_map is None:
             msg = 'The layout generation is not completed yet. Please call ' \
                   'add_containers() and process_preparation_containers() ' \
                   'before.'
             raise AttributeError(msg)
 
-        self._prep_plate_containers = dict()
+        self.__prep_plate_containers = dict()
         self.__create_preparation_plate_containers()
         self.__distribute_prep_containers()
 
@@ -3332,8 +3492,8 @@ class _LocationAssigner(object):
         num_plates = self.get_number_preparation_plates()
         for i in range(num_plates):
             plate_num = i + 1
-            plate_marker = LABELS.create_plate_marker(self._PREP_PLATE_ROLE,
-                                                      plate_num)
+            plate_marker = LABELS.create_rack_marker(self._PREP_PLATE_ROLE,
+                                                     plate_num)
             self.__create_plate_container(plate_marker)
 
     def __create_plate_container(self, plate_marker):
@@ -3343,66 +3503,58 @@ class _LocationAssigner(object):
         kw = dict(available_locations=self.__available_prep_locations,
                   plate_marker=plate_marker)
         plate_container = self._PLATE_CONTAINER_CLS(**kw)
-        self._prep_plate_containers[plate_marker] = plate_container
+        self.__prep_plate_containers[plate_marker] = plate_container
 
     def __distribute_prep_containers(self):
         """
         Helper function. Finds locations for all preparation containers.
-        Containers having a preferred location are processed first.
+        Containers are prioritized before assignment.
         """
-        with_preference, no_preference = self.__sort_by_location_preference()
-        # these lists only container preparation containers
+        container_identifiers = dict()
+        for identifier, containers in self.__identifier_map.iteritems():
+            for container in containers:
+                container_identifiers[container] = identifier
 
-        # first we place the preparation containers to the
-        reinsert = []
-        while len(with_preference) > 0:
-            container = with_preference.pop(0)
-            pref_location = self._preferred_prep_locations[container]
-            prep_plate = None
-            for plate_num in sorted(self._prep_plate_containers.keys()):
-                plate = self._prep_plate_containers[plate_num]
-                if plate.is_empty_location(pref_location):
-                    prep_plate = plate
-                    break
-            if prep_plate is None:
-                reinsert.append(container)
-            else:
-                prep_plate.set_container(container, pref_location)
+        priority_scores = self.__sort_by_stock_origin_and_location_preference()
 
-        # now the locations for the containers without preference are set
         remaining_plates = []
-        for plate_num in sorted(self._prep_plate_containers.keys()):
-            plate = self._prep_plate_containers[plate_num]
+        for plate_marker in sorted(self.__prep_plate_containers.keys()):
+            plate = self.__prep_plate_containers[plate_marker]
             if plate.has_empty_positions():
                 remaining_plates.append(plate)
 
-        while len(no_preference) > 0:
-            container = no_preference.pop(0)
-            plate = remaining_plates.pop(0)
-            # we have already made sure that the number of locations is
-            # sufficient so this should always work
-            plate.set_container(container)
-            if plate.has_empty_positions():
-                remaining_plates.insert(0, plate)
+        for score in sorted(priority_scores.keys(), reverse=True):
+            containers = priority_scores[score]
+            for container in containers:
+                pref_location = self.__preferred_prep_locations[container]
+                prep_plate = remaining_plates.pop(0)
+                location = None
+                if pref_location is not None:
+                    if prep_plate.is_empty_location(pref_location):
+                        location = pref_location
+                prep_plate.set_container(container, location)
+                if prep_plate.has_empty_locations():
+                    remaining_plates.insert(0, prep_plate)
 
-    def __sort_by_location_preference(self):
+    def __sort_by_stock_origin_and_location_preference(self):
         """
-        Helper function creating 2 lists: One for preparation container with a
-        preferred location and one without. The order of the containers is kept.
+        Helper function creating a score map for the storted preparation
+        container. Containers with a high score should get a location first.
+        Priority is raised strongly if a container sample originates from
+        the stock, and slightly if it has a preferred location.
         """
-        with_preference = []
-        no_preference = []
+        priority_scores = dict()
+
         for identifier in sorted(self.__identifier_map.keys()):
             containers = self.__identifier_map[identifier]
             for container in containers:
-                if container.is_aliquot_container: continue
-                preferred_location = self._preferred_prep_locations[container]
-                if preferred_location is None:
-                    pref_list = no_preference
-                else:
-                    pref_list = with_preference
-                pref_list.append(container)
-        return with_preference, no_preference
+                score = 0
+                if container.from_stock: score += 2
+                if self.__preferred_prep_locations[container] is not None:
+                    score += 1
+                add_list_map_element(priority_scores, score, container)
+
+        return priority_scores
 
     def get_preparation_plate_containers(self):
         """
@@ -3414,12 +3566,12 @@ class _LocationAssigner(object):
         :raise AttributeError: If you did not invoke
         :func:`distribute_preparation_containers` before
         """
-        if self._prep_plate_containers is None:
+        if self.__prep_plate_containers is None:
             msg = 'The layout generation is not completed yet. Please call ' \
                   'distribute_preparation_containers() before.'
             raise AttributeError(msg)
 
-        return self._prep_plate_containers
+        return self.__prep_plate_containers
 
 
 class SectorLocationAssigner(_LocationAssigner):
@@ -3450,12 +3602,10 @@ class SectorLocationAssigner(_LocationAssigner):
         """
         shape_size = self._prep_specs.rack_shape.size
         if shape_size == 384:
-            if self.number_sectors == 1:
-                return 1
-            else:
-                return self.number_sectors
+            num_sectors = self.number_sectors
         else: # 96
-            return 1
+            num_sectors = 1
+        return range(num_sectors)
 
 
 class RackPositionLocationAssigner(_LocationAssigner):
@@ -3556,7 +3706,7 @@ class _PlateContainer(object):
         """
         return self._location_map[location]
 
-    def get_location_containers(self):
+    def get_containers(self):
         """
         Returns all location containers for this plate container.
         """

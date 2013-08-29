@@ -151,9 +151,13 @@ class LabIsoRequest(IsoRequest):
     #: properties for the plates (important for calculations,
     #: :class:`thelma.models.liquidtransferReservoirSpecs`).
     iso_plate_reservoir_specs = None
+    #: Shall the ISO job be processed first (before the ISO-specific
+    #: preparations?). Default: True. If there is no ISO job processing this
+    #: value is ignored.
+    process_job_first = None
 
     def __init__(self, label, requester, rack_layout, delivery_date=None,
-                 comment=None, experiment_metadata=None,
+                 comment=None, experiment_metadata=None, process_job_first=True,
                  iso_plate_reservoir_specs=None, **kw):
         """
         Constructor
@@ -165,6 +169,7 @@ class LabIsoRequest(IsoRequest):
         self.comment = comment
         self.experiment_metadata = experiment_metadata
         self.iso_plate_reservoir_specs = iso_plate_reservoir_specs
+        self.process_job_first = process_job_first
 
     @property
     def experiment_metadata_type(self):
@@ -298,12 +303,12 @@ class Iso(Entity):
     #: the status the ISO is set to if no other status is specified (*queued*).
     DEFAULT_STATUS = ISO_STATUS.QUEUED
 
-    def __init__(self, label, number_stock_racks, iso_request=None,
+    def __init__(self, label, iso_request=None,
                  status=None, molecule_design_pool_set=None,
                  optimizer_excluded_racks=None,
                  optimizer_required_racks=None,
                  rack_layout=None, iso_job=None,
-                 iso_stock_racks=None,
+                 iso_stock_racks=None, number_stock_racks=None,
                  iso_sector_stock_racks=None,
                  iso_preparation_plates=None,
                  iso_aliquot_plates=None,
@@ -392,6 +397,18 @@ class LabIso(Iso):
         """
         Iso.__init__(self, label=label, iso_type=ISO_TYPES.LAB, **kw)
         self.library_plates = []
+
+    @property
+    def final_plates(self):
+        """
+        Returns either the ISO aliquot or the library plates assigned to this
+        ISO (depending on what sort of plates is associated with this ISO,
+        library plates are tried first).
+        """
+        if len(self.library_plates) > 0:
+            return self.library_plates
+        else:
+            return self.iso_aliquot_plates
 
     def add_aliquot_plate(self, plate):
         """
@@ -483,19 +500,22 @@ class StockRack(Entity):
     #: The type of the stock rack (see :class:`STOCK_RACK_TYPES`).
     stock_rack_type = None
 
+    #: The label of the stock rack entity is not equal to the rack label.
+    #: The entity label contains data that is parsed for ISO processing.
+    label = None
     #: The stock rack (:class:`thelma.models.rack.TubeRack`).
     rack = None
     #: The rack layout containing the molecule design pool and transfer data
     #: (:class:`StockRackLayout`).
     rack_layout = None
-    #: The worklist (:class:`thelma.models.liquidtransfer.PlannedWorklist`)
-    #: used to transfer volume from the stock tubes to a target container -
-    #: this is always a :class:`CONTAINER_TRANSFER` type even if we use a
-    #: CyBio, because tubes in stock racks can move and the state during the
-    #: transfer might no be constant.
-    planned_worklist = None
+    #: The series (:class:`thelma.models.liquidtransfer.WorklistSeries`)
+    #: used to transfer volumes from the stock tubes to a target container -
+    #: the worklists are always a :class:`SAMPLE TRANSFER` types even if we
+    #: use a CyBio, because tubes in stock racks can move and the rack state
+    #: after the transfers might change.
+    worklist_series = None
 
-    def __init__(self, rack, rack_layout, planned_worklist,
+    def __init__(self, label, rack, rack_layout, worklist_series,
                  stock_rack_type=None, **kw):
         """
         Constructor
@@ -506,19 +526,21 @@ class StockRack(Entity):
         if stock_rack_type is None:
             stock_rack_type = STOCK_RACK_TYPES.STOCK_RACK
         self.stock_rack_type = stock_rack_type
+        self.label = label
         self.rack = rack
         self.rack_layout = rack_layout
-        self.planned_worklist = planned_worklist
+        self.worklist_series = worklist_series
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.id == other.id
 
     def __str__(self):
-        return self.rack.barcode
+        return self.label
 
     def __repr__(self):
-        str_format = '<%s id: %s, rack: %s>'
-        params = (self.__class__.__name__, self.id, self.rack.barcode)
+        str_format = '<%s id: %s, label: %s, rack: %s>'
+        params = (self.__class__.__name__, self.id, self.label,
+                  self.rack.barcode)
         return str_format % params
 
 
@@ -533,18 +555,19 @@ class IsoJobStockRack(StockRack):
     #: The ISO job this rack belongs to (:class:`thelma.models.job.IsoJob`).
     iso_job = None
 
-    def __init__(self, iso_job, rack, rack_layout, planned_worklist, **kw):
+    def __init__(self, iso_job, label, rack, rack_layout, worklist_series,
+                 **kw):
         """
         Constructor
         """
         StockRack.__init__(self, rack=rack, rack_layout=rack_layout,
-                           planned_worklist=planned_worklist,
+                           worklist_series=worklist_series, label=label,
                            stock_rack_type=STOCK_RACK_TYPES.ISO_JOB, **kw)
         self.iso_job = iso_job
 
     def __repr__(self):
-        str_format = '<%s id: %s, ISO job: %s, rack: %s>'
-        params = (self.__class__.__name__, self.id, self.iso_job,
+        str_format = '<%s id: %s, label: %s, ISO job: %s, rack: %s>'
+        params = (self.__class__.__name__, self.id, self.label, self.iso_job,
                   self.rack.barcode)
         return str_format % params
 
@@ -562,18 +585,19 @@ class IsoStockRack(StockRack):
     #: The ISO this stock rack belongs to (:class:`Iso`).
     iso = None
 
-    def __init__(self, iso, rack, rack_layout, planned_worklist, **kw):
+    def __init__(self, iso, label, rack, rack_layout, worklist_series, **kw):
         """
         Constructor
         """
         StockRack.__init__(self, rack=rack, rack_layout=rack_layout,
-                           planned_worklist=planned_worklist,
+                           worklist_series=worklist_series, label=label,
                            stock_rack_type=STOCK_RACK_TYPES.ISO, **kw)
         self.iso = iso
 
     def __repr__(self):
-        str_format = '<%s id: %s, ISO: %s, rack: %s>'
-        params = (self.__class__.__name__, self.id, self.iso, self.rack.barcode)
+        str_format = '<%s id: %s, label: %s, ISO: %s, rack: %s>'
+        params = (self.__class__.__name__, self.id, self.label, self.iso,
+                  self.rack.barcode)
         return str_format % params
 
 
@@ -597,21 +621,22 @@ class IsoSectorStockRack(StockRack):
     #: The sector index this stock rack is responsible for (0-based).
     sector_index = None
 
-    def __init__(self, rack, iso, sector_index, rack_layout, planned_worklist,
-                 **kw):
+    def __init__(self, rack, label, iso, sector_index, rack_layout,
+                 worklist_series, **kw):
         """
         Constructor
         """
         StockRack.__init__(self, rack=rack, rack_layout=rack_layout,
-                              planned_worklist=planned_worklist,
+                              worklist_series=worklist_series, label=label,
                               stock_rack_type=STOCK_RACK_TYPES.SECTOR, **kw)
         self.iso = iso
         self.sector_index = sector_index
 
     def __repr__(self):
-        str_format = '<%s id: %s, ISO: %s, rack: %s, sector index: %s>'
-        params = (self.__class__.__name__, self.id, self.iso, self.rack.barcode,
-                  self.sector_index)
+        str_format = '<%s id: %s, label: %s, ISO: %s, rack: %s, ' \
+                     'sector index: %s>'
+        params = (self.__class__.__name__, self.id, self.label, self.iso,
+                  self.rack.barcode, self.sector_index)
         return str_format % params
 
 
@@ -729,7 +754,9 @@ class IsoSectorPreparationPlate(IsoPlate):
     #: Contains the data to prepare the samples (pool IDs, transfer targets,
     #: volumes, concentrations, etc.).
     rack_layout = None
-    #: The sector index this ISO preparation plate is responsible for (0-based).
+    #: The final plate sector index this ISO preparation plate is responsible
+    #: for (0-based). If there are several sectors with the same combination
+    #: of pools this is the lowest of these sector indices.
     sector_index = None
 
     def __init__(self, iso, rack, sector_index, rack_layout, **kw):

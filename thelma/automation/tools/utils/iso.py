@@ -422,11 +422,7 @@ class IsoRequestLayoutConverter(MoleculeDesignPoolLayoutConverter):
         self._empty_and_volume = []
         self._empty_and_concentration = []
 
-    def _obtain_working_position(self, parameter_map):
-        """
-        Derives an ISO position from a parameter map (including validity
-        checks).
-        """
+    def _get_position_init_values(self, parameter_map):
         md_pool = parameter_map[self.PARAMETER_SET.MOLECULE_DESIGN_POOL]
         volume = parameter_map[self.PARAMETER_SET.ISO_VOLUME]
         concentration = parameter_map[self.PARAMETER_SET.ISO_CONCENTRATION]
@@ -475,10 +471,10 @@ class IsoRequestLayoutConverter(MoleculeDesignPoolLayoutConverter):
         if invalid or pos_type == EMPTY_POSITION_TYPE: # incl untreated
             return None
         else:
-            return IsoRequestPosition(rack_position=rack_pos,
-                                      molecule_design_pool=md_pool,
-                                      iso_concentration=concentration,
-                                      iso_volume=volume, supplier=supplier)
+            return dict(rack_position=rack_pos,
+                        molecule_design_pool=md_pool,
+                        iso_concentration=concentration,
+                        iso_volume=volume, supplier=supplier)
 
     def _get_supplier_for_name(self, supplier_name):
         """

@@ -69,20 +69,25 @@ class LabIsoJobCreator(IsoJobCreator):
                                add_default_handlers=add_default_handlers)
 
         #: The :class:`LabIsoBuilder` used to generate the ISOs.
-        self._builder = None
+        self.__builder = None
+        #: The layouts for the job preparation plates mapped onto plate markers.
+        self.__job_prep_plate_layouts = None
 
     def reset(self):
         IsoJobCreator.reset(self)
-        self._builder = None
+        self.__builder = None
+        self.__job_prep_plate_layouts = None
 
     def _get_isos(self):
         """
         The data is first collected in a builder which is then used to create
         all required entities.
         """
+        self.add_debug('Create ISOs ...')
+
         self._get_builder()
         if not self.has_errors():
-            self._isos = self._builder.create_isos()
+            self._isos = self.__builder.create_isos()
         if not self.has_errors() and self.iso_request.worklist_series is None:
             self.__create_worklists_series()
 
@@ -102,9 +107,9 @@ class LabIsoJobCreator(IsoJobCreator):
         if self.iso_request.molecule_design_library is not None:
             planner_cls = LibraryIsoPlanner
         planner = planner_cls(**kw)
-        self._builder = planner.get_result()
+        self.__builder = planner.get_result()
 
-        if self._builder is None:
+        if self.__builder is None:
             msg = 'Error when generate ISO builder!'
             self.add_error(msg)
 
@@ -116,7 +121,7 @@ class LabIsoJobCreator(IsoJobCreator):
         ISO request.
         """
         generator = LabIsoWorklistSeriesGenerator(log=self.log,
-                                                  builder=self._builder)
+                                                  builder=self.__builder)
         worklist_series = generator.get_result()
 
         if worklist_series is None:
@@ -125,11 +130,26 @@ class LabIsoJobCreator(IsoJobCreator):
         elif len(worklist_series) > 0:
             self.iso_request.worklist_series = worklist_series
 
+    def _get_number_stock_racks(self):
+        """
+        The number of stock racks is determined by counting the number of
+        job preparation plates and final ISO plates that have fixed position
+        starting wells.
+        """
+        self.__job_prep_plate_layouts = self.__builder.\
+                                        complete_job_preparation_plates()
+        layouts = {LABELS.ROLE_ALIQUOT : self.__builder.final_iso_layout}.\
+                  update(self.__job_prep_plate_layouts)
+        number_stock_racks = self.__builder.distribute_pools_to_stock_racks(
+                                                      layouts, for_job=True)
+        return number_stock_racks
+
     def _create_iso_job_racks(self):
         """
         In case of lab ISOs there might be ISO job preparation plates.
         """
-        self._builder.create_job_preparation_plates()
+        self.__builder.create_job_preparation_plates(self._iso_job,
+                                                self.__job_prep_plate_layouts)
 
 
 class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
@@ -167,12 +187,17 @@ class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
         #: The plate markers for the layouts in order of prepraration.
         self.__ordered_plate_markers = None
 
+        #: Shall the ISO job be processed before the ISO?
+        self.__process_job_first = None
+
+
     def reset(self):
         BaseAutomationTool.reset(self)
         self.__ticket_number = None
         self.__worklist_series = None
         self.__layout_map = None
         self.__ordered_plate_markers = []
+        self.__process_job_first = None
 
     def run(self):
         self.reset()
@@ -196,13 +221,24 @@ class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
 
     def __sort_layouts(self):
         """
-        Job plates come first, aliquot plates come last. If there are several
-        plates for a role, they are sorted by name.
+        Aliquot plates can comprise sector transfers both with and without
+        controls. If the controls are comprised in the sector
+        transfer, the sector transfer need to be done first. Otherwise the
+        controls can only be added after all floating samples have been
+        prepared.
+
+        If there are several plates for a role, they are sorted by name.
         """
         self.__layout_map = self.builder.get_all_layouts()
-        self.__sort_and_store_layout_map(self.builder.job_layouts)
-        self.__sort_and_store_layout_map(self.builder.preparation_layouts)
-        self.__ordered_plate_markers.append(LABELS.ROLE_ALIQUOT)
+        self.__process_job_first = self.builder.iso_request.process_job_first
+        if self.__process_job_first:
+            self.__sort_and_store_layout_map(self.builder.job_layouts)
+            self.__sort_and_store_layout_map(self.builder.preparation_layouts)
+            self.__ordered_plate_markers.append(LABELS.ROLE_ALIQUOT)
+        else:
+            self.__sort_and_store_layout_map(self.builder.preparation_layouts)
+            self.__ordered_plate_markers.append(LABELS.ROLE_ALIQUOT)
+            self.__sort_and_store_layout_map(self.builder.job_layouts)
 
     def __sort_and_store_layout_map(self, layout_map):
         """
@@ -232,6 +268,13 @@ class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
         create a new worklist for each generation within the plate. Only
         if all intraplate generations are processed we start the worklist
         to the next plate.
+
+        If there are no fixed positions in sector transfers in the aliquot
+        plate, the position-based transfers of the fixed positions are the
+        very last that need to be processed (where as the floating transfers
+        have to be done before the job processing). The plates are already
+        ordered properly, however, we need to make sure the preparation
+        of the aliquot plate is split correctly.
         """
         inter_map = self.builder.interplate_transfers
         intra_map = self.builder.intraplate_transfers
@@ -241,23 +284,52 @@ class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
                 intra_transfers = intra_map[plate_marker]
                 self.__create_intraplate_worklists(plate_marker,
                                                    intra_transfers)
-            if plate_marker == LABELS.ROLE_ALIQUOT: break
             if inter_map.has_key(plate_marker):
                 inter_transfers = inter_map[plate_marker]
                 self.__create_interplate_worklists(plate_marker,
                                                    inter_transfers)
 
+        if not self.__process_job_first:
+            control_aliquot_transfers = inter_map[LABELS.ROLE_ALIQUOT]
+            self.__create_filtered_transfer_worklist(control_aliquot_transfers,
+                            LABELS.ROLE_ALIQUOT, TRANSFER_TYPES.SAMPLE_TRANSFER)
+
     def __create_intraplate_worklists(self, plate_marker, transfer_map):
         """
         Creates the intraplate transfer worklists for the passed plate marker.
-        The worklists are generated in order of the intraplate ancestor count.
+        Rack sample transfers are done first, then sample transfers are done.
+        Furthermore, the worklists are generated in order of the intraplate
+        ancestor count.
+
+        If the plate is an aliquot plate and ISOs need to be process before
+        the ISO job, only the rack transfers are processed because the
+        non-sector transfers of the the fixed positions needs to be the
+        very last step of the preparation.
+        """
+        self.__create_filtered_transfer_worklist(transfer_map, plate_marker,
+                                        TRANSFER_TYPES.RACK_SAMPLE_TRANSFER)
+        prepare_pos_transfers = True
+        if plate_marker == LABELS.ROLE_ALIQUOT and not self.__process_job_first:
+            prepare_pos_transfers = False
+        if prepare_pos_transfers:
+            self.__create_filtered_transfer_worklist(transfer_map, plate_marker,
+                                                 TRANSFER_TYPES.SAMPLE_TRANSFER)
+
+    def __create_filtered_transfer_worklist(self, transfer_map, plate_marker,
+                                            transfer_type):
+        """
+        Helper function creating a planned transfer worklist for the
+        given transfer type.
         """
         for ancestor_count in sorted(transfer_map.keys()):
-            pts = transfer_map[ancestor_count]
+            valid_plts = []
+            for plt in transfer_map[ancestor_count]:
+                if plt.transfer_type == transfer_type:
+                    valid_plts.append(plt)
+            if len(valid_plts) < 1: continue
             worklist_label = self.__create_worklist_label(plate_marker,
                                                           plate_marker)
-            transfer_type = pts[0].transfer_type
-            self.__create_worklist(worklist_label, pts, transfer_type)
+            self.__create_worklist(worklist_label, valid_plts, transfer_type)
 
     def __create_interplate_worklists(self, source_plate_marker, transfer_map):
         """
@@ -286,8 +358,8 @@ class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
         worklist_number = self.__get_current_worklist_number()
         return LABELS.create_worklist_label(ticket_number=self.__ticket_number,
                     worklist_number=worklist_number,
-                    target_plate_marker=target_plate_marker,
-                    source_plate_marker=source_plate_marker)
+                    target_rack_marker=target_plate_marker,
+                    source_rack_marker=source_plate_marker)
 
     def __create_worklist(self, worklist_label, planned_liquid_transfers,
                           transfer_type):

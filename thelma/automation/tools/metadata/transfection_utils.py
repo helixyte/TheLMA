@@ -81,14 +81,14 @@ class TransfectionParameters(IsoRequestParameters):
            REAGENT_DIL_FACTOR, OPTIMEM_DIL_FACTOR]
 
     #: A map storing alias predicates for each parameter.
-    ALIAS_MAP = IsoRequestParameters.ALIAS_MAP.update({
+    ALIAS_MAP = dict(IsoRequestParameters.ALIAS_MAP, **{
                  FINAL_CONCENTRATION : [],
                  REAGENT_NAME : [],
                  REAGENT_DIL_FACTOR : ['reagent_concentration'],
                  OPTIMEM_DIL_FACTOR : []})
 
     #: Maps tag predicates on domains.
-    DOMAIN_MAP = IsoRequestParameters.DOMAIN_MAP.update({
+    DOMAIN_MAP = dict(IsoRequestParameters.DOMAIN_MAP, **{
                   FINAL_CONCENTRATION : DOMAIN,
                   REAGENT_NAME : DOMAIN,
                   REAGENT_DIL_FACTOR : DOMAIN,
@@ -420,7 +420,7 @@ class TransfectionPosition(IsoRequestPosition):
     def __init__(self, rack_position, molecule_design_pool=None,
                  reagent_name=None, reagent_dil_factor=None, iso_volume=None,
                  iso_concentration=None, supplier=None,
-                 final_concentration=None):
+                 final_concentration=None, optimem_dil_factor=None):
         """
         :param rack_position: The rack position.
         :type rack_position: :class:`thelma.models.rack.RackPosition`.
@@ -435,14 +435,14 @@ class TransfectionPosition(IsoRequestPosition):
 
         :param reagent_dil_factor: The final dilution factor of the
             transfection reagent in the cell plate.
-        :type reagent_dil_factor: positive number
+        :type reagent_dil_factor: positive number, no unit
 
         :param iso_volume: The volume requested by the stock management.
-        :type iso_volume: positive number
+        :type iso_volume: positive number, unit ul
 
         :param iso_concentration: The concentration requested by the stock
             management.
-        :type iso_concentration: positive number
+        :type iso_concentration: positive number, unit nM
 
         :param supplier: The supplier for the molecule design pool (fixed
             positions only).
@@ -450,7 +450,11 @@ class TransfectionPosition(IsoRequestPosition):
 
         :param final_concentration: The final concentration of the RNAi
             reagent in the cell plate.
-        :type final_concentration: positive number
+        :type final_concentration: positive number, unit nM
+
+        :param optimem_dil_factor: The dilution factor for the OptiMem dilution
+            (use only if you do not want to use the default factor).
+        :type optimem_dil_factor: positive number
         """
         IsoRequestPosition.__init__(self, rack_position=rack_position,
                              molecule_design_pool=molecule_design_pool,
@@ -474,7 +478,7 @@ class TransfectionPosition(IsoRequestPosition):
         #: The optimem dilution factor set in library screenings (because
         #: in this case it is depending on the final concentration instead
         #: of depending on the molecule type).
-        self._optimem_dil_factor = None
+        self._optimem_dil_factor = optimem_dil_factor
 
         tf_attrs = [('reagent name', self.reagent_name),
                     ('reagent dilution factor', self.reagent_dil_factor),
@@ -569,33 +573,6 @@ class TransfectionPosition(IsoRequestPosition):
             rack_position = get_rack_position_from_label(label)
             rack_positions.add(rack_position)
         return rack_positions
-
-    def get_tag_set(self):
-        """
-        Returns the tag set for this working position.
-        """
-        if self.is_empty and not self.is_untreated_type:
-            return set([self.get_parameter_tag(self.PARAMETER_SET.POS_TYPE)])
-
-        tag_set = set()
-        for parameter in self.PARAMETER_SET.REQUIRED:
-            tag = self.get_parameter_tag(parameter)
-            tag_set.add(tag)
-        tag_set.add(self.get_parameter_tag(self.PARAMETER_SET.POS_TYPE))
-
-        optional_parameters = [self.PARAMETER_SET.FINAL_CONCENTRATION,
-                               self.PARAMETER_SET.SUPPLIER,
-                               self.PARAMETER_SET.ISO_VOLUME,
-                               self.PARAMETER_SET.ISO_CONCENTRATION,
-                               self.PARAMETER_SET.REAGENT_NAME,
-                               self.PARAMETER_SET.REAGENT_DIL_FACTOR,
-                               self.PARAMETER_SET.OPTIMEM_DIL_FACTOR]
-        for parameter in optional_parameters:
-            if not self.get_parameter_value(parameter) is None:
-                tag = self.get_parameter_tag(parameter)
-                tag_set.add(tag)
-
-        return tag_set
 
     def has_tag(self, tag):
         """
@@ -1194,13 +1171,7 @@ class TransfectionLayoutConverter(IsoRequestLayoutConverter):
         elif self.__is_mastermix_template:
             self.__check_well_uniqueness = False
 
-    def _obtain_working_position(self, parameter_map): #pylint: disable=W0613
-        """
-        Derives a working position from a parameter map (including validity
-        checks).
-        """
-        self.add_debug('Convert parameter map into mastermix position ...')
-
+    def _get_position_init_values(self, parameter_map):
         rack_position = parameter_map[self._RACK_POSITION_KEY]
         pos_label = rack_position.label
 
@@ -1306,17 +1277,15 @@ class TransfectionLayoutConverter(IsoRequestLayoutConverter):
         if invalid:
             return None
         else:
-            tf_pos = TransfectionPosition(rack_position=rack_position,
-                            molecule_design_pool=md_pool,
-                            reagent_name=reagent_name,
-                            reagent_dil_factor=reagent_dil_factor,
-                            iso_concentration=iso_conc,
-                            iso_volume=iso_vol,
-                            supplier=supplier,
-                            final_concentration=final_conc)
-            if optimem_dil_factor is not None:
-                tf_pos.set_optimem_dilution_factor(optimem_dil_factor)
-            return tf_pos
+            return dict(rack_position=rack_position,
+                        molecule_design_pool=md_pool,
+                        reagent_name=reagent_name,
+                        reagent_dil_factor=reagent_dil_factor,
+                        iso_concentration=iso_conc,
+                        iso_volume=iso_vol,
+                        supplier=supplier,
+                        final_concentration=final_conc,
+                        optimem_dil_factor=optimem_dil_factor)
 
     def _record_additional_position_errors(self):
         """

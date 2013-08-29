@@ -165,13 +165,13 @@ class BaseXL20WorklistWriter(CsvWriter):
         """
         Checks the initialisation values.
         """
-        self.add_error('Abstract method: _check_input()')
+        raise NotImplementedError('Abstract method.')
 
     def _store_column_values(self):
         """
         Stores the column values.
         """
-        self.add_error('Abstract method: _store_column_values()')
+        raise NotImplementedError('Abstract method.')
 
     def __generate_columns(self):
         """

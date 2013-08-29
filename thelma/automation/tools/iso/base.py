@@ -4,10 +4,12 @@ Base classes, functions and constants for ISO processing (type-independent).
 AAB
 """
 from thelma.automation.tools.semiconstants import get_96_rack_shape
+from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.utils.base import TransferLayout
 from thelma.automation.tools.utils.base import TransferParameters
 from thelma.automation.tools.utils.base import TransferPosition
 from thelma.automation.tools.utils.converters import TransferLayoutConverter
+from thelma.models.liquidtransfer import PlannedSampleTransfer
 
 __docformat__ = 'reStructuredText en'
 
@@ -89,6 +91,22 @@ class StockRackPosition(TransferPosition):
             raise TypeError(msg)
         #: The tube expected at the given position.
         self.tube_barcode = tube_barcode
+
+    def get_planned_sample_transfers(self, plate_marker):
+        """
+        Converts the all transfer target for the given target plate into
+        :class:`PlannedSampleTransfer` objects.
+        """
+        psts = []
+        for tt in self.transfer_targets:
+            if not tt.target_rack_marker == plate_marker: continue
+            trg_pos = get_rack_position_from_label(tt.position_label)
+            pst = PlannedSampleTransfer.get_entity(volume=tt.transfer_volume,
+                                source_position=self.rack_position,
+                                target_position=trg_pos)
+            psts.append(pst)
+        return psts
+
 
     def _get_parameter_values_map(self):
         parameter_map = TransferPosition._get_parameter_values_map(self)
