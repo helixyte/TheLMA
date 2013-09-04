@@ -11,13 +11,9 @@ from thelma.automation.handlers.base import LayoutParserHandler
 from thelma.automation.parsers.sampletransfer \
     import GenericSampleTransferPlanParser
 from thelma.automation.tools.semiconstants \
-    import get_plate_specs_from_reservoir_specs
-from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_from_plate_specs
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
-from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_reservoir_spec
-from thelma.automation.tools.utils.base import MAX_PLATE_LABEL_LENGTH
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.worklists.base import TRANSFER_ROLES
@@ -33,6 +29,7 @@ __docformat__ = 'reStructuredText en'
 __all__ = ['GenericSampleTransferPlanParserHandler',
            'RackOrReservoirItem']
 
+#: TODO: think about how to add rack sample transfers
 
 class GenericSampleTransferPlanParserHandler(LayoutParserHandler):
     """
@@ -66,10 +63,14 @@ class GenericSampleTransferPlanParserHandler(LayoutParserHandler):
         #: The aggregate used to fetch plates.
         self.__plate_agg = None
 
+        #: Intermediate error storage.
+        self.__missing_rack_barcodes = None
+
     def reset(self):
         LayoutParserHandler.reset(self)
         self.__worklist_series = WorklistSeries()
         self.__plate_agg = get_root_aggregate(IPlate)
+        self.__missing_rack_barcodes = []
 
     def get_racks_and_reservoir_items(self):
         """
@@ -117,8 +118,7 @@ class GenericSampleTransferPlanParserHandler(LayoutParserHandler):
     def __get_or_generate_racks(self):
         """
         Plates (recognized by specs) are fetched from the DB.
-        Reservoirs are generated. Plates are generated if there is no
-        barcode for them.
+        Reservoirs are generated.
         """
         self.add_debug('Fetch or generate racks ...')
 
@@ -139,40 +139,45 @@ class GenericSampleTransferPlanParserHandler(LayoutParserHandler):
                 return None
             else:
                 if not rack_container.specs is None:
-                    rs = self.__get_reservoir_spec(rack_container)
+                    rs = self.__get_reservoir_specs(rack_container)
                 else:
                     rs = self.__get_reservoir_specs_for_plate(plate)
                 if rs is None: return None
-                data_item = RackOrReservoirItem(is_plate=True, reservoir_spec=rs,
-                                          identifier=rack_container.rack_label)
+                data_item = RackOrReservoirItem(is_plate=True,
+                                        reservoir_specs=rs,
+                                        identifier=rack_container.rack_label)
                 data_item.set_plate(plate)
                 return data_item
 
         else:
-            rs = self.__get_reservoir_spec(rack_container)
+            rs = self.__get_reservoir_specs(rack_container)
             if rs is None: return None
             is_plate = RESERVOIR_SPECS_NAMES.is_plate_spec(rs)
             data_item = RackOrReservoirItem(is_plate=is_plate,
-                        reservoir_spec=rs, identifier=rack_container.rack_label)
+                       reservoir_specs=rs, identifier=rack_container.rack_label)
 
             barcode = rack_container.barcode
             if is_plate:
                 if barcode is None:
-                    plate = self.__create_plate_label(rack_container, rs)
-                else:
-                    plate = self.__get_plate_for_barcode(barcode)
-                    rs = self.__get_reservoir_specs_for_plate(plate, rs)
-                    if rs is None: return None
-                    data_item.reservoir_spec = rs
+                    msg = 'There is no barcode for rack "%s"!' \
+                           % (data_item.identifier)
+                    self.add_error(msg)
+                    return None
+                plate = self.__get_plate_for_barcode(barcode)
                 if plate is None: return None
+                rs = self.__get_reservoir_specs_for_plate(plate, rs)
+                if rs is None: return None
+                data_item.reservoir_specs = rs
                 data_item.set_plate(plate)
 
             else:
-                if barcode is not None: data_item.barcode = barcode
+                if barcode is None:
+                    barcode = data_item.identifier
+                data_item.barcode = barcode
 
             return data_item
 
-    def __get_reservoir_spec(self, rack_container):
+    def __get_reservoir_specs(self, rack_container):
         """
         Also records an error message if the spec has not been found.
         """
@@ -218,28 +223,6 @@ class GenericSampleTransferPlanParserHandler(LayoutParserHandler):
                       % (plate.barcode, reservoir_specs.name, rs.name, rs.name)
                 self.add_warning(msg)
             return rs
-
-    def __create_plate_label(self, rack_container, reservoir_specs):
-        """
-        Creates a new plate incl. label. The plate specs are derived
-        from the reservoir specs.
-        """
-        plate_spec = get_plate_specs_from_reservoir_specs(reservoir_specs)
-
-        rack_id = rack_container.identifier
-        plate_label = '%s_%s' % (self.parser.worklist_prefix, rack_id)
-        if len(plate_label) > MAX_PLATE_LABEL_LENGTH:
-            msg = 'The label that has been generated for the new plate "%s" ' \
-                  '("%s") is longer than %i characters (%i characters). You ' \
-                  'will not be able to print this label properly. To ' \
-                  'circumvent this problem choose a shorter rack identifier ' \
-                  'or a shorter worklist prefix.' \
-                   % (rack_id, plate_label, MAX_PLATE_LABEL_LENGTH,
-                      len(plate_label))
-            self.add_warning(msg)
-
-        return plate_spec.create_rack(label=plate_label,
-                                      status=get_item_status_future())
 
     def __create_worklists(self):
         """
@@ -375,7 +358,7 @@ class RackOrReservoirItem(object):
     Helper class storing all data required to run worklist tool using the
     rack or reservoir presented here.
     """
-    def __init__(self, is_plate, reservoir_spec, identifier):
+    def __init__(self, is_plate, reservoir_specs, identifier):
         """
         Constructor:
 
@@ -383,9 +366,9 @@ class RackOrReservoirItem(object):
             a reservoir (*False*)?
         :type is_plate: :class:`bool`
 
-        :param reservoir_spec: contains rack shape, maximum and dead volumes
+        :param reservoir_specs: contains rack shape, maximum and dead volumes
             for the object (it easier to use unified specs)
-        :type reservoir_spec:
+        :type reservoir_specs:
             :class:`thelma.models.liquidtransfer.ReservoirSpecs`
 
         :param identifier: The identifier used in the excel sheet.
@@ -395,7 +378,7 @@ class RackOrReservoirItem(object):
         self.is_plate = is_plate
         #: contains rack shape, maximum and dead volumes for the object
         #: (it easier to use unified specs)
-        self.reservoir_spec = reservoir_spec
+        self.reservoir_specs = reservoir_specs
         #: The identifier used in the excel sheet.
         self.identifier = identifier
         #: The barcode (if there is one specified).
@@ -416,7 +399,7 @@ class RackOrReservoirItem(object):
         """
         The rack shape for this rack or reservoir.
         """
-        return self.reservoir_spec.rack_shape
+        return self.reservoir_specs.rack_shape
 
     def set_plate(self, plate):
         """
@@ -460,6 +443,9 @@ class RackOrReservoirItem(object):
         if not self.__worklists.has_key(role): return []
         return self.__worklists[role]
 
+    def __cmp__(self, other):
+        return cmp(self.identifier, other.identifier)
+
     def __str__(self):
         if self.is_plate:
             return 'Plate %s' % (self.identifier)
@@ -469,6 +455,6 @@ class RackOrReservoirItem(object):
     def __repr__(self):
         str_format = '<%s is plate: %s, ID: %s, reservoir spec: %s>'
         params = (self.__class__.__name__, self.is_plate, self.identifier,
-                  self.reservoir_spec)
+                  self.reservoir_specs)
         return str_format % params
 

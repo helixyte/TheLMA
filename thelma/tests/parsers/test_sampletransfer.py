@@ -26,7 +26,9 @@ class GenericSampleTransferParserTestCase(ParsingTestCase):
         self.VALID_FILE = 'valid_file.xls'
         self.TEST_FILE_PATH = 'thelma:tests/parsers/sampletransfer/'
         self.barcodes = {'09999999' : 'plate 96 std',
-                         '09999998' : 'plate 384 std'}
+                         '09999998' : 'plate 384 std',
+                         '09999997' : 'plate 384 std',
+                         '09999990' : 'plate 96 deep'}
         self.label = 'alpha'
         transfers1 = [('B2', 'B2', 3.5), ('B2', 'B3', 3.5),
                       ('B3', 'B4', 3.5), ('B3', 'B5', 3.5),
@@ -56,9 +58,9 @@ class GenericSampleTransferParserTestCase(ParsingTestCase):
         self.rack_data = {
                 'S1' : [True, '09999999', 'plate 96 std', [1], []],
                 'R1' : [False, 'buffer_mod', 'quarter mod', [2], []],
-                'R2' : [False, None, 'falcon tube', [3], []],
-                'Int' : [True, None, 'plate 96 deep', [4], [1, 2, 3]],
-                'T1' : [True, None, 'plate 384 std', [], [4]],
+                'R2' : [False, 'R2', 'falcon tube', [3], []],
+                'Int' : [True, '09999990', 'plate 96 deep', [4], [1, 2, 3]],
+                'T1' : [True, '09999997', 'plate 384 std', [], [4]],
                 'T2' : [True, '09999998', 'plate 384 std', [], [4]]}
 
     def tear_down(self):
@@ -128,7 +130,7 @@ class GenericSampleTransferParserTestCase(ParsingTestCase):
             else:
                 self.assert_is_not_none(ror.plate)
             self.assert_equal(ror.barcode, item_data[1])
-            self.assert_equal(ror.reservoir_spec.name, item_data[2])
+            self.assert_equal(ror.reservoir_specs.name, item_data[2])
             src_wls = self.__get_wl_numbers(ror.get_worklists_for_source())
             self.assert_equal(src_wls, item_data[3])
             trg_wls = self.__get_wl_numbers(ror.get_worklists_for_target())
@@ -282,9 +284,13 @@ class GenericSampleTransferParserTestCase(ParsingTestCase):
                     'Error when trying to fetch specs for rack "R2": ' \
                     'Unknown entity identifier "falcon".')
 
+    def test_no_barcode(self):
+        self._test_invalid_file('no_barcode.xls',
+                                'There is no barcode for rack "T1"!')
+
     def test_unknown_plate(self):
         self._test_invalid_file('unknown_plate.xls',
-                                'Could not find plate "09999997" in the DB!')
+                                'Could not find plate "09999996" in the DB!')
 
     def test_unknown_plate_specs(self):
         self._test_invalid_file('unknown_plate_specs.xls',
@@ -303,16 +309,7 @@ class GenericSampleTransferParserTestCase(ParsingTestCase):
     def test_mismatching_shape(self):
         self._test_invalid_file('mismatching_shape.xls',
                 'The rack shape for layout at V53 (8x12) does not match the ' \
-                'rack shape for rack "T2" (16x24)')
-
-    def test_plate_label_too_long(self):
-        self._continue_setup('plate_label_too_long.xls')
-        result = self.tool.get_result()
-        self.assert_is_not_none(result)
-        self._check_warning_messages('The label that has been generated ' \
-                'for the new plate "Too_long_label1" ' \
-                '("alphaalpha_Too_long_label1") is longer than ' \
-                '20 characters (26 characters)')
+                'rack shape for rack "T1" (16x24)')
 
     def test_target_reservoir(self):
         self._test_invalid_file('target_reservoir.xls',
