@@ -1613,7 +1613,7 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
         else:
             max_well_number = max(mdp_count.values())
 
-        if max_well_number > 1:
+        if not self.has_errors() and max_well_number > 1:
             msg = 'Each molecule design pool may occur only once for ISO ' \
                   'layouts of %s experiments. If you want to order multiple ' \
                   'wells switch to experiment type "%s", please.' \
