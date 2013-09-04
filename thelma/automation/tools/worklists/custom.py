@@ -3,20 +3,21 @@ Tools dealing with custom transfers.
 
 AAB
 """
+from StringIO import StringIO
+from thelma.automation.handlers.sampletransfer \
+    import GenericSampleTransferPlanParserHandler
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.handlers.sampletransfer import GenericSampleTransferPlanParserHandler
-from thelma.automation.tools.worklists.base import TRANSFER_ROLES
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.automation.tools.worklists.series import ContainerDilutionJob
 from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
+from thelma.automation.tools.utils.base import add_list_map_element
+from thelma.automation.tools.worklists.base import TRANSFER_ROLES
+from thelma.automation.tools.worklists.series import ContainerDilutionJob
 from thelma.automation.tools.worklists.series import ContainerTransferJob
+from thelma.automation.tools.worklists.series import SeriesExecutor
 from thelma.automation.tools.worklists.series import SeriesWorklistWriter
 from thelma.automation.tools.writers import create_zip_archive
-from StringIO import StringIO
-from thelma.models.user import User
-from thelma.automation.tools.worklists.series import SeriesExecutor
 from thelma.automation.tools.writers import merge_csv_streams
+from thelma.models.liquidtransfer import TRANSFER_TYPES
+from thelma.models.user import User
 
 __docformat__ = 'reStructuredText en'
 

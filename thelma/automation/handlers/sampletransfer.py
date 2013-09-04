@@ -8,16 +8,16 @@ AAB
 """
 from everest.entities.utils import get_root_aggregate
 from thelma.automation.handlers.base import LayoutParserHandler
-from thelma.automation.tools.semiconstants \
-    import get_plate_specs_from_reservoir_specs
-from thelma.automation.tools.utils.base import MAX_PLATE_LABEL_LENGTH
-from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.parsers.sampletransfer \
     import GenericSampleTransferPlanParser
 from thelma.automation.tools.semiconstants \
+    import get_plate_specs_from_reservoir_specs
+from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_from_rack_specs
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_reservoir_spec
+from thelma.automation.tools.utils.base import MAX_PLATE_LABEL_LENGTH
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.worklists.base import TRANSFER_ROLES
@@ -82,6 +82,9 @@ class GenericSampleTransferPlanParserHandler(LayoutParserHandler):
         #: Intermediate error storage.
         self.__missing_rack_barcodes = None
 
+        #: Intermediate error storage.
+        self.__missing_rack_barcodes = None
+
     def reset(self):
         LayoutParserHandler.reset(self)
         self.__worklist_series = WorklistSeries()
@@ -136,7 +139,11 @@ class GenericSampleTransferPlanParserHandler(LayoutParserHandler):
 
     def __get_or_generate_racks(self):
         """
+<<<<<<< HEAD
         Racks (recognized by specs) are fetched from the DB.
+=======
+        Plates (recognized by specs) are fetched from the DB.
+>>>>>>> bc16a9d... Worklist writer and executor for custom liquid transfer series
         Reservoirs are generated.
         """
         self.add_debug('Fetch or generate racks ...')
@@ -190,7 +197,6 @@ class GenericSampleTransferPlanParserHandler(LayoutParserHandler):
                     data_item.reservoir_specs = rs
                 if rack is None: return None
                 data_item.set_rack(rack)
-
             else:
                 if barcode is None:
                     barcode = data_item.identifier
