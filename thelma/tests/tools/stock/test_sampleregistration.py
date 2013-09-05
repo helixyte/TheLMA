@@ -52,23 +52,43 @@ class _SampleRegistrationTestCase(ThelmaResourceTestCase):
         dlv_reg.run()
         self.assert_false(dlv_reg.has_errors())
         reg_data = dlv_reg.return_value
+        self._check_registration_data(reg_data)
+        dlv_reg.write_report()
+        return reg_data
+
+    def _check_registration_data(self, reg_data):
         self.assert_equal(len(reg_data['molecule_designs']), 1)
         self.assert_equal(len(reg_data['chemical_structures']), 2)
         self.assert_equal(len(reg_data['molecule_design_pools']), 1)
         self.assert_equal(len(reg_data['stock_samples']), 2)
         self.assert_equal(len(reg_data['supplier_molecule_designs']), 1)
         self.assert_equal(len(reg_data['tubes']), 2)
-        dlv_reg.write_report()
-        return reg_data
 
 
-class SampleRegistrationTestCase(_SampleRegistrationTestCase):
+class SiRnaSampleRegistrationTestCase(_SampleRegistrationTestCase):
     delivery_file = 'thelma:tests/tools/stock/registration/' \
                     'ambion_delivery_samples.json'
 
     def test_delivery(self):
         reg_data = self._run_registration()
         self.assert_equal(len(reg_data['racks']), 0)
+
+
+class PrimerSampleRegistrationTestCase(_SampleRegistrationTestCase):
+    delivery_file = 'thelma:tests/tools/stock/registration/' \
+                    'metabion_delivery_samples.json'
+
+    def test_delivery(self):
+        reg_data = self._run_registration()
+        self.assert_equal(len(reg_data['racks']), 1)
+
+    def _check_registration_data(self, reg_data):
+        self.assert_equal(len(reg_data['molecule_designs']), 2)
+        self.assert_equal(len(reg_data['chemical_structures']), 2)
+        self.assert_equal(len(reg_data['molecule_design_pools']), 1)
+        self.assert_equal(len(reg_data['stock_samples']), 2)
+        self.assert_equal(len(reg_data['supplier_molecule_designs']), 2)
+        self.assert_equal(len(reg_data['tubes']), 2)
 
 
 class DuplicateSampleRegistrationTestCase(_SampleRegistrationTestCase):
