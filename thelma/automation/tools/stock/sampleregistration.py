@@ -11,7 +11,6 @@ from everest.resources.base import Member
 from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
-from thelma.models.rack import Plate
 from thelma.automation.handlers.rackscanning \
                                     import AnyRackScanningParserHandler
 from thelma.automation.handlers.rackscanning import RackScanningLayout
@@ -31,9 +30,9 @@ from thelma.interfaces import IStockSample
 from thelma.interfaces import ISupplierMoleculeDesign
 from thelma.interfaces import ITube
 from thelma.models.container import Tube
-from thelma.models.container import Well
 from thelma.models.moleculedesign import MoleculeDesign
 from thelma.models.moleculedesign import MoleculeDesignPool
+from thelma.models.rack import Plate
 from thelma.models.rack import TubeRack
 from thelma.models.sample import StockSample
 from thelma.models.suppliermoleculedesign import SupplierMoleculeDesign
@@ -228,10 +227,12 @@ class SupplierSampleRegistrationItem(SampleData):
 
     def __init__(self, supplier, product_id, concentration, volume,
                  molecule_type, molecule_design_pool_registration_item, **kw):
-        # The molecule design pool is defined by the molecule design pool
-        # registration item, so we pass None here.
+        # Typically, the molecule design pool is defined by the molecule
+        # design pool registration item; in some cases, we have a pool and
+        # want to make sure we have matching structure information.
+        molecule_design_pool = kw.pop('molecule_design_pool', None)
         SampleData.__init__(self, supplier, concentration, volume,
-                            molecule_type, None, **kw)
+                            molecule_type, molecule_design_pool, **kw)
         self.supplier = supplier
         self.product_id = product_id
         self.molecule_design_pool_registration_item = \
@@ -420,26 +421,18 @@ class SampleRegistrar(RegistrationTool):
         self.__container_create_kw = None
         self.__rack_create_kw = None
         self.__new_rack_supplier_barcode_map = {}
-        # True if the registration items have tubes as containers.
         self.__tube_check_needed = None
-        # True if all registration items have location information (rack
-        # barcode and rack position).
-        self.__has_location_info = None
-        # The rack specs used by the registration items.
         self.__rack_specs = None
-        # The container specs used by the registration items.
         self.__container_specs = None
-        # The item status used by the registration items.
         self.__status = None
 
     def run(self):
+        self.add_info('Running sample registrar.')
         self.return_value = {}
         # Fetch one semiconstants needed for new instances.
         self.__prepare_semiconstants()
         # Assign a rack to each registration item if we have rack barcodes
-        # (and create new racks, if necessary). This also ensures that we
-        # have location information either for all or for none of the
-        # registration items.
+        # (and create new racks, if necessary).
         self.__check_racks()
         if not self.has_errors():
             # Assign a container to each registration item (and create new
@@ -452,11 +445,10 @@ class SampleRegistrar(RegistrationTool):
             # Store supplier rack barcode -> Cenix rack barcode map.
             self.return_value['rack_barcodes'] = \
                         self.__new_rack_supplier_barcode_map.items()
-        if not self.has_errors() and self.__has_location_info:
-            # The registration items have location information that needs
-            # to be validated.
+        if not self.has_errors() and not self.__validation_files is None:
             self.__validate_locations()
         if not self.has_errors():
+            self.add_info('Creating stock samples for registration items.')
             new_stock_spls = []
             ss_agg = get_root_aggregate(IStockSample)
             for sri in self.registration_items:
@@ -477,6 +469,7 @@ class SampleRegistrar(RegistrationTool):
             self.return_value['stock_samples'] = new_stock_spls
 
     def __prepare_semiconstants(self):
+        self.add_debug('Preparing semiconstants.')
         container_specs_agg = get_root_aggregate(IContainerSpecs)
         self.__container_specs = container_specs_agg.get_by_slug(
                                               self.__container_specs_name)
@@ -491,23 +484,18 @@ class SampleRegistrar(RegistrationTool):
 
     def __check_racks(self):
         rack_agg = get_root_aggregate(IRack)
-        loc_infos = [(getattr(sri, 'rack_barcode'),
-                     getattr(sri, 'rack_position'))
-                    for sri in self.registration_items
-                    if not (getattr(sri, 'rack_barcode') is None
-                            or getattr(sri, 'rack_position') is None)]
-        self.__has_location_info = len(loc_infos) > 0
-        if self.__has_location_info \
-           and len(loc_infos) != len(self.registration_items):
-            msg = 'Some sample registration items contain location ' \
-                  'information (rack barcode and rack position), but ' \
-                  'not all of them do.'
+        bcs = [getattr(sri, 'rack_barcode')
+               for sri in self.registration_items
+               if not getattr(sri, 'rack_barcode') is None]
+        self.add_debug('Checking racks. Barcodes: %s' % set(bcs))
+        if len(bcs) > 0 and len(bcs) != len(self.registration_items):
+            msg = 'Some sample registration items contain rack ' \
+                  'barcodes, but not all of them do.'
             self.add_error(msg)
         else:
             new_racks = []
-            if self.__has_location_info:
-                rack_agg.filter = cntd(barcode=[loc_info[0]
-                                                for loc_info in loc_infos])
+            if len(bcs) > 0:
+                rack_agg.filter = cntd(barcode=bcs)
                 rack_map = dict([(rack.barcode, rack)
                                  for rack in rack_agg.iterator()])
                 for sri in self.registration_items:
@@ -528,9 +516,10 @@ class SampleRegistrar(RegistrationTool):
 
     def __check_tubes(self):
         tube_agg = get_root_aggregate(ITube)
-        tube_agg.filter = \
-            cntd(barcode=[getattr(sri, 'tube_barcode')
-                          for sri in self.registration_items])
+        bcs = [getattr(sri, 'tube_barcode')
+               for sri in self.registration_items]
+        tube_agg.filter = cntd(barcode=bcs)
+        self.add_debug('Checking tubes. Barcodes: %s' % bcs)
         tube_map = dict([(tube.barcode, tube)
                          for tube in tube_agg.iterator()])
         new_tubes = []
@@ -549,11 +538,14 @@ class SampleRegistrar(RegistrationTool):
         self.return_value['tubes'] = new_tubes
 
     def __check_wells(self):
+        self.add_debug('Checking wells.')
         for sri in self.registration_items:
             container = sri.rack.container_locations[sri.rack_position]
             sri.container = container
 
     def __make_new_rack(self, sample_registration_item):
+        self.add_debug('Creating new rack for registration barcode %s.'
+                       % sample_registration_item.rack_barcode)
         kw = dict(label='',
                   specs=self.__rack_specs,
                   status=self.__status)
@@ -568,20 +560,18 @@ class SampleRegistrar(RegistrationTool):
         return rack
 
     def __make_new_tube(self, sample_registration_item):
+        self.add_debug('Creating new tube with barcode %s'
+                       % sample_registration_item.tube_barcode)
         kw = dict(specs=self.__container_specs,
                   status=self.__status)
-        if self.__tube_check_needed:
-            container_fac = Tube
-            kw['barcode'] = sample_registration_item.tube_barcode
-        else:
-            container_fac = Well
+        kw['barcode'] = sample_registration_item.tube_barcode
         pos = sample_registration_item.rack_position
         if not pos is None:
             kw['rack'] = sample_registration_item.rack
             kw['position'] = pos
-            tube = container_fac.create_from_rack_and_position(**kw)
+            tube = Tube.create_from_rack_and_position(**kw)
         else:
-            tube = container_fac(**kw)
+            tube = Tube(**kw)
         return tube
 
     def __validate_rack(self, rack):
@@ -603,20 +593,7 @@ class SampleRegistrar(RegistrationTool):
         return valid
 
     def __validate_locations(self):
-        for sri in self.registration_items:
-            if sri.rack_position != sri.container.location.position \
-               or sri.rack.barcode != sri.container.location.rack.barcode:
-                msg = 'Location information in the registration item ' \
-                      '(%s@%s) differs from actual location information ' \
-                      '(%s@%s)' % \
-                      (sri.rack.barcode, sri.rack_position.label,
-                       sri.container.location.rack.barcode,
-                       sri.container.location.position.label)
-                self.add_error(msg)
-        if not self.has_errors() and not self.__validation_files is None:
-            self.__validate_locations_from_scanfile()
-
-    def __validate_locations_from_scanfile(self):
+        self.add_debug('Validating tube positions from rack scanning files.')
         # Note: rack scanning files for racks which are not referenced in
         # the delivery are ignored.
         rsl_map = self.__read_rack_scanning_files()
@@ -656,8 +633,11 @@ class SampleRegistrar(RegistrationTool):
                             self.add_error(msg)
 
     def __read_rack_scanning_files(self):
+        self.add_debug('Reading rack scanning files.')
         rsl_map = {}
         for rack_scanning_filename in self.__validation_files:
+            self.add_debug('Reading rack scanning file %s.'
+                           % rack_scanning_filename)
             with open(rack_scanning_filename, 'rU') as rs_stream:
                 parser_handler = \
                         AnyRackScanningParserHandler(log=self.log,
@@ -689,7 +669,7 @@ class SupplierSampleRegistrar(RegistrationTool):
        :class:`SampleRegistrar` to register samples.
      * Check that all molecule designs have a supplier molecule design.
     """
-    NAME = 'SuppplierSampleRegistrar'
+    NAME = 'SupplierSampleRegistrar'
 
     def __init__(self, registration_items, report_directory=None,
                  rack_specs_name='matrix0500',
@@ -704,6 +684,7 @@ class SupplierSampleRegistrar(RegistrationTool):
         self.__new_smd_sris = None
 
     def run(self):
+        self.add_info('Running supplier sample registrar.')
         self.return_value = {}
         # Collect unknown supplier molecule designs and check known against
         # the design information in the current registration.
@@ -733,15 +714,23 @@ class SupplierSampleRegistrar(RegistrationTool):
             # Checks.
             for sri in self.registration_items:
                 mdpri = sri.molecule_design_pool_registration_item
-                for mdri in mdpri.molecule_design_registration_items:
+                if not sri.supplier_molecule_design \
+                   in mdpri.molecule_design_pool.supplier_molecule_designs:
+                    msg = 'For sample (%s, %s), the design pool is not ' \
+                          'associated with the supplier molecule design.' \
+                          % (sri.supplier.name, sri.product_id)
+                    self.add_error(msg)
+                if len(mdpri.molecule_design_registration_items) == 1:
+                    mdri = mdpri.molecule_design_registration_items[0]
                     if not sri.supplier_molecule_design in \
                             mdri.molecule_design.supplier_molecule_designs:
-                        msg = 'Supplier molecule design for sample ' \
-                              '(%s, %s) not found.' \
-                              % (sri.supplier.name, sri.product_id)
+                        msg = 'For sample (%s, %s), the design is not ' \
+                              'associated with the supplier molecule ' \
+                              'design.' % (sri.supplier.name, sri.product_id)
                         self.add_error(msg)
 
     def __check_new_supplier_molecule_designs(self):
+        self.add_debug('Checking for new supplier molecule designs.')
         smd_agg = get_root_aggregate(ISupplierMoleculeDesign)
         # FIXME: We should really build a single filtering spec here like so:
         #        spec = reduce(or_,
@@ -804,6 +793,7 @@ class SupplierSampleRegistrar(RegistrationTool):
         self.__new_smd_sris = new_smd_sris
 
     def __check_molecule_design_pools(self):
+        self.add_debug('Checking for new molecule design pools.')
         mdpris = [sri.molecule_design_pool_registration_item
                   for sri in self.registration_items]
         mdp_registrar = \
@@ -824,19 +814,23 @@ class SupplierSampleRegistrar(RegistrationTool):
 
 
     def __process_supplier_molecule_designs(self):
+        self.add_debug('Processing %d new supplier molecule designs.'
+                       % len(self.__new_smd_sris))
         smd_agg = get_root_aggregate(ISupplierMoleculeDesign)
         new_smds = []
         for sri in self.__new_smd_sris:
             # Create a new supplier molecule design.
             smd = SupplierMoleculeDesign(sri.product_id, sri.supplier,
                                          is_current=True)
-            # Associate the molecule designs for the sample registration
-            # item with the new supplier molecule design.
             mdpri = sri.molecule_design_pool_registration_item
-            for mdri in mdpri.molecule_design_registration_items:
+            # Associate the molecule design pool with the new supplier
+            # molecule design.
+            mdpri.molecule_design_pool.supplier_molecule_designs.append(smd)
+            # *Only* for the case of a pool containing a single design,
+            # also the molecule design with the new supplier molecule design.
+            if len(mdpri.molecule_design_registration_items) == 1:
+                mdri = mdpri.molecule_design_registration_items[0]
                 mdri.molecule_design.supplier_molecule_designs.append(smd)
-            mdpri.molecule_design_pool \
-                 .supplier_molecule_designs.append(smd)
             smd_agg.add(smd)
             new_smds.append(smd)
             # Update sample registration item.
@@ -855,6 +849,7 @@ class MoleculeDesignPoolRegistrar(RegistrationTool):
                                   report_directory=report_directory, **kw)
 
     def run(self):
+        self.add_info('Running molecule design pool registrar.')
         self.return_value = {}
         # Collect molecule design registration items and set their molecule
         # type.
@@ -875,6 +870,7 @@ class MoleculeDesignPoolRegistrar(RegistrationTool):
             self.__process_molecule_design_pools()
 
     def __process_molecule_design_pools(self):
+        self.add_debug('Processing molecule design pools.')
         md_pool_agg = get_root_aggregate(IMoleculeDesignPool)
         mdpri_hash_map = {}
         hash_func = MoleculeDesignPool.make_member_hash
@@ -895,22 +891,28 @@ class MoleculeDesignPoolRegistrar(RegistrationTool):
                 new_mdpri_map.setdefault(key, []).append(mdpri)
             else:
                 # For pools that consist only of existing designs, we build
-                # a map with member hashes as keys so we can query with a
-                # single DB call.
+                # a list of member hashes that we query in a single DB call.
                 hash_val = \
                         hash_func([mdri.molecule_design
                                    for mdri in
                                    mdpri.molecule_design_registration_items])
-                mdpri_hash_map.setdefault(hash_val, []).append(mdpri)
+                mdpri_hash_map[hash_val] = mdpri
         if len(mdpri_hash_map) > 0:
             md_pool_agg.filter = cntd(member_hash=mdpri_hash_map.keys())
             existing_mdp_map = dict([(mdp.member_hash, mdp)
                                      for mdp in md_pool_agg.iterator()])
             # Update existing molecule design pool registration items.
             for hash_val, mdp in existing_mdp_map.iteritems():
-                mdpris = mdpri_hash_map[hash_val]
-                for mdpri in mdpris:
-                    mdpri.molecule_design_pool = mdp
+                mdpri = mdpri_hash_map[hash_val]
+                if not mdpri.molecule_design_pool is None \
+                   and mdp.id != mdpri.molecule_design_pool.id:
+                    msg = 'The molecule design pool ID (%s) specified ' \
+                          'in the sample data does not match the ID ' \
+                          'of the pool that retrieved for the design ' \
+                          'structure information associated with it.'
+                    self.add_error(msg)
+                    continue
+                mdpri.molecule_design_pool = mdp
         else:
             existing_mdp_map = {}
         # Determine non-existing molecule design pool registration items and
@@ -920,6 +922,15 @@ class MoleculeDesignPoolRegistrar(RegistrationTool):
                 set(mdpri_hash_map.keys()).difference(existing_mdp_map.keys())
         for new_mdp_hash in new_mdp_hashes:
             mdpri = mdpri_hash_map[new_mdp_hash]
+            if not mdpri.molecule_design_pool is None:
+                # This is a case where we supplied both design pool ID *and*
+                # structure information in the data file and the two do not
+                # match (i.e., the structures were not found).
+                msg = 'The molecule design pool ID (%s) specified in the ' \
+                      'sample data does not match the design structure ' \
+                      'information associated with it.'
+                self.add_error(msg)
+                continue
             key = self.__make_new_mdpri_key(mdpri)
             new_mdpri_map.setdefault(key, []).append(mdpri)
         if len(new_mdpri_map) > 0:
@@ -967,6 +978,7 @@ class MoleculeDesignRegistrar(RegistrationTool):
         self.__new_mdris = None
 
     def run(self):
+        self.add_info('Running molecule design registrar.')
         self.__check_new_molecule_designs()
         cs_agg = get_root_aggregate(IChemicalStructure)
         md_agg = get_root_aggregate(IMoleculeDesign)
@@ -992,6 +1004,8 @@ class MoleculeDesignRegistrar(RegistrationTool):
                 continue
             else:
                 cs_map[cs_key] = cs
+        self.add_debug('Creating %d new molecule designs.'
+                       % len(self.__new_mdris))
         for mdris in self.__new_mdris:
             md_structs = []
             # By definition, all mdris for a given hash have the same
@@ -1020,6 +1034,7 @@ class MoleculeDesignRegistrar(RegistrationTool):
                                  chemical_structures=new_css)
 
     def __check_new_molecule_designs(self):
+        self.add_debug('Checking for new molecule designs.')
         md_agg = get_root_aggregate(IMoleculeDesign)
         # Build a map design hash -> registration item for all molecule design
         # registration items.
