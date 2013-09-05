@@ -19,8 +19,8 @@ from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.semiconstants import get_reservoir_spec
-from thelma.automation.tools.worklists.series import ContainerDilutionJob
-from thelma.automation.tools.worklists.series import ContainerTransferJob
+from thelma.automation.tools.worklists.series import SampleDilutionJob
+from thelma.automation.tools.worklists.series import SampleTransferJob
 from thelma.automation.tools.worklists.series import SeriesExecutor
 from thelma.interfaces import ITubeRack
 from thelma.models.iso import ISO_STATUS
@@ -259,7 +259,7 @@ class StockSampleCreationExecutor(BaseAutomationTool):
 
         rs_quarter = get_reservoir_spec(RESERVOIR_SPECS_NAMES.QUARTER_MODULAR)
         job_index = len(self.__transfer_jobs)
-        cdj = ContainerDilutionJob(index=job_index,
+        cdj = SampleDilutionJob(index=job_index,
                              planned_worklist=buffer_worklist,
                              target_rack=self.__iso_stock_rack.rack,
                              reservoir_specs=rs_quarter,
@@ -278,7 +278,7 @@ class StockSampleCreationExecutor(BaseAutomationTool):
 
         for single_rack in self.__single_design_racks:
             job_index = len(self.__transfer_jobs)
-            ctj = ContainerTransferJob(index=job_index,
+            ctj = SampleTransferJob(index=job_index,
                     planned_worklist=self.__iso_stock_rack.planned_worklist,
                     target_rack=self.__iso_stock_rack.rack,
                     source_rack=single_rack,

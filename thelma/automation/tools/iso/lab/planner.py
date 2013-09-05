@@ -324,7 +324,7 @@ class LabIsoBuilder(object):
                                                         self.final_iso_layout)
         floating_map = dict()
         pools = set()
-        self._fill_iso_plate_layout(final_layout, floating_map, pools)
+        self._fill_final_plate_layout(final_layout, floating_map, pools)
         pool_set = None
         if len(pools) > 0:
             pool_set = MoleculeDesignPoolSet(molecule_type=pool_set_type,
@@ -344,18 +344,20 @@ class LabIsoBuilder(object):
         self.__create_iso_preparation_plates(iso, prep_layouts)
         return iso
 
-    def _fill_iso_plate_layout(self, iso_plate_layout, floating_map, pools):
+    def _fill_final_plate_layout(self, iso_plate_layout, floating_map, pools):
         """
         Add additional positions to the final ISO layout (fixed and mock
         positions are already included).
         """
         for plate_pos in self.final_iso_layout.get_sorted_floating_positions():
-            if len(self.__floating_candidates) < 1: break
             placeholder = plate_pos.molecule_design_pool
             if not floating_map.has_key(placeholder):
-                candidate = self.__floating_candidates.pop(0)
-                floating_map[placeholder] = candidate
-                pools.add(candidate.pool)
+                if len(self.__floating_candidates) < 1:
+                    candidate = None
+                else:
+                    candidate = self.__floating_candidates.pop(0)
+                    floating_map[placeholder] = candidate
+                    pools.add(candidate.pool)
             else:
                 candidate = floating_map[placeholder]
             copy_pos = plate_pos.create_completed_copy(candidate)
@@ -1573,7 +1575,7 @@ class _LayoutPlanner(BaseAutomationTool):
         Figures out how to provide the desired volume and concentration for
         each requested container.
         """
-        self._couple_requested_containers()
+        self._find_coupled_containers()
 
         first_specs = True
         for specs_name in self._AVAILABLE_RESERVOIR_SPECS_NAMES:
@@ -1611,15 +1613,15 @@ class _LayoutPlanner(BaseAutomationTool):
 
     def _init_assigner(self, reservoir_specs):
         """
-        Initializes the :class:`_LocationAssigner` for the given
+        Initialises the :class:`_LocationAssigner` for the given
         reservoir specs.
         """
         raise NotImplementedError('Abstract method.')
 
-    def _couple_requested_containers(self):
+    def _find_coupled_containers(self):
         """
-        Finds relationships between requested containers. Maybe one container
-        can be derived from another? This requires matching pool data.
+        Finds relationships between requested containers, that is containers
+        that share the same pool (combination).
         """
         raise NotImplementedError('Abstract method.')
 
@@ -1768,7 +1770,7 @@ class _LayoutPlanner(BaseAutomationTool):
     def _get_rack_positions_for_container(self, container):
         """
         Returns the rack positions for the given container. Is used to create
-        the :class:`PlannedContainerDilution` objects for the passed container.
+        the :class:`PlannedSampleDilution` objects for the passed container.
         """
         raise NotImplementedError('Abstract method.')
 
@@ -1865,17 +1867,11 @@ class SectorPlanner(_LayoutPlanner):
                                     target_concentration=conc, **kw)
             self._requested_containers[sector_index] = container
 
-        for sector_index, container in self._requested_containers.iteritems():
-            parent_sector = parent_sectors[sector_index]
-            if parent_sector is None: continue
-            parent_container = self._requested_containers[parent_sector]
-            container.set_parent_container(parent_container)
-
     def _init_assigner(self, reservoir_specs):
         return SectorLocationAssigner(reservoir_specs=reservoir_specs,
                                       number_sectors=self._number_sectors)
 
-    def _couple_requested_containers(self):
+    def _find_coupled_containers(self):
         """
         The relationships of the sectors have already been determined. They
         are stored in the association data.
@@ -2106,27 +2102,9 @@ class RackPositionPlanner(_LayoutPlanner):
         list.
         """
         for pool_container in self.pool_containers:
-            conc_map = dict()
             for pool_pos in pool_container:
                 container = self._create_container(pool_pos, pool_container)
                 self._requested_containers[pool_pos.rack_position] = container
-                add_list_map_element(conc_map, container.target_concentration,
-                                     container)
-
-            concentrations = sorted(conc_map.keys())
-            len_concentrations = len(concentrations)
-            for i in range(concentrations):
-                if i == (len_concentrations - 1): break
-                conc = concentrations[i]
-                containers = conc_map[conc]
-                parent_conc = concentrations[i + 1]
-                parent_containers = conc_map[parent_conc]
-                for container in containers:
-                    # we want to distribute the parent containers that is why the
-                    # parent containers are rotated
-                    parent_container = parent_containers.pop(0)
-                    container.set_parent_container(parent_container)
-                    parent_containers.append(parent_container)
 
     def _create_container(self, pool_pos, pool_container):
         """
@@ -2139,15 +2117,15 @@ class RackPositionPlanner(_LayoutPlanner):
     def _init_assigner(self, reservoir_specs):
         return self._LOCATION_ASSIGNER_CLS(prep_reservoir_specs=reservoir_specs)
 
-    def _couple_requested_containers(self):
+    def _find_coupled_containers(self):
         """
         All positions with the same pool can in theory be derived from one
         another. The location assigners will figure it out.
         """
-        containers = []
         c = 0
         for pool_container in self.pool_containers:
             c += 1
+            containers = []
             for pool_pos in pool_container:
                 container = self._requested_containers[pool_pos.rack_position]
                 containers.append(container)
@@ -3043,18 +3021,24 @@ class _LocationAssigner(object):
     #: default: ISO preparation).
     _PREP_PLATE_ROLE = LABELS.ROLE_PREPARATION_ISO
 
-    def __init__(self, prep_reservoir_specs):
+    def __init__(self, prep_reservoir_specs, final_plate_dead_vol):
         """
         Constructor
 
         :param prep_reservoir_specs: The reservoir specs for this run.
         :type prep_reservoir_specs: :class:`ReservoirSpecs`
+
+        :param final_plate_dead_vol: The dead volume of the final plates
+            *in ul*.
+        :type final_plate_dead_vol: positive number, unit ul
         """
         if isinstance(self, _LocationAssigner):
             raise NotImplementedError('Abstract method.')
 
         #: The :class:`ReservoirSpecs` for potential preparation plates.
         self._prep_specs = prep_reservoir_specs
+        #: The dead volume of the final plates  *in ul*.
+        self.__final_plate_dead_vol = final_plate_dead_vol
 
         #: The target containers that shall be prepared (usually final plate
         #: containers).
@@ -3129,8 +3113,9 @@ class _LocationAssigner(object):
             self._prep_containers = []
             self.__preferred_prep_locations = dict()
 
-        # stores all prep containers for this ID mapped onto target conc
+        # store containers for this ID mapped onto target conc
         prep_containers = dict()
+        final_containers = dict()
 
         if number_copies > 1:
             starting_containers = []
@@ -3142,6 +3127,10 @@ class _LocationAssigner(object):
                 for clone in clones:
                     starting_containers.extend(clone.get_descendants())
             requested_containers = starting_containers
+
+        for container in requested_containers:
+            add_list_map_element(final_containers,
+                                 container.target_concentration, container)
 
         not_from_stock = []
         from_stock = []
@@ -3157,24 +3146,31 @@ class _LocationAssigner(object):
         # them from larger concentration among the requested containers
         not_from_stock.sort()
         for container in not_from_stock:
-            self.__prepare_container(container, prep_containers)
+            self.__prepare_container(container, prep_containers,
+                                     final_containers)
 
         # second we check the volumes that are directly derived from the stock
         from_stock.sort(reverse=True)
         for container in from_stock:
-            self.__prepare_container(container, prep_containers)
+            self.__prepare_container(container, prep_containers,
+                                     final_containers)
 
         # store all containers
         all_containers = requested_containers + prep_containers.values()
         self.__identifier_map[identifier] = all_containers
 
-    def __prepare_container(self, container, prep_containers):
+    def __prepare_container(self, container, prep_containers,
+                            requested_containers):
         """
         Finds or creates a parent container for the given container (if it
         cannot be derived directly from the stock) and stores them in the
         container map.
         """
-        has_valid_origin = False
+        final_container = self.__find_suitable_source_container(container,
+                                                     requested_containers)
+        has_valid_origin = (final_container is not None)
+        if has_valid_origin:
+            container.set_parent_container(final_container)
         while not has_valid_origin:
             prep_container = self.__find_suitable_source_container(container,
                                                              prep_containers)
@@ -3194,7 +3190,8 @@ class _LocationAssigner(object):
         Stores the preparation container and its parent container in the map
         (mapped onto target concentrations).
         """
-        container_map[prep_container.target_concentration] = prep_container
+        add_list_map_element(container_map, prep_container.target_concentration,
+                             prep_container)
         if prep_container.parent_container is not None:
             self.__store_prep_container(container_map,
                                         prep_container.parent_container)
@@ -3227,6 +3224,9 @@ class _LocationAssigner(object):
         if not container.allows_modification:
             final_vol = container.volume
             transfer_volume = final_vol / dil_factor
+            if is_smaller_than((final_vol - transfer_volume),
+                               self.__final_plate_dead_vol):
+                return True
             if is_smaller_than(transfer_volume, self.__min_transfer_volume):
                 return True
             dilution_vol = final_vol - transfer_volume
@@ -3242,11 +3242,16 @@ class _LocationAssigner(object):
         containers. The potential containers are assumed to allow volume
         modifications.
         """
-        for src_conc in sorted(potential_src_containers).keys(reverse=True):
-            src_container = potential_src_containers[src_conc]
-            if not self.__requires_intermediate_position(container, src_conc):
-                self.__adjust_volume_of_existing_prep(container, src_container)
-                return src_container
+        for src_conc in sorted(potential_src_containers.keys(reverse=True)):
+            src_containers = potential_src_containers[src_conc]
+            if is_smaller_than(src_conc, container.target_concentration):
+                continue
+            for src_container in src_containers:
+                if not self.__requires_intermediate_position(container,
+                                                             src_conc):
+                    self.__adjust_volume_of_existing_prep(container,
+                                                          src_container)
+                    return src_container
 
         return None
 

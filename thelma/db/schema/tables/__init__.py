@@ -207,7 +207,8 @@ def initialize_tables(metadata):
                                 planned_liquid_transfer_tbl, rack_position_tbl)
     planned_rack_sample_transfer_tbl = plannedracksampletransfer.create_table(
                                       metadata, planned_liquid_transfer_tbl)
-    planned_worklist_tbl = plannedworklist.create_table(metadata)
+    planned_worklist_tbl = plannedworklist.create_table(metadata,
+                                                        pipetting_specs_tbl)
     planned_worklist_member_tbl = plannedworklistmember.create_table(metadata,
                             planned_worklist_tbl, planned_liquid_transfer_tbl)
     worklist_series_tbl = worklistseries.create_table(metadata)

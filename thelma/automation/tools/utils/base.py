@@ -1473,6 +1473,15 @@ class TransferTarget(object):
         self.target_rack_marker = target_rack_marker
 
     @property
+    def hash_value(self):
+        """
+        Contains position label and target rack marker (if there is one).
+        """
+        if self.target_rack_marker is None:
+            raise self.position_label
+        return '%s%s' % (self.position_label, self.target_rack_marker)
+
+    @property
     def target_info(self):
         """
         Returns a string encoding the data of this transfer target.
@@ -1673,9 +1682,9 @@ class TransferPosition(MoleculeDesignPoolPosition):
             raise TypeError(msg)
 
         for tt in target_list:
-            if tt.position_label == transfer_target.position_label:
+            if tt.hash_value == transfer_target.hash_value:
                 raise ValueError('Duplicate target position %s.' \
-                                 % (tt.position_label))
+                                 % (tt.hash_value))
 
         target_list.append(transfer_target)
 
@@ -1714,15 +1723,15 @@ class TransferPosition(MoleculeDesignPoolPosition):
             duplicate targets.
         """
         tokens = target_tag_value.split(cls.TARGETS_DELIMITER)
-        target_list = []
+        target_list = set()
         for token in tokens:
             tt = TransferTarget.parse_info_string(token)
             if tt in target_list:
-                msg = 'Duplicate transfer target: %s!' % (tt.position_label)
+                msg = 'Duplicate transfer target: %s!' % (tt.hash_value)
                 raise ValueError(msg)
-            target_list.append(tt)
+            target_list.add(tt)
 
-        return target_list
+        return list(target_list)
 
     def get_targets_tag(self, parameter_name=None):
         """
@@ -1806,12 +1815,12 @@ class TransferLayout(MoleculeDesignPoolLayout):
             tt_map = self._transfer_target_map[parameter]
             if not len(target_list) < 1:
                 for tt in target_list:
-                    if tt_map.has_key(tt.position_label):
-                        msg = 'Duplicate target well %s!' % (tt.position_label)
+                    if tt_map.has_key(tt.hash_value):
+                        msg = 'Duplicate target well %s!' % (tt.hash_value)
                         raise ValueError(msg)
                     else:
                         source_label = working_position.rack_position.label
-                        tt_map[tt.position_label] = source_label
+                        tt_map[tt.hash_value] = source_label
 
         MoleculeDesignPoolLayout.add_position(self, working_position)
 
@@ -1826,7 +1835,7 @@ class TransferLayout(MoleculeDesignPoolLayout):
                 target_list = tp.get_transfer_target_list(parameter)
                 tt_map = self._transfer_target_map[parameter]
                 for tt in target_list:
-                    del tt_map[tt.position_label]
+                    del tt_map[tt.hash_value()]
 
         if tp is not None:
             del self._position_map[rack_position]

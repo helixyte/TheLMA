@@ -533,6 +533,9 @@ class PlannedWorklist(Entity):
     #: The type of the planned liquid transfers in the worklist
     #: (element of :class:`TRANSFER_TYPES`).
     transfer_type = None
+    #: The :class:`PipettingSpecs` assumed for this worklist.
+    pipetting_specs = None
+
     #: The :class:`WorklistSeriesMember` entity linking this worklist to
     #: a particular worklist series.
     worklist_series_member = None
@@ -540,14 +543,16 @@ class PlannedWorklist(Entity):
     #: planned worklist.
     executed_worklists = None
 
-    def __init__(self, label, transfer_type, planned_liquid_transfers=None,
-                 worklist_series_member=None, executed_worklists=None, **kw):
+    def __init__(self, label, transfer_type, pipetting_specs,
+                 planned_liquid_transfers=None, worklist_series_member=None,
+                 executed_worklists=None, **kw):
         """
         Constructor
         """
         Entity.__init__(self, **kw)
         self.label = label
         self.transfer_type = transfer_type
+        self.pipetting_specs = pipetting_specs
         if planned_liquid_transfers is None:
             planned_liquid_transfers = []
         self.planned_liquid_transfers = planned_liquid_transfers
@@ -557,10 +562,11 @@ class PlannedWorklist(Entity):
         self.executed_worklists = []
 
     def __repr__(self):
-        str_format = '<%s id: %s, label: %s, type: %s, number of ' \
-                     'executions: %i>'
+        str_format = '<%s id: %s, label: %s, type: %s, pipetting specs: %s, ' \
+                     'number of executions: %i>'
         params = (self.__class__.__name__, self.id, self.label,
-                  self.transfer_type, len(self.executed_worklists))
+                  self.transfer_type, self.pipetting_specs,
+                  len(self.executed_worklists))
         return str_format % params
 
     def __get_index(self):

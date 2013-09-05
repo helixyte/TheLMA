@@ -29,8 +29,7 @@ class LabIsoJobCreator(IsoJobCreator):
     _ISO_TYPE = ISO_TYPES.LAB
 
     def __init__(self, iso_request, job_owner, number_isos,
-                       excluded_racks=None, requested_tubes=None,
-                       logging_level=None, add_default_handlers=None):
+                       excluded_racks=None, requested_tubes=None, **kw):
         """
         Constructor:
 
@@ -50,23 +49,11 @@ class LabIsoJobCreator(IsoJobCreator):
         :param requested_tubes: A list of barcodes from stock tubes that are
             supposed to be used.
         :type requested_tubes: A list of tube barcodes.
-
-        :param logging_level: the desired minimum log level
-        :type log_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: *None*
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *None*
         """
         IsoJobCreator.__init__(self, iso_request=iso_request,
                                job_owner=job_owner, number_isos=number_isos,
                                excluded_racks=excluded_racks,
-                               requested_tubes=requested_tubes,
-                               logging_level=logging_level,
-                               add_default_handlers=add_default_handlers)
+                               requested_tubes=requested_tubes, **kw)
 
         #: The :class:`LabIsoBuilder` used to generate the ISOs.
         self.__builder = None
@@ -138,7 +125,7 @@ class LabIsoJobCreator(IsoJobCreator):
         """
         self.__job_prep_plate_layouts = self.__builder.\
                                         complete_job_preparation_plates()
-        layouts = {LABELS.ROLE_ALIQUOT : self.__builder.final_iso_layout}.\
+        layouts = {LABELS.ROLE_FINAL : self.__builder.final_iso_layout}.\
                   update(self.__job_prep_plate_layouts)
         number_stock_racks = self.__builder.distribute_pools_to_stock_racks(
                                                       layouts, for_job=True)
@@ -234,10 +221,10 @@ class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
         if self.__process_job_first:
             self.__sort_and_store_layout_map(self.builder.job_layouts)
             self.__sort_and_store_layout_map(self.builder.preparation_layouts)
-            self.__ordered_plate_markers.append(LABELS.ROLE_ALIQUOT)
+            self.__ordered_plate_markers.append(LABELS.ROLE_FINAL)
         else:
             self.__sort_and_store_layout_map(self.builder.preparation_layouts)
-            self.__ordered_plate_markers.append(LABELS.ROLE_ALIQUOT)
+            self.__ordered_plate_markers.append(LABELS.ROLE_FINAL)
             self.__sort_and_store_layout_map(self.builder.job_layouts)
 
     def __sort_and_store_layout_map(self, layout_map):
@@ -290,9 +277,9 @@ class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
                                                    inter_transfers)
 
         if not self.__process_job_first:
-            control_aliquot_transfers = inter_map[LABELS.ROLE_ALIQUOT]
+            control_aliquot_transfers = inter_map[LABELS.ROLE_FINAL]
             self.__create_filtered_transfer_worklist(control_aliquot_transfers,
-                            LABELS.ROLE_ALIQUOT, TRANSFER_TYPES.SAMPLE_TRANSFER)
+                            LABELS.ROLE_FINAL, TRANSFER_TYPES.SAMPLE_TRANSFER)
 
     def __create_intraplate_worklists(self, plate_marker, transfer_map):
         """
@@ -309,7 +296,7 @@ class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
         self.__create_filtered_transfer_worklist(transfer_map, plate_marker,
                                         TRANSFER_TYPES.RACK_SAMPLE_TRANSFER)
         prepare_pos_transfers = True
-        if plate_marker == LABELS.ROLE_ALIQUOT and not self.__process_job_first:
+        if plate_marker == LABELS.ROLE_FINAL and not self.__process_job_first:
             prepare_pos_transfers = False
         if prepare_pos_transfers:
             self.__create_filtered_transfer_worklist(transfer_map, plate_marker,

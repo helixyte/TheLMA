@@ -15,7 +15,7 @@ from thelma.automation.tools.semiconstants import get_reservoir_spec
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import round_up
 from thelma.automation.tools.worklists.biomek \
-        import ContainerDilutionWorklistWriter
+        import SampleDilutionWorklistWriter
 from thelma.automation.tools.worklists.biomek import BiomekWorklistWriter
 from thelma.automation.tools.worklists.series import SeriesWorklistWriter
 from thelma.automation.tools.writers import CsvColumnParameters
@@ -500,7 +500,7 @@ class ReagentPreparationWriter(CsvWriter):
                         BiomekWorklistWriter.TRANSFER_VOLUME_INDEX)
             volume = float(volume)
             dil_info = self.__extract_data_from_line_tokens(tokens,
-                        ContainerDilutionWorklistWriter.DILUENT_INFO_INDEX)
+                        SampleDilutionWorklistWriter.DILUENT_INFO_INDEX)
             data_tuple = (position, volume, dil_info)
             self.__worklist_data[line_counter] = data_tuple
 

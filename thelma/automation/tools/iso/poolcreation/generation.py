@@ -356,7 +356,7 @@ class StockSampleCreationWorklistGenerator(BaseAutomationTool):
 
     def __create_transfers(self):
         """
-        Creates a :class:`PlannedContainerDilution` for each rack position
+        Creates a :class:`PlannedSampleDilution` for each rack position
         in a 8x12 rack shape.
         """
         self.add_debug('Create transfers ...')

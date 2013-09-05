@@ -1,6 +1,10 @@
 """
 Short cuts for tools involved in lab ISO processing.
 """
+from thelma.automation.tools.iso.lab.processing import LabIsoJobWriterExecutor
+from thelma.automation.tools.iso.lab.processing import LabIsoWriterExecutor
+from thelma.automation.tools.iso.lab.base import _LabIsoInstructionsWriter
+from thelma.automation.tools.worklists.series import SerialWriterExecutorTool
 from thelma.automation.tools.iso.lab.tubehandler \
     import LabIsoJobXL20WorklistGenerator
 from thelma.automation.tools.iso.lab.tubehandler \
@@ -10,12 +14,13 @@ from thelma.models.job import IsoJob
 
 __docformat__ = 'reStructuredText en'
 
-__all__ = ['get_xl20_generator']
+__all__ = ['get_xl20_generator',
+           'get_worklist_writer',
+           'get_worklist_executor']
 
 
 def get_xl20_generator(entity, destination_rack_barcodes, excluded_racks=None,
-                       requested_tubes=None, include_dummy_output=False,
-                       logging_level=None, add_default_handlers=None):
+                       requested_tubes=None, include_dummy_output=False, **kw):
     """
     Factory method generating a XL20 worklist generator tool for the passed
     entity. The generator creates stock racks and file streams (XL20
@@ -45,27 +50,74 @@ def get_xl20_generator(entity, destination_rack_barcodes, excluded_racks=None,
     :type include_dummy_output: :class:`bool`
     :default include_dummy_output: *False*
 
-    :param logging_level: the desired minimum log level
-    :type logging_level: :class:`int` (or logging_level as
-                     imported from :mod:`logging`)
-    :default logging_level: logging.WARNING
-
-    :param add_default_handlers: If *True* the log will automatically add
-        the default handler upon instantiation.
-    :type add_default_handlers: :class:`boolean`
-    :default add_default_handlers: *False*
+    :raises TypeError: if the entity has an unexpected class.
     """
     kw = dict(entity=entity, include_dummy_output=include_dummy_output,
               destination_rack_barcodes=destination_rack_barcodes,
               excluded_racks=excluded_racks, requested_tubes=requested_tubes,
-              logging_level=logging_level,
-              add_default_handlers=add_default_handlers)
+              **kw)
     if isinstance(entity, LabIso):
         generator_cls = LabIsoXL20WorklistGenerator
     elif isinstance(entity, IsoJob):
         generator_cls = LabIsoJobXL20WorklistGenerator
     else:
-        msg = 'The passed has an unexpected type: %s' % (entity.iso_type)
+        msg = 'Unexpected entity class (%s). The entity must be a %s or a %s!' \
+              % (entity.__class__.__name__, LabIso.__name__, IsoJob.__name__)
         raise TypeError(msg)
 
     return generator_cls(**kw)
+
+
+def get_worklist_writer(entity, **kw):
+    """
+    Factory method generating a lab ISO worklist writer
+    (:class:`_LabIsoWriterExecutorTool` in printing mode) for the passed
+    lab ISO or ISO job.
+
+    :param entity: The ISO job or ISO to process.
+    :type entity: :class:`thelma.models.job.IsoJob` or
+        :class:`thelma.models.iso.LabIso`.
+
+    :raises TypeError: if the entity has an unexpected class.
+    """
+    return __get_writer_executor(entity=entity,
+                    mode=SerialWriterExecutorTool.MODE_PRINT_WORKLISTS, **kw)
+
+def get_worklist_executor(entity, user, **kw):
+    """
+    Factory method generating a lab ISO worklist writer
+    (:class:`_LabIsoWriterExecutorTool` in printing mode) for the passed
+    lab ISO or ISO job.
+
+    :param entity: The ISO job or ISO to process.
+    :type entity: :class:`thelma.models.job.IsoJob` or
+        :class:`thelma.models.iso.LabIso`.
+
+    :param user: The user who conducts the DB update (required for
+        execution mode).
+    :type user: :class:`thelma.models.user.User`
+
+    :raises TypeError: if the entity has an unexpected class.
+    """
+    return __get_writer_executor(entity=entity, user=user,
+                        mode=SerialWriterExecutorTool.MODE_EXECUTE, **kw)
+
+def __get_writer_executor(mode, entity, user=None, **kw):
+    """
+    Helper factory method creating an :class:`_LabIsoWriterExecutorTool`
+    for the passed entity in the given mode.
+    """
+    if isinstance(entity, LabIso):
+        tool_cls = LabIsoWriterExecutor
+    elif isinstance(entity, IsoJob):
+        tool_cls = LabIsoJobWriterExecutor
+    else:
+        msg = 'Unexpected entity class (%s). The entity must be a %s or a %s!' \
+              % (entity.__class__.__name__, LabIso.__name__, IsoJob.__name__)
+        raise TypeError(msg)
+
+    kw = dict(mode=mode, entity=entity, user=user)
+    return tool_cls(**kw)
+
+
+

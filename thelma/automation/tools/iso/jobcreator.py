@@ -38,8 +38,7 @@ class IsoJobCreator(BaseAutomationTool):
             ISO_TYPES.STOCK_SAMPLE_GENERATION : StockSampleCreationIsoRequest}
 
     def __init__(self, iso_request, job_owner, number_isos,
-                       excluded_racks=None, requested_tubes=None,
-                       logging_level=None, add_default_handlers=None):
+                       excluded_racks=None, requested_tubes=None, **kw):
         """
         Constructor:
 
@@ -59,20 +58,8 @@ class IsoJobCreator(BaseAutomationTool):
         :param requested_tubes: A list of barcodes from stock tubes that are
             supposed to be used.
         :type requested_tubes: A list of tube barcodes.
-
-        :param logging_level: the desired minimum log level
-        :type log_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: *None*
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *None*
         """
-        BaseAutomationTool.__init__(self, logging_level=logging_level,
-                                    add_default_handlers=add_default_handlers,
-                                    depending=False)
+        BaseAutomationTool.__init__(self, depending=False, **kw)
 
         #: The ISO request that will take up the ISOs.
         self.iso_request = iso_request

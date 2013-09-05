@@ -31,7 +31,7 @@ class WorklistWriter(CsvWriter):
 
     #: The transfer type supported by this class
     #: (see :class:`thelma.models.liquidtransfer.TRANSFER_TYPES`).
-    SUPPORTED_TRANSFER_TYPE = None
+    TRANSFER_TYPE = None
 
     def __init__(self, planned_worklist, target_rack, pipetting_specs, log,
                  ignored_positions=None):
@@ -148,7 +148,7 @@ class WorklistWriter(CsvWriter):
         if not self.has_errors():
             self._init_target_data()
             self._init_source_data()
-            self.__check_planned_transfers()
+            self.__check_planned_liquid_transfers()
         if not self.has_errors():
             self.__set_transfer_volume_range()
             self._generate_column_values()
@@ -163,17 +163,18 @@ class WorklistWriter(CsvWriter):
         """
         self.add_debug('Check input values ...')
 
-        self._check_input_class('planned worklist', self.planned_worklist,
-                                PlannedWorklist)
+        if self._check_input_class('planned worklist', self.planned_worklist,
+                                   PlannedWorklist):
+            if not self.planned_worklist.transfer_type == self.TRANSFER_TYPE:
+                msg = 'Unsupported transfer type: %s' \
+                       % (self.planned_worklist.transfer_type)
+                self.add_error(msg)
         self._check_input_class('target rack', self.target_rack, Rack)
         self._check_input_class('pipetting specs', self.pipetting_specs,
                                 PipettingSpecs)
 
-        if self._check_input_class('ignored position list',
-                                   self.ignored_positions, list):
-            for rack_pos in self.ignored_positions:
-                self._check_input_class('ignored rack position', rack_pos,
-                                        RackPosition)
+        self._check_input_list_classes('ignored position',
+                       self.ignored_positions, RackPosition, may_be_empty=True)
 
         if not self._min_transfer_volume is None:
             if not is_valid_number(self._min_transfer_volume):
@@ -234,7 +235,7 @@ class WorklistWriter(CsvWriter):
         """
         self.add_error('Abstract method: _generate_column_values()')
 
-    def __check_planned_transfers(self):
+    def __check_planned_liquid_transfers(self):
         """
         Checks whether all planned transfers in the worklist have
         the correct type.
@@ -242,13 +243,13 @@ class WorklistWriter(CsvWriter):
         unsupported_transfer_type = []
 
         for pt in self.planned_worklist.planned_transfers:
-            if not pt.type == self.SUPPORTED_TRANSFER_TYPE:
+            if not pt.type == self.TRANSFER_TYPE:
                 unsupported_transfer_type.append(pt)
 
         if len(unsupported_transfer_type) > 0:
             msg = 'Some transfers planned in the worklist are not supported: ' \
                   '%s. Supported type: %s.' % (unsupported_transfer_type,
-                                               self.SUPPORTED_TRANSFER_TYPE)
+                                               self.TRANSFER_TYPE)
             self.add_error(msg)
 
     def _check_transfer_volume(self, transfer_volume, target_position,
@@ -265,7 +266,7 @@ class WorklistWriter(CsvWriter):
             error_msg = 'target %s (%.1f ul)' % (target_position.label, volume)
             self._transfer_volume_too_small.append(error_msg)
             return False
-        if self.SUPPORTED_TRANSFER_TYPE == TRANSFER_TYPES.CONTAINER_TRANSFER \
+        if self.TRANSFER_TYPE == TRANSFER_TYPES.SAMPLE_TRANSFER \
                         and is_larger_than(volume, self._max_transfer_volume):
             error_msg = 'source %s (%.1f ul)' % (source_position, volume)
             self._transfer_volume_too_large.append(error_msg)
@@ -281,7 +282,7 @@ class WorklistWriter(CsvWriter):
             return False
 
         # Check whether there is enough liquid in the source well
-        if self.SUPPORTED_TRANSFER_TYPE == TRANSFER_TYPES.CONTAINER_DILUTION:
+        if self.TRANSFER_TYPE == TRANSFER_TYPES.SAMPLE_DILUTION:
             return True
 
         if source_position is None:

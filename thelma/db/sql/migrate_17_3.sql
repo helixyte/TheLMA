@@ -479,6 +479,28 @@ UPDATE planned_worklist
 ALTER TABLE planned_worklist ALTER COLUMN transfer_type SET NOT NULL;
 DROP TABLE tmp_worklist_types;
 
+-- add pipetting specs column to planned worklist
+
+ALTER TABLE planned_worklist
+  ADD COLUMN pipetting_specs_id INTEGER
+  REFERENCES pipetting_specs (pipetting_specs_id)
+  ON UPDATE CASCADE;
+UPDATE planned_worklist
+  SET pipetting_specs_id = (
+    SELECT pipetting_specs_id FROM pipetting_specs WHERE name = 'CyBio')
+  WHERE transfer_type = 'RACK_TRANSFER';
+UPDATE planned_worklist
+  SET pipetting_specs_id = (
+    SELECT pipetting_specs_id FROM pipetting_specs WHERE name = 'BioMek')
+  WHERE NOT transfer_type = 'RACK_TRANSFER';
+ALTER TABLE planned_worklist ALTER COLUMN pipetting_specs_id SET NOT NULL;
+
+ALTER TABLE pipetting_specs ALTER COLUMN name TYPE VARCHAR(11);
+INSERT INTO pipetting_specs
+    (name,  min_transfer_volume, max_transfer_volume, max_dilution_factor,
+     has_dynamic_dead_volume, is_sector_bound)
+  VALUES ('BioMekStock', 1e-06, 0.00025, 500, false, false);
+
 -- remove tables and columns that are not required anymore
 
 ALTER TABLE executed_liquid_transfer

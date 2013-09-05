@@ -24,10 +24,10 @@ from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_reservoir_spec
-from thelma.automation.tools.utils.iso import IsoLayoutConverter
-from thelma.automation.tools.worklists.series import ContainerDilutionJob
-from thelma.automation.tools.worklists.series import ContainerTransferJob
-from thelma.automation.tools.worklists.series import RackTransferJob
+from thelma.automation.tools.utils.iso import IsoRequestLayoutConverter
+from thelma.automation.tools.worklists.series import SampleDilutionJob
+from thelma.automation.tools.worklists.series import SampleTransferJob
+from thelma.automation.tools.worklists.series import RackSampleTransferJob
 from thelma.models.experiment import Experiment
 import logging
 
@@ -254,7 +254,7 @@ class ExperimentTool(BaseAutomationTool):
         iso_request = exp_metadata.iso_request
 
         if self._scenario.id == EXPERIMENT_SCENARIOS.MANUAL:
-            converter = IsoLayoutConverter(log=self.log,
+            converter = IsoRequestLayoutConverter(log=self.log,
                                         rack_layout=iso_request.iso_layout)
         else:
             converter = TransfectionLayoutConverter(log=self.log,
@@ -332,7 +332,7 @@ class ExperimentTool(BaseAutomationTool):
         """
         quarter_rs = get_reservoir_spec(RESERVOIR_SPECS_NAMES.QUARTER_MODULAR)
 
-        optimem_job = ContainerDilutionJob(index=0,
+        optimem_job = SampleDilutionJob(index=0,
                        planned_worklist=optimem_worklist,
                        target_rack=self._iso_plate,
                        reservoir_specs=quarter_rs,
@@ -347,7 +347,7 @@ class ExperimentTool(BaseAutomationTool):
         """
         tube_24_rs = get_reservoir_spec(RESERVOIR_SPECS_NAMES.TUBE_24)
 
-        optimem_job = ContainerDilutionJob(index=1,
+        optimem_job = SampleDilutionJob(index=1,
                        planned_worklist=reagent_worklist,
                        target_rack=self._iso_plate,
                        reservoir_specs=tube_24_rs,
@@ -416,7 +416,7 @@ class ExperimentTool(BaseAutomationTool):
         """
         falcon_reservoir = get_reservoir_spec(
                                             RESERVOIR_SPECS_NAMES.FALCON_MANUAL)
-        cell_job = ContainerDilutionJob(index=job_index,
+        cell_job = SampleDilutionJob(index=job_index,
                     planned_worklist=cell_worklist,
                     target_rack=plate,
                     reservoir_specs=falcon_reservoir,
@@ -506,7 +506,7 @@ class ExperimentOptimisationTool(ExperimentTool):
         for experiment_rack in self._experiment_racks[design_rack_label]:
             plate = experiment_rack.rack
 
-            transfer_job = ContainerTransferJob(index=counter,
+            transfer_job = SampleTransferJob(index=counter,
                     planned_worklist=transfer_worklist,
                     target_rack=plate,
                     source_rack=self._iso_plate,
@@ -607,7 +607,7 @@ class ExperimentScreeningTool(ExperimentTool):
             for experiment_plate in experiment_plates:
                 plate = experiment_plate.rack
 
-                transfer_job = RackTransferJob(index=counter,
+                transfer_job = RackSampleTransferJob(index=counter,
                                 planned_rack_transfer=rack_transfer,
                                 target_rack=plate,
                                 source_rack=self._iso_plate)

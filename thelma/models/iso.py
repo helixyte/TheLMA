@@ -226,9 +226,9 @@ class ISO_STATUS(object):
     """
     #: no transfers to far
     QUEUED = 'queued'
-    #: contains controls
+    #: DEPRECATED: contains controls
     PREPARED = 'prepared'
-    #: contains controls and samples
+    #: ISO or ISO job have already been processed but the other entity has not
     IN_PROGRESS = 'in_progress'
     #: aliquot plates are completed
     DONE = 'done'

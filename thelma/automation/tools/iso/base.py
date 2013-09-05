@@ -10,6 +10,7 @@ from thelma.automation.tools.utils.base import TransferParameters
 from thelma.automation.tools.utils.base import TransferPosition
 from thelma.automation.tools.utils.converters import TransferLayoutConverter
 from thelma.models.liquidtransfer import PlannedSampleTransfer
+from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
 
 __docformat__ = 'reStructuredText en'
 
@@ -107,6 +108,15 @@ class StockRackPosition(TransferPosition):
             psts.append(pst)
         return psts
 
+    def get_required_stock_volume(self):
+        """
+        Returns the sum of the transfer volumes for all target positions
+        plus the stock dead volume.
+        """
+        vol = STOCK_DEAD_VOLUME
+        for tt in self.transfer_targets:
+            vol += tt.transfer_volume
+        return vol
 
     def _get_parameter_values_map(self):
         parameter_map = TransferPosition._get_parameter_values_map(self)

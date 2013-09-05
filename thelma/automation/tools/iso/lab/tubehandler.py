@@ -15,13 +15,14 @@ from thelma.automation.tools.iso.lab.base import FinalLabIsoLayoutConverter
 from thelma.automation.tools.iso.lab.base import LABELS
 from thelma.automation.tools.iso.lab.base import LabIsoPrepLayoutConverter
 from thelma.automation.tools.iso.lab.base import LabIsoRackContainer
+from thelma.automation.tools.iso.lab.base import create_instructions_writer
 from thelma.automation.tools.iso.lab.tubepicking import LabIsoXL20TubePicker
 from thelma.automation.tools.iso.lab.tubepicking import StockTubeContainer
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import get_positions_for_shape
+from thelma.automation.tools.utils.base import FIXED_POSITION_TYPE
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.racksector import RackSectorTranslator
-from thelma.automation.tools.worklists.base import TRANSFER_ROLES
 from thelma.automation.tools.worklists.optimiser import BiomekLayoutOptimizer
 from thelma.automation.tools.worklists.optimiser import TransferItem
 from thelma.automation.tools.worklists.tubehandler import BaseXL20WorklistWriter
@@ -31,16 +32,14 @@ from thelma.automation.tools.writers import create_zip_archive
 from thelma.interfaces import ITubeRack
 from thelma.models.iso import IsoJobStockRack
 from thelma.models.iso import IsoSectorStockRack
+from thelma.models.iso import IsoStockRack
 from thelma.models.iso import LabIso
-from thelma.models.iso import LabIsoRequest
 from thelma.models.job import IsoJob
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.liquidtransfer import WorklistSeries
 from thelma.models.moleculedesign import MoleculeDesignPool
 from thelma.models.rack import RackShape
-from thelma.automation.tools.utils.base import FIXED_POSITION_TYPE
-from thelma.models.iso import IsoStockRack
 
 __docformat__ = 'reStructuredText en'
 
@@ -51,9 +50,7 @@ __all__ = ['_XL20WorklistGenerator',
            'LabIsoStockRackOptimizer',
            'LabIsoXL20WorklistWriter',
            'LabIsoXL20SummaryWriter',
-           '_InstructionsWriter',
-           'LabIsoJobInstructionsWriter',
-           'LabIsoInstructionsWriter']
+           ]
 
 
 class _XL20WorklistGenerator(BaseAutomationTool):
@@ -83,12 +80,9 @@ class _XL20WorklistGenerator(BaseAutomationTool):
     #: the stock racks they deal with.
     FILE_NAME_DUMMY = '%s_%s_dummy_xl20_output.tpo'
 
-    _INSTRUCTIONS_WRITER_CLS = _InstructionsWriter
-
     def __init__(self, entity, destination_rack_barcodes,
                  excluded_racks=None, requested_tubes=None,
-                 include_dummy_output=False,
-                 logging_level=None, add_default_handlers=None):
+                 include_dummy_output=False, **kw):
         """
         Constructor:
 
@@ -115,20 +109,8 @@ class _XL20WorklistGenerator(BaseAutomationTool):
             is then included in the zip file.
         :type include_dummy_output: :class:`bool`
         :default include_dummy_output: *False*
-
-        :param logging_level: the desired minimum log level
-        :type logging_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: logging.WARNING
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *False*
         """
-        BaseAutomationTool.__init__(self, logging_level=logging_level,
-                                 add_default_handlers=add_default_handlers,
-                                 depending=False)
+        BaseAutomationTool.__init__(self, depending=False, **kw)
 
         #: The ISO or the ISO job for which to generate the files and the racks.
         self.entity = entity
@@ -526,16 +508,16 @@ class _XL20WorklistGenerator(BaseAutomationTool):
         ticket_number = self._iso_request.experiment_metadata.ticket_number
         for sr_marker, sr_layout in self._stock_rack_layouts.iteritems():
             worklist_series = WorklistSeries()
-            for plate_label in self.__get_sorted_plate_labels():
+            for rack_marker in self.__get_sorted_plate_markers():
                 transfers = []
                 for sr_pos in sr_layout.get_working_positions():
-                    psts = sr_pos.get_planned_sample_transfers(plate_label)
+                    psts = sr_pos.get_planned_sample_transfers(rack_marker)
                     transfers.extend(psts)
                 if len(transfers) < 1: continue
                 wl_index = len(worklist_series)
                 wl_label = LABELS.create_worklist_label(ticket_number,
                                  worklist_number=wl_index,
-                                 target_rack_marker=plate_label,
+                                 target_rack_marker=rack_marker,
                                  source_rack_marker=sr_marker)
                 worklist = PlannedWorklist(label=wl_label,
                                transfer_type=TRANSFER_TYPES.SAMPLE_TRANSFER,
@@ -543,7 +525,7 @@ class _XL20WorklistGenerator(BaseAutomationTool):
                 worklist_series.add_worklist(wl_index, worklist)
             self.__stock_transfer_series[sr_marker] = worklist_series
 
-    def __get_sorted_plate_labels(self):
+    def __get_sorted_plate_markers(self):
         """
         The final ISO plate is the last one. Its key in the layout is list
         is the :attr:`LABELS.ROLE_FINAL` marker, they are therefore not found
@@ -554,7 +536,8 @@ class _XL20WorklistGenerator(BaseAutomationTool):
         final_labels = []
         for plate_label in self._plate_layouts.keys():
             if self.__rack_containers.has_key(plate_label):
-                ordered_labels.append(plate_label)
+                rack_container = self.__rack_containers[plate_label]
+                ordered_labels.append(rack_container.rack_marker)
             else:
                 # final plates are mapped on plate labels in the rack container
                 # map and and on the role solely in the layout map
@@ -643,7 +626,7 @@ class _XL20WorklistGenerator(BaseAutomationTool):
         kw = dict(log=self.log, entity=self.entity,
                    iso_request=self._iso_request,
                    rack_containers=self.__rack_containers.values())
-        instructions_writer = self._INSTRUCTIONS_WRITER_CLS(**kw)
+        instructions_writer = create_instructions_writer(**kw)
         instruction_fn = self.FILE_NAME_INSTRUCTIONS % (self.entity.label)
         instruction_msg = 'Error when trying to write instruction stream!'
         self.__generate_stream(instructions_writer, instruction_fn,
@@ -677,7 +660,6 @@ class LabIsoJobXL20WorklistGenerator(_XL20WorklistGenerator):
     **Return Value:** A zip archive with two files (worklist and reports);
     """
     _ENTITY_CLS = IsoJob
-    _INSTRUCTIONS_WRITER_CLS = LabIsoJobInstructionsWriter
 
     def _get_layouts(self):
         """
@@ -782,12 +764,10 @@ class LabIsoXL20WorklistGenerator(_XL20WorklistGenerator):
     **Return Value:** A zip archive with two files (worklist and reports);
     """
     _ENTITY_CLS = LabIso
-    _INSTRUCTIONS_WRITER_CLS = LabIsoInstructionsWriter
 
     def __init__(self, entity, destination_rack_barcodes,
                  excluded_racks=None, requested_tubes=None,
-                 include_dummy_output=False,
-                 logging_level=None, add_default_handlers=None):
+                 include_dummy_output=False, **kw):
         """
         Constructor:
 
@@ -812,24 +792,12 @@ class LabIsoXL20WorklistGenerator(_XL20WorklistGenerator):
             is then included in the zip file.
         :type include_dummy_output: :class:`bool`
         :default include_dummy_output: *False*
-
-        :param logging_level: the desired minimum log level
-        :type logging_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: logging.WARNING
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *False*
         """
         _XL20WorklistGenerator.__init__(self, entity=entity,
                     destination_rack_barcodes=destination_rack_barcodes,
                     excluded_racks=excluded_racks,
                     requested_tubes=requested_tubes,
-                    include_dummy_output=include_dummy_output,
-                    logging_level=logging_level,
-                    add_default_handlers=add_default_handlers)
+                    include_dummy_output=include_dummy_output, **kw)
 
         #: Stores the sector index for each stock rack marker. Stock racks
         #: without particular sector are not included.
@@ -1514,396 +1482,3 @@ class LabIsoXL20SummaryWriter(TxtWriter):
                 lines.append(self.WARNING_BASE_LINE % (warning))
 
         self._write_body_lines(lines)
-
-
-class _InstructionsWriter(TxtWriter):
-    """
-    Writes a file with instructions about how to prepare the ISO or ISO job.
-
-    **Return Value:** The instructions as stream (TXT)
-    """
-    #: The entity class supported by this summary writer.
-    _ENTITY_CLS = None
-
-    #: The main headline of the file.
-    BASE_MAIN_HEADER = 'Processing Instructions for %s "%s"'
-    #: To be filled into the :attr:`BASE_MAIN_HEADER` (ISO or ISO job).
-    __ENTITY_CLS_NAME = {LabIso : 'ISO', IsoJob : 'ISO job'}
-
-    #: Is used if :attr:`process_job_first` value of the ISO request is *True*.
-    ORDER_JOB_FIRST = '''
-    The ISO job must be processed before you start processing ISOs the
-    specific ISOs.'''
-    #: Is used if :attr:`process_job_first` value of the ISO request is *False*.
-    ORDER_ISO_FIRST = '''
-    ATTENTION! A part of ISOs has to processed before you can add the
-    fixed samples (controls). Look at the steps for further instructions.'''
-    #: Is used if there are no samples added via the ISO job.
-    ORDER_NO_JOB = '''
-    There is no job processing required for this ISO preparation.'''
-    #: Is used if the final plate is a library plate to be completed.
-    ORDER_NO_ISO = '''
-    There is no ISO processing required for this ISO preparation.
-    All required steps are performed via the job.'''
-
-    #: The header marking the next step.
-    STEPS_HEADER = 'Step %i:'
-    #: Comprises the worklist name and some isntructions.
-    STEPS_DETAILS = 'Worklist %s: %s'
-
-    #: The header for the buffer dilution section.
-    BUFFER_DILUTION_HEADER = 'Buffer Additions'
-    #: Is used if there are not dilution worklists for the entity in the ISO
-    #: request worklist series.
-    BUFFER_NO_WORKLISTS = '''
-    There are no buffer dilutions for this %s.'''
-
-    #: The header for the stock transfer section.
-    STOCK_TRANSFER_HEADER = 'Transfers from the Stock'
-    #: The header for the processing section.
-    PROCESSING_HEADER = 'Processing Steps (Other Transfers)'
-    #: Is used if there are no further processing transfers for the entity
-    #: in the ISO request worklist.
-    PROCESSING_NO_WORKLIST = '''
-    There are no further transfers required after the sample transfer from the
-    stock (for the %s).'''
-
-    #: The placeholder for final plates.
-    FINAL_PLATE_PLACEHOLDER = 'final plate(s)'
-    #: The header for the final plates section.
-    FINAL_PLATES_HEADER = 'Final ISO Plates'
-
-    def __init__(self, log, entity, iso_request, rack_containers):
-        """
-        Constructor:
-
-        :param log: The log to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param entity: The ISO or the ISO job for which to generate the summary.
-        :type entity: :class:`LabIso` or :class:`IsoJob`
-            (see :attr:`_ENTITY_CLS).
-
-        :param iso_request: The lab ISO request the job belongs to.
-        :type iso_request: :class:`thelma.models.iso.LabIsoRequest`
-
-        :param rack_containers: The :class:`LabIsoRackContainer` objects for all
-            racks and plates involved in the processing of the entity.
-        :type rack_containers: list of :class:`LabIsoRackContainer`
-        """
-        TxtWriter.__init__(self, log=log)
-
-        #: The ISO or the ISO job for which to generate the summary.
-        self.entity = entity
-        #: The lab ISO request the job belongs to.
-        self.iso_request = iso_request
-        #: The :class:`LabIsoRackContainer` objects for all racks and plates
-        #: involved in the processing of the entity.
-        self.rack_containers = rack_containers
-
-        #: The worklists in the ISO request worklist series ordered by index.
-        self.__sorted_worklists = None
-
-        #: Counts the steps.
-        self.__step_counter = None
-        #: The rack containers mapped onto rack markers - does not contain
-        #: final ISO plates.
-        self.__racks_by_markers = None
-
-    def reset(self):
-        TxtWriter.reset(self)
-        self.__sorted_worklists = None
-        self.__step_counter = 0
-        self.__racks_by_markers = dict()
-
-    def _check_input(self):
-        self._check_input_class('entity', self.entity, self._ENTITY_CLS)
-        self._check_input_class('ISO request', self.iso_request, LabIsoRequest)
-        self._check_input_list_classes('rack container', self.rack_containers,
-                                       LabIsoRackContainer)
-
-    def _write_stream_content(self):
-        """
-        We start with an remark about the order of ISO and ISO job. The
-        following sections deal with buffer transfers, stock transfers,
-        processing steps and the involved final plates.
-        """
-        self.add_debug('Write stream content ...')
-
-        self.__sort_racks_by_markers()
-
-        self.__write_main_headline()
-        self.__write_order()
-        self.__write_dilution_section()
-        self.__write_stock_rack_section()
-        self.__write_processing_section()
-        self.__write_final_plates_section()
-
-    def __sort_racks_by_markers(self):
-        """
-        The maps serves the geenration of rack strings.
-        Final plates are not included in map. They are indicated by the
-        :attr:`FINAL_PLATE_PLACEHOLDER` instead.
-        """
-        for rack_container in self.rack_containers:
-            if rack_container.role == LABELS.ROLE_FINAL: continue
-            self.__racks_by_markers[rack_container.rack_marker] = rack_container
-
-    def __write_main_headline(self):
-        """
-        Writes the main head line.
-        """
-        cls_name = self.__ENTITY_CLS_NAME[self._ENTITY_CLS]
-        main_headline = self.BASE_MAIN_HEADER % (cls_name, self.entity.label)
-        self._write_headline(main_headline, underline_char='=',
-                             preceding_blank_lines=0, trailing_blank_lines=1)
-
-    def __write_order(self):
-        """
-        Explain whether to start with the ISO or the ISO job.
-        """
-        if self.iso_request.molecule_design_library is not None:
-            order_line = self.ORDER_NO_ISO
-        elif not self._has_job_processing():
-            order_line = self.ORDER_NO_JOB
-        elif self.iso_request.process_job_first:
-            order_line = self.ORDER_JOB_FIRST
-        else:
-            order_line = self.ORDER_ISO_FIRST
-        self._write_body_lines(['', order_line])
-
-    def _has_job_processing(self):
-        """
-        Are there sample added via the ISO job?
-        """
-        raise NotImplementedError('Abstract method.')
-
-    def __write_dilution_section(self):
-        """
-        Lists the buffer dilution steps.
-        """
-        self._write_headline(self.BUFFER_DILUTION_HEADER)
-
-        worklist_series = self.iso_request.worklist_series
-        if worklist_series is None:
-            self.__sorted_worklists = []
-        else:
-            self.__sorted_worklists = worklist_series.get_sorted_worklists()
-
-        base_desc = 'Adding to buffer to plate %s.'
-        worklist_labels = []
-        descriptions = []
-        for worklist in self.__sorted_worklists:
-            if not worklist.transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
-                continue
-            racks = self.__get_rack_strings_for_worklist(worklist.label)
-            if racks is None: continue
-            desc = base_desc % (racks[TRANSFER_ROLES.TARGET])
-            descriptions.append(desc)
-            worklist_labels.append(worklist.label)
-
-        self.__write_optional_section(descriptions, worklist_labels,
-                                      self.BUFFER_NO_WORKLISTS)
-
-    def __write_stock_rack_section(self):
-        """
-        The stock rack section lists the stock transfers ordered by stock
-        rack.
-        """
-        stock_racks = dict()
-        for stock_rack in self._get_stock_racks():
-            stock_racks[stock_rack.label] = stock_racks
-
-        self._write_headline(self.STOCK_TRANSFER_HEADER)
-        base_desc = 'Transfer of sample from stock rack %s to plate %s.'
-
-        empty_worklist_series = []
-        for label in sorted(stock_racks):
-            stock_rack = stock_racks[label]
-            worklist_series = stock_rack.worklist_series
-            if len(worklist_series) < 1:
-                empty_worklist_series.append(label)
-                continue
-            for worklist in worklist_series.get_sorted_worklists():
-                worklist_label = worklist.label
-                racks = self.__get_rack_strings_for_worklist(worklist_label)
-                desc = base_desc % (racks[TRANSFER_ROLES.SOURCE],
-                                    racks[TRANSFER_ROLES.TARGET])
-                self.__write_step_section(worklist_label, desc)
-
-    def _get_stock_racks(self):
-        """
-        Returns all stock racks for the entity or an empty list. Stock racks
-        cannot be retrieved via the rack container maps because we need to
-        access their worklist series.
-        """
-        raise NotImplementedError('Abstract method.')
-
-    def __write_processing_section(self):
-        """
-        Describes the remaining processing steps (if there are any).
-        """
-        base_desc = 'Transferring samples from %s to %s%s'
-        rack_sector_addition = ' (use CyBio).'
-        sector_info = ' (sector: %i)'
-
-        worklist_labels = []
-        descriptions = []
-        for worklist in self.__sorted_worklists:
-            transfer_type = worklist.transfer_type
-            if transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION: continue
-            racks = self._get_processing_worklist_plates(worklist)
-            if racks is None: continue
-            src_rack = racks[TRANSFER_ROLES.SOURCE]
-            trg_rack = racks[TRANSFER_ROLES.TARGET]
-
-            if transfer_type == TRANSFER_TYPES.RACK_SAMPLE_TRANSFER:
-                for psrt in worklist:
-                    src_str = src_rack + sector_info \
-                              % (psrt.source_sector_index + 1)
-                    trg_str = trg_rack + sector_info \
-                              % (psrt.target_sector_index + 1)
-                    desc = base_desc % (src_str, trg_str)
-                    desc += rack_sector_addition
-                    descriptions.append(desc)
-                    worklist_labels.append(worklist.label)
-            else:
-                desc = base_desc % (src_rack, trg_rack)
-                descriptions.append(desc)
-                worklist_labels.append(worklist.label)
-
-        self.__write_optional_section(descriptions, worklist_labels,
-                                      self.PROCESSING_NO_WORKLIST)
-
-    def _get_processing_worklist_plates(self, worklist):
-        """
-        Invokes :func:`__get_rack_strings_for_worklist`. However, even if
-        all participating plates are known the worklist might not be accepted
-        for this entity.
-        """
-        return self.__get_rack_strings_for_worklist(worklist.label)
-
-    def __write_final_plates_section(self):
-        """
-        Lists all involved final plates
-        """
-        self._write_headline(self.FINAL_PLATES_HEADER)
-
-        plate_map = dict()
-        for rack_container in self.rack_containers:
-            if not rack_container.role == LABELS.ROLE_FINAL: continue
-            plate_map[rack_container.label] = rack_container
-
-        plate_lines = ['']
-        for label in sorted(plate_map.keys()):
-            rack_container = plate_map[label]
-            plate_line = self.__get_rack_string(rack_container=rack_container)
-            plate_lines.append(plate_line)
-
-        self._write_body_lines(plate_lines)
-
-    def __get_rack_strings_for_worklist(self, worklist_label):
-        """
-        Helper function returning the rack string for a worklist (mapped
-        onto :class:`TRANSFER_ROLES` values or *None* if a rack marker
-        is unknown and not a final plate (final plates are replaced
-        by the attr:`FINAL_PLATE_PLACEHOLDER`).
-        """
-        values = LABELS.parse_worklist_label(worklist_label)
-        transfer_roles = {TRANSFER_ROLES.SOURCE : LABELS.MARKER_WORKLIST_SOURCE,
-                          TRANSFER_ROLES.TARGET : LABELS.MARKER_WORKLIST_TARGET}
-        racks = dict()
-        for transfer_role, role_marker in transfer_roles.iteritems():
-            if values.has_key(role_marker):
-                rack_marker = values[role_marker]
-                rack_str = self.__get_rack_string(rack_marker)
-                if rack_str is None: return None
-                racks[transfer_role] = rack_str
-        raise racks
-
-    def __get_rack_string(self, rack_marker=None, rack_container=None):
-        """
-        Helper function returning a string with the rack label and barcode
-        (if there has been a container pass for this rack).
-        Rack markers is for an final ISO plate the rack string is
-        replaced by the :attr:`FINAL_PLATE_PLACEHOLDER`.
-        """
-        if rack_container is None:
-            if not self.__racks_by_markers.has_key(rack_marker):
-                values = LABELS.parse_rack_marker(rack_marker)
-                role = values[LABELS.MARKER_RACK_ROLE]
-                if role == LABELS.ROLE_FINAL:
-                    return self.FINAL_PLATE_PLACEHOLDER
-                else:
-                    return None
-            else:
-                rack_container = self.__racks_by_markers[rack_marker]
-        return '%s (%s)' % (rack_container.rack.barcode, rack_container.label)
-
-    def __write_step_section(self, worklist_label, description):
-        """
-        Helper function writing a new step section. The step number is
-        determine automatically.
-        """
-        self.__step_counter += 1
-        step_header = self.STEPS_HEADER % (self.__step_counter)
-        detail_line = self.STEPS_DETAILS % (worklist_label, description)
-        step_lines = ['', step_header, detail_line]
-        self._write_body_lines(step_lines)
-
-    def __write_optional_section(self, descriptions, worklist_labels,
-                                 no_worklists_template):
-        """
-        Helper method writing either the steps for a section or a no
-        worklist remark.
-        """
-        if len(descriptions) < 1:
-            lines = ['', no_worklists_template % self._ENTITY_CLS]
-            self._write_body_lines(lines)
-        else:
-            for i in range(descriptions):
-                self.__write_step_section(worklist_labels[i], descriptions[i])
-
-
-class LabIsoJobInstructionsWriter(_InstructionsWriter):
-    """
-    Writes a file with instructions about how to prepare the ISO job.
-
-    **Return Value:** The instructions as stream (TXT)
-    """
-    NAME = 'Lab ISO Job Instructions Writer'
-
-    _ENTITY_CLS = IsoJob
-
-    def _has_job_processing(self):
-        return (self.entity.number_stock_racks > 0)
-
-    def _get_stock_racks(self):
-        return self.entity.iso_job_stock_racks
-
-    def _get_processing_worklist_plates(self, worklist):
-        """
-        There are no rack sample transfers in the job processing. Apart from
-        that we can check wether the racks are known.
-        """
-        if worklist.transfer_type == TRANSFER_TYPES.RACK_SAMPLE_TRANSFER:
-            return None
-        return _InstructionsWriter._get_processing_worklist_plates(self,
-                                                                   worklist)
-
-
-class LabIsoInstructionsWriter(_InstructionsWriter):
-    """
-    Writes a file with instructions about how to prepare a lab ISO job.
-
-    **Return Value:** The instructions as stream (TXT)
-    """
-    NAME = 'Lab ISO Instructions Writer'
-
-    _ENTITY_CLS = LabIso
-
-    def _has_job_processing(self):
-        return self.entity.iso_job.number_stock_racks
-
-    def _get_stock_racks(self):
-        return self.entity.iso_stock_racks + self.entity.iso_sector_stock_racks

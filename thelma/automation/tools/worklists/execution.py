@@ -39,9 +39,9 @@ __docformat__ = 'reStructuredText en'
 
 __all__ = ['LiquidTransferExecutor',
            'WorklistExecutor',
-           'ContainerDilutionWorklistExecutor',
-           'ContainerTransferWorklistExecutor',
-           'RackTransferExecutor',
+           'SampleDilutionWorklistExecutor',
+           'SampleTransferWorklistExecutor',
+           'RackSampleTransferExecutor',
            'SampleComponent',
            'SampleData',
            'TransferredSample',
@@ -92,7 +92,7 @@ class LiquidTransferExecutor(BaseAutomationTool):
 
         self.now = get_utc_time()
 
-        #: Maps the container of the source rack onto rack position.
+        #: Maps the containers of the source rack onto rack position.
         self._source_containers = None
         #: The minimum dead volume of source rack container in ul.
         self._source_dead_volume = None
@@ -595,9 +595,9 @@ class WorklistExecutor(LiquidTransferExecutor):
         return tubes
 
 
-class ContainerDilutionWorklistExecutor(WorklistExecutor):
+class SampleDilutionWorklistExecutor(WorklistExecutor):
     """
-    An executor for container dilution worklists.
+    An executor for sample dilution worklists.
 
     **Return Value:** An executed worklist
         (:class:`thelma.models.liquidtransfer.ExecutedWorklist`).
@@ -695,9 +695,9 @@ class ContainerDilutionWorklistExecutor(WorklistExecutor):
             self._executed_worklist.executed_liquid_transfers.append(elt)
 
 
-class ContainerTransferWorklistExecutor(WorklistExecutor):
+class SampleTransferWorklistExecutor(WorklistExecutor):
     """
-    An executor for container transfer worklists.
+    An executor for sample transfer worklists.
 
     **Return Value:** An executed worklist
         (:class:`thelma.models.liquidtransfer.ExecutedWorklist`).
@@ -815,14 +815,14 @@ class ContainerTransferWorklistExecutor(WorklistExecutor):
             self._executed_worklist.executed_liquid_transfers.append(elt)
 
 
-class RackTransferExecutor(LiquidTransferExecutor):
+class RackSampleTransferExecutor(LiquidTransferExecutor):
     """
-    An executor for a (single) rack transfer.
+    An executor for a (single) rack sample transfer.
 
     :Note: This is a special executor. Source wells without volume are
         omitted silently.
 
-    *Return Value:* Executed Rack Transfer
+    *Return Value:* Executed Rack Sample Transfer
     """
 
     NAME = 'Rack Transfer Executor'

@@ -13,8 +13,8 @@ from thelma.automation.tools.semiconstants import get_item_status_managed
 from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.models.liquidtransfer import ExecutedContainerTransfer
-from thelma.models.liquidtransfer import ExecutedRackTransfer
+from thelma.models.liquidtransfer import ExecutedSampleTransfer
+from thelma.models.liquidtransfer import ExecutedRackSampleTransfer
 from thelma.models.liquidtransfer import ExecutedWorklist
 from thelma.models.sample import Sample
 from thelma.models.user import User
@@ -370,12 +370,12 @@ class ExperimentRackFiller(ExperimentTool):
             iso_container = self.__iso_container_map[source_pos]
             target_pos = pct.target_position
             rack_container = rack_container_map[target_pos]
-            et = ExecutedContainerTransfer(source_container=iso_container,
+            et = ExecutedSampleTransfer(source_container=iso_container,
                                            target_container=rack_container,
                                            planned_container_transfer=pct,
                                            user=self.user,
                                            timestamp=self.now)
-            executed_worklist.executed_transfers.append(et)
+            executed_worklist.executed_liquid_transfers.append(et)
 
     def _update_rack_status(self):
         """
@@ -452,12 +452,12 @@ class ExperimentRackFillerScreen(ExperimentRackFiller):
 
                 erts = []
                 for prt in transfer_worklist.planned_transfers:
-                    ert = ExecutedRackTransfer(source_rack=self._iso_plate,
+                    ert = ExecutedRackSampleTransfer(source_rack=self._iso_plate,
                                 target_rack=plate, planned_rack_transfer=prt,
                                 user=self.user, timestamp=self.now)
                     erts.append(ert)
                 ExecutedWorklist(planned_worklist=transfer_worklist,
-                                 executed_transfers=erts)
+                                 executed_liquid_transfers=erts)
 
     def __determine_sample_data_for_screen(self):
         """

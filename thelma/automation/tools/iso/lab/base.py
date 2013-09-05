@@ -3,22 +3,26 @@ Base classes and constants involved in lab ISO processing tasks.
 
 AAB
 """
+from thelma.automation.tools.utils.base import FLOATING_POSITION_TYPE
 from thelma.automation.tools.utils.base import LIBRARY_POSITION_TYPE
 from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
 from thelma.automation.tools.utils.base import TransferLayout
 from thelma.automation.tools.utils.base import TransferParameters
 from thelma.automation.tools.utils.base import TransferPosition
+from thelma.automation.tools.utils.base import TransferTarget
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.base import get_converted_number
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.converters import TransferLayoutConverter
 from thelma.automation.tools.utils.iso import IsoRequestPosition
-from thelma.automation.tools.utils.racksector import AssociationData
-from thelma.automation.tools.utils.racksector import RackSectorAssociator
-from thelma.automation.tools.utils.racksector import ValueDeterminer
 from thelma.models.organization import Organization
-from thelma.automation.tools.utils.base import TransferTarget
+from thelma.automation.tools.writers import TxtWriter
+from thelma.models.iso import LabIso
+from thelma.models.job import IsoJob
+from thelma.models.iso import LabIsoRequest
+from thelma.models.liquidtransfer import TRANSFER_TYPES
+from thelma.automation.tools.worklists.base import TRANSFER_ROLES
 
 __all__ = ['get_stock_takeout_volume',
            'LabIsoRackContainer',
@@ -26,9 +30,6 @@ __all__ = ['get_stock_takeout_volume',
            'LabIsoPosition',
            'LabIsoLayout',
            'LabIsoLayoutConverter',
-           'IsoPlateValueDeterminer',
-           'IsoPlateSectorAssociator',
-           'IsoPlateAssociationData',
            'FinalLabIsoParameters',
            'FinalLabIsoPosition',
            'FinalLabIsoLayout',
@@ -36,7 +37,11 @@ __all__ = ['get_stock_takeout_volume',
            'LabIsoPrepParameters',
            'LabIsoPrepPosition',
            'LabIsoPrepLayout',
-           'LabIsoPrepLayoutConverter']
+           'LabIsoPrepLayoutConverter',
+           '_InstructionsWriter',
+           '_LabIsoJobInstructionsWriter',
+           '_LabIsoInstructionsWriter',
+           'create_instructions_writer']
 
 
 def get_stock_takeout_volume(stock_concentration, final_volume, concentration):
@@ -74,7 +79,7 @@ class LABELS(object):
     processing.
     """
     #: The character used in the labels to separate the value parts.
-    __SEPARATING_CHAR = '_'
+    SEPARATING_CHAR = '_'
     #: This character is used seperate running numbers from value parts.
     NUMBERING_CHAR = '#'
 
@@ -295,7 +300,7 @@ class LABELS(object):
         """
         Reverse of :func:`__get_value_parts`.
         """
-        sep = cls.__SEPARATING_CHAR
+        sep = cls.SEPARATING_CHAR
         if for_numbering: sep = cls.NUMBERING_CHAR
         return sep.join(value_parts)
 
@@ -304,7 +309,7 @@ class LABELS(object):
         """
         Reverse of :func:`__create_label`.
         """
-        sep = cls.__SEPARATING_CHAR
+        sep = cls.SEPARATING_CHAR
         if for_numbering: sep = cls.NUMBERING_CHAR
         return label.split(sep)
 
@@ -413,6 +418,10 @@ class LabIsoParameters(TransferParameters):
     #: The plate marker (see :class:`LABELS`) for the source stock rack (only
     #: for starting wells).
     STOCK_RACK_MARKER = 'stock_rack_marker'
+
+    #: Is used to mark floating positions for which there has been no pool
+    #: anymore.
+    MISSING_FLOATING = 'missing_floating'
 
 
     REQUIRED = TransferParameters + [CONCENTRATION, VOLUME]
@@ -582,6 +591,15 @@ class LabIsoPosition(TransferPosition):
                    position_type=MOCK_POSITION_TYPE, volume=volume)
 
     @property
+    def is_missing_floating(self):
+        """
+        Missing floatings are positions which are empty because there has
+        not been a pool left for it (they are marked by a special
+        molecule design pool placeholder).
+        """
+        return self.molecule_design_pool == self.PARAMETER_SET.MISSING_FLOATING
+
+    @property
     def is_inactivated(self):
         """
         A position is set to inactivated if the tube picker has not been
@@ -639,12 +657,16 @@ class LabIsoPosition(TransferPosition):
         """
         Returns a copy of this LabIsoPosition that has a specific molecule
         design pool (in case of floating positions) and, if this position is
-        a starting well also defined stock tube barcode and stock rack barcode.
+        a starting well also it will also get a defined stock tube barcode
+        and stock rack barcode.
         A well is regarded as starting well if its current
         :attr:`stock_tube_barcode` is equal to the :attr:`TEMP_STOCK_DATA`.
 
+        If the tube candidate for a floating position is *None*, the floating
+        position is set as missing floating.
+
         :param tube_candidate: The tube candidate used to complete the position
-            data.
+            data (or *None* for missing floatings).
         :type tube_candidate: :class:`TubeCandidate`
 
         :raises ValueError: If there is already a pool for a floating
@@ -658,7 +680,6 @@ class LabIsoPosition(TransferPosition):
                 msg = 'The pool for this floating position is already set ' \
                       '(%s!)' % (self.molecule_design_pool)
                 raise ValueError(msg)
-            pool = tube_candidate.pool
         elif self.is_fixed:
             pool = self.molecule_design_pool
             if not tube_candidate.pool == pool:
@@ -666,25 +687,50 @@ class LabIsoPosition(TransferPosition):
                       '(%s) do not match!' % (pool, tube_candidate.pool)
                 raise ValueError(msg)
 
-        if self.stock_tube_barcode == self.TEMP_STOCK_DATA:
+        stock_tube_barcode, stock_rack_barcode = None, None
+        if self.is_floating and tube_candidate is None:
+            return self.create_missing_floating_copy()
+        elif self.stock_tube_barcode == self.TEMP_STOCK_DATA:
             stock_tube_barcode = tube_candidate.tube_barcode
             stock_rack_barcode = tube_candidate.rack_barcode
         elif self.stock_tube_barcode is not None:
             msg = 'There is already a stock tube barcode set for this ' \
                   'position (%s)!' % (self.stock_tube_barcode)
             raise ValueError(msg)
-        else:
-            stock_tube_barcode, stock_rack_barcode = None, None
 
-        plate_pos = self.__class__(rack_position=self.rack_position,
-                         molecule_design_pool=pool,
-                         position_type=self.position_type,
-                         stock_tube_barcode=stock_tube_barcode,
-                         stock_rack_barcode=stock_rack_barcode,
-                         concentration=self.concentration,
-                         volume=self.volume,
-                         transfer_targets=self.transfer_targets)
-        return plate_pos
+        kw = dict(molecule_design_pool=pool,
+                  position_type=self.position_type,
+                  stock_tube_barcode=stock_tube_barcode,
+                  stock_rack_barcode=stock_rack_barcode,
+                  concentration=self.concentration,
+                  volume=self.volume,
+                  transfer_targets=self.transfer_targets)
+        return self.__create_adjusted_copy(**kw)
+
+    def create_missing_floating_copy(self):
+        """
+        Creates a floating position which is empty because no pool has been
+        left for it (used to find ignored positions for worklists).
+        """
+        kw = dict(molecule_design_pool=self.PARAMETER_SET.MISSING_FLOATING,
+                  position_type=FLOATING_POSITION_TYPE)
+        return self.__create_adjusted_copy(**kw)
+
+    def __create_adjusted_copy(self, **kw):
+        """
+        Returns an (adjusted) copy of this position which has the same
+        rack position.
+        """
+        self._add_class_specific_keywords(kw)
+        kw['rack_position'] = self.rack_position
+        return self.__class__(**kw)
+
+    def _add_class_specific_keywords(self, kw):
+        """
+        Adds subclass-specific keywords to a keyword dictionary used to create
+        a new position.
+        """
+        pass
 
     def as_transfer_target(self):
         """
@@ -935,6 +981,9 @@ class LabIsoLayoutConverter(TransferLayoutConverter):
 
         if pool_id == MOCK_POSITION_TYPE:
             pool = pool_id
+        elif pos_type == FLOATING_POSITION_TYPE and \
+                                pool_id == self.PARAMETER_SET.MISSING_FLOATING:
+            pool = pool_id
         else:
             pool = self._get_molecule_design_pool_for_id(pool_id,
                                                          rack_pos_label)
@@ -943,6 +992,7 @@ class LabIsoLayoutConverter(TransferLayoutConverter):
             elif concentration is None:
                 self.__missing_conc.append(rack_pos_label)
                 is_valid = False
+
         if not concentration is None and not is_valid_number(concentration):
             info = '%s (%s)' % (rack_pos_label, concentration)
             self.__invalid_conc.append(info)
@@ -1012,156 +1062,6 @@ class LabIsoLayoutConverter(TransferLayoutConverter):
                   'positions are inconsistent: %s.' \
                    % (MOCK_POSITION_TYPE, ', '.join(self.__inconsistent_type))
             self.add_error(msg)
-
-
-class IsoPlateValueDeterminer(ValueDeterminer):
-    """
-    This is a special rack sector determiner. It sorts ISO plate positions
-    by concentration.
-
-    **Return Value:** A map containing the values for the different sectors.
-    """
-
-    NAME = 'Preparation Rack Sector Value Determiner'
-
-    WORKING_LAYOUT_CLS = LabIsoLayout
-
-    def __init__(self, iso_plate_layout, attribute_name, log, number_sectors=4):
-        """
-        Constructor:
-
-        :param iso_plate_layout: The ISO plate layout whose positions to check.
-        :type iso_plate_layout: :class:`LabIsoLayout`
-
-        :param attribute_name: The name of the attribute to be determined.
-        :type attribute_name: :class:`str`
-
-        :param number_sectors: The number of rack sectors.
-        :type number_sectors: :class:`int`
-        :default number_sectors: *4*
-        """
-        ValueDeterminer.__init__(self, layout=iso_plate_layout,
-                                      attribute_name=attribute_name,
-                                      number_sectors=number_sectors,
-                                      log=log)
-
-    def _ignore_position(self, layout_pos):
-        if layout_pos.is_mock:
-            return True
-        else:
-            return False
-
-
-class IsoPlateSectorAssociator(RackSectorAssociator):
-    """
-    A special rack sector associator for ISO plate layouts.
-
-    **Return Value:** A list of lists (each list containing the indices of
-        rack sector associated with one another).
-    """
-
-    NAME = 'ISO plate sector associator'
-
-    _SECTOR_ATTR_NAME = 'concentration'
-    LAYOUT_CLS = LabIsoLayout
-
-
-    def __init__(self, iso_plate_layout, log, number_sectors=4):
-        """
-        Constructor:
-
-        :param iso_plate_layout: The ISO plate layout whose positions to check.
-        :type iso_plate_layout: :class:`LabIsoLayout`
-
-        :param number_sectors: The number of rack sectors.
-        :type number_sectors: :class:`int`
-        :default number_sectors: *4*
-
-        :param log: The ThelmaLog you want to write in.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        RackSectorAssociator.__init__(self, layout=iso_plate_layout,
-                                      log=log, number_sectors=number_sectors)
-
-    def _init_value_determiner(self):
-        value_determiner = IsoPlateValueDeterminer(log=self.log,
-                                    iso_plate_layout=self.layout,
-                                    attribute_name=self._SECTOR_ATTR_NAME,
-                                    number_sectors=self.number_sectors)
-        return value_determiner
-
-
-class IsoPlateAssociationData(AssociationData):
-    """
-    A special association data class for ISO plate layouts which also stores
-    the volume for each rack sector.
-
-    :Note: All attributes are immutable.
-    :Note: Error and warning recording is disabled.
-    """
-
-    def __init__(self, iso_plate_layout, log):
-        """
-        Constructor:
-
-        :param iso_plate_layout: The ISO plate layout whose sectors to
-            associate.
-        :type iso_plate_layout: :class:`LabIsoLayout`
-
-        :param log: The ThelmaLog you want to write in.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        AssociationData.__init__(self, layout=iso_plate_layout, log=log,
-                                 record_errors=False)
-
-        #: The volumes for each rack sector.
-        self.__sector_volumes = None
-
-        self.__find_volumes(iso_plate_layout, log)
-
-    @property
-    def sector_volumes(self):
-        """
-        The volumes for each sector.
-        """
-        return self.__sector_volumes
-
-    def _find_concentrations(self, iso_plate_layout):
-        concentrations = set()
-        for plate_pos in iso_plate_layout.working_positions():
-            concentrations.add(plate_pos.concentration)
-        return concentrations
-
-    def _init_value_determiner(self, layout, log):
-        value_determiner = IsoPlateValueDeterminer(iso_plate_layout=layout,
-                                attribute_name='concentration',
-                                log=log, number_sectors=self._number_sectors)
-        return value_determiner
-
-    def _init_associator(self, layout, log):
-        """
-        Initialises the associator.
-        """
-        associator = IsoPlateSectorAssociator(iso_plate_layout=layout,
-                                              log=log, number_sectors=4)
-        return associator
-
-
-    def __find_volumes(self, iso_plate_layout, log):
-        """
-        Finds the volumes for each rack sector.
-
-        :raises TypeError: If the volumes are inconsistent.
-        """
-        determiner = IsoPlateValueDeterminer(iso_plate_layout=iso_plate_layout,
-                                    attribute_name='volume',
-                                    log=log, number_sectors=self.number_sectors)
-        determiner.disable_error_and_warning_recording()
-        self.__sector_volumes = determiner.get_result()
-
-        if self.__sector_volumes is None:
-            msg = ', '.join(determiner.get_messages())
-            raise ValueError(msg)
 
 
 class FinalLabIsoParameters(LabIsoParameters):
@@ -1299,6 +1199,9 @@ class FinalLabIsoPosition(LabIsoPosition):
                    position_type=LIBRARY_POSITION_TYPE,
                    concentration=concentration,
                    volume=volume)
+
+    def _add_class_specific_keywords(self, kw):
+        kw['from_job'] = self.from_job
 
     def _get_parameter_values_map(self):
         parameters = LabIsoPosition._get_parameter_values_map(self)
@@ -1459,6 +1362,14 @@ class LabIsoPrepPosition(LabIsoPosition):
                                 self.PARAMETER_SET.EXTERNAL_TRANSFER_TARGETS,
                                 external_targets, 'external plate targets')
 
+        invalid_types = (MOCK_POSITION_TYPE, LIBRARY_POSITION_TYPE)
+        if position_type in invalid_types:
+            raise TypeError('ISO preparation position must not be %s ' \
+                            'positions!' % (position_type))
+
+    def _add_class_specific_keywords(self, kw):
+        kw['external_targets'] = self.external_targets
+
     def _get_parameter_values_map(self):
         parameters = LabIsoPosition._get_parameter_values_map(self)
         parameters[self.PARAMETER_SET.EXTERNAL_TRANSFER_TARGETS] = \
@@ -1496,4 +1407,433 @@ class LabIsoPrepLayoutConverter(LabIsoLayoutConverter):
 
         if not kw is None: kw['external_targets'] = external_targets
         return kw
+
+
+class _InstructionsWriter(TxtWriter):
+    """
+    Writes a file with instructions about how to prepare the ISO or ISO job.
+
+    **Return Value:** The instructions as stream (TXT)
+    """
+    #: The entity class supported by this summary writer.
+    _ENTITY_CLS = None
+
+    #: The main headline of the file.
+    BASE_MAIN_HEADER = 'Processing Instructions for %s "%s"'
+    #: To be filled into the :attr:`BASE_MAIN_HEADER` (ISO or ISO job).
+    __ENTITY_CLS_NAME = {LabIso : 'ISO', IsoJob : 'ISO job'}
+
+    #: Is used if :attr:`process_job_first` value of the ISO request is *True*.
+    ORDER_JOB_FIRST = '''
+    The ISO job must be processed before you start processing ISOs the
+    specific ISOs.'''
+    #: Is used if :attr:`process_job_first` value of the ISO request is *False*.
+    ORDER_ISO_FIRST = '''
+    ATTENTION! A part of ISOs has to processed before you can add the
+    fixed samples (controls). Look at the steps for further instructions.'''
+    #: Is used if there are no samples added via the ISO job.
+    ORDER_NO_JOB = '''
+    There is no job processing required for this ISO preparation.'''
+    #: Is used if the final plate is a library plate to be completed.
+    ORDER_NO_ISO = '''
+    There is no ISO processing required for this ISO preparation.
+    All required steps are performed via the job.'''
+
+    #: The header marking the next step.
+    STEPS_HEADER = 'Step %i:'
+    #: Comprises the worklist name and some isntructions.
+    STEPS_DETAILS = 'Worklist %s: %s'
+
+    #: The header for the buffer dilution section.
+    BUFFER_DILUTION_HEADER = 'Buffer Additions'
+    #: Is used if there are not dilution worklists for the entity in the ISO
+    #: request worklist series.
+    BUFFER_NO_WORKLISTS = '''
+    There are no buffer dilutions for this %s.'''
+
+    #: The header for the stock transfer section.
+    STOCK_TRANSFER_HEADER = 'Transfers from the Stock'
+    #: The header for the processing section.
+    PROCESSING_HEADER = 'Processing Steps (Other Transfers)'
+    #: Is used if there are no further processing transfers for the entity
+    #: in the ISO request worklist.
+    PROCESSING_NO_WORKLIST = '''
+    There are no further transfers required after the sample transfer from the
+    stock (for the %s).'''
+
+    #: The placeholder for final plates.
+    FINAL_PLATE_PLACEHOLDER = 'final plate(s)'
+    #: The header for the final plates section.
+    FINAL_PLATES_HEADER = 'Final ISO Plates'
+
+    def __init__(self, log, entity, iso_request, rack_containers):
+        """
+        Constructor:
+
+        :param log: The log to write into.
+        :type log: :class:`thelma.ThelmaLog`
+
+        :param entity: The ISO or the ISO job for which to generate the summary.
+        :type entity: :class:`LabIso` or :class:`IsoJob`
+            (see :attr:`_ENTITY_CLS).
+
+        :param iso_request: The lab ISO request the job belongs to.
+        :type iso_request: :class:`thelma.models.iso.LabIsoRequest`
+
+        :param rack_containers: The :class:`LabIsoRackContainer` objects for all
+            racks and plates involved in the processing of the entity.
+        :type rack_containers: list of :class:`LabIsoRackContainer`
+        """
+        TxtWriter.__init__(self, log=log)
+
+        #: The ISO or the ISO job for which to generate the summary.
+        self.entity = entity
+        #: The lab ISO request the job belongs to.
+        self.iso_request = iso_request
+        #: The :class:`LabIsoRackContainer` objects for all racks and plates
+        #: involved in the processing of the entity.
+        self.rack_containers = rack_containers
+
+        #: The worklists in the ISO request worklist series ordered by index.
+        self.__sorted_worklists = None
+
+        #: Counts the steps.
+        self.__step_counter = None
+        #: The rack containers mapped onto rack markers - does not contain
+        #: final ISO plates.
+        self.__racks_by_markers = None
+
+    def reset(self):
+        TxtWriter.reset(self)
+        self.__sorted_worklists = None
+        self.__step_counter = 0
+        self.__racks_by_markers = dict()
+
+    def _check_input(self):
+        self._check_input_class('entity', self.entity, self._ENTITY_CLS)
+        self._check_input_class('ISO request', self.iso_request, LabIsoRequest)
+        self._check_input_list_classes('rack container', self.rack_containers,
+                                       LabIsoRackContainer)
+
+    def _write_stream_content(self):
+        """
+        We start with an remark about the order of ISO and ISO job. The
+        following sections deal with buffer transfers, stock transfers,
+        processing steps and the involved final plates.
+        """
+        self.add_debug('Write stream content ...')
+
+        self.__sort_racks_by_markers()
+
+        self.__write_main_headline()
+        self.__write_order()
+        self.__write_dilution_section()
+        self.__write_stock_rack_section()
+        self.__write_processing_section()
+        self.__write_final_plates_section()
+
+    def __sort_racks_by_markers(self):
+        """
+        The maps serves the geenration of rack strings.
+        Final plates are not included in map. They are indicated by the
+        :attr:`FINAL_PLATE_PLACEHOLDER` instead.
+        """
+        for rack_container in self.rack_containers:
+            if rack_container.role == LABELS.ROLE_FINAL: continue
+            self.__racks_by_markers[rack_container.rack_marker] = rack_container
+
+    def __write_main_headline(self):
+        """
+        Writes the main head line.
+        """
+        cls_name = self.__ENTITY_CLS_NAME[self._ENTITY_CLS]
+        main_headline = self.BASE_MAIN_HEADER % (cls_name, self.entity.label)
+        self._write_headline(main_headline, underline_char='=',
+                             preceding_blank_lines=0, trailing_blank_lines=1)
+
+    def __write_order(self):
+        """
+        Explain whether to start with the ISO or the ISO job.
+        """
+        if self.iso_request.molecule_design_library is not None:
+            order_line = self.ORDER_NO_ISO
+        elif not self._has_job_processing():
+            order_line = self.ORDER_NO_JOB
+        elif self.iso_request.process_job_first:
+            order_line = self.ORDER_JOB_FIRST
+        else:
+            order_line = self.ORDER_ISO_FIRST
+        self._write_body_lines(['', order_line])
+
+    def _has_job_processing(self):
+        """
+        Are there sample added via the ISO job?
+        """
+        raise NotImplementedError('Abstract method.')
+
+    def __write_dilution_section(self):
+        """
+        Lists the buffer dilution steps.
+        """
+        self._write_headline(self.BUFFER_DILUTION_HEADER)
+
+        worklist_series = self.iso_request.worklist_series
+        if worklist_series is None:
+            self.__sorted_worklists = []
+        else:
+            self.__sorted_worklists = worklist_series.get_sorted_worklists()
+
+        base_desc = 'Adding to buffer to plate %s.'
+        worklist_labels = []
+        descriptions = []
+        for worklist in self.__sorted_worklists:
+            if not worklist.transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
+                continue
+            racks = self.__get_rack_strings_for_worklist(worklist.label)
+            if racks is None: continue
+            desc = base_desc % (racks[TRANSFER_ROLES.TARGET])
+            descriptions.append(desc)
+            worklist_labels.append(worklist.label)
+
+        self.__write_optional_section(descriptions, worklist_labels,
+                                      self.BUFFER_NO_WORKLISTS)
+
+    def __write_stock_rack_section(self):
+        """
+        The stock rack section lists the stock transfers ordered by stock
+        rack.
+        """
+        stock_racks = dict()
+        for stock_rack in self._get_stock_racks():
+            stock_racks[stock_rack.label] = stock_racks
+
+        self._write_headline(self.STOCK_TRANSFER_HEADER)
+        base_desc = 'Transfer of sample from stock rack %s to plate %s.'
+
+        empty_worklist_series = []
+        for label in sorted(stock_racks):
+            stock_rack = stock_racks[label]
+            worklist_series = stock_rack.worklist_series
+            if len(worklist_series) < 1:
+                empty_worklist_series.append(label)
+                continue
+            for worklist in worklist_series.get_sorted_worklists():
+                worklist_label = worklist.label
+                racks = self.__get_rack_strings_for_worklist(worklist_label)
+                desc = base_desc % (racks[TRANSFER_ROLES.SOURCE],
+                                    racks[TRANSFER_ROLES.TARGET])
+                self.__write_step_section(worklist_label, desc)
+
+    def _get_stock_racks(self):
+        """
+        Returns all stock racks for the entity or an empty list. Stock racks
+        cannot be retrieved via the rack container maps because we need to
+        access their worklist series.
+        """
+        raise NotImplementedError('Abstract method.')
+
+    def __write_processing_section(self):
+        """
+        Describes the remaining processing steps (if there are any).
+        """
+        base_desc = 'Transferring samples from %s to %s%s'
+        rack_sector_addition = ' (use CyBio).'
+        sector_info = ' (sector: %i)'
+
+        worklist_labels = []
+        descriptions = []
+        for worklist in self.__sorted_worklists:
+            transfer_type = worklist.transfer_type
+            if transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION: continue
+            racks = self._get_processing_worklist_plates(worklist)
+            if racks is None: continue
+            src_rack = racks[TRANSFER_ROLES.SOURCE]
+            trg_rack = racks[TRANSFER_ROLES.TARGET]
+
+            if transfer_type == TRANSFER_TYPES.RACK_SAMPLE_TRANSFER:
+                for psrt in worklist:
+                    src_str = src_rack + sector_info \
+                              % (psrt.source_sector_index + 1)
+                    trg_str = trg_rack + sector_info \
+                              % (psrt.target_sector_index + 1)
+                    desc = base_desc % (src_str, trg_str)
+                    desc += rack_sector_addition
+                    descriptions.append(desc)
+                    worklist_labels.append(worklist.label)
+            else:
+                desc = base_desc % (src_rack, trg_rack)
+                descriptions.append(desc)
+                worklist_labels.append(worklist.label)
+
+        self.__write_optional_section(descriptions, worklist_labels,
+                                      self.PROCESSING_NO_WORKLIST)
+
+    def _get_processing_worklist_plates(self, worklist):
+        """
+        Invokes :func:`__get_rack_strings_for_worklist`. However, even if
+        all participating plates are known the worklist might not be accepted
+        for this entity.
+        """
+        return self.__get_rack_strings_for_worklist(worklist.label)
+
+    def __write_final_plates_section(self):
+        """
+        Lists all involved final plates
+        """
+        self._write_headline(self.FINAL_PLATES_HEADER)
+
+        plate_map = dict()
+        for rack_container in self.rack_containers:
+            if not rack_container.role == LABELS.ROLE_FINAL: continue
+            plate_map[rack_container.label] = rack_container
+
+        plate_lines = ['']
+        for label in sorted(plate_map.keys()):
+            rack_container = plate_map[label]
+            plate_line = self.__get_rack_string(rack_container=rack_container)
+            plate_lines.append(plate_line)
+
+        self._write_body_lines(plate_lines)
+
+    def __get_rack_strings_for_worklist(self, worklist_label):
+        """
+        Helper function returning the rack string for a worklist (mapped
+        onto :class:`TRANSFER_ROLES` values or *None* if a rack marker
+        is unknown and not a final plate (final plates are replaced
+        by the attr:`FINAL_PLATE_PLACEHOLDER`).
+        """
+        values = LABELS.parse_worklist_label(worklist_label)
+        transfer_roles = {TRANSFER_ROLES.SOURCE : LABELS.MARKER_WORKLIST_SOURCE,
+                          TRANSFER_ROLES.TARGET : LABELS.MARKER_WORKLIST_TARGET}
+        racks = dict()
+        for transfer_role, role_marker in transfer_roles.iteritems():
+            if values.has_key(role_marker):
+                rack_marker = values[role_marker]
+                rack_str = self.__get_rack_string(rack_marker)
+                if rack_str is None: return None
+                racks[transfer_role] = rack_str
+        raise racks
+
+    def __get_rack_string(self, rack_marker=None, rack_container=None):
+        """
+        Helper function returning a string with the rack label and barcode
+        (if there has been a container pass for this rack).
+        Rack markers is for an final ISO plate the rack string is
+        replaced by the :attr:`FINAL_PLATE_PLACEHOLDER`.
+        """
+        if rack_container is None:
+            if not self.__racks_by_markers.has_key(rack_marker):
+                values = LABELS.parse_rack_marker(rack_marker)
+                role = values[LABELS.MARKER_RACK_ROLE]
+                if role == LABELS.ROLE_FINAL:
+                    return self.FINAL_PLATE_PLACEHOLDER
+                else:
+                    return None
+            else:
+                rack_container = self.__racks_by_markers[rack_marker]
+        return '%s (%s)' % (rack_container.rack.barcode, rack_container.label)
+
+    def __write_step_section(self, worklist_label, description):
+        """
+        Helper function writing a new step section. The step number is
+        determine automatically.
+        """
+        self.__step_counter += 1
+        step_header = self.STEPS_HEADER % (self.__step_counter)
+        detail_line = self.STEPS_DETAILS % (worklist_label, description)
+        step_lines = ['', step_header, detail_line]
+        self._write_body_lines(step_lines)
+
+    def __write_optional_section(self, descriptions, worklist_labels,
+                                 no_worklists_template):
+        """
+        Helper method writing either the steps for a section or a no
+        worklist remark.
+        """
+        if len(descriptions) < 1:
+            lines = ['', no_worklists_template % self._ENTITY_CLS]
+            self._write_body_lines(lines)
+        else:
+            for i in range(descriptions):
+                self.__write_step_section(worklist_labels[i], descriptions[i])
+
+
+class _LabIsoJobInstructionsWriter(_InstructionsWriter):
+    """
+    Writes a file with instructions about how to prepare the ISO job.
+
+    **Return Value:** The instructions as stream (TXT)
+    """
+    NAME = 'Lab ISO Job Instructions Writer'
+
+    _ENTITY_CLS = IsoJob
+
+    def _has_job_processing(self):
+        return (self.entity.number_stock_racks > 0)
+
+    def _get_stock_racks(self):
+        return self.entity.iso_job_stock_racks
+
+    def _get_processing_worklist_plates(self, worklist):
+        """
+        There are no rack sample transfers in the job processing. Apart from
+        that we can check wether the racks are known.
+        """
+        if worklist.transfer_type == TRANSFER_TYPES.RACK_SAMPLE_TRANSFER:
+            return None
+        return _InstructionsWriter._get_processing_worklist_plates(self,
+                                                                   worklist)
+
+
+class _LabIsoInstructionsWriter(_InstructionsWriter):
+    """
+    Writes a file with instructions about how to prepare a lab ISO job.
+
+    **Return Value:** The instructions as stream (TXT)
+    """
+    NAME = 'Lab ISO Instructions Writer'
+
+    _ENTITY_CLS = LabIso
+
+    def _has_job_processing(self):
+        return self.entity.iso_job.number_stock_racks
+
+    def _get_stock_racks(self):
+        return self.entity.iso_stock_racks + self.entity.iso_sector_stock_racks
+
+
+def create_instructions_writer(log, entity, iso_request, rack_containers):
+    """
+    Factory method returning the :class:`_InstructionsWriter` for the passed
+    entity.
+
+    :param log: The log to write into.
+    :type log: :class:`thelma.ThelmaLog`
+
+    :param entity: The ISO or the ISO job for which to generate the summary.
+    :type entity: :class:`LabIso` or :class:`IsoJob`
+        (see :attr:`_ENTITY_CLS).
+
+    :param iso_request: The lab ISO request the job belongs to.
+    :type iso_request: :class:`thelma.models.iso.LabIsoRequest`
+
+    :param rack_containers: The :class:`LabIsoRackContainer` objects for all
+        racks and plates involved in the processing of the entity.
+    :type rack_containers: list of :class:`LabIsoRackContainer`
+
+    :raises TypeError: if the entity has an unexpected class.
+    """
+
+    if isinstance(entity, LabIso):
+        writer_cls = _LabIsoInstructionsWriter
+    elif isinstance(entity, IsoJob):
+        writer_cls = _LabIsoJobInstructionsWriter
+    else:
+        msg = 'Unexpected entity class (%s). The entity must be a %s or a %s!' \
+              % (entity.__class__.__name__, LabIso.__name__, IsoJob.__name__)
+        raise TypeError(msg)
+
+    kw = dict(log=log, entity=entity, iso_request=iso_request,
+              rack_containers=rack_containers)
+    return writer_cls(**kw)
 

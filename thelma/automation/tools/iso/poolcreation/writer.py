@@ -47,7 +47,7 @@ from thelma.interfaces import ITubeRack
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import IsoStockRack
 from thelma.models.iso import StockSampleCreationIso
-from thelma.models.liquidtransfer import PlannedContainerTransfer
+from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.liquidtransfer import PlannedWorklist
 
 __docformat__ = 'reStructuredText en'
@@ -255,7 +255,7 @@ class StockSampleCreationWorklistWriter(BaseAutomationTool):
                     **kw)
             if buffer_wl is not None:
                 volume = None
-                for pcd in buffer_wl.planned_transfers:
+                for pcd in buffer_wl.planned_liquid_transfers:
                     if volume is None:
                         volume = pcd.volume
                     elif not pcd.volume == volume:
@@ -591,10 +591,10 @@ class StockSampleCreationWorklistWriter(BaseAutomationTool):
                                                 self.tube_destination_racks))
         worklist = PlannedWorklist(label=wl_label)
         for rack_pos in self.__ssc_layout.get_positions():
-            pct = PlannedContainerTransfer(volume=volume,
-                                           source_position=rack_pos,
-                                           target_position=rack_pos)
-            worklist.planned_transfers.append(pct)
+            pct = PlannedSampleTransfer(volume=volume,
+                                        source_position=rack_pos,
+                                        target_position=rack_pos)
+            worklist.planned_liquid_transfers.append(pct)
 
         return worklist
 
