@@ -1033,7 +1033,7 @@ class SerialWriterExecutorTool(BaseAutomationTool):
             if self.mode == self.MODE_PRINT_WORKLISTS:
                 self.__print_worklists()
             else:
-                self.__execute_worklist()
+                self._execute_worklist()
 
     @classmethod
     def create_writer(cls, **kw):
@@ -1161,7 +1161,7 @@ class SerialWriterExecutorTool(BaseAutomationTool):
         """
         raise NotImplementedError('Abstract method.')
 
-    def __execute_worklist(self):
+    def _execute_worklist(self):
         """
         Called in execution mode (:attr:`MODE_PRINT_WORKLISTS`).
         The executed rack sample transfers have to be summarized to jobs

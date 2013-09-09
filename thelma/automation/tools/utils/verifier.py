@@ -228,7 +228,7 @@ class BaseRackVerifier(BaseAutomationTool):
             if pool_pos is None or pool_pos.is_empty or pool_pos.is_mock:
                 exp_mds = None
             else:
-                exp_mds = self._get_exp_pos_molecule_design_ids(pool_pos)
+                exp_mds = self._get_expected_pools(pool_pos)
             # in case of match check volumes
             if self._are_matching_molecule_designs(rack_mds, exp_mds):
                 if self._CHECK_VOLUMES and rack_mds is not None:
@@ -249,7 +249,7 @@ class BaseRackVerifier(BaseAutomationTool):
                            '-'.join([str(md_id) for md_id in sorted(exp_mds)]))
                 self.__mismatching_positions.append(info)
 
-    def _get_exp_pos_molecule_design_ids(self, pool_pos):
+    def _get_expected_pools(self, pool_pos):
         """
         By default, we simple get the molecule design IDs expected from
         the position molecule design pool.
@@ -421,168 +421,13 @@ class IsoRackVerifier(BaseRackVerifier):
                 pool_id = prep_pos.molecule_design_pool_id
                 self._floating_map[placeholder] = pools[pool_id]
 
-    def _get_exp_pos_molecule_design_ids(self, pool_pos):
+    def _get_expected_pools(self, pool_pos):
         """
         Gets the molecule design IDs expected for a ISO position.
         """
         if pool_pos.is_floating:
             return self._get_ids_for_pool(
                         self._floating_map[pool_pos.molecule_design_pool_id])
-        return BaseRackVerifier._get_exp_pos_molecule_design_ids(self, pool_pos)
+        return BaseRackVerifier._get_expected_pools(self, pool_pos)
 
 
-class SourceRackVerifier(BaseRackVerifier):
-    """
-    This tool verifies whether a rack is a suitable ISO rack for a the
-    passed experiment metadata (ISO request).
-
-    **Return Value:** boolean
-    """
-
-    NAME = 'Source Rack Verifier'
-
-    _RACK_CLS = Plate
-    _LAYOUT_CLS = IsoRequestLayout
-
-    def __init__(self, log, source_plate, iso_request):
-        """
-        Constructor:
-
-        :param log: The log the write in.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param iso_request: The ISO request the plate must represent.
-        :type iso_request: :class:`thelma.models.iso.isoRequest`
-
-        :param source_plate: The plate to be checked.
-        :type source_plate: :class:`thelma.models.rack.Plate`
-        """
-        BaseRackVerifier.__init__(self, log=log)
-
-        #: The ISO request the plate must represent.
-        self.iso_request = iso_request
-        #: The plate to be checked.
-        self.source_plate = source_plate
-
-        #: Maps floating maps (molecule design pools for placeholders) onto ISO
-        #: label - is only used when there are floating positions in the ISO
-        #: layout.
-        self._iso_map = dict()
-        #: The name of the ISO the source rack represents.
-        self._used_iso = None
-
-    def reset(self):
-        BaseRackVerifier.reset(self)
-        self._iso_map = None
-        self._used_iso = None
-
-    def _check_input(self):
-        BaseRackVerifier._check_input(self)
-        self._check_input_class('ISO request', self.iso_request, IsoRequest)
-
-    def _set_rack(self):
-        self._rack = self.source_plate
-
-    def _fetch_expected_layout(self):
-        """
-        The expected layout is the ISO layout of the ISO request.
-        """
-        self.add_debug('Get ISO layout ...')
-
-        iso_rack_layout = self.iso_request.iso_layout
-        iso_converter = IsoRequestLayoutConverter(rack_layout=iso_rack_layout,
-                                                  log=self.log)
-        self._expected_layout = iso_converter.get_result()
-        if self._expected_layout is None:
-            msg = 'Error when trying to convert ISO layout.'
-            self.add_error(msg)
-        else:
-            self._expected_layout.close()
-            has_floatings = self._expected_layout.has_floatings()
-            if has_floatings: self.__get_iso_map()
-
-    def __get_iso_map(self):
-        """
-        Generates the floating maps for all ISOs of the experiment metadata.
-        """
-        self.add_debug('Generate ISO map ...')
-
-        self._iso_map = dict()
-
-        for iso in self.iso_request.isos:
-            prep_converter = PrepIsoLayoutConverter(rack_layout=iso.rack_layout,
-                                                    log=self.log)
-            prep_layout = prep_converter.get_result()
-
-            if prep_layout is None:
-                msg = 'Error when trying to convert preparation plate layout ' \
-                      'for ISO %s.' % (iso.label)
-                self.add_error(msg)
-                continue
-
-            pools = prep_layout.get_pools()
-            floating_map = dict()
-            for iso_pos in self._expected_layout.working_positions():
-                if not iso_pos.is_floating: continue
-                placeholder = iso_pos.molecule_design_pool
-                if floating_map.has_key(placeholder): continue
-                prep_pos = prep_layout.get_working_position(
-                                                    iso_pos.rack_position)
-                if prep_pos is None:
-                    md_pool = None
-                else:
-                    pool_id = prep_pos.molecule_design_pool_id
-                    md_pool = pools[pool_id]
-                floating_map[placeholder] = md_pool
-            self._iso_map[iso.label] = floating_map
-
-        if len(self._iso_map) < 1:
-            msg = 'There are no ISOs for this ISO request!'
-            self.add_error(msg)
-
-    def _get_exp_pos_molecule_design_ids(self, exp_pos):
-        """
-        Gets the molecule design IDs for expected for a ISO position
-        (replacing floating placeholder with the pools of the preparation
-        layout position molecule designs of all ISOs).
-        """
-        if exp_pos.is_fixed:
-            pool = exp_pos.molecule_design_pool
-
-        else: # floating
-            placeholder = exp_pos.molecule_design_pool
-
-            if self._used_iso is None:
-                possible_pools = dict()
-                for iso_label, floating_map in self._iso_map.iteritems():
-                    pool = floating_map[placeholder]
-                    if pool is None:
-                        ids = None
-                    else:
-                        ids = self._get_ids_for_pool(pool)
-                    possible_pools[iso_label] = ids
-                return possible_pools
-            else:
-                floating_map = self._iso_map[self._used_iso]
-                pool = floating_map[placeholder]
-
-        return self._get_ids_for_pool(pool)
-
-    def _are_matching_molecule_designs(self, rack_mds, exp_mds):
-        """
-        Checks whether the molecule designs for the positions match.
-        The method will also try to determine the ISO if this has not
-        been happened so far.
-        """
-        if exp_mds is None or isinstance(exp_mds, list):
-            return BaseRackVerifier._are_matching_molecule_designs(self,
-                                                      rack_mds, exp_mds)
-
-        # In case of floating position and unknown ISO ...
-        for iso_label, iso_mds in exp_mds.iteritems():
-            if BaseRackVerifier._are_matching_molecule_designs(self,
-                                                      rack_mds, iso_mds):
-                self._used_iso = iso_label
-                return True
-
-        return False

@@ -1346,21 +1346,6 @@ class MoleculeDesignPoolLayout(WorkingLayout):
         else:
             raise AttributeError('The layout is closed!')
 
-    def get_pools(self):
-        """
-        Returns the entities for all pools mapped onto pool IDs.
-        """
-        pool_map = dict()
-        for prep_pos in self._position_map.values():
-            if not isinstance(prep_pos.molecule_design_pool,
-                              MoleculeDesignPool): continue
-            pool = prep_pos.molecule_design_pool
-            pool_id = pool.id
-            if pool_map.has_key(pool_id): continue
-            pool_map[pool_id] = pool
-
-        return pool_map
-
     def has_floatings(self):
         """
         Returns *True* if this layout is having floating position and *False*

@@ -93,21 +93,18 @@ class _LabIsoWriterExecutorTool(SerialWriterExecutorTool):
         #: The lab ISO requests the entity belongs to.
         self._iso_request = None
         #: The final layout for each ISO in this entity.
-        self._final_layouts = None
+        self.__final_layouts = None
         #: The expected :class:`ISO_STATUS.
         self._expected_iso_status = None
-
-        #: Shall warnings be recorded?
-        self.__record_warnings = None
 
         #: The involved racks (as list of :class:`LabIsoRackContainer`
         #: objects) mapped onto rack markers. Final plates are mapped onto the
         #: :attr:`LABELS.ROLE_FINAL` marker.
-        self._rack_containers = None
+        self.__rack_containers = None
         #: The layout for each plate mapped onto plate label.
-        self._plate_layouts = None
+        self.__plate_layouts = None
         #: The ignored positions for each plate.
-        self._ignored_positions = None
+        self.__ignored_positions = None
         #: The stock rack for this entity mapped onto labels.
         self._stock_racks = None
 
@@ -122,11 +119,11 @@ class _LabIsoWriterExecutorTool(SerialWriterExecutorTool):
     def reset(self):
         SerialWriterExecutorTool.reset(self)
         self._iso_request = None
-        self._final_layouts = None
+        self.__final_layouts = None
         self._expected_iso_status = None
-        self._rack_containers = dict()
-        self._plate_layouts = dict()
-        self._ignored_positions = dict()
+        self.__rack_containers = dict()
+        self.__plate_layouts = dict()
+        self.__ignored_positions = dict()
         self._stock_racks = dict()
         self.__buffer_dilution_indices = set()
         self.__buffer_stream = None
@@ -164,7 +161,7 @@ class _LabIsoWriterExecutorTool(SerialWriterExecutorTool):
                       '"%s".' % (iso.label)
                 self.add_error(msg)
             else:
-                self._final_layouts[iso] = layout
+                self.__final_layouts[iso] = layout
 
     def _get_isos(self):
         """
@@ -183,7 +180,7 @@ class _LabIsoWriterExecutorTool(SerialWriterExecutorTool):
         self._get_expected_iso_status()
         if not self._expected_iso_status is None:
             invalid_status = []
-            for iso in self._final_layouts.keys():
+            for iso in self.__final_layouts.keys():
                 if not iso.status == self._expected_iso_status:
                     info = '%s (expected: %s, found: %s)' % (iso.label,
                             self._expected_iso_status.replace('_', ' '),
@@ -212,12 +209,12 @@ class _LabIsoWriterExecutorTool(SerialWriterExecutorTool):
         """
         self.add_debug('Get plates ...')
 
-        for iso, final_layout in self._final_layouts.iteritems():
+        for iso, final_layout in self.__final_layouts.iteritems():
             for ipp in iso.iso_preparation_plates:
                 self._store_and_verify_plate(ipp.label)
             for fp in iso.final_plates:
                 self._store_and_verify_plate(fp, final_layout)
-                self._plate_layouts[fp.rack.label] = final_layout
+                self.__plate_layouts[fp.rack.label] = final_layout
 
     def _store_and_verify_plate(self, iso_plate, layout=None):
         """
@@ -256,7 +253,7 @@ class _LabIsoWriterExecutorTool(SerialWriterExecutorTool):
                        % (rack_name)
                 self.add_error(msg)
             elif layout is None:
-                self._plate_layouts[plate.label] = \
+                self.__plate_layouts[plate.label] = \
                                                 verifier.get_expected_layout()
 
         if compatible:
@@ -264,7 +261,7 @@ class _LabIsoWriterExecutorTool(SerialWriterExecutorTool):
             rack_marker = rack_container.rack_marker
             if rack_container.role == LABELS.ROLE_FINAL:
                 rack_marker = LABELS.ROLE_FINAL
-            add_list_map_element(self._rack_containers, rack_marker,
+            add_list_map_element(self.__rack_containers, rack_marker,
                                  rack_container)
 
     def _get_stock_racks(self):
@@ -326,7 +323,7 @@ class _LabIsoWriterExecutorTool(SerialWriterExecutorTool):
                       '(stock rack: %s).' % (worklist.label, stock_rack.label)
                 self.add_error(msg)
             trg_marker = values[LABELS.MARKER_WORKLIST_TARGET]
-            for rack_container in self._rack_containers[trg_marker]:
+            for rack_container in self.__rack_containers[trg_marker]:
                 self.__create_and_store_transfer_job(worklist=worklist,
                                         target_plate=rack_container.rack,
                                         source_rack=stock_rack.rack)
@@ -335,12 +332,12 @@ class _LabIsoWriterExecutorTool(SerialWriterExecutorTool):
         """
         The ignored positions are missing floating positions in the layouts.
         """
-        for plate_label, layout in self._plate_layouts.iteritems():
+        for plate_label, layout in self.__plate_layouts.iteritems():
             ignored_positions = []
             for plate_pos in layout.get_working_positions():
                 if plate_pos.is_missing_floating:
                     ignored_positions.append(plate_pos.rack_position)
-            self._ignored_positions[plate_label] = ignored_positions
+            self.__ignored_positions[plate_label] = ignored_positions
 
     def __get_worklist_rack_markers(self, worklist):
         """
@@ -357,16 +354,16 @@ class _LabIsoWriterExecutorTool(SerialWriterExecutorTool):
         """
         values = LABELS.parse_worklist_label(worklist.label)
         trg_marker = values[LABELS.MARKER_WORKLIST_TARGET]
-        if not self._rack_containers.has_key(trg_marker): return None
+        if not self.__rack_containers.has_key(trg_marker): return None
         src_marker = None
         if values.has_key(LABELS.MARKER_WORKLIST_SOURCE):
             src_marker = values[LABELS.MARKER_WORKLIST_SOURCE]
-            if not self._rack_containers.has_key(src_marker): return None
+            if not self.__rack_containers.has_key(src_marker): return None
 
         if worklist.transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
             if trg_marker == LABELS.ROLE_FINAL and \
                             self._expected_iso_status == ISO_STATUS.IN_PROGRESS:
-                for rack_container in self._rack_containers[trg_marker]:
+                for rack_container in self.__rack_containers[trg_marker]:
                     if rack_container.rack.status.name == ITEM_STATUSES.MANAGED:
                         return None
         elif src_marker == LABELS.ROLE_FINAL and \
@@ -391,7 +388,7 @@ class _LabIsoWriterExecutorTool(SerialWriterExecutorTool):
         worklist series - worklists with unknown rack markers (job plates
         for ISO processing and vice versa) are omitted.
         """
-        target_plates = self._rack_containers[trg_marker]
+        target_plates = self.__rack_containers[trg_marker]
         if worklist.transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
             for target_plate in target_plates:
                 self.__create_and_store_transfer_job(worklist=worklist,
@@ -403,13 +400,13 @@ class _LabIsoWriterExecutorTool(SerialWriterExecutorTool):
                     target_plate = rack_container.rack
                     self.__create_transfer_worklist_jobs(target_plate,
                                                          target_plate, worklist)
-            elif not len(self._rack_containers[src_marker]) == 1:
+            elif not len(self.__rack_containers[src_marker]) == 1:
                 msg = 'There are more than 1 plates for preparation marker ' \
                       '"%s": %s!' % (src_marker,
-                                     self._rack_containers[src_marker])
+                                     self.__rack_containers[src_marker])
                 self.add_error(msg)
             else:
-                src_plate = self._rack_containers[src_marker][0].rack
+                src_plate = self.__rack_containers[src_marker][0].rack
                 for rack_container in target_plates:
                     self.__create_transfer_worklist_jobs(src_plate,
                                                  rack_container.rack, worklist)
@@ -438,7 +435,7 @@ class _LabIsoWriterExecutorTool(SerialWriterExecutorTool):
         """
         job_index = len(self._transfer_jobs)
         if worklist.transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
-            ign_positions = self._ignored_positions[target_plate.label]
+            ign_positions = self.__ignored_positions[target_plate.label]
             transfer_job = SampleDilutionJob(index=job_index,
                             planned_worklist=worklist,
                             target_rack=target_plate,
@@ -448,7 +445,7 @@ class _LabIsoWriterExecutorTool(SerialWriterExecutorTool):
                             ignored_positions=ign_positions)
             self.__buffer_dilution_indices.add(job_index)
         elif worklist.transfer_type == TRANSFER_TYPES.SAMPLE_TRANSFER:
-            ign_positions = self._ignored_positions[source_rack.label]
+            ign_positions = self.__ignored_positions[source_rack.label]
             transfer_job = SampleTransferJob(index=job_index,
                             planned_worklist=worklist,
                             target_rack=target_plate,
@@ -511,7 +508,7 @@ class _LabIsoWriterExecutorTool(SerialWriterExecutorTool):
         """
         kw = dict(log=self.log, entity=self.entity,
                   iso_request=self._iso_request,
-                  rack_containers=self._rack_containers.values())
+                  rack_containers=self.__rack_containers.values())
         writer = create_instructions_writer(**kw)
         instructions_stream = writer.get_result()
 
@@ -712,7 +709,7 @@ class LabIsoPlateVerifier(BaseRackVerifier):
                    % (self.lab_iso_plate.__class__.__name__)
             self.add_error(msg)
 
-    def _get_exp_pos_molecule_design_ids(self, plate_pos):
+    def _get_expected_pools(self, plate_pos):
         """
         For final plate positions we must only regard positions for either
         jobs or ISOs (mismatching booleans are compared because this
@@ -763,9 +760,9 @@ class StockRackVerifier(BaseRackVerifier):
             msg = 'Error when trying to convert stock rack layout!'
             self.add_error(msg)
 
-    def _get_exp_pos_molecule_design_ids(self, pool_pos):
+    def _get_expected_pools(self, pool_pos):
         if pool_pos is None: return None
-        return self._get_exp_pos_molecule_design_ids(pool_pos.molecule_design_pool)
+        return self._get_expected_pools(pool_pos.molecule_design_pool)
 
     def _get_minimum_volume(self, pool_pos):
         """

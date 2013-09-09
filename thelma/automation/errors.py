@@ -373,6 +373,8 @@ class EventRecording(object):
             base_msg += filler
         if error_types is None:
             error_types = set(ValueError, TypeError, AttributeError)
+        elif isinstance(error_types, StandardError):
+            error_types = set([error_types])
 
         try:
             return_value = meth(**kw)

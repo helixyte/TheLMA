@@ -116,7 +116,7 @@ def __get_writer_executor(mode, entity, user=None, **kw):
               % (entity.__class__.__name__, LabIso.__name__, IsoJob.__name__)
         raise TypeError(msg)
 
-    kw = dict(mode=mode, entity=entity, user=user)
+    kw.update(dict(mode=mode, entity=entity, user=user))
     return tool_cls(**kw)
 
 

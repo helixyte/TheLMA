@@ -218,6 +218,10 @@ class EXPERIMENT_SCENARIOS(SemiconstantCache):
     ALL = [OPTIMISATION, SCREENING, MANUAL, ISO_LESS, LIBRARY, ORDER_ONLY, QPCR]
     _MARKER_INTERFACE = IExperimentMetadataType
 
+    #: Experiment scenarios for there is always a one-to-one assignment
+    #: between source and experiment plate.
+    ONE_TO_ONE_TYPES = [SCREENING, LIBRARY]
+
     @classmethod
     def get_displaynames(cls, experiment_metadata_types):
         """
