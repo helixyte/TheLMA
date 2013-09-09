@@ -38,13 +38,14 @@ from thelma.automation.tools.semiconstants \
 from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_standard_96
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.tools.semiconstants import PLATE_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.semiconstants import get_experiment_type_screening
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_rack_position_from_indices
+from thelma.automation.tools.semiconstants \
+    import get_plate_specs_from_reservoir_specs
 from thelma.automation.tools.semiconstants import get_reservoir_specs_deep_96
 from thelma.automation.tools.stock.base import RackLocationQuery
 from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
@@ -453,7 +454,7 @@ class IsoXL20WorklistGenerator(BaseAutomationTool):
                 aliquot_rs = get_reservoir_specs_deep_96()
 
         # Create aliquot plates
-        aliquot_plate_specs = PLATE_SPECS_NAMES.from_reservoir_specs(aliquot_rs)
+        aliquot_plate_specs = get_plate_specs_from_reservoir_specs(aliquot_rs)
         for i in range(self.entity.iso_request.number_aliquots):
             label = ISO_LABELS.create_aliquot_plate_label(iso=self.entity,
                                                       aliquot_number=(i + 1))

@@ -17,6 +17,7 @@ from pyramid.registry import Registry
 from pyramid.testing import DummyRequest
 from sqlalchemy import event
 from sqlalchemy.orm.session import Session
+from thelma.automation.tools.writers import read_zip_archive
 from thelma.automation.tools.poolcreation.ticket \
     import PoolCreationStockTransferReporter
 from thelma.automation.tools.poolcreation.ticket \
@@ -1112,3 +1113,32 @@ class XL20DummyToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
             stream.seek(0)
             o.write(stream.read())
             o.close()
+
+
+class CustomLiquidTransferWorklistWriterToolCommand(ToolCommand):
+
+    name = 'customliquidtransferworklistwriter'
+    tool = 'thelma.automation.tools.worklists.custom:CustomLiquidTransferWorklistWriter'
+
+    _excel_file_callback = LazyOption(lambda cls, value, options:
+                                            open(value, 'rb').read())
+
+    option_defs = [('--excel-file',
+                    'stream',
+                    dict(help='Path for the Excel file to load.',
+                         action='callback',
+                         type='string',
+                         callback=_excel_file_callback)
+                    )]
+
+# TODO: think about how to make this prettier
+#    @classmethod
+#    def finalize(cls, tool, options):
+#        if not tool.has_errors():
+#            zip_stream = tool.return_value
+#            file_map = read_zip_archive(zip_stream)
+#            for fn, stream in file_map.iteritems():
+#                loc = '/Users/berger/Desktop/%s' % (fn)
+#                o = open(loc, 'w')
+#                o.write(stream.read())
+#                o.close()

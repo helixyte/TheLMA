@@ -164,15 +164,15 @@ class _CustomLiquidTransferTool(BaseAutomationTool):
         if transfer_type == TRANSFER_TYPES.CONTAINER_DILUTION:
             job = ContainerDilutionJob(index=job_index,
                             planned_worklist=worklist,
-                            target_rack=trg_ror.plate,
+                            target_rack=trg_ror.rack,
                             reservoir_specs=src_ror.reservoir_specs,
                             pipetting_specs=robot_specs,
                             source_rack_barcode=src_ror.barcode)
         elif transfer_type == TRANSFER_TYPES.CONTAINER_TRANSFER:
             job = ContainerTransferJob(index=job_index,
                             planned_worklist=worklist,
-                            target_rack=trg_ror.plate,
-                            source_rack=src_ror.plate,
+                            target_rack=trg_ror.rack,
+                            source_rack=src_ror.rack,
                             pipetting_specs=robot_specs)
 
         self._transfer_jobs[job_index] = job

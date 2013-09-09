@@ -5,14 +5,6 @@ AAB
 """
 from everest.entities.utils import get_root_aggregate
 from everest.repositories.rdb.utils import as_slug_expression
-from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
-from thelma.models.liquidtransfer import PipettingSpecs
-from thelma.automation.tools.semiconstants import get_pipetting_specs
-from thelma.automation.tools.semiconstants import get_pipetting_specs_manual
-from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
-from thelma.automation.tools.semiconstants import get_item_status
-from thelma.automation.tools.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.semiconstants \
     import get_experiment_type_manual_optimisation
 from thelma.automation.tools.semiconstants \
@@ -20,32 +12,41 @@ from thelma.automation.tools.semiconstants \
 from thelma.automation.tools.semiconstants \
     import get_plate_specs_from_reservoir_specs
 from thelma.automation.tools.semiconstants \
-    import get_reservoir_specs_from_plate_specs
+    import get_reservoir_specs_from_rack_specs
 from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_standard_384
 from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_standard_96
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
-from thelma.automation.tools.semiconstants import PLATE_SPECS_NAMES
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.tools.semiconstants import RACK_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants import get_96_rack_shape
+from thelma.automation.tools.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.semiconstants import get_experiment_type_isoless
 from thelma.automation.tools.semiconstants import get_experiment_type_library
 from thelma.automation.tools.semiconstants import get_experiment_type_order
 from thelma.automation.tools.semiconstants import get_experiment_type_screening
+from thelma.automation.tools.semiconstants import get_item_status
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_item_status_managed
+from thelma.automation.tools.semiconstants import get_pipetting_specs
+from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
+from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
+from thelma.automation.tools.semiconstants import get_pipetting_specs_manual
 from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.semiconstants import get_reservoir_spec
 from thelma.automation.tools.semiconstants import get_reservoir_specs_deep_96
-from thelma.interfaces import IPlateSpecs
+from thelma.interfaces import IRackSpecs
 from thelma.models.experiment import ExperimentMetadataType
+from thelma.models.liquidtransfer import PipettingSpecs
 from thelma.models.liquidtransfer import ReservoirSpecs
 from thelma.models.rack import PlateSpecs
 from thelma.models.rack import RackShape
+from thelma.models.rack import RackSpecs
 from thelma.models.status import ItemStatus
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
@@ -102,26 +103,27 @@ class ReservoirSpecsNamesTestCase(_SemiConstantCacheTestCase):
         self._test_shortcut(get_reservoir_specs_deep_96,
                             RESERVOIR_SPECS_NAMES.DEEP_96)
 
-    def test_is_plate(self):
-        self.__test_is_plate_result(RESERVOIR_SPECS_NAMES.STANDARD_96, True)
-        self.__test_is_plate_result(RESERVOIR_SPECS_NAMES.STANDARD_384, True)
-        self.__test_is_plate_result(RESERVOIR_SPECS_NAMES.DEEP_96, True)
-        self.__test_is_plate_result(RESERVOIR_SPECS_NAMES.FALCON_MANUAL, False)
-        self.__test_is_plate_result(RESERVOIR_SPECS_NAMES.QUARTER_MODULAR,
+    def test_is_rack(self):
+        self.__test_is_rack_result(RESERVOIR_SPECS_NAMES.STANDARD_96, True)
+        self.__test_is_rack_result(RESERVOIR_SPECS_NAMES.STANDARD_384, True)
+        self.__test_is_rack_result(RESERVOIR_SPECS_NAMES.DEEP_96, True)
+        self.__test_is_rack_result(RESERVOIR_SPECS_NAMES.FALCON_MANUAL, False)
+        self.__test_is_rack_result(RESERVOIR_SPECS_NAMES.QUARTER_MODULAR,
                                     False)
-        self.__test_is_plate_result(RESERVOIR_SPECS_NAMES.TUBE_24, False)
-        self.assert_raises(TypeError, RESERVOIR_SPECS_NAMES.is_plate_spec, 4)
-        self.assert_raises(ValueError, RESERVOIR_SPECS_NAMES.is_plate_spec,
+        self.__test_is_rack_result(RESERVOIR_SPECS_NAMES.TUBE_24, False)
+        self.__test_is_rack_result(RESERVOIR_SPECS_NAMES.STOCK_RACK, True)
+        self.assert_raises(TypeError, RESERVOIR_SPECS_NAMES.is_rack_spec, 4)
+        self.assert_raises(ValueError, RESERVOIR_SPECS_NAMES.is_rack_spec,
                            'invalid')
 
-    def __test_is_plate_result(self, rs_name, is_plate):
+    def __test_is_rack_result(self, rs_name, is_rack):
         rs = get_reservoir_spec(rs_name)
-        if is_plate:
+        if is_rack:
             assert_meth = self.assert_true
         else:
             assert_meth = self.assert_false
-        assert_meth(RESERVOIR_SPECS_NAMES.is_plate_spec(rs))
-        assert_meth(RESERVOIR_SPECS_NAMES.is_plate_spec(rs.name))
+        assert_meth(RESERVOIR_SPECS_NAMES.is_rack_spec(rs))
+        assert_meth(RESERVOIR_SPECS_NAMES.is_rack_spec(rs.name))
 
 
 class PipettingsSpecsNamesTestCase(_SemiConstantCacheTestCase):
@@ -148,18 +150,18 @@ class PlateSpecsNamesTestCase(_SemiConstantCacheTestCase):
 
     def set_up(self):
         _SemiConstantCacheTestCase.set_up(self)
-        self.entity_cls = PlateSpecs
-        self.cache_cls = PLATE_SPECS_NAMES
-        self.from_name_meth = PLATE_SPECS_NAMES.from_name
+        self.entity_cls = RackSpecs
+        self.cache_cls = RACK_SPECS_NAMES
+        self.from_name_meth = RACK_SPECS_NAMES.from_name
 
     def test_from_name(self):
         self._test_from_name()
 
     def test_from_reservoir_specs(self):
         test_names = \
-            {RESERVOIR_SPECS_NAMES.STANDARD_96 : PLATE_SPECS_NAMES.STANDARD_96,
-             RESERVOIR_SPECS_NAMES.STANDARD_384 : PLATE_SPECS_NAMES.STANDARD_384,
-             RESERVOIR_SPECS_NAMES.DEEP_96 : PLATE_SPECS_NAMES.DEEP_96}
+            {RESERVOIR_SPECS_NAMES.STANDARD_96 : RACK_SPECS_NAMES.STANDARD_96,
+             RESERVOIR_SPECS_NAMES.STANDARD_384 : RACK_SPECS_NAMES.STANDARD_384,
+             RESERVOIR_SPECS_NAMES.DEEP_96 : RACK_SPECS_NAMES.DEEP_96}
         for rs_name, plate_specs_name in test_names.iteritems():
             rs = get_reservoir_spec(rs_name)
             for token in [rs, rs_name]:
@@ -169,16 +171,26 @@ class PlateSpecsNamesTestCase(_SemiConstantCacheTestCase):
                 self.assert_equal(plate_specs.name, plate_specs_name)
         self.assert_raises(TypeError, get_plate_specs_from_reservoir_specs, 3)
         self.assert_raises(ValueError, get_plate_specs_from_reservoir_specs,
+                           RESERVOIR_SPECS_NAMES.STOCK_RACK)
+        self.assert_raises(ValueError, get_plate_specs_from_reservoir_specs,
                            'invalid')
 
     def test_to_reservoir_specs(self):
-        std_96 = PLATE_SPECS_NAMES.from_name(PLATE_SPECS_NAMES.STANDARD_96)
-        rs_96 = get_reservoir_specs_from_plate_specs(std_96)
-        self.assert_equal(rs_96.name, RESERVOIR_SPECS_NAMES.STANDARD_96)
-        ps_agg = get_root_aggregate(IPlateSpecs)
+        test_values = {
+            RACK_SPECS_NAMES.STANDARD_96 : RESERVOIR_SPECS_NAMES.STANDARD_96,
+            RACK_SPECS_NAMES.DEEP_96 : RESERVOIR_SPECS_NAMES.DEEP_96,
+            RACK_SPECS_NAMES.STANDARD_384 : RESERVOIR_SPECS_NAMES.STANDARD_384,
+            RACK_SPECS_NAMES.STOCK_RACK : RESERVOIR_SPECS_NAMES.STOCK_RACK}
+        for rack_specs_name, rs_name in test_values.iteritems():
+            rack_specs = RACK_SPECS_NAMES.from_name(rack_specs_name)
+            reservoir_specs = get_reservoir_specs_from_rack_specs(rack_specs)
+            self.assert_is_not_none(reservoir_specs)
+            self.assert_true(isinstance(reservoir_specs, ReservoirSpecs))
+            self.assert_equal(reservoir_specs.name, rs_name)
+        ps_agg = get_root_aggregate(IRackSpecs)
         nunc = ps_agg.get_by_slug(as_slug_expression('NUNCV96'))
         self.assert_is_not_none(nunc)
-        self.assert_raises(ValueError, get_reservoir_specs_from_plate_specs,
+        self.assert_raises(ValueError, get_reservoir_specs_from_rack_specs,
                            nunc)
 
 

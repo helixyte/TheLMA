@@ -104,6 +104,10 @@ class _CustomLiquidTransferPlanToolTestCase(FileReadingTestCase):
         self._test_and_expect_errors('The stream must not be None!')
         self.stream = ori_stream
 
+    def _test_parsing_error(self):
+        self._continue_setup('parsing_error.xls')
+        self._test_and_expect_errors('Error when trying to parse file')
+
     def _test_series_tool_error(self, msg):
         self.start_vols['int'] = 0
         self._continue_setup()
@@ -139,6 +143,9 @@ class CustomLiquidTransferWorklistWriterTestCase(
 
     def test_invalid_input_values(self):
         self._test_invalid_input_values()
+
+    def test_parsing_error(self):
+        self._test_parsing_error()
 
     def test_serial_writer_error(self):
         self._test_series_tool_error('Error when trying to print worklist ' \
@@ -235,6 +242,9 @@ class CustomLiquidTransferExecutorTestCase(
         self._test_invalid_input_values()
         self.executor_user = None
         self._test_and_expect_errors('The user must be a User object')
+
+    def test_parsing_error(self):
+        self._test_parsing_error()
 
     def test_serial_writer_error(self):
         self._test_series_tool_error('Error when running serial worklist ' \

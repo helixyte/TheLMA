@@ -23,16 +23,16 @@ from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IExperimentMetadataType
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import IPipettingSpecs
-from thelma.interfaces import IPlateSpecs
 from thelma.interfaces import IRackPosition
 from thelma.interfaces import IRackShape
+from thelma.interfaces import IRackSpecs
 from thelma.interfaces import IReservoirSpecs
 from thelma.models.experiment import ExperimentMetadataType
 from thelma.models.liquidtransfer import PipettingSpecs
 from thelma.models.liquidtransfer import ReservoirSpecs
-from thelma.models.rack import PlateSpecs
 from thelma.models.rack import RACK_POSITION_REGEXP
 from thelma.models.rack import RackShape
+from thelma.models.rack import RackSpecs
 from thelma.models.status import ITEM_STATUSES
 from thelma.models.utils import label_from_number
 
@@ -69,9 +69,9 @@ __all__ = ['SemiconstantCache',
            'get_reservoir_specs_standard_96',
            'get_reservoir_specs_deep_96',
            'get_reservoir_specs_standard_384',
-           'PLATE_SPECS_NAMES',
+           'RACK_SPECS_NAMES',
            'get_plate_specs_from_reservoir_specs',
-           'get_reservoir_specs_from_plate_specs',
+           'get_reservoir_specs_from_rack_specs',
            'RACK_POSITION_LABELS',
            'get_rack_position_from_label',
            'get_rack_position_from_indices',
@@ -494,22 +494,23 @@ class RESERVOIR_SPECS_NAMES(SemiconstantCache):
     DEEP_96 = 'plate 96 deep'
     STANDARD_384 = 'plate 384 std'
     FALCON_MANUAL = 'falcon tube'
+    STOCK_RACK = 'stock rack'
 
     ALL = [QUARTER_MODULAR, TUBE_24, STANDARD_96, STANDARD_384, DEEP_96,
-           FALCON_MANUAL]
-    PLATE_SPECS = [STANDARD_96, STANDARD_384, DEEP_96]
+           FALCON_MANUAL, STOCK_RACK]
+    RACK_SPECS = [STANDARD_96, STANDARD_384, DEEP_96, STOCK_RACK]
 
     _MARKER_INTERFACE = IReservoirSpecs
 
     @classmethod
-    def is_plate_spec(cls, reservoir_spec):
+    def is_rack_spec(cls, reservoir_spec):
         """
-        Returns *True* if the passed reservoir specs is a plate spec.
+        Returns *True* if the passed reservoir specs is a rack spec.
 
         :param reservoir_specs: a reservoir spec
         :type reservoir_specs: :class:`basestring` or :class:`ReservoirSpecs`
 
-        :return: *True*, if the spec is a plate spec
+        :return: *True*, if the spec is a rack spec
 
         :raise TypeError: if reservoir_specs has an unexpected class
         :raise ValueError: if the reservoir_specs is not known
@@ -528,7 +529,7 @@ class RESERVOIR_SPECS_NAMES(SemiconstantCache):
             msg = 'Unknown reservoir specs name: "%s".' % (rs_name)
             raise ValueError(msg)
 
-        return rs_name in cls.PLATE_SPECS
+        return rs_name in cls.RACK_SPECS
 
 
 #: An alias for :func:RESERVOIR_SPECS_NAMES.get_reservoir_spec`
@@ -547,38 +548,44 @@ def get_reservoir_specs_standard_384():
     return get_reservoir_spec(RESERVOIR_SPECS_NAMES.STANDARD_384)
 
 
-class PLATE_SPECS_NAMES(SemiconstantCache):
+class RACK_SPECS_NAMES(SemiconstantCache):
     """
-    Caching and shortcuts for :class:`thelma.models.rack.PlateSpecs` entities.
+    Caching and shortcuts for :class:`thelma.models.rack.RackSpecs` entities.
     """
     STANDARD_96 = 'BIOMEK96STD'
     STANDARD_384 = 'STD384'
     DEEP_96 = 'BIOMEK96DEEP'
+    STOCK_RACK = 'MATRIX0500'
 
-    ALL = [STANDARD_96, DEEP_96, STANDARD_384]
-    _MARKER_INTERFACE = IPlateSpecs
+    ALL = [STANDARD_96, DEEP_96, STANDARD_384, STOCK_RACK]
+    _MARKER_INTERFACE = IRackSpecs
 
     __RESERVOIR_SPECS_MAP = {
             RESERVOIR_SPECS_NAMES.STANDARD_96 : STANDARD_96,
             RESERVOIR_SPECS_NAMES.STANDARD_384 : STANDARD_384,
-            RESERVOIR_SPECS_NAMES.DEEP_96 : DEEP_96
+            RESERVOIR_SPECS_NAMES.DEEP_96 : DEEP_96,
+            RESERVOIR_SPECS_NAMES.STOCK_RACK : STOCK_RACK
                              }
 
     @classmethod
     def from_reservoir_specs(cls, reservoir_specs):
         """
-        Returns the plate specs instance for the given reservoir specs
+        Returns the rack specs instance for the given reservoir specs
         (loads it either from the DB or from the cache).
 
-        :param reservoir_specs: The reservoir specs whose plate specs
+        :Note: Stock racks must not be created via a tools, thus requesting
+            a stock rack specs will raise a ValueError.
+
+        :param reservoir_specs: The reservoir specs whose rack specs
             you want to get.
         :type reservoir_specs: :class:`str` (name of reservoir specs) or
             :class:`thelma.models.liquidtransfer.ReservoirSpecs`
 
         :raises TypeError: If the type of reservoir specs is unexpected.
-        :raises ValueError: If the reservoir specs is unknown.
+        :raises ValueError: If the reservoir specs is unknown or belongs to
+            a stock rack.
 
-        :return: :class:`thelma.models.rack.PlateSpecs`
+        :return: :class:`thelma.models.rack.RackSpecs`
         """
         if isinstance(reservoir_specs, basestring):
             rs_name = reservoir_specs
@@ -589,40 +596,43 @@ class PLATE_SPECS_NAMES(SemiconstantCache):
                    % (reservoir_specs.__class__.__name__)
             raise TypeError(msg)
 
-        if not cls.__RESERVOIR_SPECS_MAP.has_key(rs_name):
+        if rs_name == RESERVOIR_SPECS_NAMES.STOCK_RACK:
+            msg = 'You must use this method to generate a stock rack!'
+            raise ValueError(msg)
+        elif not cls.__RESERVOIR_SPECS_MAP.has_key(rs_name):
             raise ValueError('Unsupported reservoir specs "%s".' % (rs_name))
 
-        plate_specs_name = cls.__RESERVOIR_SPECS_MAP[rs_name]
-        return cls.from_name(plate_specs_name)
+        rack_specs_name = cls.__RESERVOIR_SPECS_MAP[rs_name]
+        return cls.from_name(rack_specs_name)
 
     @classmethod
-    def to_reservoir_specs(cls, plate_specs):
+    def to_reservoir_specs(cls, rack_specs):
         """
         Returns the reservoir specs instance that corresponds to the given
-        plate specs.
+        rack specs.
 
-        :param plate_specs: the plate specs whose reservoir specs you want
+        :param rack_specs: the rack specs whose reservoir specs you want
             to get.
-        :type plate_specs: :class:`basestring` or
-            :class:`thelma.models.rack.PlateSpecs`
+        :type rack_specs: :class:`basestring` or
+            :class:`thelma.models.rack.RackSpecs`
 
-        :raises TypeError: If the type of plate specs is unexpected.
-        :raises ValueError: If the plate specs is unknown or there is no
+        :raises TypeError: If the type of rack specs is unexpected.
+        :raises ValueError: If the rack specs is unknown or there is no
             reservoir specs stored for it.
 
         :return: :class:`thelma.models.liquidtransfer.ReservoirSpecs`
         """
-        if isinstance(plate_specs, basestring):
-            ps_name = plate_specs
-        elif isinstance(plate_specs, PlateSpecs):
-            ps_name = plate_specs.name
+        if isinstance(rack_specs, basestring):
+            ps_name = rack_specs
+        elif isinstance(rack_specs, RackSpecs):
+            ps_name = rack_specs.name
         else:
-            msg = 'Unsupported type for plate specs: %s.'\
-                   % (plate_specs.__class__.__name__)
+            msg = 'Unsupported type for rack specs: %s.'\
+                   % (rack_specs.__class__.__name__)
             raise TypeError(msg)
 
-        if not cls.is_known_entity(plate_specs.name):
-            msg = 'Unsupported plate spec "%s".' % (ps_name)
+        if not cls.is_known_entity(rack_specs.name):
+            msg = 'Unsupported rack spec "%s".' % (ps_name)
             raise ValueError(msg)
 
         rs = None
@@ -631,16 +641,16 @@ class PLATE_SPECS_NAMES(SemiconstantCache):
                 rs = get_reservoir_spec(rs_name)
                 break
         if rs is None:
-            msg = 'There is no reservoir specs stored for plate spec "%s"!' \
+            msg = 'There is no reservoir specs stored for rack spec "%s"!' \
                   % (ps_name)
             raise ValueError(msg)
 
         return rs
-#: A short cut for :func:`PLATE_SPECS_NAMES.from_reservoir_specs`.
-get_plate_specs_from_reservoir_specs = PLATE_SPECS_NAMES.from_reservoir_specs
+#: A short cut for :func:`RACK_SPECS_NAMES.from_reservoir_specs`.
+get_plate_specs_from_reservoir_specs = RACK_SPECS_NAMES.from_reservoir_specs
 
-#: A short cut for :func:`PLATE_SPECS_NAMES.to_reservoir_specs`.
-get_reservoir_specs_from_plate_specs = PLATE_SPECS_NAMES.to_reservoir_specs
+#: A short cut for :func:`RACK_SPECS_NAMES.to_reservoir_specs`.
+get_reservoir_specs_from_rack_specs = RACK_SPECS_NAMES.to_reservoir_specs
 
 
 class RACK_POSITION_LABELS(SemiconstantCache):
@@ -815,7 +825,7 @@ get_rack_position_from_indices = RACK_POSITION_LABELS.from_indices
 __ALL_SEMICONSTANT_CLASSES = [ITEM_STATUS_NAMES,
                               RACK_SHAPE_NAMES,
                               RESERVOIR_SPECS_NAMES,
-                              PLATE_SPECS_NAMES,
+                              RACK_SPECS_NAMES,
                               RACK_POSITION_LABELS,
                               ]
 
