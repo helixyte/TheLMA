@@ -42,5 +42,11 @@ UPDATE reservoir_specs
 
 ALTER TABLE reservoir_specs ALTER COLUMN name SET NOT NULL;
 
+INSERT INTO reservoir_specs (description, rack_shape_name, max_volume,
+    min_dead_volume, max_dead_volume, name)
+  VALUES ('Stock rack 96 tubes', '8x12' , '0.0005', '5e-6', '5e-6',
+    'stock rack');
+
+
 
 CREATE OR REPLACE VIEW db_version AS SELECT 209.0013 AS version;

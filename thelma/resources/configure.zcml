@@ -1953,6 +1953,16 @@
                     name="write_as_link"
                     value="false" />
             </attribute>
+            <attribute name="genes.molecule_designs">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
+            <attribute name="genes.molecule_design_pools">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
             <attribute name="genes.species">
                 <option
                     name="write_as_link"
@@ -2937,6 +2947,11 @@
                 <option
                     name="ignore"
                     value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="genes.species">
                 <option
                     name="write_as_link"
                     value="false" />

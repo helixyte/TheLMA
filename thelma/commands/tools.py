@@ -2,12 +2,12 @@
 Run tool command.
 """
 from everest.entities.utils import get_root_aggregate
-from everest.resources.interfaces import IMemberResource
 from everest.mime import JsonMime
 from everest.querying.specifications import eq # pylint: disable=W0611
 from everest.repositories.interfaces import IRepositoryManager
 from everest.repositories.rdb import Session as session_maker
 from everest.representers.utils import as_representer
+from everest.resources.interfaces import IMemberResource
 from everest.resources.interfaces import IService
 from everest.resources.utils import get_collection_class
 from everest.utils import classproperty
@@ -1113,3 +1113,48 @@ class XL20DummyToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
             stream.seek(0)
             o.write(stream.read())
             o.close()
+
+
+class CustomLiquidTransferToolCommand(ToolCommand):
+
+    name = 'customliquidtransfertool'
+    tool = 'thelma.automation.tools.worklists.custom:CustomLiquidTransferTool'
+
+    _excel_file_callback = LazyOption(lambda cls, value, options:
+                                            open(value, 'rb').read())
+    _user_callback = \
+        LazyOption(lambda cls, value, options:
+                                get_root_aggregate(IUser).get_by_slug(value))
+
+    option_defs = [('--excel-file',
+                    'stream',
+                    dict(help='Path for the Excel file to load.',
+                         action='callback',
+                         type='string',
+                         callback=_excel_file_callback)
+                    ),
+                   ('--mode',
+                    'mode',
+                    dict(help='"execute" (requires user) or "print"',
+                         type='string')),
+                   ('--user',
+                    'user',
+                    dict(help='User name how executes the update ' \
+                              '(if modes is "execution").',
+                         action='callback',
+                         type='string',
+                         callback=_user_callback),
+                   )
+                   ]
+
+# TODO: think about how to make this prettier
+#    @classmethod
+#    def finalize(cls, tool, options):
+#        if not tool.has_errors():
+#            zip_stream = tool.return_value
+#            file_map = read_zip_archive(zip_stream)
+#            for fn, stream in file_map.iteritems():
+#                loc = '/Users/berger/Desktop/%s' % (fn)
+#                o = open(loc, 'w')
+#                o.write(stream.read())
+#                o.close()
