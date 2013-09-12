@@ -4,193 +4,24 @@ Deals with the final tube picking for lab ISOs.
 AAB
 """
 from thelma.automation.tools.base import SessionTool
+from thelma.automation.tools.iso.lab.stockrack.base import StockTubeContainer
+from thelma.automation.tools.stock.base import RackLocationQuery
+from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
+from thelma.automation.tools.stock.tubepicking import SinglePoolQuery
+from thelma.automation.tools.stock.tubepicking import TubePickingQuery
 from thelma.automation.tools.stock.tubepicking import TubePoolQuery
 from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.models.moleculedesign import MoleculeDesignPool
-from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import are_equal_values
-from thelma.automation.tools.stock.tubepicking import TubePickingQuery
 from thelma.automation.tools.utils.base import create_in_term_for_db_queries
 from thelma.automation.tools.utils.base import get_trimmed_string
-from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
 from thelma.automation.tools.utils.base import is_smaller_than
-from thelma.automation.tools.stock.tubepicking import SinglePoolQuery
-from thelma.automation.tools.stock.base import RackLocationQuery
-from thelma.automation.tools.iso.lab.base import LABELS
+from thelma.models.moleculedesign import MoleculeDesignPool
 
 
 __docformat__ = 'reStructuredText en'
 
-__all__ = ['StockTubeContainer',
-           'LabIsoXL20TubePicker',
+__all__ = ['LabIsoXL20TubePicker',
            '_LabIsoTubeConfirmationQuery']
-
-
-class StockTubeContainer(object):
-    """
-    Helper storage class representing a (requested and/or picked) stock tube.
-    """
-
-    def __init__(self, pool, position_type, requested_tube_barcode,
-                 expected_rack_barcode, final_position_copy_number):
-        """
-        Constructor:
-
-        :param pool: The molecule design pool the stock tube sample should
-            contain.
-        :type pool: :class:`thelma.models.moleculedesign.MoleculeDesignPool`
-
-        :param position_type: The types of the positions in the layouts
-            (must be the same for all positions).
-        :type position_type: see :class:`MoleculeDesignPoolParameters`
-
-        :param requested_tube_barcode: The barcode of the tube scheduled
-            by the :class:`LabIsoBuilder`.
-        :type requested_tube_barcode: :class:`basestring`
-
-        :param expected_rack_barcode: The barcode of the rack that the
-            scheduled tube is expected in.
-        :type expected_rack_barcode: :class:`basestring`
-
-        :param final_position_copy_number: The number of target copies for
-            each final plate position (number of ISOs for ISO jobs).
-        :type final_position_copy_number: positive :class:`int`
-        """
-        #: The molecule design pool the stock tube sample should contain.
-        self.__pool = pool
-        #: The types of the layouts must be the same for all positions.
-        self.__position_type = position_type
-        #: The barcode of the tube scheduled by the :class:`LabIsoBuilder`.
-        self.requested_tube_barcode = requested_tube_barcode
-        #: The barcode of the rack that the scheduled tube is expected in.
-        self.__exp_rack_barcode = expected_rack_barcode
-        #: The target preparation plate position mapped onto plate labels.
-        self.__prep_positions = dict()
-        #: The target final plate positions.
-        self.__final_positions = []
-        #: The number of copies for the final positions (default: 1).
-        self.__final_position_copy_number = final_position_copy_number
-
-        #: The picked tube candidate for this pool.
-        self.tube_candidate = None
-        #: The name of the barcoded location the rack is stored at (name and
-        #: index).
-        self.location = None
-
-    @property
-    def pool(self):
-        """
-        The molecule design pool the stock tube sample should contain
-        (:class:`thelma.models.moleculedesign.MoleculeDesignPool`).
-        """
-        return self.__pool
-
-    @property
-    def position_type(self):
-        """
-        The types of the layouts must be the same for all positions.
-        """
-        return self.__position_type
-
-    @property
-    def expected_rack_barcode(self):
-        """
-        The barcode of the rack that the scheduled tube is expected in.
-        """
-        return self.__exp_rack_barcode
-
-    @classmethod
-    def from_plate_position(cls, plate_pos, final_position_copy_number):
-        """
-        Factory method creating a stock tube container from an
-        :class:`IsoPlatePosition`.
-        """
-        kw = dict(pool=plate_pos.molecule_design_pool,
-                  position_type=plate_pos.position_type,
-                  requested_tube_barcode=plate_pos.stock_tube_barcode,
-                  expected_rack_barcode=plate_pos.stock_rack_barcode,
-                  final_position_copy_number=final_position_copy_number)
-        return cls(**kw)
-
-    @property
-    def plate_target_positions(self):
-        """
-        Returns the target positions mapped onto plate labels. The plate
-        label for the final layout is :attr:`LAEBLS.ROLE_FINAL`.
-        """
-        target_positions = {LABELS.ROLE_FINAL : self.__final_positions}
-        target_positions.update(self.__prep_positions)
-        return target_positions
-
-    def get_all_target_positions(self):
-        """
-        Returns all target positions for all plates.
-        """
-        all_positions = self.__final_positions
-        for positions in self.__prep_positions.values():
-            all_positions.extend(positions)
-        return all_positions
-
-    def get_total_required_volume(self):
-        """
-        Returns the total volume that needs to be taken from the stock *in ul*.
-        """
-        volume = 0
-        for plate_positions in self.__prep_positions.values():
-            for plate_pos in plate_positions:
-                volume += plate_pos.get_stock_takeout_volume()
-        for plate_positions in self.__final_positions:
-            for plate_pos in plate_positions:
-                volume += (plate_pos.get_stock_takeout_volume() \
-                           * self.__final_position_copy_number)
-        return volume
-
-    def get_first_plate(self):
-        """
-        Returns the label of the first plate. The is the name of the lowest
-        preparation plate (if there is any), otherwise the final layout marker
-        is returned.
-        """
-        if len(self.__prep_positions) > 0:
-            prep_plates = sorted(self.__prep_positions.keys())
-            return prep_plates[0]
-        else:
-            return LABELS.ROLE_FINAL
-
-    def get_stock_concentration(self):
-        """
-        Returns the default stock concentration for the pool *in nM*.
-        """
-        return round(self.__pool.default_stock_concentration \
-                     * CONCENTRATION_CONVERSION_FACTOR, 1)
-
-    def add_preparation_position(self, plate_label, plate_pos):
-        """
-        Registers a target preparation position for this stock tube (used later
-        to generated planned worklists).
-        """
-        add_list_map_element(self.__prep_positions, plate_label, plate_pos)
-
-    def add_final_position(self, plate_pos):
-        """
-        Registers a target final plate position for this stock tube (used later
-        to generated planned worklists).
-        """
-        self.__final_positions.append(plate_pos)
-
-    def __hash__(self):
-        return hash(self.__pool)
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__pool == other.pool
-
-    def __str__(self):
-        return self.__pool
-
-    def __repr__(self):
-        str_format = '<%s pool: %s>'
-        params = (self.__class__.__name__, self.__pool)
-        return str_format % params
 
 
 class LabIsoXL20TubePicker(SessionTool):

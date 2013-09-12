@@ -10,8 +10,6 @@ from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_min_transfer_volume
 from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.utils.base import EMPTY_POSITION_TYPE
-from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_converted_number
 from thelma.automation.tools.utils.base import get_trimmed_string
@@ -22,8 +20,10 @@ from thelma.automation.tools.utils.iso import IsoRequestLayout
 from thelma.automation.tools.utils.iso import IsoRequestLayoutConverter
 from thelma.automation.tools.utils.iso import IsoRequestParameters
 from thelma.automation.tools.utils.iso import IsoRequestPosition
-from thelma.automation.tools.utils.iso import IsoRequestRackSectorAssociator
+from thelma.automation.tools.utils.iso import IsoRequestSectorAssociator
 from thelma.automation.tools.utils.iso import IsoRequestValueDeterminer
+from thelma.automation.tools.utils.layouts import EMPTY_POSITION_TYPE
+from thelma.automation.tools.utils.layouts import MOCK_POSITION_TYPE
 from thelma.automation.tools.worklists.base import get_dynamic_dead_volume
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 from thelma.models.moleculetype import MoleculeType
@@ -39,7 +39,7 @@ __all__ = ['TransfectionParameters',
            'TransfectionPosition',
            'TransfectionLayout',
            'TransfectionLayoutConverter',
-           'TransfectionRackSectorAssociator',
+           'TransfectionSectorAssociator',
            'TransfectionAssociationData']
 
 
@@ -1394,11 +1394,13 @@ class TransfectionLayoutConverter(IsoRequestLayoutConverter):
             self.add_error(msg)
 
 
-class TransfectionRackSectorAssociator(IsoRequestRackSectorAssociator):
+class TransfectionSectorAssociator(IsoRequestSectorAssociator):
     """
     This is a special rack sector determiner. It sorts the transfection
-    positions by final concentration. The molecule design pools of parent and
-    child wells must be shared.
+    positions by final concentration.
+    It is assumed that the sorting of floating positions has not taken place
+    yet. Hence, pools for floating positions are replaced by the an
+    unspecific marker.
 
     **Return Value:** A map containing the values for the different sectors.
     """
@@ -1408,26 +1410,15 @@ class TransfectionRackSectorAssociator(IsoRequestRackSectorAssociator):
     SECTOR_ATTR_NAME = 'final_concentration'
     WORKING_LAYOUT_CLS = TransfectionLayout
 
-    def __init__(self, transfection_layout, log, number_sectors=4):
+    def _get_molecule_design_pool(self, layout_pos):
         """
-        Constructor:
-
-        :param transfection_layout: The ISO layout whose positions to check.
-        :type transfection_layout: :class:`TransfectionLayout`
-
-        :param number_sectors: The number of rack sectors.
-        :type number_sectors: :class:`int`
-        :default number_sectors: *4*
-
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
-        :type log: :class:`thelma.ThelmaLog`
+        Floating pool placeholdes are replaced by an unspecific marker.
         """
-        IsoRequestRackSectorAssociator.__init__(self,
-                                         iso_layout=transfection_layout,
-                                         log=log, ignore_mock=True,
-                                         number_sectors=number_sectors,
-                                         has_distinct_floatings=False)
+        if not layout_pos is None and layout_pos.is_floating:
+            return TransfectionParameters.FLOATING_TYPE_VALUE
+        else:
+            return IsoRequestSectorAssociator._get_molecule_design_pool(self,
+                                                                  layout_pos)
 
 
 class TransfectionAssociationData(IsoRequestAssociationData):
@@ -1438,18 +1429,25 @@ class TransfectionAssociationData(IsoRequestAssociationData):
 
     :Note: All attributes are immutable.
     """
-    def __init__(self, transfection_layout, log):
+    ASSOCIATOR_CLS = TransfectionSectorAssociator
+
+    def __init__(self, transfection_layout, regard_controls, log):
         """
         Constructor:
 
         :param iso_layout: The ISO layout whose sectors to associate.
         :type iso_layout: :class:`IsoRequestLayout`
 
+        :param regard_controls: Shall controls positions be regarded (*True*)
+            or be ignored (*False* - floating positions are always regarded)?
+        :type regard_controls: :class:`bool`
+
         :param log: The log to write into (not stored in the object).
         :type log: :class:`thelma.ThelmaLog`
         """
-        IsoRequestAssociationData.__init__(self, iso_layout=transfection_layout,
-                                          log=log, has_distinct_floatings=False)
+        IsoRequestAssociationData.__init__(self, log=log,
+                                regard_controls=regard_controls,
+                                iso_request_layout=transfection_layout)
 
         self.__iso_concentrations = None
         self.__find_iso_concentrations(transfection_layout, log)
@@ -1460,14 +1458,6 @@ class TransfectionAssociationData(IsoRequestAssociationData):
         The ISO concentrations for the different rack sectors.
         """
         return self.__iso_concentrations
-
-    def _init_associator(self, working_layout, log):
-        """
-        Initialises the associator.
-        """
-        associator = TransfectionRackSectorAssociator(number_sectors=4, log=log,
-                                            transfection_layout=working_layout)
-        return associator
 
     def __find_iso_concentrations(self, transfection_layout, log):
         """
@@ -1481,3 +1471,4 @@ class TransfectionAssociationData(IsoRequestAssociationData):
         if self.__iso_concentrations is None:
             msg = ', '.join(determiner.get_messages())
             raise ValueError(msg)
+

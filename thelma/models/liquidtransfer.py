@@ -561,14 +561,6 @@ class PlannedWorklist(Entity):
             executed_worklists = []
         self.executed_worklists = []
 
-    def __repr__(self):
-        str_format = '<%s id: %s, label: %s, type: %s, pipetting specs: %s, ' \
-                     'number of executions: %i>'
-        params = (self.__class__.__name__, self.id, self.label,
-                  self.transfer_type, self.pipetting_specs,
-                  len(self.executed_worklists))
-        return str_format % params
-
     def __get_index(self):
         if self.worklist_series_member is None:
             return None
@@ -595,6 +587,17 @@ class PlannedWorklist(Entity):
 
     index = property(__get_index, __set_index)
     worklist_series = property(__get_worklist_series, __set_worklist_series)
+
+    def __iter__(self):
+        return iter(self.planned_liquid_transfers)
+
+    def __repr__(self):
+        str_format = '<%s id: %s, label: %s, type: %s, pipetting specs: %s, ' \
+                     'number of executions: %i>'
+        params = (self.__class__.__name__, self.id, self.label,
+                  self.transfer_type, self.pipetting_specs,
+                  len(self.executed_worklists))
+        return str_format % params
 
 
 class WorklistSeries(Entity):
@@ -957,6 +960,9 @@ class ExecutedWorklist(Entity):
         The worklist series the planned worklist belongs to.
         """
         return self.planned_worklist.worklist_series
+
+    def __iter__(self):
+        return iter(self.executed_liquid_transfers)
 
     def __repr__(self):
         str_format = '<%s id: %s, planned worklist: %s>'

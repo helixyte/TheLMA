@@ -13,6 +13,7 @@ AAB
 """
 from math import ceil
 from thelma.models.liquidtransfer import TRANSFER_TYPES
+from thelma.automation.tools.iso.poolcreation.base import LABELS
 from thelma.automation.handlers.poolcreationset \
     import PoolCreationSetParserHandler
 from thelma.automation.tools.base import BaseAutomationTool
@@ -54,8 +55,7 @@ class StockSampleCreationIsoRequestGenerator(BaseAutomationTool):
     NAME = 'Stock Sample Creation ISO Request Generator'
 
     def __init__(self, iso_request_label, stream, requester, target_volume,
-                 target_concentration, logging_level=None,
-                 add_default_handlers=None):
+                 target_concentration, **kw):
         """
         Constructor:
 
@@ -78,20 +78,8 @@ class StockSampleCreationIsoRequestGenerator(BaseAutomationTool):
         :param target_concentration: The final pool concentration for the new
             pool stock tubes in nM.
         :type target_concentration: positive integer
-
-        :param logging_level: the desired minimum log level
-        :type log_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: None
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *False*
         """
-        BaseAutomationTool.__init__(self, logging_level=logging_level,
-                                    add_default_handlers=add_default_handlers,
-                                    depending=False)
+        BaseAutomationTool.__init__(self, depending=False, **kw)
 
         #: The label for the ISO request and be part of buffer worklist name.
         self.iso_request_label = iso_request_label
@@ -279,11 +267,6 @@ class StockSampleCreationWorklistGenerator(BaseAutomationTool):
 
     NAME = 'Pool Creation Worklist Generator'
 
-    #: Name pattern for the worklists that adds annealing buffer to the pool
-    #: stock racks. The placeholders will contain the plate set label of
-    #: the ISO request.
-    BUFFER_WORKLIST_LABEL = '%s_stock_buffer'
-
     #: The index for the buffer worklist within the series.
     BUFFER_WORKLIST_INDEX = 0
 
@@ -367,9 +350,11 @@ class StockSampleCreationWorklistGenerator(BaseAutomationTool):
         buffer_volume = self.volume_calculator.get_buffer_volume()
         if buffer_volume is not None:
             volume = buffer_volume / VOLUME_CONVERSION_FACTOR
-            wl_label = self.BUFFER_WORKLIST_LABEL % (self.iso_request_label)
+            wl_label = LABELS.create_buffer_worklist_label(
+                                                    self.iso_request_label)
             wl = PlannedWorklist(label=wl_label,
-                                 transfer_type=TRANSFER_TYPES.SAMPLE_DILUTION)
+                                 transfer_type=TRANSFER_TYPES.SAMPLE_DILUTION,
+                                 pipetting_specs=get_pipetting_specs_cybio())
             for rack_pos in get_positions_for_shape(RACK_SHAPE_NAMES.SHAPE_96):
                 psd = PlannedSampleDilution(volume=volume,
                       target_position=rack_pos, diluent_info=self.DILUENT_INFO)

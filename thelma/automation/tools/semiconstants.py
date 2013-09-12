@@ -61,6 +61,7 @@ __all__ = ['SemiconstantCache',
            'get_pipetting_specs_manual',
            'get_pipetting_specs_cybio',
            'get_pipetting_specs_biomek',
+           'get_pipetting_specs_biomek_stock',
            'get_min_transfer_volume',
            'get_max_transfer_volume',
            'get_max_dilution_factor',
@@ -218,9 +219,14 @@ class EXPERIMENT_SCENARIOS(SemiconstantCache):
     ALL = [OPTIMISATION, SCREENING, MANUAL, ISO_LESS, LIBRARY, ORDER_ONLY, QPCR]
     _MARKER_INTERFACE = IExperimentMetadataType
 
+    #: Experiment scenarios that allow for only one final ISO plate at maximum
+    #: (not regarding copies).
+    ONE_PLATE_TYPES = [MANUAL, ORDER_ONLY]
     #: Experiment scenarios for there is always a one-to-one assignment
     #: between source and experiment plate.
     ONE_TO_ONE_TYPES = [SCREENING, LIBRARY]
+    #: Experiment scenarios that may support experiment mastermix preparation.
+    EXPERIMENT_MASTERMIX_TYPES = [OPTIMISATION, SCREENING, LIBRARY]
 
     @classmethod
     def get_displaynames(cls, experiment_metadata_types):
@@ -404,8 +410,9 @@ class PIPETTING_SPECS_NAMES(SemiconstantCache):
     MANUAL = 'manual'
     CYBIO = 'CyBio'
     BIOMEK = 'BioMek'
+    BIOMEKSTOCK = 'BioMekStock'
 
-    ALL = [MANUAL, CYBIO, BIOMEK]
+    ALL = [MANUAL, CYBIO, BIOMEK, BIOMEKSTOCK]
     _MARKER_INTERFACE = IPipettingSpecs
 
     __MIN_TRANSFER_VOL_ATTR = 'min_transfer_volume'
@@ -524,6 +531,10 @@ def get_pipetting_specs_cybio():
 #: A short cut to get the BioMek pipetting specs.
 def get_pipetting_specs_biomek():
     return get_pipetting_specs(PIPETTING_SPECS_NAMES.BIOMEK)
+
+#: A short cut to get the BioMekStock pipetting specs.
+def get_pipetting_specs_biomek_stock():
+    return get_pipetting_specs(PIPETTING_SPECS_NAMES.BIOMEKSTOCK)
 
 #: A short cut for :func:`PIPETTING_SPECS_NAMES.get_min_transfer_volume`.
 get_min_transfer_volume = PIPETTING_SPECS_NAMES.get_min_transfer_volume

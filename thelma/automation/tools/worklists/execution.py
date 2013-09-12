@@ -14,7 +14,6 @@ from thelma.automation.tools.utils.base import are_equal_values
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_larger_than
 from thelma.automation.tools.utils.base import is_smaller_than
-from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.racksector import RackSectorTranslator
 from thelma.automation.tools.utils.racksector import check_rack_shape_match
 from thelma.automation.tools.utils.racksector import get_sector_positions
@@ -145,22 +144,6 @@ class LiquidTransferExecutor(BaseAutomationTool):
         self._target_volume_too_large = []
         self._target_container_missing = []
 
-    def set_minimum_transfer_volume(self, volume):
-        """
-        Use this method to overwrite the minimum volume for a transfer (in ul).
-        If you do not set a volume, the executor will use the volume for the
-        :attr:`pipetting_specs`.
-        """
-        self._min_transfer_volume = volume
-
-    def set_maximum_transfer_volume(self, volume):
-        """
-        Use this method to overwrite the maximum volume for a transfer (in ul).
-        If you do not set a volume, the executor will use the volume for the
-        :attr:`pipetting_specs`.
-        """
-        self._max_transfer_volume = volume
-
     def run(self):
         """
         Runs the tool.
@@ -191,21 +174,6 @@ class LiquidTransferExecutor(BaseAutomationTool):
         self._check_input_class('user', self.user, User)
         self._check_input_class('pipetting specs', self.pipetting_specs,
                                 PipettingSpecs)
-
-        if not self._min_transfer_volume is None:
-            if not is_valid_number(self._min_transfer_volume):
-                msg = 'The minimum transfer volume must be a positive ' \
-                      'number. Obtained: %s.' % (self._min_transfer_volume)
-                self.add_error(msg)
-            else:
-                self._min_transfer_volume = float(self._min_transfer_volume)
-        if not self._max_transfer_volume is None:
-            if not is_valid_number(self._max_transfer_volume):
-                msg = 'The maximum transfer volume must be a positive ' \
-                      'number. Obtained: %s.' % (self._max_transfer_volume)
-                self.add_error(msg)
-            else:
-                self._max_transfer_volume = float(self._max_transfer_volume)
 
     def _init_target_data(self):
         """
@@ -936,7 +904,7 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
         try:
             self._translator = RackSectorTranslator.from_planned_rack_transfer(
                         planned_rack_transfer=self.planned_rack_transfer,
-                        enforce_type=self.__translation_behaviour)
+                        behaviour=self.__translation_behaviour)
         except ValueError as e:
             msg = 'Error when trying to initialise rack sector translator. ' \
                   'Details: %s' % (e)

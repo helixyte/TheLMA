@@ -295,14 +295,18 @@ class EventRecording(object):
         :default may_be_empty: *False*
         """
         list_name = '%s list' % (item_name)
-        if self._check_input_class(list_name, list_obj, list):
+        if not self._check_input_class(list_name, list_obj, list):
+            return False
 
-            for item in list_obj:
-                if not self._check_input_class(item_name, item, item_cls):
-                    break
-            if len(list_obj) < 1 and not may_be_empty:
-                msg = 'The %s is empty!' % (list_name)
-                self.add_error(msg)
+        for item in list_obj:
+            if not self._check_input_class(item_name, item, item_cls):
+                return False
+        if len(list_obj) < 1 and not may_be_empty:
+            msg = 'The %s is empty!' % (list_name)
+            self.add_error(msg)
+            return False
+
+        return True
 
     def _check_input_map_classes(self, map_obj, map_name, key_name, key_cls,
                                  value_name, value_cls, may_be_empty=False):
@@ -335,15 +339,21 @@ class EventRecording(object):
         :type may_be_empty: :class:`bool`
         :default may_be_empty: *False*
         """
-        if self._check_input_class(map_name, map_obj, dict):
+        if not self._check_input_class(map_name, map_obj, dict):
+            return False
 
-            for k, v in map_obj.iteritems():
-                if not self._check_input_class(key_name, k, key_cls): break
-                if not self._check_input_class(value_name, v, value_cls): break
+        for k, v in map_obj.iteritems():
+            if not self._check_input_class(key_name, k, key_cls):
+                return False
+            if not self._check_input_class(value_name, v, value_cls):
+                return False
 
-            if len(map_obj) < 1 and not may_be_empty:
-                msg = 'The %s is empty!' % (map_name)
-                self.add_error(msg)
+        if len(map_obj) < 1 and not may_be_empty:
+            msg = 'The %s is empty!' % (map_name)
+            self.add_error(msg)
+            return False
+
+        return True
 
     def _run_and_record_error(self, meth, base_msg, error_types=None, **kw):
         """
@@ -385,3 +395,39 @@ class EventRecording(object):
                 raise e
         else:
             return return_value
+
+    def _get_joined_str(self, item_list, is_strs=True, sort_items=True,
+                        separator=', '):
+        """
+        Helper method converting the passed list into a join string, separated
+        by comma (default). By default, the elements are sorted before
+        conversion. This is handy i.e. when printing error messages.
+
+        :param item_list: The recorded events in a list.
+        :type item_list: :class:`list` or iterable that can be converted into
+            a list
+
+        :param is_strs: If not the items must be converted first.
+            Without conversion the join method will raise an error.
+        :type is_strs: :class:`bool`
+        :default is_strs: *True*
+
+        :param sort_items: Shall the items be sorted?
+        :type sort_items: :class:`bool`
+        :default sort_items: *True*
+
+        :param separator: The string to use for the joining.
+        :type separator: :class:`str`
+        :default separator: comma and 1 whitespace
+        """
+        if not isinstance(item_list, list):
+            item_list = list(item_list)
+        if sort_items: item_list.sort()
+        if is_strs:
+            item_strs = item_list
+        else:
+            item_strs = []
+            for item in item_list: item_strs.append(str(item))
+
+        return separator.join(item_strs)
+

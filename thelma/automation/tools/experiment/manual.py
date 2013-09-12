@@ -77,7 +77,7 @@ class ExperimentManualExecutor(ExperimentTool):
         ExperimentTool.reset(self)
         self.__pool_molecule_map = dict()
 
-    def _execute_worklist(self):
+    def _execute_worklists(self):
         if not self.has_errors(): self._generate_pool_molecule_map()
         if not self.has_errors(): self.__update_racks()
         if not self.has_errors():
@@ -218,6 +218,6 @@ class ExperimentManualExecutor(ExperimentTool):
         if len(missing_pools) > 0:
             msg = 'The following pools from design rack %s could not be ' \
                   'found on the source plate: %s.' % (design_rack_label,
-                  ', '.join([str(p) for p in sorted(list(missing_pools))]))
+                   self._get_joined_str(missing_pools, is_strs=False))
             self.add_error(msg)
 

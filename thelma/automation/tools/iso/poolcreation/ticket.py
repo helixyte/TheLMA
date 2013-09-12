@@ -4,11 +4,13 @@ Trac tools dealing with pool stock sample creation tickets
 AAB
 """
 from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.iso.poolcreation.writer import StockSampleCreationWorklistWriter
 from thelma.automation.tools.iso.poolcreation.base \
     import StockSampleCreationLayout
+from thelma.automation.tools.iso.poolcreation.base import LABELS
 from thelma.automation.tools.iso.poolcreation.execution \
     import StockSampleCreationExecutor
-from thelma.automation.tools.iso.uploadreport import StockTransferReportUploader
+from thelma.automation.tools.iso.tracreporting import IsoStockTransferReporter
 from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
@@ -28,18 +30,17 @@ from tractor.ticket import SEVERITY_ATTRIBUTE_VALUES
 from tractor.ticket import TYPE_ATTRIBUTE_VALUES
 from xmlrpclib import Fault
 from xmlrpclib import ProtocolError
-import logging
 
 __docformat__ = 'reStructuredText en'
 
-__all__ = ['StockSampleCreationTicketGenerator',
+__all__ = ['_StockSampleCreationTicketGenerator',
            'StockSampleCreationIsoCreator',
            'StockSampleCreationTicketWorklistUploader',
-           'StockSampleCreationStockLogFileWriter',
+           '_StockSampleCreationStockLogFileWriter',
            'StockSampleCreationStockTransferReporter']
 
 
-class StockSampleCreationTicketGenerator(BaseTracTool):
+class _StockSampleCreationTicketGenerator(BaseTracTool):
     """
     Creates an pool stock sample creation trac ticket for a new ISO.
 
@@ -182,32 +183,15 @@ class StockSampleCreationIsoCreator(BaseAutomationTool):
     """
     NAME = 'Stock Sample Generation ISO Creator'
 
-    #: Name pattern for stock sample creation ISO labels. The placeholders are
-    #: the ISO request label and the layout number.
-    ISO_LABEL_PATTERN = '%s-%s'
-
-    def __init__(self, iso_request,
-                 logging_level=None, add_default_handlers=False):
+    def __init__(self, iso_request, **kw):
         """
         Constructor:
 
         :param iso_request: The ISO request for which to generate the ISOs.
         :type iso_request:
             :class:`thelma.models.iso.StockSampleGenerationIsoRequest`
-
-        :param logging_level: the desired minimum log level
-        :type log_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: None
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *False*
         """
-        BaseAutomationTool.__init__(self, logging_level=logging_level,
-                                    add_default_handlers=add_default_handlers,
-                                    depending=False)
+        BaseAutomationTool.__init__(self, depending=False, **kw)
 
         #: The ISO request for which to generate the ISOs.
         self.iso_request = iso_request
@@ -252,9 +236,9 @@ class StockSampleCreationIsoCreator(BaseAutomationTool):
 
         for i in range(iso_count, self.iso_request.expected_number_isos):
             layout_number = i + 1
-            iso_label = self.ISO_LABEL_PATTERN % (self.iso_request.label,
-                                                  layout_number)
-            ticket_creator = StockSampleCreationTicketGenerator(
+            iso_label = LABELS.create_iso_label(self.iso_request.label,
+                                                layout_number)
+            ticket_creator = _StockSampleCreationTicketGenerator(
                                 requester=self.iso_request.requester,
                                 iso_label=iso_label,
                                 layout_number=layout_number,
@@ -271,7 +255,6 @@ class StockSampleCreationIsoCreator(BaseAutomationTool):
                          iso_request=self.iso_request,
                          rack_layout=RackLayout(shape=get_96_rack_shape()))
                 self.__new_iso_counter += 1
-
 
 
 class StockSampleCreationTicketWorklistUploader(BaseTracTool):
@@ -291,39 +274,27 @@ class StockSampleCreationTicketWorklistUploader(BaseTracTool):
     #: Shall existing replacements with the same name be overwritten?
     REPLACE_EXISTING_ATTACHMENTS = True
 
-    def __init__(self, stock_sample_creation_iso, file_map,
-                 logging_level=logging.WARNING, add_default_handlers=False):
+    def __init__(self, writer, **kw):
         """
         Constructor:
 
-        :param stock_sample_creation_iso: The stock sample creation ISO the
-            worklists belong to (also contains the ticket ID).
-        :type stock_sample_creation_iso:
-            :class:`thelma.models.iso.StockSampleCreationIso`
-
-        :param file_map: The streams for the worklists files mapped onto
-            file names.
-        :type file_map: :class:`dict`
-
-        :param logging_level: the desired minimum log level
-        :type logging_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: logging.WARNING
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *False*
+        :param writer: The writer that has generated the files.
+        :type writer: :class:`StockSampleCreationWorklistWriter`
         """
-        BaseTracTool.__init__(self, logging_level=logging_level,
-                              add_default_handlers=add_default_handlers,
-                              depending=False)
+        BaseTracTool.__init__(depending=False, **kw)
 
+        #: The writer that has generated the files.
+        self.writer = writer
         #: The stock sample creation ISO the worklists belong to (also contains
         #: the ticket ID).
-        self.stock_sample_creation_iso = stock_sample_creation_iso
+        self.__iso = None
         #: The streams for the worklists files mapped onto file names.
-        self.file_map = file_map
+        self.__file_map = None
+
+    def reset(self):
+        BaseTracTool.reset(self)
+        self.__iso = None
+        self.__file_map = None
 
     def send_request(self):
         """
@@ -341,11 +312,26 @@ class StockSampleCreationTicketWorklistUploader(BaseTracTool):
         """
         self.add_debug('Check input values ...')
 
-        self._check_input_class('stock sample creation ISO',
-                        self.stock_sample_creation_iso, StockSampleCreationIso)
+        if self._check_input_class('writer', self.writer,
+                                   StockSampleCreationWorklistWriter):
+            if self.writer.has_errors():
+                msg = 'The writer has errors! Abort file generation.'
+                self.add_error(msg)
+            elif self.writer.return_value is None:
+                msg = 'The writer has not run yet!'
+                self.add_error(msg)
 
-        if self._check_input_class('file map', self.file_map, dict):
-            for fn in self.file_map.keys():
+    def __fetch_writer_data(self):
+        """
+        Fetches the ISO and the file map from the writer.
+        """
+        self.__iso = self.writer.iso
+        self._check_input_class('stock sample creation ISO',
+                        self.__iso, StockSampleCreationIso)
+
+        self.__file_map = self.writer.return_value
+        if self._check_input_class('file map', self.__file_map, dict):
+            for fn in self.__file_map.keys():
                 if not self._check_input_class('file name', fn,
                                                basestring): break
 
@@ -353,37 +339,53 @@ class StockSampleCreationTicketWorklistUploader(BaseTracTool):
         """
         Submits the request.
         """
-        fn = self.FILE_NAME % (self.stock_sample_creation_iso.iso_request.label,
-                               self.stock_sample_creation_iso.layout_number)
-        attachment = AttachmentWrapper(content=self.file_map,
+        fn = self.FILE_NAME % (self.__iso.iso_request.label,
+                               self.__iso.layout_number)
+        attachment = AttachmentWrapper(content=self.__file_map,
                                        file_name=fn,
                                        description=self.DESCRIPTION)
-        ticket_id = self.stock_sample_creation_iso.ticket_number
+        ticket_id = self.__iso.ticket_number
 
-        try:
-            trac_fn = self.tractor_api.add_attachment(ticket_id=ticket_id,
-                        attachment=attachment,
-                        replace_existing=self.REPLACE_EXISTING_ATTACHMENTS)
-        except ProtocolError, err:
-            self.add_error(err.errmsg)
-        except Fault, fault:
-            msg = 'Fault %s: %s' % (fault.faultCode, fault.faultString)
-            self.add_error(msg)
-        else:
+        kw = dict(ticket_id=ticket_id, attachment=attachment,
+                  replace_existing=self.REPLACE_EXISTING_ATTACHMENTS)
+        trac_fn = self._submit(self.tractor_api.add_attachment, kw)
+
+        if not self.has_errors():
             self.return_value = trac_fn
             msg = 'Robot worklists have been uploaded successfully.'
             self.add_info(msg)
             self.was_successful = True
 
 
-class StockSampleCreationStockTransferReporter(StockTransferReportUploader):
+class StockSampleCreationStockTransferReporter(IsoStockTransferReporter):
+    """
+    A special reporter for stock sample creation ISOs.
 
+    **Return Value:** The log file as stream (arg 0) and comment (arg 1)s
+    """
     EXECUTOR_CLS = StockSampleCreationExecutor
 
-    BASE_COMMENT = 'A stock transfer has been executed by %s ' \
-                   '(see file: attachment:%s).\n\n' \
-                   'Type: %s\n\n' \
-                   'New pool stock rack: %s.\n'
+    def __init__(self, executor, **kw):
+        """
+        Constructor:
+
+        :param executor: The executor tool (after run has been completed).
+        :type executor: :class:`_LabIsoWriterExecutorTool`
+        """
+        IsoStockTransferReporter.__init__(self, executor=executor, **kw)
+
+        #: The stock sample creation layout for this ISO.
+        self.__ssc_layout = None
+
+    def reset(self):
+        IsoStockTransferReporter.reset(self)
+        self.__ssc_layout = None
+
+    def _fetch_executor_data(self):
+        IsoStockTransferReporter._fetch_executor_data(self)
+        self.__ssc_layout = self.executor.get_stock_sample_creation_layout()
+        self._check_input_class('layout', self.__ssc_layout,
+                                StockSampleCreationLayout)
 
     def _set_ticket_id(self):
         """
@@ -391,19 +393,16 @@ class StockSampleCreationStockTransferReporter(StockTransferReportUploader):
         """
         self._ticket_number = self.executor.entity.ticket_number
 
-    def _get_task_type(self):
-        """
-        All library members are samples.
-        """
-        return self.TYPE_SAMPLES
+    def _get_sample_type_str(self):
+        return 'new pooled stock samples'
 
-    def _get_plate_str(self):
+    def _get_rack_str(self):
         """
-        The plate string looks different, we use new ISO stock rack
+        The rack string looks different, we use new ISO stock rack
         (instead of the preparation plate).
         """
         rack = self.executor.entity.iso_stock_racks[0].rack
-        rack_str = '%s' % (rack.barcode)
+        rack_str = 'New pool stock rack: %s' % (rack.barcode)
         return rack_str
 
     def _get_log_file_writer(self):
@@ -411,14 +410,13 @@ class StockSampleCreationStockTransferReporter(StockTransferReportUploader):
         For stock sample creation ISOs we use a special writer, the
         :class:`StockSampleCreationStockLogFileWriter`.
         """
-        writer = StockSampleCreationStockLogFileWriter(log=self.log,
-                    stock_sample_creation_layout=self._working_layout,
-                    executed_worklists=self._executed_worklists)
+        writer = _StockSampleCreationStockLogFileWriter(log=self.log,
+                    stock_sample_creation_layout=self.__ssc_layout,
+                    executed_worklists=self._executed_stock_worklists)
         return writer
 
 
-
-class StockSampleCreationStockLogFileWriter(CsvWriter):
+class _StockSampleCreationStockLogFileWriter(CsvWriter):
     """
     Creates a log file after each pool creation stock transfer. The log
     file contains molecule design pools, molecule designs, stock tube barcodes
@@ -520,12 +518,9 @@ class StockSampleCreationStockLogFileWriter(CsvWriter):
         """
         self.add_debug('Check input values ...')
 
-        if self._check_input_class('executed worklists map',
-                                   self.executed_worklists, dict):
-            for i, ew in self.executed_worklists.iteritems():
-                if not self._check_input_class('worklist index', i, int): break
-                if not self._check_input_class('executed worklist', ew,
-                                               ExecutedWorklist): break
+        self._check_input_map_classes('executed worklists map',
+                    self.executed_worklists, 'worklist index', int,
+                    'executed worklist', ExecutedWorklist)
 
         self._check_input_class('stock sample creation layout',
                                 self.stock_sample_creation_layout,

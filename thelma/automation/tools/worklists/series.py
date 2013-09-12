@@ -86,11 +86,6 @@ class _LiquidTransferJob(object):
         #: The :class:`PipettingSpecs` to be used for this transfer.
         self.pipetting_specs = pipetting_specs
 
-        #: Overwrites the minimum transfer volume of a writer (if not None).
-        self.min_transfer_volume = None
-        #: Overwrites the maximum transfer volume of a writer (if not None).
-        self.max_transfer_volume = None
-
     def get_executor(self, log, user):
         """
         Returns an configured :class:`LiquidTransferExecutor`.
@@ -489,13 +484,6 @@ class __SeriesTool(BaseAutomationTool):
         """
         executor = transfer_job.get_executor(log=self.log, user=self.user)
 
-        if not transfer_job.min_transfer_volume is None:
-            executor.set_minimum_transfer_volume(
-                                            transfer_job.min_transfer_volume)
-        if not transfer_job.max_transfer_volume is None:
-            executor.set_maximum_transfer_volume(
-                                            transfer_job.max_transfer_volume)
-
         executed_item = executor.get_result()
         if executed_item is None:
             msg = 'Error when trying to execute transfer job: %s.' \
@@ -629,13 +617,6 @@ class _SeriesWorklistWriter(__SeriesTool):
         Returns the writer for the given transfer job.
         """
         writer = transfer_job.get_worklist_writer(log=self.log)
-        if writer is None: return None
-
-        if not transfer_job.min_transfer_volume is None:
-            writer.set_minimum_transfer_volume(transfer_job.min_transfer_volume)
-        if not transfer_job.max_transfer_volume is None:
-            writer.set_maximum_transfer_volume(transfer_job.max_transfer_volume)
-
         return writer
 
     def __write_rack_transfer_section(self, rack_transfer_job):
@@ -1033,7 +1014,7 @@ class SerialWriterExecutorTool(BaseAutomationTool):
             if self.mode == self.MODE_PRINT_WORKLISTS:
                 self.__print_worklists()
             else:
-                self._execute_worklist()
+                self._execute_worklists()
 
     @classmethod
     def create_writer(cls, **kw):
@@ -1161,11 +1142,20 @@ class SerialWriterExecutorTool(BaseAutomationTool):
         """
         raise NotImplementedError('Abstract method.')
 
-    def _execute_worklist(self):
+    def _execute_worklists(self):
         """
         Called in execution mode (:attr:`MODE_PRINT_WORKLISTS`).
         The executed rack sample transfers have to be summarized to jobs
         first.
+        """
+        executed_worklists = self._get_executed_worklists()
+        if executed_worklists is not None:
+            self.return_value = executed_worklists
+            self.add_info('Serial worklist execution completed.')
+
+    def _get_executed_worklists(self):
+        """
+        Runs the :class:`_SeriesExecutor`.
         """
         executor = _SeriesExecutor(transfer_jobs=self._transfer_jobs,
                                    user=self.user, log=self.log)
@@ -1173,10 +1163,9 @@ class SerialWriterExecutorTool(BaseAutomationTool):
         if executed_items is None:
             msg = 'Error when running serial worklist executor!'
             self.add_error(msg)
+            return None
         else:
-            executed_worklists = self.__get_executed_worklists(executed_items)
-            self.return_value = executed_worklists
-            self.add_info('Serial worklist execution completed.')
+            return self.__get_executed_worklists(executed_items)
 
     def __get_executed_worklists(self, executed_items):
         """

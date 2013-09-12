@@ -51,6 +51,15 @@ class MoleculeDesignLibrary(Entity):
         self.iso_request = iso_request
 
     @property
+    def plate_specs(self):
+        """
+        The :class:`thelma.models.rack.PlateSpecs` for the library plates.
+        """
+        if len(self.library_plates) is None: return None
+        lp = self.library_plates[0]
+        return lp.rack.specs
+
+    @property
     def slug(self):
         """
         The slug for molecule design libraries is derived from the

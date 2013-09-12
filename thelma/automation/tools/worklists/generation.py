@@ -4,6 +4,7 @@ Bases classes for the generation of (planned) worklists.
 AAB
 """
 from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.semiconstants import get_pipetting_specs
 from thelma.models.liquidtransfer import PlannedWorklist
 
 
@@ -20,6 +21,9 @@ class PlannedWorklistGenerator(BaseAutomationTool):
 
     **Return Value**: :class:`thelma.models.liquidtransfer.PlannedWorklist`
     """
+
+    #: The name of the pipetting specs assumed for the worklist.
+    PIPETTING_SPECS_NAME = None
 
     def __init__(self, log):
         """
@@ -57,8 +61,9 @@ class PlannedWorklistGenerator(BaseAutomationTool):
             transfer_type = self.__get_transfer_type()
         if not self.has_errors():
             planned_worklist = PlannedWorklist(label=self._label,
-                     transfer_type=transfer_type,
-                     planned_liquid_transfers=self._planned_liquid_transfers)
+                 transfer_type=transfer_type,
+                 planned_liquid_transfers=self._planned_liquid_transfers,
+                 pipetting_specs=get_pipetting_specs(self.PIPETTING_SPECS_NAME))
             self.return_value = planned_worklist
             self.add_info('Planned worklist generation completed.')
 

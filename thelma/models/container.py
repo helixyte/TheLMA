@@ -117,6 +117,21 @@ class Container(Entity):
         """
         raise NotImplementedError('Abstract method.')
 
+    @property
+    def rack_position(self):
+        """
+        The position of a container in the rack
+        (:class:`thelma.models.rack.RackPosition`).
+        """
+        return self.location.position
+
+    @property
+    def rack(self):
+        """
+        The :class:`thelma.models.rack.Rack` the container is located in.
+        """
+        return self.location.rack
+
     def make_sample(self, volume, **kw):
         """
         Creates a new sample for this container.

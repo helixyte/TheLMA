@@ -5,7 +5,6 @@ AAB
 """
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_trimmed_string
-from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.writers import CsvWriter
 from thelma.models.liquidtransfer import PipettingSpecs
 from thelma.models.liquidtransfer import PlannedWorklist
@@ -122,22 +121,6 @@ class WorklistWriter(CsvWriter):
         self._target_volume_too_large = []
         self._target_container_missing = []
 
-    def set_minimum_transfer_volume(self, volume):
-        """
-        Use this method to overwrite the minimum volume for a transfer (in ul).
-        If you do not set a volume, the writer will use the volume for the
-        :attr:`pipetting_specs`.
-        """
-        self._min_transfer_volume = volume
-
-    def set_maximum_transfer_volume(self, volume):
-        """
-        Use this method to overwrite the maximum volume for a transfer (in ul).
-        If you do not set a volume, the writer will use the volume for the
-        :attr:`pipetting_specs`.
-        """
-        self._max_transfer_volume = volume
-
     def _init_column_map_list(self):
         """
         Creates the :attr:`_column_map_list` for the CSV writer.
@@ -175,21 +158,6 @@ class WorklistWriter(CsvWriter):
 
         self._check_input_list_classes('ignored position',
                        self.ignored_positions, RackPosition, may_be_empty=True)
-
-        if not self._min_transfer_volume is None:
-            if not is_valid_number(self._min_transfer_volume):
-                msg = 'The minimum transfer volume must be a positive ' \
-                      'number. Obtained: %s.' % (self._min_transfer_volume)
-                self.add_error(msg)
-            else:
-                self._min_transfer_volume = float(self._min_transfer_volume)
-        if not self._max_transfer_volume is None:
-            if not is_valid_number(self._max_transfer_volume):
-                msg = 'The maximum transfer volume must be a positive ' \
-                      'number. Obtained: %s.' % (self._max_transfer_volume)
-                self.add_error(msg)
-            else:
-                self._max_transfer_volume = float(self._max_transfer_volume)
 
     def _init_target_data(self):
         """

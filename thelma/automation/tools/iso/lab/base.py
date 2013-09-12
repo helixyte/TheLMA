@@ -1,31 +1,32 @@
 """
-Base classes and constants involved in lab ISO processing tasks.
+Base classes, functions and constants involved in lab ISO processing tasks.
 
 AAB
 """
-from thelma.automation.tools.utils.base import FLOATING_POSITION_TYPE
-from thelma.automation.tools.utils.base import LIBRARY_POSITION_TYPE
-from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
-from thelma.automation.tools.utils.base import TransferLayout
-from thelma.automation.tools.utils.base import TransferParameters
-from thelma.automation.tools.utils.base import TransferPosition
-from thelma.automation.tools.utils.base import TransferTarget
+from thelma.automation.tools.iso.base import IsoRackContainer
+from thelma.automation.tools.iso.base import _ISO_LABELS_BASE
 from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.base import get_converted_number
-from thelma.automation.tools.utils.base import get_trimmed_string
-from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.converters import TransferLayoutConverter
 from thelma.automation.tools.utils.iso import IsoRequestPosition
-from thelma.models.organization import Organization
+from thelma.automation.tools.utils.layouts import FLOATING_POSITION_TYPE
+from thelma.automation.tools.utils.layouts import LIBRARY_POSITION_TYPE
+from thelma.automation.tools.utils.layouts import MOCK_POSITION_TYPE
+from thelma.automation.tools.utils.layouts import TransferLayout
+from thelma.automation.tools.utils.layouts import TransferParameters
+from thelma.automation.tools.utils.layouts import TransferPosition
+from thelma.automation.tools.utils.layouts import TransferTarget
+from thelma.automation.tools.utils.layouts import get_converted_number
+from thelma.automation.tools.utils.layouts import get_trimmed_string
+from thelma.automation.tools.utils.layouts import is_valid_number
+from thelma.automation.tools.worklists.base import TRANSFER_ROLES
 from thelma.automation.tools.writers import TxtWriter
 from thelma.models.iso import LabIso
-from thelma.models.job import IsoJob
 from thelma.models.iso import LabIsoRequest
+from thelma.models.job import IsoJob
 from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.automation.tools.worklists.base import TRANSFER_ROLES
+from thelma.models.organization import Organization
 
 __all__ = ['get_stock_takeout_volume',
-           'LabIsoRackContainer',
            'LabIsoParameters',
            'LabIsoPosition',
            'LabIsoLayout',
@@ -73,15 +74,11 @@ def get_stock_takeout_volume(stock_concentration, final_volume, concentration):
 DILUENT_INFO = 'annealing buffer'
 
 
-class LABELS(object):
+class LABELS(_ISO_LABELS_BASE):
     """
     Generates and parses worklist and rack labels involved in lab ISO
     processing.
     """
-    #: The character used in the labels to separate the value parts.
-    SEPARATING_CHAR = '_'
-    #: This character is used seperate running numbers from value parts.
-    NUMBERING_CHAR = '#'
 
     #: Marker for final ISO plates.
     ROLE_FINAL = 'a'
@@ -96,28 +93,15 @@ class LABELS(object):
     #: Marker for worklist counts (to facilitate worklist ordering and
     #: distinguish intraplate transfer worklists).
     MARKER_WORKLIST_NUM = 'worklist_number'
-    #: Marker for worklist source racks in keyword dictionaries.
-    MARKER_WORKLIST_SOURCE = 'source_rack_marker'
-    #: Marker for worklist target racks in keyword dictionaries.
-    MARKER_WORKLIST_TARGET = 'target_rack_marker'
 
     #: Marker for ticket number in keyword dictionaries.
     MARKER_TICKET_NUMBER = 'ticket_number'
-    #: Marker for racks. The role can be :attr:`ROLE_FINAL`, :attr:`ROLE_STOCK`,
-    #: :attr:`ROLE_PREPARATION` or :attr:`ROLE_JOB_PREPARATION`.
-    MARKER_RACK_ROLE = 'rack_role'
-    #: Used to distinguish racks having the same role.
-    MARKER_RACK_NUM = 'rack_num'
-    #: Marker for racks markers (see :func:`create_rack_marker`).
-    MARKER_RACK_MARKER = 'rack_marker'
+
     #: Marker for ISO or ISO job number.
     MARKER_ENTITY_NUM = 'entity_num'
 
     #: For transfer worklists. Located between source and target rack.
     __FILL_WORKLIST_TRANSFER = 'to'
-    #: For dilution worklists. Located after the target rack. In lab ISOs
-    #: the diluent is always buffer.
-    __FILL_WORKLIST_DILUTION = 'buffer'
     #: For ISOs. Located between ticket and ISO number.
     __FILL_ISO = 'iso'
     #: Is attached to ISOs that are copies of other ISOs.
@@ -138,10 +122,9 @@ class LABELS(object):
         :default create_copy: *True*`
         """
         iso_num_str = '%02i' % (iso_number)
-        ticket_str = cls.__get_int_str(ticket_number)
-        value_parts = [ticket_str, cls.__FILL_ISO, iso_num_str]
+        value_parts = [ticket_number, cls.__FILL_ISO, iso_num_str]
         if create_copy: value_parts += [cls.__ISO_COPY_MARKER]
-        return cls.__create_label(value_parts)
+        return cls._create_label(value_parts)
 
     @classmethod
     def parse_iso_label(cls, label):
@@ -149,9 +132,9 @@ class LABELS(object):
         Parses an ISO label and returns the value parts as map. The values
         are ticket number and ISO number. Potential copy markers are ignored.
         """
-        value_parts = cls.__get_value_parts(label)
-        ticket_num = cls.__parse_int_str(value_parts[0])
-        iso_num = cls.__parse_int_str(value_parts[2])
+        value_parts = cls._get_value_parts(label)
+        ticket_num = cls._parse_int_str(value_parts[0])
+        iso_num = cls._parse_int_str(value_parts[2])
         return {cls.MARKER_TICKET_NUMBER : ticket_num,
                 cls.MARKER_ENTITY_NUM : iso_num}
 
@@ -170,8 +153,8 @@ class LABELS(object):
 
     @classmethod
     def __get_iso_number(cls, iso):
-        value_parts = cls.__get_value_parts(iso.label)
-        return cls.__parse_int_str(value_parts[2])
+        value_parts = cls._get_value_parts(iso.label)
+        return cls._parse_int_str(value_parts[2])
 
     @classmethod
     def create_job_label(cls, ticket_number, job_number):
@@ -179,10 +162,8 @@ class LABELS(object):
         The job label contains the ticket ID and a running number as job number
         (you can get a new ISO number with :func:`get_new_job_number`).
         """
-        ticket_str = cls.__get_int_str(ticket_number)
-        job_str = cls.__get_int_str(job_number)
-        value_parts = [ticket_str, cls.__FILL_ISO_JOB, job_str]
-        return cls.__create_label(value_parts)
+        value_parts = [ticket_number, cls.__FILL_ISO_JOB, job_number]
+        return cls._create_label(value_parts)
 
     @classmethod
     def get_new_job_number(cls, iso_request):
@@ -199,35 +180,8 @@ class LABELS(object):
 
     @classmethod
     def __get_job_number(cls, iso_job):
-        value_parts = cls.__get_value_parts(iso_job.label)
-        return cls.__parse_int_str(value_parts[2])
-
-    @classmethod
-    def create_rack_marker(cls, rack_role, rack_number=None):
-        """
-        A rack marker contains a role and (optionally) a rack number.
-        """
-        value_parts = [rack_role]
-        if rack_number is not None:
-            rack_num = cls.__get_int_str(rack_number)
-            value_parts += [rack_num]
-            return cls.__create_label(value_parts, for_numbering=True)
-        else:
-            return rack_role
-
-    @classmethod
-    def parse_rack_marker(cls, rack_marker):
-        """
-        A rack marker contains a role and (optionally) a rack number.
-        If the rack marker is a :attr:LIBRARY_PLACEHOLDER`, the role is
-        final plate (without number).
-        """
-        value_parts = cls.__get_value_parts(rack_marker, for_numbering=True)
-        values = {cls.MARKER_RACK_ROLE : value_parts[0]}
-        if len(value_parts) > 1:
-            rack_num = cls.__parse_int_str(value_parts[1])
-            values[cls.MARKER_RACK_NUM] = rack_num
-        return values
+        value_parts = cls._get_value_parts(iso_job.label)
+        return cls._parse_int_str(value_parts[2])
 
     @classmethod
     def create_rack_label(cls, rack_marker, entity_label):
@@ -235,7 +189,7 @@ class LABELS(object):
         The rack label contains the ISO or ISO job label and a rack marker.
         """
         value_parts = [entity_label, rack_marker]
-        return cls.__create_label(value_parts)
+        return cls._create_label(value_parts)
 
     @classmethod
     def parse_rack_label(cls, plate_label):
@@ -243,16 +197,15 @@ class LABELS(object):
         The rack label contains the ticket ID and ISO or ISO job number,
         and a rack marker (rack role and (optionally) rack number).
         """
-        value_parts = cls.__get_value_parts(plate_label)
-        ticket_number = cls.__parse_int_str(value_parts[0])
-        entity_num = cls.__parse_int_str(value_parts[2])
+        value_parts = cls._get_value_parts(plate_label)
+        ticket_number = cls._parse_int_str(value_parts[0])
+        entity_num = cls._parse_int_str(value_parts[2])
         rack_marker = value_parts[3]
         value_parts[cls.MARKER_RACK_MARKER] = rack_marker
         values = cls.parse_rack_marker(rack_marker)
         values[cls.MARKER_TICKET_NUMBER] = ticket_number
         values[cls.MARKER_ENTITY_NUM] = entity_num
         return values
-
 
     @classmethod
     def create_worklist_label(cls, ticket_number, worklist_number,
@@ -264,15 +217,13 @@ class LABELS(object):
         rack marker (source and target marker can be equal) whereas dilution
         worklists contain the target rack marker and a (different) filler.
         """
-        ticket_str = cls.__get_int_str(ticket_number)
-        num_str = cls.__get_int_str(worklist_number)
-        value_parts = [ticket_str, num_str]
+        value_parts = [ticket_number, worklist_number]
         if source_rack_marker is None:
-            value_parts += [target_rack_marker, cls.__FILL_WORKLIST_DILUTION]
+            value_parts += [target_rack_marker, cls._FILL_WORKLIST_DILUTION]
         else:
             value_parts += [source_rack_marker, cls.__FILL_WORKLIST_TRANSFER,
                            target_rack_marker]
-        return cls.__create_label(value_parts)
+        return cls._create_label(value_parts)
 
     @classmethod
     def parse_worklist_label(cls, worklist_label):
@@ -283,9 +234,9 @@ class LABELS(object):
         equal) whereas dilution worklists contain the target rack marker
         and a (different) filler.
         """
-        value_parts = cls.__get_value_parts(worklist_label)
-        ticket_number = cls.__parse_int_str(value_parts[0])
-        worklist_num = cls.__parse_int_str(value_parts[1])
+        value_parts = cls._get_value_parts(worklist_label)
+        ticket_number = cls._parse_int_str(value_parts[0])
+        worklist_num = cls._parse_int_str(value_parts[1])
         values = {cls.MARKER_TICKET_NUMBER : ticket_number,
                   cls.MARKER_WORKLIST_NUM : worklist_num}
         if len(value_parts) == 4: # dilution
@@ -296,97 +247,19 @@ class LABELS(object):
         return values
 
     @classmethod
-    def __create_label(cls, value_parts, for_numbering=False):
+    def create_final_plate_label(cls, iso, plate_num=None):
         """
-        Reverse of :func:`__get_value_parts`.
+        The final plate label is replaces the working label of final (aliquot
+        and library) plates once the plate generation is completed. It
+        contains the ISO request label, the ISO number and (optinally) a
+        plate number.
         """
-        sep = cls.SEPARATING_CHAR
-        if for_numbering: sep = cls.NUMBERING_CHAR
-        return sep.join(value_parts)
-
-    @classmethod
-    def __get_value_parts(cls, label, for_numbering=False):
-        """
-        Reverse of :func:`__create_label`.
-        """
-        sep = cls.SEPARATING_CHAR
-        if for_numbering: sep = cls.NUMBERING_CHAR
-        return label.split(sep)
-
-    @classmethod
-    def __get_int_str(cls, value):
-        """
-        Reverse of :func:`__parse_int_str`.
-        """
-        return '%i' % (value)
-
-    @classmethod
-    def __parse_int_str(cls, value_str):
-        """
-        Reverse of :func:`__get_int_str`.
-        """
-        return int(value_str)
-
-
-class LabIsoRackContainer(object):
-    """
-    A helper class storing the role and rack marker for a rack involved
-    in ISO processing.
-    """
-    def __init__(self, rack, label=None, rack_marker=None, role=None):
-        """
-        Constructor:
-
-        :param rack: The rack or plate.
-        :type rack: :class:`thelma.models.rack.Rack`
-
-        :param label: The rack or stock rack label.
-        :type label: :class:`basestring`
-        :default label: *None* (is taken from the :param:`rack`).
-
-        :param rack_marker: Contains the rack role and number
-            (see :func:`LABELS.create_rack_marker`).
-        :type rack_marker: :class:`basestring`
-        :default rack_marker: *None* (is parsed from the :param:`label`).
-
-        :param role: Final, preparation or stock preparation plate or stock rack
-            (see :class:`LABELS`).
-        :type role: *ROLE* value from :class:`LABELS`
-        :default role: *None* (is parsed from the :param:`label`).
-        """
-        #: The rack or plate.
-        self.rack = rack
-
-        if label is None:
-            label = rack.label
-        #: The rack or stock rack label.
-        self.label = label
-
-        if rack_marker is None or role is None:
-            values = LABELS.parse_rack_label(label)
-            if rack_marker is None:
-                rack_marker = values[LABELS.MARKER_RACK_MARKER]
-            if role is None:
-                role = values[LABELS.MARKER_RACK_ROLE]
-
-        #: Contains the rack role and number (see
-        #: :func:`LABELS.create_rack_marker`).
-        self.rack_marker = rack_marker
-        #: Final, preparation or stock preparation plate or stock rack
-        #: (see :class:`LABELS`).
-        self.role = role
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and other.rack == self.rack
-
-    def __str__(self):
-        return self.label
-
-    def __repr__(self):
-        str_format = '<%s rack: %s, label: %s>'
-        params = (self.__class__.__name__, self.rack, self.label)
-        return str_format % params
-
+        iso_request = iso.iso_request
+        iso_values = cls.parse_iso_label(iso.label)
+        iso_num = iso_values[cls.MARKER_ENTITY_NUM]
+        value_parts = [iso_request.label, iso_num]
+        if plate_num is not None: value_parts.append(plate_num)
+        return cls._create_label(value_parts)
 
 
 class LabIsoParameters(TransferParameters):
@@ -1480,9 +1353,9 @@ class _InstructionsWriter(TxtWriter):
         :param iso_request: The lab ISO request the job belongs to.
         :type iso_request: :class:`thelma.models.iso.LabIsoRequest`
 
-        :param rack_containers: The :class:`LabIsoRackContainer` objects for all
+        :param rack_containers: The :class:`IsoRackContainer` objects for all
             racks and plates involved in the processing of the entity.
-        :type rack_containers: list of :class:`LabIsoRackContainer`
+        :type rack_containers: list of :class:`IsoRackContainer`
         """
         TxtWriter.__init__(self, log=log)
 
@@ -1490,7 +1363,7 @@ class _InstructionsWriter(TxtWriter):
         self.entity = entity
         #: The lab ISO request the job belongs to.
         self.iso_request = iso_request
-        #: The :class:`LabIsoRackContainer` objects for all racks and plates
+        #: The :class:`IsoRackContainer` objects for all racks and plates
         #: involved in the processing of the entity.
         self.rack_containers = rack_containers
 
@@ -1513,7 +1386,7 @@ class _InstructionsWriter(TxtWriter):
         self._check_input_class('entity', self.entity, self._ENTITY_CLS)
         self._check_input_class('ISO request', self.iso_request, LabIsoRequest)
         self._check_input_list_classes('rack container', self.rack_containers,
-                                       LabIsoRackContainer)
+                                       IsoRackContainer)
 
     def _write_stream_content(self):
         """
@@ -1817,9 +1690,9 @@ def create_instructions_writer(log, entity, iso_request, rack_containers):
     :param iso_request: The lab ISO request the job belongs to.
     :type iso_request: :class:`thelma.models.iso.LabIsoRequest`
 
-    :param rack_containers: The :class:`LabIsoRackContainer` objects for all
+    :param rack_containers: The :class:`IsoRackContainer` objects for all
         racks and plates involved in the processing of the entity.
-    :type rack_containers: list of :class:`LabIsoRackContainer`
+    :type rack_containers: list of :class:`IsoRackContainer`
 
     :raises TypeError: if the entity has an unexpected class.
     """

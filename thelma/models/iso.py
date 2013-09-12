@@ -149,7 +149,7 @@ class LabIsoRequest(IsoRequest):
     #: The reservoir specs for the plates to be generated
     #: (:attr:`iso_aliquot_plates` of the :class:`Iso`) define the volume
     #: properties for the plates (important for calculations,
-    #: :class:`thelma.models.liquidtransferReservoirSpecs`).
+    #: :class:`thelma.models.liquidtransfer.ReservoirSpecs`).
     iso_plate_reservoir_specs = None
     #: Shall the ISO job be processed first (before the ISO-specific
     #: preparations?). Default: True. If there is no ISO job processing this

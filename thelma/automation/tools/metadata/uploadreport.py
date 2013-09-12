@@ -2,8 +2,6 @@
 Tools generating reports for experiment metadata uploads.
 """
 from thelma import ThelmaLog
-from thelma.automation.tools.iso.prep_utils import get_stock_takeout_volume
-from thelma.automation.tools.iso.preplayoutfinder import PrepLayoutFinder
 from thelma.automation.tools.metadata.generation \
     import ExperimentMetadataGenerator
 from thelma.automation.tools.metadata.generation \
@@ -20,7 +18,6 @@ from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_standard_96
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import get_reservoir_specs_deep_96
-from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
 from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import get_trimmed_string
@@ -31,9 +28,7 @@ from thelma.automation.tools.writers import CsvColumnParameters
 from thelma.automation.tools.writers import CsvWriter
 from thelma.automation.tools.writers import TxtWriter
 from thelma.automation.tracbase import BaseTracTool
-from thelma.models.iso import IsoRequest
 from thelma.models.liquidtransfer import ReservoirSpecs
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from tractor import AttachmentWrapper
 from tractor import create_wrapper_for_ticket_update
 from xmlrpclib import Fault
@@ -47,8 +42,7 @@ __all__ = ['ExperimentMetadataReportUploader',
            'ExperimentMetadataAssignmentWriter',
            'ExperimentMetadataIsoPlateWriter',
            'ExperimentMetadataInfoWriter',
-           'ExperimentMetadataInfoWriterLibrary',
-           'RequiredStockVolumeWriter']
+           'ExperimentMetadataInfoWriterLibrary']
 
 
 class ExperimentMetadataAssignmentWriter(CsvWriter):
@@ -781,186 +775,13 @@ where\n
         self._stream.write(formula)
 
 
-class RequiredStockVolumeWriter(CsvWriter):
-    """
-    This tool produces a file that presents the volumes for all molecule
-    designs that need to be taken out of the stock. The tool will generate
-    an abstract preparation layout for this purpose (which is not persisted).
-
-    **Return Value:** CSV stream
-    """
-
-    NAME = 'Required Stock Volume CSV Writer'
-
-    #: The index for the molecule design pool column.
-    MOLECULE_DESIGN_POOL_INDEX = 0
-    #: The header for the molecule design pool column.
-    MOLECULE_DESIGN_POOL_HEADER = 'Molecule Design Pool ID'
-
-    #: The index for the transfer volume column.
-    TAKE_VOLUME_INDEX = 1
-    #: The header for the transfer volume column.
-    TAKE_VOLUME_HEADER = 'Preparation Plate Volume (ul)'
-
-    #: The index for the stock volume column.
-    STOCK_VOLUME_INDEX = 2
-    #: The header for the stock volume column.
-    STOCK_VOLUME_HEADER = 'Minimum Stock Volume (ul)'
-
-    def __init__(self, source_layout, molecule_design_pool_set, iso_request,
-                 log):
-        """
-        Constructor:
-
-        :param source_layout: The ISO layout of the experiment metadata.
-        :type source_layout: :class:`TransfectionLayout`
-
-        :param molecule_design_pool_set: The molecule design pool set for
-            this experiment metadata.
-        :type molecule_design_pool_set:
-            :class:`thelma.models.moleculedesign.MoleculeDesignPoolSet`
-
-        :param iso_request: The ISO request the of the metadata.
-        :type iso_request: :class:`thelma.models.iso.IsoRequest`
-
-        :param log: The log to write into.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        CsvWriter.__init__(self, log=log)
-
-        #: The ISO layout for the experiment metadata.
-        self.source_layout = source_layout
-        #: The molecule design pool set for this experiment metadata.
-        self.molecule_design_pool_set = molecule_design_pool_set
-        #: The ISO request the of the metadata.
-        self.iso_request = iso_request
-
-        #: The preparation plate layout (abstract) for the passed source layout.
-        self.__prep_layout = None
-
-        #: The values for the molecule design pool column.
-        self.__md_pool_values = None
-        #: The values for the transfer volume column.
-        self.__take_volume_values = None
-        #: The values for the stock volume values.
-        self.__stock_volume_values = None
-
-    def reset(self):
-        """
-        Resets all attributes except for the user input.
-        """
-        CsvWriter.reset(self)
-        self.__prep_layout = None
-        self.__md_pool_values = []
-        self.__take_volume_values = []
-        self.__stock_volume_values = []
-
-    def _init_column_map_list(self):
-        """
-        Creates the :attr:`_column_map_list`
-        """
-        self.__check_input()
-        if not self.has_errors(): self.__find_prep_layout()
-        if not self.has_errors(): self.__store_volumes()
-        if not self.has_errors(): self.__generate_columns()
-
-    def __check_input(self):
-        """
-        Checks the input values.
-        """
-        self._check_input_class('source layout', self.source_layout,
-                                TransfectionLayout)
-        self._check_input_class('ISO request', self.iso_request,
-                                   IsoRequest)
-        if not self.molecule_design_pool_set is None:
-            self._check_input_class('molecule design pool set',
-                                    self.molecule_design_pool_set,
-                                    MoleculeDesignPoolSet)
-
-    def __find_prep_layout(self):
-        """
-        Generates the abstract preparation plate layout for this ISO
-        layout.
-        """
-        self.add_debug('Find preparation plate layout ...')
-
-        iso_layout = self.source_layout.get_iso_layout()
-        finder = PrepLayoutFinder.create(iso_layout=iso_layout,
-                                         iso_request=self.iso_request,
-                                         log=self.log)
-
-        self.__prep_layout = finder.get_result()
-        if self.__prep_layout is None:
-            msg = 'Error when trying to determine preparation plate layout!'
-            self.add_error(msg)
-
-    def __store_volumes(self):
-        """
-        Stores the volumes for the molecule designs.
-        """
-        fixed_mols = dict()
-        floating_vol = 0
-
-        starting_wells = self.__prep_layout.get_starting_wells()
-        floating_take_out_vol = None
-        for prep_pos in starting_wells.values():
-            if prep_pos.is_fixed:
-                pool_id = prep_pos.molecule_design_pool_id
-                take_out_vol = prep_pos.get_stock_takeout_volume() \
-                                                * self.iso_request.number_plates
-                if not fixed_mols.has_key(pool_id): fixed_mols[pool_id] = 0
-                fixed_mols[pool_id] += take_out_vol
-            elif prep_pos.is_floating and floating_take_out_vol is None:
-                stock_conc = self.__prep_layout.floating_stock_concentration
-                floating_vol = get_stock_takeout_volume(
-                            stock_concentration=stock_conc,
-                            required_volume=prep_pos.required_volume,
-                            concentration=prep_pos.prep_concentration)
-
-        fixed_pools = fixed_mols.keys()
-        fixed_pools.sort()
-        for md_pool in fixed_pools:
-            self.__md_pool_values.append(str(md_pool))
-            take_out_vol = fixed_mols[md_pool]
-            self.__take_volume_values.append('%.1f' % take_out_vol)
-            stock_vol = take_out_vol + STOCK_DEAD_VOLUME
-            self.__stock_volume_values.append('%.1f' % (stock_vol))
-
-        floating_stock_vol = floating_vol + STOCK_DEAD_VOLUME
-        floating_pools = []
-        if not self.molecule_design_pool_set is None:
-            for floating_pool in self.molecule_design_pool_set:
-                floating_pools.append(floating_pool.id)
-        for pool_id in sorted(floating_pools):
-            self.__md_pool_values.append(pool_id)
-            self.__take_volume_values.append('%.1f' % (floating_vol))
-            self.__stock_volume_values.append('%.1f' % (floating_stock_vol))
-
-    def __generate_columns(self):
-        """
-        Initialises the :attr:`_column_map_list`.
-        """
-        md_pool_column = CsvColumnParameters.create_csv_parameter_map(
-                            self.MOLECULE_DESIGN_POOL_INDEX,
-                            self.MOLECULE_DESIGN_POOL_HEADER,
-                            self.__md_pool_values)
-        take_vol_column = CsvColumnParameters.create_csv_parameter_map(
-                            self.TAKE_VOLUME_INDEX, self.TAKE_VOLUME_HEADER,
-                            self.__take_volume_values)
-        stock_vol_column = CsvColumnParameters.create_csv_parameter_map(
-                            self.STOCK_VOLUME_INDEX, self.STOCK_VOLUME_HEADER,
-                            self.__stock_volume_values)
-        self._column_map_list = [md_pool_column, take_vol_column,
-                                 stock_vol_column]
-
-
 class ExperimentMetadataReportUploader(BaseTracTool):
     """
     A tool that uploads the experiment metadata file, the upload info
     file and the calculation report file to the trac ticket assigned
     to the experiment metadata.
 
-    Currently there are five files available to be uploaded:
+    Currently there are 4 files available to be uploaded:
 
         1. The uploaded excel file containing the Experiment Metadata (all
             experiment scenarios).
@@ -969,8 +790,6 @@ class ExperimentMetadataReportUploader(BaseTracTool):
         3. A CSV table giving an overview about the well assignments
            and volumes and concentrations.
         4. A CSV table presenting the data of the ISO plate.
-        5. A CSV file presenting the volumes for the molecule designs that
-           have to be taken from the stock.
     """
 
     NAME = 'Experiment Metadata Upload Reporter'
@@ -1020,8 +839,6 @@ class ExperimentMetadataReportUploader(BaseTracTool):
     ASSIGNMENT_FILE_NAME = '%s_assignments.csv'
     #: The file name for the ISO plate overview file.
     ISO_FILE_NAME = '%s_ISO_data.csv'
-    #: The file name for the stock volume file.
-    VOLUME_FILE_NAME = '%s_required_stock_volumes.csv'
 
     #: The info writer class for each scenario.
     INFO_WRITER_CLS = {
@@ -1034,19 +851,13 @@ class ExperimentMetadataReportUploader(BaseTracTool):
                                         ExperimentMetadataInfoWriterWarningOnly}
 
     #: Experiment scenarios that get assignment files.
-    ASSIGNMENT_FILE_SCENARIOS = [EXPERIMENT_SCENARIOS.OPTIMISATION,
-                                 EXPERIMENT_SCENARIOS.MANUAL]
+    ASSIGNMENT_FILE_SCENARIOS = [EXPERIMENT_SCENARIOS.OPTIMISATION]
 
     #: Experiment scenario that get ISO overview files.
     ISO_OVERVIEW_SCENARIOS = [EXPERIMENT_SCENARIOS.OPTIMISATION,
                               EXPERIMENT_SCENARIOS.SCREENING,
                               EXPERIMENT_SCENARIOS.MANUAL,
                               EXPERIMENT_SCENARIOS.ORDER_ONLY]
-
-    #: Experiment scenarios that get stock volume files.
-    STOCK_VOLUME_SCENARIOS = [EXPERIMENT_SCENARIOS.OPTIMISATION,
-                              EXPERIMENT_SCENARIOS.SCREENING,
-                              EXPERIMENT_SCENARIOS.MANUAL]
 
     #: Shall existing replacements with the same name be overwritten?
     REPLACE_EXISTING_ATTACHMENTS = True
@@ -1106,8 +917,6 @@ class ExperimentMetadataReportUploader(BaseTracTool):
         self.__assign_stream = None
         #: The file stream for ISO plate overview file.
         self.__iso_stream = None
-        #: the file stream for the stock volume file.
-        self.__volume_stream = None
 
         #: The attachment to be uploaded.
         self.__attachments = None
@@ -1123,7 +932,6 @@ class ExperimentMetadataReportUploader(BaseTracTool):
         self.__excel_stream = None
         self.__info_stream = None
         self.__assign_stream = None
-        self.__volume_stream = None
         self.__attachments = []
 
     def send_request(self):
@@ -1172,7 +980,6 @@ class ExperimentMetadataReportUploader(BaseTracTool):
         self.__write_info_stream()
         self.__write_assignment_stream()
         self.__write_iso_plate_stream()
-        self.__write_stock_volume_stream()
 
     def __write_info_stream(self):
         """
@@ -1238,23 +1045,6 @@ class ExperimentMetadataReportUploader(BaseTracTool):
                 msg = 'Error when trying to write ISO plate overview!'
                 self.add_error(msg)
 
-    def __write_stock_volume_stream(self):
-        """
-        The required stock volume for each requested pool.
-        """
-        if self.__experiment_type_id in self.STOCK_VOLUME_SCENARIOS:
-            iso_request = self.generator.return_value.iso_request
-            pool_set = self.generator.return_value.molecule_design_pool_set
-            vol_writer = RequiredStockVolumeWriter(log=self.log,
-                        source_layout=self.generator.get_source_layout(),
-                        molecule_design_pool_set=pool_set,
-                        iso_request=iso_request)
-            self.__volume_stream = vol_writer.get_result()
-            if self.__volume_stream is None:
-                msg = 'Error when trying to write overview file about ' \
-                      'required stock volumes.'
-                self.add_error(msg)
-
     def __create_description(self):
         """
         Builds the :attr:`__changes` dictionary (this method assumes validated
@@ -1266,7 +1056,6 @@ class ExperimentMetadataReportUploader(BaseTracTool):
                     experiment_metadata=self.generator.return_value,
                     experiment_metadata_link=self.experiment_metadata_link,
                     iso_request_link=self.iso_request_link,
-                    use_deep_well=self.generator.use_deep_well,
                     log=self.log)
         self.__description = description_builder.get_result()
 
@@ -1312,9 +1101,7 @@ class ExperimentMetadataReportUploader(BaseTracTool):
             [self.__info_stream, self.INFO_FILE_NAME, self.INFO_DESCRIPTION],
             [self.__assign_stream, self.ASSIGNMENT_FILE_NAME,
              self.ASSIGNMENT_DESCRIPTION],
-            [self.__iso_stream, self.ISO_FILE_NAME, self.ISO_DESCRIPTION],
-            [self.__volume_stream, self.VOLUME_FILE_NAME,
-             self.VOLUME_DESCRIPTION])
+            [self.__iso_stream, self.ISO_FILE_NAME, self.ISO_DESCRIPTION])
 
         em_label = self.generator.return_value.label
         for stream_data in file_data:

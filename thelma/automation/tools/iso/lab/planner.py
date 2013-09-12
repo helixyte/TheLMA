@@ -27,9 +27,6 @@ from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.semiconstants import get_reservoir_spec
 from thelma.automation.tools.stock.tubepicking import TubePicker
 from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import FIXED_POSITION_TYPE
-from thelma.automation.tools.utils.base import FLOATING_POSITION_TYPE
-from thelma.automation.tools.utils.base import TransferTarget
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.base import are_equal_values
@@ -38,14 +35,14 @@ from thelma.automation.tools.utils.base import is_larger_than
 from thelma.automation.tools.utils.base import is_smaller_than
 from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.base import round_up
-from thelma.automation.tools.utils.iso import IsoRequestLayout
+from thelma.automation.tools.utils.iso import IsoRequestAssociationData
 from thelma.automation.tools.utils.iso import IsoRequestLayoutConverter
 from thelma.automation.tools.utils.iso import IsoRequestPosition
-from thelma.automation.tools.utils.racksector import AssociationData
+from thelma.automation.tools.utils.layouts import FIXED_POSITION_TYPE
+from thelma.automation.tools.utils.layouts import MOCK_POSITION_TYPE
+from thelma.automation.tools.utils.layouts import TransferTarget
 from thelma.automation.tools.utils.racksector import QuadrantIterator
-from thelma.automation.tools.utils.racksector import RackSectorAssociator
 from thelma.automation.tools.utils.racksector import RackSectorTranslator
-from thelma.automation.tools.utils.racksector import ValueDeterminer
 from thelma.automation.tools.worklists.base import get_dynamic_dead_volume
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import LabIso
@@ -60,9 +57,6 @@ __docformat__ = 'reStructuredText en'
 __all__ = ['LabIsoBuilder',
            'LabIsoPlanner',
            'PoolContainer',
-           'IsoPlanningValueDeterminer',
-           'IsoPlanningSectorAssociator',
-           'IsoPlanningAssociationData',
            '_LayoutPlanner',
            'SectorPlanner',
            'RackPositionPlanner',
@@ -78,7 +72,9 @@ __all__ = ['LabIsoBuilder',
            'get_transfer_volume',
            '_PlateContainer',
            'SectorPlateContainer',
-           'RackPositionPlateContainer']
+           'RackPositionPlateContainer',
+           'LibraryIsoBuilder',
+           'LibraryIsoPlanner']
 
 
 class LabIsoBuilder(object):
@@ -499,19 +495,26 @@ class LabIsoBuilder(object):
         pos_map = dict()
         for plate_marker, layout in layouts.iteritems():
             is_final_plate = (plate_marker == LABELS.ROLE_FINAL)
-            sector_map = layout.get_sector_map()
-            stock_rack_count = self.__assign_sector_stock_racks(
-                                    stock_rack_count, sector_map, for_job,
-                                    is_final_plate)
-            if not sector_map.has_key(layout.NO_SECTOR_MARKER): continue
-            remaining_positions = sector_map[layout.NO_SECTOR_MARKER]
-            for plate_pos in remaining_positions:
-                if not self.__accept_starting_well(plate_pos, is_final_plate,
-                                                   for_job): continue
-                add_list_map_element(pos_map, plate_pos.molecule_design_pool,
-                                     plate_pos)
+            if for_job:
+                for plate_pos in layout.working_positions():
+                    if not plate_pos.is_fixed: continue
+                    add_list_map_element(pos_map, plate_pos.molecule_design_pool,
+                                         plate_pos)
+            else:
+                sector_map = layout.get_sector_map()
+                stock_rack_count = self.__assign_sector_stock_racks(
+                                        stock_rack_count, sector_map, for_job,
+                                        is_final_plate)
+                if not sector_map.has_key(layout.NO_SECTOR_MARKER): continue
+                remaining_positions = sector_map[layout.NO_SECTOR_MARKER]
+                for plate_pos in remaining_positions:
+                    if not self.__accept_starting_well(plate_pos, is_final_plate,
+                                                       for_job): continue
+                    add_list_map_element(pos_map, plate_pos.molecule_design_pool,
+                                         plate_pos)
 
-        stock_rack_count = self.__assign_position_stock_racks(pos_map,
+        if len(pos_map) > 0:
+            stock_rack_count = self.__assign_position_stock_racks(pos_map,
                                                               stock_rack_count)
 
         return stock_rack_count
@@ -524,16 +527,21 @@ class LabIsoBuilder(object):
         Since all samples of a stock rack are transferred together there must
         not be other samples in the stock racks and the rack contents cannot
         be condensed.
+        If there are floating positions, controls are covered by the job and
+        are not regarded.
         """
-
         # We figure out if a sector is already covered might comparing the
         # pool IDs of the first floating positions or the last position at all.
         sector_hash = dict()
+        has_floatings = False
+
         for sector_index, positions in sector_map.iteritems():
             if sector_index == LabIsoPrepLayout.NO_SECTOR_MARKER: continue
             plate_pos = None
             for plate_pos in positions:
-                if plate_pos.is_floating: break
+                if plate_pos.is_floating:
+                    has_floatings = True
+                    break
             if not plate_pos.is_starting_well: continue
             if not self.__accept_starting_well(plate_pos, is_final_plate,
                                                from_job): continue
@@ -544,6 +552,7 @@ class LabIsoBuilder(object):
                 rack_marker = self.__create_stock_rack_marker(rack_count)
                 sector_hash[pool_id] = rack_marker
             for plate_pos in positions:
+                if has_floatings and plate_pos.is_fixed: continue
                 plate_pos.stock_rack_marker = rack_marker
 
         return rack_count
@@ -617,6 +626,10 @@ class LabIsoPlanner(IsoProvider):
     #: The class of the builder  generated by this planner.
     _BUILDER_CLS = LabIsoBuilder
 
+    #: The CyBio is only used if it would transfer at the least the given
+    #: number of pools.
+    __MIN_CYBIO_TRANSFER_NUMBER = 20
+
     def __init__(self, log, iso_request, number_isos,
                        excluded_racks=None, requested_tubes=None):
         """
@@ -652,7 +665,8 @@ class LabIsoPlanner(IsoProvider):
         #: layouts and worklists.
         self._builder = None
 
-        #: The :class:`PoolContainer` objects sorted by occurrence.
+        #: The :class:`PoolContainer` objects for mock, floating and fixed
+        #: positions.
         self.__pool_containers = None
         #: The number of ISOs we can acutally create taking into account the
         #: the number of available floating pool candidates (if there are any).
@@ -788,8 +802,8 @@ class LabIsoPlanner(IsoProvider):
 
     def __collect_pools(self):
         """
-        Generates a :class:`PoolContainer` for each pool in the ISO request
-        layout. The container is a convenience storage class.
+        Generates a :class:`PoolContainer` for mock, floating and fixed pools
+        in the ISO request layout. The container is a convenience storage class.
         We also count the number of floating positions.
         """
         container_map = dict()
@@ -889,37 +903,16 @@ class LabIsoPlanner(IsoProvider):
         """
         Tries to sort the floating positions (and fixed ones if possible)
         into sectors. If there are floating positions in the ISO request
-        layout, sorting has to be possible, otherwise the ISO generation will
-        be aborted.
+        layout, sorting has to be possible.
         """
-
-        regard_controls = True
-        kw = dict(iso_request_layout=self._iso_request_layout,
-                  log=self.log, regard_controls=regard_controls,
-                  number_sectors=4)
-        try:
-            self.__association_data = IsoPlanningAssociationData(**kw)
-        except ValueError:
-            regard_controls = False
-            kw['regard_controls'] = regard_controls
-            try:
-                self.__association_data = IsoPlanningAssociationData(**kw)
-            except ValueError:
-                pass
-
-        if self.__association_data is not None:
-            self.__controls_in_quadrants = regard_controls
-        elif self._has_floatings:
+        self.__find_association()
+        if self.__association_data is None and self._has_floatings:
             msg = 'The values for the floating positions (ISO volume ' \
                   'and ISO concentration) for the floating positions ' \
                   'in the ISO request layout do not comply to the rack ' \
                   'sectors! In the current layout samples would be ' \
                   'treated differently!'
             self.add_error(msg)
-
-        # TODO: determine during experiment metadata upload
-        if not self.__controls_in_quadrants and self._has_floatings:
-            self.iso_request.process_job_first = False
 
     def __try_sorting_into_sectors_96(self):
         """
@@ -928,12 +921,11 @@ class LabIsoPlanner(IsoProvider):
         """
         compatible = True
         stock_concentration = None
-        valid_pos_types = set(FLOATING_POSITION_TYPE, FIXED_POSITION_TYPE)
         for pool_container in self.__pool_containers:
+            if pool_container.position_type == MOCK_POSITION_TYPE: continue
             if len(pool_container) > 1:
                 compatible = False
                 break
-            if not pool_container.position_type in valid_pos_types: continue
             stock_conc = pool_container.stock_concentration
             if stock_concentration is None:
                 stock_concentration = round(stock_conc, 1)
@@ -944,28 +936,54 @@ class LabIsoPlanner(IsoProvider):
         if compatible:
             if self.__floating_stock_conc is None:
                 self.__floating_stock_conc = stock_concentration
-            kw = dict(iso_request_layout=self._iso_request_layout,
-                  log=self.log, regard_controls=True,
-                  number_sectors=1)
-            try:
-                self.__association_data = IsoPlanningAssociationData(**kw)
-            except ValueError:
-                regard_controls = False
-                kw['regard_controls'] = regard_controls
-                try:
-                    self.__association_data = IsoPlanningAssociationData(**kw)
-                except ValueError:
-                    pass
+            self.__find_association()
 
-        if self.__association_data is not None:
-            self.__controls_in_quadrants = regard_controls
+    def __find_association(self):
+        """
+        Sets :attr:`__association_data` and :attr:`__controls_in_quadrants`
+        if association is possible.
+        Setting the :attr:`__association_data` activates the use of the
+        CyBio. The activation only takes place though, if the number of
+        pools to be transferred by it is at least equal to
+        :attr:`__MIN_CYBIO_TRANSFER_NUMBER`.
+        """
+        association_data, regard_controls = IsoRequestAssociationData.\
+                find(log=self.log, iso_request_layout=self._iso_request_layout)
+
+        if not association_data is None:
+            if regard_controls:
+                modifier = 0
+                if not self.__mock_container is None: modifier = -1
+                num_pools = len(self.__pool_containers) - modifier
+                type_str = 'fixed and floating'
+            else:
+                num_pools = len(self.__floating_pool_containers)
+                type_str = 'floating'
+            if num_pools < self.__MIN_CYBIO_TRANSFER_NUMBER:
+                msg = 'It would be possible to use the CyBio to transfer %s ' \
+                      'positions, but since there are only %i pools to be ' \
+                      'transferred the use of the CyBio is disabled ' \
+                      '(current limit: %i pool).' \
+                      % (type_str, num_pools, self.__MIN_CYBIO_TRANSFER_NUMBER)
+                self.add_warning(msg)
+            else:
+                self.__association_data = association_data
+                self.__controls_in_quadrants = regard_controls
+                if not self.iso_request.process_job_first == \
+                                            self.__controls_in_quadrants:
+                    msg = 'The order of job and ISO processing has been ' \
+                          'changed (from %s to %s).' \
+                          % (self.iso_request.process_job_first,
+                             self.__controls_in_quadrants)
+                    self.add_warning(msg)
+                    self.iso_request.process_job_first = \
+                                                self.__controls_in_quadrants
 
     def __get_sector_positions(self):
         """
         Sorts the positions that are covered by the sector preparations
         into sectors.
         """
-
         number_sectors = self.__association_data.number_sectors
         quadrant_irs = QuadrantIterator.sort_into_sectors(
                                   self._iso_request_layout, number_sectors)
@@ -1287,187 +1305,6 @@ class PoolContainer(object):
         return str_format % params
 
 
-class IsoPlanningValueDeterminer(ValueDeterminer):
-    """
-    There are two different modes: You can either regard only floating
-    positions or regard both floating and control (fixed) positions.
-
-    **Return Value:** A map containing the values for the different sectors.
-    """
-
-    def __init__(self, log, iso_request_layout, regard_controls, attribute_name,
-                 number_sectors):
-        """
-        Constructor:
-
-        :param iso_request_layout: The ISO layout whose positions to check.
-        :type iso_request_layout: :class:`IsoRequestLayout`
-
-        :param attribute_name: The name of the attribute to be determined.
-        :type attribute_name: :class:`str`
-
-        :param regard_controls: Shall controls positions be regarded (*True*)
-            or be ignored (*False* - floating positions are always regarded)?
-        :type regard_controls: :class:`bool`
-
-        :param number_sectors: The number of rack sectors.
-        :type number_sectors: :class:`int`
-        :default number_sectors: *4*
-
-        :param log: The ThelmaLog you want to write in.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        ValueDeterminer.__init__(self, working_layout=iso_request_layout,
-                                 attribute_name=attribute_name, log=log,
-                                 number_sectors=number_sectors)
-
-        #: Shall controls (Fixed) position be regarded?
-        self.regard_controls = regard_controls
-
-    def _check_input(self):
-        ValueDeterminer._check_input(self)
-        self._check_input_class('"regard controls" flag', self.regard_controls,
-                                bool)
-
-    def _ignore_position(self, layout_pos):
-        if layout_pos.is_floating:
-            return False
-        elif layout_pos.is_fixed and self.regard_controls:
-            return False
-        else:
-            return True
-
-
-class IsoPlanningSectorAssociator(RackSectorAssociator):
-    """
-    A special rack sector associator for ISO request layouts.
-    There are two different modes: You can either regard only floating
-    positions or regard both floating and control (fixed) positions.
-
-    **Return Value:** A list of lists (each list containing the indices of
-        rack sector associated with one another).
-    """
-    LAYOUT_CLS = IsoRequestLayout
-
-    __ATTR_NAME = 'iso_concentration'
-
-    def __init__(self, layout, regard_controls, log, number_sectors=4):
-        """
-        Constructor:
-
-        :param iso_request_layout: The ISO request layout whose sectors to
-            associate.
-        :type iso_request_layout: :class:`IsoRequestLayout`
-
-        :param regard_controls: Shall controls positions be regarded (*True*)
-            or be ignored (*False* - floating positions are always regarded)?
-        :type regard_controls: :class:`bool`
-
-        :param log: The ThelmaLog you want to write in.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param number_sectors: The number of rack sectors.
-        :type number_sectors: :class:`int`
-        :default number_sectors: *4*
-        """
-        RackSectorAssociator.__init__(self, layout=layout,
-                                      number_sectors=number_sectors, log=log)
-
-        #: Shall controls (Fixed) position be regarded?
-        self.regard_controls = regard_controls
-
-    def _check_input(self):
-        RackSectorAssociator._check_input(self)
-        self._check_input_class('"regard controls" flag', self.regard_controls,
-                                bool)
-
-    def _init_value_determiner(self):
-        value_determiner = IsoPlanningValueDeterminer(log=self.log,
-                                    iso_request_layout=self.layout,
-                                    attribute_name=self.__ATTR_NAME,
-                                    regard_controls=self.regard_controls,
-                                    number_sectors=self.number_sectors)
-        return value_determiner
-
-
-class IsoPlanningAssociationData(AssociationData):
-    """
-    A special association data class for ISO request layouts which also stores
-    the volume for each rack sector. There are two different modes:
-    You can either regard only floating positions or regard both floating and
-    control (fixed) positions.
-
-    :Note: All attributes are immutable.
-    :Note: Error and warning recording is disabled.
-    """
-    def __init__(self, iso_request_layout, regard_controls, log):
-        """
-        Constructor:
-
-        :param iso_request_layout: The ISO request layout whose sectors to
-            associate.
-        :type iso_request_layout: :class:`IsoRequestLayout`
-
-        :param regard_controls: Shall controls positions be regarded (*True*)
-            or be ignored (*False* - floating positions are always regarded)?
-        :type regard_controls: :class:`bool`
-
-        :param log: The ThelmaLog you want to write in.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        self.__regard_controls = regard_controls
-        AssociationData.__init__(self, layout=iso_request_layout, log=log,
-                                 record_errors=False)
-
-        #: The volumes for each rack sector.
-        self.__sector_volumes = None
-
-        self.__find_volumes(iso_request_layout, log)
-
-    @property
-    def sector_volumes(self):
-        """
-        The volumes for each sector.
-        """
-        return self.__sector_volumes
-
-    def _find_concentrations(self, layout):
-        concentrations = set()
-        for ir_pos in layout.working_positions():
-            if ir_pos.is_floating:
-                concentrations.add(ir_pos.iso_concentration)
-            elif ir_pos.is_fixed and self.__regard_controls:
-                concentrations.add(ir_pos.iso_concentration)
-        return concentrations
-
-    def _init_value_determiner(self, layout, log):
-        value_determiner = IsoPlanningValueDeterminer(iso_request_layout=layout,
-                                 regard_controls=self.__regard_controls,
-                                 attribute_name='iso_concentration',
-                                 log=log, number_sectors=self._number_sectors)
-        return value_determiner
-
-    def _init_associator(self, layout, log):
-        associator = IsoPlanningSectorAssociator(layout=layout, log=log,
-                                     regard_controls=self.__regard_controls)
-        return associator
-
-
-    def __find_volumes(self, layout, log):
-        """
-        Finds the volumes for each rack sector.
-
-        :raises TypeError: If the volumes are inconsistent.
-        """
-        determiner = IsoPlanningValueDeterminer(iso_request_layout=layout,
-                                    attribute_name='iso_volume', log=log,
-                                    regard_controls=self.__regard_controls)
-        determiner.disable_error_and_warning_recording()
-        self.__sector_volumes = determiner.get_result()
-
-        if self.__sector_volumes is None:
-            msg = ', '.join(determiner.get_messages())
-            raise ValueError(msg)
 
 
 class _LayoutPlanner(BaseAutomationTool):
@@ -1799,7 +1636,7 @@ class SectorPlanner(_LayoutPlanner):
 
         :param association_data: Stores the determined values and relationship
             for the rack sectors.
-        :type association_data: :class:`IsoPlanningAssociationData`
+        :type association_data: :class:`IsoRequestAssociationData`
 
         :param sector_positions: The ISO request position included in the
             sector preparation mapped onto sector indices. Sector without
@@ -1834,7 +1671,7 @@ class SectorPlanner(_LayoutPlanner):
     def _check_input(self):
         _LayoutPlanner._check_input(self)
         if self._check_input_class('association data', self.association_data,
-                                   IsoPlanningAssociationData):
+                                   IsoRequestAssociationData):
             self._number_sectors = self.association_data.number_sectors
 
         self._check_input_map_classes(self.sector_positions, 'sector map',
@@ -1901,7 +1738,7 @@ class SectorPlanner(_LayoutPlanner):
                                 number_sectors=self._number_sectors,
                                 source_sector_index=sector_index,
                                 target_sector_index=target_sector,
-                                enforce_type=RackSectorTranslator.MANY_TO_MANY)
+                                behaviour=RackSectorTranslator.MANY_TO_MANY)
                 translators[child_container] = translator
 
             for ir_pos in self.sector_positions[sector_index]:
@@ -2041,7 +1878,7 @@ class SectorPlanner(_LayoutPlanner):
                                     number_sectors=self._number_sectors,
                                     source_sector_index=source_sector,
                                     target_sector_index=target_sector,
-                                    enforce_type=behaviour)
+                                    behaviour=behaviour)
             target_sector_map[target_sector] = translator
             return translator
 
@@ -2406,6 +2243,9 @@ class _LocationContainer(object):
         self.__id = _CONTAINER_IDS.get_container_id()
         #: The dead volume that must remain in a plate.
         self.__dead_volume = 0
+        #: The mininum full volume the container might have (might be relevant
+        #: for preparation containers).
+        self.__min_full_volume = 0
 
     @property
     def target_concentration(self):
@@ -2430,12 +2270,21 @@ class _LocationContainer(object):
         return self.__parent_container
 
     @property
+    def final_volume(self):
+        """
+        The final volume of the container after all transfers.
+        """
+        return self.__volume
+
+    @property
     def full_volume(self):
         """
         The maximum volume of this container including dead volume and volume
         that will be transferred to other containers *in ul*.
         """
-        return self.__volume + self.__dead_volume + sum(self.targets.values())
+        full_volume = self.__volume + self.__dead_volume \
+                        + sum(self.targets.values())
+        return max(full_volume, self.__min_full_volume)
 
     @property
     def is_final_container(self):
@@ -2614,7 +2463,7 @@ class _LocationContainer(object):
         if grand_parent_container is not None:
             parent_container.set_transfer_volumes(grand_parent_container)
 
-    def increase_volume(self, new_volume):
+    def increase_min_full_volume(self, new_volume):
         """
         Is only allowed if modification is enabled (non-final containers
         without clones). The volume must not be lower than the current one.
@@ -2631,10 +2480,10 @@ class _LocationContainer(object):
             raise AttributeError('Volume adjustments for this container ' \
                                  'are blocked!')
 
-        if not is_larger_than(new_volume, self.__volume):
-            msg = 'The new volume (%s ul) must be larger than the current ' \
-                  'one (%s ul).' % (get_trimmed_string(new_volume),
-                                    get_trimmed_string(self.__volume))
+        if not is_larger_than(new_volume, self.__min_full_volume):
+            msg = 'The new minimum volume (%s ul) must be larger than the ' \
+                  'current one (%s ul).' % (get_trimmed_string(new_volume),
+                                get_trimmed_string(self.__min_full_volume))
             raise ValueError(msg)
 
         self.__volume = new_volume
@@ -3011,9 +2860,12 @@ class _LocationAssigner(object):
     plates (if preparation containers are required).
     """
 
-    #: Used to get the :class:`PipettingSpecs` for the assigner (the
-    #: pipetting specs defines whether plate dead volumes must be dynamic).
+    #: Used to get the :class:`PipettingSpecs` for the assigner for all
+    #: but stock transfers.
     _PIPETTING_SPECS_NAME = None
+    #: Used to get the :class:`PipettingSpecs` for the assigner fro transfers
+    #: from the stock.
+    _STOCK_PIPETTING_SPECS_NAME = None
 
     #: The :class:`_PlateContainer` subclass for preparation plates.
     _PLATE_CONTAINER_CLS = _PlateContainer
@@ -3046,12 +2898,22 @@ class _LocationAssigner(object):
 
         #: The :class:`PipettingSpecs` define the minimum transfer volume,
         #: the maximum dilution factor and whether dead volumes are dynamic.
-        self.__robot_specs = get_pipetting_specs(self._PIPETTING_SPECS_NAME)
+        #: These specs are used for all but transfers from the stock.
+        self.__robot_specs_std = get_pipetting_specs(self._PIPETTING_SPECS_NAME)
+        #: The :class:`PipettingSpecs` define the minimum transfer volume,
+        #: the maximum dilution factor and whether dead volumes are dynamic.
+        #: #: These specs are used for transfers from the stock.
+        self.__robot_specs_stock = get_pipetting_specs(
+                                            self._STOCK_PIPETTING_SPECS_NAME)
         #: The maximum dilution factor for the pipetting specs.
-        self.__max_dilution_factor = get_max_dilution_factor(self.__robot_specs)
+        self.__max_dilution_factors = dict()
         #: The minimum volume for a transfer *in ul*.
-        self.__min_transfer_volume = get_min_transfer_volume(self.__robot_specs)
-
+        self.__min_transfer_volumes = dict()
+        for robot_specs in (self.__robot_specs_std, self.__robot_specs_stock):
+            self.__max_dilution_factors[robot_specs] = get_max_dilution_factor(
+                                                       robot_specs)
+            self.__min_transfer_volumes[robot_specs] = get_min_transfer_volume(
+                                                       robot_specs)
         #: Maps the different batches of requested containers onto an
         #: identifier. Used to record the order of the batches.
         self.__identifier_map = dict()
@@ -3196,41 +3058,52 @@ class _LocationAssigner(object):
             self.__store_prep_container(container_map,
                                         prep_container.parent_container)
 
-    def __requires_intermediate_position(self, container, parent_conc=None):
+    def __requires_intermediate_position(self, target_container,
+                                         source_container=None):
         """
         Checks whether the dilution from parent to target concentration of
         a container can be reached in one dilution step. The dilution factor
-        is always checked. If modification of the container is not allowed
-        the check will include also transfer and buffer volume.
+        is always checked. If modification of the target container is not
+        allowed the check will include also transfer and buffer volume.
 
         :raises ValueError: if the parent concentration is smaller than the
             target concentration
         """
-        if parent_conc is None:
-            parent_conc = container.parent_concentration
-        target_conc = container.iso_concentration
+        target_conc = target_container.target_concentration
+        if source_container is None:
+            parent_conc = target_container.parent_concentration
+        else:
+            parent_conc = source_container.target_concentration
+        if target_container.from_stock:
+            robot_specs = self.__robot_specs_stock
+        else:
+            robot_specs = self.__robot_specs_std
+        min_transfer_volume = self.__min_transfer_volumes[robot_specs]
+        max_dilution_factor = self.__max_dilution_factors[robot_specs]
 
         dil_factor = parent_conc / float(target_conc)
-        if is_larger_than(dil_factor, self.__max_dilution_factor):
+        if is_larger_than(dil_factor, max_dilution_factor):
             return True
         elif is_smaller_than(dil_factor, 1):
             msg = 'The parent concentration (%s nM is smaller than the ISO ' \
                   'concentration (%s)!' % (get_trimmed_string(parent_conc),
                                            get_trimmed_string(target_conc))
             raise ValueError(msg)
-        elif are_equal_values(dil_factor, self.__max_dilution_factor):
+        elif are_equal_values(dil_factor, max_dilution_factor):
             return False
 
-        if not container.allows_modification:
-            final_vol = container.volume
-            transfer_volume = final_vol / dil_factor
-            if is_smaller_than((final_vol - transfer_volume),
-                               self.__final_plate_dead_vol):
+        if not target_container.allows_modification:
+            if not source_container is None and \
+                                    not source_container.allows_modification:
+                if is_smaller_than(source_container.final_volume,
+                                   self.__final_plate_dead_vol):
+                    return True
+            full_volume = target_container.full_volume
+            transfer_volume = full_volume / dil_factor
+            if is_smaller_than(transfer_volume, min_transfer_volume):
                 return True
-            if is_smaller_than(transfer_volume, self.__min_transfer_volume):
-                return True
-            dilution_vol = final_vol - transfer_volume
-            if is_smaller_than(dilution_vol, self.__min_transfer_volume):
+            dilution_vol = full_volume - transfer_volume
+            if is_smaller_than(dilution_vol, min_transfer_volume):
                 return True
 
         return False
@@ -3258,16 +3131,22 @@ class _LocationAssigner(object):
     def __adjust_volume_of_existing_prep(self, target_container, src_conc):
         """
         If we add a new target container to an exisiting preparation container
-        we might want to increase the source position volume if the transfer
-        volume is not suitable instead of creating a new position.
+        we might have to increase the source position volume if the transfer
+        volume is not suitable. This might be the case if there are differing
+        target concentrations for the source container children and the
+        new target concentration is much larger (= transfer_volume is smaller).
+        In this case we increase the minimum full volume of the target
+        container.
         """
         if target_container.allows_modification:
+            min_transfer_vol = self.__min_transfer_volumes[
+                                                    self.__robot_specs_std]
             target_conc = target_container.target_concentration
             dil_factor = src_conc / target_conc
             transfer_vol = get_transfer_volume(src_conc, target_conc,
                                     target_container.full_volume, dil_factor)
-            if is_smaller_than(transfer_vol, self.__min_transfer_volume):
-                corr_factor = self.__min_transfer_volume / transfer_vol
+            if is_smaller_than(transfer_vol, min_transfer_vol):
+                corr_factor = min_transfer_vol / transfer_vol
                 self.__adjust_volume(corr_factor, transfer_vol, dil_factor,
                                      target_container)
 
@@ -3299,29 +3178,31 @@ class _LocationAssigner(object):
         target_vol = target_container.full_volume
         dil_factor = parent_conc / target_conc
 
-        dil_factor = min(dil_factor, self.__max_dilution_factor)
+        min_transfer_vol = self.__min_transfer_volumes[self.__robot_specs_std]
+        max_dil_factor = self.__max_dilution_factors[self.__robot_specs_std]
+        dil_factor = min(dil_factor, max_dil_factor)
         transfer_vol = get_transfer_volume(parent_conc, target_conc,
-                                              target_vol, dil_factor)
-        if is_smaller_than(transfer_vol, self.__min_transfer_volume):
+                                           target_vol, dil_factor)
+        if is_smaller_than(transfer_vol, min_transfer_vol):
             if target_container.allows_modification:
-                corr_factor = self.__min_transfer_volume / transfer_vol
+                corr_factor = min_transfer_vol / transfer_vol
                 transfer_vol, target_vol = self.__adjust_volume(corr_factor,
                                 transfer_vol, dil_factor, target_container)
             else:
-                dil_factor = target_vol / self.__min_transfer_volume
+                dil_factor = target_vol / min_transfer_vol
                 # the new dilution factor is smaller than the old one
                 parent_conc = dil_factor / target_conc
 
         buffer_vol = target_vol - transfer_vol
-        if is_smaller_than(buffer_vol, self.__min_transfer_volume):
-            corr_factor = self.__min_transfer_volume / buffer_vol
+        if is_smaller_than(buffer_vol, min_transfer_vol):
+            corr_factor = min_transfer_vol / buffer_vol
             if target_container.allows_modification:
                 self.__adjust_volume(corr_factor, transfer_vol, dil_factor,
                                      target_container)
             else:
                 new_parent_conc = parent_conc * corr_factor
                 new_dil_factor = new_parent_conc / target_conc
-                if is_larger_than(new_dil_factor, self.__max_dilution_factor):
+                if is_larger_than(new_dil_factor, max_dil_factor):
                     # in this case we prepare a new preparation position
                     # with exactly the same concentration as the target aliquot
                     parent_conc = target_conc
@@ -3336,12 +3217,11 @@ class _LocationAssigner(object):
     def __adjust_volume(self, corr_factor, transfer_volume,
                         dil_factor, target_container):
         """
-        Is used to increase a volume if a volume for a transfer must be
-        altered.
+        Is used to increase the minimum full volume for a preparation container.
         """
         new_transfer_vol = corr_factor * transfer_volume
         new_target_vol = round_up(new_transfer_vol, 1) * dil_factor
-        target_container.increase_volume(new_target_vol)
+        target_container.increase_min_full_volume(new_target_vol)
         return new_transfer_vol, new_target_vol
 
     def has_preparation_containers(self):
@@ -3412,12 +3292,16 @@ class _LocationAssigner(object):
         will adjust the dead volume of each preparaion container (containers
         are sorted by generation).
         """
-        dynamic = self.__robot_specs.has_dynamic_dead_volume
-        if dynamic:
+        dynamic_std = self.__robot_specs_std.has_dynamic_dead_volume
+        dynamic_stock = self.__robot_specs_stock.has_dynamic_dead_volume
+        if dynamic_std or dynamic_stock:
             for container in self.__sorted_prep_containers:
-                self.__adjust_dead_volume_for_target_number(container)
+                if container.from_stock and dynamic_stock:
+                    self.__adjust_dead_volume_for_container(container)
+                elif not container.from_stock and dynamic_std:
+                    self.__adjust_dead_volume_for_container(container)
 
-    def __adjust_dead_volume_for_target_number(self, container):
+    def __adjust_dead_volume_for_container(self, container):
         """
         For dynamic dead volumes, the dead volume of a container is increased
         depending on the number of transfer targets. The minimum and maximum
@@ -3586,6 +3470,7 @@ class SectorLocationAssigner(_LocationAssigner):
     """
 
     _PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.CYBIO
+    _STOCK_PIPETTING_SPECS_NAME = _PIPETTING_SPECS_NAME
     _PLATE_CONTAINER_CLS = SectorPlateContainer
 
     def __init__(self, reservoir_specs, number_sectors):
@@ -3620,6 +3505,7 @@ class RackPositionLocationAssigner(_LocationAssigner):
     """
 
     _PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
+    _STOCK_PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEKSTOCK
     _PLATE_CONTAINER_CLS = RackPositionPlateContainer
 
     def _get_locations_for_prep_specs(self):
@@ -3867,3 +3753,265 @@ class RackPositionPlateContainer(_PlateContainer):
         if row_index in self.__empty_rows:
             self.__empty_rows.remove(row_index)
 
+
+class LibraryIsoBuilder(LabIsoBuilder):
+    """
+    A special lab ISO builder for library screenings. Unlike in normal lab
+    ISOs there are no ISO preparation or aliquot plates but pre-existing library
+    plates.
+    """
+
+    def __init__(self, iso_request, excluded_racks, requested_tubes):
+        """
+        Constructor
+
+        :param iso_request: The ISO request the ISOs shall belong to.
+        :type iso_request: :class:`thelma.models.iso.LabIsoRequest`
+
+        :param excluded_racks: A list of barcodes from stock racks that shall
+            not be used for stock sample picking.
+        :type excluded_racks: A list of rack barcodes
+
+        :param requested_tubes: A list of barcodes from stock tubes that are
+            supposed to be used.
+        :type requested_tubes: A list of tube barcodes.
+        """
+        LabIsoBuilder.__init__(self, iso_request=iso_request,
+                               excluded_racks=excluded_racks,
+                               requested_tubes=requested_tubes)
+
+        #: The ISO request layout is required to transfer the library
+        #: positions to the ISO plate layout -
+        #: use :func:`set_iso_request_layout` to set.
+        self.__iso_request_layout = None
+
+        #: The picked library plates mapped onto layout numbers - use
+        #: :func:`set_library_platesset_library_plates` to set.
+        self.__library_plates = None
+
+    def set_iso_request_layout(self, iso_request_layout):
+        """
+        The ISO request layout is required to transfer library positions
+        to the ISO plate layouts.
+
+        :param library_plates: The picked library plates mapped onto pools.
+        :type library_plates: :class:`dict`
+
+        :raise AttributeError: If the library plates have been set before.
+        """
+        self._set_immutable_value(iso_request_layout, '__iso_request_layout')
+
+    def set_library_plates(self, library_plates):
+        """
+        The picked library plates must be mapped onto layout numbers.
+
+        :param library_plates: The picked library plates mapped onto pools.
+        :type library_plates: :class:`dict`
+
+        :raise AttributeError: If the library plates have been set before.
+        """
+        self._set_immutable_value(library_plates, '__library_plates')
+
+    # pylint: disable=W0613
+    def _fill_iso_plate_layout(self, iso_plate_layout, floating_map, pools):
+        """
+        We still need to add the library positions - their data is derived
+        from the :attr:`__iso_request_layout` (the actual pool ID for the
+        positions is not inserted).
+        """
+        for ir_pos in self.__iso_request_layout.get_working_positions():
+            if not ir_pos.is_library: continue
+            lib_pos = FinalLabIsoPosition.create_library_position(
+                                rack_position=ir_pos.rack_position,
+                                concentration=ir_pos.iso_concentration,
+                                volume=ir_pos.iso_volume)
+            iso_plate_layout.add_position(lib_pos)
+    # pylint: enable=W0613
+
+    def _add_final_iso_plates(self, iso):
+        """
+        We need to pick a layout number and attach the plate to the ISO. The
+        referring plates and layout numbers are removed from the available
+        plates map (:attr:`__library_plates`).
+        """
+        layout_number = min(self.__library_plates.keys())
+        library_plates = self.__library_plates[layout_number]
+        iso.library_plates = library_plates
+        del self.__library_plates[layout_number]
+
+
+class LibraryIsoPlanner(LabIsoPlanner):
+    """
+    Ordering a library plate is a special case, because we do not have any
+    ISO-specific processing but only job-related preparation routes.
+    In addition, we do not generated new aliquot plates for library ISOs but
+    assign pre-existing library plates as final ISO plates.
+
+    **Return Value:** :class:`LibraryIsoBuilder`
+    """
+    NAME = 'Library ISO Planner'
+
+    _BUILDER_CLS = LibraryIsoBuilder
+
+    def __init__(self, log, iso_request, number_isos,
+                       excluded_racks=None, requested_tubes=None):
+        """
+        Constructor:
+
+        :param log: The log to record events.
+        :type log: :class:`thelma.ThelmaLog`
+
+        :param iso_request: The ISO request containing the ISO layout for the
+            ISO (and experiment metadata with the molecule design pools).
+        :type iso_request: :class:`thelma.models.iso.IsoRequest`
+
+        :param number_isos: The number of ISOs ordered.
+        :type number_isos: :class:`int`
+
+        :param excluded_racks: A list of barcodes from stock racks that shall
+            not be used for stock sample picking.
+        :type excluded_racks: A list of rack barcodes
+
+        :param requested_tubes: A list of barcodes from stock tubes that are
+            supposed to be used.
+        :type requested_tubes: A list of tube barcodes.
+        """
+        LabIsoPlanner.__init__(self, log=log, iso_request=self.iso_request,
+                               number_isos=number_isos,
+                               excluded_racks=excluded_racks,
+                               requested_tubes=requested_tubes)
+
+        #: The molecule design library used for the screen.
+        self.__library = None
+
+        #: The library plates (future aliquot plates) mapped onto layout
+        #: numbers.
+        self.__library_plates = None
+
+    def reset(self):
+        LabIsoPlanner.reset(self)
+        self.__library = None
+        self.__library_plates = None
+
+    def _analyse_iso_request(self):
+        """
+        We need to find the library in addition.
+        """
+        LabIsoPlanner._analyse_iso_request(self)
+
+        self.__library = self.iso_request.molecule_design_library
+        if self._has_floatings:
+            msg = 'There are both library and floating positions in the ' \
+                  'ISO request layout!'
+            self.add_error(msg)
+        elif self.__library is None:
+            msg = 'There is no library for this ISO request!'
+            self.add_error(msg)
+        else:
+            self.__find_library_plates()
+            if not self.has_errors():
+                self._real_number_isos = len(self.__library_plates)
+                # pylint: disable=E1103
+                self._builder.set_iso_request_layout(self._iso_request_layout)
+                self._builder.set_library_plates(self.__library_plates)
+                # pylint: enable=E1103
+
+    def __find_library_plates(self):
+        """
+        Determines which layout number have not been covered by the ISO
+        request yet, picks unused ones (in order of layout numbers) and fetches
+        aliquot plates for them.
+        """
+        number_aliquots = self.iso_request.number_aliquots
+
+        used_layout_numbers = set()
+        for iso in self.iso_request.isos:
+            if iso.status == ISO_STATUS.CANCELLED: continue
+            for lp in iso.library_plates:
+                used_layout_numbers.add(lp.layout_number)
+
+        queued_layout_numbers = set()
+        for i in range(self.__library.number_layouts):
+            ln = i + 1
+            if ln in used_layout_numbers: continue
+            queued_layout_numbers.add(ln)
+        if len(queued_layout_numbers) < 1:
+            msg = 'There are no unused library layouts left for this ISO ' \
+                  'request!'
+            self.add_error(msg)
+            return None
+
+        available_plates = dict()
+        for lp in self.__library.library_plates:
+            if not lp in queued_layout_numbers: continue
+            if lp.has_been_used: continue
+            add_list_map_element(available_plates, lp.layout_number, lp)
+        self.__check_plate_availability(queued_layout_numbers, available_plates,
+                                        number_aliquots)
+        if self.has_errors(): return None
+
+        for layout_number in sorted(list(queued_layout_numbers)):
+            plates = available_plates[layout_number]
+            self.__library_plates[layout_number] = []
+            for i in range(number_aliquots):
+                lp = plates.pop(0)
+                self.__library_plates[layout_number].append(lp)
+            if len(self.__library_plates) == self.number_isos: break
+
+        if len(queued_layout_numbers) < self.number_isos:
+            msg = 'You have requested %i ISOs. The system will only generate ' \
+                  '%s ISO though, because there are no more library layouts ' \
+                  'left for this ISO request.' \
+                  % (self.number_isos, len(self.__library_plates))
+            self.add_warning(msg)
+
+    def __check_plate_availability(self, queued_layout_numbers,
+                                   available_plates, number_aliquots):
+        """
+        Checks whether there are enough plates left for the queued layout
+        numbers. Records warnings in case of missing plates.
+        """
+        not_enough_plates = []
+        no_plates_left = []
+        del_numbers = []
+        for layout_number in queued_layout_numbers:
+            if not available_plates.has_key(layout_number):
+                no_plates_left.append(layout_number)
+                del_numbers.append(layout_number)
+                continue
+            elif len(available_plates[layout_number]) < number_aliquots:
+                info = '%i (%i plates)' % (layout_number,
+                                           len(available_plates[layout_number]))
+                not_enough_plates.append(info)
+                del_numbers.append(layout_number)
+
+        if len(no_plates_left) > 0:
+            msg = 'There are no unused library plates left for some layout ' \
+                  'numbers that are still in the queue: %s.' \
+                  % (', '.join(sorted(no_plates_left)))
+            self.add_warning(msg)
+        if len(not_enough_plates) > 0:
+            msg = 'There are not enough unused library plates left for some ' \
+                  'layout numbers that are still in the queue: %s.' \
+                  % (', '.join(sorted(not_enough_plates)))
+            self.add_warning(msg)
+
+        if len(queued_layout_numbers) == len(del_numbers):
+            msg = 'Cannot generate ISOs because there is no sufficient ' \
+                  'number of library plates left for any layout still in the ' \
+                  'queue (%s).' % (', '.join(sorted(del_numbers)))
+            self.add_error(msg)
+        for layout_number in del_numbers:
+            queued_layout_numbers.remove(layout_number)
+
+    def _assign_sectors(self):
+        """
+        Sectors are not supported for this type of ISO requests.
+        """
+        pass
+
+    def _assign_iso_specific_rack_positions(self):
+        """
+        All fixed positions are shared by all ISOs of the job.
+        """
+        pass

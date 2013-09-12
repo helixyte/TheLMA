@@ -6,11 +6,12 @@ AAB
 
 from math import sqrt
 from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.semiconstants import get_rack_position_from_indices
-from thelma.automation.tools.utils.base import WorkingPosition
 from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.tools.utils.layouts import MoleculeDesignPoolLayout
+from thelma.automation.tools.utils.layouts import WorkingPosition
 
 
 __docformat__ = 'reStructuredText en'
@@ -48,7 +49,7 @@ class RackSectorTranslator(object):
     __TYPES = [MANY_TO_MANY, MANY_TO_ONE, ONE_TO_MANY, ONE_TO_ONE]
 
     def __init__(self, number_sectors, source_sector_index, target_sector_index,
-                 row_count=None, col_count=None, enforce_type=None):
+                 row_count=None, col_count=None, behaviour=None):
         """
         Constructor:
 
@@ -71,14 +72,14 @@ class RackSectorTranslator(object):
             a number the row number is calculated assuming a square setup.
         :type col_count: :class:`int`
 
-        :param enforce_type: Enforces a certain translation behaviour (applies
+        :param behaviour: Enforces a certain translation behaviour (applies
             only if there is more than one sector).
-        :type enforce_type: :class:`string` (class variable)
-        :default enforce_type: *None*
+        :type behaviour: :class:`string` (class variable)
+        :default behaviour: *None*
         """
         #: The translation behaviour (applies only if there is more than one
         #: sector).
-        self.enforce_type = enforce_type
+        self.behaviour = behaviour
 
         #: The total number of sectors.
         self.__number_sectors = int(number_sectors)
@@ -135,16 +136,16 @@ class RackSectorTranslator(object):
         Initialises the row and the column modifier and sets the translation
         method.
         """
-        if self.__number_sectors == 1 or self.enforce_type == self.ONE_TO_ONE:
+        if self.__number_sectors == 1 or self.behaviour == self.ONE_TO_ONE:
             self.__row_modifier = 0
             self.__col_modifier = 0
             self.__translation_method = self.__convert_one_to_one
 
-        elif self.enforce_type == self.MANY_TO_MANY:
+        elif self.behaviour == self.MANY_TO_MANY:
             self.__init_many_to_many()
-        elif self.enforce_type == self.ONE_TO_MANY:
+        elif self.behaviour == self.ONE_TO_MANY:
             self.__init_one_to_many()
-        elif self.enforce_type == self.MANY_TO_ONE:
+        elif self.behaviour == self.MANY_TO_ONE:
             self.__init_many_to_one()
         elif (self.__source_sector_index == 0 \
               and self.__target_sector_index == 0):
@@ -284,7 +285,7 @@ class RackSectorTranslator(object):
 
     @classmethod
     def from_planned_rack_transfer(cls, planned_rack_transfer, row_count=None,
-                                col_count=None, enforce_type=None):
+                                col_count=None, behaviour=None):
         """
         Initialises a RackSectorTranslator using the data of a planned rack
         transfer.
@@ -302,10 +303,10 @@ class RackSectorTranslator(object):
             a number the row number is calculated assuming a square setup.
         :type col_count: :class:`int`
 
-        :param enforce_type: Enforces a certain translation behaviour for
+        :param behaviour: Enforces a certain translation behaviour for
             0 to 0 sector cases (ignored in all other cases).
-        :type enforce_type: :class:`string` (class variable)
-        :default enforce_type: *None*
+        :type behaviour: :class:`string` (class variable)
+        :default behaviour: *None*
 
         :raises ValueError: If the algorithm fails to determine row count or
             column count (note that these two values can also be passed).
@@ -315,7 +316,7 @@ class RackSectorTranslator(object):
                 number_sectors=planned_rack_transfer.sector_number,
                 source_sector_index=planned_rack_transfer.source_sector_index,
                 target_sector_index=planned_rack_transfer.target_sector_index,
-                enforce_type=enforce_type,
+                behaviour=behaviour,
                 row_count=row_count, col_count=col_count)
 
     def translate(self, rack_position):
@@ -394,7 +395,7 @@ class RackSectorTranslator(object):
                   'translation type: %s.' \
                   % (rack_position, row_index, col_index, self.__number_sectors,
                      self.__row_count, self.__col_count, row_modifier,
-                     col_modifier, self.enforce_type)
+                     col_modifier, self.behaviour)
             raise ValueError(msg)
 
         return get_rack_position_from_indices(int(row_index), int(col_index))
@@ -511,7 +512,7 @@ def get_sector_positions(sector_index, rack_shape, number_sectors,
                 source_sector_index=sector_index,
                 target_sector_index=0,
                 row_count=row_count, col_count=col_count,
-                enforce_type=RackSectorTranslator.MANY_TO_MANY)
+                behaviour=RackSectorTranslator.MANY_TO_MANY)
 
     positions = []
 
@@ -561,7 +562,7 @@ class QuadrantIterator(object):
             translator = RackSectorTranslator(number_sectors=number_sectors,
                         source_sector_index=0, target_sector_index=i,
                         row_count=row_count, col_count=col_count,
-                        enforce_type=RackSectorTranslator.MANY_TO_MANY)
+                        behaviour=RackSectorTranslator.MANY_TO_MANY)
             self.__translators[i] = translator
 
     def get_quadrant_positions(self, sector_zero_position):
@@ -689,7 +690,7 @@ class ValueDeterminer(BaseAutomationTool):
     """
 
     #: The expected :class:`WorkingLayout` subclass.
-    WORKING_LAYOUT_CLS = None
+    WORKING_LAYOUT_CLS = MoleculeDesignPoolLayout
 
 
     def __init__(self, working_layout, attribute_name, log, number_sectors=4):
@@ -793,6 +794,7 @@ class ValueDeterminer(BaseAutomationTool):
     def _ignore_position(self, layout_pos): #pylint: disable=W0613
         """
         Use this method to add conditions under which a position is ignored.
+        By default, all positions are accepted.
         """
         return False
 
@@ -810,7 +812,7 @@ class RackSectorAssociator(BaseAutomationTool):
     SECTOR_ATTR_NAME = None
     #: The working layout class supported by this associator (subclass of
     #: :class:`MoleculeDesignPoolLayout`.
-    LAYOUT_CLS = None
+    LAYOUT_CLS = MoleculeDesignPoolLayout
 
     def __init__(self, layout, log, number_sectors=4):
         """

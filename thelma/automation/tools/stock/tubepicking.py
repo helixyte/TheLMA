@@ -159,7 +159,6 @@ class TubePoolQuery(CustomQuery):
         self._results[tube_barcode] = pool_id
 
 
-
 class TubeCandidate(object):
     """
     Represents the result of an tube picking optimizing query, i.e. a tube

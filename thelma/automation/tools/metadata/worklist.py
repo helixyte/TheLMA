@@ -6,6 +6,7 @@ October 2011, AAB
 """
 
 from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.metadata.transfection_utils \
                 import TransfectionLayout
 from thelma.automation.tools.metadata.transfection_utils \
@@ -43,7 +44,7 @@ class _SUPPORTED_SCENARIOS(object):
     """
     #: A list of all supported scenarios.
     ALL = [EXPERIMENT_SCENARIOS.SCREENING, EXPERIMENT_SCENARIOS.OPTIMISATION,
-           EXPERIMENT_SCENARIOS.MANUAL, EXPERIMENT_SCENARIOS.LIBRARY]
+           EXPERIMENT_SCENARIOS.LIBRARY]
 
     @classmethod
     def get_all_displaynames(cls):
@@ -73,7 +74,6 @@ class EXPERIMENT_WORKLIST_PARAMETERS(object):
                 EXPERIMENT_SCENARIOS.SCREENING : EXPERIMENT_DESIGN,
                 EXPERIMENT_SCENARIOS.LIBRARY : EXPERIMENT_DESIGN,
                 EXPERIMENT_SCENARIOS.OPTIMISATION : EXPERIMENT_DESIGN_RACK,
-                EXPERIMENT_SCENARIOS.MANUAL : EXPERIMENT_DESIGN_RACK
                          }
 
     #: The index of the worklist for the ISO to cell plate transfer.
@@ -101,9 +101,6 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
             4. addition of cell suspension (for execution only, no worklist
                file support).
 
-    Whereas group II is always provided, the mastermix worklists depend on
-    certain conditions (experiment scenario, concentration relationships
-    and ISO volumes).
     Mastermix preparation worklists are always stored at the experiment
     design. The storage location for the cell plate preparation worklists
     differs.
@@ -202,8 +199,6 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
         """
         Checks the input values.
         """
-        self.add_debug('Check input values ...')
-
         self._check_input_class('experiment design', self.experiment_design,
                                 ExperimentDesign)
         self._check_input_class('label', self.label, basestring)
@@ -223,21 +218,12 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
             else:
                 storage_location = EXPERIMENT_WORKLIST_PARAMETERS.\
                                    STORAGE_LOCATIONS[self.scenario.id]
-                if self.scenario.id == EXPERIMENT_SCENARIOS.MANUAL \
-                                                    and self.supports_mastermix:
-                    msg = 'Manual optimisation cannot support mastermix ' \
-                          'preparation!'
-                    self.add_error(msg)
 
         if storage_location == EXPERIMENT_WORKLIST_PARAMETERS.\
                                EXPERIMENT_DESIGN_RACK:
-            if self._check_input_class('design rack maps',
-                                       self.design_rack_associations, dict):
-                for label, layout in self.design_rack_associations.iteritems():
-                    self._check_input_class('design rack label', label,
-                                            basestring)
-                    self._check_input_class('design rack layout', layout,
-                                            TransfectionLayout)
+            self._check_input_map_classes(self.design_rack_associations,
+                            'design rack maps', 'design rack label', basestring,
+                            'design rack layout', TransfectionLayout)
 
     def __create_mastermix_series(self):
         """
@@ -394,14 +380,14 @@ class OptimemWorklistGenerator(PlannedWorklistGenerator):
     represent *target* positions.
     The worklist is only used for Biomek series.
 
-    **Return Value:** :class:`PlannedWorklist` (type: CONTAINER_DILUTION)
+    **Return Value:** :class:`PlannedWorklist` (type: SAMPLE_DILUTION)
     """
 
     NAME = 'Transfection OptiMem Worklist Generator'
 
+    PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
     #: The suffix for the worklist label.
     WORKLIST_SUFFIX = '_optimem'
-
     #: The name of the diluent.
     DILUENT_INFO = 'optimem'
 
@@ -432,11 +418,8 @@ class OptimemWorklistGenerator(PlannedWorklistGenerator):
         """
         Checks the input values.
         """
-        self.add_debug('Check input values ...')
-
         self._check_input_class('experiment metadata label',
                                 self.experiment_metadata_label, basestring)
-
         self._check_input_class('transfection layout',
                                 self.transfection_layout,
                                 TransfectionLayout)
@@ -481,10 +464,11 @@ class ReagentWorklistGenerator(PlannedWorklistGenerator):
     positions here represent *target* positions.
     The worklist is only used for Biomek series.
 
-    **Return Value:** planned worklist (type: CONTAINER_TRANSFER).
+    **Return Value:** planned worklist (type: SAMPLE_TRANSFER).
     """
 
     NAME = 'Transfection Reagent Worklist Generator'
+    PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
 
     #: The suffix for the worklist label.
     WORKLIST_SUFFIX = '_reagent'
@@ -515,11 +499,8 @@ class ReagentWorklistGenerator(PlannedWorklistGenerator):
         """
         Checks the input values.
         """
-        self.add_debug('Check input values ...')
-
         self._check_input_class('experiment metadata label',
                                 self.experiment_metadata_label, basestring)
-
         self._check_input_class('transfection layout',
                                 self.transfection_layout,
                                 TransfectionLayout)
@@ -575,10 +556,11 @@ class BiomekTransferWorklistGenerator(PlannedWorklistGenerator):
     transfection positions here represent *source* positions.
     The worklist is only used for Biomek series.
 
-    **Return Value:** PlannedWorklist (type: CONTAINER_TRANSFER)
+    **Return Value:** PlannedWorklist (type: SAMPLE_TRANSFER)
     """
 
     NAME = 'Transfection BioMek Transfer Worklist Generator'
+    PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
 
     #: The suffix for the worklist label.
     WORKLIST_SUFFIX = '_biomek_transfer'
@@ -609,8 +591,6 @@ class BiomekTransferWorklistGenerator(PlannedWorklistGenerator):
         """
         Checks whether the incoming layouts are transfection layouts.
         """
-        self.add_debug('Check input values ...')
-
         self._check_input_class('label', self.label, basestring)
         self._check_input_class('transfection layout',
                                 self.transfection_layout,
@@ -653,6 +633,7 @@ class CybioTransferWorklistGenerator(PlannedWorklistGenerator):
     """
 
     NAME = 'Transfection CyBio Transfer Worklist Generator'
+    PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.CYBIO
 
     #: The suffix for the worklist label.
     WORKLIST_SUFFIX = '_cybio_transfer'
@@ -670,6 +651,7 @@ class CybioTransferWorklistGenerator(PlannedWorklistGenerator):
         :param experiment_metadata_label: The label for the experiment metadata
             the liquid transfer plan is generated for.
         :type experiment_metadata_label: :class:`str`
+
         :param log: The ThelmaLog you want to write into.
         :type log: :class:`thelma.ThelmaLog`
         """
@@ -683,8 +665,6 @@ class CybioTransferWorklistGenerator(PlannedWorklistGenerator):
         """
         Checks the input values.
         """
-        self.add_debug('Check input values ...')
-
         self._check_input_class('experiment metadata label',
                                 self.experiment_metadata_label, basestring)
 
@@ -720,10 +700,10 @@ class CellSuspensionWorklistGenerator(PlannedWorklistGenerator):
     **Return Value:** PlannedWorklist (type: CONTAINER_DILUTION)
     """
     NAME = 'Transfection Cell Suspension Worklist Generator'
+    PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
 
     #: The suffix for the worklist label.
     WORKLIST_SUFFIX = '_cellsuspension'
-
     #: #: The name of the diluent.
     DILUENT_INFO = 'cellsuspension'
 
@@ -753,8 +733,6 @@ class CellSuspensionWorklistGenerator(PlannedWorklistGenerator):
         """
         Checks whether the incoming layouts are transfection layouts.
         """
-        self.add_debug('Check input values ...')
-
         self._check_input_class('label', self.label, basestring)
         self._check_input_class('transfection layout',
                                 self.transfection_layout,

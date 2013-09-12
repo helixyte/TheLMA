@@ -6,7 +6,6 @@ AAB, Mar 2012
 from StringIO import StringIO
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.automation.tracbase import BaseTracTool
 from thelma.models.experiment import ExperimentMetadata
@@ -20,12 +19,10 @@ from tractor.ticket import RESOLUTION_ATTRIBUTE_VALUES
 from tractor.ticket import SEVERITY_ATTRIBUTE_VALUES
 from tractor.ticket import STATUS_ATTRIBUTE_VALUES
 from tractor.ticket import TYPE_ATTRIBUTE_VALUES
-from xmlrpclib import Fault
-from xmlrpclib import ProtocolError
-import logging
 
 
 __docformat__ = 'reStructuredText en'
+
 __all__ = ['IsoRequestTicketCreator',
            'IsoRequestTicketUpdateTool',
            'IsoRequestTicketDescriptionRemover',
@@ -59,8 +56,7 @@ class IsoRequestTicketCreator(BaseTracTool):
     #: The value for the ticket's component.
     COMPONENT = 'Logistics'
 
-    def __init__(self, requester, experiment_metadata,
-                 logging_level=logging.WARNING, add_default_handlers=False):
+    def __init__(self, requester, experiment_metadata, **kw):
         """
         Constructor:
 
@@ -70,20 +66,8 @@ class IsoRequestTicketCreator(BaseTracTool):
 
         :param requester: The user who will be owner and reporter of the ticket.
         :type requester: :class:`thelma.models.user.User`
-
-        :param logging_level: the desired minimum log level
-        :type logging_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: logging.WARNING
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *True*
         """
-        BaseTracTool.__init__(self, logging_level=logging_level,
-                              add_default_handlers=add_default_handlers,
-                              depending=False)
+        BaseTracTool.__init__(self, depending=False, **kw)
 
         #: The user creating the experiment metadata is also reporter and
         #: and owner of the ticket.
@@ -154,15 +138,9 @@ class IsoRequestTicketCreator(BaseTracTool):
         """
         self.add_debug('Send request ...')
 
-        try:
-            ticket_id = self.tractor_api.create_ticket(notify=self.NOTIFY,
-                                                ticket_wrapper=self._ticket)
-        except ProtocolError, err:
-            self.add_error(err.errmsg)
-        except Fault, fault:
-            msg = 'Fault %s: %s' % (fault.faultCode, fault.faultString)
-            self.add_error(msg)
-        else:
+        kw = dict(notify=self.NOTIFY, ticket_wrapper=self._ticket)
+        ticket_id = self._submit(self.tractor_api.create_ticket, kw)
+        if not self.has_errors():
             self.return_value = ticket_id
             self.add_info('Ticket created (ID: %i).' % (ticket_id))
             self.was_successful = True
@@ -178,8 +156,7 @@ class IsoRequestTicketUpdateTool(BaseTracTool):
     #: A comment for the update.
     BASE_COMMENT = None
 
-    def __init__(self, id_providing_entity,
-                 logging_level=logging.WARNING, add_default_handlers=False):
+    def __init__(self, id_providing_entity, **kw):
         """
         Constructor:
 
@@ -187,17 +164,8 @@ class IsoRequestTicketUpdateTool(BaseTracTool):
         :type id_providing_entity:
             :class:`thelma.models.experiment.ExperimentMetadata` or
             :class:`thelma.models.iso.IsoRequest`
-
-        :param logging_level: defines the least severe level of logging
-                    event the log will record.
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
         """
-        BaseTracTool.__init__(self, log=None, depending=False,
-                              logging_level=logging_level,
-                              add_default_handlers=add_default_handlers)
+        BaseTracTool.__init__(self, depending=False, **kw)
 
         #: The experiment metadata or ISO request object the ticket belongs to.
         self.id_providing_entity = id_providing_entity
@@ -274,17 +242,10 @@ class IsoRequestTicketUpdateTool(BaseTracTool):
 
         if self._comment is None: self._comment = self.BASE_COMMENT
 
-        try:
-            updated_ticket = self.tractor_api.update_ticket(
-                                ticket_wrapper=self._update_wrapper,
-                                comment=self._comment,
-                                notify=self.NOTIFY)
-        except ProtocolError, err:
-            self.add_error(err.errmsg)
-        except Fault, fault:
-            msg = 'Fault %s: %s' % (fault.faultCode, fault.faultString)
-            self.add_error(msg)
-        else:
+        kw = dict(ticket_wrapper=self._update_wrapper, comment=self._comment,
+                  notify=self.NOTIFY)
+        updated_ticket = self._submit(self.tractor_api.update_ticket, kw)
+        if not self.has_errors():
             self.return_value = updated_ticket
             self.add_info('Ticket %i has been updated.' % (self._ticket_id))
             self.was_successful = True
@@ -309,8 +270,7 @@ class IsoRequestTicketDescriptionRemover(IsoRequestTicketUpdateTool):
                      'ISO request data) has been removed.'
 
     def __init__(self, experiment_metadata, changed_num_replicates,
-                 changed_em_type,
-                 logging_level=logging.WARNING, add_default_handlers=False):
+                 changed_em_type, **kw):
         """
         Constructor:
 
@@ -323,21 +283,9 @@ class IsoRequestTicketDescriptionRemover(IsoRequestTicketUpdateTool):
 
         :param changed_em_type: Has the experiment metadata type changed?
         :type changed_em_type: :class:`bool`
-
-        :param logging_level: the desired minimum log level
-        :type logging_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: logging.WARNING
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *True*
         """
         IsoRequestTicketUpdateTool.__init__(self,
-                                id_providing_entity=experiment_metadata,
-                                logging_level=logging_level,
-                                add_default_handlers=add_default_handlers)
+                                id_providing_entity=experiment_metadata, **kw)
 
         #: The new experiment metadata type (if the type has changed).
         self.changed_em_type = changed_em_type
@@ -394,8 +342,7 @@ class IsoRequestTicketDescriptionUpdater(IsoRequestTicketUpdateTool):
     BASE_COMMENT = 'Experiment metadata update.'
 
     def __init__(self, experiment_metadata, experiment_metadata_link,
-                 iso_request_link,
-                 logging_level=logging.WARNING, add_default_handlers=False):
+                 iso_request_link, **kw):
         """
         Constructor:
 
@@ -409,25 +356,15 @@ class IsoRequestTicketDescriptionUpdater(IsoRequestTicketUpdateTool):
 
         :param iso_request_link: Link to the ISO request in TheLMA.
         :type iso_request_link: :class:`str`
-
-        :param logging_level: defines the least severe level of logging
-                    event the log will record.
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
         """
-        IsoRequestTicketUpdateTool.__init__(self, logging_level=logging_level,
-                                id_providing_entity=experiment_metadata,
-                                add_default_handlers=add_default_handlers)
+        IsoRequestTicketUpdateTool.__init__(self,
+                                id_providing_entity=experiment_metadata, **kw)
 
         #: Link to the experiment metadata in TheLMA.
         self.experiment_metadata_link = experiment_metadata_link
         #: Link to the ISO request in TheLMA.
         self.iso_request_link = iso_request_link
 
-        #: The value for the use deep well row of the description.
-        self.__use_deep_well = None
         #: The value for the new ticket description.
         self.__ticket_description = None
 
@@ -436,7 +373,6 @@ class IsoRequestTicketDescriptionUpdater(IsoRequestTicketUpdateTool):
         Resets all value except for the instantiation arguments.
         """
         IsoRequestTicketUpdateTool.reset(self)
-        self.__use_deep_well = None
         self.__ticket_description = None
 
     def _check_input(self):
@@ -452,32 +388,11 @@ class IsoRequestTicketDescriptionUpdater(IsoRequestTicketUpdateTool):
         """
         Creates the ticket wrapper containing the update information.
         """
-        if not self.id_providing_entity.experiment_metadata_type.id == \
-                                                EXPERIMENT_SCENARIOS.ISO_LESS:
-            self.__get_description_table_values()
-
         if not self.has_errors(): self.__generate_ticket_description()
         if not self.has_errors():
             self._update_wrapper = create_wrapper_for_ticket_update(
                                         ticket_id=self._ticket_id,
                                         description=self.__ticket_description)
-
-    def __get_description_table_values(self):
-        """
-        Fetches the values for the description that are not stored in the
-        experiment metadata object (by sending a get ticket request and
-        parsing the description of the existing ticket).
-        """
-        try:
-            old_ticket = self.tractor_api.get_ticket(ticket_id=self._ticket_id)
-        except ProtocolError, err:
-            self.add_error(err.errmsg)
-        except Fault, fault:
-            msg = 'Fault %s: %s' % (fault.faultCode, fault.faultString)
-            self.add_error(msg)
-        else:
-            self.__use_deep_well = IsoRequestTicketDescriptionBuilder.\
-                                get_use_deep_well_value(old_ticket.description)
 
     def __generate_ticket_description(self):
         """
@@ -486,8 +401,7 @@ class IsoRequestTicketDescriptionUpdater(IsoRequestTicketUpdateTool):
         desc_builder = IsoRequestTicketDescriptionBuilder(log=self.log,
                     experiment_metadata=self.id_providing_entity,
                     experiment_metadata_link=self.experiment_metadata_link,
-                    iso_request_link=self.iso_request_link,
-                    use_deep_well=self.__use_deep_well)
+                    iso_request_link=self.iso_request_link)
         self.__ticket_description = desc_builder.get_result()
 
         if self.__ticket_description is None:
@@ -524,11 +438,11 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
     #: The title for the number of aliquots.
     NUMBER_ALIQUOTS_TITLE = 'Number of Aliquots'
     #: The title for the aliquot plate rack shape.
-    ISO_RACK_SHAPE_TITLE = 'Aliquot Plate Format'
+    ISO_RACK_SHAPE_TITLE = 'ISO Plate Format'
+    #: The title for the deep well row.
+    ISO_RACK_SPECS_TITLE = 'ISO Plate Specs'
     #: The title for the experiment cell plate rack shape.
     EXP_RACK_SHAPE_TITLE = 'Cell Plate Format'
-    #: The title for the deep well row.
-    DEEP_WELL_TITLE = 'Use deep well'
     #: The title for the experiment type.
     EXPERIMENT_TYPE_TITLE = 'Experiment Type'
     #: The title for the robot support flag.
@@ -544,7 +458,7 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
     #: metadata.
     ISO_REQUEST_TITLES = [REQUESTER_TITLE, PLATE_SET_LABEL_TITLE,
                           NUMBER_PLATES_TITLE, NUMBER_ALIQUOTS_TITLE,
-                          ISO_RACK_SHAPE_TITLE, DEEP_WELL_TITLE,
+                          ISO_RACK_SHAPE_TITLE, ISO_RACK_SPECS_TITLE,
                           DELIVERY_DATE_TITLE, COMMENT_TITLE]
     #: These table fields occur if there is an experiment design at the
     #: experiment metadata.
@@ -560,7 +474,7 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
                    'Link to ISO Request: \n %s \n\n'
 
     def __init__(self, experiment_metadata, experiment_metadata_link,
-                 iso_request_link, use_deep_well, log=None):
+                 iso_request_link, log=None):
         """
         Constructor:
 
@@ -575,9 +489,6 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
         :param iso_request_link: Link to the ISO request in TheLMA.
         :type iso_request_link: :class:`str`
 
-        :param use_deep_well: Value for the use deep well row.
-        :type use_deep_well: :class:`boolean`
-
         :param log: The log to write in.
         :type log: :class:`thelma.ThelmaLog`
         """
@@ -589,29 +500,9 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
         self.experiment_metadata_link = experiment_metadata_link
         #: Link to the ISO request in TheLMA.
         self.iso_request_link = iso_request_link
-        #: Value for the use deep well row.
-        self.use_deep_well = use_deep_well
 
         #: The completed table part of the description.
         self.__wiki_table = None
-
-    @classmethod
-    def get_use_deep_well_value(cls, description):
-        """
-        Parses the value for the use deep well row from an existing description.
-        """
-        tokens = description.split(cls.BORDER_CHAR)
-        for i in range(len(tokens) - 1):
-            if cls.DEEP_WELL_TITLE in tokens[i]:
-                value = tokens[i + 1]
-                if value == cls.UNKNOWN_MARKER:
-                    return None
-                elif value == 'yes':
-                    return True
-                else:
-                    return False
-
-        return None
 
     def reset(self):
         """
@@ -644,10 +535,6 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
         self._check_input_class('ISO request link',
                                 self.iso_request_link, basestring)
 
-        if not self.use_deep_well is None:
-            self._check_input_class('use deep well value', self.use_deep_well,
-                                    bool)
-
     def __build_wiki_table(self):
         """
         Builds the table for the wiki.
@@ -661,7 +548,6 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
         for title in titles:
             if not table_values.has_key(title): continue
             value = table_values[title]
-            if title == self.DEEP_WELL_TITLE and value is None: continue
             table_line = self.BASE_TABLE_ROW % (title, value)
             self.__wiki_table += table_line
 
@@ -693,7 +579,7 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
             self.__set_robot_support_value(table_values)
 
         #: ISO request values
-        iso_request = self.experiment_metadata.iso_request
+        iso_request = self.experiment_metadata.lab_iso_request
         if not iso_request is None:
             requester = iso_request.requester
             table_values[self.REQUESTER_TITLE] = requester.username
@@ -713,11 +599,12 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
 
             shape_name = iso_request.iso_layout.shape.name
             table_values[self.ISO_RACK_SHAPE_TITLE] = shape_name
+            iso_plate_specs = iso_request.iso_plate_reservoir_specs
+            table_values[self.ISO_RACK_SPECS_TITLE] = iso_plate_specs.name
 
             comment_value = self.experiment_metadata.iso_request.comment
             if comment_value is None: comment_value = ' '
             table_values[self.COMMENT_TITLE] = comment_value
-            self.__set_deepwell(table_values, iso_request)
 
         return table_values
 
@@ -748,33 +635,6 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
 
         table_values[self.ROBOT_SUPPORT_TITLE] = mastermix_support
 
-    def __set_deepwell(self, table_values, iso_request):
-        """
-        The deep well value applies only to 96-well plates. It can only be
-        determined if there is mastermix support.
-        """
-        iso_shape_name = iso_request.iso_layout.shape.name
-
-        mastermix_support = None
-        if table_values.has_key(self.ROBOT_SUPPORT_TITLE):
-            mastermix_support = (table_values[self.ROBOT_SUPPORT_TITLE] \
-                                                                    == 'yes')
-
-        if iso_shape_name == RACK_SHAPE_NAMES.SHAPE_384:
-            use_deep_well_value = None
-        elif mastermix_support is None:
-            use_deep_well_value = self.UNKNOWN_MARKER
-        elif not mastermix_support:
-            use_deep_well_value = self.UNKNOWN_MARKER
-        elif self.use_deep_well is None:
-            use_deep_well_value = self.UNKNOWN_MARKER
-        elif self.use_deep_well:
-            use_deep_well_value = 'yes'
-        else:
-            use_deep_well_value = 'no'
-
-        table_values[self.DEEP_WELL_TITLE] = use_deep_well_value
-
     def __assemble_description(self):
         """
         Assembles the description.
@@ -803,8 +663,7 @@ class IsoRequestTicketActivator(IsoRequestTicketUpdateTool):
     #: A comment for the change.
     BASE_COMMENT = 'The ticket has been assigned to the stock management.'
 
-    def __init__(self, experiment_metadata, logging_level=logging.WARNING,
-                 add_default_handlers=False):
+    def __init__(self, experiment_metadata, **kw):
         """
         Constructor:
 
@@ -812,17 +671,9 @@ class IsoRequestTicketActivator(IsoRequestTicketUpdateTool):
             will be associated to.
         :type experiment_metadata:
                     :class:`thelma.models.experiment.ExperimentMetadata`
-
-        :param logging_level: defines the least severe level of logging
-                    event the log will record.
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
         """
-        IsoRequestTicketUpdateTool.__init__(self, logging_level=logging_level,
-                              add_default_handlers=add_default_handlers,
-                              id_providing_entity=experiment_metadata)
+        IsoRequestTicketUpdateTool.__init__(self,
+                              id_providing_entity=experiment_metadata, **kw)
 
     def _prepare_update_wrapper(self):
         """
@@ -846,24 +697,15 @@ class IsoRequestTicketAccepter(IsoRequestTicketUpdateTool):
     #: A comment for the change.
     BASE_COMMENT = 'The ticket was accepted by %s.'
 
-    def __init__(self, iso_request, username, logging_level=logging.WARNING,
-                 add_default_handlers=False):
+    def __init__(self, iso_request, username, **kw):
         """
         Constructor:
 
         :param iso_request: The ISO request to be accepted.
         :type iso_request: :class:`thelma.models.iso.IsoRequest`
-
-        :param logging_level: defines the least severe level of logging
-                    event the log will record.
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
         """
-        IsoRequestTicketUpdateTool.__init__(self, logging_level=logging_level,
-                                    id_providing_entity=iso_request,
-                                    add_default_handlers=add_default_handlers)
+        IsoRequestTicketUpdateTool.__init__(self,
+                                    id_providing_entity=iso_request, **kw)
 
         #: The user name of the user who has accepted the ticket.
         self.username = username
@@ -910,8 +752,7 @@ class IsoRequestTicketReassigner(IsoRequestTicketUpdateTool):
     MISSING_POOLS_DESCRIPTION = 'Floating molecule design pools which have ' \
                             'not been added to at least 1 completed ISO.'
 
-    def __init__(self, iso_request, completed=True,
-                 logging_level=logging.WARNING, add_default_handlers=False):
+    def __init__(self, iso_request, completed=True, **kw):
         """
         Constructor:
 
@@ -920,18 +761,9 @@ class IsoRequestTicketReassigner(IsoRequestTicketUpdateTool):
 
         :param completed: Indicates whether the ISO was completed.
         :type completed: :class:`bool`
-
-        :param logging_level: defines the least severe level of logging
-                    event the log will record.
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
         """
         IsoRequestTicketUpdateTool.__init__(self,
-                                id_providing_entity=iso_request,
-                                logging_level=logging_level,
-                                add_default_handlers=add_default_handlers)
+                                    id_providing_entity=iso_request, **kw)
 
         #: Indicates whether the ISO was completed.
         self.completed = completed
@@ -1027,31 +859,19 @@ class IsoRequestTicketReassigner(IsoRequestTicketUpdateTool):
 
         if self._comment is None: self._comment = self.BASE_COMMENT
 
-        try:
-            updated_ticket = self.tractor_api.update_ticket(
-                                ticket_wrapper=self._update_wrapper,
-                                comment=self._comment,
-                                notify=self.NOTIFY)
-        except ProtocolError, err:
-            self.add_error(err.errmsg)
-        except Fault, fault:
-            msg = 'Fault %s: %s' % (fault.faultCode, fault.faultString)
-            self.add_error(msg)
+        kw1 = dict(ticket_wrapper=self._update_wrapper, comment=self._comment,
+                   notify=self.NOTIFY)
+        updated_ticket = self._submit(self.tractor_api.update_ticket, kw1)
 
-        if not self.__missing_pools_stream is None:
+        if not self.__missing_pools_stream is None and not self.has_errors():
             attachment_wrapper = AttachmentWrapper(
                                 content=self.__missing_pools_stream,
                                 file_name=self.MISSING_POOLS_FILE_NAME,
                                 description=self.MISSING_POOLS_DESCRIPTION)
+            kw2 = dict(ticket_id=self._ticket_id, attachment=attachment_wrapper,
+                       replace_existing=False)
             try:
-                self.tractor_api.add_attachment(ticket_id=self._ticket_id,
-                                                attachment=attachment_wrapper,
-                                                replace_existing=False)
-            except ProtocolError, err:
-                self.add_error(err.errmsg)
-            except Fault, fault:
-                msg = 'Fault %s: %s' % (fault.faultCode, fault.faultString)
-                self.add_error(msg)
+                self._submit(self.tractor_api.add_attachment, kw2)
             finally:
                 self.__missing_pools_stream.seek(0)
 
@@ -1074,24 +894,20 @@ class IsoRequestTicketReopener(IsoRequestTicketUpdateTool):
 
     BASE_COMMENT = 'The ticket has been reopened by %s.'
 
-    def __init__(self, iso_request, username, logging_level=logging.WARNING,
-                 add_default_handlers=False):
+    def __init__(self, iso_request, username, **kw):
         """
         Constructor:
 
         :param iso_request: The ISO request to be accepted.
         :type iso_request: :class:`thelma.models.iso.IsoRequest`
-        :param logging_level: defines the least severe level of logging
-                    event the log will record.
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        """
-        IsoRequestTicketUpdateTool.__init__(self, logging_level=logging_level,
-                                    id_providing_entity=iso_request,
-                                    add_default_handlers=add_default_handlers)
 
-        #: The user name of the user who has accepted the ticket.
+        :param username: The name of the user the ticket shall be assigned to.
+        :type username: :class:`basestring`
+        """
+        IsoRequestTicketUpdateTool.__init__(self,
+                                    id_providing_entity=iso_request, **kw)
+
+        #: The name of the user the ticket shall be assigned to.
         self.username = username
 
     def _check_input(self):

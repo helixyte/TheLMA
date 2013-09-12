@@ -208,8 +208,9 @@ class ExperimentTool(SerialWriterExecutorTool):
                    ', '.join(EXPERIMENT_SCENARIOS.get_displaynames(
                                         self.SUPPORTED_SCENARIOS)))
             self.add_error(msg)
-        elif self._scenario.id == EXPERIMENT_SCENARIOS.ISO_LESS:
-            pass # there are no worklists for ISO-less experiments
+        elif not self._scenario.id in EXPERIMENT_SCENARIOS.\
+                                                EXPERIMENT_MASTERMIX_TYPES:
+            pass # there are no worklists
         else:
             storage_location = EXPERIMENT_WORKLIST_PARAMETERS.STORAGE_LOCATIONS[
                                                             self._scenario.id]

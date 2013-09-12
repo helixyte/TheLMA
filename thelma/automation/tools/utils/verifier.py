@@ -4,25 +4,17 @@ Verification tools that compare racks against expected layouts.
 AAB, Jan 2012
 """
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.iso.prep_utils import PrepIsoLayoutConverter
 from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.utils.base import MoleculeDesignPoolLayout
-from thelma.automation.tools.utils.iso import IsoRequestLayout
-from thelma.automation.tools.utils.iso import IsoRequestLayoutConverter
-from thelma.models.iso import Iso
-from thelma.models.iso import IsoRequest
-from thelma.models.rack import Plate
-from thelma.models.rack import Rack
+from thelma.automation.tools.utils.layouts import MoleculeDesignPoolLayout
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.models.rack import Rack
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_smaller_than
 
 
 __docformat__ = 'reStructuredText en'
 
-__all__ = ['BaseRackVerifier',
-           'IsoRackVerifier',
-           'SourceRackVerifier']
+__all__ = ['BaseRackVerifier']
 
 
 class BaseRackVerifier(BaseAutomationTool):
@@ -326,108 +318,4 @@ class BaseRackVerifier(BaseAutomationTool):
             msg = 'The volumes for the following positions are insufficient: ' \
                   "%s." % (', '.join(self.__insufficient_volumes))
             self.add_error(msg)
-
-
-class IsoRackVerifier(BaseRackVerifier):
-    """
-    This tool verifies whether a rack is compliant to the ISO request layout of
-    the passed ISO.
-
-    **Return Value:** boolean
-    """
-
-    NAME = 'ISO Rack Verifier'
-
-    _RACK_CLS = Plate
-    _LAYOUT_CLS = IsoRequestLayout
-
-    def __init__(self, log, plate, iso):
-        """
-        Constructor:
-
-        :param iso: The ISO the rack shall checked for.
-        :type iso: :class:`thelma.models.iso.Iso`
-
-        :param plate: The plate to be checked.
-        :type plate: :class:`thelma.models.rack.Plate`
-
-        :param log: The log the write in.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        BaseRackVerifier.__init__(self, log=log)
-
-        #: The ISO the rack shall be checked for.
-        self.iso = iso
-        #: The plate to be checked.
-        self.plate = plate
-
-        #: The molecule designs pools of the ISO preparation layout mapped
-        #: onto floating placeholders.
-        self._floating_map = None
-
-    def reset(self):
-        BaseRackVerifier.reset(self)
-        self._floating_map = None
-
-    def _check_input(self):
-        BaseRackVerifier._check_input(self)
-        self._check_input_class('ISO', self.iso, Iso)
-
-    def _set_rack(self):
-        self._rack = self.plate
-
-    def _fetch_expected_layout(self):
-        """
-        The expected layout is the ISO layout of the ISO request.
-        """
-        self.add_debug('Get ISO layout ...')
-
-        iso_rack_layout = self.iso.iso_request.iso_layout
-        iso_converter = IsoRequestLayoutConverter(rack_layout=iso_rack_layout,
-                                                  log=self.log)
-        self._expected_layout = iso_converter.get_result()
-        if self._expected_layout is None:
-            msg = 'Error when trying to convert ISO layout.'
-            self.add_error(msg)
-        else:
-            self._expected_layout.close()
-            has_floatings = self._expected_layout.has_floatings()
-            if has_floatings: self.__get_floating_map()
-
-    def __get_floating_map(self):
-        """
-        Generates a map that associates floating placeholders with molecule
-        design pools. This is done by means of the preparation layout.
-        """
-        self.add_debug('Generate floating map ...')
-
-        self._floating_map = dict()
-
-        prep_converter = PrepIsoLayoutConverter(log=self.log,
-                                            rack_layout=self.iso.rack_layout)
-        prep_layout = prep_converter.get_result()
-
-        if prep_layout is None:
-            msg = 'Error when trying to convert preparation plate layout.'
-            self.add_error(msg)
-        else:
-            pools = prep_layout.get_pools()
-            for iso_pos in self._expected_layout.working_positions():
-                if not iso_pos.is_floating: continue
-                placeholder = iso_pos.molecule_design_pool
-                if self._floating_map.has_key(placeholder): continue
-                prep_pos = prep_layout.get_working_position(
-                                                    iso_pos.rack_position)
-                pool_id = prep_pos.molecule_design_pool_id
-                self._floating_map[placeholder] = pools[pool_id]
-
-    def _get_expected_pools(self, pool_pos):
-        """
-        Gets the molecule design IDs expected for a ISO position.
-        """
-        if pool_pos.is_floating:
-            return self._get_ids_for_pool(
-                        self._floating_map[pool_pos.molecule_design_pool_id])
-        return BaseRackVerifier._get_expected_pools(self, pool_pos)
-
 

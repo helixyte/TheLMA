@@ -5,9 +5,11 @@ Tools involved in lab ISO generation.
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.iso.jobcreator import IsoJobCreator
 from thelma.automation.tools.iso.lab.base import LABELS
-from thelma.automation.tools.iso.lab.library.planner import LibraryIsoPlanner
 from thelma.automation.tools.iso.lab.planner import LabIsoBuilder
 from thelma.automation.tools.iso.lab.planner import LabIsoPlanner
+from thelma.automation.tools.iso.lab.planner import LibraryIsoPlanner
+from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
+from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
 from thelma.models.iso import ISO_TYPES
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import TRANSFER_TYPES
@@ -354,8 +356,14 @@ class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
         Convenience function generating a worklist and adding it to the
         worklist series. The indices for the worklists are subsequent numbers.
         """
+        if transfer_type == TRANSFER_TYPES.RACK_SAMPLE_TRANSFER:
+            robot_specs = get_pipetting_specs_cybio()
+        else:
+            robot_specs = get_pipetting_specs_biomek()
+
         worklist = PlannedWorklist(label=worklist_label,
                            transfer_type=transfer_type,
+                           pipetting_specs=robot_specs,
                            planned_liquid_transfers=planned_liquid_transfers)
         worklist_number = self.__get_current_worklist_number()
         self.__worklist_series.add_worklist(worklist_number, worklist)

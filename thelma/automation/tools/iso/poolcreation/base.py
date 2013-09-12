@@ -7,28 +7,31 @@ from everest.entities.utils import get_root_aggregate
 from thelma.automation.tools.iso.base import StockRackLayoutConverter
 from thelma.automation.tools.iso.base import StockRackParameters
 from thelma.automation.tools.iso.base import StockRackPosition
+from thelma.automation.tools.iso.base import _ISO_LABELS_BASE
 from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import get_min_transfer_volume
 from thelma.automation.tools.stock.base import get_default_stock_concentration
 from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import ParameterSet
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import WorkingLayout
-from thelma.automation.tools.utils.base import WorkingPosition
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.utils.base import is_larger_than
-from thelma.automation.tools.utils.base import is_valid_number
 from thelma.automation.tools.utils.base import round_up
-from thelma.automation.tools.utils.converters import BaseLayoutConverter
-from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.moleculedesign import MoleculeDesignPool
+from thelma.automation.tools.utils.converters \
+    import MoleculeDesignPoolLayoutConverter
+from thelma.automation.tools.utils.converters import BaseLayoutConverter
+from thelma.automation.tools.utils.layouts import MoleculeDesignPoolLayout
+from thelma.automation.tools.utils.layouts import MoleculeDesignPoolParameters
+from thelma.automation.tools.utils.layouts import MoleculeDesignPoolPosition
+from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from thelma.models.tagging import Tag
 
 __docformat__ = 'reStructuredText en'
 
-__all__ = ['VolumeCalculator',
+__all__ = ['LABELS',
+           'VolumeCalculator',
            'StockSampleCreationParameters',
            'StockSampleCreationPosition',
            'StockSampleCreationLayout',
@@ -36,6 +39,75 @@ __all__ = ['VolumeCalculator',
            'PoolCreationParameters',
            'PoolCreationStockRackPosition',
            'PoolCreationStockRackLayoutConverter']
+
+
+class LABELS(_ISO_LABELS_BASE):
+    """
+    Generates and parses worklist and rack labels involved in lab ISO
+    processing.
+    """
+
+    #: Marker for stock racks that will contain the new pools.
+    ROLE_POOL_STOCK = 'pool_stock_rack'
+    #: Marker for stock racks that contain single designs that will be used
+    #: to generate the new pools.
+    ROLE_SINGLE_DESIGN_STOCK = 'single_design_stock'
+
+    #: Marker for ISO labels.
+    MARKER_ISO_LABEL = 'iso_label'
+    #: Marker for ISO request labels.
+    MARKER_ISO_LABEL = 'iso_request_label'
+
+    #: Is part of stock transfer worklist labels.
+    __FILL_WORKLIST_STOCK_TRANSFER = 'stock_transfer'
+
+    @classmethod
+    def create_iso_label(cls, iso_request_label, layout_number):
+        """
+        Creates a label for a future ISO. The label contains the ISO request
+        label and the layout number.
+        """
+        layout_num_str = '%02i' % (layout_number)
+        value_parts = [iso_request_label, layout_num_str]
+        return cls._create_label(value_parts)
+
+    @classmethod
+    def create_stock_transfer_worklist_label(cls, iso_label):
+        """
+        The stock transfer worklist label contains the ISO label and a
+        filler.
+        """
+        value_parts = [cls.__FILL_WORKLIST_STOCK_TRANSFER, iso_label]
+        return cls._create_label(value_parts)
+
+    @classmethod
+    def create_buffer_worklist_label(cls, iso_request_label):
+        """
+        The buffer dilution worklist contains the ISO request label and a
+        filler.
+        """
+        value_parts = [cls._FILL_WORKLIST_DILUTION, iso_request_label]
+        return cls._create_label(value_parts)
+
+    @classmethod
+    def create_stock_rack_label(cls, iso_label, rack_marker):
+        """
+        The stock rack label contains the ISO label and the rack marker
+        (rack role and (optionally) rack_number).
+        """
+        value_parts = [iso_label, rack_marker]
+        return cls._create_label(value_parts)
+
+    @classmethod
+    def parse_stock_rack_label(cls, stock_rack_label):
+        """
+        The stock rack label contains the ISO label and the rack marker
+        (rack role and (optionally) rack_number).
+        """
+        value_parts = cls._get_value_parts(stock_rack_label)
+        values = cls.parse_rack_marker(value_parts[cls.MARKER_RACK_MARKER])
+        values[cls.MARKER_ISO_LABEL] = value_parts[0]
+        return value_parts
 
 
 class VolumeCalculator(object):
@@ -237,14 +309,17 @@ class VolumeCalculator(object):
         return self.__buffer_volume
 
 
-class StockSampleCreationParameters(ParameterSet):
+class StockSampleCreationParameters(MoleculeDesignPoolParameters):
     """
     Deals with the pools to be generated and the involved tubes.
     """
     DOMAIN = 'stock_sample_generation'
 
     #: A molecule design pool ID.
-    POOL = 'pool_id'
+    MOLECULE_DESIGN_POOL = MoleculeDesignPoolParameters.MOLECULE_DESIGN_POOL
+    #: A shortcut for :attr:`MOLECULE_DESIGN_POOL`.
+    POOL = MOLECULE_DESIGN_POOL
+
     #: The molecule design IDs the pool consists of.
     MOLECULE_DESIGNS = 'molecule_designs'
     #: The barcodes for the single design stock tubes to be used (determined
@@ -254,9 +329,7 @@ class StockSampleCreationParameters(ParameterSet):
     REQUIRED = [POOL, MOLECULE_DESIGNS, STOCK_TUBE_BARCODES]
     ALL = [POOL, MOLECULE_DESIGNS, STOCK_TUBE_BARCODES]
 
-    ALIAS_MAP = {POOL : ['molecule design set', 'molecule design set ID',
-                         'pool', 'molecule design pool',
-                         'molecule design pool ID'],
+    ALIAS_MAP = {POOL : ['pool', 'molecule design pool', 'pool ID'],
                  MOLECULE_DESIGNS : ['molecule design IDs'],
                  STOCK_TUBE_BARCODES : []}
 
@@ -265,7 +338,7 @@ class StockSampleCreationParameters(ParameterSet):
                   STOCK_TUBE_BARCODES : DOMAIN}
 
 
-class StockSampleCreationPosition(WorkingPosition):
+class StockSampleCreationPosition(MoleculeDesignPoolPosition):
     """
     The pool ID, single molecule design IDs and stock tubes for a particular
     position.
@@ -274,6 +347,7 @@ class StockSampleCreationPosition(WorkingPosition):
     """
     PARAMETER_SET = StockSampleCreationParameters
     DELIMITER = '-'
+    EXPOSE_POSTIIONS_TYPE = False
 
     def __init__(self, rack_position, pool, stock_tube_barcodes):
         """
@@ -287,7 +361,8 @@ class StockSampleCreationPosition(WorkingPosition):
             molecule design tubes used to generate this pool.
         :type stock_tube_barcodes: :class:`list`
         """
-        WorkingPosition.__init__(self, rack_position)
+        MoleculeDesignPoolPosition.__init__(self, rack_position=rack_position,
+                                            molecule_design_pool=pool)
 
         if not isinstance(pool, MoleculeDesignPool):
             msg = 'The molecule design pool must be a %s (obtained: %s).' \
@@ -299,8 +374,6 @@ class StockSampleCreationPosition(WorkingPosition):
                   % (stock_tube_barcodes.__class__.__name__)
             raise TypeError(msg)
 
-        #: The molecule design pool.
-        self.pool = pool
         #: A list of molecules contained in the pool.
         self.molecule_designs = []
         for md in pool.molecule_designs: self.molecule_designs.append(md)
@@ -309,17 +382,24 @@ class StockSampleCreationPosition(WorkingPosition):
         #: used to generate this pool
         self.stock_tube_barcodes = stock_tube_barcodes
 
+    @property
+    def pool(self):
+        """
+        Shortcut to the :attr:`molecule_design_pool`.
+        """
+        return self.molecule_design_pool
+
     def get_parameter_tag(self, parameter):
         """
         The method needs to be overwritten because the value for the molecule
-        designs tag is a concatenated string.
+        designs tag is a concatenated string. Position types are not important
         """
         if parameter == self.PARAMETER_SET.MOLECULE_DESIGNS:
             return self.get_molecule_designs_tag()
         elif parameter == self.PARAMETER_SET.STOCK_TUBE_BARCODES:
             return self.get_stock_barcodes_tag()
         else:
-            return WorkingPosition.get_parameter_tag(self, parameter)
+            return MoleculeDesignPoolPosition.get_parameter_tag(self, parameter)
 
     @classmethod
     def validate_molecule_designs(cls, pool, md_tag_value):
@@ -383,7 +463,7 @@ class StockSampleCreationPosition(WorkingPosition):
 
     def _get_parameter_values_map(self):
         """
-        Returns a map containing the value for each parameter.
+        The position type is not included.
         """
         return {self.PARAMETER_SET.POOL : self.pool,
                 self.PARAMETER_SET.MOLECULE_DESIGNS : self.molecule_designs,
@@ -393,7 +473,7 @@ class StockSampleCreationPosition(WorkingPosition):
     def __eq__(self, other):
         return isinstance(other, self.__class__) and \
                 other.rack_position == self.rack_position and \
-                other.pool.id == self.pool.id
+                other.molecule_design_pool.id == self.molecule_design_pool.id
 
     def __repr__(self):
         str_format = '<%s rack position: %s, pool ID: %s, molecule ' \
@@ -404,7 +484,7 @@ class StockSampleCreationPosition(WorkingPosition):
         return str_format % params
 
 
-class StockSampleCreationLayout(WorkingLayout):
+class StockSampleCreationLayout(MoleculeDesignPoolLayout):
     """
     Defines the molecule design pool data for a stock tube rack or a
     library plate.
@@ -424,7 +504,7 @@ class StockSampleCreationLayout(WorkingLayout):
         """
         if shape is None:
             shape = RACK_SHAPE_NAMES.from_name(self.__DEFAULT_SHAPE_NAME)
-        WorkingLayout.__init__(self, shape)
+        MoleculeDesignPoolLayout.__init__(self, shape)
 
     def get_pool_set(self, molecule_type):
         """
@@ -439,7 +519,7 @@ class StockSampleCreationLayout(WorkingLayout):
                                      molecule_design_pools=pools)
 
 
-class StockSampleCreationLayoutConverter(BaseLayoutConverter):
+class StockSampleCreationLayoutConverter(MoleculeDesignPoolLayoutConverter):
     """
     Converts a :class:`thelma.models.racklayout.RackLayout` into a
     :class:`StockSampleCreationLayout`.
@@ -461,7 +541,7 @@ class StockSampleCreationLayoutConverter(BaseLayoutConverter):
             log is None, the object will create a new log.
         :type log: :class:`thelma.ThelmaLog`
         """
-        BaseLayoutConverter.__init__(self, rack_layout, log=log)
+        MoleculeDesignPoolLayoutConverter.__init__(self, rack_layout, log=log)
 
         #: The molecule design pool aggregate
         #: (see :class:`thelma.models.aggregates.Aggregate`)
@@ -472,7 +552,6 @@ class StockSampleCreationLayoutConverter(BaseLayoutConverter):
 
         # intermediate storage of invalid rack positions
         self.__missing_pool = None
-        self.__unknown_pool = None
         self.__mismatching_mds = None
         self.__missing_tubes = None
         self.__mismatching_tubes = None
@@ -481,7 +560,6 @@ class StockSampleCreationLayoutConverter(BaseLayoutConverter):
         BaseLayoutConverter.reset(self)
         self.__pool_map = dict()
         self.__missing_pool = []
-        self.__unknown_pool = []
         self.__mismatching_mds = []
         self.__missing_tubes = []
         self.__mismatching_tubes = []
@@ -504,7 +582,7 @@ class StockSampleCreationLayoutConverter(BaseLayoutConverter):
             self.__missing_pool.append(pos_label)
             invalid = True
         else:
-            pool = self.__get_molecule_design_pool_for_id(pool_id, pos_label)
+            pool = self._get_molecule_design_pool_for_id(pool_id, pos_label)
             if pool is None:
                 invalid = True
             elif not StockSampleCreationPosition.validate_molecule_designs(pool,
@@ -535,40 +613,15 @@ class StockSampleCreationLayoutConverter(BaseLayoutConverter):
                       stock_tube_barcodes=tube_barcodes)
             return kw
 
-    def __get_molecule_design_pool_for_id(self, pool_id, position_label):
-        """
-        Checks whether the molecule design pool for a fixed position is a
-        valid one.
-        """
-        if self.__pool_map.has_key(pool_id):
-            return self.__pool_map[pool_id]
-
-        if not is_valid_number(pool_id, is_integer=True):
-            info = '%s (%s)' % (pool_id, position_label)
-            self.__unknown_pool.append(info)
-            return None
-
-        entity = self.__pool_aggregate.get_by_id(pool_id)
-        if entity is None:
-            info = '%s (%s)' % (pool_id, position_label)
-            self.__unknown_pool.append(info)
-            return None
-
-        self.__pool_map[pool_id] = entity
-        return entity
-
     def _record_additional_position_errors(self):
         """
         Launches collected position errors.
         """
+        MoleculeDesignPoolLayoutConverter._record_additional_position_errors(
+                                                                            self)
         if len(self.__missing_pool) > 0:
             msg = 'Some positions do not have a pool ID: %s.' \
                   % (sorted(self.__missing_pool))
-            self.add_error(msg)
-
-        if len(self.__unknown_pool) > 0:
-            msg = 'Some molecule design pool IDs could not be found in the ' \
-                  'DB: %s.' % (sorted(self.__unknown_pool))
             self.add_error(msg)
 
         if len(self.__mismatching_mds) > 0:
@@ -588,12 +641,6 @@ class StockSampleCreationLayoutConverter(BaseLayoutConverter):
                    % (' - '.join(self.__mismatching_tubes))
             self.add_error(msg)
 
-    def _perform_layout_validity_checks(self, working_layout):
-        """
-        There are no checks to be performed.
-        """
-        pass
-
 
 class PoolCreationParameters(StockRackParameters):
     """
@@ -612,7 +659,7 @@ class PoolCreationStockRackPosition(StockRackPosition):
     generated. Unlike normal :class:`StockRackPosition` objects they
     do not need to have transfer targets.
     """
-    PARAMETER_SET = StockRackPosition
+    PARAMETER_SET = StockRackParameters
 
 
 class PoolCreationStockRackLayoutConverter(StockRackLayoutConverter):

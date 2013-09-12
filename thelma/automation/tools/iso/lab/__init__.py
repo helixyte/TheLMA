@@ -1,39 +1,49 @@
 """
 Short cuts for tools involved in lab ISO processing.
 """
-from thelma.automation.tools.iso.lab.processing import LabIsoJobWriterExecutor
-from thelma.automation.tools.iso.lab.processing import LabIsoWriterExecutor
 from thelma.automation.tools.iso.lab.base import _LabIsoInstructionsWriter
+from thelma.automation.tools.iso.lab.processing import WriterExecutorIsoJob
+from thelma.automation.tools.iso.lab.processing import WriterExecutorLabIso
+from thelma.automation.tools.iso.lab.tracreporting \
+    import LabIsoStockTransferReporter
+from thelma.automation.tools.iso.lab.stockrack.assemble \
+    import StockRackAssemblerIsoJob
+from thelma.automation.tools.iso.lab.stockrack.assemble \
+    import StockRackAssemblerLabIso
+from thelma.automation.tools.iso.lab.stockrack.recycling \
+    import StockRackRecyclerIsoJob
+from thelma.automation.tools.iso.lab.stockrack.recycling \
+    import StockRackRecyclerLabIso
 from thelma.automation.tools.worklists.series import SerialWriterExecutorTool
-from thelma.automation.tools.iso.lab.tubehandler \
-    import LabIsoJobXL20WorklistGenerator
-from thelma.automation.tools.iso.lab.tubehandler \
-    import LabIsoXL20WorklistGenerator
 from thelma.models.iso import LabIso
 from thelma.models.job import IsoJob
 
 __docformat__ = 'reStructuredText en'
 
-__all__ = ['get_xl20_generator',
+__all__ = ['get_stock_rack_assembler',
+           'get_stock_rack_recyler',
            'get_worklist_writer',
-           'get_worklist_executor']
+           'get_worklist_executor',
+           'get_stock_transfer_reporter']
 
 
-def get_xl20_generator(entity, destination_rack_barcodes, excluded_racks=None,
-                       requested_tubes=None, include_dummy_output=False, **kw):
+def get_stock_rack_assembler(entity, rack_barcodes, excluded_racks=None,
+                             requested_tubes=None, include_dummy_output=False,
+                             **kw):
     """
-    Factory method generating a XL20 worklist generator tool for the passed
-    entity. The generator creates stock racks and file streams (XL20
-    worklists and processing summaries and instructions).
+    Factory method generating a stock rack assembler (XL20 worklist generator)
+    tool for the passed entity. The generator creates stock racks and file
+    streams (XL20 worklists and processing summaries and instructions) that
+    allow to position tubess for a valid stock rack.
 
     :param entity: The ISO or the ISO job for which to generate the files
         and the racks.
     :type entity: :class:`LabIso` or :class:`IsoJob`
         (see :attr:`_ENTITY_CLS).
 
-    :param destination_rack_barcodes: The barcodes for the destination
-        racks (the rack the tubes shall be transferred to).
-    :type destination_rack_barcodes: list of barcodes (:class:`basestring`)
+    :param rack_barcodes: The barcodes for the racks to be assigned
+        (the rack the tubes shall be transferred to).
+    :type rack_barcodes: list of barcodes (:class:`basestring`)
 
     :param excluded_racks: A list of barcodes from stock racks that shall
         not be used for molecule design picking.
@@ -52,14 +62,13 @@ def get_xl20_generator(entity, destination_rack_barcodes, excluded_racks=None,
 
     :raises TypeError: if the entity has an unexpected class.
     """
-    kw = dict(entity=entity, include_dummy_output=include_dummy_output,
-              destination_rack_barcodes=destination_rack_barcodes,
-              excluded_racks=excluded_racks, requested_tubes=requested_tubes,
-              **kw)
+    kw.update(dict(entity=entity, include_dummy_output=include_dummy_output,
+              rack_barcodes=rack_barcodes, excluded_racks=excluded_racks,
+              requested_tubes=requested_tubes))
     if isinstance(entity, LabIso):
-        generator_cls = LabIsoXL20WorklistGenerator
+        generator_cls = StockRackAssemblerLabIso
     elif isinstance(entity, IsoJob):
-        generator_cls = LabIsoJobXL20WorklistGenerator
+        generator_cls = StockRackAssemblerIsoJob
     else:
         msg = 'Unexpected entity class (%s). The entity must be a %s or a %s!' \
               % (entity.__class__.__name__, LabIso.__name__, IsoJob.__name__)
@@ -67,6 +76,32 @@ def get_xl20_generator(entity, destination_rack_barcodes, excluded_racks=None,
 
     return generator_cls(**kw)
 
+def get_stock_rack_recyler(entity, rack_barcodes, **kw):
+    """
+    Factory method generating a sotck rack recycler tool for the passed entity.
+    The recycler checks a set of stock racks for compatibility and assigns
+    them as stock racks if the checks have been passed.
+
+    :param entity: The ISO or the ISO job to which to assign the rack.
+    :type entity: :class:`LabIso` or :class:`IsoJob`
+        (see :attr:`_ENTITY_CLS).
+
+    :param rack_barcodes: The barcodes for the racks to be assigned.
+    :type rack_barcodes: list of barcodes (:class:`basestring`)
+
+    :raises TypeError: if the entity has an unexpected class.
+    """
+    kw.update(dict(entity=entity, rack_barcodes=rack_barcodes))
+    if isinstance(entity, LabIso):
+        recycler_cls = StockRackRecyclerLabIso
+    elif isinstance(entity, IsoJob):
+        recycler_cls = StockRackRecyclerIsoJob
+    else:
+        msg = 'Unexpected entity class (%s). The entity must be a %s or a %s!' \
+              % (entity.__class__.__name__, LabIso.__name__, IsoJob.__name__)
+        raise TypeError(msg)
+
+    return recycler_cls(**kw)
 
 def get_worklist_writer(entity, **kw):
     """
@@ -108,9 +143,9 @@ def __get_writer_executor(mode, entity, user=None, **kw):
     for the passed entity in the given mode.
     """
     if isinstance(entity, LabIso):
-        tool_cls = LabIsoWriterExecutor
+        tool_cls = WriterExecutorLabIso
     elif isinstance(entity, IsoJob):
-        tool_cls = LabIsoJobWriterExecutor
+        tool_cls = WriterExecutorIsoJob
     else:
         msg = 'Unexpected entity class (%s). The entity must be a %s or a %s!' \
               % (entity.__class__.__name__, LabIso.__name__, IsoJob.__name__)
@@ -120,4 +155,13 @@ def __get_writer_executor(mode, entity, user=None, **kw):
     return tool_cls(**kw)
 
 
+def get_stock_transfer_reporter(executor, **kw):
+    """
+    Factory method generating a :class:`LabIsoStockTransferReporter`. This
+    tool log a stock transfers at the trac ticket.
 
+    :param executor: The executor tool (after run has been completed).
+    :type executor: :class:`_LabIsoWriterExecutorTool`
+    """
+    kw.update(executor=executor)
+    return LabIsoStockTransferReporter(**kw)

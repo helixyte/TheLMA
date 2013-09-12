@@ -5,14 +5,14 @@ AAB, Aug 2011
 """
 
 from everest.entities.utils import get_root_aggregate
-from thelma.automation.tools.utils.base import EMPTY_POSITION_TYPE
-from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
-from thelma.automation.tools.utils.base import MoleculeDesignPoolLayout
-from thelma.automation.tools.utils.base import MoleculeDesignPoolParameters
-from thelma.automation.tools.utils.base import MoleculeDesignPoolPosition
-from thelma.automation.tools.utils.base import get_converted_number
-from thelma.automation.tools.utils.base import is_valid_number
-from thelma.automation.tools.utils.base import LIBRARY_POSITION_TYPE
+from thelma.automation.tools.utils.layouts import EMPTY_POSITION_TYPE
+from thelma.automation.tools.utils.layouts import MOCK_POSITION_TYPE
+from thelma.automation.tools.utils.layouts import MoleculeDesignPoolLayout
+from thelma.automation.tools.utils.layouts import MoleculeDesignPoolParameters
+from thelma.automation.tools.utils.layouts import MoleculeDesignPoolPosition
+from thelma.automation.tools.utils.layouts import get_converted_number
+from thelma.automation.tools.utils.layouts import is_valid_number
+from thelma.automation.tools.utils.layouts import LIBRARY_POSITION_TYPE
 from thelma.automation.tools.utils.converters \
     import MoleculeDesignPoolLayoutConverter
 from thelma.automation.tools.utils.racksector import AssociationData
@@ -593,19 +593,14 @@ class IsoRequestLayoutConverter(MoleculeDesignPoolLayoutConverter):
 
 class IsoRequestValueDeterminer(ValueDeterminer):
     """
-    This is a special rack sector determiner. It sorts the ISO request positions
-    by ISO concentration. The molecule design pools of parent and child wells
-    must be shared.
+    There are two different modes: You can either regard only floating
+    positions or regard both floating and control (fixed) positions.
 
     **Return Value:** A map containing the values for the different sectors.
     """
 
-    NAME = 'ISO Rack Sector Value Determiner'
-
-    WORKING_LAYOUT_CLS = IsoRequestLayout
-
-    def __init__(self, iso_request_layout, attribute_name, log,
-                 number_sectors=4, ignore_mock=True):
+    def __init__(self, log, iso_request_layout, regard_controls, attribute_name,
+                 number_sectors):
         """
         Constructor:
 
@@ -615,172 +610,220 @@ class IsoRequestValueDeterminer(ValueDeterminer):
         :param attribute_name: The name of the attribute to be determined.
         :type attribute_name: :class:`str`
 
+        :param regard_controls: Shall controls positions be regarded (*True*)
+            or be ignored (*False* - floating positions are always regarded)?
+        :type regard_controls: :class:`bool`
+
         :param number_sectors: The number of rack sectors.
         :type number_sectors: :class:`int`
         :default number_sectors: *4*
 
-        :param ignore_mock: Shall mock positions be ignored?
-        :type ignore_mock: :class:`bool`
-        :default ignore_mock: *True*
+        :param log: The ThelmaLog you want to write in.
+        :type log: :class:`thelma.ThelmaLog`
         """
         ValueDeterminer.__init__(self, working_layout=iso_request_layout,
-                                      attribute_name=attribute_name,
-                                      number_sectors=number_sectors,
-                                      log=log)
+                                 attribute_name=attribute_name, log=log,
+                                 number_sectors=number_sectors)
 
-        #: Shall mock positions be ignored?
-        self.ignore_mock = ignore_mock
+        #: Shall controls (Fixed) position be regarded?
+        self.regard_controls = regard_controls
 
     def _check_input(self):
-        """
-        Checks the input values.
-        """
         ValueDeterminer._check_input(self)
-        self._check_input_class('"ignore mock" flag', self.ignore_mock, bool)
+        self._check_input_class('"regard controls" flag', self.regard_controls,
+                                bool)
 
     def _ignore_position(self, layout_pos):
         """
-        Use this method to add conditions under which a position is ignored.
+        Floating positions are always accepted. Fixed positions are accepted,
+        if :attr:`regard_controls` is *True*. Other position types are always
+        ignored.
         """
-        if layout_pos.is_empty:
-            return True
-        elif layout_pos.is_mock and self.ignore_mock:
-            return True
-        else:
+        if layout_pos.is_floating:
             return False
+        elif layout_pos.is_fixed and self.regard_controls:
+            return False
+        else:
+            return True
 
 
-class IsoRequestRackSectorAssociator(RackSectorAssociator):
+class IsoRequestSectorAssociator(RackSectorAssociator):
     """
     A special rack sector associator for ISO request layouts.
+    There are two different modes: You can either regard only floating
+    positions or regard both floating and control (fixed) positions.
 
     **Return Value:** A list of lists (each list containing the indices of
         rack sector associated with one another).
     """
-
-    NAME = 'ISO rack sector associator'
-
-    SECTOR_ATTR_NAME = 'iso_concentration'
     LAYOUT_CLS = IsoRequestLayout
 
-    #: Used if :attr:`has_distinct_floatings` is *False*.
-    ALTERNATIVE_SECTOR_ATTR_NAME = 'final_concentration'
+    __ATTR_NAME = 'iso_concentration'
 
-    def __init__(self, iso_request_layout, log, number_sectors=4,
-                 ignore_mock=True, has_distinct_floatings=True):
+    def __init__(self, layout, regard_controls, log, number_sectors=4):
         """
         Constructor:
 
-        :param iso_request_layout: The ISO request layout whose positions
-            to check.
+        :param iso_request_layout: The ISO request layout whose sectors to
+            associate.
         :type iso_request_layout: :class:`IsoRequestLayout`
+
+        :param regard_controls: Shall controls positions be regarded (*True*)
+            or be ignored (*False* - floating positions are always regarded)?
+        :type regard_controls: :class:`bool`
+
+        :param log: The ThelmaLog you want to write in.
+        :type log: :class:`thelma.ThelmaLog`
 
         :param number_sectors: The number of rack sectors.
         :type number_sectors: :class:`int`
         :default number_sectors: *4*
-
-        :param ignore_mock: Shall mock positions be ignored?
-        :type ignore_mock: :class:`bool`
-        :default ignore_mock: *True*
-
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param has_distinct_floatings: Set to false if the floating placeholders
-            have not been sorted yet.
-        :type has_distinct_floatings: :class:`bool`
-        :default has_distinct_floatings: *True*
         """
-        RackSectorAssociator.__init__(self, layout=iso_request_layout,
-                                      log=log, number_sectors=number_sectors)
+        RackSectorAssociator.__init__(self, layout=layout,
+                                      number_sectors=number_sectors, log=log)
 
-        #: Shall mock positions be ignored?
-        self.ignore_mock = ignore_mock
-        #: Set to false if the floating placeholders have not been sorted yet.
-        self.has_distinct_floatings = has_distinct_floatings
+        #: Shall controls (Fixed) position be regarded?
+        self.regard_controls = regard_controls
 
     def _check_input(self):
-        """
-        Checks the initialisation values.
-        """
         RackSectorAssociator._check_input(self)
-        self._check_input_class('"ignore mock" flag', self.ignore_mock, bool)
+        self._check_input_class('"regard controls" flag', self.regard_controls,
+                                bool)
 
     def _init_value_determiner(self):
-        """
-        Initialises the value determiner for the ISO concentrations.
-        """
         value_determiner = IsoRequestValueDeterminer(log=self.log,
-                                    iso_layout=self.layout,
-                                    attribute_name=self.SECTOR_ATTR_NAME,
-                                    number_sectors=self.number_sectors,
-                                    ignore_mock=self.ignore_mock)
+                                    iso_request_layout=self.layout,
+                                    attribute_name=self.__ATTR_NAME,
+                                    regard_controls=self.regard_controls,
+                                    number_sectors=self.number_sectors)
         return value_determiner
-
-    def _get_molecule_design_pool(self, working_position): #pylint: disable=W0613
-        """
-        Returns the molecule design pool of a working position.
-        """
-        iso_pos = working_position
-        if iso_pos is None:
-            pool = IsoRequestPosition.NONE_REPLACER
-        elif iso_pos.is_empty or (iso_pos.is_mock and self.ignore_mock):
-            pool = IsoRequestPosition.NONE_REPLACER
-        elif iso_pos.is_floating and not self.has_distinct_floatings:
-            pool = 'floating'
-        else:
-            pool = iso_pos.molecule_design_pool
-        return pool
 
 
 class IsoRequestAssociationData(AssociationData):
     """
-    A helper class determining and storing associated rack sectors, parent
-    sectors and sector concentration for an ISO request layout.
+    A special association data class for ISO request layouts which also stores
+    the volume for each rack sector. There are two different modes:
+    You can either regard only floating positions or regard both floating and
+    control (fixed) positions.
 
     :Note: All attributes are immutable.
+    :Note: Error and warning recording is disabled.
     """
 
-    def __init__(self, iso_layout, log, has_distinct_floatings=True):
+    #: The class of the :class:`RackSectorAssociator` to be used (default:
+    #: :class:`IsoRequestSectorAssociator`).
+    ASSOCIATOR_CLS = IsoRequestSectorAssociator
+
+    def __init__(self, iso_request_layout, regard_controls, log):
         """
         Constructor:
 
-        :param iso_layout: The ISO layout whose sectors to associate.
-        :type iso_layout: :class:`IsoLayout`
+        :param iso_request_layout: The ISO request layout whose sectors to
+            associate.
+        :type iso_request_layout: :class:`IsoRequestLayout`
 
-        :param log: The log to write into (not stored in the object).
+        :param regard_controls: Shall controls positions be regarded (*True*)
+            or be ignored (*False* - floating positions are always regarded)?
+        :type regard_controls: :class:`bool`
+
+        :param log: The ThelmaLog you want to write in.
         :type log: :class:`thelma.ThelmaLog`
-
-        :param has_distinct_floatings: Set to false if the floating placeholders
-            have not been sorted yet.
-        :type has_distinct_floatings: :class:`bool`
-        :default has_distinct_floatings: *True*
         """
-        self.__has_distinct_floatings = has_distinct_floatings
-        AssociationData.__init__(self, layout=iso_layout, log=log)
+        self.__regard_controls = regard_controls
+        AssociationData.__init__(self, layout=iso_request_layout, log=log,
+                                 record_errors=False)
 
-    def _find_concentrations(self, iso_layout):
-        """
-        Finds all different ISO concentration in the layout.
-        """
-        attr_name = IsoRequestRackSectorAssociator.SECTOR_ATTR_NAME
-        if not self.__has_distinct_floatings:
-            attr_name = IsoRequestRackSectorAssociator.\
-                        ALTERNATIVE_SECTOR_ATTR_NAME
+        #: The volumes for each rack sector.
+        self.__sector_volumes = None
 
+        self.__find_volumes(iso_request_layout, log)
+
+    @property
+    def sector_volumes(self):
+        """
+        The volumes for each sector.
+        """
+        return self.__sector_volumes
+
+    def _find_concentrations(self, layout):
+        """
+        The name of the concentration attribute is derived from the
+        :attr:`ASSOCIATOR_CLS`.
+        """
+        attr_name = self.ASSOCIATOR_CLS.SECTOR_ATTR_NAME
         concentrations = set()
-        for iso_pos in iso_layout.working_positions():
-            if iso_pos.is_empty or iso_pos.is_mock: continue
-            value = getattr(iso_pos, attr_name)
-            concentrations.add(value)
+        for ir_pos in layout.working_positions():
+            if ir_pos.is_floating or \
+                                    (ir_pos.is_fixed and self.__regard_controls):
+                conc = getattr(ir_pos, attr_name)
+                concentrations.add(conc)
         return concentrations
 
+    def _init_value_determiner(self, layout, log):
+        """
+        The name of the concentration attribute is derived from the
+        :attr:`ASSOCIATOR_CLS`.
+        """
+        value_determiner = IsoRequestValueDeterminer(iso_request_layout=layout,
+                         regard_controls=self.__regard_controls,
+                         attribute_name=self.ASSOCIATOR_CLS.SECTOR_ATTR_NAME,
+                         log=log, number_sectors=self._number_sectors)
+        return value_determiner
+
     def _init_associator(self, layout, log):
-        """
-        Initialises the associator.
-        """
-        associator = IsoRequestRackSectorAssociator(iso_layout=layout,
-                        log=log, number_sectors=4, ignore_mock=True,
-                        has_distinct_floatings=self.__has_distinct_floatings)
+        kw = dict(layout=layout, log=log,
+                  regard_controls=self.__regard_controls)
+        associator = self.ASSOCIATOR_CLS(**kw)
         return associator
+
+    def __find_volumes(self, layout, log):
+        """
+        Finds the volumes for each rack sector.
+
+        :raises ValueError: If the volumes are inconsistent.
+        """
+        determiner = IsoRequestValueDeterminer(iso_request_layout=layout,
+                                    attribute_name='iso_volume', log=log,
+                                    regard_controls=self.__regard_controls)
+        determiner.disable_error_and_warning_recording()
+        self.__sector_volumes = determiner.get_result()
+
+        if self.__sector_volumes is None:
+            msg = ', '.join(determiner.get_messages())
+            raise ValueError(msg)
+
+    @classmethod
+    def find(cls, log, iso_request_layout):
+        """
+        Tries to create an :class:`IsoRequestAssociationData`. In the first
+        run controls are included. If the first run fails, a second run
+        ignoring controls is started. If the second run fails, too, the
+        return value is *None*.
+
+        :param log: The ThelmaLog you want to write in.
+        :type log: :class:`thelma.ThelmaLog`
+
+        :param iso_request_layout: The ISO request layout whose sectors to
+            associate.
+        :type iso_request_layout: :class:`IsoRequestLayout`
+
+        :returns: The association data and the controls (fixed position) mode
+            or *None* if both attemps have failed.
+        """
+        regard_controls = True
+        kw = dict(iso_request_layout=iso_request_layout,
+                  log=log, regard_controls=regard_controls,
+                  number_sectors=4)
+
+        try:
+            ad = IsoRequestAssociationData(**kw)
+        except ValueError:
+            regard_controls = False
+            kw['regard_controls'] = regard_controls
+            try:
+                ad = IsoRequestAssociationData(**kw)
+            except ValueError:
+                return None
+
+        return ad, regard_controls
+

@@ -49,6 +49,3 @@ def get_job_creator(iso_request, job_owner, number_isos,
         raise TypeError(msg)
 
     return creator_cls(**kw)
-
-
-
