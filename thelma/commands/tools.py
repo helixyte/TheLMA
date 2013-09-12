@@ -17,7 +17,6 @@ from pyramid.registry import Registry
 from pyramid.testing import DummyRequest
 from sqlalchemy import event
 from sqlalchemy.orm.session import Session
-from thelma.automation.tools.writers import read_zip_archive
 from thelma.automation.tools.poolcreation.ticket \
     import PoolCreationStockTransferReporter
 from thelma.automation.tools.poolcreation.ticket \
@@ -1142,3 +1141,30 @@ class CustomLiquidTransferWorklistWriterToolCommand(ToolCommand):
 #                o = open(loc, 'w')
 #                o.write(stream.read())
 #                o.close()
+
+class CustomLiquidTransferWorklistExecutor(ToolCommand):
+
+    name = 'customliquidtransferexecutor'
+    tool = 'thelma.automation.tools.worklists.custom:CustomLiquidTransferExecutor'
+
+    _user_callback = \
+        LazyOption(lambda cls, value, options:
+                                get_root_aggregate(IUser).get_by_slug(value))
+    _excel_file_callback = LazyOption(lambda cls, value, options:
+                                            open(value, 'rb').read())
+
+    option_defs = [('--excel-file',
+                    'stream',
+                    dict(help='Path for the Excel file to load.',
+                         action='callback',
+                         type='string',
+                         callback=_excel_file_callback)
+                    ),
+                   ('--user',
+                    'user',
+                    dict(help='User name how executes the update.',
+                         action='callback',
+                         type='string',
+                         callback=_user_callback),
+                   )
+                   ]
