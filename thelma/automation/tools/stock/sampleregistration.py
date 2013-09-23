@@ -717,7 +717,7 @@ class SupplierSampleRegistrar(RegistrationTool):
         self.__validation_files = validation_files
         self.__rack_specs_name = rack_specs_name
         self.__container_specs_name = container_specs_name
-        self.__new_smd_sris = None
+        self.__new_smd_sri_map = None
 
     def run(self):
         self.add_info('Running supplier sample registrar.')
@@ -786,7 +786,7 @@ class SupplierSampleRegistrar(RegistrationTool):
                 continue
             else:
                 exst_smd_map[(smd.supplier, smd.product_id)] = smd
-        new_smd_sris = []
+        new_smd_sri_map = {}
         for sri in self.registration_items:
             mdpri = sri.molecule_design_pool_registration_item
             # Set the molecule type.
@@ -824,9 +824,12 @@ class SupplierSampleRegistrar(RegistrationTool):
                     self.add_error(msg)
                     continue
             else:
-                new_smd_sris.append(sri)
+                # We use a map here so that multiple sample registration items
+                # with the same supplier molecule design information create
+                # only a single new supplier molecule design.
+                new_smd_sri_map.setdefault(key, []).append(sri)
         # Store new supplier molecule design registration items for later use.
-        self.__new_smd_sris = new_smd_sris
+        self.__new_smd_sri_map = new_smd_sri_map
 
     def __check_molecule_design_pools(self):
         self.add_debug('Checking for new molecule design pools.')
@@ -850,28 +853,35 @@ class SupplierSampleRegistrar(RegistrationTool):
 
     def __process_supplier_molecule_designs(self):
         self.add_debug('Processing %d new supplier molecule designs.'
-                       % len(self.__new_smd_sris))
+                       % len(self.__new_smd_sri_map))
         smd_agg = get_root_aggregate(ISupplierMoleculeDesign)
         new_smds = []
-        for sri in self.__new_smd_sris:
+        for key, sris in self.__new_smd_sri_map.iteritems():
+            supplier, product_id = key
             # Create a new supplier molecule design.
-            smd = SupplierMoleculeDesign(sri.product_id, sri.supplier,
-                                         is_current=True)
-            # Associate the molecule designs for the sample registration
-            # item with the new supplier molecule design.
-            mdpri = sri.molecule_design_pool_registration_item
-            # Associate the molecule design pool with the new supplier
-            # molecule design.
-            mdpri.molecule_design_pool.supplier_molecule_designs.append(smd)
-            # *Only* for the case of a pool containing a single design,
-            # also the molecule design with the new supplier molecule design.
-            if len(mdpri.molecule_design_registration_items) == 1:
-                mdri = mdpri.molecule_design_registration_items[0]
-                mdri.molecule_design.supplier_molecule_designs.append(smd)
+            smd = SupplierMoleculeDesign(product_id, supplier, is_current=True)
+            for sri in sris:
+                # Associate the molecule designs for the sample registration
+                # item with the new supplier molecule design.
+                mdpri = sri.molecule_design_pool_registration_item
+                # Associate the molecule design pool with the new supplier
+                # molecule design.
+                mdpri_smds = \
+                    mdpri.molecule_design_pool.supplier_molecule_designs
+                if not smd in mdpri_smds:
+                    mdpri_smds.append(smd)
+                # *Only* for the case of a pool containing a single design,
+                # also update the molecule design with the new supplier
+                # molecule design.
+                if len(mdpri.molecule_design_registration_items) == 1:
+                    mdri = mdpri.molecule_design_registration_items[0]
+                    mdri_smds = mdri.molecule_design.supplier_molecule_designs
+                    if not smd in mdri_smds:
+                        mdri_smds.append(smd)
+                # Update sample registration item.
+                sri.supplier_molecule_design = smd
             smd_agg.add(smd)
             new_smds.append(smd)
-            # Update sample registration item.
-            sri.supplier_molecule_design = smd
         self.return_value['supplier_molecule_designs'] = new_smds
 
 
