@@ -21,8 +21,8 @@ from thelma.models.rack import Rack
 __docformat__ = 'reStructuredText en'
 
 __all__ = ['BiomekWorklistWriter',
-           'ContainerTransferWorklistWriter',
-           'ContainerDilutionWorklistWriter']
+           'SampleTransferWorklistWriter',
+           'SampleDilutionWorklistWriter']
 
 
 class BiomekWorklistWriter(WorklistWriter):
@@ -132,17 +132,16 @@ class BiomekWorklistWriter(WorklistWriter):
         self.add_info('Column generation complete.')
 
 
-class ContainerTransferWorklistWriter(BiomekWorklistWriter):
+class SampleTransferWorklistWriter(BiomekWorklistWriter):
     """
-    An abstract base class writing worklist for container transfer
-    worklists.
+    An abstract base class writing worklist for sample transfer worklists.
 
     **Return Value:** Stream for an CSV file.
     """
 
     NAME = 'Biomek Transfer Worklist Writer'
 
-    SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.CONTAINER_TRANSFER
+    SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_TRANSFER
 
     def __init__(self, planned_worklist, target_rack, source_rack, log,
                  ignored_positions=None, pipetting_specs=None):
@@ -258,17 +257,16 @@ class ContainerTransferWorklistWriter(BiomekWorklistWriter):
         return sorted_transfers
 
 
-class ContainerDilutionWorklistWriter(BiomekWorklistWriter):
+class SampleDilutionWorklistWriter(BiomekWorklistWriter):
     """
-    An abstract base class writing worklist for container dilution
-    worklists.
+    An abstract base class writing worklist for sample dilution worklists.
 
     **Return Value:** Stream for an CSV file.
     """
 
     NAME = 'Biomek Dilution Worklist Writer'
 
-    SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.CONTAINER_DILUTION
+    SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_DILUTION
 
     #: The name of the optional diluent info column.
     DILUENT_INFO_HEADER = 'DiluentInformation'

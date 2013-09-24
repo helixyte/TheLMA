@@ -6,10 +6,12 @@ AAB
 
 from math import sqrt
 from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.semiconstants import get_rack_position_from_indices
-from thelma.automation.tools.utils.base import WorkingLayout
-from thelma.automation.tools.utils.base import WorkingPosition
+from thelma.automation.tools.utils.base import add_list_map_element
+from thelma.automation.tools.utils.layouts import MoleculeDesignPoolLayout
+from thelma.automation.tools.utils.layouts import WorkingPosition
 
 
 __docformat__ = 'reStructuredText en'
@@ -47,7 +49,7 @@ class RackSectorTranslator(object):
     __TYPES = [MANY_TO_MANY, MANY_TO_ONE, ONE_TO_MANY, ONE_TO_ONE]
 
     def __init__(self, number_sectors, source_sector_index, target_sector_index,
-                 row_count=None, col_count=None, enforce_type=None):
+                 row_count=None, col_count=None, behaviour=None):
         """
         Constructor:
 
@@ -70,14 +72,14 @@ class RackSectorTranslator(object):
             a number the row number is calculated assuming a square setup.
         :type col_count: :class:`int`
 
-        :param enforce_type: Enforces a certain translation behaviour (applies
+        :param behaviour: Enforces a certain translation behaviour (applies
             only if there is more than one sector).
-        :type enforce_type: :class:`string` (class variable)
-        :default enforce_type: *None*
+        :type behaviour: :class:`string` (class variable)
+        :default behaviour: *None*
         """
         #: The translation behaviour (applies only if there is more than one
         #: sector).
-        self.enforce_type = enforce_type
+        self.behaviour = behaviour
 
         #: The total number of sectors.
         self.__number_sectors = int(number_sectors)
@@ -134,16 +136,16 @@ class RackSectorTranslator(object):
         Initialises the row and the column modifier and sets the translation
         method.
         """
-        if self.__number_sectors == 1 or self.enforce_type == self.ONE_TO_ONE:
+        if self.__number_sectors == 1 or self.behaviour == self.ONE_TO_ONE:
             self.__row_modifier = 0
             self.__col_modifier = 0
             self.__translation_method = self.__convert_one_to_one
 
-        elif self.enforce_type == self.MANY_TO_MANY:
+        elif self.behaviour == self.MANY_TO_MANY:
             self.__init_many_to_many()
-        elif self.enforce_type == self.ONE_TO_MANY:
+        elif self.behaviour == self.ONE_TO_MANY:
             self.__init_one_to_many()
-        elif self.enforce_type == self.MANY_TO_ONE:
+        elif self.behaviour == self.MANY_TO_ONE:
             self.__init_many_to_one()
         elif (self.__source_sector_index == 0 \
               and self.__target_sector_index == 0):
@@ -283,7 +285,7 @@ class RackSectorTranslator(object):
 
     @classmethod
     def from_planned_rack_transfer(cls, planned_rack_transfer, row_count=None,
-                                col_count=None, enforce_type=None):
+                                col_count=None, behaviour=None):
         """
         Initialises a RackSectorTranslator using the data of a planned rack
         transfer.
@@ -301,10 +303,10 @@ class RackSectorTranslator(object):
             a number the row number is calculated assuming a square setup.
         :type col_count: :class:`int`
 
-        :param enforce_type: Enforces a certain translation behaviour for
+        :param behaviour: Enforces a certain translation behaviour for
             0 to 0 sector cases (ignored in all other cases).
-        :type enforce_type: :class:`string` (class variable)
-        :default enforce_type: *None*
+        :type behaviour: :class:`string` (class variable)
+        :default behaviour: *None*
 
         :raises ValueError: If the algorithm fails to determine row count or
             column count (note that these two values can also be passed).
@@ -314,7 +316,7 @@ class RackSectorTranslator(object):
                 number_sectors=planned_rack_transfer.sector_number,
                 source_sector_index=planned_rack_transfer.source_sector_index,
                 target_sector_index=planned_rack_transfer.target_sector_index,
-                enforce_type=enforce_type,
+                behaviour=behaviour,
                 row_count=row_count, col_count=col_count)
 
     def translate(self, rack_position):
@@ -393,7 +395,7 @@ class RackSectorTranslator(object):
                   'translation type: %s.' \
                   % (rack_position, row_index, col_index, self.__number_sectors,
                      self.__row_count, self.__col_count, row_modifier,
-                     col_modifier, self.enforce_type)
+                     col_modifier, self.behaviour)
             raise ValueError(msg)
 
         return get_rack_position_from_indices(int(row_index), int(col_index))
@@ -482,11 +484,6 @@ def check_rack_shape_match(source_shape, target_shape,
         return (src_row_number == trg_row_number and \
                 src_col_number == trg_col_number)
 
-#def merge_sectors(number_sectors, target_shape, quadrant_layouts):
-#    """
-#    A helper function creating a target layout from the given quadrant layouts.
-#    """
-
 
 def get_sector_positions(sector_index, rack_shape, number_sectors,
                          row_count=None, col_count=None):
@@ -515,7 +512,7 @@ def get_sector_positions(sector_index, rack_shape, number_sectors,
                 source_sector_index=sector_index,
                 target_sector_index=0,
                 row_count=row_count, col_count=col_count,
-                enforce_type=RackSectorTranslator.MANY_TO_MANY)
+                behaviour=RackSectorTranslator.MANY_TO_MANY)
 
     positions = []
 
@@ -565,7 +562,7 @@ class QuadrantIterator(object):
             translator = RackSectorTranslator(number_sectors=number_sectors,
                         source_sector_index=0, target_sector_index=i,
                         row_count=row_count, col_count=col_count,
-                        enforce_type=RackSectorTranslator.MANY_TO_MANY)
+                        behaviour=RackSectorTranslator.MANY_TO_MANY)
             self.__translators[i] = translator
 
     def get_quadrant_positions(self, sector_zero_position):
@@ -692,6 +689,10 @@ class ValueDeterminer(BaseAutomationTool):
     **Return Value:** A map containing the values for the different sectors.
     """
 
+    #: The expected :class:`WorkingLayout` subclass.
+    WORKING_LAYOUT_CLS = MoleculeDesignPoolLayout
+
+
     def __init__(self, working_layout, attribute_name, log, number_sectors=4):
         """
         Constructor:
@@ -747,7 +748,7 @@ class ValueDeterminer(BaseAutomationTool):
         self.add_debug('Check input values ...')
 
         self._check_input_class('working layout', self.working_layout,
-                                WorkingLayout)
+                                self.WORKING_LAYOUT_CLS)
         self._check_input_class('attribute name', self.attribute_name, str)
         self._check_input_class('number of sectors', self.number_sectors, int)
 
@@ -790,9 +791,10 @@ class ValueDeterminer(BaseAutomationTool):
                     value = list(values)[0]
                 self.__sectors[sector_index] = value
 
-    def _ignore_position(self, working_pos): #pylint: disable=W0613
+    def _ignore_position(self, layout_pos): #pylint: disable=W0613
         """
         Use this method to add conditions under which a position is ignored.
+        By default, all positions are accepted.
         """
         return False
 
@@ -808,28 +810,28 @@ class RackSectorAssociator(BaseAutomationTool):
 
     #: The attribute by which to sort the ISO positions into sectors.
     SECTOR_ATTR_NAME = None
-    #: THe working layout class supported by this associator.
-    WORKING_LAYOUT_CLS = None
+    #: The working layout class supported by this associator (subclass of
+    #: :class:`MoleculeDesignPoolLayout`.
+    LAYOUT_CLS = MoleculeDesignPoolLayout
 
-    def __init__(self, working_layout, log, number_sectors=4):
+    def __init__(self, layout, log, number_sectors=4):
         """
         Constructor:
 
-        :param iso_layout: The ISO layout whose positions to check.
-        :type iso_layout: :class:`IsoLayout`
+        :param layout: The layout whose positions to check.
+        :type layout: :class:`MoleculeDesignPoolLayout`
 
         :param number_sectors: The number of rack sectors.
         :type number_sectors: :class:`int`
         :default number_sectors: *4*
 
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
+        :param log: The ThelmaLog you want to write in.
         :type log: :class:`thelma.ThelmaLog`
         """
         BaseAutomationTool.__init__(self, log=log)
 
-        #: The ISO layout whose positions to check.
-        self.working_layout = working_layout
+        #: The layout whose positions to check.
+        self.layout = layout
         #: The number of rack sectors.
         self.number_sectors = number_sectors
 
@@ -877,8 +879,7 @@ class RackSectorAssociator(BaseAutomationTool):
         """
         self.add_debug('Check input values ...')
 
-        self._check_input_class('working layout', self.working_layout,
-                                self.WORKING_LAYOUT_CLS)
+        self._check_input_class('layout', self.layout, self.LAYOUT_CLS)
         self._check_input_class('number of sectors', self.number_sectors, int)
 
     def __get_concentrations_for_sectors(self):
@@ -905,34 +906,30 @@ class RackSectorAssociator(BaseAutomationTool):
         """
         Determines and checks the association for each quadrant.
         """
-        quadrant_iterator = QuadrantIterator(number_sectors=4)
-        for quadrant_wps in quadrant_iterator.get_all_quadrants(
-                                                            self.working_layout):
-            associated_sectors = self.__associate_molecule_design_sets(
-                                                                quadrant_wps)
+        quadrant_iterator = QuadrantIterator(number_sectors=self.number_sectors)
+        for quadrant_wps in quadrant_iterator.get_all_quadrants(self.layout):
+            associated_sectors = self.__associate_pool_sets(quadrant_wps)
             if associated_sectors is None: break
 
-    def __associate_molecule_design_sets(self, quadrant_wps):
+    def __associate_pool_sets(self, quadrant_wps):
         """
         Determines the molecule design pools of a quadrant and associated
         sectors accordingly. The sectors associations must be the same
         for the whole layout (except for empty positions).
         """
-        md_pools = dict()
+        pools = dict()
 
         for sector_index, working_position in quadrant_wps.iteritems():
-            md_pool = self._get_molecule_design_pool(working_position)
-            if not md_pools.has_key(md_pool):
-                md_pools[md_pool] = []
-            md_pools[md_pool].append(sector_index)
+            pool = self._get_molecule_design_pool(working_position)
+            add_list_map_element(pools, pool, sector_index)
 
         all_associated_sectors = []
         for sectors in self._associated_sectors:
             for sector_index in sectors:
                 all_associated_sectors.append(sector_index)
 
-        for md_pool, sectors in md_pools.iteritems():
-            if md_pool == WorkingPosition.NONE_REPLACER: continue
+        for pool, sectors in pools.iteritems():
+            if pool == WorkingPosition.NONE_REPLACER: continue
             sectors.sort()
             present = False
             for sector_index in sectors:
@@ -953,13 +950,20 @@ class RackSectorAssociator(BaseAutomationTool):
                 self.add_error(msg)
                 return None
 
-        return md_pools.values()
+        return pools.values()
 
-    def _get_molecule_design_pool(self, working_position): #pylint: disable=W0613
+    def _get_molecule_design_pool(self, layout_pos): #pylint: disable=W0613
         """
-        Returns the molecule design pool of a working position.
+        Returns the molecule design pool of a layout position. By default,
+        untreated and mock positions are converted into None replacers.
         """
-        self.add_error('Abstract method: _get_molecule_design_pool()')
+        if layout_pos is None:
+            pool = layout_pos.NONE_REPLACER
+        elif layout_pos.is_mock or layout_pos.is_empty:
+            pool = layout_pos.NONE_REPLACER
+        else:
+            pool = layout_pos.molecule_design_pool_id
+        return pool
 
     def __is_superset(self, sectors):
         """
@@ -985,15 +989,22 @@ class AssociationData(object):
     :Note: All attributes are immutable.
     """
 
-    def __init__(self, working_layout, log):
+    __SECTOR_NUMBER_384 = 4
+
+    def __init__(self, layout, log, record_errors=True):
         """
         Constructor:
 
-        :param working_layout: The working layout whose sectors to associate.
-        :type working_layout: :class:`IsoLayout`
+        :param layout: The working layout whose sectors to associate.
+        :type layout: :class:`MoleculeDesignPoolLayout` subclass
 
         :param log: The log to write into (not stored in the object).
         :type log: :class:`thelma.ThelmaLog`
+
+        :param record_errors: If set to *False* the error and warning recording
+            of the used tools will be disabled.
+        :type record_errors: :class:`bool`
+        :default record_errors: *True*
         """
         #: The rack sectors sharing the same molecule design set ID within a
         #: quadrant.
@@ -1003,7 +1014,13 @@ class AssociationData(object):
         #: The parent sector for each sector.
         self._parent_sectors = dict()
 
-        self.__associate(working_layout, log)
+        number_sectors = 1
+        if layout.shape.name == RACK_SHAPE_NAMES.SHAPE_384:
+            number_sectors = self.__SECTOR_NUMBER_384
+        #: The number of sectors depends on the rack shape.
+        self._number_sectors = number_sectors
+
+        self.__associate(layout, log, record_errors)
 
     @property
     def associated_sectors(self):
@@ -1030,39 +1047,67 @@ class AssociationData(object):
     @property
     def number_sectors(self):
         """
-        The number of rack sectors.
+        The number of sectors depends on the rack shape.
         """
-        return len(self._sector_concentrations)
+        return self._number_sectors
 
-    def __associate(self, working_layout, log):
+    def __associate(self, layout, log, record_errors):
         """
         Checks whether there are different rack sectors and set ups the
         the attributes.
         """
-        concentrations = self._find_concentrations(working_layout)
+        concentrations = self._find_concentrations(layout)
 
         if len(concentrations) == 1:
             conc = list(concentrations)[0]
-            self._sector_concentrations = {0 : conc}
-            self._associated_sectors = [[0]]
-            self._parent_sectors = {0 : None}
+            if self.number_sectors == 1:
+                self._sector_concentrations = {0 : conc}
+                self._associated_sectors = [[0]]
+                self._parent_sectors = {0 : None}
+            else: # number sectors = 4
+                sectors = self.__find_present_sector(layout, log)
+                self._associated_sectors = []
+                for sector_index in sorted(sectors):
+                    self._sector_concentrations[sector_index] = conc
+                    self._parent_sectors[sector_index] = None
+                    self._associated_sectors.append([sector_index])
         else:
-            self.__find_relationships(working_layout, log)
+            self.__find_relationships(layout, log, record_errors)
 
-    def _find_concentrations(self, working_layout):
+    def _find_concentrations(self, layout):
         """
         Finds all different concentrations in the layout.
         """
         raise NotImplementedError('Abstract method.')
 
-    def __find_relationships(self, working_layout, log):
+    def __find_present_sector(self, layout, log):
+        """
+        Returns the indices of sectors that have values (assummes a 384-position
+        layout).
+        """
+        value_determiner = self._init_value_determiner(layout, log)
+        sector_values = value_determiner.get_result()
+        present_sectors = []
+        for sector_index, value in sector_values.iteritems():
+            if value is not None: present_sectors.append(sector_index)
+        return present_sectors
+
+    def _init_value_determiner(self, layout, log):
+        """
+        Initialises a value determiner. It is used to find the sectors that
+        are present in 384-position layout with independent sectors.
+        """
+        raise NotImplementedError('Abstract method.')
+
+    def __find_relationships(self, layout, log, record_errors):
         """
         Sets up the association data (if there is more than one
         concentration).
 
         :raises ValueError: If the association fails.
         """
-        associator = self._init_associator(working_layout, log)
+        associator = self._init_associator(layout, log)
+        if not record_errors: associator.disable_error_and_warning_recording()
         self._associated_sectors = associator.get_result()
         self._sector_concentrations = associator.get_sector_concentrations()
 
@@ -1076,19 +1121,19 @@ class AssociationData(object):
             concentrations_map = dict()
             for sector_index in sectors:
                 conc = self._sector_concentrations[sector_index]
-                concentrations_map[conc] = sector_index
-            concentrations = concentrations_map.keys()
-            concentrations.sort()
+                add_list_map_element(concentrations_map, conc, sector_index)
+            concentrations = sorted(concentrations_map.keys())
 
             last_sector = None
             for conc in concentrations:
-                sector_index = concentrations_map[conc]
-                if not last_sector is None:
-                    self._parent_sectors[last_sector] = sector_index
-                last_sector = sector_index
-                self._parent_sectors[sector_index] = None
+                sectors = concentrations_map[conc]
+                for sector_index in sorted(sectors):
+                    if not last_sector is None:
+                        self._parent_sectors[last_sector] = sector_index
+                    last_sector = sector_index
+                    self._parent_sectors[sector_index] = None
 
-    def _init_associator(self, working_layout, log):
+    def _init_associator(self, layout, log):
         """
         Initialises the associator.
         """

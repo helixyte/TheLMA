@@ -617,18 +617,11 @@ class MoleculeDesignPoolSet(Entity):
             molecule_design_pools = set()
         self.molecule_design_pools = molecule_design_pools
 
-    def remove_pool(self, pool_id):
+    def remove_pool(self, pool):
         """
-        Remove a molecule design pool from the set. If the pool is
-        not part of the set, nothing happens.
+        Remove a molecule design pool from the set.
         """
-        del_pool = None
-        for md_pool in self.molecule_design_pools:
-            if md_pool.id == pool_id:
-                del_pool = md_pool
-                break
-        if not del_pool is None:
-            self.molecule_design_pools.discard(del_pool)
+        self.molecule_design_pools.discard(pool)
 
     def __eq__(self, other):
         return isinstance(other, MoleculeDesignPoolSet) \

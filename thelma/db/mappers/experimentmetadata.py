@@ -9,17 +9,15 @@ from everest.repositories.rdb.utils import as_slug_expression
 from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.experiment import ExperimentMetadataType
-from thelma.models.iso import IsoRequest
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from thelma.models.subproject import Subproject
+from thelma.models.iso import LabIsoRequest
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']
 
 
 def create_mapper(experiment_metadata_tbl,
-                  experiment_metadata_iso_request_tbl,
-                  experiment_metadata_pool_set_tbl):
+                  experiment_metadata_iso_request_tbl):
     "Mapper factory."
     m = mapper(
            ExperimentMetadata, experiment_metadata_tbl,
@@ -35,11 +33,7 @@ def create_mapper(experiment_metadata_tbl,
                                     cascade='all,delete,delete-orphan',
                                     back_populates='experiment_metadata'),
                   subproject=relationship(Subproject, uselist=False),
-                  molecule_design_pool_set=relationship(
-                                MoleculeDesignPoolSet,
-                                uselist=False,
-                                secondary=experiment_metadata_pool_set_tbl),
-                  iso_request=relationship(IsoRequest, uselist=False,
+                  iso_request=relationship(LabIsoRequest, uselist=False,
                             secondary=experiment_metadata_iso_request_tbl,
                             back_populates='experiment_metadata',
                             cascade='all,delete,delete-orphan',

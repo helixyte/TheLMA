@@ -5,10 +5,8 @@
     xmlns="http://www.w3.org/2001/XMLSchema"
     xmlns:j="http://schemata.cenix-bioscience.com/job"
     xmlns:e="http://schemata.cenix-bioscience.com/experiment"
-    xmlns:jt="http://schemata.cenix-bioscience.com/jobtype"
     xmlns:r="http://schemata.cenix-bioscience.com/rack"
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:sp="http://schemata.cenix-bioscience.com/subproject"
     xmlns:u="http://schemata.cenix-bioscience.com/user"
 >
     <import
@@ -20,18 +18,6 @@
     <import
         schemaLocation="Experiment.xsd"
         namespace="http://schemata.cenix-bioscience.com/experiment"
-    >
-    </import>
-
-    <import
-        schemaLocation="JobType.xsd"
-        namespace="http://schemata.cenix-bioscience.com/jobtype"
-    >
-    </import>
-
-    <import
-        schemaLocation="Subproject.xsd"
-        namespace="http://schemata.cenix-bioscience.com/subproject"
     >
     </import>
 
@@ -74,20 +60,8 @@
                         >
                         </element>
                         <element
-                            ref="jt:job_type"
-                            minOccurs="1"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
                             ref="u:user"
                             minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
-                            ref="sp:subproject"
-                            minOccurs="1"
                             maxOccurs="1"
                         >
                         </element>
@@ -99,14 +73,7 @@
                         >
                         </element>
                         <element
-                            name="start_time"
-                            type="dateTime"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
-                            name="end_time"
+                            name="creation_time"
                             type="dateTime"
                             minOccurs="0"
                             maxOccurs="1"
@@ -119,7 +86,7 @@
                         >
                         </element>
                         <element
-                            name="iso_control_stock_rack"
+                            name="iso_job_stock_rack"
                             type="r:RackType"
                             minOccurs="0"
                             maxOccurs="1"

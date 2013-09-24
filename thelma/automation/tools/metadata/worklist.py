@@ -6,6 +6,7 @@ October 2011, AAB
 """
 
 from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.metadata.transfection_utils \
                 import TransfectionLayout
 from thelma.automation.tools.metadata.transfection_utils \
@@ -18,9 +19,9 @@ from thelma.automation.tools.worklists.generation \
                 import PlannedWorklistGenerator
 from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadataType
-from thelma.models.liquidtransfer import PlannedContainerDilution
-from thelma.models.liquidtransfer import PlannedContainerTransfer
-from thelma.models.liquidtransfer import PlannedRackTransfer
+from thelma.models.liquidtransfer import PlannedRackSampleTransfer
+from thelma.models.liquidtransfer import PlannedSampleDilution
+from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.liquidtransfer import WorklistSeries
 from thelma.models.liquidtransfer import WorklistSeriesMember
 
@@ -43,7 +44,7 @@ class _SUPPORTED_SCENARIOS(object):
     """
     #: A list of all supported scenarios.
     ALL = [EXPERIMENT_SCENARIOS.SCREENING, EXPERIMENT_SCENARIOS.OPTIMISATION,
-           EXPERIMENT_SCENARIOS.MANUAL, EXPERIMENT_SCENARIOS.LIBRARY]
+           EXPERIMENT_SCENARIOS.LIBRARY]
 
     @classmethod
     def get_all_displaynames(cls):
@@ -73,7 +74,6 @@ class EXPERIMENT_WORKLIST_PARAMETERS(object):
                 EXPERIMENT_SCENARIOS.SCREENING : EXPERIMENT_DESIGN,
                 EXPERIMENT_SCENARIOS.LIBRARY : EXPERIMENT_DESIGN,
                 EXPERIMENT_SCENARIOS.OPTIMISATION : EXPERIMENT_DESIGN_RACK,
-                EXPERIMENT_SCENARIOS.MANUAL : EXPERIMENT_DESIGN_RACK
                          }
 
     #: The index of the worklist for the ISO to cell plate transfer.
@@ -101,9 +101,6 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
             4. addition of cell suspension (for execution only, no worklist
                file support).
 
-    Whereas group II is always provided, the mastermix worklists depend on
-    certain conditions (experiment scenario, concentration relationships
-    and ISO volumes).
     Mastermix preparation worklists are always stored at the experiment
     design. The storage location for the cell plate preparation worklists
     differs.
@@ -202,8 +199,6 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
         """
         Checks the input values.
         """
-        self.add_debug('Check input values ...')
-
         self._check_input_class('experiment design', self.experiment_design,
                                 ExperimentDesign)
         self._check_input_class('label', self.label, basestring)
@@ -223,21 +218,12 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
             else:
                 storage_location = EXPERIMENT_WORKLIST_PARAMETERS.\
                                    STORAGE_LOCATIONS[self.scenario.id]
-                if self.scenario.id == EXPERIMENT_SCENARIOS.MANUAL \
-                                                    and self.supports_mastermix:
-                    msg = 'Manual optimisation cannot support mastermix ' \
-                          'preparation!'
-                    self.add_error(msg)
 
         if storage_location == EXPERIMENT_WORKLIST_PARAMETERS.\
                                EXPERIMENT_DESIGN_RACK:
-            if self._check_input_class('design rack maps',
-                                       self.design_rack_associations, dict):
-                for label, layout in self.design_rack_associations.iteritems():
-                    self._check_input_class('design rack label', label,
-                                            basestring)
-                    self._check_input_class('design rack layout', layout,
-                                            TransfectionLayout)
+            self._check_input_map_classes(self.design_rack_associations,
+                            'design rack maps', 'design rack label', basestring,
+                            'design rack layout', TransfectionLayout)
 
     def __create_mastermix_series(self):
         """
@@ -394,14 +380,14 @@ class OptimemWorklistGenerator(PlannedWorklistGenerator):
     represent *target* positions.
     The worklist is only used for Biomek series.
 
-    **Return Value:** :class:`PlannedWorklist` (type: CONTAINER_DILUTION)
+    **Return Value:** :class:`PlannedWorklist` (type: SAMPLE_DILUTION)
     """
 
     NAME = 'Transfection OptiMem Worklist Generator'
 
+    PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
     #: The suffix for the worklist label.
     WORKLIST_SUFFIX = '_optimem'
-
     #: The name of the diluent.
     DILUENT_INFO = 'optimem'
 
@@ -432,11 +418,8 @@ class OptimemWorklistGenerator(PlannedWorklistGenerator):
         """
         Checks the input values.
         """
-        self.add_debug('Check input values ...')
-
         self._check_input_class('experiment metadata label',
                                 self.experiment_metadata_label, basestring)
-
         self._check_input_class('transfection layout',
                                 self.transfection_layout,
                                 TransfectionLayout)
@@ -448,7 +431,7 @@ class OptimemWorklistGenerator(PlannedWorklistGenerator):
         self._label = '%s%s' % (self.experiment_metadata_label,
                                 self.WORKLIST_SUFFIX)
 
-    def _create_planned_transfers(self):
+    def _create_planned_liquid_transfers(self):
         """
         Generates the planned container dilution for the worklist.
         """
@@ -458,18 +441,17 @@ class OptimemWorklistGenerator(PlannedWorklistGenerator):
             if tf_pos.is_empty: continue
             volume = self.__determine_volume(tf_pos)
             target_position = rack_pos
-            pcd = PlannedContainerDilution(volume=volume,
+            psd = PlannedSampleDilution.get_entity(volume=volume,
                                            target_position=target_position,
                                            diluent_info=self.DILUENT_INFO)
-            self._add_planned_transfer(pcd)
+            self._add_planned_transfer(psd)
 
     def __determine_volume(self, transfection_pos):
         """
         Determines the volume of the diluent.
         """
         dil_factor = transfection_pos.optimem_dil_factor
-        volume = float(transfection_pos.iso_volume) * (dil_factor - 1)
-        return volume / VOLUME_CONVERSION_FACTOR
+        return float(transfection_pos.iso_volume) * (dil_factor - 1)
 
 
 class ReagentWorklistGenerator(PlannedWorklistGenerator):
@@ -482,10 +464,11 @@ class ReagentWorklistGenerator(PlannedWorklistGenerator):
     positions here represent *target* positions.
     The worklist is only used for Biomek series.
 
-    **Return Value:** planned worklist (type: CONTAINER_TRANSFER).
+    **Return Value:** planned worklist (type: SAMPLE_TRANSFER).
     """
 
     NAME = 'Transfection Reagent Worklist Generator'
+    PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
 
     #: The suffix for the worklist label.
     WORKLIST_SUFFIX = '_reagent'
@@ -516,11 +499,8 @@ class ReagentWorklistGenerator(PlannedWorklistGenerator):
         """
         Checks the input values.
         """
-        self.add_debug('Check input values ...')
-
         self._check_input_class('experiment metadata label',
                                 self.experiment_metadata_label, basestring)
-
         self._check_input_class('transfection layout',
                                 self.transfection_layout,
                                 TransfectionLayout)
@@ -532,7 +512,7 @@ class ReagentWorklistGenerator(PlannedWorklistGenerator):
         self._label = '%s%s' % (self.experiment_metadata_label,
                                 self.WORKLIST_SUFFIX)
 
-    def _create_planned_transfers(self):
+    def _create_planned_liquid_transfers(self):
         """
         Generates the planned container dilutions for the worklist.
         """
@@ -543,7 +523,6 @@ class ReagentWorklistGenerator(PlannedWorklistGenerator):
         for rack_pos, tf_pos in self.transfection_layout.iterpositions():
             if tf_pos.is_empty: continue
             dil_volume = tf_pos.calculate_reagent_dilution_volume()
-            volume = dil_volume / VOLUME_CONVERSION_FACTOR
             ini_dil_factor = TransfectionParameters.\
                                 calculate_initial_reagent_dilution(
                                 float(tf_pos.reagent_dil_factor))
@@ -555,10 +534,10 @@ class ReagentWorklistGenerator(PlannedWorklistGenerator):
             rdf_str = get_trimmed_string(tf_pos.reagent_dil_factor)
             diluent_info = '%s (%s)' % (tf_pos.reagent_name, rdf_str)
 
-            pcd = PlannedContainerDilution(volume=volume,
+            psd = PlannedSampleDilution.get_entity(volume=dil_volume,
                                            target_position=rack_pos,
                                            diluent_info=diluent_info)
-            self._add_planned_transfer(pcd)
+            self._add_planned_transfer(psd)
 
         if len(invalid_dil_factor) > 0:
             msg = 'Invalid dilution reagent factor for rack positions: %s. ' \
@@ -577,10 +556,11 @@ class BiomekTransferWorklistGenerator(PlannedWorklistGenerator):
     transfection positions here represent *source* positions.
     The worklist is only used for Biomek series.
 
-    **Return Value:** PlannedWorklist (type: CONTAINER_TRANSFER)
+    **Return Value:** PlannedWorklist (type: SAMPLE_TRANSFER)
     """
 
     NAME = 'Transfection BioMek Transfer Worklist Generator'
+    PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
 
     #: The suffix for the worklist label.
     WORKLIST_SUFFIX = '_biomek_transfer'
@@ -611,8 +591,6 @@ class BiomekTransferWorklistGenerator(PlannedWorklistGenerator):
         """
         Checks whether the incoming layouts are transfection layouts.
         """
-        self.add_debug('Check input values ...')
-
         self._check_input_class('label', self.label, basestring)
         self._check_input_class('transfection layout',
                                 self.transfection_layout,
@@ -624,7 +602,7 @@ class BiomekTransferWorklistGenerator(PlannedWorklistGenerator):
         """
         self._label = '%s%s' % (self.label, self.WORKLIST_SUFFIX)
 
-    def _create_planned_transfers(self):
+    def _create_planned_liquid_transfers(self):
         """
         Generates the planned container transfers for the worklist.
         """
@@ -636,10 +614,10 @@ class BiomekTransferWorklistGenerator(PlannedWorklistGenerator):
         for rack_pos, tf_pos in self.transfection_layout.iterpositions():
             if tf_pos.is_empty: continue
             for target_pos in tf_pos.cell_plate_positions:
-                pct = PlannedContainerTransfer(volume=volume,
+                pst = PlannedSampleTransfer.get_entity(volume=volume,
                             source_position=rack_pos,
                             target_position=target_pos)
-                self._add_planned_transfer(pct)
+                self._add_planned_transfer(pst)
 
 
 class CybioTransferWorklistGenerator(PlannedWorklistGenerator):
@@ -655,6 +633,7 @@ class CybioTransferWorklistGenerator(PlannedWorklistGenerator):
     """
 
     NAME = 'Transfection CyBio Transfer Worklist Generator'
+    PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.CYBIO
 
     #: The suffix for the worklist label.
     WORKLIST_SUFFIX = '_cybio_transfer'
@@ -672,6 +651,7 @@ class CybioTransferWorklistGenerator(PlannedWorklistGenerator):
         :param experiment_metadata_label: The label for the experiment metadata
             the liquid transfer plan is generated for.
         :type experiment_metadata_label: :class:`str`
+
         :param log: The ThelmaLog you want to write into.
         :type log: :class:`thelma.ThelmaLog`
         """
@@ -685,8 +665,6 @@ class CybioTransferWorklistGenerator(PlannedWorklistGenerator):
         """
         Checks the input values.
         """
-        self.add_debug('Check input values ...')
-
         self._check_input_class('experiment metadata label',
                                 self.experiment_metadata_label, basestring)
 
@@ -697,17 +675,16 @@ class CybioTransferWorklistGenerator(PlannedWorklistGenerator):
         self._label = '%s%s' % (self.experiment_metadata_label,
                                 self.WORKLIST_SUFFIX)
 
-    def _create_planned_transfers(self):
+    def _create_planned_liquid_transfers(self):
         """
         Generates the planned rack transfer for the worklist.
         """
-        volume = TransfectionParameters.TRANSFER_VOLUME \
-                 / VOLUME_CONVERSION_FACTOR
-        prt = PlannedRackTransfer(volume=volume,
+        volume = TransfectionParameters.TRANSFER_VOLUME
+        prst = PlannedRackSampleTransfer.get_entity(volume=volume,
                                   source_sector_index=self.SOURCE_SECTOR_INDEX,
                                   target_sector_index=self.TARGET_SECTOR_INDEX,
-                                  sector_number=self.SECTOR_NUMBER)
-        self._add_planned_transfer(prt)
+                                  number_sectors=self.SECTOR_NUMBER)
+        self._add_planned_transfer(prst)
 
 
 class CellSuspensionWorklistGenerator(PlannedWorklistGenerator):
@@ -723,10 +700,10 @@ class CellSuspensionWorklistGenerator(PlannedWorklistGenerator):
     **Return Value:** PlannedWorklist (type: CONTAINER_DILUTION)
     """
     NAME = 'Transfection Cell Suspension Worklist Generator'
+    PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
 
     #: The suffix for the worklist label.
     WORKLIST_SUFFIX = '_cellsuspension'
-
     #: #: The name of the diluent.
     DILUENT_INFO = 'cellsuspension'
 
@@ -756,8 +733,6 @@ class CellSuspensionWorklistGenerator(PlannedWorklistGenerator):
         """
         Checks whether the incoming layouts are transfection layouts.
         """
-        self.add_debug('Check input values ...')
-
         self._check_input_class('label', self.label, basestring)
         self._check_input_class('transfection layout',
                                 self.transfection_layout,
@@ -769,7 +744,7 @@ class CellSuspensionWorklistGenerator(PlannedWorklistGenerator):
         """
         self._label = '%s%s' % (self.label, self.WORKLIST_SUFFIX)
 
-    def _create_planned_transfers(self):
+    def _create_planned_liquid_transfers(self):
         """
         Generates the planned container dilutions for the worklist.
         """
@@ -781,8 +756,8 @@ class CellSuspensionWorklistGenerator(PlannedWorklistGenerator):
         for tf_pos in self.transfection_layout.working_positions():
             if tf_pos.is_empty: continue
             for target_pos in tf_pos.cell_plate_positions:
-                pcd = PlannedContainerDilution(volume=volume,
+                psd = PlannedSampleDilution.get_entity(volume=volume,
                                     target_position=target_pos,
                                     diluent_info=self.DILUENT_INFO)
-                self._add_planned_transfer(pcd)
+                self._add_planned_transfer(psd)
 

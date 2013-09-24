@@ -6,7 +6,7 @@
 
 from StringIO import StringIO
 from thelma import LogEvent
-from thelma.automation.errors import ErrorRecording
+from thelma.automation.errors import EventRecording
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.models.utils import label_from_number
@@ -34,7 +34,7 @@ __all__ = ['BaseParser',
            'ExcelMoleculeDesignPoolLayoutParsingContainer']
 
 
-class BaseParser(ErrorRecording):
+class BaseParser(EventRecording):
     """
     This is the abstract base class for all parser integrated into TheLMA.
 

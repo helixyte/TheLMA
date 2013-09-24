@@ -10,7 +10,7 @@ from thelma.automation.tools.semiconstants \
 from thelma.automation.tools.semiconstants \
     import get_experiment_type_robot_optimisation
 from thelma.automation.tools.semiconstants \
-    import get_plate_specs_from_reservoir_specs
+    import get_rack_specs_from_reservoir_specs
 from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_from_rack_specs
 from thelma.automation.tools.semiconstants \
@@ -165,14 +165,14 @@ class PlateSpecsNamesTestCase(_SemiConstantCacheTestCase):
         for rs_name, plate_specs_name in test_names.iteritems():
             rs = get_reservoir_spec(rs_name)
             for token in [rs, rs_name]:
-                plate_specs = get_plate_specs_from_reservoir_specs(token)
+                plate_specs = get_rack_specs_from_reservoir_specs(token)
                 self.assert_is_not_none(plate_specs)
                 self.assert_true(isinstance(plate_specs, PlateSpecs))
                 self.assert_equal(plate_specs.name, plate_specs_name)
-        self.assert_raises(TypeError, get_plate_specs_from_reservoir_specs, 3)
-        self.assert_raises(ValueError, get_plate_specs_from_reservoir_specs,
+        self.assert_raises(TypeError, get_rack_specs_from_reservoir_specs, 3)
+        self.assert_raises(ValueError, get_rack_specs_from_reservoir_specs,
                            RESERVOIR_SPECS_NAMES.STOCK_RACK)
-        self.assert_raises(ValueError, get_plate_specs_from_reservoir_specs,
+        self.assert_raises(ValueError, get_rack_specs_from_reservoir_specs,
                            'invalid')
 
     def test_to_reservoir_specs(self):

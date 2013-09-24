@@ -43,10 +43,10 @@ from thelma.models.experiment import ExperimentMetadata
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import Iso
 from thelma.models.iso import IsoAliquotPlate
-from thelma.models.iso import IsoControlStockRack
+from thelma.models.iso import IsoJobStockRack
 from thelma.models.iso import IsoPreparationPlate
 from thelma.models.iso import IsoRequest
-from thelma.models.iso import IsoSampleStockRack
+from thelma.models.iso import IsoStockRack
 from thelma.models.job import IsoJob
 from thelma.models.liquidtransfer import ExecutedWorklist
 from thelma.models.liquidtransfer import PlannedContainerTransfer

@@ -7,13 +7,13 @@ from thelma.models.utils import label_from_number
 
 # If this is set to True, the changes will be committed when the script
 # completes successfully (i.e., without errors and without warnings).
-COMMIT = False
+COMMIT = True
 
 db_server = 'raven'
 db_port = '5432'
 db_user = 'thelma'
 db_password = 'roo8Adei'
-db_name = 'unidb'
+db_name = 'buffalo_backup'
 db_string = "postgresql+psycopg2://%(db_user)s:%(db_password)s" \
             "@%(db_server)s:%(db_port)s/%(db_name)s" % locals()
 engine = create_engine(db_string)

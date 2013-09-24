@@ -61,6 +61,7 @@ __all__ = ['SemiconstantCache',
            'get_pipetting_specs_manual',
            'get_pipetting_specs_cybio',
            'get_pipetting_specs_biomek',
+           'get_pipetting_specs_biomek_stock',
            'get_min_transfer_volume',
            'get_max_transfer_volume',
            'get_max_dilution_factor',
@@ -70,7 +71,7 @@ __all__ = ['SemiconstantCache',
            'get_reservoir_specs_deep_96',
            'get_reservoir_specs_standard_384',
            'RACK_SPECS_NAMES',
-           'get_plate_specs_from_reservoir_specs',
+           'get_rack_specs_from_reservoir_specs',
            'get_reservoir_specs_from_rack_specs',
            'RACK_POSITION_LABELS',
            'get_rack_position_from_label',
@@ -217,6 +218,15 @@ class EXPERIMENT_SCENARIOS(SemiconstantCache):
 
     ALL = [OPTIMISATION, SCREENING, MANUAL, ISO_LESS, LIBRARY, ORDER_ONLY, QPCR]
     _MARKER_INTERFACE = IExperimentMetadataType
+
+    #: Experiment scenarios that allow for only one final ISO plate at maximum
+    #: (not regarding copies).
+    ONE_PLATE_TYPES = [MANUAL, ORDER_ONLY]
+    #: Experiment scenarios for there is always a one-to-one assignment
+    #: between source and experiment plate.
+    ONE_TO_ONE_TYPES = [SCREENING, LIBRARY]
+    #: Experiment scenarios that may support experiment mastermix preparation.
+    EXPERIMENT_MASTERMIX_TYPES = [OPTIMISATION, SCREENING, LIBRARY]
 
     @classmethod
     def get_displaynames(cls, experiment_metadata_types):
@@ -400,45 +410,94 @@ class PIPETTING_SPECS_NAMES(SemiconstantCache):
     MANUAL = 'manual'
     CYBIO = 'CyBio'
     BIOMEK = 'BioMek'
+    BIOMEKSTOCK = 'BioMekStock'
 
-    ALL = [MANUAL, CYBIO, BIOMEK]
+    ALL = [MANUAL, CYBIO, BIOMEK, BIOMEKSTOCK]
     _MARKER_INTERFACE = IPipettingSpecs
+
+    __MIN_TRANSFER_VOL_ATTR = 'min_transfer_volume'
+    __MAX_TRANSFER_VOL_ATTR = 'max_transfer_volume'
+    __MIN_DIL_FACTOR_ATTR = 'max_dilution_factor'
+    __ATTRS = {__MIN_TRANSFER_VOL_ATTR : VOLUME_CONVERSION_FACTOR,
+               __MAX_TRANSFER_VOL_ATTR : VOLUME_CONVERSION_FACTOR,
+               __MIN_DIL_FACTOR_ATTR : 1 }
+    __value_cache = dict()
+
+    @classmethod
+    def clear_cache(cls):
+        super(PIPETTING_SPECS_NAMES, cls).clear_cache()
+        cls.__value_cache = None
+
+    @classmethod
+    def initialize_cache(cls):
+        """
+        We also initialize the :attr:`__value_cache` here.
+        """
+        super(PIPETTING_SPECS_NAMES, cls).initialize_cache()
+        cls.__value_cache = dict()
+        for ps_name in cls.ALL:
+            value_map = dict()
+            entity = cls._cache[ps_name]
+            for attr_name, factor in cls.__ATTRS.iteritems():
+                db_value = getattr(entity, attr_name)
+                value = db_value * factor
+                value_map[attr_name] = value
+            cls.__value_cache[ps_name] = value
+
+    @classmethod
+    def __get_attribute_value(cls, pipetting_specs, attribute_name):
+        """
+        Returns the requested attribute for the given pipetting specs.
+        The values is converted from DB value to the workign unit (check
+        the factors is the :attr:`__ATTRS` map).
+
+        :param pipetting_specs: The pipetting specs whose minimum volume you
+            want to get or its name.
+        :type pipetting_specs: :class:`basestring` or
+            :class:`thelma.models.liquidtransfer.PipettingSpecs`
+        :return: The converted values.
+        """
+        if isinstance(pipetting_specs, PipettingSpecs):
+            ps_name = pipetting_specs.name
+        else:
+            ps_name = pipetting_specs
+
+        if not cls.is_known_entity(ps_name):
+            msg = 'Unknown pipetting specs "%s".' % (ps_name)
+            raise ValueError(msg)
+
+        value_map = cls.__value_cache[ps_name]
+        return value_map[attribute_name]
 
     @classmethod
     def get_min_transfer_volume(cls, pipetting_specs):
         """
         Returns the minimum transfer volume for the given pipetting specs in ul.
 
-        Invokes :func:`from_name`.
-
         :param pipetting_specs: The pipetting specs whose minimum volume you
             want to get or its name.
         :type pipetting_specs: :class:`basestring` or
             :class:`thelma.models.liquidtransfer.PipettingSpecs`
         :return: The minimum transfer volume in ul.
+        :raises ValueError: if the specs are unknown
         """
-        if not isinstance(pipetting_specs, PipettingSpecs):
-            pipetting_specs = cls.from_name(pipetting_specs)
-
-        return pipetting_specs.min_transfer_volume * VOLUME_CONVERSION_FACTOR
+        return cls.__get_attribute_value(pipetting_specs,
+                                         cls.__MIN_TRANSFER_VOL_ATTR)
 
     @classmethod
     def get_max_transfer_volume(cls, pipetting_specs):
         """
         Returns the maximum transfer volume for the given pipetting specs in ul.
 
-        Invokes :func:`from_name`.
-
         :param pipetting_specs: The pipetting specs whose maximum volume you
             want to get or its name.
         :type pipetting_specs: :class:`basestring` or
             :class:`thelma.models.liquidtransfer.PipettingSpecs`
         :return: The minimum transfer volume in ul.
+        :raises ValueError: if the specs are unknown
         """
-        if not isinstance(pipetting_specs, PipettingSpecs):
-            pipetting_specs = cls.from_name(pipetting_specs)
-
-        return pipetting_specs.max_transfer_volume * VOLUME_CONVERSION_FACTOR
+        return cls.__get_attribute_value(pipetting_specs,
+                                         cls.__MAX_TRANSFER_VOL_ATTR)
 
     @classmethod
     def get_max_dilution_factor(cls, pipetting_specs):
@@ -447,18 +506,16 @@ class PIPETTING_SPECS_NAMES(SemiconstantCache):
         Pipetting larger dilution might result in inaccurate target
         concentrations or inhomogenous mixing.
 
-        Invokes :func:`from_name`.
-
         :param pipetting_specs: The pipetting specs whose maximum dilution
             factor you want to get or its name.
         :type pipetting_specs: :class:`basestring` or
             :class:`thelma.models.liquidtransfer.PipettingSpecs`
         :return: The maximum dilution factor for a single transfer.
+        :raises ValueError: if the specs are unknown
         """
-        if not isinstance(pipetting_specs, PipettingSpecs):
-            pipetting_specs = cls.from_name(pipetting_specs)
+        return cls.__get_attribute_value(pipetting_specs,
+                                         cls.__MIN_TRANSFER_VOL_ATTR)
 
-        return pipetting_specs.max_dilution_factor
 
 #: A short cut for :func:`PIPETTING_SPECS_NAMES.from_name`.
 get_pipetting_specs = PIPETTING_SPECS_NAMES.from_name
@@ -474,6 +531,10 @@ def get_pipetting_specs_cybio():
 #: A short cut to get the BioMek pipetting specs.
 def get_pipetting_specs_biomek():
     return get_pipetting_specs(PIPETTING_SPECS_NAMES.BIOMEK)
+
+#: A short cut to get the BioMekStock pipetting specs.
+def get_pipetting_specs_biomek_stock():
+    return get_pipetting_specs(PIPETTING_SPECS_NAMES.BIOMEKSTOCK)
 
 #: A short cut for :func:`PIPETTING_SPECS_NAMES.get_min_transfer_volume`.
 get_min_transfer_volume = PIPETTING_SPECS_NAMES.get_min_transfer_volume
@@ -647,7 +708,7 @@ class RACK_SPECS_NAMES(SemiconstantCache):
 
         return rs
 #: A short cut for :func:`RACK_SPECS_NAMES.from_reservoir_specs`.
-get_plate_specs_from_reservoir_specs = RACK_SPECS_NAMES.from_reservoir_specs
+get_rack_specs_from_reservoir_specs = RACK_SPECS_NAMES.from_reservoir_specs
 
 #: A short cut for :func:`RACK_SPECS_NAMES.to_reservoir_specs`.
 get_reservoir_specs_from_rack_specs = RACK_SPECS_NAMES.to_reservoir_specs

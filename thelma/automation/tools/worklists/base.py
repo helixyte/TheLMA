@@ -11,27 +11,13 @@ from thelma.models.liquidtransfer import ReservoirSpecs
 
 __docformat__ = 'reStructuredText en'
 
-__all__ = [
-#           'MIN_BIOMEK_TRANSFER_VOLUME',
-#           'MAX_BIOMEK_TRANSFER_VOLUME', TODO:
-#           'MIN_CYBIO_TRANSFER_VOLUME',
-#           'MAX_CYBIO_TRANSFER_VOLUME',
+__all__ = ['TRANSFER_ROLES',
            'LIMIT_TARGET_WELLS',
            'DEAD_VOLUME_COEFFICIENT',
-           'TRANSFER_ROLES',
            'get_dynamic_dead_volume',
            'EmptyPositionManager',
            ]
 
-# TODO: remove
-##: The minimum volume that can be pipetted by a BioMek in ul.
-#MIN_BIOMEK_TRANSFER_VOLUME = 3
-##: The maximum volume that can be pipetted by a BioMek in ul.
-#MAX_BIOMEK_TRANSFER_VOLUME = 200
-##: The minimum volume that can be pipetted by a CyBio in ul.
-#MIN_CYBIO_TRANSFER_VOLUME = 1
-##: The maximum volume that can be pipetted by a CyBio in ul.
-#MAX_CYBIO_TRANSFER_VOLUME = 200
 
 #: This refers to the dynamic dead volume calculation for the Biomek.
 #: It is the maximum number of targets well a source might have before its

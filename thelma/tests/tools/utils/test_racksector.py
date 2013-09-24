@@ -21,20 +21,20 @@ class RackSectorTranslatorTestCase(ToolsAndUtilsTestCase):
         self.number_sectors = 4
         self.source_sector_index = 2
         self.target_sector_index = 0
-        self.enforce_type = None
+        self.behaviour = None
 
     def tear_down(self):
         ToolsAndUtilsTestCase.tear_down(self)
         del self.number_sectors
         del self.source_sector_index
         del self.target_sector_index
-        del self.enforce_type
+        del self.behaviour
 
     def __get_data(self):
         return dict(number_sectors=self.number_sectors,
                     source_sector_index=self.source_sector_index,
                     target_sector_index=self.target_sector_index,
-                    enforce_type=self.enforce_type)
+                    behaviour=self.behaviour)
 
     def test_init_4_sectors(self):
         attrs1 = self.__get_data()
@@ -209,7 +209,7 @@ class RackSectorTranslatorTestCase(ToolsAndUtilsTestCase):
         attrs = self.__get_data()
         attrs['sector_number'] = attrs['number_sectors']
         del attrs['number_sectors']
-        del attrs['enforce_type']
+        del attrs['behaviour']
         prt = self._create_planned_rack_transfer(**attrs)
         self.assert_is_not_none(prt)
         rst = RackSectorTranslator.from_planned_rack_transfer(prt)
@@ -249,7 +249,7 @@ class RackSectorTranslatorTestCase(ToolsAndUtilsTestCase):
             source_shape=shape_384, target_shape=shape_96, number_sectors=1),
                           RackSectorTranslator.ONE_TO_ONE)
 
-    def test_enforce_type(self):
+    def test_behaviour(self):
         self.source_sector_index = 0
         self.target_sector_index = 0
         a1_pos = get_rack_position_from_label('A1')
@@ -259,25 +259,25 @@ class RackSectorTranslatorTestCase(ToolsAndUtilsTestCase):
         c3_pos = get_rack_position_from_label('C3')
         # many to one
         attrs = self.__get_data()
-        attrs['enforce_type'] = RackSectorTranslator.MANY_TO_ONE
+        attrs['behaviour'] = RackSectorTranslator.MANY_TO_ONE
         rst = RackSectorTranslator(**attrs)
         self.assert_equal(rst.translate(a1_pos), a1_pos)
         self.assert_equal(rst.translate(b2_pos), c3_pos)
         self.assert_equal(rst.translate(a2_pos), a3_pos)
         # many to many
-        attrs['enforce_type'] = RackSectorTranslator.MANY_TO_MANY
+        attrs['behaviour'] = RackSectorTranslator.MANY_TO_MANY
         rst = RackSectorTranslator(**attrs)
         self.assert_equal(rst.translate(a1_pos), a1_pos)
         self.assert_equal(rst.translate(c3_pos), c3_pos)
         self.assert_raises(ValueError, rst.translate, a2_pos)
         # one to many
-        attrs['enforce_type'] = RackSectorTranslator.ONE_TO_MANY
+        attrs['behaviour'] = RackSectorTranslator.ONE_TO_MANY
         rst = RackSectorTranslator(**attrs)
         self.assert_equal(rst.translate(a1_pos), a1_pos)
         self.assert_equal(rst.translate(c3_pos), b2_pos)
         self.assert_raises(ValueError, rst.translate, a2_pos)
         # default behaviour = many to many
-        attrs['enforce_type'] = None
+        attrs['behaviour'] = None
         rst = RackSectorTranslator(**attrs)
         self.assert_equal(rst.translate(a1_pos), a1_pos)
         self.assert_equal(rst.translate(c3_pos), c3_pos)

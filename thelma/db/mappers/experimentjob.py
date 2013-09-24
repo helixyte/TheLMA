@@ -1,7 +1,7 @@
 """
 Experiment job mapper.
 """
-from sqlalchemy.orm import mapper
+from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
 from thelma.models.experiment import Experiment
 from thelma.models.job import ExperimentJob
@@ -22,6 +22,6 @@ def create_mapper(job_mapper, job_tbl, experiment_tbl):
                                 cascade='save-update, merge, delete'
                                 )
                                ),
-               polymorphic_identity=JOB_TYPES.RNAI_EXPERIMENT
+               polymorphic_identity=JOB_TYPES.EXPERIMENT
                )
     return m

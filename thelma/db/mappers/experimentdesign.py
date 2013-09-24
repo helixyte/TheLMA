@@ -20,7 +20,7 @@ def create_mapper(experiment_design_tbl, worklist_series_experiment_design_tbl):
                id_attribute='experiment_design_id',
                properties=
                 dict(rack_shape=relationship(RackShape, uselist=False),
-                     design_racks=relationship(ExperimentDesignRack,
+                     experiment_design_racks=relationship(ExperimentDesignRack,
                                         back_populates='experiment_design',
                                         cascade="all, delete, delete-orphan"),
                      experiments=relationship(Experiment,

@@ -4,17 +4,14 @@ Tests for custom liquid transfer plan tools.
 AAB
 """
 from everest.entities.utils import get_root_aggregate
+from thelma.automation.tools.worklists.custom import CustomLiquidTransferTool
 from thelma.automation.tools.semiconstants \
-    import get_plate_specs_from_reservoir_specs
+    import get_rack_specs_from_reservoir_specs
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_reservoir_spec
 from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.worklists.custom \
-    import CustomLiquidTransferExecutor
-from thelma.automation.tools.worklists.custom \
-    import CustomLiquidTransferWorklistWriter
 from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IOrganization
 from thelma.interfaces import IPlate
@@ -31,6 +28,7 @@ class _CustomLiquidTransferPlanToolTestCase(FileReadingTestCase):
         FileReadingTestCase.set_up(self)
         self.VALID_FILE = 'valid_file.xls'
         self.TEST_FILE_PATH = 'thelma:tests/tools/worklists/custom/'
+        self.mode = None
         self.plates = dict(int=None, t1=None, t2=None)
         self.md_map = {11 : self._get_entity(IMoleculeDesign, '11'),
                        12 : self._get_entity(IMoleculeDesign, '12'),
@@ -70,6 +68,11 @@ class _CustomLiquidTransferPlanToolTestCase(FileReadingTestCase):
         del self.start_data
         del self.result_data
 
+    def _create_tool(self):
+        self.tool = CustomLiquidTransferTool(stream=self.stream,
+                                             mode=self.mode,
+                                             user=self.executor_user)
+
     def _continue_setup(self, file_name=None):
         FileReadingTestCase._continue_setup(self, file_name=file_name)
         self.__create_plates()
@@ -80,7 +83,7 @@ class _CustomLiquidTransferPlanToolTestCase(FileReadingTestCase):
         supplier = self._get_entity(IOrganization)
         for name, start_vol in self.start_vols.iteritems():
             rs = get_reservoir_spec(self.rs_names[name])
-            ps = get_plate_specs_from_reservoir_specs(rs)
+            ps = get_rack_specs_from_reservoir_specs(rs)
             plate = ps.create_rack(label=name, status=get_item_status_future())
             barcode = self.barcodes[name]
             if not barcode is None:
@@ -105,6 +108,10 @@ class _CustomLiquidTransferPlanToolTestCase(FileReadingTestCase):
         self.stream = None
         self._test_and_expect_errors('The stream must not be None!')
         self.stream = ori_stream
+        self.mode = None
+        self._test_and_expect_errors('The mode must be a str')
+        self.mode = 'invalid'
+        self._test_and_expect_errors('Unexpected mode: invalid.')
 
     def _test_parsing_error(self):
         self._continue_setup('parsing_error.xls')
@@ -123,15 +130,11 @@ class CustomLiquidTransferWorklistWriterTestCase(
     def set_up(self):
         _CustomLiquidTransferPlanToolTestCase.set_up(self)
         self.WL_PATH = self.TEST_FILE_PATH
+        self.mode = CustomLiquidTransferTool.MODE_PRINT_WORKLISTS
 
     def tear_down(self):
         _CustomLiquidTransferPlanToolTestCase.tear_down(self)
         del self.WL_PATH
-
-    def _create_tool(self):
-        self.tool = CustomLiquidTransferWorklistWriter(stream=self.stream,
-                                                logging_level=30,
-                                                add_default_handlers=True)
 
     def test_result(self):
         self._continue_setup()
@@ -160,12 +163,8 @@ class CustomLiquidTransferExecutorTestCase(
     def set_up(self):
         _CustomLiquidTransferPlanToolTestCase.set_up(self)
         self.executor_user = self._get_entity(IUser, 'it')
+        self.mode = CustomLiquidTransferTool.MODE_EXECUTE
 
-    def _create_tool(self):
-        self.tool = CustomLiquidTransferExecutor(stream=self.stream,
-                                                 user=self.executor_user,
-                                                 logging_level=30,
-                                                add_default_handlers=True)
     def test_result(self):
         self._continue_setup()
         executed_worklists = self.tool.get_result()
@@ -182,11 +181,11 @@ class CustomLiquidTransferExecutorTestCase(
             num_transfers = 0
             for transfers in transfer_items.values():
                 num_transfers += len(transfers)
-            self.assert_equal(len(pw.planned_transfers), num_transfers)
-            elts = ew.executed_transfers
+            self.assert_equal(len(pw.planned_liquid_transfers), num_transfers)
+            elts = ew.executed_liquid_transfers
             self.assert_equal(len(elts), num_transfers)
             if num == 1 or num == 2:
-                transfer_type = TRANSFER_TYPES.CONTAINER_DILUTION
+                transfer_type = TRANSFER_TYPES.SAMPLE_DILUTION
                 if num == 1:
                     diluent = 'buffer'
                     vol = 25
@@ -196,7 +195,7 @@ class CustomLiquidTransferExecutorTestCase(
                 trg_labels = []
                 for elt in elts:
                     self._check_executed_transfer(elt, transfer_type)
-                    plt = elt.planned_transfer
+                    plt = elt.planned_liquid_transfer
                     self.assert_equal(plt.diluent_info, diluent)
                     plt_vol = plt.volume * VOLUME_CONVERSION_FACTOR
                     self.assert_equal(plt_vol, vol)
@@ -207,9 +206,9 @@ class CustomLiquidTransferExecutorTestCase(
             elif num == 3:
                 values = dict()
                 for elt in elts:
-                    plt = elt.planned_transfer
+                    plt = elt.planned_liquid_transfer
                     self._check_executed_transfer(elt,
-                                        TRANSFER_TYPES.CONTAINER_TRANSFER)
+                                                TRANSFER_TYPES.SAMPLE_TRANSFER)
                     src_label = plt.source_position.label
                     if values.has_key(src_label):
                         transfer_map = values[src_label]

@@ -9,7 +9,6 @@ from thelma.automation.parsers.tubehandler import XL20OutputParser
 from thelma.automation.tools.worklists.tubehandler import TubeTransferData
 from thelma.automation.tools.worklists.tubehandler import XL20WorklistWriter
 from thelma.automation.tools.writers import TxtWriter
-import logging
 
 
 __docformat__ = 'reStructuredText en'
@@ -31,8 +30,8 @@ class XL20Dummy(TxtWriter):
 
     NAME = 'XL20 Tubehandler Dummy'
 
-    def __init__(self, xl20_worklist_stream,
-                 logging_level=logging.WARN, add_default_handlers=False):
+    def __init__(self, xl20_worklist_stream, log,
+                 logging_level=None, add_default_handlers=None):
         """
         Constructor:
 
@@ -48,9 +47,8 @@ class XL20Dummy(TxtWriter):
             the default handler upon instantiation.
         :type add_default_handlers: :class:`boolean`
         """
-        TxtWriter.__init__(self, logging_level=logging_level,
-                                 add_default_handlers=add_default_handlers,
-                                 depending=False)
+        TxtWriter.__init__(self, log=log, logging_level=logging_level,
+                                 add_default_handlers=add_default_handlers)
 
         #: The XL20 worklist containing the robot instructions as stream.
         self.xl20_worklist_stream = xl20_worklist_stream

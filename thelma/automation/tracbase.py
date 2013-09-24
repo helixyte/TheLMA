@@ -7,10 +7,11 @@ AAB
 
 
 from pyramid.threadlocal import get_current_registry
-from thelma.automation.errors import ErrorRecording
 from thelma import ThelmaLog
+from thelma.automation.errors import EventRecording
 from thelma.interfaces import ITractor
-import logging
+from xmlrpclib import Fault
+from xmlrpclib import ProtocolError
 
 
 __docformat__ = 'reStructuredText en'
@@ -18,7 +19,7 @@ __all__ = ['BaseTracTool',
            ]
 
 
-class BaseTracTool(ErrorRecording):
+class BaseTracTool(EventRecording):
     """
     A base class for tools that send trac requests.
     """
@@ -27,28 +28,31 @@ class BaseTracTool(ErrorRecording):
     #: email notification.
     NOTIFY = True
 
-    def __init__(self, log=None, logging_level=logging.WARNING,
-                 add_default_handlers=False, depending=True):
+    def __init__(self, log=None, logging_level=None,
+                 add_default_handlers=None, depending=False):
         """
         Constructor:
 
         :param log: The ThelmaLog you want to write in. If the
             log is None, the object will create a new log.
+
         :param logging_level: the desired minimum log level
         :type log_level: :class:`int` (or logging_level as
                          imported from :mod:`logging`)
-        :default logging_level: logging.WARNING
+        :default logging_level: *None*
+
         :param add_default_handlers: If *True* the log will automatically add
             the default handler upon instantiation.
         :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *False*
+        :default add_default_handlers: *None*
+
         :param depending: Defines whether the tool is called by other tools
             or whether it can run on its own (depending tools cannot initialize
             and reset logs).
         :type depending: :class:`bool`
-        :default depending: *True*
+        :default depending: *False*
         """
-        ErrorRecording.__init__(self, log=log,
+        EventRecording.__init__(self, log=log,
                                 logging_level=logging_level,
                                 add_default_handlers=add_default_handlers)
 
@@ -82,8 +86,31 @@ class BaseTracTool(ErrorRecording):
         """
         Sends the request the trac tool is designed for.
         """
-        self.add_error('Abstract method.')
-        return None
+        raise NotImplementedError('Abstract method.')
+
+    def _submit(self, tractor_method, kw):
+        """
+        Convenience method that runs a tractor submission method and catches
+        and records errors.
+
+        :param tractor_method: The method to be called.
+
+        :param kw: The keyword dictionary for the method.
+        :type kwL :class:`dict`
+
+        :return: The method return value or *None* (in case of exception).
+        """
+        try:
+            value = tractor_method(**kw)
+        except ProtocolError, err:
+            self.add_error(err.errmsg)
+            return None
+        except Fault, fault:
+            msg = 'Fault %s: %s' % (fault.faultCode, fault.faultString)
+            self.add_error(msg)
+            return None
+        else:
+            return value
 
     def transaction_completed(self):
         """

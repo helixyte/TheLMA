@@ -24,12 +24,14 @@ __all__ = ['IBarcodePrintJob',
            'IExperimentRack',
            'IGene',
            'IIso',
-           'ILibraryCreationIso',
+           'ILabIso',
+           'IStockSampleCreationIso',
            'IIsoJob',
            'IIsoRequest',
+           'ILabIsoRequest',
+           'IStockSampleCreationIsoRequest',
            'IItemStatus',
            'IJob',
-           'IJobType',
            'ILocation',
            'ILocationType',
            'IMolecule',
@@ -105,27 +107,27 @@ class IDevice(Interface):
     """
 
 
-class IExecutedTransfer(Interface):
+class IExecutedLiquidTransfer(Interface):
     """
     Marker interface indicating participation in executed transfer resources.
     """
 
 
-class IExecutedContainerDilution(Interface):
+class IExecutedSampleDilution(Interface):
     """
     Marker interface indicating participation in executed container dilution
     resources.
     """
 
 
-class IExecutedContainerTransfer(Interface):
+class IExecutedSampleTransfer(Interface):
     """
     Marker interface indicating participation in executed container transfer
     resources.
     """
 
 
-class IExecutedRackTransfer(Interface):
+class IExecutedRackSampleTransfer(Interface):
     """
     Marker interface indicating participation in executed rack transfer
     resources.
@@ -200,9 +202,16 @@ class IIso(Interface):
     """
 
 
-class ILibraryCreationIso(IIso):
+class ILabIso(Interface):
     """
-    Marker interface indication participation of library creation ISO resources.
+    Marker interface indicating participation in lab ISO resources.
+    """
+
+
+class IStockSampleCreationIso(IIso):
+    """
+    Marker interface indication participation of stock sample creation
+    ISO resources.
     """
 
 
@@ -218,6 +227,19 @@ class IIsoRequest(Interface):
     """
 
 
+class ILabIsoRequest(Interface):
+    """
+    Marker interface indicating participation in lab ISO request resources.
+    """
+
+
+class IStockSampleCreationIsoRequest(Interface):
+    """
+    Marker interface indicating participation in stock sample creation ISO
+    request resources.
+    """
+
+
 class IItemStatus(Interface):
     """
     Marker interface indicating participation in item status resources.
@@ -229,16 +251,11 @@ class IJob(Interface):
     Marker interface indicating participation in job resources.
     """
 
-class IIsoSampleStockRack(Interface):
-    """
-    Marker interface for iso sample stock rack.
-    """
 
-class IJobType(Interface):
+class IIsoStockRack(Interface):
     """
-    Marker interface indicating participation in job type resources.
+    Marker interface for ISO stock racks.
     """
-
 
 class ILocation(Interface):
     """
@@ -302,27 +319,27 @@ class IOrganization(Interface):
     """
 
 
-class IPlannedTransfer(Interface):
+class IPlannedLiquidTransfer(Interface):
     """
     Marker interface indicating participation in planned transfer resources
     """
 
 
-class IPlannedContainerDilution(Interface):
+class IPlannedSampleDilution(Interface):
     """
     Marker interface indicating participation in planned container dilution
     resources
     """
 
 
-class IPlannedContainerTransfer(Interface):
+class IPlannedSampleTransfer(Interface):
     """
     Marker interface indicating participation in planned container transfer
     resources
     """
 
 
-class IPlannedRackTransfer(Interface):
+class IPlannedRackSampleTransfer(Interface):
     """
     Marker interface indicating participation in planned rack transfer resources
     """

@@ -8,11 +8,11 @@ import logging
 
 __docformat__ = 'reStructuredText en'
 
-__all__ = ['ErrorRecording',
+__all__ = ['EventRecording',
            ]
 
 
-class ErrorRecording(object):
+class EventRecording(object):
     """
     This is the abstract base class for all classes recording errors
     and events.
@@ -81,6 +81,22 @@ class ErrorRecording(object):
         #: The errors that have occurred within the tool.
         self._error_count = 0
 
+        #: As soon this is set to *True* errors and warnings will not be
+        #: recorded anymore.
+        #: However, the execution of running methods is still aborted.
+        #: Use :func:`disable_error_and_warning_recording` to activate.
+        self.__disable_err_warn_rec = False
+        #: If this is set to *True* the execution of methods is aborted
+        #: silently.
+        self._abort_execution = False
+
+    def disable_error_and_warning_recording(self):
+        """
+        Use this method to disable recording of error and warning events.
+        In cases of errors, method execution will still be aborted, though.
+        """
+        self.__disable_err_warn_rec = True
+
     def get_messages(self, logging_level=logging.WARNING):
         """
         Returns the log's messages having the given severity level or more.
@@ -96,7 +112,7 @@ class ErrorRecording(object):
                  or the number of errors detected (\'True\')
         :rtype: :class:`int` (:class:`boolean`)
         """
-        return self._error_count
+        return (self._error_count > 0 or self._abort_execution)
 
     def reset_log(self):
         """
@@ -143,7 +159,7 @@ class ErrorRecording(object):
 
         """
         evt = LogEvent(self.NAME, error_msg)
-        self.log.add_critical(evt)
+        if not self.__disable_err_warn_rec: self.log.add_critical(evt)
         self._adjust_error_count(logging.CRITICAL)
 
     def add_error(self, error_msg):
@@ -156,7 +172,7 @@ class ErrorRecording(object):
         :type error_msg: :class:`string`
         """
         evt = LogEvent(self.NAME, error_msg)
-        self.log.add_error(evt)
+        if not self.__disable_err_warn_rec: self.log.add_error(evt)
         self._adjust_error_count(logging.ERROR)
 
     def add_warning(self, warning_msg):
@@ -169,7 +185,7 @@ class ErrorRecording(object):
         """
         evt = LogEvent(self.NAME, warning_msg,
                        is_exception=False)
-        self.log.add_warning(evt)
+        if not self.__disable_err_warn_rec: self.log.add_warning(evt)
         self._adjust_error_count(logging.WARNING)
 
     def add_info(self, info_msg):
@@ -213,8 +229,10 @@ class ErrorRecording(object):
         Increases the tools error count if the severity of a logging level
         is equal or above the :attr:`ERROR_THRESHOLD`.
         """
-        if logging_level >= self.ERROR_THRESHOLD:
+        if logging_level >= self.ERROR_THRESHOLD and \
+                                            not self.__disable_err_warn_rec:
             self._error_count += 1
+        self._abort_execution = True
 
     def add_log_handlers(self, handlers):
         """
@@ -242,8 +260,10 @@ class ErrorRecording(object):
 
         :param name: The name under which the object shall be referenced.
         :type name: :class:`str`
+
         :param obj: The object to be tested.
         :type obj: any
+
         :param exp_class: The expected class.
         :type exp_class: any
         """
@@ -253,3 +273,161 @@ class ErrorRecording(object):
             self.add_error(msg)
             return False
         return True
+
+    def _check_input_list_classes(self, item_name, list_obj, item_cls,
+                                  may_be_empty=False):
+        """
+        Checks whether a list and the objects it contains have the expected
+        class and a length of at least 1 and records an error, if applicable.
+
+        :param item_name: The name under which a list item shall be referenced
+            in the error message.
+        :type item_name: :class:`str
+
+        :param list_obj: The list to be tested.
+        :type list_obj: :class:`list`
+
+        :param item_cls: The expected class for the list items.
+        :type item_cls: any
+
+        :param may_be_empty: May the list be empty?
+        :type may_be_empty: :class:`bool`
+        :default may_be_empty: *False*
+        """
+        list_name = '%s list' % (item_name)
+        if not self._check_input_class(list_name, list_obj, list):
+            return False
+
+        for item in list_obj:
+            if not self._check_input_class(item_name, item, item_cls):
+                return False
+        if len(list_obj) < 1 and not may_be_empty:
+            msg = 'The %s is empty!' % (list_name)
+            self.add_error(msg)
+            return False
+
+        return True
+
+    def _check_input_map_classes(self, map_obj, map_name, key_name, key_cls,
+                                 value_name, value_cls, may_be_empty=False):
+        """
+        Checks whether a maps and the objects it contains have the expected
+        class and a length of at least 1 and records an error, if applicable.
+
+        :param map_obj: The map to be tested.
+        :type map_obj: :class:`dict`
+
+        :param map_name: The name under which the map shall be referenced
+            in the error message.
+        :type map_name: :class:`str
+
+        :param key_name: The name under which a map key item be referenced
+            in the error message.
+        :type key_name: :class:`str
+
+        :param value_name: The name under which a mape value shall be
+            referenced in the error message.
+        :type value_name: :class:`str
+
+        :param key_cls: The expected class for the map keys.
+        :type key_cls: any
+
+        :param value_cls: The expected class for the map values.
+        :type value_cls: any
+
+        :param may_be_empty: May the list be empty?
+        :type may_be_empty: :class:`bool`
+        :default may_be_empty: *False*
+        """
+        if not self._check_input_class(map_name, map_obj, dict):
+            return False
+
+        for k, v in map_obj.iteritems():
+            if not self._check_input_class(key_name, k, key_cls):
+                return False
+            if not self._check_input_class(value_name, v, value_cls):
+                return False
+
+        if len(map_obj) < 1 and not may_be_empty:
+            msg = 'The %s is empty!' % (map_name)
+            self.add_error(msg)
+            return False
+
+        return True
+
+    def _run_and_record_error(self, meth, base_msg, error_types=None, **kw):
+        """
+        Convenience method that runs a method and catches errors of the
+        specified class. The error messages are recorded along with the
+        base msg.
+
+        :param meth: The method to be called.
+
+        :param base_msg: This message is put in front of the potential error
+            message. If the message is *None* there is no error recorded.
+        :type base_msg: :class:`str`
+
+        :param error_types: Error classes that shall be caught.
+        :type error_types: iterable
+        :default error_type: *None* (catches AttributeError, ValueError and
+            TypeError)
+
+        :return: The method return value or *None* (in case of exception)
+        """
+        if base_msg is not None:
+            filler = ': '
+            if base_msg.endswith(filler):
+                filler = ''
+            elif base_msg.endswith(':'):
+                filler = ' '
+            base_msg += filler
+        if error_types is None:
+            error_types = set(ValueError, TypeError, AttributeError)
+        elif isinstance(error_types, StandardError):
+            error_types = set([error_types])
+
+        try:
+            return_value = meth(**kw)
+        except StandardError as e:
+            if e.__class__ in error_types and not base_msg is None:
+                self.add_error(base_msg + e)
+            else:
+                raise e
+        else:
+            return return_value
+
+    def _get_joined_str(self, item_list, is_strs=True, sort_items=True,
+                        separator=', '):
+        """
+        Helper method converting the passed list into a join string, separated
+        by comma (default). By default, the elements are sorted before
+        conversion. This is handy i.e. when printing error messages.
+
+        :param item_list: The recorded events in a list.
+        :type item_list: :class:`list` or iterable that can be converted into
+            a list
+
+        :param is_strs: If not the items must be converted first.
+            Without conversion the join method will raise an error.
+        :type is_strs: :class:`bool`
+        :default is_strs: *True*
+
+        :param sort_items: Shall the items be sorted?
+        :type sort_items: :class:`bool`
+        :default sort_items: *True*
+
+        :param separator: The string to use for the joining.
+        :type separator: :class:`str`
+        :default separator: comma and 1 whitespace
+        """
+        if not isinstance(item_list, list):
+            item_list = list(item_list)
+        if sort_items: item_list.sort()
+        if is_strs:
+            item_strs = item_list
+        else:
+            item_strs = []
+            for item in item_list: item_strs.append(str(item))
+
+        return separator.join(item_strs)
+

@@ -5,15 +5,13 @@ AAB, Created on Jun 22, 2011
 """
 
 from everest.entities.base import Entity
-from everest.entities.utils import slug_from_string
-from everest.entities.utils import slug_from_integer
-from thelma.models.utils import get_current_user
+from thelma.utils import get_utc_time
+from thelma.models.iso import IsoJobPreparationPlate
 
 __docformat__ = 'reStructuredText en'
 
 __all__ = ['JOB_TYPES',
            'Job',
-           'OtherJob',
            'ExperimentJob',
            'IsoJob']
 
@@ -22,163 +20,68 @@ class JOB_TYPES(object):
     """
     Valid job types.
     """
-    OTHER = 'OTHER'
-    RNAI_EXPERIMENT = 'RNAI_EXPERIMENT'
-    ISO_PROCESSING = 'ISO_PROCESSING'
-
-
-class JobType(Entity):
-    """
-    This class represents a job type, such as 'Dilution', 'Replicating' a.s.o.
-
-    **Equality Condition**: equal :attr:`name`
-    """
-
-    #: The name of the job type.
-    name = None
-    #: The label of the job type.
-    label = None
-    # The XML description of the job's workflow.
-    xml = None
-
-    def __init__(self, name, label, xml, **kw):
-        Entity.__init__(self, **kw)
-        self.name = name
-        self.label = label
-        self.xml = xml
-
-    @property
-    def slug(self):
-        #: For instances of this class, the slug is derived from the
-        #: :attr:`name`.
-        return slug_from_string(self.name)
-
-    def __eq__(self, other):
-        """
-        Equality operator.
-        Equality is based o the :attr:`name`.
-        """
-        return (isinstance(other, JobType) \
-                and self.name == other.name)
-
-    def __str__(self):
-        return self.name
-
-    def __repr__(self):
-        str_format = '<%s name: %s>'
-        params = (self.__class__.__name__, self.name)
-        return str_format % params
-
-
-class JOB_STATUS_TYPES(object):
-    """
-    Known job statuses.
-    """
-    QUEUED = 'QUEUED'
-    IN_PROGRESS = 'IN_PROGRESS'
-    DONE = 'DONE'
-    CANCELLED = 'CANCELLED'
+    #: Base type.
+    BASE = 'BASE'
+    #: Experiment jobs contain :class:`Experiment`s that are handled together.
+    #: All experiments in the job must belong to the same
+    # :class:`ExperimentMetadata`.
+    EXPERIMENT = 'EXPERIMENT'
+    #: ISO job contain :class:`Iso`s that are processed together. There might
+    #: share stock racks (e.g. for controls in screenings). All ISOs in the job
+    #: must belong to the same :class:`IsoRequest`.
+    ISO = 'ISO'
 
 
 class Job(Entity):
     """
-    This class represents a job for the laboratory.
+    Jobs group entities that represent (laboratory) tasks. Tasks belonging to
+    the same job are typically conducted together in one run (physically).
+    Items belonging to the same job might share properties such as a layout or
+    a rack.
+
+    There is no status tracking at the moment except for the storage of
+    the creation time.
 
     **Equality Condition**: equal :attr:`id`
     """
-
-    #: The type of the job (element of :class:`JOB_TYPES`).
-    type = None
+    #: Defines the entity type group by this job (see :class:`JOB_TYPES`).
+    job_type = None
     #: The (human-readable) label of this job.
     label = None
-    #: May contain more detailed information.
-    description = None
-    #: The job type (:class:`JobType`)
-    job_type = None
     #: The user this job is assigned to (:class:`thelma.models.user.User`)
     user = None
-    #: The subproject this job belongs to
-    #:(:class:`thelma.models.subproject.Subproject`)
-    subproject = None
-    #: Records the progress of the job (:class:`JOB_STATUS_TYPES`)
-    status = None
-    #: The time the job has been started.
-    start_time = None
-    #: The time the job has been finished.
-    end_time = None
+    #: A timestamp storing the time of creation.
+    creation_time = None
 
-    def __init__(self, label, subproject, job_type, user=None,
-                 description=None, status=None, start_time=None, **kw):
-
-        Entity.__init__(self, **kw)
-        self.label = label
-        self.job_type = job_type
-        self.user = user
-        self.subproject = subproject
-        self.description = description
-        self.start_time = start_time
-        if status == None:
-            status = JOB_STATUS_TYPES.QUEUED
-        self.status = status
-
-    @property
-    def slug(self):
-        #: For instances of this class, the slug is derived from the
-        #: :attr:`id`.
-        return slug_from_integer(self.id)
-
-    @classmethod
-    def create_from_data(cls, data):
-        if not 'user' in data:
-            user = get_current_user()
-            data['user'] = user
-        return cls(**data)
-
-    def  __eq__(self, other):
-        """
-        Equality operator.
-        Equality is based o the :attr:`id`.
-        """
-        return (isinstance(other, Job) \
-                and self.id == other.id)
-
-    def __str__(self):
-        return self.id
-
-    def __repr__(self):
-        str_format = '<%s id: %s, label: %s, type: %s, status: %s, ' \
-                     'subproject: %s, user: %s>'
-        params = (self.__class__.__name__, self.id, self.label, self.type,
-                  self.status, self.subproject, self.user)
-        return str_format % params
-
-
-class OtherJob(Job):
-    """
-    A class for jobs that neither RNAi experiment nor ISO processing jobs.
-
-    **Equality Condition**: equal :attr:`id`
-    """
-
-    def __init__(self, label, subproject, job_type=None, user=None,
-                 description=None, status=None, **kw):
+    def __init__(self, label, user, creation_time=None, job_type=None, **kw):
         """
         Constructor
         """
-        Job.__init__(self, label=label,
-                     subproject=subproject,
-                     job_type=job_type,
-                     user=user,
-                     description=description,
-                     status=status,
-                     **kw)
-        self.type = JOB_TYPES.OTHER
+        if self.__class__ is Job:
+            raise NotImplementedError('Abstract class')
+        Entity.__init__(self, **kw)
+        if job_type is None:
+            job_type = JOB_TYPES.BASE
+        self.job_type = job_type
+        self.label = label
+        self.user = user
+        if creation_time is None:
+            creation_time = get_utc_time()
+        self.creation_time = creation_time
+
+    def __str__(self):
+        return self.label
+
+    def __repr__(self):
+        str_format = '<%s id: %s, label: %s, user: %s>'
+        params = (self.__class__.__name__, self.id, self.label, self.user)
+        return str_format % params
 
 
-# TODO: create separate job type
 class ExperimentJob(Job):
     """
-    This is a special type for RNAi experiments.
+    A job class grouping :class:`Experiment` entities. All experiments must
+    belong to the same :class:`ExperimentDesign`.
 
     **Equality Condition**: equal :attr:`id`
     """
@@ -187,53 +90,57 @@ class ExperimentJob(Job):
     #: associated with this job.
     experiments = None
 
-    def __init__(self, label, job_type, experiments=None, subproject=None, **kw):
+    def __init__(self, label, user, experiments, **kw):
         """
-        Constructor
+        Constructor:
         """
-
-        if experiments is None:
+        if experiments is None or len(experiments) < 1:
             raise ValueError('An experiment job must consist of at least ' \
                              '1 experiment!')
-
-        if subproject is None:
-            subproject = experiments[0].experiment_design.experiment_metadata.\
-                               subproject
-        Job.__init__(self, label=label, subproject=subproject,
-                     job_type=job_type,
-                     **kw)
-        self.type = JOB_TYPES.RNAI_EXPERIMENT
+        Job.__init__(self, label=label, user=user,
+                     job_type=JOB_TYPES.EXPERIMENT, **kw)
         self.experiments = experiments
+
+    def __len__(self):
+        return len(self.experiments)
+
+    def __iter__(self):
+        return iter(self.experiments)
 
 
 class IsoJob(Job):
     """
-    This is a special job class for ISO processing jobs.
+    A job class grouping :class:`Iso` entities. All ISOs must belong to the
+    same :class:`IsoRequest`. They might share an :class:`IsoJobStockRack`
+    and an :class:`IsoJobPreparationPlate`.
 
     **Equality Condition**: equal :attr:`id`
     """
 
     #: The ISOs belonging to this job.
     isos = []
-    #: The rack containing the stock tubes for the controls that are
-    #: used in this job (384-well plate ISOs only)
-    #: (:class:`thelma.models.iso.IsoControlStockRack`)
-    iso_control_stock_rack = None
+    #: The maximum number if ISO stock racks for this ISO job.
+    number_stock_racks = None
 
-    def __init__(self, label, job_type, isos, **kw):
+    #: The rack containing the stock tubes for the controls that are
+    #: used in this job (not every ISO job needs some, list of
+    #: :class:`thelma.models.iso.IsoJobStockRack`)
+    iso_job_stock_racks = None
+    #: The plates used to predilute controls before there are transferred
+    #: to the ISO plates. The samples in this plate serve as source for all
+    #: ISOs in this job (not every ISO job needs some, list of
+    #: :class:`thelma.models.iso.IsoJobPreparationPlate`).
+    iso_job_preparation_plates = None
+
+    def __init__(self, label, user, isos, number_stock_racks, **kw):
         """
         Constructor
         """
-        if isos is None:
+        if isos is None or len(isos) < 1:
             raise ValueError('An ISO job must consist of at least 1 ISO!')
-
-        iso_request = isos[0].iso_request
-        Job.__init__(self, label=label,
-                     subproject=iso_request.experiment_metadata.subproject,
-                     job_type=job_type,
-                     **kw)
-        self.type = JOB_TYPES.ISO_PROCESSING
+        Job.__init__(self, label=label, user=user, job_type=JOB_TYPES.ISO, **kw)
         self.isos = isos
+        self.number_stock_racks = number_stock_racks
 
     @property
     def iso_request(self):
@@ -252,16 +159,21 @@ class IsoJob(Job):
 
         return iso_request
 
-    def __eq__(self, other):
-        return isinstance(other, IsoJob) and self.id == other.id
+    def add_preparation_plate(self, plate, rack_layout):
+        """
+        Adds an :class:`IsoJobPreparationPlate`.
+
+        :param plate: The plate to be added.
+        :type plate: :class:`thelma.models.rack.Plate`
+
+        :param rack_layout: The rack layout containing the plate data.
+        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
+        """
+        IsoJobPreparationPlate(iso_job=self, rack=plate,
+                               rack_layout=rack_layout)
 
     def __len__(self):
         return len(self.isos)
 
     def __iter__(self):
         return iter(self.isos)
-
-    def __repr__(self):
-        str_format = '<%s id: %s, label: %s, status: %s>'
-        params = (self.__class__.__name__, self.id, self.label, self.status)
-        return str_format % params

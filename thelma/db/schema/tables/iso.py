@@ -1,12 +1,12 @@
 """
 ISO table.
 """
+from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Table
-from sqlalchemy.schema import CheckConstraint
 from thelma.models.iso import ISO_TYPES
 
 __docformat__ = "reStructuredText en"
@@ -22,15 +22,19 @@ def create_table(metadata, iso_request_tbl, rack_layout_tbl):
                 Column('iso_request_id', Integer,
                        ForeignKey(iso_request_tbl.c.iso_request_id),
                        nullable=False),
-                Column('optimizer_excluded_racks', String, nullable=True),
-                Column('optimizer_required_racks', String, nullable=True),
                 Column('rack_layout_id', Integer,
                        ForeignKey(rack_layout_tbl.c.rack_layout_id),
                        nullable=False),
                 Column('iso_type', String,
                        CheckConstraint(
-                         'iso_type IN (\'%s\', \'%s\')'
-                         % (ISO_TYPES.STANDARD, ISO_TYPES.LIBRARY_CREATION)),
-                         nullable=False, default=ISO_TYPES.STANDARD)
+                         'iso_type IN (\'%s\', \'%s\', \'%s\')'
+                         % (ISO_TYPES.BASE, ISO_TYPES.LAB,
+                            ISO_TYPES.STOCK_SAMPLE_GENERATION)),
+                         nullable=False),
+                Column('number_stock_racks', Integer,
+                       CheckConstraint('number_stock_racks >= 0'),
+                       nullable=False),
+                Column('optimizer_excluded_racks', String, nullable=True),
+                Column('optimizer_required_racks', String, nullable=True)
                 )
     return tbl

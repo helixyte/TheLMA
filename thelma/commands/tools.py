@@ -2,12 +2,12 @@
 Run tool command.
 """
 from everest.entities.utils import get_root_aggregate
-from everest.resources.interfaces import IMemberResource
 from everest.mime import JsonMime
-from everest.querying.specifications import eq
+from everest.querying.specifications import eq # pylint: disable=W0611
 from everest.repositories.interfaces import IRepositoryManager
 from everest.repositories.rdb import Session as session_maker
 from everest.representers.utils import as_representer
+from everest.resources.interfaces import IMemberResource
 from everest.resources.interfaces import IService
 from everest.resources.utils import get_collection_class
 from everest.utils import classproperty
@@ -18,10 +18,10 @@ from pyramid.registry import Registry
 from pyramid.testing import DummyRequest
 from sqlalchemy import event
 from sqlalchemy.orm.session import Session
-from thelma.automation.tools.poolcreation.ticket \
-    import PoolCreationStockTransferReporter
-from thelma.automation.tools.poolcreation.ticket \
-    import PoolCreationTicketWorklistUploader
+from thelma.automation.tools.iso.poolcreation.ticket \
+    import StockSampleCreationStockTransferReporter
+from thelma.automation.tools.iso.poolcreation.ticket \
+    import StockSampleCreationTicketWorklistUploader
 from thelma.automation.tools.stock.sampleregistration import \
     IMoleculeDesignPoolRegistrationItem
 from thelma.automation.tools.stock.sampleregistration import \
@@ -30,9 +30,9 @@ from thelma.automation.tools.stock.sampleregistration import \
     ISampleRegistrationItem
 from thelma.automation.tools.stock.sampleregistration import \
     ISupplierSampleRegistrationItem
-from thelma.interfaces import IIsoRequest
-from thelma.interfaces import ILibraryCreationIso
-from thelma.interfaces import IMoleculeDesignLibrary
+from thelma.interfaces import IIsoJob
+from thelma.interfaces import IStockSampleCreationIso
+from thelma.interfaces import IStockSampleCreationIsoRequest
 from thelma.interfaces import ITube
 from thelma.interfaces import ITubeTransferWorklist
 from thelma.interfaces import IUser
@@ -834,12 +834,12 @@ class PoolGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
     _user_callback = \
             LazyOption(lambda cls, value, options:
                             get_root_aggregate(IUser).get_by_slug(value))
+
     name = 'poolcreationlibrarygenerator'
-    tool = 'thelma.automation.tools.poolcreation.generation:PoolCreationLibraryGenerator'
+    tool = 'thelma.automation.tools.iso.poolcreation.generation:StockSampleCreationIsoRequestGenerator'
     option_defs = [('--iso-request-label',
                     'iso_request_label',
-                    dict(help='Name of the molecule design and ISO request '
-                              'library to create.'
+                    dict(help='Name of stock sample ISO request to create.'
                          )
                     ),
                    ('--excel-file',
@@ -874,8 +874,8 @@ class PoolGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
     @classmethod
     def finalize(cls, tool, options):
         if not tool.has_errors():
-            lib_agg = get_root_aggregate(IMoleculeDesignLibrary)
-            lib_agg.add(tool.return_value)
+            ir_agg = get_root_aggregate(IStockSampleCreationIsoRequest)
+            ir_agg.add(tool.return_value)
 
 
 class PoolCreationIsoGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
@@ -885,63 +885,77 @@ class PoolCreationIsoGeneratorToolCommand(ToolCommand): # no __init__ pylint: di
 
     @classmethod
     def get_iso_request(cls, value):
-        agg = get_root_aggregate(IIsoRequest)
-        agg.filter = eq(plate_set_label=value)
-        return list(agg.iterator())[0]
+        ir_agg = get_root_aggregate(IStockSampleCreationIsoRequest)
+        ir_agg.filter = eq(label=value)
+        return list(ir_agg.iterator())[0]
 
     _iso_request_callback = LazyOption(lambda cls, value, options: # pylint: disable=W0108
                     PoolCreationIsoGeneratorToolCommand.get_iso_request(value))
 
     name = 'poolcreationisogenerator'
-    tool = 'thelma.automation.tools.poolcreation.ticket:PoolCreationIsoCreator'
+    tool = 'thelma.automation.tools.iso.poolcreation.ticket:StockSampleCreationIsoCreator'
     option_defs = [('--iso-request-label',
                     'iso_request',
-                    dict(help='The plate set label of the ISO request whose ' \
-                              'ISOs to create.',
+                    dict(help='The label of the ISO request whose ISOs to ' \
+                              'create.',
                         action='callback',
                         type='string',
                         callback=_iso_request_callback),
                     )
                    ]
 
-
-class PoolCreationIsoPopulatorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
-    """
-    Populates ISOs for a pool stock sample creation ISO request.
-    """
+class PoolCreationIsoJobCreatorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
 
     @classmethod
-    def get_library(cls, value):
-        agg = get_root_aggregate(IMoleculeDesignLibrary)
-        agg.filter = eq(label=value)
-        return list(agg.iterator())[0]
+    def get_iso_request(cls, value):
+        ir_agg = get_root_aggregate(IStockSampleCreationIsoRequest)
+        ir_agg.filter = eq(label=value)
+        return list(ir_agg.iterator())[0]
 
-    _library_callback = LazyOption(lambda cls, value, options: # pylint: disable=W0108
-                    PoolCreationIsoPopulatorToolCommand.get_library(value))
+    _iso_request_callback = LazyOption(lambda cls, value, options: # pylint: disable=W0108
+                    PoolCreationIsoGeneratorToolCommand.get_iso_request(value))
 
-    name = 'poolcreationisopopulator'
-    tool = 'thelma.automation.tools.poolcreation.iso:PoolCreationIsoPopulator'
-    option_defs = [('--pool-creation-library',
-                    'pool_creation_library',
-                    dict(help='The label of the pool creation library whose ' \
-                              'ISOs to populate.',
+    _user_callback = \
+            LazyOption(lambda cls, value, options:
+                            get_root_aggregate(IUser).get_by_slug(value))
+
+    name = 'poolcreationisogenerator'
+    tool = 'thelma.automation.tools.iso.poolcreation.jobcreator:StockSampleCreationIsoJobCreator'
+
+    option_defs = [('--iso-request-label',
+                    'iso_request',
+                    dict(help='The label of the ISO request whose ISOs to ' \
+                              'create.',
                         action='callback',
                         type='string',
-                        callback=_library_callback),
+                        callback=_iso_request_callback),
+                    ),
+                   ('--job-owner',
+                    'job_owner',
+                    dict(help='User name of the user the job will be ' \
+                              'assigned to.',
+                         action='callback',
+                         type='string',
+                         callback=_user_callback)
                     ),
                    ('--number-isos',
                     'number_isos',
                     dict(help='The number of ISOs ordered.',
                          type='int')
-                    ),
-                   ]
+                    )]
+
+    @classmethod
+    def finalize(cls, tool, options):
+        if not tool.has_errors():
+            ij_agg = get_root_aggregate(IIsoJob)
+            ij_agg.add(tool.return_value)
 
 
 class PoolCreationWorklistWriterToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
 
     @classmethod
     def get_iso(cls, value):
-        agg = get_root_aggregate(ILibraryCreationIso)
+        agg = get_root_aggregate(IStockSampleCreationIso)
         agg.filter = eq(label=value)
         return list(agg.iterator())[0]
 
@@ -952,9 +966,9 @@ class PoolCreationWorklistWriterToolCommand(ToolCommand): # no __init__ pylint: 
                                                   value.split(','))
 
     name = 'poolcreationworklistwriter'
-    tool = 'thelma.automation.tools.poolcreation.writer:PoolCreationWorklistWriter'
+    tool = 'thelma.automation.tools.iso.poolcreation.writer:StockSampleCreationWorklistWriter'
     option_defs = [('--iso',
-                    'pool_creation_iso',
+                    'iso',
                     dict(help='Label of the pool creation ISO for which ' \
                               'you want to get worklist files.',
                         action='callback',
@@ -979,14 +993,18 @@ class PoolCreationWorklistWriterToolCommand(ToolCommand): # no __init__ pylint: 
                               'have empty tubes in defined positions.',
                          type='string')
                     ),
-                   ]
+                   ('--use-single-source-rack',
+                    'use_single_source_rack',
+                    dict(help='If there are only few pools to be created the ' \
+                              'user might want to use a single stock rack.',
+                         type='bool')
+                   )]
 
     @classmethod
     def finalize(cls, tool, options):
         if not tool.has_errors() and not options.simulate:
-            uploader = PoolCreationTicketWorklistUploader(
-                        pool_creation_iso=tool.pool_creation_iso,
-                        file_map=tool.return_value)
+            uploader = StockSampleCreationTicketWorklistUploader(
+                        writer=tool)
             uploader.send_request()
             if not uploader.transaction_completed():
                 msg = 'Error during transmission to Trac!'
@@ -997,7 +1015,7 @@ class PoolCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: disabl
 
     @classmethod
     def get_iso(cls, value):
-        agg = get_root_aggregate(ILibraryCreationIso)
+        agg = get_root_aggregate(IStockSampleCreationIso)
         agg.filter = eq(label=value)
         return list(agg.iterator())[0]
 
@@ -1009,9 +1027,9 @@ class PoolCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: disabl
                         get_root_aggregate(IUser).get_by_slug(value))
 
     name = 'poolcreationexecutor'
-    tool = 'thelma.automation.tools.poolcreation.execution:PoolCreationExecutor'
+    tool = 'thelma.automation.tools.iso.poolcreation.execution:StockSampleCreationExecutor'
     option_defs = [('--iso',
-                    'pool_creation_iso',
+                    'iso',
                     dict(help='Label of the stock sample creation ISO which ' \
                               'you want to update.',
                         action='callback',
@@ -1030,7 +1048,7 @@ class PoolCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: disabl
     @classmethod
     def finalize(cls, tool, options):
         if not tool.has_errors() and not options.simulate:
-            reporter = PoolCreationStockTransferReporter(
+            reporter = StockSampleCreationStockTransferReporter(
                         executor=tool)
             reporter.send_request()
             if not reporter.transaction_completed():
@@ -1122,13 +1140,16 @@ class XL20DummyToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
             o.close()
 
 
-class CustomLiquidTransferWorklistWriterToolCommand(ToolCommand):
+class CustomLiquidTransferToolCommand(ToolCommand):
 
-    name = 'customliquidtransferworklistwriter'
-    tool = 'thelma.automation.tools.worklists.custom:CustomLiquidTransferWorklistWriter'
+    name = 'customliquidtransfertool'
+    tool = 'thelma.automation.tools.worklists.custom:CustomLiquidTransferTool'
 
     _excel_file_callback = LazyOption(lambda cls, value, options:
                                             open(value, 'rb').read())
+    _user_callback = \
+        LazyOption(lambda cls, value, options:
+                                get_root_aggregate(IUser).get_by_slug(value))
 
     option_defs = [('--excel-file',
                     'stream',
@@ -1136,7 +1157,20 @@ class CustomLiquidTransferWorklistWriterToolCommand(ToolCommand):
                          action='callback',
                          type='string',
                          callback=_excel_file_callback)
-                    )]
+                    ),
+                   ('--mode',
+                    'mode',
+                    dict(help='"execute" (requires user) or "print"',
+                         type='string')),
+                   ('--user',
+                    'user',
+                    dict(help='User name how executes the update ' \
+                              '(if modes is "execution").',
+                         action='callback',
+                         type='string',
+                         callback=_user_callback),
+                   )
+                   ]
 
 # TODO: think about how to make this prettier
 #    @classmethod

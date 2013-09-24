@@ -4,19 +4,19 @@ tests the generic sample transfer excel file parser
 AAB
 """
 from everest.entities.utils import get_root_aggregate
+from thelma.models.liquidtransfer import PlannedSampleDilution
+from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.automation.handlers.sampletransfer \
     import GenericSampleTransferPlanParserHandler
 from thelma.automation.parsers.sampletransfer \
     import GenericSampleTransferPlanParser
 from thelma.automation.tools.semiconstants \
-    import get_plate_specs_from_reservoir_specs
+    import get_rack_specs_from_reservoir_specs
 from thelma.automation.tools.semiconstants import RACK_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IRack
-from thelma.models.liquidtransfer import PlannedContainerDilution
-from thelma.models.liquidtransfer import PlannedContainerTransfer
 from thelma.tests.tools.tooltestingutils import ParsingTestCase
 
 class GenericSampleTransferParserTestCase(ParsingTestCase):
@@ -89,7 +89,7 @@ class GenericSampleTransferParserTestCase(ParsingTestCase):
                 rack_spec = RACK_SPECS_NAMES.from_name(
                                                 RACK_SPECS_NAMES.STOCK_RACK)
             else:
-                rack_spec = get_plate_specs_from_reservoir_specs(reservoir_spec)
+                rack_spec = get_rack_specs_from_reservoir_specs(reservoir_spec)
             rack = rack_spec.create_rack(label=barcode, barcode=barcode,
                                          status=get_item_status_future())
             rack_agg.add(rack)
@@ -112,13 +112,13 @@ class GenericSampleTransferParserTestCase(ParsingTestCase):
             step_number = self.__get_wl_numbers([worklist])[0]
             is_dilution = self.diluents.has_key(step_number)
             pts = []
-            for pt in worklist.planned_transfers:
+            for pt in worklist.planned_liquid_transfers:
                 volume = pt.volume * VOLUME_CONVERSION_FACTOR
                 if is_dilution:
-                    self.assert_equal(pt.__class__, PlannedContainerDilution)
+                    self.assert_equal(pt.__class__, PlannedSampleDilution)
                     pt_data = (pt.target_position.label, volume)
                 else:
-                    self.assert_equal(pt.__class__, PlannedContainerTransfer)
+                    self.assert_equal(pt.__class__, PlannedSampleTransfer)
                     pt_data = (pt.source_position.label,
                                pt.target_position.label, volume)
                 pts.append(pt_data)

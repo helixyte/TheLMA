@@ -120,7 +120,7 @@ class CsvWriter(BaseAutomationTool):
         """
         Creates the :attr:`_column_map_list`
         """
-        self.add_error('Abstract method: _init_column_map_list().')
+        raise NotImplementedError('Abstract method.')
 
     def __init_index_map(self):
         """
@@ -397,7 +397,7 @@ class TxtWriter(BaseAutomationTool):
         """
         Checks if the tools has obtained correct input values.
         """
-        self.add_error('Abstract method: _check_input()')
+        raise NotImplementedError('Abstract method.')
 
     def __init_stream(self):
         """
@@ -410,7 +410,7 @@ class TxtWriter(BaseAutomationTool):
         """
         Writes into the streams.
         """
-        self.add_error('Abstract method: _write_stream_content()')
+        raise NotImplementedError('Abstract method.')
 
     def _write_headline(self, header_text, underline_char='-',
                         preceding_blank_lines=3, trailing_blank_lines=1):

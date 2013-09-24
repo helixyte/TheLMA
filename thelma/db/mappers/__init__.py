@@ -12,10 +12,10 @@ from thelma.db.mappers import containerspecs
 from thelma.db.mappers import device
 from thelma.db.mappers import devicetype
 from thelma.db.mappers import esirnadesign
-from thelma.db.mappers import executedcontainerdilution
-from thelma.db.mappers import executedcontainertransfer
-from thelma.db.mappers import executedracktransfer
-from thelma.db.mappers import executedtransfer
+from thelma.db.mappers import executedsampledilution
+from thelma.db.mappers import executedsampletransfer
+from thelma.db.mappers import executedracksampletransfer
+from thelma.db.mappers import executedliquidtransfer
 from thelma.db.mappers import executedworklist
 from thelma.db.mappers import experiment
 from thelma.db.mappers import experimentdesign
@@ -27,16 +27,19 @@ from thelma.db.mappers import experimentrack
 from thelma.db.mappers import gene
 from thelma.db.mappers import iso
 from thelma.db.mappers import isoaliquotplate
-from thelma.db.mappers import isocontrolstockrack
 from thelma.db.mappers import isojob
+from thelma.db.mappers import isojobstockrack
+from thelma.db.mappers import isoplate
 from thelma.db.mappers import isopreparationplate
 from thelma.db.mappers import isorequest
-from thelma.db.mappers import isosamplestockrack
+from thelma.db.mappers import isosectorpreparationplate
+from thelma.db.mappers import isosectorstockrack
+from thelma.db.mappers import isostockrack
 from thelma.db.mappers import itemstatus
 from thelma.db.mappers import job
-from thelma.db.mappers import jobtype
-from thelma.db.mappers import librarycreationiso
-from thelma.db.mappers import librarysourceplate
+from thelma.db.mappers import labiso
+from thelma.db.mappers import labisorequest
+from thelma.db.mappers import libraryplate
 from thelma.db.mappers import longdsrnadesign
 from thelma.db.mappers import mirnainhibitordesign
 from thelma.db.mappers import mirnamimicdesign
@@ -50,12 +53,11 @@ from thelma.db.mappers import moleculedesignset
 from thelma.db.mappers import moleculetype
 from thelma.db.mappers import nucleicacidchemicalstructure
 from thelma.db.mappers import organization
-from thelma.db.mappers import otherjob
 from thelma.db.mappers import pipettingspecs
-from thelma.db.mappers import plannedcontainerdilution
-from thelma.db.mappers import plannedcontainertransfer
-from thelma.db.mappers import plannedracktransfer
-from thelma.db.mappers import plannedtransfer
+from thelma.db.mappers import plannedsampledilution
+from thelma.db.mappers import plannedsampletransfer
+from thelma.db.mappers import plannedracksampletransfer
+from thelma.db.mappers import plannedliquidtransfer
 from thelma.db.mappers import plannedworklist
 from thelma.db.mappers import plate
 from thelma.db.mappers import platespecs
@@ -75,7 +77,10 @@ from thelma.db.mappers import sirnadesign
 from thelma.db.mappers import species
 from thelma.db.mappers import standardmoleculedesignset
 from thelma.db.mappers import stockinfo
+from thelma.db.mappers import stockrack
 from thelma.db.mappers import stocksample
+from thelma.db.mappers import stocksamplecreationiso
+from thelma.db.mappers import stocksamplecreationisorequest
 from thelma.db.mappers import subproject
 from thelma.db.mappers import suppliermoleculedesign
 from thelma.db.mappers import supplierstructureannotation
@@ -175,8 +180,9 @@ def initialize_mappers(tables, views):
                                         tables['molecule_design_set_member'])
 
     moleculedesignlibrary.create_mapper(tables['molecule_design_library'],
-                                tables['iso_request'],
+                                tables['stock_sample_creation_iso_request'],
                                 tables['molecule_design_library_iso_request'])
+    libraryplate.create_mapper(tables['library_plate'])
     standardmoleculedesignset.create_mapper(
                                 molecule_design_set_mapper)
     moleculedesignpool.create_mapper(
@@ -228,9 +234,7 @@ def initialize_mappers(tables, views):
     rackposition.create_mapper(tables['rack_position'])
     racklayout.create_mapper(tables['rack_layout'])
 
-    jobtype.create_mapper(tables['job_type'])
-    job_mapper = job.create_mapper(tables['job'])
-    otherjob.create_mapper(job_mapper, tables['job'])
+    job_mapper = job.create_mapper(tables['new_job'])
 
     # FIXME: pylint: disable=W0511
     #        Need to get rid of the "new_" prefix.
@@ -243,11 +247,9 @@ def initialize_mappers(tables, views):
     experimentrack.create_mapper(tables['new_experiment_rack'])
     experimentmetadatatype.create_mapper(tables['experiment_metadata_type'])
     experimentmetadata.create_mapper(tables['experiment_metadata'],
-                        tables['experiment_metadata_iso_request'],
-                        tables['experiment_metadata_pool_set'])
-    experimentjob.create_mapper(job_mapper, tables['job'],
+                        tables['experiment_metadata_iso_request'])
+    experimentjob.create_mapper(job_mapper, tables['new_job'],
                                 tables['new_experiment'])
-
 
     project.create_mapper(tables['project'])
     subproject.create_mapper(tables['subproject'])
@@ -255,55 +257,65 @@ def initialize_mappers(tables, views):
     userpreferences.create_mapper(tables['user_preferences'])
 
 
-    iso_mapper = iso.create_mapper(tables['iso'], tables['iso_job'],
-                      tables['iso_job_member'],
-                      tables['iso_pool_set'])
-    librarycreationiso.create_mapper(iso_mapper, tables['library_creation_iso'])
-    librarysourceplate.create_mapper(tables['library_source_plate'])
-
-    isorequest.create_mapper(tables['iso_request'],
+    iso_request_mapper = isorequest.create_mapper(tables['iso_request'],
                              tables['worklist_series_iso_request'],
-                             tables['experiment_metadata_iso_request'])
-    isojob.create_mapper(job_mapper, tables['iso_job'], tables['iso'],
+                             tables['iso_request_pool_set'])
+    labisorequest.create_mapper(iso_request_mapper, tables['lab_iso_request'],
+                                tables['experiment_metadata_iso_request'],
+                                tables['reservoir_specs'])
+    stocksamplecreationisorequest.create_mapper(iso_request_mapper,
+                                tables['stock_sample_creation_iso_request'],
+                                tables['molecule_design_library_iso_request'],
+                                tables['molecule_design_library'])
+    iso_mapper = iso.create_mapper(tables['iso'], tables['new_job'],
+                      tables['iso_job_member'], tables['iso_pool_set'])
+    labiso.create_mapper(iso_mapper, tables['iso'])
+    stocksamplecreationiso.create_mapper(iso_mapper,
+                                         tables['stock_sample_creation_iso'])
+    isojob.create_mapper(job_mapper, tables['new_job'],
                          tables['iso_job_member'])
-    isocontrolstockrack.create_mapper(tables['iso_control_stock_rack'])
-    isosamplestockrack.create_mapper(tables['iso_sample_stock_rack'])
-    isoaliquotplate.create_mapper(tables['iso_aliquot_plate'])
-    isopreparationplate.create_mapper(tables['iso_preparation_plate'])
+    stock_rack_mapper = stockrack.create_mapper(tables['stock_rack'])
+    isojobstockrack.create_mapper(stock_rack_mapper,
+                                  tables['iso_job_stock_rack'])
+    isostockrack.create_mapper(stock_rack_mapper, tables['iso_stock_rack'])
+    isosectorstockrack.create_mapper(stock_rack_mapper,
+                                     tables['iso_sector_stock_rack'])
+
+    iso_plate_mapper = isoplate.create_mapper(tables['iso_plate'])
+    isoaliquotplate.create_mapper(iso_plate_mapper,
+                                  tables['iso_aliquot_plate'])
+    isopreparationplate.create_mapper(iso_plate_mapper,
+                                      tables['iso_preparation_plate'])
+    isosectorpreparationplate.create_mapper(iso_plate_mapper,
+                                        tables['iso_sector_preparation_plate'])
 
     pipettingspecs.create_mapper(tables['pipetting_specs'])
     reservoirspecs.create_mapper(tables['reservoir_specs'])
-    planned_transfer_mapper = plannedtransfer.create_mapper(
-                    tables['planned_transfer'], tables['planned_worklist'],
-                    tables['planned_worklist_member'])
-    plannedcontainerdilution.create_mapper(planned_transfer_mapper,
-                            tables['planned_container_dilution'],
-                            tables['rack_position'])
-    plannedcontainertransfer.create_mapper(planned_transfer_mapper,
-                            tables['planned_container_transfer'],
-                            tables['rack_position'])
-    plannedracktransfer.create_mapper(planned_transfer_mapper,
-                            tables['planned_rack_transfer'])
+    planned_liquid_transfer_mapper = plannedliquidtransfer.create_mapper(
+                                            tables['planned_liquid_transfer'])
+    plannedsampledilution.create_mapper(planned_liquid_transfer_mapper,
+                    tables['planned_sample_dilution'], tables['rack_position'])
+
+    plannedsampletransfer.create_mapper(planned_liquid_transfer_mapper,
+                    tables['planned_sample_transfer'], tables['rack_position'])
+    plannedracksampletransfer.create_mapper(planned_liquid_transfer_mapper,
+                    tables['planned_rack_sample_transfer'])
     plannedworklist.create_mapper(tables['planned_worklist'],
-                                  tables['planned_transfer'],
+                                  tables['planned_liquid_transfer'],
                                   tables['planned_worklist_member'])
     worklistseries.create_mapper(tables['worklist_series'])
     worklistseriesmember.create_mapper(tables['worklist_series_member'])
-    executed_transfer_mapper = executedtransfer.create_mapper(
-                                                tables['executed_transfer'])
-    executedcontainerdilution.create_mapper(executed_transfer_mapper,
-                            tables['executed_container_dilution'],
-                            tables['container'])
-    executedcontainertransfer.create_mapper(executed_transfer_mapper,
-                            tables['executed_container_transfer'],
-                            tables['container'])
-    executedracktransfer.create_mapper(executed_transfer_mapper,
-                            tables['executed_rack_transfer'],
-                            tables['rack'])
+    executed_liquid_transfer_mapper = executedliquidtransfer.create_mapper(
+                                      tables['executed_liquid_transfer'])
+    executedsampledilution.create_mapper(executed_liquid_transfer_mapper,
+                    tables['executed_sample_dilution'], tables['container'])
+    executedsampletransfer.create_mapper(executed_liquid_transfer_mapper,
+                    tables['executed_sample_transfer'], tables['container'])
+    executedracksampletransfer.create_mapper(executed_liquid_transfer_mapper,
+                    tables['executed_rack_sample_transfer'], tables['rack'])
     executedworklist.create_mapper(tables['executed_worklist'],
-                                   tables['executed_transfer'],
+                                   tables['executed_liquid_transfer'],
                                    tables['executed_worklist_member'])
-
     tubetransfer.create_mapper(tables['tube_transfer'], tables['rack'],
                                tables['rack_position'])
     tubetransferworklist.create_mapper(tables['tube_transfer_worklist'],
