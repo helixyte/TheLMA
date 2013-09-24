@@ -12,7 +12,7 @@ from thelma.automation.tools.iso.preplayoutfinder import PrepLayoutFinder96
 from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_standard_384
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.tools.semiconstants import PLATE_SPECS_NAMES
+from thelma.automation.tools.semiconstants import RACK_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.semiconstants import get_experiment_type_isoless
 from thelma.automation.tools.semiconstants import get_experiment_type_screening
@@ -46,7 +46,7 @@ class IsoCreatorTestCase(ExperimentMetadataReadingTestCase):
         self.experiment_metadata = None
         self.source = None
         self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
-        self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_96
+        self.expected_prep_plate_specs_name = RACK_SPECS_NAMES.STANDARD_96
         self.pool_id = None
         self.expected_iso_labels = None
 
@@ -149,11 +149,11 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
 
     def test_result_96_deep_well(self):
         self.number_of_isos = 1
-        self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.DEEP_96
+        self.expected_prep_plate_specs_name = RACK_SPECS_NAMES.DEEP_96
         self._check_result('valid_file_96_deep.xls')
 
     def test_result_384_opti(self):
-        self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_384
+        self.expected_prep_plate_specs_name = RACK_SPECS_NAMES.STANDARD_384
         self.expected_iso_labels = ['123_iso1']
         self._check_result('valid_file_384_opti.xls')
         self._check_warning_messages('The system will only generate 1 ISO ' \
@@ -161,7 +161,7 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
                                      'positions for this ISO request')
 
     def test_result_384_opti_floats(self):
-        self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_384
+        self.expected_prep_plate_specs_name = RACK_SPECS_NAMES.STANDARD_384
         self.expected_iso_labels = ['123_iso1']
         self._check_result('valid_file_384_opti_floats.xls')
         new_iso = self.tool.return_value[0]
@@ -169,20 +169,20 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
 
     def test_result_96_screen(self):
         # has exactly enough floatings positions for 2 plates
-        self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_96
+        self.expected_prep_plate_specs_name = RACK_SPECS_NAMES.STANDARD_96
         self.experiment_type_id = EXPERIMENT_SCENARIOS.SCREENING
         self._check_result('valid_screen_96.xls')
         warnings = self.tool.get_messages()
         self.assert_equal(len(warnings), 0)
 
     def test_result_384_screen(self):
-        self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_384
+        self.expected_prep_plate_specs_name = RACK_SPECS_NAMES.STANDARD_384
         self.experiment_type_id = EXPERIMENT_SCENARIOS.SCREENING
         self._check_result('valid_file_384_screen.xls')
 
     def test_result_manual_with_buffer(self):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.MANUAL
-        self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_96
+        self.expected_prep_plate_specs_name = RACK_SPECS_NAMES.STANDARD_96
         self.number_of_isos = 1
         self._check_result('valid_manual.xls')
         ws = self.iso_request.worklist_series
@@ -191,7 +191,7 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
 
     def test_result_manual_stock_concentration_only(self):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.MANUAL
-        self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_96
+        self.expected_prep_plate_specs_name = RACK_SPECS_NAMES.STANDARD_96
         self.number_of_isos = 1
         self._check_result('valid_manual_stock_conc_only.xls')
         ws = self.iso_request.worklist_series
@@ -199,14 +199,14 @@ class IsoGeneratorTestCase(IsoCreatorTestCase):
 
     def test_result_order_only(self):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
-        self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.STANDARD_96
+        self.expected_prep_plate_specs_name = RACK_SPECS_NAMES.STANDARD_96
         self.number_of_isos = 1
         self._check_result('valid_order.xls')
         self.assert_is_none(self.iso_request.worklist_series)
 
     def test_with_compounds(self):
         self.number_of_isos = 1
-        self.expected_prep_plate_specs_name = PLATE_SPECS_NAMES.DEEP_96
+        self.expected_prep_plate_specs_name = RACK_SPECS_NAMES.DEEP_96
         self._check_result('with_compound.xls')
         self._check_warning_messages('Attention! There are compound pools ' \
              'among the molecule design pools for the floating positions. ' \
@@ -515,8 +515,8 @@ class IsoReschedulerTestCase(IsoCreatorTestCase):
 
     def test_differing_plate_specs(self):
         self._continue_setup()
-        plate_specs_384 = PLATE_SPECS_NAMES.from_reservoir_specs(
-                                        get_reservoir_specs_standard_384())
+        plate_specs_384 = RACK_SPECS_NAMES.from_reservoir_specs(
+                                           get_reservoir_specs_standard_384())
         for iso in self.isos:
             #pylint: disable=E1101
             iso.iso_preparation_plate.plate.specs = plate_specs_384

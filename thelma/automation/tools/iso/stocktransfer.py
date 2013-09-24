@@ -1065,6 +1065,8 @@ class IsoSampleStockRackVerifier(BaseAutomationTool):
         """
         Makes sure that all starting preparation positions have been checked.
         """
+        is_384_shape = (self.preparation_layout.shape.name \
+                        == RACK_SHAPE_NAMES.SHAPE_384)
 
         is_384_shape = (self.preparation_layout.shape.name \
                         == RACK_SHAPE_NAMES.SHAPE_384)

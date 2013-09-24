@@ -14,7 +14,7 @@ setup_requirements = []
 install_requirements = \
     [line
      for line in open('requirements.txt', 'rU').readlines()
-     if not line.startswith('-e')]
+     if not line.startswith('http')]
 install_requirements.append('everest')
 install_requirements.append('tractor')
 
@@ -24,7 +24,7 @@ tests_requirements = install_requirements + [
     ]
 
 setup(name='TheLMA',
-      version='1.5.0',
+      version='1.6.2',
       description='TheLMA',
       long_description=README + '\n\n' + CHANGES,
       classifiers=[
@@ -44,8 +44,9 @@ setup(name='TheLMA',
       install_requires=install_requirements,
       tests_require=tests_requirements,
       test_suite="thelma",
-      dependency_links=['https://github.com/cenix/everest/tarball/master#egg=everest',
-                        'https://github.com/cenix/tractor/tarball/master#egg=tractor'],
+      dependency_links=
+      ['https://github.com/fogathmann/everest-thelma/tarball/v16x#egg=everest',
+       'https://github.com/cenix/tractor/tarball/master#egg=tractor'],
       entry_points="""\
       [paste.app_factory]
       app = thelma.run:app

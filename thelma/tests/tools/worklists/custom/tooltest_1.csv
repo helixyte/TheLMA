@@ -1,0 +1,3 @@
+SourcePlateBarcode,SourcePlateWell,DestinationPlateBarcode,DestinationPlateWell,Volume,DiluentInformation
+buffer_mod,A1,09999990,B2,25,buffer
+buffer_mod,A1,09999990,B3,25,buffer

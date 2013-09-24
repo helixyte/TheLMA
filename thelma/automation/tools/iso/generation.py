@@ -9,22 +9,23 @@ AAB
 """
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.iso.optimizer import IsoOptimizer
+from thelma.automation.tools.iso.optimizer import IsoVolumeSpecificOptimizer
 from thelma.automation.tools.iso.prep_utils import ISO_LABELS
 from thelma.automation.tools.iso.prep_utils import PrepIsoLayout
 from thelma.automation.tools.iso.preplayoutfinder import PrepLayoutFinder
-from thelma.automation.tools.stock.base import get_default_stock_concentration
-from thelma.automation.tools.iso.optimizer import IsoVolumeSpecificOptimizer
 from thelma.automation.tools.iso.processingworklist \
     import IsoWorklistSeriesGenerator
+from thelma.automation.tools.semiconstants \
+    import get_plate_specs_from_reservoir_specs
 from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_standard_384
 from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_standard_96
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.tools.semiconstants import PLATE_SPECS_NAMES
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.semiconstants import get_reservoir_specs_deep_96
+from thelma.automation.tools.stock.base import get_default_stock_concentration
 from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import are_equal_values
@@ -854,7 +855,7 @@ class IsoGenerator(IsoCreator):
             if max_req_volume > max_rs_vol:
                 prep_rs = get_reservoir_specs_deep_96()
 
-        self._prep_plate_specs = PLATE_SPECS_NAMES.from_reservoir_specs(prep_rs)
+        self._prep_plate_specs = get_plate_specs_from_reservoir_specs(prep_rs)
 
     def _find_floating_molecule_design_pools(self):
         """

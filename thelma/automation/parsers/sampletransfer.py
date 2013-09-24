@@ -163,8 +163,8 @@ class GenericSampleTransferPlanParser(ExcelLayoutFileParser):
     #: The index of the type in the layout specifier (split by white space).
     SPECIFIER_TYPE_INDEX = 1
 
-    #: Part of a rack specifier. Marks a plate.
-    PLATE_MARKER = 'plate'
+    #: Part of a rack specifier. Marks a plate or rack.
+    RACK_MARKERS = ['plate', 'rack']
     #: Part of a rack specifier. Marks a reservoir.
     RESERVOIR_MARKER = 'reservoir'
 
@@ -542,8 +542,8 @@ class _GenericSampleTransferParsingContainer(ExcelLayoutSheetParsingContainer):
               'with "%s" or "%s", followed by "%s" or "%s" and at least one ' \
               'rack identifier from the "%s" section.' % (layout_specifier,
                self._parser.source_role_marker, self._parser.target_role_marker,
-               self._parser.PLATE_MARKER, self._parser.RESERVOIR_MARKER,
-               self._parser.RACK_SECTION_MARKER)
+               ', '.join(self._parser.RACK_MARKERS),
+                self._parser.RESERVOIR_MARKER, self._parser.RACK_SECTION_MARKER)
 
         if not isinstance(layout_specifier, str):
             self._create_error(msg, cell_name)
@@ -560,8 +560,14 @@ class _GenericSampleTransferParsingContainer(ExcelLayoutSheetParsingContainer):
         if role is None: return None
         type_token = self._convert_keyword(
                                     tokens[self._parser.SPECIFIER_TYPE_INDEX])
-        if not (type_token.startswith(self._parser.PLATE_MARKER) or \
-                       type_token.startswith(self._parser.RESERVOIR_MARKER)):
+        valid_markers = self._parser.RACK_MARKERS \
+                        + [self._parser.RESERVOIR_MARKER]
+        marker_found = False
+        for valid_marker in valid_markers:
+            if type_token.startswith(valid_marker):
+                marker_found = True
+                break
+        if not marker_found:
             self._create_error(msg, cell_name)
             return None
 

@@ -10,9 +10,11 @@ from thelma.automation.parsers.sampletransfer \
     import GenericSampleTransferPlanParser
 from thelma.automation.tools.semiconstants \
     import get_plate_specs_from_reservoir_specs
+from thelma.automation.tools.semiconstants import RACK_SPECS_NAMES
+from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.interfaces import IPlate
+from thelma.interfaces import IRack
 from thelma.models.liquidtransfer import PlannedContainerDilution
 from thelma.models.liquidtransfer import PlannedContainerTransfer
 from thelma.tests.tools.tooltestingutils import ParsingTestCase
@@ -25,8 +27,10 @@ class GenericSampleTransferParserTestCase(ParsingTestCase):
         ParsingTestCase.set_up(self)
         self.VALID_FILE = 'valid_file.xls'
         self.TEST_FILE_PATH = 'thelma:tests/parsers/sampletransfer/'
-        self.barcodes = {'09999999' : 'plate 96 std',
-                         '09999998' : 'plate 384 std'}
+        self.allow_rack_creation = True
+        self.barcodes = {'09999999' : 'stock rack',
+                         '09999998' : 'plate 384 std',
+                         '09999990' : 'plate 96 deep'}
         self.label = 'alpha'
         transfers1 = [('B2', 'B2', 3.5), ('B2', 'B3', 3.5),
                       ('B3', 'B4', 3.5), ('B3', 'B5', 3.5),
@@ -52,17 +56,18 @@ class GenericSampleTransferParserTestCase(ParsingTestCase):
                       ('B7', 'J5', 2), ('B7', 'J14', 2)]
         self.transfers = {1 : transfers1, 2 : transfers23,
                           3 : transfers23, 4 : transfers4}
-        # rack identifier - is plate, barcode, specs name, src wls, trg wls
+        # rack identifier - is rack, barcode, specs name, src wls, trg wls
         self.rack_data = {
-                'S1' : [True, '09999999', 'plate 96 std', [1], []],
+                'S1' : [True, '09999999', 'stock rack', [1], []],
                 'R1' : [False, 'buffer_mod', 'quarter mod', [2], []],
-                'R2' : [False, None, 'falcon tube', [3], []],
-                'Int' : [True, None, 'plate 96 deep', [4], [1, 2, 3]],
+                'R2' : [False, 'R2', 'falcon tube', [3], []],
+                'Int' : [True, '09999990', 'plate 96 deep', [4], [1, 2, 3]],
                 'T1' : [True, None, 'plate 384 std', [], [4]],
                 'T2' : [True, '09999998', 'plate 384 std', [], [4]]}
 
     def tear_down(self):
         ParsingTestCase.tear_down(self)
+        del self.allow_rack_creation
         del self.barcodes
         del self.label
         del self.diluents
@@ -71,19 +76,23 @@ class GenericSampleTransferParserTestCase(ParsingTestCase):
 
     def _create_tool(self):
         self.tool = GenericSampleTransferPlanParserHandler(stream=self.stream,
-                                                           log=self.log)
+                   log=self.log, allow_rack_creation=self.allow_rack_creation)
 
     def _continue_setup(self, file_name=None):
         ParsingTestCase._continue_setup(self, file_name=file_name)
-        self.__create_plates()
+        self.__create_racks()
 
-    def __create_plates(self):
-        plate_agg = get_root_aggregate(IPlate)
+    def __create_racks(self):
+        rack_agg = get_root_aggregate(IRack)
         for barcode, reservoir_spec in self.barcodes.iteritems():
-            plate_spec = get_plate_specs_from_reservoir_specs(reservoir_spec)
-            plate = plate_spec.create_rack(label=barcode, barcode=barcode,
-                                           status=get_item_status_future())
-            plate_agg.add(plate)
+            if reservoir_spec == RESERVOIR_SPECS_NAMES.STOCK_RACK:
+                rack_spec = RACK_SPECS_NAMES.from_name(
+                                                RACK_SPECS_NAMES.STOCK_RACK)
+            else:
+                rack_spec = get_plate_specs_from_reservoir_specs(reservoir_spec)
+            rack = rack_spec.create_rack(label=barcode, barcode=barcode,
+                                         status=get_item_status_future())
+            rack_agg.add(rack)
 
     def _test_and_expect_errors(self, msg=None):
         ParsingTestCase._test_and_expect_errors(self, msg=msg)
@@ -120,15 +129,15 @@ class GenericSampleTransferParserTestCase(ParsingTestCase):
         rors = self.tool.get_racks_and_reservoir_items()
         self.assert_equal(len(rors), len(self.rack_data))
         for ror in rors:
-            # rack identifier - is plate, barcode, specs name, src wls, trg wls
+            # rack identifier - is rack, barcode, specs name, src wls, trg wls
             item_data = self.rack_data[ror.identifier]
-            self.assert_equal(ror.is_plate, item_data[0])
-            if not ror.is_plate:
-                self.assert_is_none(ror.plate)
+            self.assert_equal(ror.is_rack, item_data[0])
+            if not ror.is_rack:
+                self.assert_is_none(ror.rack)
             else:
-                self.assert_is_not_none(ror.plate)
+                self.assert_is_not_none(ror.rack)
             self.assert_equal(ror.barcode, item_data[1])
-            self.assert_equal(ror.reservoir_spec.name, item_data[2])
+            self.assert_equal(ror.reservoir_specs.name, item_data[2])
             src_wls = self.__get_wl_numbers(ror.get_worklists_for_source())
             self.assert_equal(src_wls, item_data[3])
             trg_wls = self.__get_wl_numbers(ror.get_worklists_for_target())
@@ -140,6 +149,13 @@ class GenericSampleTransferParserTestCase(ParsingTestCase):
             number = int(worklist.label.split('_')[1])
             numbers.append(number)
         return sorted(numbers)
+
+    def test_no_rack_barcode(self):
+        self.allow_rack_creation = False
+        self._continue_setup()
+        self._test_and_expect_errors('When printing or executing worklists ' \
+            'directly all used racks must already be stored in the DB ' \
+            'and be specified by barcode. Rack "T1" does not have a barcode.')
 
     def test_no_sheet(self):
         self._test_invalid_file('no_sheet.xls',
@@ -279,40 +295,31 @@ class GenericSampleTransferParserTestCase(ParsingTestCase):
 
     def test_unknown_specs(self):
         self._test_invalid_file('unknown_specs.xls',
-                    'Error when trying to fetch specs for rack "R2": ' \
-                    'Unknown entity identifier "falcon".')
+                    'Error when trying to fetch reservoir specs for rack ' \
+                    '"R2": Unknown entity identifier "falcon".')
 
-    def test_unknown_plate(self):
-        self._test_invalid_file('unknown_plate.xls',
-                                'Could not find plate "09999997" in the DB!')
+    def test_unknown_rack(self):
+        self._test_invalid_file('unknown_rack.xls',
+                                'Could not find rack "09999996" in the DB!')
 
-    def test_unknown_plate_specs(self):
-        self._test_invalid_file('unknown_plate_specs.xls',
-                'Error when trying to determine reservoir specs for plate ' \
-                '"02499118" (plate specs "ABI_RTPCR"): Unsupported plate ' \
+    def test_unknown_rack_specs(self):
+        self._test_invalid_file('unknown_rack_specs.xls',
+                'Error when trying to determine reservoir specs for rack ' \
+                '"02499118" (rack specs "ABI_RTPCR"): Unsupported rack ' \
                 'spec "ABI_RTPCR".')
 
-    def test_mismatching_plate_specs(self):
-        self._continue_setup('mismatching_plate_specs.xls')
+    def test_mismatching_rack_specs(self):
+        self._continue_setup('mismatching_rack_specs.xls')
         result = self.tool.get_result()
         self.assert_is_not_none(result)
         self._check_warning_messages('You specified a wrong reservoir spec ' \
-                    'for plate "09999998" ("plate 96 std" instead of "plate ' \
+                    'for rack "09999998" ("plate 96 std" instead of "plate ' \
                     '384 std"). Will use spec "plate 384 std"')
 
     def test_mismatching_shape(self):
         self._test_invalid_file('mismatching_shape.xls',
                 'The rack shape for layout at V53 (8x12) does not match the ' \
                 'rack shape for rack "T2" (16x24)')
-
-    def test_plate_label_too_long(self):
-        self._continue_setup('plate_label_too_long.xls')
-        result = self.tool.get_result()
-        self.assert_is_not_none(result)
-        self._check_warning_messages('The label that has been generated ' \
-                'for the new plate "Too_long_label1" ' \
-                '("alphaalpha_Too_long_label1") is longer than ' \
-                '20 characters (26 characters)')
 
     def test_target_reservoir(self):
         self._test_invalid_file('target_reservoir.xls',
@@ -324,3 +331,11 @@ class GenericSampleTransferParserTestCase(ParsingTestCase):
                 'A diluent must be at least 2 characters long! Change ' \
                 'the diluent for step 2 code b, please')
 
+    def test_too_long_rack_label(self):
+        self._continue_setup('too_long_rack_label.xls')
+        ws = self.tool.get_result()
+        self.assert_is_not_none(ws)
+        self._check_warning_messages('The label that has been generated for ' \
+            'the new plate "this_rack_label_is_much_tool_long_and_invalid" ' \
+            '("alpha_this_rack_label_is_much_tool_long_and_invalid") is ' \
+            'longer than 20 characters (51 characters)')
