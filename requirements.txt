@@ -1,9 +1,9 @@
-https://github.com/fogathmann/everest-thelma/tarball/v16x
+-e git+http://github.com/cenix/everest/#egg=everest
 python-ldap>=2.3.11,<=2.3.99
 psycopg2>=2.5
 pyramid_exclog
 repoze.who
-https://github.com/cenix/tractor/tarball/master
+-e git+http://github.com/cenix/tractor/#egg=tractor
 xlrd
 pytz
 tzlocal
