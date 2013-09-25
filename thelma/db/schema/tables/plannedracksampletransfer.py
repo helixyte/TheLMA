@@ -25,8 +25,8 @@ def create_table(metadata, planned_liquid_transfer_tbl):
                 Column('target_sector_index', Integer,
                        CheckConstraint('target_sector_index>=0'),
                        nullable=False),
-                Column('sector_number', Integer,
-                       CheckConstraint('sector_number > 0'),
+                Column('number_sectors', Integer,
+                       CheckConstraint('number_sectors > 0'),
                        nullable=False)
                 )
     return tbl

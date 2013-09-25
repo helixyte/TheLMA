@@ -46,7 +46,8 @@ from thelma.db.schema.tables import molecule
 from thelma.db.schema.tables import moleculedesign
 from thelma.db.schema.tables import moleculedesigngene
 from thelma.db.schema.tables import moleculedesignlibrary
-from thelma.db.schema.tables import moleculedesignlibraryisorequest
+from thelma.db.schema.tables import moleculedesignlibrarycreationisorequest
+from thelma.db.schema.tables import moleculedesignlibrarylabisorequest
 from thelma.db.schema.tables import moleculedesignpool
 from thelma.db.schema.tables import moleculedesignpoolset
 from thelma.db.schema.tables import moleculedesignpoolsetmember
@@ -306,8 +307,12 @@ def initialize_tables(metadata):
 
     molecule_design_library_tbl = moleculedesignlibrary.create_table(metadata,
                                 rack_layout_tbl, molecule_design_pool_set_tbl)
-    molecule_design_library_iso_request_tbl = moleculedesignlibraryisorequest.\
-            create_table(metadata, molecule_design_library_tbl, iso_request_tbl)
+    molecule_design_library_creation_iso_request_tbl = \
+            moleculedesignlibrarycreationisorequest.create_table(metadata,
+            molecule_design_library_tbl, stock_sample_creation_iso_request)
+    molecule_design_library_lab_iso_request_tbl = \
+            moleculedesignlibrarylabisorequest.create_table(metadata,
+            molecule_design_library_tbl, lab_iso_request_tbl)
     library_plate_tbl = libraryplate.create_table(metadata,
                                         molecule_design_library_tbl, rack_tbl)
     iso_library_plate_tbl = isolibraryplate.create_table(metadata, iso_tbl,

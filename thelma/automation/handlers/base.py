@@ -13,7 +13,7 @@ from thelma.automation.errors import EventRecording
 from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.semiconstants import get_rack_position_from_indices
-from thelma.automation.tools.utils.base import MoleculeDesignPoolParameters
+from thelma.automation.tools.utils.layouts import MoleculeDesignPoolParameters
 from thelma.interfaces import IRackShape
 from thelma.models.rack import RackPositionSet
 from thelma.models.tagging import Tag
@@ -57,8 +57,7 @@ class BaseParserHandler(EventRecording):
         :param stream: the opened file to parse
         :type stream: a file stream
         """
-
-        ErrorRecording.__init__(self, log)
+        EventRecording.__init__(self, log)
 
         #: The stream for the parser.
         self.stream = stream

@@ -12,13 +12,13 @@ __all__ = ['create_mapper']
 
 def create_mapper(iso_request_mapper,
                   stock_sample_creation_iso_request_tbl,
-                  molecule_design_library_iso_request_tbl,
+                  molecule_design_library_creation_iso_request_tbl,
                   molecule_design_library_tbl):
     "Mapper factory."
 
 
     sscir = stock_sample_creation_iso_request_tbl
-    mdlir = molecule_design_library_iso_request_tbl
+    mdlcir = molecule_design_library_creation_iso_request_tbl
     mdl = molecule_design_library_tbl
 
     m = mapper(StockSampleCreationIsoRequest,
@@ -26,12 +26,12 @@ def create_mapper(iso_request_mapper,
                inherits=iso_request_mapper,
                properties=dict(
                     molecule_design_library=relationship(MoleculeDesignLibrary,
-                        back_populates='iso_request', uselist=False,
+                        back_populates='creation_iso_request', uselist=False,
                         primaryjoin=(sscir.c.iso_request_id == \
-                                     mdlir.c.iso_request_id),
-                        secondaryjoin=(mdlir.c.molecule_design_library_id == \
+                                     mdlcir.c.iso_request_id),
+                        secondaryjoin=(mdlcir.c.molecule_design_library_id == \
                                        mdl.c.molecule_design_library_id),
-                        secondary=mdlir)
+                        secondary=mdlcir)
                         ),
                polymorphic_identity=ISO_TYPES.STOCK_SAMPLE_GENERATION,
                )

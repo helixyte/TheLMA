@@ -10,30 +10,13 @@ from everest.resources.interfaces import IResource
 from everest.views.base import ViewUserMessageChecker
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.threadlocal import get_current_registry
+from thelma.automation.tools import experiment
 from thelma.automation.tools.experiment.batch import \
     ExperimentBatchWorklistWriter
-from thelma.automation.tools.experiment.writer import \
-    ExperimentWorklistWriterOptimisation
-from thelma.automation.tools.experiment.writer import \
-    ExperimentWorklistWriterScreening
-from thelma.automation.tools.iso.aliquot import IsoAliquotWorklistWriter
-from thelma.automation.tools.iso.isoprocessing \
-    import IsoProcessingWorklistWriter
-from thelma.automation.tools.iso.stocktransfer \
-    import IsoControlStockRackWorklistWriter
-from thelma.automation.tools.iso.stocktransfer \
-    import IsoSampleStockRackWorklistWriter
-from thelma.automation.tools.iso.tubehandler import \
-    IsoXL20WorklistGenerator384Controls
-from thelma.automation.tools.iso.tubehandler import \
-    IsoXL20WorklistGenerator384Samples
-from thelma.automation.tools.iso.tubehandler import \
-    IsoXL20WorklistGenerator96
-from thelma.models.experiment import EXPERIMENT_METADATA_TYPES
+from thelma.automation.tools.iso import lab
 from zope.interface import providedBy as provided_by # pylint: disable=E0611,F0401
 import logging
 import transaction
-
 
 __docformat__ = "reStructuredText en"
 __all__ = ['ThelmaRendererFactory',
@@ -108,13 +91,10 @@ class ExperimentWorklistRenderer(CustomRenderer):
         if params['type'] == 'ALL_WITH_ROBOT':
             tool = ExperimentBatchWorklistWriter([entity.job])
         elif params['type'] == 'ROBOT':
-            if entity.experiment_design.experiment_metadata.is_type(
-                                                EXPERIMENT_METADATA_TYPES.OPTI):
-                tool = ExperimentWorklistWriterOptimisation(experiment=entity)
-            else:
-                tool = ExperimentWorklistWriterScreening(experiment=entity)
-        else:
-            raise HTTPBadRequest("Unknown work list type!").exception
+            try:
+                tool = experiment.get_writer(experiment=entity)
+            except TypeError as te:
+                raise HTTPBadRequest(str(te)).exception
         zip_stream = tool.get_result()
         transaction.abort()
         warnings = tool.get_messages(logging.WARNING)
@@ -194,16 +174,22 @@ class IsoJobWorklistRenderer(ZippedWorklistRenderer):
             optimizer_required_racks = None
         include_dummy_output = \
             params.get('include_dummy_output') == 'true'
-        tool = IsoXL20WorklistGenerator384Controls(iso_job=entity,
-                                     destination_rack_barcode=barcode,
-                                     excluded_racks=optimizer_excluded_racks,
-                                     requested_tubes=optimizer_required_racks,
-                                     include_dummy_output=include_dummy_output)
+        try:
+            tool = lab.get_stock_rack_assembler(entity=entity,
+                                    rack_barcodes=[barcode],
+                                    excluded_racks=optimizer_excluded_racks,
+                                    requested_tubes=optimizer_required_racks,
+                                    include_dummy_output=include_dummy_output)
+        except TypeError as te:
+            raise HTTPBadRequest(str(te)).exception
         return self._run_tool(tool, always_abort=False)
 
     def __create_transfer_worklist(self, resource):
         entity = resource.get_entity()
-        tool = IsoControlStockRackWorklistWriter(iso_job=entity)
+        try:
+            tool = lab.get_worklist_writer(entity=entity)
+        except TypeError as te:
+            raise HTTPBadRequest(str(te)).exception
         return self._run_tool(tool)
 
 
@@ -218,15 +204,9 @@ class IsoWorklistRenderer(ZippedWorklistRenderer):
         with UserMessageHandlingContextManager(checker):
             if params['type'] == 'XL20':
                 stream = self.__create_xl20_worklist_stream(resource, request)
-            elif params['type'] == 'STOCK_TRANSFER':
-                stream = self.__create_transfer_worklist_stream(resource)
             elif params['type'] == 'ISO_PROCESSING':
                 stream = \
                     self.__create_iso_processing_worklist_stream(resource)
-            elif params['type'] == 'ISO_PROCESSING_ALIQUOT':
-                stream = \
-                    self.__create_iso_processing_aliquote_worklist_stream(
-                                                            resource, request)
             else:
                 raise HTTPBadRequest("Unknown work list type!").exception
         if not checker.vote is True:
@@ -249,9 +229,7 @@ class IsoWorklistRenderer(ZippedWorklistRenderer):
         barcode2 = params['rack2']
         barcode3 = params['rack3']
         barcode4 = params['rack4']
-        shape = params['shape']
-        rack_map = { 0 : barcode1, 1 : barcode2, 2: barcode3, 3 : barcode4}
-        enforce_cybio_compatibility = params['enforce_multiple_racks'] == 'true'
+        barcodes = [barcode1, barcode2, barcode3, barcode4]
         optimizer_excluded_racks = params['optimizer_excluded_racks']
         optimizer_required_racks = params['optimizer_required_racks']
         include_dummy_output = params.get('include_dummy_output') == 'true'
@@ -264,38 +242,22 @@ class IsoWorklistRenderer(ZippedWorklistRenderer):
         else:
             optimizer_required_racks = None
 
-        if shape == '384':
-            del entity.iso_sample_stock_racks[:]
-            tool = IsoXL20WorklistGenerator384Samples(iso=entity,
-                     destination_rack_barcode_map=rack_map,
-                     excluded_racks=optimizer_excluded_racks,
-                     requested_tubes=optimizer_required_racks,
-                     include_dummy_output=include_dummy_output,
-                     enforce_cybio_compatibility=enforce_cybio_compatibility)
-        elif shape == '96':
-            del entity.iso_sample_stock_racks[:]
-            tool = IsoXL20WorklistGenerator96(iso=entity,
-                     destination_rack_barcode=barcode1,
-                     excluded_racks=optimizer_excluded_racks,
-                     requested_tubes=optimizer_required_racks,
-                     include_dummy_output=include_dummy_output)
-        else:
-            raise HTTPBadRequest("Shape parameter is missing or unknown.")
+        del entity.iso_sample_stock_racks[:]
+        del entity.iso_sector_stock_racks[:]
+        try:
+            tool = lab.get_stock_rack_assembler(entity=entity,
+                        rack_barcodes=barcodes,
+                        excluded_racks=optimizer_excluded_racks,
+                        requested_tubes=optimizer_required_racks,
+                        include_dummy_output=include_dummy_output)
+        except TypeError as te:
+            raise HTTPBadRequest(str(te)).exception
         return self._run_tool(tool, always_abort=False)
-
-    def __create_transfer_worklist_stream(self, resource):
-        entity = resource.get_entity()
-        tool = IsoSampleStockRackWorklistWriter(iso=entity)
-        return self._run_tool(tool)
 
     def __create_iso_processing_worklist_stream(self, resource):
         entity = resource.get_entity()
-        tool = IsoProcessingWorklistWriter(iso=entity)
-        return self._run_tool(tool)
-
-    def __create_iso_processing_aliquote_worklist_stream(self, resource, request):
-        entity = resource.get_entity()
-        params = request.params
-        barcode = params['rack']
-        tool = IsoAliquotWorklistWriter(iso=entity, barcode=barcode)
+        try:
+            tool = lab.get_worklist_writer(entity=entity)
+        except TypeError as te:
+            raise HTTPBadRequest(str(te)).exception
         return self._run_tool(tool)

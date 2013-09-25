@@ -16,7 +16,7 @@ __all__ = ['create_table']
 
 def create_table(metadata, planned_liquid_transfer_tbl, user_tbl):
     "Table function."
-    tbl = Table('executed_transfer', metadata,
+    tbl = Table('executed_liquid_transfer', metadata,
                 Column('executed_liquid_transfer_id', Integer,
                        primary_key=True),
                 Column('planned_liquid_transfer_id', Integer,

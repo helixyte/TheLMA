@@ -12,15 +12,16 @@ __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']
 
 
-def create_mapper(iso_mapper, iso_tbl):
+def create_mapper(iso_mapper, iso_tbl, iso_library_plate_tbl):
     "Mapper factory."
     m = mapper(LabIso, iso_tbl,
                inherits=iso_mapper,
                polymorphic_identity=ISO_TYPES.LAB,
                properties=dict(
                         library_plates=relationship(LibraryPlate,
+                                        secondary=iso_library_plate_tbl,
                                         back_populates='lab_iso',
-                                        cascade='all,delete-orphan')
+                                        cascade='all')
                                )
                )
     return m

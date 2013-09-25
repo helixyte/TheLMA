@@ -1,6 +1,7 @@
 """
 Lab ISO request table.
 """
+from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import Date
 from sqlalchemy import ForeignKey
@@ -32,7 +33,8 @@ def create_table(metadata, iso_request_tbl, user_tbl, rack_layout_tbl,
                 Column('iso_plate_reservoir_specs_id', Integer,
                        ForeignKey(reservoir_specs_tbl.c.reservoir_specs_id,
                                   ondelete='NO ACTION', onupdate='NO ACTION'),
-                       nullable=False)
+                       nullable=False),
+                Column('process_job_first', Boolean, nullable=False)
                 )
 
     PrimaryKeyConstraint(tbl.c.iso_request_id)

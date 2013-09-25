@@ -95,11 +95,6 @@ class ExperimentTool(SerialWriterExecutorTool):
     #: The first part of the file name will be the experiment metadata label.
     FILE_SUFFIX_PREPARATION = '_reagent_instructions.csv'
 
-    #: The index of the optimem worklist in the experiment design series.
-    OPTIMEM_WORKLIST_INDEX = ExperimentTool.OPTIMEM_WORKLIST_INDEX
-    #: The index of the optimem worklist in the experiment design series.
-    REAGENT_WORKLIST_INDEX = ExperimentTool.REAGENT_WORKLIST_INDEX
-
     def __init__(self, experiment, mode, user=None, log=None, **kw):
         """
         Constructor:

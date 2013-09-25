@@ -143,7 +143,8 @@ UPDATE stock_sample_creation_iso_request
 UPDATE stock_sample_creation_iso_request
   SET stock_volume = 0.000045
   WHERE iso_request_id =
-  	(SELECT iso_request_id FROM iso_request WHERE label = 'poollib');
+  	(SELECT iso_request_id FROM iso_request WHERE label = 'poollib'
+  	 AND iso_type = 'STOCK_SAMPLE_GEN');
 
 ALTER TABLE stock_sample_creation_iso_request
   ALTER COLUMN stock_volume DROP DEFAULT;
@@ -195,7 +196,6 @@ UPDATE molecule_design_library
 ALTER TABLE molecule_design_library ALTER COLUMN rack_layout_id SET NOT NULL;
 
 ALTER TABLE iso_request DROP COLUMN rack_layout_id;
-
 
 -- ISO requests might have pool sets now (the pool set of the experiment
 -- metadata is moved here)
@@ -481,6 +481,30 @@ INSERT INTO library_plate
   AND i.iso_id = ssci.iso_id
   AND ip.iso_id = i.iso_id
   AND ip.iso_plate_type = 'ALIQUOT';
+
+-- the iso requests for molecule design library need to be distinguished
+ALTER TABLE molecule_design_library_iso_request
+  RENAME TO molecule_design_library_creation_iso_request;
+ALTER TABLE molecule_design_library_creation_iso_request
+  DROP CONSTRAINT molecule_design_library_iso_request_iso_request_id_fkey;
+ALTER TABLE molecule_design_library_creation_iso_request
+  ADD CONSTRAINT molecule_design_library_iso_request_iso_request_id_fkey
+  FOREIGN KEY (iso_request_id)
+  REFERENCES stock_sample_creation_iso_request (iso_request_id)
+  ON UPDATE CASCADE ON DELETE CASCADE;
+
+CREATE TABLE molecule_design_library_lab_iso_request (
+  molecule_design_library_id INTEGER NOT NULL
+    REFERENCES molecule_design_library (molecule_design_library_id)
+    ON UPDATE CASCADE,
+  iso_request_id INTEGER NOT NULL
+    REFERENCES lab_iso_request (iso_request_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT molecule_design_library_lab_iso_request_pkey
+    PRIMARY KEY (molecule_design_library_id)
+);
+
+
 
 -- linking library plates to ISOs (there is no data for this table yet)
 

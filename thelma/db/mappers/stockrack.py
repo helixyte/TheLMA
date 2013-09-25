@@ -4,9 +4,9 @@ Stock rack mapper
 
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.iso import StockRack
 from thelma.models.iso import STOCK_RACK_TYPES
-from thelma.models.liquidtransfer import PlannedWorklist
+from thelma.models.iso import StockRack
+from thelma.models.liquidtransfer import WorklistSeries
 from thelma.models.rack import Rack
 from thelma.models.racklayout import RackLayout
 
@@ -22,7 +22,7 @@ def create_mapper(stock_rack_tbl):
                polymorphic_identity=STOCK_RACK_TYPES.STOCK_RACK,
                properties=dict(
                     rack=relationship(Rack, uselist=False),
-                    planned_worklist=relationship(PlannedWorklist,
+                    worklist_series=relationship(WorklistSeries,
                                       uselist=False, single_parent=True,
                                       cascade='all,delete,delete-orphan'),
                     rack_layout=relationship(RackLayout, uselist=False,

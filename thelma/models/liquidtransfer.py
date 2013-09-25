@@ -70,15 +70,15 @@ class PlannedLiquidTransfer(Entity):
     _MARKER_INTERFACE = IPlannedLiquidTransfer
 
     #: Separates the values in hash value generation.
-    _HASH_SEPARATOR = ';'
+    __HASH_SEPARATOR = ';'
 
     def __init__(self, volume, hash_value=None, transfer_type=None, **kw):
         """
         Constructor
         """
+        Entity.__init__(self, **kw)
         if self.__class__ is PlannedLiquidTransfer:
             raise NotImplementedError('Abstract class')
-        Entity.__init__(self, **kw)
         self._volume = volume
         self._hash_value = hash_value
         if transfer_type is None:
@@ -153,22 +153,26 @@ class PlannedLiquidTransfer(Entity):
     def _create_hash_value(cls, value_list):
         """
         Helper method concatenating the values in the list (using the
-        :attr:`_HASH_SEPARATOR` ) and creating a md5 encoded string from it.
+        :attr:`__HASH_SEPARATOR` ) and creating a md5 encoded string from it.
         """
-        value_str = cls._HASH_SEPARATOR.join(value_list)
-        return md5(value_str)
+        value_str = cls.__HASH_SEPARATOR.join(value_list)
+        return md5(value_str).hexdigest()
 
     @classmethod
-    def _get_volume_in_ul(cls, volume):
+    def _get_volume_str_in_ul(cls, volume):
         """
         If the value is smaller 1, otherwise the unit will be assumed to
         be *ul*. Conversion is required because hash values use the volume
         *in ul* to decrease the number of rendering variations.
         """
         if volume > 1:
-            return volume
+            vol = volume
         else:
-            return volume * 1e6
+            vol = volume * 1e6
+        vol_str = '%.1f' % (vol)
+        if vol_str.endswith('.0'):
+            vol_str = vol_str[:-2]
+        return vol_str
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and \
@@ -252,8 +256,8 @@ class PlannedSampleDilution(PlannedLiquidTransfer):
 
         :return: The sample dilution hash value for the passed values.
         """
-        volume_in_ul = cls._get_volume_in_ul(volume)
-        values = [volume_in_ul, diluent_info, target_position.id]
+        volume_in_ul = cls._get_volume_str_in_ul(volume)
+        values = [volume_in_ul, diluent_info, str(target_position.id)]
         return cls._create_hash_value(values)
     #pylint: enable=W0221
 
@@ -371,8 +375,9 @@ class PlannedSampleTransfer(PlannedLiquidTransfer):
 
         :return: The sample dilution hash value for the passed values.
         """
-        volume_in_ul = cls._get_volume_in_ul(volume)
-        values = [volume_in_ul, source_position.id, target_position.id]
+        volume_in_ul = cls._get_volume_str_in_ul(volume)
+        values = [volume_in_ul, str(source_position.id),
+                  str(target_position.id)]
         return cls._create_hash_value(values)
     #pylint: enable=W0221
 
@@ -402,11 +407,11 @@ class PlannedRackSampleTransfer(PlannedLiquidTransfer):
     #: (:class:`int`).
     _target_sector_index = None
     #: The total number of sectors (:class:`int`).
-    _sector_number = None
+    _number_sectors = None
 
     _MARKER_INTERFACE = IPlannedRackSampleTransfer
 
-    def __init__(self, volume, hash_value, sector_number, source_sector_index,
+    def __init__(self, volume, hash_value, number_sectors, source_sector_index,
                  target_sector_index, **kw):
         """
         Constructor
@@ -414,16 +419,16 @@ class PlannedRackSampleTransfer(PlannedLiquidTransfer):
         PlannedLiquidTransfer.__init__(self, volume=volume,
                            transfer_type=TRANSFER_TYPES.RACK_SAMPLE_TRANSFER,
                            hash_value=hash_value, **kw)
-        self._sector_number = sector_number
+        self._number_sectors = number_sectors
         self._source_sector_index = source_sector_index
         self._target_sector_index = target_sector_index
 
     @property
-    def sector_number(self):
+    def number_sectors(self):
         """
         The total number of sectors (:class:`int`).
         """
-        return self._sector_number
+        return self._number_sectors
 
     @property
     def source_sector_index(self):
@@ -494,26 +499,18 @@ class PlannedRackSampleTransfer(PlannedLiquidTransfer):
 
         :return: The sample dilution hash value for the passed values.
         """
-        volume_in_ul = cls._get_volume_in_ul(volume)
-        values = [volume_in_ul, number_sectors, source_sector_index,
-                  target_sector_index]
+        volume_in_ul = cls._get_volume_str_in_ul(volume)
+        values = [volume_in_ul, str(number_sectors), str(source_sector_index),
+                  str(target_sector_index)]
         return cls._create_hash_value(values)
     #pylint: enable=W0221
-
-    @classmethod
-    def get_one_to_one(cls, volume):
-        """
-        Creates a one-to-one (replicating) transfer.
-        """
-        kw = dict(source_sector_index=0, target_sector_index=0, sector_number=1)
-        return cls.get_entity(volume=volume, **kw)
 
     def __repr__(self):
         str_format = '<%s id: %s, volume: %s, source sector: %s, ' \
                      'target sector: %s, number of sectors: %s>'
         params = (self.__class__.__name__, self.id, self._volume,
                   self._source_sector_index, self._target_sector_index,
-                  self._sector_number)
+                  self._number_sectors)
         return str_format % params
 
 
@@ -803,7 +800,7 @@ class ExecutedSampleDilution(ExecutedLiquidTransfer):
         Constructor
         """
         ExecutedLiquidTransfer.__init__(self, user=user, timestamp=timestamp,
-                                  planned_transfer=planned_sample_dilution,
+                                  planned_liquid_transfer=planned_sample_dilution,
                                   transfer_type=TRANSFER_TYPES.SAMPLE_DILUTION,
                                   **kw)
         self.target_container = target_container
@@ -855,7 +852,7 @@ class ExecutedSampleTransfer(ExecutedLiquidTransfer):
         """
         ExecutedLiquidTransfer.__init__(self, user=user, timestamp=timestamp,
                                   transfer_type=TRANSFER_TYPES.SAMPLE_TRANSFER,
-                                  planned_transfer=planned_sample_transfer,
+                                  planned_liquid_transfer=planned_sample_transfer,
                                   **kw)
         self.source_container = source_container
         self.target_container = target_container
@@ -912,7 +909,8 @@ class ExecutedRackSampleTransfer(ExecutedLiquidTransfer):
         """
         ExecutedLiquidTransfer.__init__(self, user=user, timestamp=timestamp,
                           transfer_type=TRANSFER_TYPES.RACK_SAMPLE_TRANSFER,
-                          planned_transfer=planned_rack_sample_transfer, **kw)
+                          planned_liquid_transfer=planned_rack_sample_transfer,
+                          **kw)
         self.source_rack = source_rack
         self.target_rack = target_rack
 
@@ -977,20 +975,20 @@ class PipettingSpecs(Entity):
     **Equality Condition**: equal :attr:`name`
     """
     #: The name of the robot or method.
-    name = None
+    _name = None
     #: The minimum volume that can be pipetted with this method in l.
-    min_transfer_volume = None
+    _min_transfer_volume = None
     #: The maximum volume that can be pipetted with this method in l.
-    max_transfer_volume = None
+    _max_transfer_volume = None
     #: The maximum dilution that can achieved with a one-step transfer.
-    max_dilution_factor = None
+    _max_dilution_factor = None
     #: For some robots the dead volume depends on the number of transfers
     #: taken from a source well. The minimum and maximum dead volume depend
     #: on the :class:`ReservoirSpecs`.
-    has_dynamic_dead_volume = None
+    _has_dynamic_dead_volume = None
     #: Some robots have limitation regarding the possible target positions for
     #: a source position.
-    is_sector_bound = None
+    _is_sector_bound = None
 
     def __init__(self, name, min_transfer_volume, max_transfer_volume,
                  max_dilution_factor, has_dynamic_dead_volume, is_sector_bound,
@@ -999,30 +997,75 @@ class PipettingSpecs(Entity):
         Constructor
         """
         Entity.__init__(self, **kw)
-        self.name = name
-        self.min_transfer_volume = min_transfer_volume
-        self.max_transfer_volume = max_transfer_volume
-        self.max_dilution_factor = max_dilution_factor
-        self.has_dynamic_dead_volume = has_dynamic_dead_volume
-        self.is_sector_bound = is_sector_bound
+        self._name = name
+        self._min_transfer_volume = min_transfer_volume
+        self._max_transfer_volume = max_transfer_volume
+        self._max_dilution_factor = max_dilution_factor
+        self._has_dynamic_dead_volume = has_dynamic_dead_volume
+        self._is_sector_bound = is_sector_bound
 
     @property
     def slug(self):
         """
         The slug of a planned transfer is its :attr:`name`.
         """
-        return slug_from_string(self.name)
+        return slug_from_string(self._name)
+
+    @property
+    def name(self):
+        """
+        The name of the robot or method.
+        """
+        return self._name
+
+    @property
+    def min_transfer_volume(self):
+        """
+        The minimum volume that can be pipetted with this method in l.
+        """
+        return self._min_transfer_volume
+
+    @property
+    def max_transfer_volume(self):
+        """
+        The maximum volume that can be pipetted with this method in l.
+        """
+        return self._max_transfer_volume
+
+    @property
+    def max_dilution_factor(self):
+        """
+        The maximum dilution that can achieved with a one-step transfer.
+        """
+        return self._max_dilution_factor
+
+    @property
+    def has_dynamic_dead_volume(self):
+        """
+        For some robots the dead volume depends on the number of transfers
+        taken from a source well. The minimum and maximum dead volume depend
+        on the :class:`ReservoirSpecs`.
+        """
+        return self._has_dynamic_dead_volume
+
+    @property
+    def is_sector_bound(self):
+        """
+        Some robots have limitation regarding the possible target positions for
+        a source position.
+        """
+        return self._is_sector_bound
 
     def __eq__(self, other):
         return isinstance(other, PipettingSpecs) and \
-                    other.name == self.name
+                    other.name == self._name
 
     def __str__(self):
-        return self.name
+        return self._name
 
     def __repr__(self):
         str_format = '<%s name: %s>'
-        params = (self.__class__.__name__, self.name)
+        params = (self.__class__.__name__, self._name)
         return str_format % params
 
 
@@ -1038,18 +1081,17 @@ class ReservoirSpecs(Entity):
     """
 
     #: This attribute is used as slug.
-    name = None
-    #: Container a little more information than the :attr:`name`.
-    description = None
+    _name = None
+    #: Contains a little more information than the :attr:`name`.
+    _description = None
     #: The rack shape of the reservoir (:class:`thelma.model.Rack.RackShape`).
-    rack_shape = None
-    #: The maximum volume of a rack container in liters.
-    max_volume = None
-    #: The minimum dead volume of a rack container.
-    min_dead_volume = None
-    #: The maximum dead volume of a rack container.
-    max_dead_volume = None
-
+    _rack_shape = None
+    #: The maximum volume of a rack container *in liters*.
+    _max_volume = None
+    #: The minimum dead volume of a rack container *in liters*.
+    _min_dead_volume = None
+    #: The maximum dead volume of a rack container *in liters*.
+    _max_dead_volume = None
 
     def __init__(self, name, description, rack_shape, max_volume,
                  min_dead_volume, max_dead_volume, **kw):
@@ -1057,37 +1099,76 @@ class ReservoirSpecs(Entity):
         Constructor
         """
         Entity.__init__(self, **kw)
-        self.name = name
-        self.description = description
-        self.rack_shape = rack_shape
-        self.max_volume = max_volume
-        self.min_dead_volume = min_dead_volume
-        self.max_dead_volume = max_dead_volume
+        self._name = name
+        self._description = description
+        self._rack_shape = rack_shape
+        self._max_volume = max_volume
+        self._min_dead_volume = min_dead_volume
+        self._max_dead_volume = max_dead_volume
 
     @property
     def slug(self):
         """
         The slug of a reservoir spec is its :class:`name`.
         """
-        return slug_from_string(self.name)
+        return slug_from_string(self._name)
+
+    @property
+    def name(self):
+        """
+        This attribute is used as slug.
+        """
+        return self._name
+
+    @property
+    def description(self):
+        """
+        Contains a little more information than the :attr:`name`.
+        """
+        return self._description
+
+    @property
+    def rack_shape(self):
+        """
+        The rack shape of the reservoir (:class:`thelma.model.Rack.RackShape`).
+        """
+        return self._rack_shape
+
+    @property
+    def max_volume(self):
+        """
+        The maximum volume of a rack container in liters.
+        """
+        return self._max_volume
+
+    @property
+    def min_dead_volume(self):
+        """
+        The minimum dead volume of a rack container.
+        """
+        return self._min_dead_volume
+
+    @property
+    def max_dead_volume(self):
+        """
+        The maximum dead volume of a rack container *in liters*.
+        """
+        return self._max_dead_volume
 
     def __eq__(self, other):
         return isinstance(other, ReservoirSpecs) and \
-                self.rack_shape == other.rack_shape and \
-                self.max_volume == other.max_volume and \
-                self.min_dead_volume == other.min_dead_volume and \
-                self.max_dead_volume == other.max_dead_volume
-
-    def __ne__(self, other):
-        return not (self.__eq__(other))
+                self._rack_shape == other.rack_shape and \
+                self._max_volume == other.max_volume and \
+                self._min_dead_volume == other.min_dead_volume and \
+                self._max_dead_volume == other.max_dead_volume
 
     def __str__(self):
-        return self.name
+        return self._name
 
     def __repr__(self):
         str_format = '<%s id: %s, name: %s, rack shape: %s, maximum ' \
                      'volume: %s, min dead volume: %s, max dead volume: %s>'
-        params = (self.__class__.__name__, self.id, self.name,
-                  self.rack_shape, self.max_volume, self.min_dead_volume,
-                  self.max_dead_volume)
+        params = (self.__class__.__name__, self.id, self._name,
+                  self._rack_shape, self._max_volume, self._min_dead_volume,
+                  self._max_dead_volume)
         return str_format % params

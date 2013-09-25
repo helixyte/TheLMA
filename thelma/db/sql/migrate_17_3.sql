@@ -26,6 +26,8 @@ INSERT INTO tmp_used_worklist_series (worklist_series_id)
   SELECT worklist_series_id FROM worklist_series_experiment_design;
 INSERT INTO tmp_used_worklist_series (worklist_series_id)
   SELECT worklist_series_id FROM worklist_series_iso_request;
+INSERT INTO tmp_used_worklist_series (worklist_series_id)
+  SELECT worklist_series_id FROM stock_rack;
 
 DELETE FROM worklist_series
   WHERE worklist_series_id IN (
@@ -130,10 +132,10 @@ CREATE TABLE planned_rack_sample_transfer (
   sector_number INTEGER NOT NULL,
   source_sector_index INTEGER NOT NULL,
   target_sector_index INTEGER NOT NULL,
-  CONSTRAINT prst_positive_sector_number CHECK (sector_number > 0),
-  CONSTRAINT prst_sector_number_greater_than_source_sector
+  CONSTRAINT prst_positive_number_sectors CHECK (sector_number > 0),
+  CONSTRAINT prst_number_sectors_greater_than_source_sector
     CHECK (sector_number > source_sector_index),
-  CONSTRAINT prst_sector_number_greater_than_target_sector
+  CONSTRAINT prst_number_sectors_greater_than_target_sector
     CHECK (sector_number > target_sector_index),
   CONSTRAINT prst_source_sector_index_non_negative
     CHECK (source_sector_index >= 0),
@@ -223,7 +225,8 @@ UPDATE planned_worklist_member
 
 DROP TABLE tmp_old_new;
 DROP TABLE tmp_rack_transfer_values;
-
+ALTER TABLE planned_rack_sample_transfer
+  RENAME COLUMN sector_number TO number_sectors;
 
 -- migrate sample dilutions (conatiner dilutions)
 
@@ -336,7 +339,7 @@ UPDATE planned_worklist_member
 DROP TABLE tmp_old_new;
 DROP TABLE tmp_sample_dilution_values;
 
--- migrate sample dilutions (conatiner dilutions)
+-- migrate sample transfers (container transfers)
 
 CREATE TABLE planned_sample_transfer (
   planned_liquid_transfer_id INTEGER NOT NULL
@@ -500,6 +503,10 @@ INSERT INTO pipetting_specs
     (name,  min_transfer_volume, max_transfer_volume, max_dilution_factor,
      has_dynamic_dead_volume, is_sector_bound)
   VALUES ('BioMekStock', 1e-06, 0.00025, 500, false, false);
+
+UPDATE reservoir_specs
+  SET name = 'microfuge rack'
+  WHERE name = 'microfuge plate';
 
 -- remove tables and columns that are not required anymore
 

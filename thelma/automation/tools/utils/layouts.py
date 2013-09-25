@@ -1205,8 +1205,8 @@ class TransferParameters(MoleculeDesignPoolParameters):
     REQUIRED = [TRANSFER_TARGETS, MOLECULE_DESIGN_POOL]
     ALL = [TRANSFER_TARGETS, MOLECULE_DESIGN_POOL, POS_TYPE]
 
-    ALIAS_MAP = MoleculeDesignPoolParameters.ALIAS_MAP + {
-                                        TRANSFER_TARGETS : ['target_wells']}
+    ALIAS_MAP = dict(MoleculeDesignPoolParameters.ALIAS_MAP, **{
+                            TRANSFER_TARGETS : ['target_wells']})
 
     DOMAIN_MAP = {TRANSFER_TARGETS : DOMAIN,
                   MOLECULE_DESIGN_POOL : MoleculeDesignPoolParameters.DOMAIN,

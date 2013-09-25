@@ -71,12 +71,13 @@ class IsoJobTestCase(JobModelTestCase):
         kw = JobModelTestCase._get_data(self)
         iso_request = self._create_lab_iso_request()
         kw['isos'] = [self._create_lab_iso(iso_request=iso_request)]
+        kw['number_stock_racks'] = 3
         return kw
 
     def test_init(self):
         attrs = self._get_data()
         ij = self._test_init(attrs=attrs)
-        self.assert_is_none(ij.iso_job_stock_rack)
+        self.assert_equal(len(ij.iso_job_stock_racks), 0)
         attrs['isos'] = None
         self.assert_raises(ValueError, self._create_iso_job, **attrs)
         attrs['isos'] = []
@@ -112,7 +113,7 @@ class IsoJobTestCase(JobModelTestCase):
             ij = self._create_iso_job(**attrs)
             rack = self._get_entity(ITubeRack)
             self._create_iso_job_stock_rack(rack=rack, iso_job=ij)
-            self.assert_is_not_none(ij.iso_job_stock_rack)
+            self.assert_not_equal(len(ij.iso_job_stock_racks), 0)
             session.add(ij)
             session.commit()
             session.refresh(ij)
@@ -122,5 +123,5 @@ class IsoJobTestCase(JobModelTestCase):
             query = session.query(self.model_class)
             fetched_ij = query.filter_by(id=ij_id).one()
             check_attributes(fetched_ij, attrs)
-            self.assert_is_not_none(fetched_ij.iso_job_stock_rack)
-            self.assert_equal(fetched_ij.iso_job_stock_rack.rack, rack)
+            self.assert_not_equal(len(fetched_ij.iso_job_stock_racks), 0)
+            self.assert_equal(fetched_ij.iso_job_stock_racks[0].rack, rack)

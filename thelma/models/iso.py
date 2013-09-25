@@ -70,13 +70,9 @@ class IsoRequest(Entity):
     #: derived class).
     molecule_design_pool_set = None
 
-    #: The function of this libary depends on subclass. In any case it is
-    #: optional. Type: :class:`thelma.models.library.MoleculeDesignLibrary`.
-    molecule_design_library = None
-
     def __init__(self, label, expected_number_isos=1, number_aliquots=1,
                  owner='', worklist_series=None, molecule_design_pool_set=None,
-                 molecule_design_library=None, iso_type=None, **kw):
+                 iso_type=None, **kw):
         """
         Constructor
         """
@@ -92,7 +88,6 @@ class IsoRequest(Entity):
         self.owner = owner
         self.worklist_series = worklist_series
         self.molecule_design_pool_set = molecule_design_pool_set
-        self.molecule_design_library = molecule_design_library
 
     @property
     def slug(self):
@@ -156,9 +151,14 @@ class LabIsoRequest(IsoRequest):
     #: value is ignored.
     process_job_first = None
 
+    #: The molecule design library whose plates are used for this ISO request
+    #: (:class:`thelma.models.library.MoleculeDesignLibrary`, optional).
+    molecule_design_library = None
+
     def __init__(self, label, requester, rack_layout, delivery_date=None,
                  comment=None, experiment_metadata=None, process_job_first=True,
-                 iso_plate_reservoir_specs=None, **kw):
+                 iso_plate_reservoir_specs=None, molecule_design_library=None,
+                 **kw):
         """
         Constructor
         """
@@ -170,6 +170,7 @@ class LabIsoRequest(IsoRequest):
         self.experiment_metadata = experiment_metadata
         self.iso_plate_reservoir_specs = iso_plate_reservoir_specs
         self.process_job_first = process_job_first
+        self.molecule_design_library = molecule_design_library
 
     @property
     def experiment_metadata_type(self):
@@ -198,8 +199,12 @@ class StockSampleCreationIsoRequest(IsoRequest):
     #: The number of single molecule designs each new pool will consist of.
     number_designs = None
 
+    #: The molecule design library created with this ISO request
+    #: (:class:`thelma.models.library.MoleculeDesignLibrary`, optional).
+    molecule_design_library = None
+
     def __init__(self, label, stock_volume, stock_concentration, number_designs,
-                 **kw):
+                 molecule_design_library=None, **kw):
         """
         Constructor
         """
@@ -208,6 +213,7 @@ class StockSampleCreationIsoRequest(IsoRequest):
         self.stock_volume = stock_volume
         self.stock_concentration = stock_concentration
         self.number_designs = number_designs
+        self.molecule_design_library = molecule_design_library
 
     def __repr__(self):
         str_format = '<%s label: %s, owner: %s, number designs: %s, stock ' \
@@ -303,15 +309,13 @@ class Iso(Entity):
     #: the status the ISO is set to if no other status is specified (*queued*).
     DEFAULT_STATUS = ISO_STATUS.QUEUED
 
-    def __init__(self, label, iso_request=None,
+    def __init__(self, label, number_stock_racks, rack_layout,
+                 iso_request=None,
                  status=None, molecule_design_pool_set=None,
                  optimizer_excluded_racks=None,
-                 optimizer_required_racks=None,
-                 rack_layout=None, iso_job=None,
-                 iso_stock_racks=None, number_stock_racks=None,
-                 iso_sector_stock_racks=None,
-                 iso_preparation_plates=None,
-                 iso_aliquot_plates=None,
+                 optimizer_required_racks=None, iso_job=None,
+                 iso_stock_racks=None, iso_sector_stock_racks=None,
+                 iso_preparation_plates=None, iso_aliquot_plates=None,
                  iso_type=None, **kw):
         """
         Constructor
@@ -391,11 +395,12 @@ class LabIso(Iso):
     #: creating aliquot plates (:class:`thelma.models.library.LibraryPlate`).
     library_plates = None
 
-    def __init__(self, label, **kw):
+    def __init__(self, label, number_stock_racks, **kw):
         """
         Constructor
         """
-        Iso.__init__(self, label=label, iso_type=ISO_TYPES.LAB, **kw)
+        Iso.__init__(self, label=label, number_stock_racks=number_stock_racks,
+                     iso_type=ISO_TYPES.LAB, **kw)
         self.library_plates = []
 
     @property
@@ -451,20 +456,20 @@ class StockSampleCreationIso(Iso):
 
     #: The sector preparations plates for this ISO (only if the ISOs is part of
     #: a ISO request that creates also plates for an molecule design library)
-    iso_sector_prepartion_plates = None
+    iso_sector_preparation_plates = None
 
-    def __init__(self, label, ticket_number, layout_number,
-                 iso_sector_prepartion_plates=None, **kw):
+    def __init__(self, label, ticket_number, layout_number, number_stock_racks,
+                 iso_sector_preparation_plates=None, **kw):
         """
         Constructor
         """
-        Iso.__init__(self, label=label,
+        Iso.__init__(self, label=label, number_stock_racks=number_stock_racks,
                      iso_type=ISO_TYPES.STOCK_SAMPLE_GENERATION, **kw)
         self.ticket_number = ticket_number
         self.layout_number = layout_number
-        if iso_sector_prepartion_plates is None:
-            iso_sector_prepartion_plates = []
-        self.iso_sector_prepartion_plates = iso_sector_prepartion_plates
+        if iso_sector_preparation_plates is None:
+            iso_sector_preparation_plates = []
+        self.iso_sector_preparation_plates = iso_sector_preparation_plates
 
     def __eq__(self, other):
         return Iso.__eq__(self, other) and \

@@ -21,8 +21,8 @@ from thelma.automation.tools.iso.lab.stockrack.tubepicking \
     import LabIsoXL20TubePicker
 from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.utils.base import FIXED_POSITION_TYPE
 from thelma.automation.tools.utils.base import add_list_map_element
+from thelma.automation.tools.utils.layouts import FIXED_POSITION_TYPE
 from thelma.automation.tools.utils.racksector import RackSectorTranslator
 from thelma.automation.tools.worklists.optimiser import BiomekLayoutOptimizer
 from thelma.automation.tools.worklists.optimiser import TransferItem
@@ -840,13 +840,6 @@ class LabIsoXL20SummaryWriter(TxtWriter):
     #: The body for the source racks section.
     SOURCE_RACKS_BASE_LINE = '%s (%s)'
 
-    #: The header for the warning section.
-    WARNING_HEADER = 'Warnings'
-    #: The body for the warnings section.
-    WARNING_BASE_LINE = '%s'
-    #: Is used if no warnings have occurred.
-    NO_WARNING_MARKER = 'no warnings'
-
     def __init__(self, log, entity, stock_tube_containers,
                  stock_rack_layouts, excluded_racks, requested_tubes):
         """
@@ -910,7 +903,7 @@ class LabIsoXL20SummaryWriter(TxtWriter):
     def _write_stream_content(self):
         """
         We have the following sections: General, destination racks,
-        excluded racks, requested tubes, source racks, warnings.
+        excluded racks, requested tubes, source racks.
         """
         self.add_debug('Write stream ...')
 
@@ -920,7 +913,6 @@ class LabIsoXL20SummaryWriter(TxtWriter):
         self.__write_excluded_racks_section()
         self.__write_requested_tubes_section()
         self.__write_source_racks_section()
-        self.__write_warning_section()
 
     def __write_main_headline(self):
         """
@@ -1053,22 +1045,6 @@ class LabIsoXL20SummaryWriter(TxtWriter):
             location = location_map[rack_barcode]
             line = self.SOURCE_RACKS_BASE_LINE % (rack_barcode, location)
             lines.append(line)
-
-        self._write_body_lines(lines)
-
-    def __write_warning_section(self):
-        """
-        Writes the warning section.
-        """
-        self._write_headline(self.WARNING_HEADER)
-
-        warnings = self.log.get_messages()
-        if len(warnings) < 1:
-            lines = [self.WARNING_BASE_LINE % (self.NO_WARNING_MARKER)]
-        else:
-            lines = []
-            for warning in warnings:
-                lines.append(self.WARNING_BASE_LINE % (warning))
 
         self._write_body_lines(lines)
 

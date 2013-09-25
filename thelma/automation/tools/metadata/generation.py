@@ -26,6 +26,8 @@ from thelma.automation.tools.metadata.worklist \
 from thelma.automation.tools.semiconstants \
     import get_experiment_type_manual_optimisation
 from thelma.automation.tools.semiconstants \
+    import get_reservoir_specs_from_rack_specs
+from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_standard_384
 from thelma.automation.tools.semiconstants \
     import get_reservoir_specs_standard_96
@@ -39,7 +41,6 @@ from thelma.automation.tools.semiconstants import get_min_transfer_volume
 from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
 from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.tools.semiconstants import get_reservoir_specs_deep_96
-from thelma.automation.tools.semiconstants import get_reservoir_specs_from_plate_specs
 from thelma.automation.tools.stock.base import get_default_stock_concentration
 from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
@@ -2210,7 +2211,7 @@ class RobotSupportDeterminatorLibrary(RobotSupportDeterminator):
 
         plate_specs_lib = self.library.plate_specs
         if not plate_specs_lib is None:
-            lib_specs = get_reservoir_specs_from_plate_specs(plate_specs_lib)
+            lib_specs = get_reservoir_specs_from_rack_specs(plate_specs_lib)
             if not lib_specs == self._iso_reservoir_specs:
                 msg = 'The volume capacity of the library plates does not ' \
                       'allow for standard mastermix support. Robot support ' \

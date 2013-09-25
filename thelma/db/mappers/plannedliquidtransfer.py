@@ -15,6 +15,7 @@ def create_mapper(planned_liquid_transfer_tbl):
     m = mapper(PlannedLiquidTransfer, planned_liquid_transfer_tbl,
                id_attribute='planned_liquid_transfer_id',
                properties=dict(
+                    _transfer_type=planned_liquid_transfer_tbl.c.transfer_type,
                     _volume=planned_liquid_transfer_tbl.c.volume,
                     _hash_value=planned_liquid_transfer_tbl.c.hash_value
                     ),

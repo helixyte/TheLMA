@@ -28,6 +28,7 @@ from thelma.db.mappers import gene
 from thelma.db.mappers import iso
 from thelma.db.mappers import isoaliquotplate
 from thelma.db.mappers import isojob
+from thelma.db.mappers import isojobpreparationplate
 from thelma.db.mappers import isojobstockrack
 from thelma.db.mappers import isoplate
 from thelma.db.mappers import isopreparationplate
@@ -180,9 +181,10 @@ def initialize_mappers(tables, views):
                                         tables['molecule_design_set_member'])
 
     moleculedesignlibrary.create_mapper(tables['molecule_design_library'],
-                                tables['stock_sample_creation_iso_request'],
-                                tables['molecule_design_library_iso_request'])
-    libraryplate.create_mapper(tables['library_plate'])
+                        tables['stock_sample_creation_iso_request'],
+                        tables['molecule_design_library_creation_iso_request'])
+    libraryplate.create_mapper(tables['library_plate'],
+                               tables['iso_library_plate'])
     standardmoleculedesignset.create_mapper(
                                 molecule_design_set_mapper)
     moleculedesignpool.create_mapper(
@@ -261,19 +263,21 @@ def initialize_mappers(tables, views):
                              tables['worklist_series_iso_request'],
                              tables['iso_request_pool_set'])
     labisorequest.create_mapper(iso_request_mapper, tables['lab_iso_request'],
-                                tables['experiment_metadata_iso_request'],
-                                tables['reservoir_specs'])
+                            tables['experiment_metadata_iso_request'],
+                            tables['reservoir_specs'],
+                            tables['molecule_design_library_lab_iso_request'])
     stocksamplecreationisorequest.create_mapper(iso_request_mapper,
-                                tables['stock_sample_creation_iso_request'],
-                                tables['molecule_design_library_iso_request'],
-                                tables['molecule_design_library'])
+                        tables['stock_sample_creation_iso_request'],
+                        tables['molecule_design_library_creation_iso_request'],
+                        tables['molecule_design_library'])
     iso_mapper = iso.create_mapper(tables['iso'], tables['new_job'],
                       tables['iso_job_member'], tables['iso_pool_set'])
-    labiso.create_mapper(iso_mapper, tables['iso'])
+    labiso.create_mapper(iso_mapper, tables['iso'], tables['iso_library_plate'])
     stocksamplecreationiso.create_mapper(iso_mapper,
                                          tables['stock_sample_creation_iso'])
-    isojob.create_mapper(job_mapper, tables['new_job'],
+    isojob.create_mapper(job_mapper, tables['iso_job'],
                          tables['iso_job_member'])
+    isojobpreparationplate.create_mapper(tables['iso_job_preparation_plate'])
     stock_rack_mapper = stockrack.create_mapper(tables['stock_rack'])
     isojobstockrack.create_mapper(stock_rack_mapper,
                                   tables['iso_job_stock_rack'])

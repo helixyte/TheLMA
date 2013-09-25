@@ -550,7 +550,7 @@ class RESERVOIR_SPECS_NAMES(SemiconstantCache):
     :class:`thelma.models.liquidtransfer.ResevoirSpecs` entities.
     """
     QUARTER_MODULAR = 'quarter mod'
-    TUBE_24 = 'microfuge plate'
+    TUBE_24 = 'microfuge rack'
     STANDARD_96 = 'plate 96 std'
     DEEP_96 = 'plate 96 deep'
     STANDARD_384 = 'plate 384 std'

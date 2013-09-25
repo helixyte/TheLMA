@@ -23,9 +23,10 @@ def create_mapper(executed_worklist_tbl, executed_liquid_transfer_tbl,
                     planned_worklist=relationship(PlannedWorklist,
                             uselist=False,
                             back_populates='executed_worklists',
-                            cascade='all,delete-orphan'),
-                    executed_transfers=relationship(ExecutedLiquidTransfer,
-                            uselist=True,
+                            cascade='all,delete-orphan',
+                            single_parent=True),
+                    executed_liquid_transfers=relationship(
+                            ExecutedLiquidTransfer, uselist=True,
                             primaryjoin=(ew.c.executed_worklist_id == \
                                          ewm.c.executed_worklist_id),
                             secondaryjoin=(ewm.c.executed_liquid_transfer_id == \

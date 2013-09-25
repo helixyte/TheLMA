@@ -23,7 +23,7 @@ def create_mapper(planned_worklist_tbl, planned_liquid_transfer_tbl,
                id_attribute='planned_worklist_id',
                properties=dict(
                     pipetting_specs=relationship(PipettingSpecs, uselist=False),
-                    planned_transfers=relationship(PlannedLiquidTransfer,
+                    planned_liquid_transfers=relationship(PlannedLiquidTransfer,
                             primaryjoin=(pw.c.planned_worklist_id == \
                                          pwm.c.planned_worklist_id),
                             secondaryjoin=(pwm.c.planned_liquid_transfer_id == \

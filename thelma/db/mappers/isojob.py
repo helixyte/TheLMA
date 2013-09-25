@@ -13,10 +13,10 @@ __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
 
 
-def create_mapper(job_mapper, job_tbl, iso_job_member_tbl):
+def create_mapper(job_mapper, iso_job_tbl, iso_job_member_tbl):
     "Mapper factory."
 
-    m = mapper(IsoJob, job_tbl,
+    m = mapper(IsoJob, iso_job_tbl,
                inherits=job_mapper,
                polymorphic_identity=JOB_TYPES.ISO,
                properties=dict(

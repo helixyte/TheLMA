@@ -6,6 +6,7 @@ from sqlalchemy.orm import relationship
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.iso import ISO_TYPES
 from thelma.models.iso import LabIsoRequest
+from thelma.models.library import MoleculeDesignLibrary
 from thelma.models.liquidtransfer import ReservoirSpecs
 from thelma.models.racklayout import RackLayout
 from thelma.models.user import User
@@ -13,10 +14,9 @@ from thelma.models.user import User
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']
 
-def create_mapper(iso_request_mapper,
-                  lab_iso_request_tbl,
-                  experiment_metadata_iso_request_tbl,
-                  reservoir_specs_tbl):
+def create_mapper(iso_request_mapper, lab_iso_request_tbl,
+                  experiment_metadata_iso_request_tbl, reservoir_specs_tbl,
+                  molecule_design_library_lab_iso_request_tbl):
     "Mapper factory."
 
 
@@ -34,6 +34,9 @@ def create_mapper(iso_request_mapper,
                     experiment_metadata=relationship(ExperimentMetadata,
                                              secondary=emir, uselist=False,
                                              back_populates='lab_iso_request'),
+                    molecule_design_library=relationship(
+                         MoleculeDesignLibrary, uselist=False,
+                         secondary=molecule_design_library_lab_iso_request_tbl),
                     iso_plate_reservoir_specs=relationship(ReservoirSpecs,
                            uselist=False,
                            primaryjoin=lir.c.iso_plate_reservoir_specs_id == \

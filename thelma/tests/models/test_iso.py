@@ -29,6 +29,7 @@ from thelma.models.iso import StockSampleCreationIso
 from thelma.models.iso import StockSampleCreationIsoRequest
 from thelma.testing import ThelmaEntityTestCase
 from thelma.models.rack import Plate
+from thelma.models.iso import IsoJobPreparationPlate
 
 
 class IsoRequestModelTestCase(ThelmaEntityTestCase):
@@ -63,22 +64,25 @@ class LabIsoRequestModelTestCase(IsoRequestModelTestCase):
         kw['rack_layout'] = self._create_rack_layout()
         kw['comment'] = 'a comment'
         kw['iso_plate_reservoir_specs'] = self._get_entity(IReservoirSpecs)
+        kw['process_job_first'] = False
         return kw
 
     def test_init(self):
         attrs = self._get_data()
         lir1 = self._create_lab_iso_request(label=attrs['label'],
-                                            requester=attrs['requester'])
+                                            requester=attrs['requester'],
+                                            rack_layout=attrs['rack_layout'])
         self.assert_is_not_none(lir1)
-        exp_attrs1 = dict(label=attrs['label'],
-                      requester=attrs['requester'],
-                      rack_layout=None, isos=[], delivery_date=None,
-                      experiment_metadata=None, comment=None, owner='',
+        exp_attrs1 = dict(label=attrs['label'], requester=attrs['requester'],
+                      rack_layout=attrs['rack_layout'], isos=[],
+                      delivery_date=None, experiment_metadata=None,
+                      comment=None, owner='',
                       iso_plate_reservoir_specs=\
                                             attrs['iso_plate_reservoir_specs'],
                       expected_number_isos=1,
                       worklist_series=None, number_aliquots=1,
-                      molecule_design_pool_set=None)
+                      molecule_design_pool_set=None,
+                      process_job_first=True)
         check_attributes(lir1, exp_attrs1)
         del lir1.rack_layout # otherwise we get problems with the ORM
         lir2 = self._create_lab_iso_request(**attrs)
@@ -141,8 +145,10 @@ class IsoModelTestCase(ThelmaEntityTestCase):
         status = ISO_STATUS.IN_PROGRESS
         pool_set = self._create_molecule_design_pool_set()
         rack_layout = self._create_rack_layout()
+        number_stock_racks = 2
         return dict(label=label, molecule_design_pool_set=pool_set,
-                    status=status, rack_layout=rack_layout)
+                    status=status, rack_layout=rack_layout,
+                    number_stock_racks=number_stock_racks)
 
 
 class IsoBaseClassModelTestCase(IsoModelTestCase):
@@ -168,6 +174,7 @@ class LabIsoModelTestCase(IsoModelTestCase):
         self.assert_equal(len(li.iso_sector_stock_racks), 0)
         self.assert_equal(len(li.iso_preparation_plates), 0)
         self.assert_equal(len(li.iso_aliquot_plates), 0)
+        self.assert_equal(len(li.final_plates), 0)
 
     def test_slug(self):
         attrs = self._get_data()
@@ -196,6 +203,23 @@ class LabIsoModelTestCase(IsoModelTestCase):
         self.assert_not_equal(iso1, id1)
         ssci = self._create_stock_sample_creation_iso(id=id1)
         self.assert_not_equal(iso1, ssci)
+
+    def test_add_aliquot_plates(self):
+        li = self._create_lab_iso(**self._get_data())
+        plate = self._create_plate()
+        self.assert_equal(len(li.final_plates), 0)
+        self.assert_equal(len(li.iso_aliquot_plates), 0)
+        li.add_aliquot_plate(plate)
+        self.assert_equal(len(li.final_plates), 1)
+        self.assert_equal(len(li.iso_aliquot_plates), 1)
+
+    def test_add_preparation_plate(self):
+        li = self._create_lab_iso(**self._get_data())
+        rack_layout = self._create_rack_layout()
+        plate = self._create_plate()
+        self.assert_equal(len(li.iso_preparation_plates), 0)
+        li.add_preparation_plate(plate, rack_layout)
+        self.assert_equal(len(li.iso_preparation_plates), 1)
 
     def test_load(self):
         self._test_load()
@@ -256,8 +280,7 @@ class StockSampleCreationIsoModelTestCase(IsoModelTestCase):
         self.assert_equal(len(ssci.iso_stock_racks), 0)
         self.assert_equal(len(ssci.iso_sector_stock_racks), 0)
         self.assert_equal(len(ssci.iso_preparation_plates), 0)
-        self.assert_equal(0,
-              len(ssci.iso_sector_prepartion_plates)) #pylint: disable=E1101
+        self.assert_equal(0, len(ssci.iso_sector_preparation_plates))
         self.assert_equal(len(ssci.iso_aliquot_plates), 0)
 
     def test_slug(self):
@@ -348,11 +371,12 @@ class StockSampleCreationIsoModelTestCase(IsoModelTestCase):
 class StockRackModelTestCase(ThelmaEntityTestCase):
 
     def _get_data(self):
+        label = 'sr_label'
         rack = self._get_entity(ITubeRack)
         rack_layout = self._create_rack_layout()
-        planned_worklist = self._create_planned_worklist()
-        return dict(rack=rack, rack_layout=rack_layout,
-                    planned_worklist=planned_worklist)
+        worklist_series = self._create_worklist_series()
+        return dict(rack=rack, rack_layout=rack_layout, label=label,
+                    worklist_series=worklist_series)
 
 
 class StockRackBaseClassModelTestCase(StockRackModelTestCase):
@@ -425,7 +449,7 @@ class IsoSectorStockRackModelTestCase(StockRackModelTestCase):
     def test_equality(self):
         self._test_id_based_equality(self._create_iso_sector_stock_rack)
 
-    def test_load(self):
+    def x_test_load(self):
         self._test_load()
 
     def test_persist(self):
@@ -558,6 +582,41 @@ class IsoAliquotPlateModelTest(IsoPlateModelTestCase):
 
     def test_load(self):
         self._test_load()
+
+    def test_persist(self):
+        self._test_persist()
+
+
+class IsoJobPreparationPlateModelTest(ThelmaEntityTestCase):
+
+    model_class = IsoJobPreparationPlate
+
+    def _get_data(self):
+        iso_job = self._create_iso_job(label='modeltestjob')
+        rack = self._create_plate()
+        rack_layout = self._create_rack_layout()
+        return dict(iso_job=iso_job, rack=rack, rack_layout=rack_layout)
+
+    def test_init(self):
+        self._test_init()
+
+    def test_equality(self):
+        ij1 = self._create_iso_job(id= -1)
+        ij2 = self._create_iso_job(id= -2)
+        plate1 = self._create_plate(id= -3)
+        plate2 = self._create_plate(id= -4)
+        ijpp1 = self._create_iso_job_preparation_plate(iso_job=ij1, rack=plate1)
+        ijpp2 = self._create_iso_job_preparation_plate(iso_job=ij1, rack=plate1)
+        ijpp3 = self._create_iso_job_preparation_plate(iso_job=ij2, rack=plate1)
+        ijpp4 = self._create_iso_job_preparation_plate(iso_job=ij1, rack=plate2)
+        self.assert_equal(ijpp1, ijpp2)
+        self.assert_not_equal(ijpp1, ijpp3)
+        self.assert_not_equal(ijpp1, ijpp4)
+        self.assert_not_equal(ijpp1, ij1)
+
+        # TODO: activate as soon there are some records in the DB
+#    def test_load(self):
+#        self._test_load()
 
     def test_persist(self):
         self._test_persist()

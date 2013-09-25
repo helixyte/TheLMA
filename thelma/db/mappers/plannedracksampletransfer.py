@@ -17,7 +17,7 @@ def create_mapper(planned_liquid_transfer_mapper,
     m = mapper(PlannedRackSampleTransfer, planned_rack_sample_transfer_tbl,
                inherits=planned_liquid_transfer_mapper,
                properties=dict(
-                     _sector_number=prst.c.sector_number,
+                     _number_sectors=prst.c.number_sectors,
                      _source_sector_index=prst.c.source_sector_index,
                      _target_sector_index=prst.c.target_sector_index),
                polymorphic_identity=TRANSFER_TYPES.RACK_SAMPLE_TRANSFER,

@@ -601,6 +601,8 @@ class MoleculeDesignPoolSet(Entity):
     Similar to a molecule design set but containing molecule design pools
     instead of molecule designs. Used by libraries, ISOs and experiment
     metadata.
+
+    **Equality Condition:** equal :attr:`id`
     """
     #: The molecule design sets (pools) in the pool set
     #: (:class:`MoleculeDesignPool`).
@@ -622,10 +624,6 @@ class MoleculeDesignPoolSet(Entity):
         Remove a molecule design pool from the set.
         """
         self.molecule_design_pools.discard(pool)
-
-    def __eq__(self, other):
-        return isinstance(other, MoleculeDesignPoolSet) \
-               and self.id == other.id
 
     def __len__(self):
         return len(self.molecule_design_pools)

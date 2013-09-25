@@ -9,7 +9,7 @@ from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.semiconstants import get_rack_position_from_indices
 from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.base import WorkingLayout
+from thelma.automation.tools.utils.layouts import WorkingLayout
 
 
 __docformat__ = 'reStructuredText en'

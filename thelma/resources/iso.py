@@ -19,15 +19,6 @@ from everest.resources.descriptors import terminal_attribute
 from everest.resources.staging import create_staging_collection
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.threadlocal import get_current_registry
-from thelma.automation.tools.iso.aliquot import IsoAliquotCreator
-from thelma.automation.tools.iso.aliquot import IsoAliquotExecutor
-from thelma.automation.tools.iso.generation import IsoGenerator
-from thelma.automation.tools.iso.generation import IsoRescheduler
-from thelma.automation.tools.iso.isoprocessing import IsoProcessingExecutor
-from thelma.automation.tools.iso.rackrecycling import IsoControlRackRecycler
-from thelma.automation.tools.iso.stocktransfer import IsoControlStockRackExecutor
-from thelma.automation.tools.iso.stocktransfer import IsoSampleStockRackExecutor
-from thelma.automation.tools.iso.uploadreport import StockTransferReportUploader
 #from thelma.automation.tools.libcreation.iso import LibraryCreationIsoPopulator
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketAccepter
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketReassigner

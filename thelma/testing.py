@@ -15,6 +15,7 @@ from everest.testing import FunctionalTestCase
 from everest.testing import RdbContextManager
 from everest.testing import ResourceTestCase
 from everest.testing import check_attributes
+from everest.testing import persist
 from iso8601 import iso8601
 from lxml import etree
 from thelma.interfaces import IContainer
@@ -31,6 +32,7 @@ from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import IMoleculeType
 from thelma.interfaces import IOrganization
+from thelma.interfaces import IPipettingSpecs
 from thelma.interfaces import IPlate
 from thelma.interfaces import IPlateSpecs
 from thelma.interfaces import IRackLayout
@@ -65,6 +67,7 @@ from thelma.models.experiment import ExperimentMetadata
 from thelma.models.experiment import ExperimentRack
 from thelma.models.gene import Gene
 from thelma.models.iso import IsoAliquotPlate
+from thelma.models.iso import IsoJobPreparationPlate
 from thelma.models.iso import IsoJobStockRack
 from thelma.models.iso import IsoPreparationPlate
 from thelma.models.iso import IsoSectorPreparationPlate
@@ -76,16 +79,19 @@ from thelma.models.iso import StockSampleCreationIso
 from thelma.models.iso import StockSampleCreationIsoRequest
 from thelma.models.job import ExperimentJob
 from thelma.models.job import IsoJob
+from thelma.models.library import LibraryPlate
 from thelma.models.library import MoleculeDesignLibrary
-from thelma.models.liquidtransfer import ExecutedContainerDilution
-from thelma.models.liquidtransfer import ExecutedContainerTransfer
-from thelma.models.liquidtransfer import ExecutedRackTransfer
+from thelma.models.liquidtransfer import ExecutedRackSampleTransfer
+from thelma.models.liquidtransfer import ExecutedSampleDilution
+from thelma.models.liquidtransfer import ExecutedSampleTransfer
 from thelma.models.liquidtransfer import ExecutedWorklist
-from thelma.models.liquidtransfer import PlannedContainerDilution
-from thelma.models.liquidtransfer import PlannedContainerTransfer
-from thelma.models.liquidtransfer import PlannedRackTransfer
+from thelma.models.liquidtransfer import PipettingSpecs
+from thelma.models.liquidtransfer import PlannedRackSampleTransfer
+from thelma.models.liquidtransfer import PlannedSampleDilution
+from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import ReservoirSpecs
+from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.liquidtransfer import WorklistSeries
 from thelma.models.liquidtransfer import WorklistSeriesMember
 from thelma.models.location import BarcodedLocation
@@ -141,7 +147,6 @@ from thelma.resources.subproject import SubprojectMember
 from tractor import make_api_from_config
 import pytz
 import transaction
-from everest.testing import persist
 
 __docformat__ = 'reStructuredText en'
 
@@ -204,47 +209,48 @@ class EntityCreatorMixin(object):
             kw['label'] = 'TestDeviceType'
         return self._create_entity(DeviceType, kw)
 
-    def _create_executed_container_dilution(self, **kw):
+    def _create_executed_sample_dilution(self, **kw):
         if not 'target_container' in kw:
             kw['target_container'] = self._get_entity(ITube)
         if not 'reservoir_specs' in kw:
             kw['reservoir_specs'] = self._get_entity(IReservoirSpecs)
         if not 'user' in kw:
             kw['user'] = self._get_entity(IUser, 'it')
-        if not 'planned_container_dilution' in kw:
-            kw['planned_container_dilution'] = \
-                                self._create_planned_container_dilution()
-        return self._create_entity(ExecutedContainerDilution, kw)
+        if not 'planned_sample_dilution' in kw:
+            kw['planned_sample_dilution'] = \
+                                self._create_planned_sample_dilution()
+        return self._create_entity(ExecutedSampleDilution, kw)
 
-    def _create_executed_container_transfer(self, **kw):
+    def _create_executed_sample_transfer(self, **kw):
         if not 'source_container' in kw:
             kw['source_container'] = self._get_entity(ITube)
         if not 'target_container' in kw:
             kw['target_container'] = self._get_entity(IWell)
         if not 'user' in kw:
             kw['user'] = self._get_entity(IUser, 'it')
-        if not 'planned_container_transfer' in kw:
-            kw['planned_container_transfer'] = \
-                                self._create_planned_container_transfer()
-        return self._create_entity(ExecutedContainerTransfer, kw)
+        if not 'planned_sample_transfer' in kw:
+            kw['planned_sample_transfer'] = \
+                                self._create_planned_sample_transfer()
+        return self._create_entity(ExecutedSampleTransfer, kw)
 
-    def _create_executed_rack_transfer(self, **kw):
+    def _create_executed_rack_sample_transfer(self, **kw):
         if not 'source_rack' in kw:
             kw['source_rack'] = self._get_entity(ITubeRack)
         if not 'target_rack' in kw:
             kw['target_rack'] = self._get_entity(IPlate)
         if not 'user' in kw:
             kw['user'] = self._get_entity(IUser, 'it')
-        if not 'planned_rack_transfer' in kw:
-            kw['planned_rack_transfer'] = self._create_planned_rack_transfer()
-        return self._create_entity(ExecutedRackTransfer, kw)
+        if not 'planned_rack_sample_transfer' in kw:
+            kw['planned_rack_sample_transfer'] = \
+                             self._create_planned_rack_sample_transfer()
+        return self._create_entity(ExecutedRackSampleTransfer, kw)
 
     def _create_executed_worklist(self, **kw):
         if not 'planned_worklist' in kw:
             kw['planned_worklist'] = self._create_planned_worklist()
-        if not 'executed_transfers' in kw:
-            kw['executed_transfers'] = \
-                                [self._create_executed_container_dilution()]
+        if not 'executed_liquid_transfers' in kw:
+            kw['executed_liquid_transfers'] = \
+                                [self._create_executed_sample_dilution()]
         return self._create_entity(ExecutedWorklist, kw)
 
     def _create_experiment(self, **kw):
@@ -326,6 +332,8 @@ class EntityCreatorMixin(object):
             kw['label'] = 'IsoJobTestLabel'
         if not 'user' in kw:
             kw['user'] = self._get_entity(IUser, 'it')
+        if not 'number_stock_racks' in kw:
+            kw['number_stock_racks'] = 2
         return self._create_entity(IsoJob, kw)
 
     def _create_lab_iso_request(self, **kw):
@@ -333,6 +341,8 @@ class EntityCreatorMixin(object):
             kw['label'] = 'LabIsoRequest.Label.Test'
         if not 'requester' in kw:
             kw['requester'] = self._get_entity(IUser, 'it')
+        if not 'rack_layout' in kw:
+            kw['rack_layout'] = self._create_rack_layout()
         if not 'iso_plate_reservoir_specs' is None:
             kw['iso_plate_reservoir_specs'] = self._get_entity(IReservoirSpecs)
         return self._create_entity(LabIsoRequest, kw)
@@ -353,11 +363,15 @@ class EntityCreatorMixin(object):
             kw['label'] = 'TestISO'
         if not 'rack_layout' in kw:
             kw['rack_layout'] = self._create_rack_layout()
+        if not 'number_stock_racks' in kw:
+            kw['number_stock_racks'] = 2
         return self._create_entity(LabIso, kw)
 
     def _create_stock_sample_creation_iso(self, **kw):
         if not 'label' in kw:
             kw['label'] = 'Lib ISO 15'
+        if not 'number_stock_racks' in kw:
+            kw['number_stock_racks'] = 2
         if not 'ticket_number' in kw:
             kw['ticket_number'] = 9876
         if not 'layout_number' in kw:
@@ -367,17 +381,21 @@ class EntityCreatorMixin(object):
         return self._create_entity(StockSampleCreationIso, kw)
 
     def _create_iso_stock_rack(self, **kw):
+        if not 'label' in kw:
+            kw['label'] = 'test.isr.label'
         if not 'iso' in kw:
             kw['iso'] = self._get_entity(IIso)
         if not 'rack' in kw:
             kw['rack'] = self._get_entity(ITubeRack)
         if not 'rack_layout' in kw:
             kw['rack_layout'] = self._create_rack_layout()
-        if not 'planned_worklist' in kw:
-            kw['planned_worklist'] = self._create_planned_worklist()
+        if not 'worklist_series' in kw:
+            kw['worklist_series'] = self._create_worklist_series()
         return self._create_entity(IsoStockRack, kw)
 
     def _create_iso_sector_stock_rack(self, **kw):
+        if not 'label' in kw:
+            kw['label'] = 'test.issr.label'
         if not 'iso' in kw:
             kw['iso'] = self._get_entity(IIso)
         if not 'rack' in kw:
@@ -386,19 +404,21 @@ class EntityCreatorMixin(object):
             kw['sector_index'] = 0
         if not 'rack_layout' in kw:
             kw['rack_layout'] = self._create_rack_layout()
-        if not 'planned_worklist' in kw:
-            kw['planned_worklist'] = self._create_planned_worklist()
+        if not 'worklist_series' in kw:
+            kw['worklist_series'] = self._create_worklist_series()
         return self._create_entity(IsoSectorStockRack, kw)
 
     def _create_iso_job_stock_rack(self, **kw):
+        if not 'label' in kw:
+            kw['label'] = 'test.ijsr.label'
         if not 'iso_job' in kw:
             kw['iso_job'] = self._create_iso_job()
         if not 'rack' in kw:
             kw['rack'] = self._get_entity(ITubeRack)
         if not 'rack_layout' in kw:
             kw['rack_layout'] = self._create_rack_layout()
-        if not 'planned_worklist' in kw:
-            kw['planned_worklist'] = self._create_planned_worklist()
+        if not 'worklist_series' in kw:
+            kw['worklist_series'] = self._create_worklist_series()
         return self._create_entity(IsoJobStockRack, kw)
 
     def _create_iso_aliquot_plate(self, **kw):
@@ -429,6 +449,25 @@ class EntityCreatorMixin(object):
         if not 'sector_index' in kw:
             kw['sector_index'] = 2
         return self._create_entity(IsoSectorPreparationPlate, kw)
+
+    def _create_iso_job_preparation_plate(self, **kw):
+        if not 'iso_job' in kw:
+            kw['iso_job'] = self._create_iso_job()
+        if not 'rack' in kw:
+            kw['rack'] = self._get_entity(IPlate)
+        if not 'rack_layout' in kw:
+            kw['rack_layout'] = self._create_rack_layout()
+        return self._create_entity(IsoJobPreparationPlate, kw)
+
+    def _create_library_plate(self, **kw):
+        if not 'molecule_design_library' in kw:
+            kw['molecule_design_library'] = \
+                                        self._create_molecule_design_library()
+        if not 'rack' in kw:
+            kw['rack'] = self._get_entity(IPlate)
+        if not 'layout_number' in kw:
+            kw['layout_number'] = 6
+        return self._create_entity(LibraryPlate, kw)
 
     def _create_location_type(self, **kw):
         if not 'name' in kw:
@@ -463,6 +502,10 @@ class EntityCreatorMixin(object):
             kw['final_volume'] = 0.000005
         if not 'final_concentration' in kw:
             kw['final_concentration'] = 0.000010
+        if not 'number_layouts' in kw:
+            kw['number_layouts'] = 8
+        if not 'rack_layout' in kw:
+            kw['rack_layout'] = self._create_rack_layout()
         return self._create_entity(MoleculeDesignLibrary, kw)
 
     def _create_molecule_design_set(self, **kw):
@@ -483,38 +526,57 @@ class EntityCreatorMixin(object):
             kw['name'] = 'TestOrganization'
         return self._create_entity(Organization, kw)
 
-    def _create_planned_container_dilution(self, **kw):
+    def _create_pipetting_specs(self, **kw):
+        if not 'name' in kw:
+            kw['name'] = 'specs_name'
+        if not 'min_transfer_volume' in kw:
+            kw['min_transfer_volume'] = 0.000010
+        if not 'max_transfer_volume' in  kw:
+            kw['max_transfer_volume'] = 0.000100
+        if not 'max_dilution_factor' in kw:
+            kw['max_dilution_factor'] = 10
+        if not 'has_dynamic_dead_volume' in kw:
+            kw['has_dynamic_dead_volume'] = False
+        if not 'is_sector_bound' in kw:
+            kw['is_sector_bound'] = False
+        return self._create_entity(PipettingSpecs, kw)
+
+    def _create_planned_sample_dilution(self, **kw):
         if not 'volume' in kw:
             kw['volume'] = 0.000020
         if not 'target_position' in kw:
             kw['target_position'] = self._get_entity(IRackPosition)
         if not 'diluent_info' in kw:
             kw['diluent_info'] = 'generic_buffer'
-        return self._create_entity(PlannedContainerDilution, kw)
+        return PlannedSampleDilution.get_entity(**kw)
 
-    def _create_planned_container_transfer(self, **kw):
+    def _create_planned_sample_transfer(self, **kw):
         if not 'volume' in kw:
             kw['volume'] = 0.000020
         if not 'source_position' in kw:
             kw['source_position'] = self._get_entity(IRackPosition, 'a1')
         if not 'target_position' in kw:
             kw['target_position'] = self._get_entity(IRackPosition, 'b2')
-        return self._create_entity(PlannedContainerTransfer, kw)
+        return PlannedSampleTransfer.get_entity(**kw)
 
-    def _create_planned_rack_transfer(self, **kw):
+    def _create_planned_rack_sample_transfer(self, **kw):
         if not 'volume' in kw:
             kw['volume'] = 0.000020
         if not 'source_sector_index' in kw:
             kw['source_sector_index'] = 0
         if not 'target_sector_index' in kw:
             kw['target_sector_index'] = 1
-        if not 'sector_number' in kw:
-            kw['sector_number'] = 4
-        return self._create_entity(PlannedRackTransfer, kw)
+        if not 'number_sectors' in kw:
+            kw['number_sectors'] = 4
+        return PlannedRackSampleTransfer.get_entity(**kw)
 
     def _create_planned_worklist(self, **kw):
         if not 'label' in kw:
             kw['label'] = 'PlannedWorklistTestLabel'
+        if not 'transfer_type' in kw:
+            kw['transfer_type'] = TRANSFER_TYPES.SAMPLE_DILUTION
+        if not 'pipetting_specs' in kw:
+            kw['pipetting_specs'] = self._get_entity(IPipettingSpecs)
         return self._create_entity(PlannedWorklist, kw)
 
     def _create_plate(self, **kw):
@@ -830,14 +892,15 @@ class ThelmaEntityTestCase(ThelmaModelTestCase):
         else:
             entity = self.model_class(**attrs) #pylint: disable=E1102
             self.assert_is_not_none(entity)
+            self.assert_true(isinstance(entity, self.model_class))
             check_attributes(entity, attrs)
             return entity
 
-    def _test_load(self):
+    def _test_load(self, num_entities=2):
         with RdbContextManager() as session:
             query = session.query(self.model_class)
-            entities = query.limit(2).all()
-            self.assert_equal(len(entities), 2)
+            entities = query.limit(num_entities).all()
+            self.assert_equal(len(entities), num_entities)
             for entity in entities:
                 self.assert_equal(entity.__class__, self.model_class)
 

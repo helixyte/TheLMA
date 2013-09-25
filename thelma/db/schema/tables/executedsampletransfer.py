@@ -13,7 +13,7 @@ __all__ = ['create_table']
 def create_table(metadata, executed_liquid_transfer_tbl, container_tbl):
     "Table factory."
     tbl = Table('executed_sample_transfer', metadata,
-                Column('executed_transfer_id', Integer,
+                Column('executed_liquid_transfer_id', Integer,
                        ForeignKey(executed_liquid_transfer_tbl.c.\
                                   executed_liquid_transfer_id,
                                   ondelete='CASCADE'),

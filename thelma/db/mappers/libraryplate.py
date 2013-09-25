@@ -11,7 +11,7 @@ from thelma.models.rack import Rack
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']
 
-def create_mapper(library_plate_tbl):
+def create_mapper(library_plate_tbl, iso_library_plate_tbl):
     """
     Mapper factory
     """
@@ -20,10 +20,11 @@ def create_mapper(library_plate_tbl):
                id_attribute='library_plate_id',
                properties=dict(
                     molecule_design_library=relationship(MoleculeDesignLibrary,
-                                use_list=False,
+                                uselist=False,
                                 back_populates='library_plates'),
                     rack=relationship(Rack, uselist=False),
                     lab_iso=relationship(LabIso, uselist=False,
+                                         secondary=iso_library_plate_tbl,
                                          back_populates='library_plates')
                     )
                )

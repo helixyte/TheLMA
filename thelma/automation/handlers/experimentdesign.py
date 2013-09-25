@@ -14,9 +14,9 @@ from thelma.automation.tools.metadata.transfection_utils \
     import TransfectionPosition
 from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.utils.base import MOCK_POSITION_TYPE
 from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.utils.base import is_valid_number
+from thelma.automation.tools.utils.layouts import MOCK_POSITION_TYPE
 from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentDesignRack
 from thelma.models.experiment import ExperimentMetadataType

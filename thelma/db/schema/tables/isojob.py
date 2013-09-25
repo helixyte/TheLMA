@@ -1,7 +1,6 @@
 """
 ISO job table
 """
-from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
@@ -22,8 +21,7 @@ def create_table(metadata, job_tbl):
                        nullable=False),
                 Column('number_stock_racks', Integer,
                        CheckConstraint('number_stock_racks >= 0'),
-                       nullable=False),
-                Column('controls_first', Boolean, nullable=False)
+                       nullable=False)
                 )
 
     PrimaryKeyConstraint(tbl.c.job_id)

@@ -1307,6 +1307,1634 @@ class PoolContainer(object):
 
 
 
+
+class _CONTAINER_IDS(object):
+    """
+    Provides (temporary) IDs for :class:`_LocationContainer` objects to make
+    sure that objects are distinguished even if their values are equal. The
+    IDs are running numbers.
+
+    This is a singleton object.
+    """
+
+    __current_container_counter = None
+
+    def __init__(self):
+        """
+        This class must not be instantiated. Use :func:`start` instead.
+        """
+        raise NotImplementedError('Class must not be instantiated.')
+
+    @classmethod
+    def start(cls):
+        """
+        Resets the ID counter.
+        """
+        cls.__current_container_counter = 0
+
+    @classmethod
+    def get_container_id(cls):
+        """
+        Increments the ID counter and returns a new ID.
+        """
+        cls.__current_container_counter += 1
+        return cls.__current_container_counter
+
+    @classmethod
+    def shut_down(cls):
+        """
+        Sets the current :attr:`__current_container_counter` to *None*.
+        """
+        cls.__current_container_counter = None
+
+
+class _LocationContainer(object):
+    """
+    Storage class whose data is set successively.
+    A location container represents a rack position or rack sector (depending
+    on the subclass) in an ISO plate (aliquot, library or preparation plate).
+    Location containers can be linked to each other to provide preparation
+    routes (= groups of containers that are derived from one another).
+
+    In case of preparation cotainers first the sample data is set. The actual
+    location is assigned later.
+    """
+
+    #: The name of the attribute containing the location data.
+    LOCATION_ATTR_NAME = None
+    #: The :class:`PipettingSpecs` supported by this class (used for minimum
+    #: volume checks).
+    _PIPETTING_SPECS_NAME = None
+    #: The :class:`PlannedTransfer` class supported by this class.
+    _PLANNED_TRANSFER_CLS = None
+
+    def __init__(self, volume, target_concentration, parent_concentration,
+                 is_final_container=False):
+        """
+        Constructor
+
+        :param volume: The volume the container shall have *after all transfers*
+            (i.e. without dead volumes and volumes that have been transferred
+            to other containers) *in ul*. Use :attr:`full_volume` to access
+            the complete (maximum) volume.
+        :type volume: positive number, unit ul
+
+        :param target_concentration: The concentration of each sample *after
+            all transfers in nM*.
+        :type target_concentration: positive number, unit nM
+
+        :param parent_concentration: The concentration of the source (parent
+            container or stock) for this sample *after all transfers in nM*.
+        :type parent_concentration: positive number, unit nM
+
+        :param is_final_container: Does this container belong to a final ISO
+            plate (if so, its location and sample data cannot be altered).
+        :type is_final_container: :class:`bool`
+        """
+        if isinstance(self, _LocationContainer):
+            raise NotImplementedError('Abstract class.')
+
+        #: The volume the container shall have *after all transfers in ul*
+        self.__volume = volume
+        #: The concentration of each sample *after all transfers in nM*.
+        self.__target_concentration = target_concentration
+        #: The concentration of the source (parent container or stock) for
+        #: this sample *after all transfers in nM*.
+        self.__parent_concentration = parent_concentration
+        #: Does this container belong to a final ISO plate?
+        self.__is_final_container = is_final_container
+
+        #: Can sample (volume) data be altered? Is always *False* for final
+        #: plate containers.
+        self.__allows_modification = not self.__is_final_container
+        #: The minimum transfer volume for the supported pipetting specs *in ul*
+        self.__min_transfer_volume = get_min_transfer_volume(
+                                     self._PIPETTING_SPECS_NAME)
+
+        #: The container this container is derived from.
+        self.__parent_container = None
+        #: The transfer volume *in ul* for each child container.
+        self.targets = dict()
+
+        #: The plate marker marks the plate this container has been placed onto.
+        self.plate_marker = None
+
+        #: A temporary ID used to distinguish container also if they have
+        #: equal values (might be tthe case if copy number are larger 1).
+        self.__id = _CONTAINER_IDS.get_container_id()
+        #: The dead volume that must remain in a plate.
+        self.__dead_volume = 0
+        #: The mininum full volume the container might have (might be relevant
+        #: for preparation containers).
+        self.__min_full_volume = 0
+
+    @property
+    def target_concentration(self):
+        """
+        The concentration of each sample *after all transfers in nM*.
+        """
+        return self.__target_concentration
+
+    @property
+    def parent_concentration(self):
+        """
+        The concentration of the source (parent container or stock) for
+        this sample *after all transfers in nM*.
+        """
+        return self.__parent_concentration
+
+    @property
+    def parent_container(self):
+        """
+        The container this container is derived from.
+        """
+        return self.__parent_container
+
+    @property
+    def final_volume(self):
+        """
+        The final volume of the container after all transfers.
+        """
+        return self.__volume
+
+    @property
+    def full_volume(self):
+        """
+        The maximum volume of this container including dead volume and volume
+        that will be transferred to other containers *in ul*.
+        """
+        full_volume = self.__volume + self.__dead_volume \
+                        + sum(self.targets.values())
+        return max(full_volume, self.__min_full_volume)
+
+    @property
+    def is_final_container(self):
+        """
+        Does this container belong to a final ISO plate?
+        """
+        return self.__is_final_container
+
+    @property
+    def allows_modification(self):
+        """
+        Smaple and location modification is forbidden, if the container is an
+        final plate container or if there clones of it (see :func:`clone`).
+        """
+        return self.__allows_modification
+
+    def disable_modification(self):
+        """
+        Blocks sample and location modifications for this container.
+        Cannot be reversed.
+        Use :attr:`allow_sample_modification` to request the current status.
+
+        Is invoked when creating a clone. Do not invoke from outside this class.
+        """
+        self.__allows_modification = False
+
+    @property
+    def location(self):
+        """
+        The rack positions or sector index for this container.
+        """
+        return getattr(self, self.LOCATION_ATTR_NAME)
+
+    def set_location(self, location, plate_marker):
+        """
+        Assigns a location on a plate to this preparation container.
+
+        :raises AttributeError: If the container sample data must not be
+            altered.
+        """
+        if not self.__allows_modification:
+            msg = 'The data of this container must not be altered!'
+            raise AttributeError(msg)
+
+        setattr(self, self.LOCATION_ATTR_NAME, location)
+        self.plate_marker = plate_marker
+
+    @property
+    def from_stock(self):
+        """
+        Is the pool derived from the stock?
+        """
+        return (self.__parent_container is None)
+
+    @property
+    def stock_concentration(self):
+        """
+        The stock concentration is the :attr:`parent_concentration` of
+        the earliest ancestor. The unit is *nM*.
+        """
+        if self.__parent_concentration is None:
+            return self.__parent_concentration
+        else:
+            return self.__parent_container.stock_concentration
+
+    @property
+    def starting_concentration(self):
+        """
+        The starting concentration is the :attr:`target_concentration` of
+        the earliest ancestor. The unit is *nM*.
+        """
+        if self.__parent_container is None:
+            return self.__target_concentration
+        else:
+            return self.__parent_container.starting_concentration
+
+    @property
+    def starting_volume(self):
+        """
+        The starting volume is the :attr:`full_volume` of the earliest
+        ancestor. The unit is *ul*.
+        """
+        if self.__parent_container is None:
+            return round(self.full_volume, 1)
+        else:
+            return self.__parent_container.starting_volume
+
+    def get_ancestors(self):
+        """
+        Returns the ancestor line of this container. The parent container is
+        the first one in the list, the grandparent the second one, etc.
+        """
+        if self.__parent_container is None:
+            return []
+        else:
+            return [self.__parent_container] \
+                    + self.__parent_container.get_ancestors()
+
+    def get_descendants(self):
+        """
+        Returns the target containers an all its targets (iterativly) of this
+        container.
+        """
+        if len(self.targets) < 1:
+            return []
+        else:
+            descendants = []
+            for child_container in sorted(self.targets.keys()):
+                descendants += [child_container]
+                descendants.extend(child_container.get_descendants())
+            return descendants
+
+    def get_intraplate_ancestor_count(self):
+        """
+        For containers that originate from a different plate or the stock
+        the number is 0. If only the first ancestor comes from the same plate
+        the number is 1. If also the ancestor of the ancestors is from the
+        same plate the number is 2, etc.
+        This number is used to keep the planned transfers (dilution series)
+        in order.
+        """
+        if self.__parent_container is None:
+            return 0
+        elif not self.__parent_container.plate_marker == self.plate_marker:
+            return 0
+        else:
+            parent_ancestor_count = self.__parent_container.\
+                                    get_intraplate_ancestor_count()
+            return parent_ancestor_count + 1
+
+    @classmethod
+    def create_final_plate_container(cls, location, volume,
+                            target_concentration, parent_concentration, **kw):
+        """
+        Factory method creating an final ISO plate container.
+        """
+        kw['is_final_container'] = True
+        kw['volume'] = volume
+        kw['target_concentration'] = target_concentration
+        kw['parent_concentration'] = parent_concentration
+        container = cls(**kw)
+        setattr(container, cls.LOCATION_ATTR_NAME, location)
+        return container
+
+    def set_parent_container(self, parent_container):
+        """
+        Sets a parent container for this container. The both containers are
+        linked an the volumes are adjusted if necessary.
+        """
+        self.adjust_transfer_data(parent_container)
+        self.__parent_container = parent_container
+        self.__parent_concentration = \
+                            self.__parent_container.target_concentration
+
+    def adjust_transfer_data(self, parent_container):
+        """
+        Determines the volume that is transferred from the given parent
+        container to this container using the target concentrations of both
+        containers and the :attr:`full_volume` of this container.
+
+        If there is already a transfer for this combination the transfer
+        volume might be increased if necessary (iteratively for all parents
+        in the line). The volume is not decreased below the minimum transfer
+        volume for this container.
+
+        Do not invoke from outside the class.
+        """
+        transfer_volume = get_transfer_volume(
+                            source_conc=parent_container.target_concentration,
+                            target_conc=self.__target_concentration,
+                            target_vol=self.full_volume)
+
+        transfer_volume = min(transfer_volume, self.__min_transfer_volume)
+        parent_container.targets[self] = transfer_volume
+        grand_parent_container = parent_container.parent_container
+        if grand_parent_container is not None:
+            parent_container.set_transfer_volumes(grand_parent_container)
+
+    def increase_min_full_volume(self, new_volume):
+        """
+        Is only allowed if modification is enabled (non-final containers
+        without clones). The volume must not be lower than the current one.
+
+        :param new_volume: The new volume *in ul*.
+        :type new_volume: positive number
+
+        :raises ValueError: If the new volume is not larger than the current
+            one.
+        :raises AttributeError: If modification of this container is not
+            allowed.
+        """
+        if not self.__allows_modification:
+            raise AttributeError('Volume adjustments for this container ' \
+                                 'are blocked!')
+
+        if not is_larger_than(new_volume, self.__min_full_volume):
+            msg = 'The new minimum volume (%s ul) must be larger than the ' \
+                  'current one (%s ul).' % (get_trimmed_string(new_volume),
+                                get_trimmed_string(self.__min_full_volume))
+            raise ValueError(msg)
+
+        self.__volume = new_volume
+        if not self.__parent_container is None:
+            self.adjust_transfer_data(self.__parent_container)
+
+    def set_dead_volume(self, dead_volume):
+        """
+        Is only allowed if modification of the container is not blocked. Also
+        adjusts the transfer data if there is a parent container registered.
+
+        :param dead_volume: The new dead volume *in ul*.
+        :type dead_volume: positive number
+
+        :raises AttributeError: If the container reflects an final position.
+        """
+        if not self.__allows_modification:
+            raise AttributeError('Adjusting the dead volume for this ' \
+                                 'container is not allowed!')
+
+        self.__dead_volume = dead_volume
+        if not self.__parent_container is None:
+            self.adjust_transfer_data(self.__parent_container)
+
+    def _get_subclass_specific_keywords(self):
+        """
+        Generates a keyword dictionary that is used to create new objects
+        of this class. The dictionary shall only contain subclass-specific
+        keywords and values (the value are the values of this object).
+        The location attribute must *not* be included.
+        """
+        raise NotImplementedError('Abstract method.')
+
+    def create_prep_copy(self, target_concentration, dead_volume):
+        """
+        Creates a copy of this container that does not include location data.
+        The resulting container is always part of a preparation plate with
+        a starting volume of 0 (dead volumes and volumes for transfers are
+        recorded separately).
+
+        :param target_concentration: The concentration for the preparation
+            container *in nM*.
+        :type target_concentration: positive number
+
+        :param dead_volume: The dead volume of the current reservoir specs
+            container *in ul*.
+        :type dead_volume: positive number
+        """
+        kw = self._get_subclass_specific_keywords()
+        kw['volume'] = 0
+        kw['target_concentration'] = target_concentration
+        kw['parent_concentration'] = self.__parent_concentration
+        kw['is_final_container'] = False
+        prep_container = self.__class__(**kw)
+        prep_container.set_dead_volume(dead_volume)
+        return prep_container
+
+    def get_clones(self, copy_number):
+        """
+        Used if the copy number for the requested container is bigger than 1.
+        Creates as many copies of this container until the number of containers
+        is equal to the requested copy number. The locations are the same for
+        all containers.
+        Child containers (in the :attr:`targets` map) are cloned as well.
+
+        :param copy_number: The number of copies that must be filled
+            by the preparation container (larger than 1!).
+        :type copy_number: integer bigger than 1
+
+        :raises ValueError: If the number of copies is smaller or equal 1.
+
+        :returns: The list of x container clones where x is the copy number.
+        """
+        if not copy_number > 1:
+            msg = 'The number of copies must be larger than 1!'
+            raise ValueError(msg)
+
+        clones = [self]
+        while len(clones) < copy_number:
+            clone = self.clone()
+            clones.append(clone)
+        return clones
+
+    def clone(self):
+        """
+        Helper method returning a clone of this container. Child containers
+        (in the :attr:`target_maps` are cloned as well.
+        """
+        kw = self._get_subclass_specific_keywords()
+        kw['volume'] = self.__volume
+        kw['target_concentration'] = self.__target_concentration
+        kw['parent_concentration'] = self.__parent_concentration
+        kw[self.LOCATION_ATTR_NAME] = self.location
+        clone = self.__class__(**kw)
+
+        for child_container in self.targets.keys():
+            child_clone = child_container.clone()
+            child_clone.set_parent_container(clone)
+
+        clone.disable_modification()
+        return clone
+
+    def _to_iso_plate_position(self, pos_cls, rack_pos, pool, position_type,
+                               transfer_targets, **kw):
+        """
+        Creates an :class:`FinalLabIsoPosition` or
+        :class:`LabIsoPrepPosition` for an final ISO layout.
+        """
+        base_kw = self.__get_iso_plate_position_base_kw(rack_pos, pool,
+                                  position_type, transfer_targets)
+        base_kw.update(kw)
+        return pos_cls(**kw)
+
+    def __get_iso_plate_position_base_kw(self, rack_pos, pool, position_type,
+                                         transfer_targets):
+        if self.from_stock:
+            stock_tube_barcode = LabIsoPosition.TEMP_STOCK_DATA
+            stock_rack_marker = LabIsoPosition.TEMP_STOCK_DATA
+        else:
+            stock_tube_barcode = None
+            stock_rack_marker = None
+        return dict(rack_position=rack_pos, molecule_design_pool=pool,
+                    position_type=position_type, volume=self.full_volume,
+                    concentration=self.__target_concentration,
+                    transfer_targets=transfer_targets,
+                    stock_tube_barcode=stock_tube_barcode,
+                    stock_rack_marker=stock_rack_marker)
+
+    def get_buffer_volume(self):
+        """
+        Returns the buffer volume that is required to obtain the full volume
+        for this container. The buffer volume is the difference from full
+        volume and transfer volume.
+        """
+        if self.__parent_container is None:
+            transfer_vol = get_transfer_volume(
+                           source_conc=self.__parent_concentration,
+                           target_conc=self.__target_concentration,
+                           target_vol=self.full_volume)
+        else:
+            transfer_vol = self.__parent_container.targets[self]
+
+        buffer_volume = self.full_volume - transfer_vol
+        return round(buffer_volume, 1)
+
+    def get_planned_transfers(self):
+        """
+        Converts the data from the :attr:`targets` map into
+        :class:`PlannedTransfer` objects.
+        The planned transfers are mapped onto the plate markers of the
+        child containers.
+        """
+        transfers = dict()
+        for child_container, transfer_vol in self.targets.iteritems():
+            kw = self._get_planned_transfer_kw(child_container)
+            vol = round(transfer_vol, 1)
+            kw['volume'] = vol
+            pt = self._PLANNED_TRANSFER_CLS.get_entity(**kw)
+            add_list_map_element(transfers, child_container.plate_marker, pt)
+
+        return transfers
+
+    def _get_planned_transfer_kw(self, child_container):
+        """
+        Returns the keyword dictionary required to initialize an object
+        of the supported :attr:
+        """
+        raise NotImplementedError('Abstract method.')
+
+    def __cmp__(self, other):
+        """
+        The objects are sorted by :attr:`parent_concentration`. If the
+        concentrations are the same they are sorted by location.
+        """
+        if is_smaller_than(self.__parent_concentration,
+                           other.parent_concentration):
+            return -1
+        elif is_larger_than(self.__parent_concentration,
+                            other.parent_concentration):
+            return 1
+        else:
+            self_value = getattr(self, self.LOCATION_ATTR_NAME)
+            other_value = getattr(other, self.LOCATION_ATTR_NAME)
+            return cmp(self_value, other_value)
+
+    @property
+    def temp_id(self):
+        """
+        A unique temporary ID. This is not persisted but only used to safely
+        distinguish different container objects with equal values.
+        """
+        return self.__id
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__id == other.temp_id
+
+    def __hash__(self):
+        return hash(self.__id)
+
+    def __str__(self):
+        return self.__id
+
+    def __repr__(self):
+        str_format = '<%s volume: %s ul, target concentration: %s nM, ' \
+                     'parent concentration: %s nM>'
+        params = (self.__class__.__name__, get_trimmed_string(self.__volume),
+                  get_trimmed_string(self.__target_concentration),
+                  get_trimmed_string(self.__parent_concentration))
+        return str_format % params
+
+
+class SectorContainer(_LocationContainer):
+    """
+    The locations for these container are rack sectors.
+    """
+
+    LOCATION_ATTR_NAME = 'sector_index'
+    _PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.CYBIO
+    _PLANNED_TRANSFER_CLS = PlannedRackSampleTransfer
+
+    def __init__(self, number_sectors, **kw):
+        """
+        Constructor
+
+        :param number_sectors: The total number of rack sectors for a final ISO
+            plate (usually 1 or 4).
+        :type number_sectors: positive integer
+        """
+        _LocationContainer.__init__(self, **kw)
+        self.__number_sectors = number_sectors
+        self.sector_index = None
+
+    def _get_subclass_specific_keywords(self):
+        return dict(number_sectors=self.__number_sectors)
+
+    def create_aliquot_position(self, iso_request_pos, transfer_targets):
+        """
+        Creates a particular :class:`FinalLabIsoPosition` for a final ISO
+        plate layout using the data of an :class:IsoRequestPosition`.
+        """
+        from_job = iso_request_pos.is_floating
+        return self._to_iso_plate_position(pos_cls=FinalLabIsoPosition,
+                            rack_pos=iso_request_pos.rack_position,
+                            pool=iso_request_pos.molecule_design_pool,
+                            position_type=iso_request_pos.position_type,
+                            transfer_targets=transfer_targets,
+                            from_job=from_job,
+                            sector_index=self.sector_index)
+
+    def create_preparation_position(self, iso_request_pos, preparation_targets,
+                                    external_targets, sector_index):
+        """
+        Creates a particular :class:`LabIsoPrepPosition` for an preparation
+        plate layout using the data of an :class:IsoRequestPosition`.
+        """
+        return self._to_iso_plate_position(pos_cls=LabIsoPrepPosition,
+                            rack_pos=iso_request_pos.rack_position,
+                            pool=iso_request_pos.molecule_design_pool,
+                            position_type=iso_request_pos.position_type,
+                            transfer_targets=preparation_targets,
+                            external_targets=external_targets,
+                            sector_index=sector_index)
+
+    def _get_planned_transfer_kw(self, child_container):
+        return dict(source_sector_index=self.sector_index,
+                    target_sector_index=child_container.sector_index,
+                    sector_number=self.__number_sectors)
+
+    def __repr__(self):
+        str_format = '<%s sector index: %s, volume: %s ul, target ' \
+                     'concentration: %s nM, parent concentration: %s nM>'
+        params = (self.__class__.__name__, self.sector_index,
+                  get_trimmed_string(self.__volume),
+                  get_trimmed_string(self.__target_concentration),
+                  get_trimmed_string(self.__parent_concentration))
+        return str_format % params
+
+
+class RackPositionContainer(_LocationContainer):
+    """
+    The locations for these container are rack position.
+
+    Since a rack position can only contain one sample, we also store pool and
+    position type data.
+    """
+
+    LOCATION_ATTR_NAME = 'rack_position'
+    _PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
+    _PLANNED_TRANSFER_CLS = PlannedSampleTransfer
+
+    def __init__(self, pool, position_type, **kw):
+        """
+        Constructor
+
+        :param pool: the molecule design pool for this position
+        :type pool: :class:`thelma.models.moleculedesig.MoleculeDesignPool`
+
+        :param position_type: see :class:`MoleculeDesignPoolParameters`
+        :type position_type: :class:`str`
+        """
+        _LocationContainer.__init__(self, **kw)
+        self.pool = pool
+        self.position_type = position_type
+        self.rack_position = None
+
+    def _get_subclass_specific_keywords(self):
+        return dict(pool=self.pool,
+                    position_type=self.position_type)
+
+    @classmethod
+    def from_iso_request_position(cls, iso_request_pos, stock_concentration):
+        """
+        Factory method creating an ISO plate rack position container from an
+        :class:`IsoRequestPosition`.
+        """
+        kw = dict(pool=iso_request_pos.molecule_design_pool,
+                  position_type=iso_request_pos.position_type)
+        return cls.create_final_plate_container(
+                  location=iso_request_pos.rack_position,
+                  volume=iso_request_pos.iso_volume,
+                  target_concentration=iso_request_pos.iso_concentration,
+                  parent_concentration=stock_concentration, **kw)
+
+    @classmethod
+    def from_iso_plate_position(cls, plate_pos, stock_concentration):
+        """
+        Factory method creating an rack position container with immutable
+        volume from an :class:`LabIsoPosition`.
+        """
+        container = cls(rack_position=plate_pos.rack_position,
+                pool=plate_pos.molecule_design_pool,
+                position_type=plate_pos.position_type,
+                target_concentration=plate_pos.concentration,
+                parent_concentration=stock_concentration,
+                volume=plate_pos.volume)
+        container.disable_modification()
+        return container
+
+    def create_final_iso_plate_position(self, transfer_targets, from_job):
+        """
+        Creates a particular :class:`FinalLabIsoPosition` for a final ISO
+        plate layout.
+        """
+        return self._to_iso_plate_position(pos_cls=FinalLabIsoPosition,
+                            rack_pos=self.rack_position,
+                            pool=self.pool, position_type=self.position_type,
+                            transfer_targets=transfer_targets,
+                            from_job=from_job)
+
+    def create_preparation_position(self, preparation_targets, final_targets):
+        """
+        Creates a particular :class:`LabIsoPrepPosition` for an preparation
+        plate layout from a :class:`PoolContainer` object.
+        """
+        return self._to_iso_plate_position(LabIsoPrepPosition,
+                            rack_pos=self.rack_position,
+                            pool=self.pool, position_type=self.position_type,
+                            transfer_targets=preparation_targets,
+                            external_targets=final_targets)
+
+    def _get_planned_transfer_kw(self, child_container):
+        return dict(source_position=self.rack_position,
+                    target_position=child_container.rack_position)
+
+
+class _PlateContainer(object):
+    """
+    This is an abstract helper storage class that reflects a preparation plate
+    (for an ISO or ISO job). It stores and helps to distribute
+    :class:`_LocationContainer` objects.
+    """
+
+    def __init__(self, plate_marker, available_locations):
+        """
+        Constructor
+
+        :param plate_marker: Contains the role and a plate number. Is generated
+            by :func:`LABELS.create_plate_marker`.
+        :type plate_marker: :class:`str`
+
+        :param available_locations: All possible locations. Each location can
+            take up a container. The nature of the location depends on the
+            subclass.
+        :type available_locations: sector index or :class:`RackPosition`
+            (depending on the subclass).
+        """
+        if isinstance(self, _PlateContainer):
+            raise NotImplementedError('Abstract class.')
+
+        self.plate_marker = plate_marker
+
+        #: The containers for each possible locations. Locations without
+        #: containers are also part of the map, there values is *None* then.
+        self._location_map = dict()
+        self._empty_locations = []
+
+        for location in available_locations:
+            self._location_map[location] = None
+            self._empty_locations.append(location)
+
+    def has_empty_locations(self):
+        """
+        Are there still some unoccupied locations left in this plate?
+        """
+        return (len(self._empty_locations) > 0)
+
+    def is_empty_location(self, location):
+        """
+        Returns *True* if the given location is still unassigned.
+        """
+        return (self._location_map[location] is None)
+
+    def get_locations(self):
+        """
+        Regards all locations for this plate container (regardless of whether
+        there is a container assigned to them).
+        """
+        return self._location_map.keys()
+
+    def get_container_for_location(self, location):
+        """
+        Returns the container that is stored for the specified location.
+        """
+        return self._location_map[location]
+
+    def get_containers(self):
+        """
+        Returns all location containers for this plate container.
+        """
+        containers = []
+        for container in self._location_map.values():
+            if container is None: continue
+            containers.append(container)
+        return containers
+
+    def set_container(self, container, location=None):
+        """
+        Adds the given container to this plate container. You can specify a
+        location for the container, otherwise the plate will find a location
+        by itself.
+
+        :param container: The container to add to this plate.
+        :type container: :class:_LocationContainer` subclass
+
+        :param location: The location for the container.
+        :type location: depends on the subclass
+        :default location: *None*
+
+        :raises ValueError: If the specified location is already occupied.
+        """
+        if location is None:
+            self._find_location(container)
+        elif not self.is_empty_location(location):
+            raise ValueError('Location "%s" is already occupied!' % location)
+
+        self._location_map[location] = container
+        self._empty_locations.remove(location)
+        container.set_location(location, self.plate_marker)
+
+    def _find_location(self, container):
+        """
+        Finds an empty location for a container that shall be added.
+        """
+        raise NotImplementedError('Abstract method.')
+
+    def __hash__(self):
+        return hash(self.plate_marker)
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and \
+               self.plate_marker == other.plate_marker
+
+    def str(self):
+        return self.plate_marker
+
+    def __repr__(self):
+        str_format = '<%s %s>'
+        params = (self.__class__.__name__, self.plate_marker)
+        return str_format % params
+
+
+class SectorPlateContainer(_PlateContainer):
+    """
+    A plate container dealing with sectors (:class:`SectorContainer` objects).
+    """
+
+    def _find_location(self, container):
+        """
+        For sector locations we simple take the first empty sector.
+
+        :raises AttributeError: If there is no empty location left.
+        """
+        for location in sorted(self._location_map):
+            if self._location_map[location] is None:
+                return location
+
+        raise AttributeError('There is no empty sectors left!')
+
+
+class RackPositionPlateContainer(_PlateContainer):
+    """
+    A plate container dealing with separate rack positions
+    (:class:`RackPositionContainer` objects).
+
+    When searching locations for new containers we try to assign a row
+    with other containers having the same pool.
+    """
+
+    def __init__(self, plate_marker, available_locations):
+        """
+        Constructor
+
+        :param plate_marker: Contains the role and a plate number. Is generated
+            by :func:`LABELS.create_plate_marker`.
+        :type plate_marker: :class:`str`
+
+        :param available_locations: All possible locations. Each location can
+            take up a container. The nature of the location depends on the
+            subclass.
+        :type available_locations: sector index or :class:`RackPosition`
+            (depending on the subclass).
+        """
+        _PlateContainer.__init__(self, plate_marker=plate_marker,
+                                 available_locations=available_locations)
+
+        #: Stores the row indices a pool occurs in.
+        self.__pool_row_map = dict()
+        #: Stores the empty rack positions for a row index.
+        self.__row_map = dict()
+        for rack_pos in self._empty_locations:
+            add_list_map_element(self.__row_map, rack_pos.row_index, rack_pos)
+
+        #: Contains all rows that are completely empty.
+        self.__empty_rows = sorted(self.__row_map.keys())
+
+    def _find_location(self, container):
+        """
+        If possible we try to put containers for the same pool into the
+        same row.
+        """
+        pool = container.pool
+
+        if self.__pool_row_map.has_key(pool):
+            row_indices = self.__pool_row_map[pool]
+            for row_index in sorted(row_indices):
+                rack_pos = self.__get_position(row_index)
+                if rack_pos is not None:
+                    break
+        else:
+            row_index = self.__empty_rows[0]
+            rack_pos = self.__get_position(row_index)
+
+        self.__pick_position(row_index, rack_pos, pool)
+        return rack_pos
+
+    def __get_position(self, row_index):
+        """
+        Returns an empty position for the given row index.
+        """
+        if self.__row_map.has_key(row_index):
+            positions = self.__row_map[row_index]
+            return positions[0]
+
+        return None
+
+    def __pick_position(self, row_index, rack_pos, pool):
+        """
+        Stores row index and pool in the pool map and removes the rack
+        position form the empty position collections.
+        """
+        if not self.__pool_row_map.has_key(pool):
+            self.__pool_row_map[pool] = set()
+        self.__pool_row_map[pool].add(row_index)
+
+        positions = self.__row_map[row_index]
+        positions.remove(rack_pos)
+        if len(positions) < 1: del self.__row_map[row_index]
+
+        if row_index in self.__empty_rows:
+            self.__empty_rows.remove(row_index)
+
+
+class _LocationAssigner(object):
+    """
+    Helper object that finds preparation routes for a group of
+    :class:`_LocationContainers` assuming particular :class:`ReservoirSpecs`.
+
+    The assignment is done in 2 steps. With :func:`add_containers` you find
+    determine volumes, concentrations and relationships of containers.
+    :func:`process_preparation_containers` then finds location in preparation
+    plates (if preparation containers are required).
+    """
+
+    #: Used to get the :class:`PipettingSpecs` for the assigner for all
+    #: but stock transfers.
+    _PIPETTING_SPECS_NAME = None
+    #: Used to get the :class:`PipettingSpecs` for the assigner fro transfers
+    #: from the stock.
+    _STOCK_PIPETTING_SPECS_NAME = None
+
+    #: The :class:`_PlateContainer` subclass for preparation plates.
+    _PLATE_CONTAINER_CLS = _PlateContainer
+    #: The role of the preparation plate (ISO or job preparation,
+    #: default: ISO preparation).
+    _PREP_PLATE_ROLE = LABELS.ROLE_PREPARATION_ISO
+
+    def __init__(self, prep_reservoir_specs, final_plate_dead_vol):
+        """
+        Constructor
+
+        :param prep_reservoir_specs: The reservoir specs for this run.
+        :type prep_reservoir_specs: :class:`ReservoirSpecs`
+
+        :param final_plate_dead_vol: The dead volume of the final plates
+            *in ul*.
+        :type final_plate_dead_vol: positive number, unit ul
+        """
+        if isinstance(self, _LocationAssigner):
+            raise NotImplementedError('Abstract method.')
+
+        #: The :class:`ReservoirSpecs` for potential preparation plates.
+        self._prep_specs = prep_reservoir_specs
+        #: The dead volume of the final plates  *in ul*.
+        self.__final_plate_dead_vol = final_plate_dead_vol
+
+        #: The target containers that shall be prepared (usually final plate
+        #: containers).
+        self.__requested_containers = []
+
+        #: The :class:`PipettingSpecs` define the minimum transfer volume,
+        #: the maximum dilution factor and whether dead volumes are dynamic.
+        #: These specs are used for all but transfers from the stock.
+        self.__robot_specs_std = get_pipetting_specs(self._PIPETTING_SPECS_NAME)
+        #: The :class:`PipettingSpecs` define the minimum transfer volume,
+        #: the maximum dilution factor and whether dead volumes are dynamic.
+        #: #: These specs are used for transfers from the stock.
+        self.__robot_specs_stock = get_pipetting_specs(
+                                            self._STOCK_PIPETTING_SPECS_NAME)
+        #: The maximum dilution factor for the pipetting specs.
+        self.__max_dilution_factors = dict()
+        #: The minimum volume for a transfer *in ul*.
+        self.__min_transfer_volumes = dict()
+        for robot_specs in (self.__robot_specs_std, self.__robot_specs_stock):
+            self.__max_dilution_factors[robot_specs] = get_max_dilution_factor(
+                                                       robot_specs)
+            self.__min_transfer_volumes[robot_specs] = get_min_transfer_volume(
+                                                       robot_specs)
+        #: Maps the different batches of requested containers onto an
+        #: identifier. Used to record the order of the batches.
+        self.__identifier_map = dict()
+
+        #: The minimum dead volume for potential preparation plates *in ul*.
+        self.__prep_dead_vol = self._prep_specs.min_dead_volume \
+                               * VOLUME_CONVERSION_FACTOR # in ul
+        #: The locations available on potential preparation plates.
+        self.__available_prep_locations = self._get_locations_for_prep_specs()
+
+        #: The preparation containers mapped onto full volumes.
+        self.__volume_map = None
+
+        #: The preparation containers that have been created.
+        self._prep_containers = None
+        #: The preparation containers sorted by generation (final containers
+        #: first).
+        self.__sorted_prep_containers = None
+        #: The preferred location for each preparation container.
+        self.__preferred_prep_locations = None
+        #: The :class:`_PlateContainer` for each preparation plate, mapped
+        #: onto plate marker.
+        self.__prep_plate_containers = None
+
+    @property
+    def preparation_reservoir_specs(self):
+        """
+        The :class:`ReservoirSpecs` for potential preparation plates.
+        """
+        return self._prep_specs
+
+    def _get_locations_for_prep_specs(self):
+        """
+        Returns all possible locations for the preparation plate reservoir
+        specs - used to assign locations for preparation containers.
+        """
+        raise NotImplementedError('Abstract method.')
+
+    def add_containers(self, requested_containers, identifier, number_copies=1):
+        """
+        Multiplies and registers the passed containers and finds preparation
+        routes for them. The volume and concentration of the requested
+        containers are blocked for modifications.
+
+        :param requested_containers: The containers for which to find
+            preparation routes (without copies).
+        :type requested_containers: :class:`list` of :class:`_LocationContainer`
+            objects
+
+        :param identifier: Used to mark containers belonging together. Will be
+            used for sorting when distributing preparation locations.
+
+        :param number_copies: Each requested container will be multiplied until
+            the number of copies is reached.
+        :type number_copies: :class:`int`
+        :default number_copies: 1
+        """
+        if self._prep_containers is None:
+            self._prep_containers = []
+            self.__preferred_prep_locations = dict()
+
+        # store containers for this ID mapped onto target conc
+        prep_containers = dict()
+        final_containers = dict()
+
+        if number_copies > 1:
+            starting_containers = []
+            for container in requested_containers:
+                if not container.parent_container is None: continue
+                # child containers are covered by the get_clones method
+                clones = container.get_clones(number_copies)
+                starting_containers.extend(clones)
+                for clone in clones:
+                    starting_containers.extend(clone.get_descendants())
+            requested_containers = starting_containers
+
+        for container in requested_containers:
+            add_list_map_element(final_containers,
+                                 container.target_concentration, container)
+
+        not_from_stock = []
+        from_stock = []
+        for requested_container in requested_containers:
+            if requested_container.from_stock:
+                stock_list = from_stock
+            else:
+                stock_list = not_from_stock
+            self.__requested_containers.append(requested_container)
+            stock_list.append(requested_container)
+
+        # first we check whether smaller concentrations, if possible we derive
+        # them from larger concentration among the requested containers
+        not_from_stock.sort()
+        for container in not_from_stock:
+            self.__prepare_container(container, prep_containers,
+                                     final_containers)
+
+        # second we check the volumes that are directly derived from the stock
+        from_stock.sort(reverse=True)
+        for container in from_stock:
+            self.__prepare_container(container, prep_containers,
+                                     final_containers)
+
+        # store all containers
+        all_containers = requested_containers + prep_containers.values()
+        self.__identifier_map[identifier] = all_containers
+
+    def __prepare_container(self, container, prep_containers,
+                            requested_containers):
+        """
+        Finds or creates a parent container for the given container (if it
+        cannot be derived directly from the stock) and stores them in the
+        container map.
+        """
+        final_container = self.__find_suitable_source_container(container,
+                                                     requested_containers)
+        has_valid_origin = (final_container is not None)
+        if has_valid_origin:
+            container.set_parent_container(final_container)
+        while not has_valid_origin:
+            prep_container = self.__find_suitable_source_container(container,
+                                                             prep_containers)
+            if prep_container is not None:
+                container.set_parent_container(prep_container)
+                has_valid_origin = True
+            elif not self.__requires_intermediate_position(container):
+                has_valid_origin = True
+            else:
+                prep_container = self.__create_new_prep_container(container,
+                                                         container.location)
+                self.__store_prep_container(prep_containers, prep_container)
+                container = prep_container
+
+    def __store_prep_container(self, container_map, prep_container):
+        """
+        Stores the preparation container and its parent container in the map
+        (mapped onto target concentrations).
+        """
+        add_list_map_element(container_map, prep_container.target_concentration,
+                             prep_container)
+        if prep_container.parent_container is not None:
+            self.__store_prep_container(container_map,
+                                        prep_container.parent_container)
+
+    def __requires_intermediate_position(self, target_container,
+                                         source_container=None):
+        """
+        Checks whether the dilution from parent to target concentration of
+        a container can be reached in one dilution step. The dilution factor
+        is always checked. If modification of the target container is not
+        allowed the check will include also transfer and buffer volume.
+
+        :raises ValueError: if the parent concentration is smaller than the
+            target concentration
+        """
+        target_conc = target_container.target_concentration
+        if source_container is None:
+            parent_conc = target_container.parent_concentration
+        else:
+            parent_conc = source_container.target_concentration
+        if target_container.from_stock:
+            robot_specs = self.__robot_specs_stock
+        else:
+            robot_specs = self.__robot_specs_std
+        min_transfer_volume = self.__min_transfer_volumes[robot_specs]
+        max_dilution_factor = self.__max_dilution_factors[robot_specs]
+
+        dil_factor = parent_conc / float(target_conc)
+        if is_larger_than(dil_factor, max_dilution_factor):
+            return True
+        elif is_smaller_than(dil_factor, 1):
+            msg = 'The parent concentration (%s nM is smaller than the ISO ' \
+                  'concentration (%s)!' % (get_trimmed_string(parent_conc),
+                                           get_trimmed_string(target_conc))
+            raise ValueError(msg)
+        elif are_equal_values(dil_factor, max_dilution_factor):
+            return False
+
+        if not target_container.allows_modification:
+            if not source_container is None and \
+                                    not source_container.allows_modification:
+                if is_smaller_than(source_container.final_volume,
+                                   self.__final_plate_dead_vol):
+                    return True
+            full_volume = target_container.full_volume
+            transfer_volume = full_volume / dil_factor
+            if is_smaller_than(transfer_volume, min_transfer_volume):
+                return True
+            dilution_vol = full_volume - transfer_volume
+            if is_smaller_than(dilution_vol, min_transfer_volume):
+                return True
+
+        return False
+
+    def __find_suitable_source_container(self, container,
+                                         potential_src_containers):
+        """
+        Returns a potential source container from the list of potential
+        containers. The potential containers are assumed to allow volume
+        modifications.
+        """
+        for src_conc in sorted(potential_src_containers.keys(reverse=True)):
+            src_containers = potential_src_containers[src_conc]
+            if is_smaller_than(src_conc, container.target_concentration):
+                continue
+            for src_container in src_containers:
+                if not self.__requires_intermediate_position(container,
+                                                             src_conc):
+                    self.__adjust_volume_of_existing_prep(container,
+                                                          src_container)
+                    return src_container
+
+        return None
+
+    def __adjust_volume_of_existing_prep(self, target_container, src_conc):
+        """
+        If we add a new target container to an exisiting preparation container
+        we might have to increase the source position volume if the transfer
+        volume is not suitable. This might be the case if there are differing
+        target concentrations for the source container children and the
+        new target concentration is much larger (= transfer_volume is smaller).
+        In this case we increase the minimum full volume of the target
+        container.
+        """
+        if target_container.allows_modification:
+            min_transfer_vol = self.__min_transfer_volumes[
+                                                    self.__robot_specs_std]
+            target_conc = target_container.target_concentration
+            dil_factor = src_conc / target_conc
+            transfer_vol = get_transfer_volume(src_conc, target_conc,
+                                    target_container.full_volume, dil_factor)
+            if is_smaller_than(transfer_vol, min_transfer_vol):
+                corr_factor = min_transfer_vol / transfer_vol
+                self.__adjust_volume(corr_factor, transfer_vol, dil_factor,
+                                     target_container)
+
+    def __create_new_prep_container(self, target_container, preferred_location):
+        """
+        The new container serves as parent for the target container. The
+        preferred location can be *None*.
+        """
+        prep_container = self.__determine_preparation_values(target_container)
+        target_container.set_parent_container(prep_container)
+        self.__preferred_prep_locations[prep_container] = preferred_location
+        return prep_container
+
+    def __determine_preparation_values(self, target_container):
+        """
+        Determines volume and concentration for a new preparation container
+        that serves as source for the given container. Dilution factor, transfer
+        and buffer volume must all be valid.
+        If the target container allows modification its volume might be raised
+        to achieve valid volumes for transfers. Otherwise the source container
+        dilution is adjusted (this might also include the preparation of
+        further ancestor containers).
+
+        It is not checked whether the volumes exceed the maximum transfer
+        volumes because this problem can be solved by multiple transfers.
+        """
+        parent_conc = target_container.parent_concentration
+        target_conc = target_container.target_concentration
+        target_vol = target_container.full_volume
+        dil_factor = parent_conc / target_conc
+
+        min_transfer_vol = self.__min_transfer_volumes[self.__robot_specs_std]
+        max_dil_factor = self.__max_dilution_factors[self.__robot_specs_std]
+        dil_factor = min(dil_factor, max_dil_factor)
+        transfer_vol = get_transfer_volume(parent_conc, target_conc,
+                                           target_vol, dil_factor)
+        if is_smaller_than(transfer_vol, min_transfer_vol):
+            if target_container.allows_modification:
+                corr_factor = min_transfer_vol / transfer_vol
+                transfer_vol, target_vol = self.__adjust_volume(corr_factor,
+                                transfer_vol, dil_factor, target_container)
+            else:
+                dil_factor = target_vol / min_transfer_vol
+                # the new dilution factor is smaller than the old one
+                parent_conc = dil_factor / target_conc
+
+        buffer_vol = target_vol - transfer_vol
+        if is_smaller_than(buffer_vol, min_transfer_vol):
+            corr_factor = min_transfer_vol / buffer_vol
+            if target_container.allows_modification:
+                self.__adjust_volume(corr_factor, transfer_vol, dil_factor,
+                                     target_container)
+            else:
+                new_parent_conc = parent_conc * corr_factor
+                new_dil_factor = new_parent_conc / target_conc
+                if is_larger_than(new_dil_factor, max_dil_factor):
+                    # in this case we prepare a new preparation position
+                    # with exactly the same concentration as the target aliquot
+                    parent_conc = target_conc
+
+        new_prep_container = target_container.create_prep_copy(
+                                      target_concentration=parent_conc,
+                                      dead_volume=self.__prep_dead_vol)
+        if are_equal_values(parent_conc, target_conc):
+            self.__create_new_prep_container(new_prep_container, None)
+        return new_prep_container
+
+    def __adjust_volume(self, corr_factor, transfer_volume,
+                        dil_factor, target_container):
+        """
+        Is used to increase the minimum full volume for a preparation container.
+        """
+        new_transfer_vol = corr_factor * transfer_volume
+        new_target_vol = round_up(new_transfer_vol, 1) * dil_factor
+        target_container.increase_min_full_volume(new_target_vol)
+        return new_transfer_vol, new_target_vol
+
+    def has_preparation_containers(self):
+        """
+        Returns *True* if there are preparation containers scheduled in this
+        assigner. Assumes you have already invoked :func:`add_container` before.
+
+        :return: boolean
+        :raise AttributeError: If you did not invoke :func:`add_container`
+            before.
+        """
+        if self._prep_containers is None:
+            msg = 'The layout generation is not completed yet. Please call ' \
+                  'add_containers() before.'
+            raise AttributeError(msg)
+
+        return len(self._prep_containers) > 0
+
+    def process_preparation_containers(self):
+        """
+        Assumes you have finished recording target containers (see
+        :func:`add_containers`). Invokes :func:`has_preparation_containers`.
+        If there are preparation containers scheduled, the method adjusts the
+        dead volumes (if the pipetting specs request dynamic dead volumes)
+        an determines the maximum volume for all preparation containers.
+        """
+        if self.has_preparation_containers() and self.__volume_map is None:
+            self.__sort_prep_container_by_generation()
+            self.__adjust_container_dead_volumes()
+            self.__create_volume_map()
+
+    def __sort_prep_container_by_generation(self):
+        """
+        The generation of preparation container indicates the number of steps
+        required to reach an requested container. If at least one target
+        container is a requested container, the generation is 1. If no
+        child but at least one grandchild is a requested container, the
+        generation is 2, etc.
+        Smaller generations have smaller indices in the return value list.
+        """
+        containers_ori_order = dict()
+        found_containers = set()
+        generation_map = dict()
+        for requested_container in self.__requested_containers:
+            ancestors = requested_container.get_ancestors()
+            for i in range(ancestors):
+                container = ancestors[i]
+                if not container.allows_modification: continue
+                add_list_map_element(generation_map, container, i)
+                if not container in found_containers:
+                    containers_ori_order[len(found_containers)] = container
+                    found_containers.add(container)
+
+        min_generation_map = dict()
+        for order_num in sorted(containers_ori_order.keys()):
+            container = containers_ori_order[order_num]
+            generations = generation_map[container]
+            add_list_map_element(min_generation_map, min(generations),
+                                 container)
+
+        self.__sorted_prep_containers = []
+        for generation in sorted(min_generation_map.keys()):
+            self.__sorted_prep_containers.extend(min_generation_map[generation])
+
+    def __adjust_container_dead_volumes(self):
+        """
+        If the pipetting method requests dynamic dead volumes, this method
+        will adjust the dead volume of each preparaion container (containers
+        are sorted by generation).
+        """
+        dynamic_std = self.__robot_specs_std.has_dynamic_dead_volume
+        dynamic_stock = self.__robot_specs_stock.has_dynamic_dead_volume
+        if dynamic_std or dynamic_stock:
+            for container in self.__sorted_prep_containers:
+                if container.from_stock and dynamic_stock:
+                    self.__adjust_dead_volume_for_container(container)
+                elif not container.from_stock and dynamic_std:
+                    self.__adjust_dead_volume_for_container(container)
+
+    def __adjust_dead_volume_for_container(self, container):
+        """
+        For dynamic dead volumes, the dead volume of a container is increased
+        depending on the number of transfer targets. The minimum and maximum
+        dead volume are defined by the preparation reservoir specs.
+        """
+        num_targets = len(container.targets)
+        new_dead_volume = get_dynamic_dead_volume(num_targets, self._prep_specs)
+        if is_larger_than(new_dead_volume, self.__prep_dead_vol):
+            add_volume = new_dead_volume - self.__prep_dead_vol
+            container.adjust_dead_volume_by(add_volume)
+
+    def __create_volume_map(self):
+        """
+        Sorts preparation containers by (full) volume.
+        """
+        self.__volume_map = dict()
+        for container in self.__sorted_prep_containers:
+            container_vol = container.full_volume
+            container_vol = round(container_vol, 1)
+            add_list_map_element(self.__volume_map, container_vol,
+                                 container)
+
+    def get_max_preparation_volume(self):
+        """
+        Returns the largest volume for a preparation container (in ul).
+        Assumes you have already invoked :func:`add_container` and
+        :func:`process_preparation_containers` before.
+
+        :return: boolean
+        :raise AttributeError: If you did not invoke :func:`add_container` and
+            :func:`process_preparation_containers` before.
+        """
+        if self.__volume_map is None:
+            msg = 'The layout generation is not completed yet. Please call ' \
+                  'add_containers() and process_preparation_containers() ' \
+                  'before.'
+            raise AttributeError(msg)
+
+        return max(self.__volume_map.keys())
+
+    def get_number_preparation_plates(self):
+        """
+        Returns the number of preparation plates required to provide locations
+        for all preparation containers.
+        """
+        num_prep_containers = len(self._prep_containers)
+        return round_up(float(len(self.__available_prep_locations)) \
+                        / num_prep_containers, 0)
+
+    def distribute_preparation_containers(self):
+        """
+        Finds locations for all preparation containers. If possible the
+        containers get their preferred locations.
+
+        Assumes you have already invoked :func:`add_container` and
+        :func:`process_preparation_containers` before.
+
+        :return: boolean
+        :raise AttributeError: If you did not invoke :func:`add_container` and
+            :func:`process_preparation_containers` before.
+        """
+        if self.__volume_map is None:
+            msg = 'The layout generation is not completed yet. Please call ' \
+                  'add_containers() and process_preparation_containers() ' \
+                  'before.'
+            raise AttributeError(msg)
+
+        self.__prep_plate_containers = dict()
+        self.__create_preparation_plate_containers()
+        self.__distribute_prep_containers()
+
+    def __create_preparation_plate_containers(self):
+        """
+        Helper function.
+        Creates :class:`_PlateContainer` objects for each preparation plate.
+        """
+        num_plates = self.get_number_preparation_plates()
+        for i in range(num_plates):
+            plate_num = i + 1
+            plate_marker = LABELS.create_rack_marker(self._PREP_PLATE_ROLE,
+                                                     plate_num)
+            self.__create_plate_container(plate_marker)
+
+    def __create_plate_container(self, plate_marker):
+        """
+        Helper function. Creates and stores a preparation plate container.
+        """
+        kw = dict(available_locations=self.__available_prep_locations,
+                  plate_marker=plate_marker)
+        plate_container = self._PLATE_CONTAINER_CLS(**kw)
+        self.__prep_plate_containers[plate_marker] = plate_container
+
+    def __distribute_prep_containers(self):
+        """
+        Helper function. Finds locations for all preparation containers.
+        Containers are prioritized before assignment.
+        """
+        container_identifiers = dict()
+        for identifier, containers in self.__identifier_map.iteritems():
+            for container in containers:
+                container_identifiers[container] = identifier
+
+        priority_scores = self.__sort_by_stock_origin_and_location_preference()
+
+        remaining_plates = []
+        for plate_marker in sorted(self.__prep_plate_containers.keys()):
+            plate = self.__prep_plate_containers[plate_marker]
+            if plate.has_empty_positions():
+                remaining_plates.append(plate)
+
+        for score in sorted(priority_scores.keys(), reverse=True):
+            containers = priority_scores[score]
+            for container in containers:
+                pref_location = self.__preferred_prep_locations[container]
+                prep_plate = remaining_plates.pop(0)
+                location = None
+                if pref_location is not None:
+                    if prep_plate.is_empty_location(pref_location):
+                        location = pref_location
+                prep_plate.set_container(container, location)
+                if prep_plate.has_empty_locations():
+                    remaining_plates.insert(0, prep_plate)
+
+    def __sort_by_stock_origin_and_location_preference(self):
+        """
+        Helper function creating a score map for the storted preparation
+        container. Containers with a high score should get a location first.
+        Priority is raised strongly if a container sample originates from
+        the stock, and slightly if it has a preferred location.
+        """
+        priority_scores = dict()
+
+        for identifier in sorted(self.__identifier_map.keys()):
+            containers = self.__identifier_map[identifier]
+            for container in containers:
+                score = 0
+                if container.from_stock: score += 2
+                if self.__preferred_prep_locations[container] is not None:
+                    score += 1
+                add_list_map_element(priority_scores, score, container)
+
+        return priority_scores
+
+    def get_preparation_plate_containers(self):
+        """
+        Returns the preparation plate containers that have been build up.
+        Assumes you have already invoked
+        :func:`distribute_preparation_containers` before.
+
+        :return: The preparation containers mapped onto plate marker.
+        :raise AttributeError: If you did not invoke
+        :func:`distribute_preparation_containers` before
+        """
+        if self.__prep_plate_containers is None:
+            msg = 'The layout generation is not completed yet. Please call ' \
+                  'distribute_preparation_containers() before.'
+            raise AttributeError(msg)
+
+        return self.__prep_plate_containers
+
+
+class SectorLocationAssigner(_LocationAssigner):
+    """
+    A location assigner dealing with rack sector. Use the CyBio for pipetting
+    specs.
+    """
+
+    _PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.CYBIO
+    _STOCK_PIPETTING_SPECS_NAME = _PIPETTING_SPECS_NAME
+    _PLATE_CONTAINER_CLS = SectorPlateContainer
+
+    def __init__(self, reservoir_specs, number_sectors):
+        """
+        Constructor
+
+        :param prep_reservoir_specs: The reservoir specs for this run.
+        :type prep_reservoir_specs: :class:`ReservoirSpecs`
+
+        :param number_sectors: The number of rack sectors (usually 1 or 4).
+        :type number_sectors: :class:`int`
+        """
+        _LocationAssigner.__init__(prep_reservoir_specs=reservoir_specs)
+        self.number_sectors = number_sectors
+
+    def _get_locations_for_prep_specs(self):
+        """
+        In this case we return a list of sector indices.
+        """
+        shape_size = self._prep_specs.rack_shape.size
+        if shape_size == 384:
+            num_sectors = self.number_sectors
+        else: # 96
+            num_sectors = 1
+        return range(num_sectors)
+
+
+class RackPositionLocationAssigner(_LocationAssigner):
+    """
+    This assigner deals with rack positions. It uses the Biomek specs as
+    pipetting specs.
+    """
+
+    _PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
+    _STOCK_PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEKSTOCK
+    _PLATE_CONTAINER_CLS = RackPositionPlateContainer
+
+    def _get_locations_for_prep_specs(self):
+        """
+        We do not need to check whether rack positions are already occupied
+        because preparation plates are always new ones.
+        """
+        return get_positions_for_shape(self._prep_specs.rack_shape)
+
+
+class JobRackPositionAssigner(RackPositionLocationAssigner):
+    """
+    This assigner deals with rack positions, but unlike the normal
+    :class:`RackPositionLocationAssigner` (which deals with routes for single
+    ISOs), this assigner creates preparation plates for ISO jobs.
+    """
+
+    _PREP_PLATE_ROLE = LABELS.ROLE_PREPARATION_JOB
+
+
+def get_transfer_volume(source_conc, target_conc, target_vol, dil_factor=None):
+    """
+    Helper function determine the transfer volume (uncorrected) for a set of
+    values.
+    """
+    if dil_factor is None:
+        dil_factor = source_conc / float(target_conc)
+
+    return target_vol / dil_factor
+
+
 class _LayoutPlanner(BaseAutomationTool):
     """
     Abstract base class. The planner finds preparation routes for a bunch
@@ -2127,1631 +3755,7 @@ class JobRackPositionPlanner(RackPositionPlanner):
                                                 plate_specs)
 
 
-class _CONTAINER_IDS(object):
-    """
-    Provides (temporary) IDs for :class:`_LocationContainer` objects to make
-    sure that objects are distinguished even if their values are equal. The
-    IDs are running numbers.
 
-    This is a singleton object.
-    """
-
-    __current_container_counter = None
-
-    def __init__(self):
-        """
-        This class must not be instantiated. Use :func:`start` instead.
-        """
-        raise NotImplementedError('Class must not be instantiated.')
-
-    @classmethod
-    def start(cls):
-        """
-        Resets the ID counter.
-        """
-        cls.__current_container_counter = 0
-
-    @classmethod
-    def get_container_id(cls):
-        """
-        Increments the ID counter and returns a new ID.
-        """
-        cls.__current_container_counter += 1
-        return cls.__current_container_counter
-
-    @classmethod
-    def shut_down(cls):
-        """
-        Sets the current :attr:`__current_container_counter` to *None*.
-        """
-        cls.__current_container_counter = None
-
-
-class _LocationContainer(object):
-    """
-    Storage class whose data is set successively.
-    A location container represents a rack position or rack sector (depending
-    on the subclass) in an ISO plate (aliquot, library or preparation plate).
-    Location containers can be linked to each other to provide preparation
-    routes (= groups of containers that are derived from one another).
-
-    In case of preparation cotainers first the sample data is set. The actual
-    location is assigned later.
-    """
-
-    #: The name of the attribute containing the location data.
-    LOCATION_ATTR_NAME = None
-    #: The :class:`PipettingSpecs` supported by this class (used for minimum
-    #: volume checks).
-    _PIPETTING_SPECS_NAME = None
-    #: The :class:`PlannedTransfer` class supported by this class.
-    _PLANNED_TRANSFER_CLS = None
-
-    def __init__(self, volume, target_concentration, parent_concentration,
-                 is_final_container=False):
-        """
-        Constructor
-
-        :param volume: The volume the container shall have *after all transfers*
-            (i.e. without dead volumes and volumes that have been transferred
-            to other containers) *in ul*. Use :attr:`full_volume` to access
-            the complete (maximum) volume.
-        :type volume: positive number, unit ul
-
-        :param target_concentration: The concentration of each sample *after
-            all transfers in nM*.
-        :type target_concentration: positive number, unit nM
-
-        :param parent_concentration: The concentration of the source (parent
-            container or stock) for this sample *after all transfers in nM*.
-        :type parent_concentration: positive number, unit nM
-
-        :param is_final_container: Does this container belong to a final ISO
-            plate (if so, its location and sample data cannot be altered).
-        :type is_final_container: :class:`bool`
-        """
-        if isinstance(self, _LocationContainer):
-            raise NotImplementedError('Abstract class.')
-
-        #: The volume the container shall have *after all transfers in ul*
-        self.__volume = volume
-        #: The concentration of each sample *after all transfers in nM*.
-        self.__target_concentration = target_concentration
-        #: The concentration of the source (parent container or stock) for
-        #: this sample *after all transfers in nM*.
-        self.__parent_concentration = parent_concentration
-        #: Does this container belong to a final ISO plate?
-        self.__is_final_container = is_final_container
-
-        #: Can sample (volume) data be altered? Is always *False* for final
-        #: plate containers.
-        self.__allows_modification = not self.__is_final_container
-        #: The minimum transfer volume for the supported pipetting specs *in ul*
-        self.__min_transfer_volume = get_min_transfer_volume(
-                                     self._PIPETTING_SPECS_NAME)
-
-        #: The container this container is derived from.
-        self.__parent_container = None
-        #: The transfer volume *in ul* for each child container.
-        self.targets = dict()
-
-        #: The plate marker marks the plate this container has been placed onto.
-        self.plate_marker = None
-
-        #: A temporary ID used to distinguish container also if they have
-        #: equal values (might be tthe case if copy number are larger 1).
-        self.__id = _CONTAINER_IDS.get_container_id()
-        #: The dead volume that must remain in a plate.
-        self.__dead_volume = 0
-        #: The mininum full volume the container might have (might be relevant
-        #: for preparation containers).
-        self.__min_full_volume = 0
-
-    @property
-    def target_concentration(self):
-        """
-        The concentration of each sample *after all transfers in nM*.
-        """
-        return self.__target_concentration
-
-    @property
-    def parent_concentration(self):
-        """
-        The concentration of the source (parent container or stock) for
-        this sample *after all transfers in nM*.
-        """
-        return self.__parent_concentration
-
-    @property
-    def parent_container(self):
-        """
-        The container this container is derived from.
-        """
-        return self.__parent_container
-
-    @property
-    def final_volume(self):
-        """
-        The final volume of the container after all transfers.
-        """
-        return self.__volume
-
-    @property
-    def full_volume(self):
-        """
-        The maximum volume of this container including dead volume and volume
-        that will be transferred to other containers *in ul*.
-        """
-        full_volume = self.__volume + self.__dead_volume \
-                        + sum(self.targets.values())
-        return max(full_volume, self.__min_full_volume)
-
-    @property
-    def is_final_container(self):
-        """
-        Does this container belong to a final ISO plate?
-        """
-        return self.__is_final_container
-
-    @property
-    def allows_modification(self):
-        """
-        Smaple and location modification is forbidden, if the container is an
-        final plate container or if there clones of it (see :func:`clone`).
-        """
-        return self.__allows_modification
-
-    def disable_modification(self):
-        """
-        Blocks sample and location modifications for this container.
-        Cannot be reversed.
-        Use :attr:`allow_sample_modification` to request the current status.
-
-        Is invoked when creating a clone. Do not invoke from outside this class.
-        """
-        self.__allows_modification = False
-
-    @property
-    def location(self):
-        """
-        The rack positions or sector index for this container.
-        """
-        return getattr(self, self.LOCATION_ATTR_NAME)
-
-    def set_location(self, location, plate_marker):
-        """
-        Assigns a location on a plate to this preparation container.
-
-        :raises AttributeError: If the container sample data must not be
-            altered.
-        """
-        if not self.__allows_modification:
-            msg = 'The data of this container must not be altered!'
-            raise AttributeError(msg)
-
-        setattr(self, self.LOCATION_ATTR_NAME, location)
-        self.plate_marker = plate_marker
-
-    @property
-    def from_stock(self):
-        """
-        Is the pool derived from the stock?
-        """
-        return (self.__parent_container is None)
-
-    @property
-    def stock_concentration(self):
-        """
-        The stock concentration is the :attr:`parent_concentration` of
-        the earliest ancestor. The unit is *nM*.
-        """
-        if self.__parent_concentration is None:
-            return self.__parent_concentration
-        else:
-            return self.__parent_container.stock_concentration
-
-    @property
-    def starting_concentration(self):
-        """
-        The starting concentration is the :attr:`target_concentration` of
-        the earliest ancestor. The unit is *nM*.
-        """
-        if self.__parent_container is None:
-            return self.__target_concentration
-        else:
-            return self.__parent_container.starting_concentration
-
-    @property
-    def starting_volume(self):
-        """
-        The starting volume is the :attr:`full_volume` of the earliest
-        ancestor. The unit is *ul*.
-        """
-        if self.__parent_container is None:
-            return round(self.full_volume, 1)
-        else:
-            return self.__parent_container.starting_volume
-
-    def get_ancestors(self):
-        """
-        Returns the ancestor line of this container. The parent container is
-        the first one in the list, the grandparent the second one, etc.
-        """
-        if self.__parent_container is None:
-            return []
-        else:
-            return [self.__parent_container] \
-                    + self.__parent_container.get_ancestors()
-
-    def get_descendants(self):
-        """
-        Returns the target containers an all its targets (iterativly) of this
-        container.
-        """
-        if len(self.targets) < 1:
-            return []
-        else:
-            descendants = []
-            for child_container in sorted(self.targets.keys()):
-                descendants += [child_container]
-                descendants.extend(child_container.get_descendants())
-            return descendants
-
-    def get_intraplate_ancestor_count(self):
-        """
-        For containers that originate from a different plate or the stock
-        the number is 0. If only the first ancestor comes from the same plate
-        the number is 1. If also the ancestor of the ancestors is from the
-        same plate the number is 2, etc.
-        This number is used to keep the planned transfers (dilution series)
-        in order.
-        """
-        if self.__parent_container is None:
-            return 0
-        elif not self.__parent_container.plate_marker == self.plate_marker:
-            return 0
-        else:
-            parent_ancestor_count = self.__parent_container.\
-                                    get_intraplate_ancestor_count()
-            return parent_ancestor_count + 1
-
-    @classmethod
-    def create_final_plate_container(cls, location, volume,
-                            target_concentration, parent_concentration, **kw):
-        """
-        Factory method creating an final ISO plate container.
-        """
-        kw['is_final_container'] = True
-        kw['volume'] = volume
-        kw['target_concentration'] = target_concentration
-        kw['parent_concentration'] = parent_concentration
-        container = cls(**kw)
-        setattr(container, cls.LOCATION_ATTR_NAME, location)
-        return container
-
-    def set_parent_container(self, parent_container):
-        """
-        Sets a parent container for this container. The both containers are
-        linked an the volumes are adjusted if necessary.
-        """
-        self.adjust_transfer_data(parent_container)
-        self.__parent_container = parent_container
-        self.__parent_concentration = \
-                            self.__parent_container.target_concentration
-
-    def adjust_transfer_data(self, parent_container):
-        """
-        Determines the volume that is transferred from the given parent
-        container to this container using the target concentrations of both
-        containers and the :attr:`full_volume` of this container.
-
-        If there is already a transfer for this combination the transfer
-        volume might be increased if necessary (iteratively for all parents
-        in the line). The volume is not decreased below the minimum transfer
-        volume for this container.
-
-        Do not invoke from outside the class.
-        """
-        transfer_volume = get_transfer_volume(
-                            source_conc=parent_container.target_concentration,
-                            target_conc=self.__target_concentration,
-                            target_vol=self.full_volume)
-
-        transfer_volume = min(transfer_volume, self.__min_transfer_volume)
-        parent_container.targets[self] = transfer_volume
-        grand_parent_container = parent_container.parent_container
-        if grand_parent_container is not None:
-            parent_container.set_transfer_volumes(grand_parent_container)
-
-    def increase_min_full_volume(self, new_volume):
-        """
-        Is only allowed if modification is enabled (non-final containers
-        without clones). The volume must not be lower than the current one.
-
-        :param new_volume: The new volume *in ul*.
-        :type new_volume: positive number
-
-        :raises ValueError: If the new volume is not larger than the current
-            one.
-        :raises AttributeError: If modification of this container is not
-            allowed.
-        """
-        if not self.__allows_modification:
-            raise AttributeError('Volume adjustments for this container ' \
-                                 'are blocked!')
-
-        if not is_larger_than(new_volume, self.__min_full_volume):
-            msg = 'The new minimum volume (%s ul) must be larger than the ' \
-                  'current one (%s ul).' % (get_trimmed_string(new_volume),
-                                get_trimmed_string(self.__min_full_volume))
-            raise ValueError(msg)
-
-        self.__volume = new_volume
-        if not self.__parent_container is None:
-            self.adjust_transfer_data(self.__parent_container)
-
-    def set_dead_volume(self, dead_volume):
-        """
-        Is only allowed if modification of the container is not blocked. Also
-        adjusts the transfer data if there is a parent container registered.
-
-        :param dead_volume: The new dead volume *in ul*.
-        :type dead_volume: positive number
-
-        :raises AttributeError: If the container reflects an final position.
-        """
-        if not self.__allows_modification:
-            raise AttributeError('Adjusting the dead volume for this ' \
-                                 'container is not allowed!')
-
-        self.__dead_volume = dead_volume
-        if not self.__parent_container is None:
-            self.adjust_transfer_data(self.__parent_container)
-
-    def _get_subclass_specific_keywords(self):
-        """
-        Generates a keyword dictionary that is used to create new objects
-        of this class. The dictionary shall only contain subclass-specific
-        keywords and values (the value are the values of this object).
-        The location attribute must *not* be included.
-        """
-        raise NotImplementedError('Abstract method.')
-
-    def create_prep_copy(self, target_concentration, dead_volume):
-        """
-        Creates a copy of this container that does not include location data.
-        The resulting container is always part of a preparation plate with
-        a starting volume of 0 (dead volumes and volumes for transfers are
-        recorded separately).
-
-        :param target_concentration: The concentration for the preparation
-            container *in nM*.
-        :type target_concentration: positive number
-
-        :param dead_volume: The dead volume of the current reservoir specs
-            container *in ul*.
-        :type dead_volume: positive number
-        """
-        kw = self._get_subclass_specific_keywords()
-        kw['volume'] = 0
-        kw['target_concentration'] = target_concentration
-        kw['parent_concentration'] = self.__parent_concentration
-        kw['is_final_container'] = False
-        prep_container = self.__class__(**kw)
-        prep_container.set_dead_volume(dead_volume)
-        return prep_container
-
-    def get_clones(self, copy_number):
-        """
-        Used if the copy number for the requested container is bigger than 1.
-        Creates as many copies of this container until the number of containers
-        is equal to the requested copy number. The locations are the same for
-        all containers.
-        Child containers (in the :attr:`targets` map) are cloned as well.
-
-        :param copy_number: The number of copies that must be filled
-            by the preparation container (larger than 1!).
-        :type copy_number: integer bigger than 1
-
-        :raises ValueError: If the number of copies is smaller or equal 1.
-
-        :returns: The list of x container clones where x is the copy number.
-        """
-        if not copy_number > 1:
-            msg = 'The number of copies must be larger than 1!'
-            raise ValueError(msg)
-
-        clones = [self]
-        while len(clones) < copy_number:
-            clone = self.clone()
-            clones.append(clone)
-        return clones
-
-    def clone(self):
-        """
-        Helper method returning a clone of this container. Child containers
-        (in the :attr:`target_maps` are cloned as well.
-        """
-        kw = self._get_subclass_specific_keywords()
-        kw['volume'] = self.__volume
-        kw['target_concentration'] = self.__target_concentration
-        kw['parent_concentration'] = self.__parent_concentration
-        kw[self.LOCATION_ATTR_NAME] = self.location
-        clone = self.__class__(**kw)
-
-        for child_container in self.targets.keys():
-            child_clone = child_container.clone()
-            child_clone.set_parent_container(clone)
-
-        clone.disable_modification()
-        return clone
-
-    def _to_iso_plate_position(self, pos_cls, rack_pos, pool, position_type,
-                               transfer_targets, **kw):
-        """
-        Creates an :class:`FinalLabIsoPosition` or
-        :class:`LabIsoPrepPosition` for an final ISO layout.
-        """
-        base_kw = self.__get_iso_plate_position_base_kw(rack_pos, pool,
-                                  position_type, transfer_targets)
-        base_kw.update(kw)
-        return pos_cls(**kw)
-
-    def __get_iso_plate_position_base_kw(self, rack_pos, pool, position_type,
-                                         transfer_targets):
-        if self.from_stock:
-            stock_tube_barcode = LabIsoPosition.TEMP_STOCK_DATA
-            stock_rack_marker = LabIsoPosition.TEMP_STOCK_DATA
-        else:
-            stock_tube_barcode = None
-            stock_rack_marker = None
-        return dict(rack_position=rack_pos, molecule_design_pool=pool,
-                    position_type=position_type, volume=self.full_volume,
-                    concentration=self.__target_concentration,
-                    transfer_targets=transfer_targets,
-                    stock_tube_barcode=stock_tube_barcode,
-                    stock_rack_marker=stock_rack_marker)
-
-    def get_buffer_volume(self):
-        """
-        Returns the buffer volume that is required to obtain the full volume
-        for this container. The buffer volume is the difference from full
-        volume and transfer volume.
-        """
-        if self.__parent_container is None:
-            transfer_vol = get_transfer_volume(
-                           source_conc=self.__parent_concentration,
-                           target_conc=self.__target_concentration,
-                           target_vol=self.full_volume)
-        else:
-            transfer_vol = self.__parent_container.targets[self]
-
-        buffer_volume = self.full_volume - transfer_vol
-        return round(buffer_volume, 1)
-
-    def get_planned_transfers(self):
-        """
-        Converts the data from the :attr:`targets` map into
-        :class:`PlannedTransfer` objects.
-        The planned transfers are mapped onto the plate markers of the
-        child containers.
-        """
-        transfers = dict()
-        for child_container, transfer_vol in self.targets.iteritems():
-            kw = self._get_planned_transfer_kw(child_container)
-            vol = round(transfer_vol, 1)
-            kw['volume'] = vol
-            pt = self._PLANNED_TRANSFER_CLS.get_entity(**kw)
-            add_list_map_element(transfers, child_container.plate_marker, pt)
-
-        return transfers
-
-    def _get_planned_transfer_kw(self, child_container):
-        """
-        Returns the keyword dictionary required to initialize an object
-        of the supported :attr:
-        """
-        raise NotImplementedError('Abstract method.')
-
-    def __cmp__(self, other):
-        """
-        The objects are sorted by :attr:`parent_concentration`. If the
-        concentrations are the same they are sorted by location.
-        """
-        if is_smaller_than(self.__parent_concentration,
-                           other.parent_concentration):
-            return -1
-        elif is_larger_than(self.__parent_concentration,
-                            other.parent_concentration):
-            return 1
-        else:
-            self_value = getattr(self, self.LOCATION_ATTR_NAME)
-            other_value = getattr(other, self.LOCATION_ATTR_NAME)
-            return cmp(self_value, other_value)
-
-    @property
-    def temp_id(self):
-        """
-        A unique temporary ID. This is not persisted but only used to safely
-        distinguish different container objects with equal values.
-        """
-        return self.__id
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__id == other.temp_id
-
-    def __hash__(self):
-        return hash(self.__id)
-
-    def __str__(self):
-        return self.__id
-
-    def __repr__(self):
-        str_format = '<%s volume: %s ul, target concentration: %s nM, ' \
-                     'parent concentration: %s nM>'
-        params = (self.__class__.__name__, get_trimmed_string(self.__volume),
-                  get_trimmed_string(self.__target_concentration),
-                  get_trimmed_string(self.__parent_concentration))
-        return str_format % params
-
-
-class SectorContainer(_LocationContainer):
-    """
-    The locations for these container are rack sectors.
-    """
-
-    LOCATION_ATTR_NAME = 'sector_index'
-    _PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.CYBIO
-    _PLANNED_TRANSFER_CLS = PlannedRackSampleTransfer
-
-    def __init__(self, number_sectors, **kw):
-        """
-        Constructor
-
-        :param number_sectors: The total number of rack sectors for a final ISO
-            plate (usually 1 or 4).
-        :type number_sectors: positive integer
-        """
-        _LocationContainer.__init__(self, **kw)
-        self.__number_sectors = number_sectors
-        self.sector_index = None
-
-    def _get_subclass_specific_keywords(self):
-        return dict(number_sectors=self.__number_sectors)
-
-    def create_aliquot_position(self, iso_request_pos, transfer_targets):
-        """
-        Creates a particular :class:`FinalLabIsoPosition` for a final ISO
-        plate layout using the data of an :class:IsoRequestPosition`.
-        """
-        from_job = iso_request_pos.is_floating
-        return self._to_iso_plate_position(pos_cls=FinalLabIsoPosition,
-                            rack_pos=iso_request_pos.rack_position,
-                            pool=iso_request_pos.molecule_design_pool,
-                            position_type=iso_request_pos.position_type,
-                            transfer_targets=transfer_targets,
-                            from_job=from_job,
-                            sector_index=self.sector_index)
-
-    def create_preparation_position(self, iso_request_pos, preparation_targets,
-                                    external_targets, sector_index):
-        """
-        Creates a particular :class:`LabIsoPrepPosition` for an preparation
-        plate layout using the data of an :class:IsoRequestPosition`.
-        """
-        return self._to_iso_plate_position(pos_cls=LabIsoPrepPosition,
-                            rack_pos=iso_request_pos.rack_position,
-                            pool=iso_request_pos.molecule_design_pool,
-                            position_type=iso_request_pos.position_type,
-                            transfer_targets=preparation_targets,
-                            external_targets=external_targets,
-                            sector_index=sector_index)
-
-    def _get_planned_transfer_kw(self, child_container):
-        return dict(source_sector_index=self.sector_index,
-                    target_sector_index=child_container.sector_index,
-                    sector_number=self.__number_sectors)
-
-    def __repr__(self):
-        str_format = '<%s sector index: %s, volume: %s ul, target ' \
-                     'concentration: %s nM, parent concentration: %s nM>'
-        params = (self.__class__.__name__, self.sector_index,
-                  get_trimmed_string(self.__volume),
-                  get_trimmed_string(self.__target_concentration),
-                  get_trimmed_string(self.__parent_concentration))
-        return str_format % params
-
-
-class RackPositionContainer(_LocationContainer):
-    """
-    The locations for these container are rack position.
-
-    Since a rack position can only contain one sample, we also store pool and
-    position type data.
-    """
-
-    LOCATION_ATTR_NAME = 'rack_position'
-    _PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
-    _PLANNED_TRANSFER_CLS = PlannedSampleTransfer
-
-    def __init__(self, pool, position_type, **kw):
-        """
-        Constructor
-
-        :param pool: the molecule design pool for this position
-        :type pool: :class:`thelma.models.moleculedesig.MoleculeDesignPool`
-
-        :param position_type: see :class:`MoleculeDesignPoolParameters`
-        :type position_type: :class:`str`
-        """
-        _LocationContainer.__init__(self, **kw)
-        self.pool = pool
-        self.position_type = position_type
-        self.rack_position = None
-
-    def _get_subclass_specific_keywords(self):
-        return dict(pool=self.pool,
-                    position_type=self.position_type)
-
-    @classmethod
-    def from_iso_request_position(cls, iso_request_pos, stock_concentration):
-        """
-        Factory method creating an ISO plate rack position container from an
-        :class:`IsoRequestPosition`.
-        """
-        kw = dict(pool=iso_request_pos.molecule_design_pool,
-                  position_type=iso_request_pos.position_type)
-        return cls.create_final_plate_container(
-                  location=iso_request_pos.rack_position,
-                  volume=iso_request_pos.iso_volume,
-                  target_concentration=iso_request_pos.iso_concentration,
-                  parent_concentration=stock_concentration, **kw)
-
-    @classmethod
-    def from_iso_plate_position(cls, plate_pos, stock_concentration):
-        """
-        Factory method creating an rack position container with immutable
-        volume from an :class:`LabIsoPosition`.
-        """
-        container = cls(rack_position=plate_pos.rack_position,
-                pool=plate_pos.molecule_design_pool,
-                position_type=plate_pos.position_type,
-                target_concentration=plate_pos.concentration,
-                parent_concentration=stock_concentration,
-                volume=plate_pos.volume)
-        container.disable_modification()
-        return container
-
-    def create_final_iso_plate_position(self, transfer_targets, from_job):
-        """
-        Creates a particular :class:`FinalLabIsoPosition` for a final ISO
-        plate layout.
-        """
-        return self._to_iso_plate_position(pos_cls=FinalLabIsoPosition,
-                            rack_pos=self.rack_position,
-                            pool=self.pool, position_type=self.position_type,
-                            transfer_targets=transfer_targets,
-                            from_job=from_job)
-
-    def create_preparation_position(self, preparation_targets, final_targets):
-        """
-        Creates a particular :class:`LabIsoPrepPosition` for an preparation
-        plate layout from a :class:`PoolContainer` object.
-        """
-        return self._to_iso_plate_position(LabIsoPrepPosition,
-                            rack_pos=self.rack_position,
-                            pool=self.pool, position_type=self.position_type,
-                            transfer_targets=preparation_targets,
-                            external_targets=final_targets)
-
-    def _get_planned_transfer_kw(self, child_container):
-        return dict(source_position=self.rack_position,
-                    target_position=child_container.rack_position)
-
-
-class _LocationAssigner(object):
-    """
-    Helper object that finds preparation routes for a group of
-    :class:`_LocationContainers` assuming particular :class:`ReservoirSpecs`.
-
-    The assignment is done in 2 steps. With :func:`add_containers` you find
-    determine volumes, concentrations and relationships of containers.
-    :func:`process_preparation_containers` then finds location in preparation
-    plates (if preparation containers are required).
-    """
-
-    #: Used to get the :class:`PipettingSpecs` for the assigner for all
-    #: but stock transfers.
-    _PIPETTING_SPECS_NAME = None
-    #: Used to get the :class:`PipettingSpecs` for the assigner fro transfers
-    #: from the stock.
-    _STOCK_PIPETTING_SPECS_NAME = None
-
-    #: The :class:`_PlateContainer` subclass for preparation plates.
-    _PLATE_CONTAINER_CLS = _PlateContainer
-    #: The role of the preparation plate (ISO or job preparation,
-    #: default: ISO preparation).
-    _PREP_PLATE_ROLE = LABELS.ROLE_PREPARATION_ISO
-
-    def __init__(self, prep_reservoir_specs, final_plate_dead_vol):
-        """
-        Constructor
-
-        :param prep_reservoir_specs: The reservoir specs for this run.
-        :type prep_reservoir_specs: :class:`ReservoirSpecs`
-
-        :param final_plate_dead_vol: The dead volume of the final plates
-            *in ul*.
-        :type final_plate_dead_vol: positive number, unit ul
-        """
-        if isinstance(self, _LocationAssigner):
-            raise NotImplementedError('Abstract method.')
-
-        #: The :class:`ReservoirSpecs` for potential preparation plates.
-        self._prep_specs = prep_reservoir_specs
-        #: The dead volume of the final plates  *in ul*.
-        self.__final_plate_dead_vol = final_plate_dead_vol
-
-        #: The target containers that shall be prepared (usually final plate
-        #: containers).
-        self.__requested_containers = []
-
-        #: The :class:`PipettingSpecs` define the minimum transfer volume,
-        #: the maximum dilution factor and whether dead volumes are dynamic.
-        #: These specs are used for all but transfers from the stock.
-        self.__robot_specs_std = get_pipetting_specs(self._PIPETTING_SPECS_NAME)
-        #: The :class:`PipettingSpecs` define the minimum transfer volume,
-        #: the maximum dilution factor and whether dead volumes are dynamic.
-        #: #: These specs are used for transfers from the stock.
-        self.__robot_specs_stock = get_pipetting_specs(
-                                            self._STOCK_PIPETTING_SPECS_NAME)
-        #: The maximum dilution factor for the pipetting specs.
-        self.__max_dilution_factors = dict()
-        #: The minimum volume for a transfer *in ul*.
-        self.__min_transfer_volumes = dict()
-        for robot_specs in (self.__robot_specs_std, self.__robot_specs_stock):
-            self.__max_dilution_factors[robot_specs] = get_max_dilution_factor(
-                                                       robot_specs)
-            self.__min_transfer_volumes[robot_specs] = get_min_transfer_volume(
-                                                       robot_specs)
-        #: Maps the different batches of requested containers onto an
-        #: identifier. Used to record the order of the batches.
-        self.__identifier_map = dict()
-
-        #: The minimum dead volume for potential preparation plates *in ul*.
-        self.__prep_dead_vol = self._prep_specs.min_dead_volume \
-                               * VOLUME_CONVERSION_FACTOR # in ul
-        #: The locations available on potential preparation plates.
-        self.__available_prep_locations = self._get_locations_for_prep_specs()
-
-        #: The preparation containers mapped onto full volumes.
-        self.__volume_map = None
-
-        #: The preparation containers that have been created.
-        self._prep_containers = None
-        #: The preparation containers sorted by generation (final containers
-        #: first).
-        self.__sorted_prep_containers = None
-        #: The preferred location for each preparation container.
-        self.__preferred_prep_locations = None
-        #: The :class:`_PlateContainer` for each preparation plate, mapped
-        #: onto plate marker.
-        self.__prep_plate_containers = None
-
-    @property
-    def preparation_reservoir_specs(self):
-        """
-        The :class:`ReservoirSpecs` for potential preparation plates.
-        """
-        return self._prep_specs
-
-    def _get_locations_for_prep_specs(self):
-        """
-        Returns all possible locations for the preparation plate reservoir
-        specs - used to assign locations for preparation containers.
-        """
-        raise NotImplementedError('Abstract method.')
-
-    def add_containers(self, requested_containers, identifier, number_copies=1):
-        """
-        Multiplies and registers the passed containers and finds preparation
-        routes for them. The volume and concentration of the requested
-        containers are blocked for modifications.
-
-        :param requested_containers: The containers for which to find
-            preparation routes (without copies).
-        :type requested_containers: :class:`list` of :class:`_LocationContainer`
-            objects
-
-        :param identifier: Used to mark containers belonging together. Will be
-            used for sorting when distributing preparation locations.
-
-        :param number_copies: Each requested container will be multiplied until
-            the number of copies is reached.
-        :type number_copies: :class:`int`
-        :default number_copies: 1
-        """
-        if self._prep_containers is None:
-            self._prep_containers = []
-            self.__preferred_prep_locations = dict()
-
-        # store containers for this ID mapped onto target conc
-        prep_containers = dict()
-        final_containers = dict()
-
-        if number_copies > 1:
-            starting_containers = []
-            for container in requested_containers:
-                if not container.parent_container is None: continue
-                # child containers are covered by the get_clones method
-                clones = container.get_clones(number_copies)
-                starting_containers.extend(clones)
-                for clone in clones:
-                    starting_containers.extend(clone.get_descendants())
-            requested_containers = starting_containers
-
-        for container in requested_containers:
-            add_list_map_element(final_containers,
-                                 container.target_concentration, container)
-
-        not_from_stock = []
-        from_stock = []
-        for requested_container in requested_containers:
-            if requested_container.from_stock:
-                stock_list = from_stock
-            else:
-                stock_list = not_from_stock
-            self.__requested_containers.append(requested_container)
-            stock_list.append(requested_container)
-
-        # first we check whether smaller concentrations, if possible we derive
-        # them from larger concentration among the requested containers
-        not_from_stock.sort()
-        for container in not_from_stock:
-            self.__prepare_container(container, prep_containers,
-                                     final_containers)
-
-        # second we check the volumes that are directly derived from the stock
-        from_stock.sort(reverse=True)
-        for container in from_stock:
-            self.__prepare_container(container, prep_containers,
-                                     final_containers)
-
-        # store all containers
-        all_containers = requested_containers + prep_containers.values()
-        self.__identifier_map[identifier] = all_containers
-
-    def __prepare_container(self, container, prep_containers,
-                            requested_containers):
-        """
-        Finds or creates a parent container for the given container (if it
-        cannot be derived directly from the stock) and stores them in the
-        container map.
-        """
-        final_container = self.__find_suitable_source_container(container,
-                                                     requested_containers)
-        has_valid_origin = (final_container is not None)
-        if has_valid_origin:
-            container.set_parent_container(final_container)
-        while not has_valid_origin:
-            prep_container = self.__find_suitable_source_container(container,
-                                                             prep_containers)
-            if prep_container is not None:
-                container.set_parent_container(prep_container)
-                has_valid_origin = True
-            elif not self.__requires_intermediate_position(container):
-                has_valid_origin = True
-            else:
-                prep_container = self.__create_new_prep_container(container,
-                                                         container.location)
-                self.__store_prep_container(prep_containers, prep_container)
-                container = prep_container
-
-    def __store_prep_container(self, container_map, prep_container):
-        """
-        Stores the preparation container and its parent container in the map
-        (mapped onto target concentrations).
-        """
-        add_list_map_element(container_map, prep_container.target_concentration,
-                             prep_container)
-        if prep_container.parent_container is not None:
-            self.__store_prep_container(container_map,
-                                        prep_container.parent_container)
-
-    def __requires_intermediate_position(self, target_container,
-                                         source_container=None):
-        """
-        Checks whether the dilution from parent to target concentration of
-        a container can be reached in one dilution step. The dilution factor
-        is always checked. If modification of the target container is not
-        allowed the check will include also transfer and buffer volume.
-
-        :raises ValueError: if the parent concentration is smaller than the
-            target concentration
-        """
-        target_conc = target_container.target_concentration
-        if source_container is None:
-            parent_conc = target_container.parent_concentration
-        else:
-            parent_conc = source_container.target_concentration
-        if target_container.from_stock:
-            robot_specs = self.__robot_specs_stock
-        else:
-            robot_specs = self.__robot_specs_std
-        min_transfer_volume = self.__min_transfer_volumes[robot_specs]
-        max_dilution_factor = self.__max_dilution_factors[robot_specs]
-
-        dil_factor = parent_conc / float(target_conc)
-        if is_larger_than(dil_factor, max_dilution_factor):
-            return True
-        elif is_smaller_than(dil_factor, 1):
-            msg = 'The parent concentration (%s nM is smaller than the ISO ' \
-                  'concentration (%s)!' % (get_trimmed_string(parent_conc),
-                                           get_trimmed_string(target_conc))
-            raise ValueError(msg)
-        elif are_equal_values(dil_factor, max_dilution_factor):
-            return False
-
-        if not target_container.allows_modification:
-            if not source_container is None and \
-                                    not source_container.allows_modification:
-                if is_smaller_than(source_container.final_volume,
-                                   self.__final_plate_dead_vol):
-                    return True
-            full_volume = target_container.full_volume
-            transfer_volume = full_volume / dil_factor
-            if is_smaller_than(transfer_volume, min_transfer_volume):
-                return True
-            dilution_vol = full_volume - transfer_volume
-            if is_smaller_than(dilution_vol, min_transfer_volume):
-                return True
-
-        return False
-
-    def __find_suitable_source_container(self, container,
-                                         potential_src_containers):
-        """
-        Returns a potential source container from the list of potential
-        containers. The potential containers are assumed to allow volume
-        modifications.
-        """
-        for src_conc in sorted(potential_src_containers.keys(reverse=True)):
-            src_containers = potential_src_containers[src_conc]
-            if is_smaller_than(src_conc, container.target_concentration):
-                continue
-            for src_container in src_containers:
-                if not self.__requires_intermediate_position(container,
-                                                             src_conc):
-                    self.__adjust_volume_of_existing_prep(container,
-                                                          src_container)
-                    return src_container
-
-        return None
-
-    def __adjust_volume_of_existing_prep(self, target_container, src_conc):
-        """
-        If we add a new target container to an exisiting preparation container
-        we might have to increase the source position volume if the transfer
-        volume is not suitable. This might be the case if there are differing
-        target concentrations for the source container children and the
-        new target concentration is much larger (= transfer_volume is smaller).
-        In this case we increase the minimum full volume of the target
-        container.
-        """
-        if target_container.allows_modification:
-            min_transfer_vol = self.__min_transfer_volumes[
-                                                    self.__robot_specs_std]
-            target_conc = target_container.target_concentration
-            dil_factor = src_conc / target_conc
-            transfer_vol = get_transfer_volume(src_conc, target_conc,
-                                    target_container.full_volume, dil_factor)
-            if is_smaller_than(transfer_vol, min_transfer_vol):
-                corr_factor = min_transfer_vol / transfer_vol
-                self.__adjust_volume(corr_factor, transfer_vol, dil_factor,
-                                     target_container)
-
-    def __create_new_prep_container(self, target_container, preferred_location):
-        """
-        The new container serves as parent for the target container. The
-        preferred location can be *None*.
-        """
-        prep_container = self.__determine_preparation_values(target_container)
-        target_container.set_parent_container(prep_container)
-        self.__preferred_prep_locations[prep_container] = preferred_location
-        return prep_container
-
-    def __determine_preparation_values(self, target_container):
-        """
-        Determines volume and concentration for a new preparation container
-        that serves as source for the given container. Dilution factor, transfer
-        and buffer volume must all be valid.
-        If the target container allows modification its volume might be raised
-        to achieve valid volumes for transfers. Otherwise the source container
-        dilution is adjusted (this might also include the preparation of
-        further ancestor containers).
-
-        It is not checked whether the volumes exceed the maximum transfer
-        volumes because this problem can be solved by multiple transfers.
-        """
-        parent_conc = target_container.parent_concentration
-        target_conc = target_container.target_concentration
-        target_vol = target_container.full_volume
-        dil_factor = parent_conc / target_conc
-
-        min_transfer_vol = self.__min_transfer_volumes[self.__robot_specs_std]
-        max_dil_factor = self.__max_dilution_factors[self.__robot_specs_std]
-        dil_factor = min(dil_factor, max_dil_factor)
-        transfer_vol = get_transfer_volume(parent_conc, target_conc,
-                                           target_vol, dil_factor)
-        if is_smaller_than(transfer_vol, min_transfer_vol):
-            if target_container.allows_modification:
-                corr_factor = min_transfer_vol / transfer_vol
-                transfer_vol, target_vol = self.__adjust_volume(corr_factor,
-                                transfer_vol, dil_factor, target_container)
-            else:
-                dil_factor = target_vol / min_transfer_vol
-                # the new dilution factor is smaller than the old one
-                parent_conc = dil_factor / target_conc
-
-        buffer_vol = target_vol - transfer_vol
-        if is_smaller_than(buffer_vol, min_transfer_vol):
-            corr_factor = min_transfer_vol / buffer_vol
-            if target_container.allows_modification:
-                self.__adjust_volume(corr_factor, transfer_vol, dil_factor,
-                                     target_container)
-            else:
-                new_parent_conc = parent_conc * corr_factor
-                new_dil_factor = new_parent_conc / target_conc
-                if is_larger_than(new_dil_factor, max_dil_factor):
-                    # in this case we prepare a new preparation position
-                    # with exactly the same concentration as the target aliquot
-                    parent_conc = target_conc
-
-        new_prep_container = target_container.create_prep_copy(
-                                      target_concentration=parent_conc,
-                                      dead_volume=self.__prep_dead_vol)
-        if are_equal_values(parent_conc, target_conc):
-            self.__create_new_prep_container(new_prep_container, None)
-        return new_prep_container
-
-    def __adjust_volume(self, corr_factor, transfer_volume,
-                        dil_factor, target_container):
-        """
-        Is used to increase the minimum full volume for a preparation container.
-        """
-        new_transfer_vol = corr_factor * transfer_volume
-        new_target_vol = round_up(new_transfer_vol, 1) * dil_factor
-        target_container.increase_min_full_volume(new_target_vol)
-        return new_transfer_vol, new_target_vol
-
-    def has_preparation_containers(self):
-        """
-        Returns *True* if there are preparation containers scheduled in this
-        assigner. Assumes you have already invoked :func:`add_container` before.
-
-        :return: boolean
-        :raise AttributeError: If you did not invoke :func:`add_container`
-            before.
-        """
-        if self._prep_containers is None:
-            msg = 'The layout generation is not completed yet. Please call ' \
-                  'add_containers() before.'
-            raise AttributeError(msg)
-
-        return len(self._prep_containers) > 0
-
-    def process_preparation_containers(self):
-        """
-        Assumes you have finished recording target containers (see
-        :func:`add_containers`). Invokes :func:`has_preparation_containers`.
-        If there are preparation containers scheduled, the method adjusts the
-        dead volumes (if the pipetting specs request dynamic dead volumes)
-        an determines the maximum volume for all preparation containers.
-        """
-        if self.has_preparation_containers() and self.__volume_map is None:
-            self.__sort_prep_container_by_generation()
-            self.__adjust_container_dead_volumes()
-            self.__create_volume_map()
-
-    def __sort_prep_container_by_generation(self):
-        """
-        The generation of preparation container indicates the number of steps
-        required to reach an requested container. If at least one target
-        container is a requested container, the generation is 1. If no
-        child but at least one grandchild is a requested container, the
-        generation is 2, etc.
-        Smaller generations have smaller indices in the return value list.
-        """
-        containers_ori_order = dict()
-        found_containers = set()
-        generation_map = dict()
-        for requested_container in self.__requested_containers:
-            ancestors = requested_container.get_ancestors()
-            for i in range(ancestors):
-                container = ancestors[i]
-                if not container.allows_modification: continue
-                add_list_map_element(generation_map, container, i)
-                if not container in found_containers:
-                    containers_ori_order[len(found_containers)] = container
-                    found_containers.add(container)
-
-        min_generation_map = dict()
-        for order_num in sorted(containers_ori_order.keys()):
-            container = containers_ori_order[order_num]
-            generations = generation_map[container]
-            add_list_map_element(min_generation_map, min(generations),
-                                 container)
-
-        self.__sorted_prep_containers = []
-        for generation in sorted(min_generation_map.keys()):
-            self.__sorted_prep_containers.extend(min_generation_map[generation])
-
-    def __adjust_container_dead_volumes(self):
-        """
-        If the pipetting method requests dynamic dead volumes, this method
-        will adjust the dead volume of each preparaion container (containers
-        are sorted by generation).
-        """
-        dynamic_std = self.__robot_specs_std.has_dynamic_dead_volume
-        dynamic_stock = self.__robot_specs_stock.has_dynamic_dead_volume
-        if dynamic_std or dynamic_stock:
-            for container in self.__sorted_prep_containers:
-                if container.from_stock and dynamic_stock:
-                    self.__adjust_dead_volume_for_container(container)
-                elif not container.from_stock and dynamic_std:
-                    self.__adjust_dead_volume_for_container(container)
-
-    def __adjust_dead_volume_for_container(self, container):
-        """
-        For dynamic dead volumes, the dead volume of a container is increased
-        depending on the number of transfer targets. The minimum and maximum
-        dead volume are defined by the preparation reservoir specs.
-        """
-        num_targets = len(container.targets)
-        new_dead_volume = get_dynamic_dead_volume(num_targets, self._prep_specs)
-        if is_larger_than(new_dead_volume, self.__prep_dead_vol):
-            add_volume = new_dead_volume - self.__prep_dead_vol
-            container.adjust_dead_volume_by(add_volume)
-
-    def __create_volume_map(self):
-        """
-        Sorts preparation containers by (full) volume.
-        """
-        self.__volume_map = dict()
-        for container in self.__sorted_prep_containers:
-            container_vol = container.full_volume
-            container_vol = round(container_vol, 1)
-            add_list_map_element(self.__volume_map, container_vol,
-                                 container)
-
-    def get_max_preparation_volume(self):
-        """
-        Returns the largest volume for a preparation container (in ul).
-        Assumes you have already invoked :func:`add_container` and
-        :func:`process_preparation_containers` before.
-
-        :return: boolean
-        :raise AttributeError: If you did not invoke :func:`add_container` and
-            :func:`process_preparation_containers` before.
-        """
-        if self.__volume_map is None:
-            msg = 'The layout generation is not completed yet. Please call ' \
-                  'add_containers() and process_preparation_containers() ' \
-                  'before.'
-            raise AttributeError(msg)
-
-        return max(self.__volume_map.keys())
-
-    def get_number_preparation_plates(self):
-        """
-        Returns the number of preparation plates required to provide locations
-        for all preparation containers.
-        """
-        num_prep_containers = len(self._prep_containers)
-        return round_up(float(len(self.__available_prep_locations)) \
-                        / num_prep_containers, 0)
-
-    def distribute_preparation_containers(self):
-        """
-        Finds locations for all preparation containers. If possible the
-        containers get their preferred locations.
-
-        Assumes you have already invoked :func:`add_container` and
-        :func:`process_preparation_containers` before.
-
-        :return: boolean
-        :raise AttributeError: If you did not invoke :func:`add_container` and
-            :func:`process_preparation_containers` before.
-        """
-        if self.__volume_map is None:
-            msg = 'The layout generation is not completed yet. Please call ' \
-                  'add_containers() and process_preparation_containers() ' \
-                  'before.'
-            raise AttributeError(msg)
-
-        self.__prep_plate_containers = dict()
-        self.__create_preparation_plate_containers()
-        self.__distribute_prep_containers()
-
-    def __create_preparation_plate_containers(self):
-        """
-        Helper function.
-        Creates :class:`_PlateContainer` objects for each preparation plate.
-        """
-        num_plates = self.get_number_preparation_plates()
-        for i in range(num_plates):
-            plate_num = i + 1
-            plate_marker = LABELS.create_rack_marker(self._PREP_PLATE_ROLE,
-                                                     plate_num)
-            self.__create_plate_container(plate_marker)
-
-    def __create_plate_container(self, plate_marker):
-        """
-        Helper function. Creates and stores a preparation plate container.
-        """
-        kw = dict(available_locations=self.__available_prep_locations,
-                  plate_marker=plate_marker)
-        plate_container = self._PLATE_CONTAINER_CLS(**kw)
-        self.__prep_plate_containers[plate_marker] = plate_container
-
-    def __distribute_prep_containers(self):
-        """
-        Helper function. Finds locations for all preparation containers.
-        Containers are prioritized before assignment.
-        """
-        container_identifiers = dict()
-        for identifier, containers in self.__identifier_map.iteritems():
-            for container in containers:
-                container_identifiers[container] = identifier
-
-        priority_scores = self.__sort_by_stock_origin_and_location_preference()
-
-        remaining_plates = []
-        for plate_marker in sorted(self.__prep_plate_containers.keys()):
-            plate = self.__prep_plate_containers[plate_marker]
-            if plate.has_empty_positions():
-                remaining_plates.append(plate)
-
-        for score in sorted(priority_scores.keys(), reverse=True):
-            containers = priority_scores[score]
-            for container in containers:
-                pref_location = self.__preferred_prep_locations[container]
-                prep_plate = remaining_plates.pop(0)
-                location = None
-                if pref_location is not None:
-                    if prep_plate.is_empty_location(pref_location):
-                        location = pref_location
-                prep_plate.set_container(container, location)
-                if prep_plate.has_empty_locations():
-                    remaining_plates.insert(0, prep_plate)
-
-    def __sort_by_stock_origin_and_location_preference(self):
-        """
-        Helper function creating a score map for the storted preparation
-        container. Containers with a high score should get a location first.
-        Priority is raised strongly if a container sample originates from
-        the stock, and slightly if it has a preferred location.
-        """
-        priority_scores = dict()
-
-        for identifier in sorted(self.__identifier_map.keys()):
-            containers = self.__identifier_map[identifier]
-            for container in containers:
-                score = 0
-                if container.from_stock: score += 2
-                if self.__preferred_prep_locations[container] is not None:
-                    score += 1
-                add_list_map_element(priority_scores, score, container)
-
-        return priority_scores
-
-    def get_preparation_plate_containers(self):
-        """
-        Returns the preparation plate containers that have been build up.
-        Assumes you have already invoked
-        :func:`distribute_preparation_containers` before.
-
-        :return: The preparation containers mapped onto plate marker.
-        :raise AttributeError: If you did not invoke
-        :func:`distribute_preparation_containers` before
-        """
-        if self.__prep_plate_containers is None:
-            msg = 'The layout generation is not completed yet. Please call ' \
-                  'distribute_preparation_containers() before.'
-            raise AttributeError(msg)
-
-        return self.__prep_plate_containers
-
-
-class SectorLocationAssigner(_LocationAssigner):
-    """
-    A location assigner dealing with rack sector. Use the CyBio for pipetting
-    specs.
-    """
-
-    _PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.CYBIO
-    _STOCK_PIPETTING_SPECS_NAME = _PIPETTING_SPECS_NAME
-    _PLATE_CONTAINER_CLS = SectorPlateContainer
-
-    def __init__(self, reservoir_specs, number_sectors):
-        """
-        Constructor
-
-        :param prep_reservoir_specs: The reservoir specs for this run.
-        :type prep_reservoir_specs: :class:`ReservoirSpecs`
-
-        :param number_sectors: The number of rack sectors (usually 1 or 4).
-        :type number_sectors: :class:`int`
-        """
-        _LocationAssigner.__init__(prep_reservoir_specs=reservoir_specs)
-        self.number_sectors = number_sectors
-
-    def _get_locations_for_prep_specs(self):
-        """
-        In this case we return a list of sector indices.
-        """
-        shape_size = self._prep_specs.rack_shape.size
-        if shape_size == 384:
-            num_sectors = self.number_sectors
-        else: # 96
-            num_sectors = 1
-        return range(num_sectors)
-
-
-class RackPositionLocationAssigner(_LocationAssigner):
-    """
-    This assigner deals with rack positions. It uses the Biomek specs as
-    pipetting specs.
-    """
-
-    _PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
-    _STOCK_PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEKSTOCK
-    _PLATE_CONTAINER_CLS = RackPositionPlateContainer
-
-    def _get_locations_for_prep_specs(self):
-        """
-        We do not need to check whether rack positions are already occupied
-        because preparation plates are always new ones.
-        """
-        return get_positions_for_shape(self._prep_specs.rack_shape)
-
-
-class JobRackPositionAssigner(RackPositionLocationAssigner):
-    """
-    This assigner deals with rack positions, but unlike the normal
-    :class:`RackPositionLocationAssigner` (which deals with routes for single
-    ISOs), this assigner creates preparation plates for ISO jobs.
-    """
-
-    _PREP_PLATE_ROLE = LABELS.ROLE_PREPARATION_JOB
-
-
-def get_transfer_volume(source_conc, target_conc, target_vol, dil_factor=None):
-    """
-    Helper function determine the transfer volume (uncorrected) for a set of
-    values.
-    """
-    if dil_factor is None:
-        dil_factor = source_conc / float(target_conc)
-
-    return target_vol / dil_factor
-
-
-class _PlateContainer(object):
-    """
-    This is an abstract helper storage class that reflects a preparation plate
-    (for an ISO or ISO job). It stores and helps to distribute
-    :class:`_LocationContainer` objects.
-    """
-
-    def __init__(self, plate_marker, available_locations):
-        """
-        Constructor
-
-        :param plate_marker: Contains the role and a plate number. Is generated
-            by :func:`LABELS.create_plate_marker`.
-        :type plate_marker: :class:`str`
-
-        :param available_locations: All possible locations. Each location can
-            take up a container. The nature of the location depends on the
-            subclass.
-        :type available_locations: sector index or :class:`RackPosition`
-            (depending on the subclass).
-        """
-        if isinstance(self, _PlateContainer):
-            raise NotImplementedError('Abstract class.')
-
-        self.plate_marker = plate_marker
-
-        #: The containers for each possible locations. Locations without
-        #: containers are also part of the map, there values is *None* then.
-        self._location_map = dict()
-        self._empty_locations = []
-
-        for location in available_locations:
-            self._location_map[location] = None
-            self._empty_locations.append(location)
-
-    def has_empty_locations(self):
-        """
-        Are there still some unoccupied locations left in this plate?
-        """
-        return (len(self._empty_locations) > 0)
-
-    def is_empty_location(self, location):
-        """
-        Returns *True* if the given location is still unassigned.
-        """
-        return (self._location_map[location] is None)
-
-    def get_locations(self):
-        """
-        Regards all locations for this plate container (regardless of whether
-        there is a container assigned to them).
-        """
-        return self._location_map.keys()
-
-    def get_container_for_location(self, location):
-        """
-        Returns the container that is stored for the specified location.
-        """
-        return self._location_map[location]
-
-    def get_containers(self):
-        """
-        Returns all location containers for this plate container.
-        """
-        containers = []
-        for container in self._location_map.values():
-            if container is None: continue
-            containers.append(container)
-        return containers
-
-    def set_container(self, container, location=None):
-        """
-        Adds the given container to this plate container. You can specify a
-        location for the container, otherwise the plate will find a location
-        by itself.
-
-        :param container: The container to add to this plate.
-        :type container: :class:_LocationContainer` subclass
-
-        :param location: The location for the container.
-        :type location: depends on the subclass
-        :default location: *None*
-
-        :raises ValueError: If the specified location is already occupied.
-        """
-        if location is None:
-            self._find_location(container)
-        elif not self.is_empty_location(location):
-            raise ValueError('Location "%s" is already occupied!' % location)
-
-        self._location_map[location] = container
-        self._empty_locations.remove(location)
-        container.set_location(location, self.plate_marker)
-
-    def _find_location(self, container):
-        """
-        Finds an empty location for a container that shall be added.
-        """
-        raise NotImplementedError('Abstract method.')
-
-    def __hash__(self):
-        return hash(self.plate_marker)
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and \
-               self.plate_marker == other.plate_marker
-
-    def str(self):
-        return self.plate_marker
-
-    def __repr__(self):
-        str_format = '<%s %s>'
-        params = (self.__class__.__name__, self.plate_marker)
-        return str_format % params
-
-
-class SectorPlateContainer(_PlateContainer):
-    """
-    A plate container dealing with sectors (:class:`SectorContainer` objects).
-    """
-
-    def _find_location(self, container):
-        """
-        For sector locations we simple take the first empty sector.
-
-        :raises AttributeError: If there is no empty location left.
-        """
-        for location in sorted(self._location_map):
-            if self._location_map[location] is None:
-                return location
-
-        raise AttributeError('There is no empty sectors left!')
-
-
-class RackPositionPlateContainer(_PlateContainer):
-    """
-    A plate container dealing with separate rack positions
-    (:class:`RackPositionContainer` objects).
-
-    When searching locations for new containers we try to assign a row
-    with other containers having the same pool.
-    """
-
-    def __init__(self, plate_marker, available_locations):
-        """
-        Constructor
-
-        :param plate_marker: Contains the role and a plate number. Is generated
-            by :func:`LABELS.create_plate_marker`.
-        :type plate_marker: :class:`str`
-
-        :param available_locations: All possible locations. Each location can
-            take up a container. The nature of the location depends on the
-            subclass.
-        :type available_locations: sector index or :class:`RackPosition`
-            (depending on the subclass).
-        """
-        _PlateContainer.__init__(self, plate_marker=plate_marker,
-                                 available_locations=available_locations)
-
-        #: Stores the row indices a pool occurs in.
-        self.__pool_row_map = dict()
-        #: Stores the empty rack positions for a row index.
-        self.__row_map = dict()
-        for rack_pos in self._empty_locations:
-            add_list_map_element(self.__row_map, rack_pos.row_index, rack_pos)
-
-        #: Contains all rows that are completely empty.
-        self.__empty_rows = sorted(self.__row_map.keys())
-
-    def _find_location(self, container):
-        """
-        If possible we try to put containers for the same pool into the
-        same row.
-        """
-        pool = container.pool
-
-        if self.__pool_row_map.has_key(pool):
-            row_indices = self.__pool_row_map[pool]
-            for row_index in sorted(row_indices):
-                rack_pos = self.__get_position(row_index)
-                if rack_pos is not None:
-                    break
-        else:
-            row_index = self.__empty_rows[0]
-            rack_pos = self.__get_position(row_index)
-
-        self.__pick_position(row_index, rack_pos, pool)
-        return rack_pos
-
-    def __get_position(self, row_index):
-        """
-        Returns an empty position for the given row index.
-        """
-        if self.__row_map.has_key(row_index):
-            positions = self.__row_map[row_index]
-            return positions[0]
-
-        return None
-
-    def __pick_position(self, row_index, rack_pos, pool):
-        """
-        Stores row index and pool in the pool map and removes the rack
-        position form the empty position collections.
-        """
-        if not self.__pool_row_map.has_key(pool):
-            self.__pool_row_map[pool] = set()
-        self.__pool_row_map[pool].add(row_index)
-
-        positions = self.__row_map[row_index]
-        positions.remove(rack_pos)
-        if len(positions) < 1: del self.__row_map[row_index]
-
-        if row_index in self.__empty_rows:
-            self.__empty_rows.remove(row_index)
 
 
 class LibraryIsoBuilder(LabIsoBuilder):

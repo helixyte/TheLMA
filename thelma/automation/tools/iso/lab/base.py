@@ -297,7 +297,7 @@ class LabIsoParameters(TransferParameters):
     MISSING_FLOATING = 'missing_floating'
 
 
-    REQUIRED = TransferParameters + [CONCENTRATION, VOLUME]
+    REQUIRED = TransferParameters.REQUIRED + [CONCENTRATION, VOLUME]
     ALL = REQUIRED + [STOCK_TUBE_BARCODE, STOCK_RACK_BARCODE, TRANSFER_TARGETS,
                       SECTOR_INDEX, STOCK_RACK_MARKER]
 
@@ -1153,7 +1153,7 @@ class LabIsoPrepParameters(LabIsoParameters):
                                  + [EXTERNAL_TRANSFER_TARGETS]
     MUST_HAVE_TRANSFER_TARGETS = \
                             dict(LabIsoParameters.MUST_HAVE_TRANSFER_TARGETS,
-                                 {EXTERNAL_TRANSFER_TARGETS : True})
+                                 **{EXTERNAL_TRANSFER_TARGETS : True})
 
     REQUIRED = LabIsoParameters.REQUIRED + [EXTERNAL_TRANSFER_TARGETS]
     ALL = LabIsoParameters.ALL + [EXTERNAL_TRANSFER_TARGETS]

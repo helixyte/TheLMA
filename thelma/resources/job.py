@@ -14,18 +14,14 @@ from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from pyramid.httpexceptions import HTTPBadRequest
-from thelma.automation.tools.experiment.executor \
-    import ExperimentExecutorOptimisation
-from thelma.automation.tools.experiment.executor \
-    import ExperimentExecutorScreening
-from thelma.automation.tools.experiment.manual import ExperimentRackFiller
+from thelma.automation.tools.experiment import get_executor
+from thelma.automation.tools.experiment import get_manual_executor
 from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 from thelma.interfaces import IExperiment
 from thelma.interfaces import IIso
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import IRack
 from thelma.interfaces import IUser
-from thelma.models.experiment import EXPERIMENT_METADATA_TYPES
 from thelma.models.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
 import logging
@@ -87,16 +83,12 @@ class ExperimentJobMember(JobMember):
         tool = None
         user = get_current_user()
         if status_title == 'manual_execution':
-            tool = ExperimentRackFiller.create(exp_ent, user)
+            tool = get_manual_executor(experiment=exp_ent, user=user)
         elif status_title == 'robot_execution':
-            experiment_type = exp_ent.experiment_design.experiment_metadata_type
-            if experiment_type.id == EXPERIMENT_METADATA_TYPES.OPTI:
-                tool = ExperimentExecutorOptimisation(exp_ent, user)
-            elif experiment_type.id == EXPERIMENT_METADATA_TYPES.SCREEN:
-                tool = ExperimentExecutorScreening(exp_ent, user)
-            else:
-                raise HTTPBadRequest('There is no robot support for ' \
-                            '"%s" experiments!' % (experiment_type)).exception
+            try:
+                tool = get_executor(experiment=exp_ent, user=user)
+            except TypeError as te:
+                raise HTTPBadRequest(str(te)).exception
         if not tool is None:
             new_experiment = tool.get_result()
             if not new_experiment is None:

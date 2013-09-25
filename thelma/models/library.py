@@ -34,13 +34,13 @@ class MoleculeDesignLibrary(Entity):
     #: The library plates for this library (:class:`LibraryPlate`).
     library_plates = None
 
-    #: The ISO request used to generate this library
-    #: (:class:`thelma.models.iso.IsoRequest`).
-    iso_request = None
+    #: The ISO request used to generate this library (optional,
+    #: :class:`thelma.models.iso.StockSampleCreationIsoRequest`).
+    creation_iso_request = None
 
     def __init__(self, molecule_design_pool_set, label, final_volume,
                  final_concentration, number_layouts, rack_layout,
-                 iso_request=None, **kw):
+                 creation_iso_request=None, **kw):
         Entity.__init__(self, **kw)
         self.molecule_design_pool_set = molecule_design_pool_set
         self.label = label
@@ -48,7 +48,7 @@ class MoleculeDesignLibrary(Entity):
         self.final_concentration = final_concentration
         self.number_layouts = number_layouts
         self.rack_layout = rack_layout
-        self.iso_request = iso_request
+        self.creation_iso_request = creation_iso_request
 
     @property
     def plate_specs(self):
