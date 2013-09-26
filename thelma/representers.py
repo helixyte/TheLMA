@@ -37,8 +37,8 @@ class ExternalParserResourceRepresenter(ResourceRepresenter):
         self.__parser_options = {}
 
     @classmethod
-    def create_from_resource(cls, rc):
-        return cls(get_member_class(rc), cls.parser_factory)
+    def create_from_resource_class(cls, resource_class):
+        return cls(get_member_class(resource_class), cls.parser_factory)
 
     def from_stream(self, stream):
         data_el = self.data_from_stream(stream)
