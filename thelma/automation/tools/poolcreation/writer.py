@@ -535,7 +535,8 @@ class PoolCreationWorklistWriter(BaseAutomationTool):
                 continue
             name = loc.name
             index = loc.index
-            if index is None or len(index) < 1:
+            if index is None or \
+                        (isinstance(index, basestring) and len(index) < 1):
                 self.__source_rack_locations[barcode] = name
             else:
                 self.__source_rack_locations[barcode] = '%s, index: %s' \
