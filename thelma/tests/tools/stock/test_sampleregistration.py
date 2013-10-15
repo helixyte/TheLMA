@@ -55,13 +55,32 @@ class _SampleRegistrationTestCase(ThelmaResourceTestCase):
         return reg_data
 
 
-class SampleRegistrationTestCase(_SampleRegistrationTestCase):
+class SimpleSampleRegistrationTestCase(_SampleRegistrationTestCase):
     delivery_file = 'thelma:tests/tools/stock/registration/' \
                     'ambion_delivery_samples.json'
 
     def test_delivery(self):
         reg_data = self._run_registration()
         self.assert_equal(len(reg_data['racks']), 0)
+
+    def _run_registration(self):
+        dlv_reg = self._make_registrar()
+        dlv_reg.run()
+        self.assert_false(dlv_reg.has_errors())
+        reg_data = dlv_reg.return_value
+        self.assert_equal(len(reg_data['molecule_designs']), 1)
+        self.assert_equal(len(reg_data['chemical_structures']), 2)
+        self.assert_equal(len(reg_data['molecule_design_pools']), 1)
+        self.assert_equal(len(reg_data['stock_samples']), 1)
+        self.assert_equal(len(reg_data['supplier_molecule_designs']), 1)
+        self.assert_equal(len(reg_data['tubes']), 1)
+        dlv_reg.write_report()
+        return reg_data
+
+
+class SimpleNewSampleRegistrationTestCase(SimpleSampleRegistrationTestCase):
+    delivery_file = 'thelma:tests/tools/stock/registration/' \
+                    'ambion_delivery_samples_new_only.json'
 
 
 class SampleRegistrationWithLocationsTestCase(_SampleRegistrationTestCase):
