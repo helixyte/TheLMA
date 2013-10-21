@@ -327,13 +327,16 @@ class SiRnaDesign(DoubleStrandedDesign, RnaDesign):
     @classmethod
     def _validate_chemical_structures(cls, chemical_structures):
         cnt = Counter([cs.structure_type_id for cs in chemical_structures])
-        is_invalid = cnt.get(CHEMICAL_STRUCTURE_TYPE_IDS.NUCLEIC_ACID) != 2 \
-                or (len(chemical_structures) == 3 and
-                    cnt.get(CHEMICAL_STRUCTURE_TYPE_IDS.MODIFICATION) != 1)
+        is_invalid = \
+            not cnt.get(CHEMICAL_STRUCTURE_TYPE_IDS.UNKNOWN) == 1 \
+            and (cnt.get(CHEMICAL_STRUCTURE_TYPE_IDS.NUCLEIC_ACID) != 2 \
+                 or (len(chemical_structures) == 3 and
+                     cnt.get(CHEMICAL_STRUCTURE_TYPE_IDS.MODIFICATION) != 1))
         if is_invalid:
-            raise ValueError('%s designs require exactly two nucleic acid '
-                             'structures and at most one modification '
-                             'structure.' % cls._molecule_type_id)
+            raise ValueError('%s designs with known structure require '
+                             'exactly two nucleic acid structures and at '
+                             'most one modification structure.'
+                             % cls._molecule_type_id)
 
 
 class ClonedDsDnaDesign(DoubleStrandedDesign, DnaDesign):
