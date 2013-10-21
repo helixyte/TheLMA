@@ -7,8 +7,8 @@ AAB
 from re import match
 from thelma.automation.handlers.base import BaseParserHandler
 from thelma.automation.parsers.rackscanning import RackScanningParser
-from thelma.automation.tools.semiconstants import get_96_rack_shape
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.models.rack import RACK_BARCODE_REGEXP
 from thelma.models.rack import RACK_POSITION_REGEXP
 from thelma.models.rack import TubeRack

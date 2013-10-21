@@ -4,14 +4,13 @@ Tests for custom liquid transfer plan tools.
 AAB
 """
 from everest.entities.utils import get_root_aggregate
+from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.automation.semiconstants import get_item_status_future
+from thelma.automation.semiconstants import get_rack_specs_from_reservoir_specs
+from thelma.automation.semiconstants import get_reservoir_spec
 from thelma.automation.tools.worklists.custom import CustomLiquidTransferTool
-from thelma.automation.tools.semiconstants \
-    import get_rack_specs_from_reservoir_specs
-from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
-from thelma.automation.tools.semiconstants import get_item_status_future
-from thelma.automation.tools.semiconstants import get_reservoir_spec
-from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IOrganization
 from thelma.interfaces import IPlate
@@ -23,6 +22,8 @@ from thelma.tests.tools.tooltestingutils import FileReadingTestCase
 
 
 class _CustomLiquidTransferPlanToolTestCase(FileReadingTestCase):
+
+    TEST_CLS = CustomLiquidTransferTool
 
     def set_up(self):
         FileReadingTestCase.set_up(self)
@@ -112,6 +113,7 @@ class _CustomLiquidTransferPlanToolTestCase(FileReadingTestCase):
         self._test_and_expect_errors('The mode must be a str')
         self.mode = 'invalid'
         self._test_and_expect_errors('Unexpected mode: invalid.')
+        self.mode = self.TEST_CLS.MODE_EXECUTE
 
     def _test_parsing_error(self):
         self._continue_setup('parsing_error.xls')
@@ -153,8 +155,8 @@ class CustomLiquidTransferWorklistWriterTestCase(
         self._test_parsing_error()
 
     def test_serial_writer_error(self):
-        self._test_series_tool_error('Error when trying to print worklist ' \
-                                     'files!')
+        self._test_series_tool_error('Error when running serial worklist ' \
+                                     'printer')
 
 
 class CustomLiquidTransferExecutorTestCase(
@@ -249,4 +251,4 @@ class CustomLiquidTransferExecutorTestCase(
 
     def test_serial_writer_error(self):
         self._test_series_tool_error('Error when running serial worklist ' \
-                                     'execution!')
+                                     'executor!')

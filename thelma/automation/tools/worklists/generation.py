@@ -3,8 +3,8 @@ Bases classes for the generation of (planned) worklists.
 
 AAB
 """
+from thelma.automation.semiconstants import get_pipetting_specs
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.semiconstants import get_pipetting_specs
 from thelma.models.liquidtransfer import PlannedWorklist
 
 

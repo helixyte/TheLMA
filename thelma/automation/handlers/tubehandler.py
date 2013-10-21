@@ -9,7 +9,7 @@ AAB
 from everest.entities.utils import get_root_aggregate
 from thelma.automation.handlers.base import BaseParserHandler
 from thelma.automation.parsers.tubehandler import XL20OutputParser
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
+from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.interfaces import ITubeRack
 from thelma.models.tubetransfer import TubeTransfer
 

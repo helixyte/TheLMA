@@ -19,11 +19,10 @@ from everest.resources.descriptors import terminal_attribute
 from everest.resources.staging import create_staging_collection
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.threadlocal import get_current_registry
-#from thelma.automation.tools.libcreation.iso import LibraryCreationIsoPopulator
+from thelma.automation.semiconstants import get_item_status_future
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketAccepter
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketReassigner
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketReopener
-from thelma.automation.tools.semiconstants import get_item_status_future
 from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.interfaces import IExperimentMetadata
 from thelma.interfaces import IExperimentMetadataType
@@ -31,6 +30,7 @@ from thelma.interfaces import IIso
 from thelma.interfaces import IIsoJob
 from thelma.interfaces import IIsoRequest
 from thelma.interfaces import IIsoStockRack
+from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeDesignPoolSet
 from thelma.interfaces import IPlate
 from thelma.interfaces import IRack
@@ -45,7 +45,7 @@ from thelma.models.job import IsoJob
 from thelma.models.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
 import logging
-from thelma.interfaces import IMoleculeDesignLibrary
+#from thelma.automation.tools.libcreation.iso import LibraryCreationIsoPopulator
 
 
 __docformat__ = 'reStructuredText en'

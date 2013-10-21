@@ -121,6 +121,8 @@ class Tagged(Entity):
 
     def __init__(self, tags, user):
         Entity.__init__(self)
+        if len(tags) < 1:
+            raise ValueError('The tag list is empty!')
         self.taggings = [Tagging(tag, self, user) for tag in tags]
         self.tags = tags
 

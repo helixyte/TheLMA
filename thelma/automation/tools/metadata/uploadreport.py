@@ -2,32 +2,28 @@
 Tools generating reports for experiment metadata uploads.
 """
 from thelma import ThelmaLog
+from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.automation.semiconstants import get_reservoir_specs_deep_96
+from thelma.automation.semiconstants import get_reservoir_specs_standard_384
+from thelma.automation.semiconstants import get_reservoir_specs_standard_96
+from thelma.automation.tools.metadata.base import TransfectionLayout
+from thelma.automation.tools.metadata.base import TransfectionParameters
 from thelma.automation.tools.metadata.generation \
     import ExperimentMetadataGenerator
 from thelma.automation.tools.metadata.generation \
     import ExperimentMetadataGeneratorLibrary
 from thelma.automation.tools.metadata.ticket \
     import IsoRequestTicketDescriptionBuilder
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionLayout
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionParameters
-from thelma.automation.tools.semiconstants \
-    import get_reservoir_specs_standard_384
-from thelma.automation.tools.semiconstants \
-    import get_reservoir_specs_standard_96
-from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.tools.semiconstants import get_reservoir_specs_deep_96
-from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import get_trimmed_string
-from thelma.automation.tools.utils.base import sort_rack_positions
 from thelma.automation.tools.worklists.base import DEAD_VOLUME_COEFFICIENT
 from thelma.automation.tools.worklists.base import LIMIT_TARGET_WELLS
 from thelma.automation.tools.writers import CsvColumnParameters
 from thelma.automation.tools.writers import CsvWriter
 from thelma.automation.tools.writers import TxtWriter
 from thelma.automation.tracbase import BaseTracTool
+from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import get_trimmed_string
+from thelma.automation.utils.base import sort_rack_positions
 from thelma.models.liquidtransfer import ReservoirSpecs
 from tractor import AttachmentWrapper
 from tractor import create_wrapper_for_ticket_update

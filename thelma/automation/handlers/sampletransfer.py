@@ -10,19 +10,17 @@ from everest.entities.utils import get_root_aggregate
 from thelma.automation.handlers.base import LayoutParserHandler
 from thelma.automation.parsers.sampletransfer \
     import GenericSampleTransferPlanParser
-from thelma.automation.tools.semiconstants \
-    import get_rack_specs_from_reservoir_specs
-from thelma.automation.tools.semiconstants \
-    import get_reservoir_specs_from_rack_specs
-from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
-from thelma.automation.tools.semiconstants import get_item_status_future
-from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
-from thelma.automation.tools.semiconstants \
-    import get_pipetting_specs_biomek_stock
-from thelma.automation.tools.semiconstants import get_reservoir_spec
-from thelma.automation.tools.utils.base import MAX_PLATE_LABEL_LENGTH
-from thelma.automation.tools.utils.base import add_list_map_element
+from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.automation.semiconstants import get_item_status_future
+from thelma.automation.semiconstants import get_pipetting_specs_biomek
+from thelma.automation.semiconstants import get_pipetting_specs_biomek_stock
+from thelma.automation.semiconstants import get_rack_specs_from_reservoir_specs
+from thelma.automation.semiconstants import get_reservoir_spec
+from thelma.automation.semiconstants import get_reservoir_specs_from_rack_specs
 from thelma.automation.tools.worklists.base import TRANSFER_ROLES
+from thelma.automation.utils.base import MAX_PLATE_LABEL_LENGTH
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import add_list_map_element
 from thelma.interfaces import IRack
 from thelma.interfaces import IRackShape
 from thelma.models.liquidtransfer import PlannedSampleDilution
@@ -396,7 +394,7 @@ class GenericSampleTransferPlanParserHandler(LayoutParserHandler):
         for transfer_container in step_container.get_transfer_containers():
             src_positions = transfer_container.get_source_positions()
             trg_positions = transfer_container.get_target_positions()
-            volume = float(transfer_container.volume)
+            volume = float(transfer_container.volume) / VOLUME_CONVERSION_FACTOR
             if transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
                 diluent = transfer_container.diluent
                 if diluent is None or not len(str(diluent)) > 1:

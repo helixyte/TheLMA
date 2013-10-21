@@ -4,17 +4,16 @@ Base tools, for stock rack related tasks involved in lab ISO processing.
 AAB
 """
 from everest.entities.utils import get_root_aggregate
+from thelma.automation.semiconstants import get_pipetting_specs_biomek_stock
+from thelma.automation.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.iso.base import IsoRackContainer
 from thelma.automation.tools.iso.lab.base import FinalLabIsoLayout
 from thelma.automation.tools.iso.lab.base import FinalLabIsoLayoutConverter
 from thelma.automation.tools.iso.lab.base import LABELS
 from thelma.automation.tools.iso.lab.base import LabIsoPrepLayoutConverter
-from thelma.automation.tools.iso.base import IsoRackContainer
-from thelma.automation.tools.semiconstants \
-    import get_pipetting_specs_biomek_stock
-from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import add_list_map_element
+from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.utils.base import add_list_map_element
 from thelma.interfaces import ITubeRack
 from thelma.models.iso import IsoJobStockRack
 from thelma.models.iso import IsoSectorStockRack

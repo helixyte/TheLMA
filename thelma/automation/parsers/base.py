@@ -7,13 +7,13 @@
 from StringIO import StringIO
 from thelma import LogEvent
 from thelma.automation.errors import EventRecording
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.base import get_trimmed_string
+from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.base import get_trimmed_string
+from thelma.automation.utils.base import is_valid_number
 from thelma.models.utils import label_from_number
 from xlrd import XLRDError
 from xlrd import open_workbook
 import logging
-from thelma.automation.tools.utils.base import is_valid_number
 
 __docformat__ = 'reStructuredText en'
 
@@ -66,7 +66,7 @@ class BaseParser(EventRecording):
             run.
         :type log: :class:`thelma.parsers.eorrors.ParsingLog`
         """
-        ErrorRecording.__init__(self, log=log)
+        EventRecording.__init__(self, log=log)
 
         #: The stream to be parsed.
         self.stream = stream

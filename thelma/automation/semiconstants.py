@@ -19,7 +19,7 @@ AAB
 from everest.entities.utils import get_root_aggregate
 from everest.querying.specifications import lt
 from everest.repositories.rdb.utils import as_slug_expression
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IExperimentMetadataType
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import IPipettingSpecs
@@ -431,7 +431,7 @@ class PIPETTING_SPECS_NAMES(SemiconstantCache):
     @classmethod
     def initialize_cache(cls):
         """
-        We also initialize the :attr:`__value_cache` here.
+        We also initialise the :attr:`__value_cache` here.
         """
         super(PIPETTING_SPECS_NAMES, cls).initialize_cache()
         cls.__value_cache = dict()
@@ -442,7 +442,7 @@ class PIPETTING_SPECS_NAMES(SemiconstantCache):
                 db_value = getattr(entity, attr_name)
                 value = db_value * factor
                 value_map[attr_name] = value
-            cls.__value_cache[ps_name] = value
+            cls.__value_cache[ps_name] = value_map
 
     @classmethod
     def __get_attribute_value(cls, pipetting_specs, attribute_name):
@@ -457,6 +457,9 @@ class PIPETTING_SPECS_NAMES(SemiconstantCache):
             :class:`thelma.models.liquidtransfer.PipettingSpecs`
         :return: The converted values.
         """
+        if cls.__value_cache is None or len(cls.__value_cache) < 1:
+            cls.initialize_cache()
+
         if isinstance(pipetting_specs, PipettingSpecs):
             ps_name = pipetting_specs.name
         else:
@@ -658,7 +661,7 @@ class RACK_SPECS_NAMES(SemiconstantCache):
             raise TypeError(msg)
 
         if rs_name == RESERVOIR_SPECS_NAMES.STOCK_RACK:
-            msg = 'You must use this method to generate a stock rack!'
+            msg = 'You must not use this method to generate a stock rack!'
             raise ValueError(msg)
         elif not cls.__RESERVOIR_SPECS_MAP.has_key(rs_name):
             raise ValueError('Unsupported reservoir specs "%s".' % (rs_name))
@@ -884,7 +887,9 @@ get_rack_position_from_indices = RACK_POSITION_LABELS.from_indices
 
 
 __ALL_SEMICONSTANT_CLASSES = [ITEM_STATUS_NAMES,
+                              EXPERIMENT_SCENARIOS,
                               RACK_SHAPE_NAMES,
+                              PIPETTING_SPECS_NAMES,
                               RESERVOIR_SPECS_NAMES,
                               RACK_SPECS_NAMES,
                               RACK_POSITION_LABELS,

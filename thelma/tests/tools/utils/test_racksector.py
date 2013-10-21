@@ -4,13 +4,13 @@ Tests for rack sector classes.
 AAB
 """
 from everest.testing import check_attributes
-from thelma.automation.tools.semiconstants import get_384_rack_shape
-from thelma.automation.tools.semiconstants import get_96_rack_shape
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.utils.racksector import QuadrantIterator
-from thelma.automation.tools.utils.racksector import RackSectorTranslator
-from thelma.automation.tools.utils.racksector import check_rack_shape_match
-from thelma.automation.tools.utils.racksector import get_sector_positions
+from thelma.automation.semiconstants import get_384_rack_shape
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_rack_position_from_label
+from thelma.automation.utils.racksector import QuadrantIterator
+from thelma.automation.utils.racksector import RackSectorTranslator
+from thelma.automation.utils.racksector import check_rack_shape_match
+from thelma.automation.utils.racksector import get_sector_positions
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 
@@ -205,20 +205,16 @@ class RackSectorTranslatorTestCase(ToolsAndUtilsTestCase):
         self.assert_equal(rst_8.translate(g4_pos), b2_pos)
         self.assert_raises(ValueError, rst_16.translate, b2_pos)
 
-    def test_from_planned_transfer(self):
+    def test_from_planned_liquid_transfer(self):
         attrs = self.__get_data()
-        attrs['sector_number'] = attrs['number_sectors']
-        del attrs['number_sectors']
         del attrs['behaviour']
-        prt = self._create_planned_rack_transfer(**attrs)
+        prt = self._create_planned_rack_sample_transfer(**attrs)
         self.assert_is_not_none(prt)
-        rst = RackSectorTranslator.from_planned_rack_transfer(prt)
+        rst = RackSectorTranslator.from_planned_rack_sample_transfer(prt)
         attrs['row_count'] = 2
         attrs['col_count'] = 2
         attrs['row_modifier'] = 1
         attrs['col_modifier'] = 0
-        attrs['number_sectors'] = attrs['sector_number']
-        del attrs['sector_number']
         check_attributes(rst, attrs)
 
     def test_get_translation_behaviour(self):

@@ -8,15 +8,13 @@ from thelma.automation.handlers.base \
     import MoleculeDesignPoolLayoutParserHandler
 from thelma.automation.parsers.experimentdesign \
     import ExperimentDesignParser
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionParameters
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionPosition
-from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.base import is_valid_number
-from thelma.automation.tools.utils.layouts import MOCK_POSITION_TYPE
+from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.automation.semiconstants import get_positions_for_shape
+from thelma.automation.tools.metadata.base import TransfectionParameters
+from thelma.automation.tools.metadata.base import TransfectionPosition
+from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.base import is_valid_number
+from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
 from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentDesignRack
 from thelma.models.experiment import ExperimentMetadataType

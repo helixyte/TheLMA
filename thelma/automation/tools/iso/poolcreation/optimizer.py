@@ -5,9 +5,9 @@ AAB
 """
 from thelma.automation.tools.stock.tubepicking import OptimizingQuery
 from thelma.automation.tools.stock.tubepicking import TubePicker
-from thelma.automation.tools.utils.base import CustomQuery
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.base import create_in_term_for_db_queries
+from thelma.automation.utils.base import CustomQuery
+from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.base import create_in_term_for_db_queries
 
 __docformat__ = 'reStructuredText en'
 

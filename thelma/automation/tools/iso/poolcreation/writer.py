@@ -21,13 +21,15 @@ AAB
 from datetime import datetime
 from everest.entities.utils import get_root_aggregate
 from everest.querying.specifications import cntd
+from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
+from thelma.automation.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_pipetting_specs_cybio
+from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.iso.base import IsoRackContainer
 from thelma.automation.tools.iso.base import StockRackLayout
-from thelma.automation.tools.worklists.base import EmptyPositionManager
-from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.iso.base import StockRackPosition
-from thelma.automation.tools.utils.layouts import TransferTarget
 from thelma.automation.tools.iso.poolcreation.base \
     import PoolCreationStockRackPosition
 from thelma.automation.tools.iso.poolcreation.base \
@@ -38,19 +40,17 @@ from thelma.automation.tools.iso.poolcreation.base import LABELS
 from thelma.automation.tools.iso.poolcreation.base import VolumeCalculator
 from thelma.automation.tools.iso.poolcreation.generation \
     import StockSampleCreationWorklistGenerator
-from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
-from thelma.automation.tools.semiconstants import get_96_rack_shape
-from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import get_trimmed_string
-from thelma.automation.tools.utils.base import is_valid_number
-from thelma.automation.tools.utils.base import round_up
+from thelma.automation.tools.worklists.base import EmptyPositionManager
 from thelma.automation.tools.worklists.tubehandler import TubeTransferData
 from thelma.automation.tools.worklists.tubehandler import XL20WorklistWriter
 from thelma.automation.tools.writers import CsvColumnParameters
 from thelma.automation.tools.writers import CsvWriter
 from thelma.automation.tools.writers import TxtWriter
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import get_trimmed_string
+from thelma.automation.utils.base import is_valid_number
+from thelma.automation.utils.base import round_up
+from thelma.automation.utils.layouts import TransferTarget
 from thelma.interfaces import ITube
 from thelma.interfaces import ITubeRack
 from thelma.models.iso import ISO_STATUS

@@ -5,8 +5,8 @@ from datetime import datetime
 from everest.testing import RdbContextManager
 from everest.testing import check_attributes
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
-from thelma.automation.tools.semiconstants import get_item_status_managed
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
+from thelma.automation.semiconstants import get_item_status_managed
+from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.worklists.tubehandler import TubeTransferData
 from thelma.automation.tools.worklists.tubehandler import TubeTransferExecutor
 from thelma.automation.tools.worklists.tubehandler import XL20Executor
@@ -56,7 +56,7 @@ class XL20WorklistWriterTestCase(FileCreatorTestCase):
     def set_up(self):
         FileCreatorTestCase.set_up(self)
         self.log = TestingLog()
-        self.WL_PATH = 'thelma:tests/tools/worklists/test_files/'
+        self.WL_PATH = 'thelma:tests/tools/worklists/tubehandler/'
         self.tube_transfers = []
         # tube barcode, src rack barcode, src pos label, trg rack barcode,
         # trg pos label

@@ -5,18 +5,16 @@ translation of ISO plates into experiment plates.
 October 2011, AAB
 """
 
+from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
+from thelma.automation.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
-from thelma.automation.tools.metadata.transfection_utils \
-                import TransfectionLayout
-from thelma.automation.tools.metadata.transfection_utils \
-                import TransfectionParameters
-from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.tools.semiconstants import get_experiment_metadata_type
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import get_trimmed_string
+from thelma.automation.tools.metadata.base import TransfectionLayout
+from thelma.automation.tools.metadata.base import TransfectionParameters
 from thelma.automation.tools.worklists.generation \
                 import PlannedWorklistGenerator
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import get_trimmed_string
 from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadataType
 from thelma.models.liquidtransfer import PlannedRackSampleTransfer
@@ -439,7 +437,7 @@ class OptimemWorklistGenerator(PlannedWorklistGenerator):
 
         for rack_pos, tf_pos in self.transfection_layout.iterpositions():
             if tf_pos.is_empty: continue
-            volume = self.__determine_volume(tf_pos)
+            volume = self.__determine_volume(tf_pos) / VOLUME_CONVERSION_FACTOR
             target_position = rack_pos
             psd = PlannedSampleDilution.get_entity(volume=volume,
                                            target_position=target_position,
@@ -522,7 +520,8 @@ class ReagentWorklistGenerator(PlannedWorklistGenerator):
 
         for rack_pos, tf_pos in self.transfection_layout.iterpositions():
             if tf_pos.is_empty: continue
-            dil_volume = tf_pos.calculate_reagent_dilution_volume()
+            dil_volume = tf_pos.calculate_reagent_dilution_volume() \
+                         / VOLUME_CONVERSION_FACTOR
             ini_dil_factor = TransfectionParameters.\
                                 calculate_initial_reagent_dilution(
                                 float(tf_pos.reagent_dil_factor))
@@ -679,7 +678,8 @@ class CybioTransferWorklistGenerator(PlannedWorklistGenerator):
         """
         Generates the planned rack transfer for the worklist.
         """
-        volume = TransfectionParameters.TRANSFER_VOLUME
+        volume = TransfectionParameters.TRANSFER_VOLUME \
+                 / VOLUME_CONVERSION_FACTOR
         prst = PlannedRackSampleTransfer.get_entity(volume=volume,
                                   source_sector_index=self.SOURCE_SECTOR_INDEX,
                                   target_sector_index=self.TARGET_SECTOR_INDEX,

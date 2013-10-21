@@ -30,8 +30,7 @@ class XL20Dummy(TxtWriter):
 
     NAME = 'XL20 Tubehandler Dummy'
 
-    def __init__(self, xl20_worklist_stream, log,
-                 logging_level=None, add_default_handlers=None):
+    def __init__(self, xl20_worklist_stream, **kw):
         """
         Constructor:
 
@@ -39,16 +38,8 @@ class XL20Dummy(TxtWriter):
             instructions as stream (e.g. created by the
             :class:`XL20WorklistWriter`).
         :type xl20_worklist_stream: stream (CSV)
-
-        :param logging_level: defines the least severe level of logging
-                    event the log will record
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
         """
-        TxtWriter.__init__(self, log=log, logging_level=logging_level,
-                                 add_default_handlers=add_default_handlers)
+        TxtWriter.__init__(self, **kw)
 
         #: The XL20 worklist containing the robot instructions as stream.
         self.xl20_worklist_stream = xl20_worklist_stream
@@ -102,7 +93,8 @@ class XL20Dummy(TxtWriter):
                 break
 
             if len(tokens) != 5: # TODO: fetch dynamically
-                msg = 'Unexpected number of columns: %s' % (line)
+                msg = 'Unexpected number of columns in line %i: %s' \
+                      % ((i + 1), line)
                 self.add_error(msg)
                 break
 

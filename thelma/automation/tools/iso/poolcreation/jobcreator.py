@@ -12,9 +12,10 @@ The following tasks need to be performed:
 
 AAB
 """
+from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.iso.jobcreator import IsoProvider
 from thelma.automation.tools.iso.jobcreator import IsoJobCreator
+from thelma.automation.tools.iso.jobcreator import IsoProvider
 from thelma.automation.tools.iso.poolcreation.base \
     import StockSampleCreationLayout
 from thelma.automation.tools.iso.poolcreation.base \
@@ -22,7 +23,6 @@ from thelma.automation.tools.iso.poolcreation.base \
 from thelma.automation.tools.iso.poolcreation.base import VolumeCalculator
 from thelma.automation.tools.iso.poolcreation.optimizer \
     import StockSampleCreationTubePicker
-from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.stock.base import get_default_stock_concentration
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import ISO_TYPES

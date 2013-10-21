@@ -17,7 +17,7 @@ def create_mapper(reservoir_specs_tbl):
     tbl = reservoir_specs_tbl
     m = mapper(ReservoirSpecs, reservoir_specs_tbl,
                id_attribute='reservoir_specs_id',
-               slug_expression=lambda cls: as_slug_expression(cls.name),
+               slug_expression=lambda cls: as_slug_expression(cls._name), # pylint: disable=W0212
                properties=dict(
                     _rack_shape=relationship(RackShape, uselist=False,
                                             lazy='joined'),

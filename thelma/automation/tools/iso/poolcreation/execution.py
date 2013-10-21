@@ -3,6 +3,11 @@ Tools involved the execution of pool stock sample creation worklists.
 
 AAB
 """
+from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
+from thelma.automation.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.automation.semiconstants import get_positions_for_shape
+from thelma.automation.semiconstants import get_reservoir_spec
 from thelma.automation.tools.iso.base import IsoRackContainer
 from thelma.automation.tools.iso.base import StockRackVerifier
 from thelma.automation.tools.iso.base import StockTransferWriterExecutor
@@ -13,11 +18,6 @@ from thelma.automation.tools.iso.poolcreation.base \
 from thelma.automation.tools.iso.poolcreation.base import LABELS
 from thelma.automation.tools.iso.poolcreation.generation \
     import StockSampleCreationWorklistGenerator
-from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
-from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
-from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
-from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.semiconstants import get_reservoir_spec
 from thelma.automation.tools.worklists.series import SampleDilutionJob
 from thelma.automation.tools.worklists.series import SampleTransferJob
 from thelma.models.iso import ISO_STATUS

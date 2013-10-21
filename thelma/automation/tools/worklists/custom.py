@@ -5,11 +5,11 @@ AAB
 """
 from thelma.automation.handlers.sampletransfer \
     import GenericSampleTransferPlanParserHandler
-from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.worklists.base import TRANSFER_ROLES
 from thelma.automation.tools.worklists.series import SampleDilutionJob
 from thelma.automation.tools.worklists.series import SampleTransferJob
 from thelma.automation.tools.worklists.series import SerialWriterExecutorTool
+from thelma.automation.utils.base import add_list_map_element
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 
 __docformat__ = 'reStructuredText en'
@@ -27,6 +27,7 @@ class CustomLiquidTransferTool(SerialWriterExecutorTool):
     **Return Value:** a zip stream for for printing mode or executed worklists
         for execution mode (can be overwritten)
     """
+    NAME = 'Custom Liquid Transfer Writer/Executor'
 
     #: The file name for potential Cybio transfers.
     FILE_NAME_CYBIO = 'cybio_transfer.txt'
@@ -45,8 +46,7 @@ class CustomLiquidTransferTool(SerialWriterExecutorTool):
         :type user: :class:`thelma.models.user.User`
         :default user: *None*
         """
-        SerialWriterExecutorTool.__init__(self, mode=mode,
-                                          user=user, **kw)
+        SerialWriterExecutorTool.__init__(self, mode=mode, user=user, **kw)
 
         #: The custom transfer XLS file as stream.
         self.stream = stream
@@ -131,6 +131,7 @@ class CustomLiquidTransferTool(SerialWriterExecutorTool):
         """
         self.add_debug('Create transfer jobs ...')
 
+        self._transfer_jobs = dict()
         for worklist in self._worklist_series.get_sorted_worklists():
             role_map = self.__transfer_roles[worklist.label]
             sources = sorted(role_map[TRANSFER_ROLES.SOURCE])
@@ -145,21 +146,19 @@ class CustomLiquidTransferTool(SerialWriterExecutorTool):
         sequential.
         """
         job_index = len(self._transfer_jobs)
-        transfer_type = worklist.planned_transfers[0].type
+        transfer_type = worklist.planned_liquid_transfers[0].transfer_type
 
         if transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
             job = SampleDilutionJob(index=job_index,
                             planned_worklist=worklist,
                             target_rack=trg_ror.rack,
                             reservoir_specs=src_ror.reservoir_specs,
-                            pipetting_specs=worklist.pipetting_specs,
                             source_rack_barcode=src_ror.barcode)
         elif transfer_type == TRANSFER_TYPES.SAMPLE_TRANSFER:
             job = SampleTransferJob(index=job_index,
                             planned_worklist=worklist,
                             target_rack=trg_ror.rack,
-                            source_rack=src_ror.rack,
-                            pipetting_specs=worklist.pipetting_specs)
+                            source_rack=src_ror.rack)
 
         self._transfer_jobs[job_index] = job
 

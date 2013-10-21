@@ -121,8 +121,7 @@ class PlannedLiquidTransfer(Entity):
         values. If there is already an entity with this values in the DB,
         the entity will be loaded, otherwise a new entity is generated.
 
-        :param volume: The volume. The unit will be regarded as litre, if the
-            value is smaller 1, otherwise the unit will be assumed to be *ul*.
+        :param volume: The volume *in l*.
         :type volume: positive number
         """
         hash_value = cls.get_hash_value(volume, **kw)
@@ -130,11 +129,7 @@ class PlannedLiquidTransfer(Entity):
         pt = agg.get_by_slug(hash_value)
 
         if pt is None:
-            if volume <= 1:
-                volume_in_l = volume
-            else:
-                volume_in_l = volume / 1e6
-            pt = cls(volume=volume_in_l, hash_value=hash_value, **kw)
+            pt = cls(volume=volume, hash_value=hash_value, **kw)
             agg.add(pt)
         return pt
 
@@ -220,8 +215,7 @@ class PlannedSampleDilution(PlannedLiquidTransfer):
         values. If there is already an entity with this values in the DB,
         the entity will be loaded, otherwise a new entity is generated.
 
-        :param volume: The volume. The unit will be regarded as litre, if the
-            value is smaller 1, otherwise the unit will be assumed to be *ul*.
+        :param volume: The volume *in l*.
         :type volume: positive number
 
         :param diluent_info: Further information (e.g. name and concentration)
@@ -338,8 +332,7 @@ class PlannedSampleTransfer(PlannedLiquidTransfer):
         values. If there is already an entity with this values in the DB,
         the entity will be loaded, otherwise a new entity is generated.
 
-        :param volume: The volume. The unit will be regarded as litre, if the
-            value is smaller 1, otherwise the unit will be assumed to be *ul*.
+        :param volume: The volume *in l*.
         :type volume: positive number
 
         :param source_position: The rack position from which the volume is
@@ -452,8 +445,7 @@ class PlannedRackSampleTransfer(PlannedLiquidTransfer):
         values. If there is already an entity with this values in the DB,
         the entity will be loaded, otherwise a new entity is generated.
 
-        :param volume: The volume. The unit will be regarded as litre, if the
-            value is smaller 1, otherwise the unit will be assumed to be *ul*.
+        :param volume: The volume *in l*.
         :type volume: positive number
 
         :param number_sectors: The total number of sectors (:class:`int`).

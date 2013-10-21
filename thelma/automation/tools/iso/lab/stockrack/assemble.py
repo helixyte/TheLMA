@@ -6,6 +6,8 @@ AAB
 """
 from StringIO import StringIO
 from datetime import datetime
+from thelma.automation.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.tools.dummies import XL20Dummy
 from thelma.automation.tools.iso.base import StockRackLayout
 from thelma.automation.tools.iso.base import StockRackPosition
@@ -19,17 +21,15 @@ from thelma.automation.tools.iso.lab.stockrack.base import StockTubeContainer
 from thelma.automation.tools.iso.lab.stockrack.base import _StockRackAssigner
 from thelma.automation.tools.iso.lab.stockrack.tubepicking \
     import LabIsoXL20TubePicker
-from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
-from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.layouts import FIXED_POSITION_TYPE
-from thelma.automation.tools.utils.racksector import RackSectorTranslator
 from thelma.automation.tools.worklists.optimiser import BiomekLayoutOptimizer
 from thelma.automation.tools.worklists.optimiser import TransferItem
 from thelma.automation.tools.worklists.tubehandler import BaseXL20WorklistWriter
 from thelma.automation.tools.writers import LINEBREAK_CHAR
 from thelma.automation.tools.writers import TxtWriter
 from thelma.automation.tools.writers import create_zip_archive
+from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
+from thelma.automation.utils.racksector import RackSectorTranslator
 from thelma.models.iso import IsoSectorStockRack
 from thelma.models.iso import LabIso
 from thelma.models.job import IsoJob
@@ -225,9 +225,13 @@ class _StockRackAssembler(_StockRackAssigner):
                 elif not rack_shape == layout.shape:
                     return False
 
+        marker_map = dict()
+        for plate_label, rack_container in self._rack_containers.iteritems():
+            marker_map[plate_label] = rack_container.rack_marker
         optimizer = LabIsoStockRackOptimizer(log=self.log,
                                     stock_tube_containers=containers,
-                                    target_rack_shape=rack_shape)
+                                    target_rack_shape=rack_shape,
+                                    rack_marker_map=marker_map)
         stock_rack_layout = optimizer.get_result()
         if stock_rack_layout is None:
             msg = 'Error when trying to optimise layout for stock rack "%s"!' \
@@ -316,10 +320,12 @@ class _StockRackAssembler(_StockRackAssigner):
             for plate_label, positions in container.plate_target_positions.\
                                           iteritems():
                 layout = self._plate_layouts[plate_label]
+                trg_plate_marker = self._rack_containers[plate_label].\
+                                   rack_marker
                 translate = (layout.shape.name == RACK_SHAPE_NAMES.SHAPE_384)
                 for plate_pos in positions:
                     rack_pos = plate_pos.rack_position
-                    tts.append(plate_pos.as_transfer_target())
+                    tts.append(plate_pos.as_transfer_target(trg_plate_marker))
                     if translate:
                         pref_pos = translation_map[rack_pos]
                     else:
@@ -696,19 +702,23 @@ class StockRackAssemblerLabIso(_StockRackAssembler, _StockRackAssignerLabIso):
             for container in containers:
                 tts = []
                 stock_pos = None
-                for plate_pos in container.get_all_target_positions():
-                    tts.append(plate_pos.as_transfer_target())
-                    if stock_pos is None: continue
-                    if number_sectors == 1:
-                        stock_pos = plate_pos.rack_position
-                    else:
-                        stock_pos = translator.translate(plate_pos.rack_position)
-                tube_barcode = container.tube_candidate.tube_barcode
-                sr_pos = StockRackPosition(rack_position=stock_pos,
-                               molecule_design_pool=container.pool,
-                               tube_barcode=tube_barcode,
-                               transfer_targets=tts)
-                layout.add_position(sr_pos)
+                for plate_label, positions in container.plate_target_positions.\
+                                          iteritems():
+                    trg_marker = self._rack_containers[plate_label].rack_marker
+                    for plate_pos in positions:
+                        tts.append(plate_pos.as_transfer_target(trg_marker))
+                        if stock_pos is None: continue
+                        if number_sectors == 1:
+                            stock_pos = plate_pos.rack_position
+                        else:
+                            stock_pos = translator.translate(
+                                                      plate_pos.rack_position)
+                    tube_barcode = container.tube_candidate.tube_barcode
+                    sr_pos = StockRackPosition(rack_position=stock_pos,
+                                   molecule_design_pool=container.pool,
+                                   tube_barcode=tube_barcode,
+                                   transfer_targets=tts)
+                    layout.add_position(sr_pos)
 
     def _get_stock_transfer_pipetting_specs(self):
         _StockRackAssignerLabIso._get_stock_transfer_pipetting_specs(self)
@@ -1073,7 +1083,8 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
     SOURCE_LAYOUT_CLS = StockRackLayout
     TRANSFER_ITEM_CLASS = LabIsoStockTransferItem
 
-    def __init__(self, log, stock_tube_containers, target_rack_shape):
+    def __init__(self, log, stock_tube_containers, target_rack_shape,
+                 rack_marker_map):
         """
         Constructor:
 
@@ -1089,12 +1100,19 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
 
         :param stock_rack_marker: The stock rack marker for his
         :type stock_rack_marker: :class:`str`
+
+        :param rack_marker_map: The rack marker for each rack label that can
+            occur in the stock tube containers.
+        :type rack_marker_map: :class:`dict`
         """
         BiomekLayoutOptimizer.__init__(self, log=log)
         #: The stock tube containers mapped onto pools.
         self.stock_tube_containers = stock_tube_containers
         #: The shape of the target plates.
         self.target_rack_shape = target_rack_shape
+        #: The rack marker for each rack label that can occur in the
+        #: :class:`stock_tube_containers`.
+        self.rack_marker_map = rack_marker_map
 
         #: Stores the transfer targets for each pool.
         self.__transfer_targets = None
@@ -1109,6 +1127,8 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
                     'stock tube container', StockTubeContainer)
         self._check_input_class('target rack shape', self.target_rack_shape,
                                 RackShape)
+        self._check_input_map_classes(self.rack_marker_map, 'rack marker map',
+                    'plate label', basestring, 'rack marker', basestring)
 
     def _find_hash_values(self):
         """
@@ -1129,6 +1149,7 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
             self._hash_values.add(pool.id)
             tts = []
             for plate, positions in container.plate_target_positions.iteritems():
+                rack_marker = self.rack_marker_map[plate]
                 if column_maps.has_key(plate):
                     column_map = column_maps[plate]
                 else:
@@ -1140,7 +1161,7 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
                     col_index = trg_pos.column_index
                     add_list_map_element(column_map, col_index, plate_pos)
                     pos_counts[plate] += 1
-                    tts.append(plate_pos.as_transfer_target())
+                    tts.append(plate_pos.as_transfer_target(rack_marker))
             self.__transfer_targets[pool] = tts
 
         if len(no_tube_candidate) > 0:

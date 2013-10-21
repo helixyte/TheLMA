@@ -12,25 +12,25 @@ molecule designs (:class:`IsoSectorStockRack`s of the resulting ISOs).
 AAB
 """
 from math import ceil
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.automation.tools.iso.poolcreation.base import LABELS
 from thelma.automation.handlers.poolcreationset \
     import PoolCreationSetParserHandler
+from thelma.automation.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_pipetting_specs_cybio
+from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.iso.poolcreation.base import LABELS
 from thelma.automation.tools.iso.poolcreation.base import VolumeCalculator
-from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
-from thelma.automation.tools.semiconstants import get_96_rack_shape
-from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.automation.tools.stock.base import get_default_stock_concentration
-from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import get_trimmed_string
-from thelma.automation.tools.utils.base import is_valid_number
+from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import get_trimmed_string
+from thelma.automation.utils.base import is_valid_number
 from thelma.models.iso import StockSampleCreationIsoRequest
 from thelma.models.liquidtransfer import PlannedSampleDilution
 from thelma.models.liquidtransfer import PlannedWorklist
+from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.liquidtransfer import WorklistSeries
 from thelma.models.user import User
 

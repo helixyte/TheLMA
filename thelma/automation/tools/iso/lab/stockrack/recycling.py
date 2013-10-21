@@ -3,6 +3,7 @@ The rack recyler allows to reuse stock racks.
 
 AAB
 """
+from thelma.automation.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.iso.base import StockRackLayout
 from thelma.automation.tools.iso.base import StockRackPosition
 from thelma.automation.tools.iso.lab.base import LABELS
@@ -11,16 +12,15 @@ from thelma.automation.tools.iso.lab.stockrack.base \
 from thelma.automation.tools.iso.lab.stockrack.base \
     import _StockRackAssignerLabIso
 from thelma.automation.tools.iso.lab.stockrack.base import _StockRackAssigner
-from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
 from thelma.automation.tools.stock.tubepicking import TubeCandidate
-from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.base import are_equal_values
-from thelma.automation.tools.utils.base import get_nested_dict
-from thelma.automation.tools.utils.base import get_trimmed_string
-from thelma.automation.tools.utils.base import is_smaller_than
-from thelma.automation.tools.utils.racksector import RackSectorTranslator
+from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.base import are_equal_values
+from thelma.automation.utils.base import get_nested_dict
+from thelma.automation.utils.base import get_trimmed_string
+from thelma.automation.utils.base import is_smaller_than
+from thelma.automation.utils.racksector import RackSectorTranslator
 from thelma.models.sample import StockSample
 
 __docformat__ = 'reStructuredText en'
@@ -225,14 +225,17 @@ class _StockRackRecycler(_StockRackAssigner):
                 layouts[rack_barcode] = layouts
 
             tts = []
-            for plate_pos in container.get_all_target_positions():
-                tts.append(plate_pos.as_transfer_target())
+            for plate_label, positions in container.plate_target_positions.\
+                                          iteritems():
+                trg_marker = self._rack_containers[plate_label].rack_marker
+                for plate_pos in positions:
+                    tts.append(plate_pos.as_transfer_target(trg_marker))
 
-            sr_pos = StockRackPosition(rack_position=tc.rack_position,
-                                       molecule_design_pool=pool,
-                                       tube_barcode=tc.tube_barcode,
-                                       transfer_targets=tts)
-            layout.add_position(sr_pos)
+                sr_pos = StockRackPosition(rack_position=tc.rack_position,
+                                           molecule_design_pool=pool,
+                                           tube_barcode=tc.tube_barcode,
+                                           transfer_targets=tts)
+                layout.add_position(sr_pos)
 
         if len(self.__stock_rack_map) < 1:
             for rack_barcode, marker in marker_map.iteritems():

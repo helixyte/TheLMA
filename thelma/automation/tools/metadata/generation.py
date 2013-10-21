@@ -5,53 +5,47 @@
 This module creates or updates an experiment metadata. It applies several
 parsers and tools.
 """
+from thelma.automation.semiconstants import get_pipetting_specs
 from thelma.automation.handlers.experimentdesign \
     import ExperimentDesignParserHandler
 from thelma.automation.handlers.experimentpoolset \
     import ExperimentPoolSetParserHandler
 from thelma.automation.handlers.isorequest import IsoRequestParserHandler
+from thelma.automation.semiconstants \
+    import get_experiment_type_manual_optimisation
+from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
+from thelma.automation.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.automation.semiconstants import get_experiment_metadata_type
+from thelma.automation.semiconstants import get_max_dilution_factor
+from thelma.automation.semiconstants import get_min_transfer_volume
+from thelma.automation.semiconstants import get_pipetting_specs_biomek
+from thelma.automation.semiconstants import get_pipetting_specs_cybio
+from thelma.automation.semiconstants import get_reservoir_specs_deep_96
+from thelma.automation.semiconstants import get_reservoir_specs_from_rack_specs
+from thelma.automation.semiconstants import get_reservoir_specs_standard_384
+from thelma.automation.semiconstants import get_reservoir_specs_standard_96
 from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.metadata.base import TransfectionAssociationData
+from thelma.automation.tools.metadata.base import TransfectionLayout
+from thelma.automation.tools.metadata.base import TransfectionLayoutConverter
+from thelma.automation.tools.metadata.base import TransfectionParameters
 from thelma.automation.tools.metadata.isolayoutfinder \
     import TransfectionLayoutFinder
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionAssociationData
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionLayout
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionLayoutConverter
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionParameters
 from thelma.automation.tools.metadata.worklist \
     import ExperimentWorklistGenerator
-from thelma.automation.tools.semiconstants \
-    import get_experiment_type_manual_optimisation
-from thelma.automation.tools.semiconstants \
-    import get_reservoir_specs_from_rack_specs
-from thelma.automation.tools.semiconstants \
-    import get_reservoir_specs_standard_384
-from thelma.automation.tools.semiconstants \
-    import get_reservoir_specs_standard_96
-from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
-from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
-from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
-from thelma.automation.tools.semiconstants import get_experiment_metadata_type
-from thelma.automation.tools.semiconstants import get_max_dilution_factor
-from thelma.automation.tools.semiconstants import get_min_transfer_volume
-from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
-from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.tools.semiconstants import get_reservoir_specs_deep_96
 from thelma.automation.tools.stock.base import get_default_stock_concentration
-from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.base import are_equal_values
-from thelma.automation.tools.utils.base import get_trimmed_string
-from thelma.automation.tools.utils.base import is_larger_than
-from thelma.automation.tools.utils.base import is_smaller_than
-from thelma.automation.tools.utils.base import is_valid_number
-from thelma.automation.tools.utils.base import round_up
-from thelma.automation.tools.utils.racksector import QuadrantIterator
+from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.base import are_equal_values
+from thelma.automation.utils.base import get_trimmed_string
+from thelma.automation.utils.base import is_larger_than
+from thelma.automation.utils.base import is_smaller_than
+from thelma.automation.utils.base import is_valid_number
+from thelma.automation.utils.base import round_up
+from thelma.automation.utils.racksector import QuadrantIterator
 from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.iso import ISO_STATUS
@@ -644,7 +638,7 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
             msg = 'Error when trying to convert ISO layout of the existing ' \
                   'ISO request.'
             self.add_error(msg)
-        elif not TransfectionLayout.compare_ignoring_untreated(layout,
+        elif not TransfectionLayout.compare_ignoring_untreated_types(layout,
                                                         self._source_layout):
             changed_attributes.append('ISO layout')
 
@@ -909,8 +903,9 @@ class ExperimentMetadataGeneratorOpti(ExperimentMetadataGenerator):
 
         floating_odf = None
         if self._source_layout.floating_molecule_type is not None:
-            floating_odf = TransfectionParameters.get_optimem_dilution_factor(
-                                    self._source_layout.floating_molecule_type)
+            floating_odf = TransfectionParameters.\
+                            get_optimem_dilution_factor_from_molecule_type(
+                            self._source_layout.floating_molecule_type)
 
         for tf_pos in self._source_layout.working_positions():
             if tf_pos.is_fixed:
@@ -1078,8 +1073,9 @@ class ExperimentMetadataGeneratorScreen(ExperimentMetadataGenerator):
         """
         self.add_debug('Set molecule types ...')
 
-        optimem_df = TransfectionParameters.get_optimem_dilution_factor(
-                                    self._source_layout.floating_molecule_type)
+        optimem_df = TransfectionParameters.\
+                        get_optimem_dilution_factor_from_molecule_type(
+                        self._source_layout.floating_molecule_type)
         for tf_pos in self._source_layout.working_positions():
             if tf_pos.is_fixed:
                 tf_pos.store_optimem_dilution_factor()
@@ -1402,6 +1398,10 @@ class RobotSupportDeterminator(BaseAutomationTool):
     #: Shall there be a warning if the determinator decides for deep well usage?
     #: (default: True).
     RAISE_DEEP_WELL_WARNING = True
+    #: The pipetting specs used to prepare the mastermix. Influences the
+    #: dead volume of the ISO plate and might lead to the usage of deep-well
+    #: plates.
+    PIPETTING_SPECS_NAME = None
 
     def __init__(self, log, source_layout, number_replicates):
         """
@@ -1503,15 +1503,20 @@ class RobotSupportDeterminator(BaseAutomationTool):
             self.use_deep_well = False
             std_96 = get_reservoir_specs_standard_96()
             max_vol = std_96.max_volume * VOLUME_CONVERSION_FACTOR
-            if TransfectionParameters.requires_deepwell(max_target_count,
-                                                        self.number_replicates):
+            robot_specs = get_pipetting_specs(self.PIPETTING_SPECS_NAME)
+            req_vol = TransfectionParameters.\
+                      calculate_mastermix_volume_from_target_well_number(
+                      max_target_count, self.number_replicates, std_96,
+                      robot_specs)
+            if is_larger_than(req_vol, max_vol):
                 self.use_deep_well = True
-            for tf_pos in self.source_layout.working_positions():
-                if tf_pos.is_untreated_type: continue
-                if not tf_pos.iso_volume is None:
-                    if is_larger_than(tf_pos.iso_volume, max_vol):
-                        self.use_deep_well = True
-                        break
+            else:
+                for tf_pos in self.source_layout.working_positions():
+                    if tf_pos.is_untreated_type: continue
+                    if not tf_pos.iso_volume is None:
+                        if is_larger_than(tf_pos.iso_volume, max_vol):
+                            self.use_deep_well = True
+                            break
 
             if self.use_deep_well:
                 self._iso_reservoir_specs = get_reservoir_specs_deep_96()
@@ -1660,6 +1665,9 @@ class RobotSupportDeterminatorOpti(RobotSupportDeterminator):
 
     **Return Value:** updated source layout
     """
+
+    PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
+
     def __init__(self, log, source_layout, number_replicates,
                  design_rack_associations):
         """
@@ -1796,8 +1804,8 @@ class RobotSupportDeterminatorOpti(RobotSupportDeterminator):
                 if self.__new_volumes_values.has_key(rack_pos):
                     iso_vol = self.__new_volumes_values[rack_pos]
                 mm_volume = TransfectionParameters.\
-                                calculate_complete_volume(iso_vol,
-                                        tf_pos.optimem_dil_factor)
+                                calculate_mastermix_volume_from_iso_volume(
+                                iso_vol, tf_pos.optimem_dil_factor)
                 if is_larger_than(mm_volume, max_vol):
                     self.use_deep_well = True
                     self._iso_reservoir_specs = \
@@ -1823,6 +1831,8 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
 
     **Return Value:** updated source layout
     """
+
+    PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.CYBIO
 
     def __init__(self, log, source_layout, number_replicates,
                  number_design_racks, handler_iso_volume,
@@ -1923,8 +1933,9 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
         Controls (fixed positions) might be included depedning on the value
         of :attr:``
         """
-        self.__optimem_df = TransfectionParameters.get_optimem_dilution_factor(
-                                    self.source_layout.floating_molecule_type)
+        self.__optimem_df = TransfectionParameters.\
+                            get_optimem_dilution_factor_from_molecule_type(
+                            self.source_layout.floating_molecule_type)
 
         if self.source_layout.shape.name == RACK_SHAPE_NAMES.SHAPE_96:
             RobotSupportDeterminator._check_iso_concentrations(self)
@@ -2091,8 +2102,9 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
         if self.source_layout.shape.name == RACK_SHAPE_NAMES.SHAPE_96:
             std_96 = get_reservoir_specs_standard_96()
             max_volume = std_96.max_volume * VOLUME_CONVERSION_FACTOR
-            complete_volume = TransfectionParameters.calculate_complete_volume(
-                                        self.__iso_volume, self.__optimem_df)
+            complete_volume = TransfectionParameters.\
+                              calculate_mastermix_volume_from_iso_volume(
+                              self.__iso_volume, self.__optimem_df)
             if is_larger_than(complete_volume, max_volume):
                 self.use_deep_well = True
 
@@ -2131,7 +2143,9 @@ class RobotSupportDeterminatorLibrary(RobotSupportDeterminator):
     **Return Value:** updated source layout
     """
 
+    PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.CYBIO
     RAISE_DEEP_WELL_WARNING = False
+
     #: The minimum OptiMem dilution factor allowed for library screenings.
     MIN_OPTIMEM_DILUTION_FACTOR = 3
 

@@ -11,18 +11,18 @@ also possible to try to minimize the number of stock racks used instead.
 AAB
 """
 from sqlalchemy.orm.collections import InstrumentedSet
-from thelma.automation.tools.semiconstants import get_rack_position_from_indices
+from thelma.automation.semiconstants import get_rack_position_from_indices
+from thelma.automation.tools.base import SessionTool
 from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
 from thelma.automation.tools.stock.base import STOCK_ITEM_STATUS
 from thelma.automation.tools.stock.base import STOCK_TUBE_SPECS
-from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import CustomQuery
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.base import create_in_term_for_db_queries
-from thelma.automation.tools.utils.base import is_valid_number
+from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.utils.base import CustomQuery
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.base import create_in_term_for_db_queries
+from thelma.automation.utils.base import is_valid_number
 from thelma.models.moleculedesign import MoleculeDesignPool
-from thelma.automation.tools.base import SessionTool
 
 __docformat__ = 'reStructuredText en'
 
@@ -181,9 +181,36 @@ class TubeCandidate(object):
         else:
             self.__volume = volume * VOLUME_CONVERSION_FACTOR
 
+        self.__pool = None
+
     @property
     def pool_id(self):
         return self.__pool_id
+
+    def get_pool(self):
+        """
+        Returns the pool as :class:`MoleculeDesignPool` entity (if it has
+        been set before).
+        """
+        return self.__pool
+
+    def set_pool(self, pool):
+        """
+        Sets the :class:`MoleculeDesignPool` entity. It must match the
+        pool ID of the candidate otherwise a ValueError is raised.
+        The pool could also be fetched via an aggregate, but this will take
+        a long time if there is a large number of tube candidates.
+
+        :param pool: The molecule design pool entity.
+        :type pool: :class:`thelma.models.moleculedesign.MoleculeDesignPool`
+        :raises ValueError: If the ID of the pool does not match the candidate
+            pool ID.
+        """
+        if not pool.id == self.__pool_id:
+            msg = 'The pool does not have the expected ID (%i instead of %i).' \
+                  % (pool.id, self.__pool_id)
+            raise ValueError(msg)
+        self.__pool = pool
 
     @property
     def rack_barcode(self):

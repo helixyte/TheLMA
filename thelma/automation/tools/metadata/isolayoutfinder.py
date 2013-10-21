@@ -53,16 +53,13 @@ Steps
 """
 
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionLayout
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionLayoutConverter
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionPosition
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.iso import IsoRequestParameters
+from thelma.automation.tools.metadata.base import TransfectionLayout
+from thelma.automation.tools.metadata.base import TransfectionLayoutConverter
+from thelma.automation.tools.metadata.base import TransfectionPosition
 from thelma.automation.tools.worklists.optimiser import BiomekLayoutOptimizer
 from thelma.automation.tools.worklists.optimiser import TransferItem
+from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.iso import IsoRequestParameters
 from thelma.models.experiment import ExperimentDesign
 
 __docformat__ = 'reStructuredText en'
@@ -399,6 +396,5 @@ class TransfectionLayoutOptimizer(BiomekLayoutOptimizer):
                     molecule_design_pool=working_pos.molecule_design_pool,
                     reagent_name=working_pos.reagent_name,
                     reagent_dil_factor=working_pos.reagent_dil_factor,
-                    supplier=working_pos.supplier,
                     final_concentration=working_pos.final_concentration)
         self._source_layout.add_position(src_tf)

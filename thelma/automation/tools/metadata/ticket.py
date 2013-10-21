@@ -4,8 +4,8 @@ Trac tools dealing with ISO Trac tickets.
 AAB, Mar 2012
 """
 from StringIO import StringIO
+from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.automation.tracbase import BaseTracTool
 from thelma.models.experiment import ExperimentMetadata

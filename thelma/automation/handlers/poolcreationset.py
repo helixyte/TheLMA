@@ -11,8 +11,8 @@ from everest.querying.specifications import cntd
 from thelma.automation.handlers.base import BaseParserHandler
 from thelma.automation.parsers.poolcreationset import PoolCreationSetParser
 from thelma.automation.tools.stock.base import get_default_stock_concentration
-from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import get_trimmed_string
+from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.utils.base import get_trimmed_string
 from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.moleculedesign import MoleculeDesignPool

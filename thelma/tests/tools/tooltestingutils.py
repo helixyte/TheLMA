@@ -6,17 +6,16 @@ from logging import config
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 from pyramid.threadlocal import get_current_registry
 from thelma import ThelmaLog
+from thelma.automation.semiconstants import clear_semiconstant_caches
+from thelma.automation.semiconstants import initialize_semiconstant_caches
 from thelma.automation.tools.metadata.generation \
     import ExperimentMetadataGenerator
-from thelma.automation.tools.semiconstants import clear_semiconstant_caches
-from thelma.automation.tools.semiconstants import initialize_semiconstant_caches
-from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.writers import LINEBREAK_CHAR
+from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import ITractor
 from thelma.models.rack import RackPosition
-from thelma.models.rack import RackPositionSet
 from thelma.models.racklayout import RackLayout
 from thelma.models.tagging import Tag
 from thelma.models.tagging import TaggedRackPositionSet
@@ -104,6 +103,7 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
 
     def set_up(self):
         ThelmaModelTestCase.set_up(self)
+        initialize_semiconstant_caches()
         self.tool = None
         self.user = None
         self.executor_user = None
@@ -134,13 +134,25 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
         self.assert_equal(len(exp_tags), len(tag_set))
         for tag in tag_set:
             self.assert_true(isinstance(tag, Tag))
-            self.assert_true(tag in exp_tags)
+            if not tag in exp_tags:
+                msg = 'Tag "%s" is missing in the expected tag set (%s).' \
+                      % (tag, exp_tags)
+                raise AssertionError(msg)
 
     def _compare_pos_sets(self, exp_positions, pos_set):
         self.assert_equal(len(exp_positions), len(pos_set))
+        exp_pos_labels = set()
+        for pos in exp_positions:
+            if isinstance(pos, RackPosition):
+                exp_pos_labels.add(pos.label.lower())
+            else:
+                exp_pos_labels.add(pos.lower())
         for pos in pos_set:
             self.assert_true(isinstance(pos, RackPosition))
-            self.assert_true(pos in exp_positions)
+            if not pos.label.lower() in exp_pos_labels:
+                msg = 'Position %s is missing in the expected set (%s).' \
+                      % (pos.label, exp_pos_labels)
+                raise AssertionError(msg)
 
     def _compare_sample_volume(self, sample, exp_volume_in_ul):
         vol = sample.volume * VOLUME_CONVERSION_FACTOR
@@ -183,15 +195,25 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
         else:
             self.assert_false(has_tag)
 
-    def _create_test_trp_set(self, tag_list, rack_positions):
-        rps = RackPositionSet.from_positions(rack_positions)
-        return TaggedRackPositionSet(set(tag_list), rps, self.user)
-
     def _test_and_expect_errors(self, msg=None):
         self._create_tool()
         result = self.tool.get_result()
         self.assert_is_none(result)
         if not msg is None: self._check_error_messages(msg)
+
+    def _expect_error(self, error_cls, callable_obj, exp_msg, *args, **kw):
+        try:
+            callable_obj(*args, **kw)
+        except StandardError as e:
+            if not isinstance(e, error_cls):
+                msg = 'Wrong error class. Expected: %s, got: %s.' \
+                      % (error_cls.__name__, e.__class__.__name__)
+                raise AssertionError(msg)
+            got_msg = str(e)
+            if not exp_msg in got_msg:
+                msg = 'Unable to find expected message.\nExpected: "%s".' \
+                      '\nFound: "%s".' % (exp_msg, got_msg)
+                raise AssertionError(msg)
 
     def _check_error_messages(self, msg):
         errors = self.tool.get_messages(logging.ERROR)
@@ -203,7 +225,7 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
         self.assert_true(msg in warnings)
 
     def _check_executed_transfer(self, et, expected_type):
-        self.assert_equal(et.type, expected_type)
+        self.assert_equal(et.transfer_type, expected_type)
         self.assert_equal(et.user, self.executor_user)
         self.assert_is_not_none(et.timestamp)
 

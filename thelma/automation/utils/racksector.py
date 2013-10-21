@@ -5,13 +5,13 @@ AAB
 """
 
 from math import sqrt
+from thelma.automation.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.semiconstants import get_positions_for_shape
+from thelma.automation.semiconstants import get_rack_position_from_indices
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
-from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.semiconstants import get_rack_position_from_indices
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.layouts import MoleculeDesignPoolLayout
-from thelma.automation.tools.utils.layouts import WorkingPosition
+from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.layouts import MoleculeDesignPoolLayout
+from thelma.automation.utils.layouts import WorkingPosition
 
 
 __docformat__ = 'reStructuredText en'
@@ -284,16 +284,16 @@ class RackSectorTranslator(object):
             return cls.MANY_TO_ONE
 
     @classmethod
-    def from_planned_rack_transfer(cls, planned_rack_transfer, row_count=None,
-                                col_count=None, behaviour=None):
+    def from_planned_rack_sample_transfer(cls, planned_rack_sample_transfer,
+                      row_count=None, col_count=None, behaviour=None):
         """
         Initialises a RackSectorTranslator using the data of a planned rack
-        transfer.
+        sample transfer.
 
-        :param planned_rack_transfer: The planned rack transfer for which
+        :param planned_rack_sample_transfer: The planned rack transfer for which
             to initialise the translator.
         :type planned_rack_transfer:
-            :class:`thelma.models.liquidtransfer.PlannedRackTransfer`
+            :class:`thelma.models.liquidtransfer.PlannedRackSampleTransfer`
 
         :param row_count: The number of sector rows - if you do not provide
             a number the row number is calculated assuming a square setup.
@@ -312,10 +312,11 @@ class RackSectorTranslator(object):
             column count (note that these two values can also be passed).
         :return: The translator (:class:`RackSectorTranslator`).
         """
+        prst = planned_rack_sample_transfer
         return RackSectorTranslator(
-                number_sectors=planned_rack_transfer.sector_number,
-                source_sector_index=planned_rack_transfer.source_sector_index,
-                target_sector_index=planned_rack_transfer.target_sector_index,
+                number_sectors=prst.number_sectors,
+                source_sector_index=prst.source_sector_index,
+                target_sector_index=prst.target_sector_index,
                 behaviour=behaviour,
                 row_count=row_count, col_count=col_count)
 
@@ -688,9 +689,8 @@ class ValueDeterminer(BaseAutomationTool):
 
     **Return Value:** A map containing the values for the different sectors.
     """
-
-    #: The expected :class:`WorkingLayout` subclass.
-    WORKING_LAYOUT_CLS = MoleculeDesignPoolLayout
+    #: The expected :class:`MoleculeDesignPoolLayout` subclass.
+    LAYOUT_CLS = MoleculeDesignPoolLayout
 
 
     def __init__(self, working_layout, attribute_name, log, number_sectors=4):
@@ -747,8 +747,7 @@ class ValueDeterminer(BaseAutomationTool):
         """
         self.add_debug('Check input values ...')
 
-        self._check_input_class('working layout', self.working_layout,
-                                self.WORKING_LAYOUT_CLS)
+        self._check_input_class('layout', self.working_layout, self.LAYOUT_CLS)
         self._check_input_class('attribute name', self.attribute_name, str)
         self._check_input_class('number of sectors', self.number_sectors, int)
 
@@ -782,7 +781,8 @@ class ValueDeterminer(BaseAutomationTool):
             if len(values) > 1:
                 msg = 'There is more than one value for sector %i! ' \
                       'Attribute: %s. Values: %s.' \
-                       % (sector_index + 1, self.attribute_name, list(values))
+                       % (sector_index + 1, self.attribute_name,
+                          self._get_joined_str(values, is_strs=False))
                 self.add_error(msg)
             else:
                 if len(values) < 1:
@@ -836,28 +836,25 @@ class RackSectorAssociator(BaseAutomationTool):
         self.number_sectors = number_sectors
 
         #: The concentration for each rack sector.
-        self._sector_concentrations = None
+        self.__sector_concentrations = None
 
         #: The rack sectors sharing the same molecule design sets within a
         #: quadrant.
-        self._associated_sectors = None
+        self.__associated_sectors = None
 
     def reset(self):
         """
         Resets all values except the initialisation values.
         """
         BaseAutomationTool.reset(self)
-        self._sector_concentrations = None
-        self._associated_sectors = []
+        self.__sector_concentrations = None
+        self.__associated_sectors = []
 
     def get_sector_concentrations(self):
         """
         Returns the sector concentration map.
         """
-        if self.return_value is None:
-            return None
-        else:
-            return self._sector_concentrations
+        return self._get_additional_value(self.__sector_concentrations)
 
     def run(self):
         """
@@ -870,15 +867,13 @@ class RackSectorAssociator(BaseAutomationTool):
         if not self.has_errors(): self.__get_concentrations_for_sectors()
         if not self.has_errors(): self.__determine_association()
         if not self.has_errors():
-            self.return_value = self._associated_sectors
+            self.return_value = self.__associated_sectors
             self.add_info('Association completed.')
 
     def _check_input(self):
         """
         Checks the initialisation values.
         """
-        self.add_debug('Check input values ...')
-
         self._check_input_class('layout', self.layout, self.LAYOUT_CLS)
         self._check_input_class('number of sectors', self.number_sectors, int)
 
@@ -886,13 +881,14 @@ class RackSectorAssociator(BaseAutomationTool):
         """
         Determines the concentration for each rack sector.
         """
-        self.add_debug('Determine concentrations for sector ...')
-
+        self.add_debug('Determine concentrations for sectors ...')
 
         value_determiner = self._init_value_determiner()
-        self._sector_concentrations = value_determiner.get_result()
+        if self._disable_err_warn_rec:
+            value_determiner.disable_error_and_warning_recording()
+        self.__sector_concentrations = value_determiner.get_result()
 
-        if self._sector_concentrations is None:
+        if self.__sector_concentrations is None:
             msg = 'Error when trying to determine rack sector concentrations.'
             self.add_error(msg)
 
@@ -900,7 +896,7 @@ class RackSectorAssociator(BaseAutomationTool):
         """
         Initialises the value determiner for the concentrations.
         """
-        self.add_error('Abstract method: _init_value_determiner()')
+        raise NotImplementedError('Abstract method.')
 
     def __determine_association(self):
         """
@@ -919,12 +915,12 @@ class RackSectorAssociator(BaseAutomationTool):
         """
         pools = dict()
 
-        for sector_index, working_position in quadrant_wps.iteritems():
-            pool = self._get_molecule_design_pool(working_position)
+        for sector_index, pool_pos in quadrant_wps.iteritems():
+            pool = self._get_molecule_design_pool_id(pool_pos)
             add_list_map_element(pools, pool, sector_index)
 
         all_associated_sectors = []
-        for sectors in self._associated_sectors:
+        for sectors in self.__associated_sectors:
             for sector_index in sectors:
                 all_associated_sectors.append(sector_index)
 
@@ -937,8 +933,8 @@ class RackSectorAssociator(BaseAutomationTool):
                     present = True
                     break
             if not present:
-                self._associated_sectors.append(sectors)
-            elif not sectors in self._associated_sectors and \
+                self.__associated_sectors.append(sectors)
+            elif not sectors in self.__associated_sectors and \
                         not self.__is_superset(sectors):
                 labels = []
                 for iso_pos in quadrant_wps.values():
@@ -946,31 +942,32 @@ class RackSectorAssociator(BaseAutomationTool):
                         labels.append(iso_pos.rack_position.label)
                 msg = 'The molecule design pools in the different quadrants ' \
                       'are not consistent. First occurrence in the ' \
-                      'following block: %s.' % (labels)
+                      'following block: %s.' % (self._get_joined_str(labels))
                 self.add_error(msg)
                 return None
 
         return pools.values()
 
-    def _get_molecule_design_pool(self, layout_pos): #pylint: disable=W0613
+    def _get_molecule_design_pool_id(self, layout_pos):
         """
-        Returns the molecule design pool of a layout position. By default,
-        untreated and mock positions are converted into None replacers.
+        Returns the molecule design pool ID (or placeholder) of a layout
+        position. By default, untreated and mock positions are converted into
+        None replacers.
         """
         if layout_pos is None:
-            pool = layout_pos.NONE_REPLACER
+            pool_id = self.LAYOUT_CLS.POSITION_CLS.NONE_REPLACER
         elif layout_pos.is_mock or layout_pos.is_empty:
-            pool = layout_pos.NONE_REPLACER
+            pool_id = layout_pos.NONE_REPLACER
         else:
-            pool = layout_pos.molecule_design_pool_id
-        return pool
+            pool_id = layout_pos.molecule_design_pool_id
+        return pool_id
 
     def __is_superset(self, sectors):
         """
         Checks whether the given sector set is a combination of known sets.
         """
         stored_sets = []
-        for stored_set in self._associated_sectors:
+        for stored_set in self.__associated_sectors:
             for sector_index in stored_set:
                 if sector_index in sectors:
                     stored_sets += stored_set
@@ -1010,7 +1007,7 @@ class AssociationData(object):
         #: quadrant.
         self._associated_sectors = None
         #: The concentration for each rack sector.
-        self._sector_concentrations = None
+        self._sector_concentrations = dict()
         #: The parent sector for each sector.
         self._parent_sectors = dict()
 
@@ -1026,21 +1023,23 @@ class AssociationData(object):
     def associated_sectors(self):
         """
         The rack sectors sharing the same molecule design set ID within a
-        quadrant.
+        quadrant (does not contain sectors without regarded pools).
         """
         return self._associated_sectors
 
     @property
     def sector_concentrations(self):
         """
-        The concentration for each rack sector.
+        The concentration for each rack sector (does not contain sectors
+        without regarded pools).
         """
         return self._sector_concentrations
 
     @property
     def parent_sectors(self):
         """
-        The parent sector for each sector.
+        The parent sector for each sector (does not contain sectors
+        without regarded pools).
         """
         return self._parent_sectors
 
@@ -1056,22 +1055,21 @@ class AssociationData(object):
         Checks whether there are different rack sectors and set ups the
         the attributes.
         """
-        concentrations = self._find_concentrations(layout)
-
-        if len(concentrations) == 1:
-            conc = list(concentrations)[0]
-            if self.number_sectors == 1:
+        if self._number_sectors == 1:
+            concentrations = self._find_concentrations(layout)
+            if len(concentrations) == 1:
+                conc = list(concentrations)[0]
                 self._sector_concentrations = {0 : conc}
                 self._associated_sectors = [[0]]
                 self._parent_sectors = {0 : None}
-            else: # number sectors = 4
-                sectors = self.__find_present_sector(layout, log)
-                self._associated_sectors = []
-                for sector_index in sorted(sectors):
-                    self._sector_concentrations[sector_index] = conc
-                    self._parent_sectors[sector_index] = None
-                    self._associated_sectors.append([sector_index])
-        else:
+            else:
+                msg = 'Association failure: There is more than 1 ' \
+                      'concentration although there is is only one rack ' \
+                      'sector!'
+                if record_errors: log.add_error(msg)
+                raise ValueError(msg)
+
+        else: # number secctors = 4
             self.__find_relationships(layout, log, record_errors)
 
     def _find_concentrations(self, layout):
@@ -1109,14 +1107,22 @@ class AssociationData(object):
         associator = self._init_associator(layout, log)
         if not record_errors: associator.disable_error_and_warning_recording()
         self._associated_sectors = associator.get_result()
-        self._sector_concentrations = associator.get_sector_concentrations()
 
         if self._associated_sectors is None:
-            msg = '-- '.join(associator.get_messages())
+            if record_errors:
+                msg = '-- '.join(associator.get_messages())
+            else:
+                msg = 'Error when trying to find rack sector association.'
             raise ValueError(msg)
 
-        for sectors in self._associated_sectors:
+        self._sector_concentrations = associator.get_sector_concentrations()
+        del_sectors = []
+        for sector_index, conc in self._sector_concentrations.iteritems():
+            if conc is None: del_sectors.append(sector_index)
+        for sector_index in del_sectors:
+            del self._sector_concentrations[sector_index]
 
+        for sectors in self._associated_sectors:
             # concentrations for associated sectors
             concentrations_map = dict()
             for sector_index in sectors:
@@ -1127,7 +1133,7 @@ class AssociationData(object):
             last_sector = None
             for conc in concentrations:
                 sectors = concentrations_map[conc]
-                for sector_index in sorted(sectors):
+                for sector_index in sorted(sectors, reverse=True):
                     if not last_sector is None:
                         self._parent_sectors[last_sector] = sector_index
                     last_sector = sector_index

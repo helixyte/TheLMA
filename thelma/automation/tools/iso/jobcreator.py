@@ -5,14 +5,14 @@ ISO types.
 AAB
 """
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.utils.base import is_valid_number
+from thelma.automation.tools.iso.lab.base import LABELS
+from thelma.automation.utils.base import is_valid_number
 from thelma.models.iso import ISO_TYPES
 from thelma.models.iso import IsoRequest
 from thelma.models.iso import LabIsoRequest
 from thelma.models.iso import StockSampleCreationIsoRequest
 from thelma.models.job import IsoJob
 from thelma.models.user import User
-from thelma.automation.tools.iso.lab.base import LABELS
 
 
 __docformat__ = 'reStructuredText en'

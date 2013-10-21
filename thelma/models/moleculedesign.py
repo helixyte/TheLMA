@@ -185,6 +185,9 @@ class MoleculeDesign(Entity):
     def __hash__(self):
         return hash(self.structure_hash)
 
+    def __cmp__(self, other):
+        return cmp(self.id, other.id)
+
     def __eq__(self, other):
         return isinstance(other, MoleculeDesign) \
                and self.structure_hash == other.structure_hash

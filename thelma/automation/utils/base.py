@@ -262,7 +262,7 @@ def get_nested_dict(parent_dict, map_key):
     """
     Helper function fetching dictionary from another dictionary in which it is
     referenced. If the key is not known to the parent a new dictionary
-    is created and and assigned.
+    is created and assigned.
 
     :param parent_dict: The map containing the other dictionary.
     :type parent_dict: :class:`dict`

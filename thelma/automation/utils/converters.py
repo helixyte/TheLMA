@@ -7,22 +7,25 @@ IsoPosition map).
 """
 
 from everest.entities.utils import get_root_aggregate
+from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.utils.layouts import FIXED_POSITION_TYPE
-from thelma.automation.tools.utils.layouts import LibraryLayout
-from thelma.automation.tools.utils.layouts import LibraryLayoutParameters
-from thelma.automation.tools.utils.layouts import LibraryLayoutPosition
-from thelma.automation.tools.utils.layouts import MoleculeDesignPoolLayout
-from thelma.automation.tools.utils.layouts import MoleculeDesignPoolParameters
-from thelma.automation.tools.utils.layouts import MoleculeDesignPoolPosition
-from thelma.automation.tools.utils.layouts import ParameterSet
-from thelma.automation.tools.utils.layouts import TransferLayout
-from thelma.automation.tools.utils.layouts import TransferParameters
-from thelma.automation.tools.utils.layouts import TransferPosition
-from thelma.automation.tools.utils.layouts import WorkingLayout
-from thelma.automation.tools.utils.layouts import WorkingPosition
-from thelma.automation.tools.utils.layouts import is_valid_number
+from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.layouts import EMPTY_POSITION_TYPE
+from thelma.automation.utils.layouts import LIBRARY_POSITION_TYPE
+from thelma.automation.utils.layouts import LibraryLayout
+from thelma.automation.utils.layouts import LibraryLayoutParameters
+from thelma.automation.utils.layouts import LibraryLayoutPosition
+from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
+from thelma.automation.utils.layouts import MoleculeDesignPoolLayout
+from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
+from thelma.automation.utils.layouts import MoleculeDesignPoolPosition
+from thelma.automation.utils.layouts import ParameterSet
+from thelma.automation.utils.layouts import TransferLayout
+from thelma.automation.utils.layouts import TransferParameters
+from thelma.automation.utils.layouts import TransferPosition
+from thelma.automation.utils.layouts import WorkingLayout
+from thelma.automation.utils.layouts import WorkingPosition
+from thelma.automation.utils.layouts import is_valid_number
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.racklayout import RackLayout
 
@@ -39,18 +42,21 @@ __all__ = ['BaseLayoutConverter',
 class BaseLayoutConverter(BaseAutomationTool):
     """
     A super class for tools that generated working layouts
-    (:class:`thelma.automation.tools.utils.base.WorkingLayout`).
+    (:class:`thelma.automation.utils.layouts.WorkingLayout`) from
+    rack layouts (:class:`thelma.models.racklayout.RackLayout`).
     Each converter is associated to special working layout class.
+
+    **Return Value:** :class:`thelma.automation.utils.layouts.WorkingLayout`
     """
 
     #: The parameter set for the
-    #: (:class:`thelma.automation.tools.utils.base.ParameterSet`)
+    #: (:class:`thelma.automation.utils.layouts.ParameterSet`)
     PARAMETER_SET = ParameterSet
     #: The class of layout to be generated (subclass of :class:`WorkingLayout`)
-    WORKING_LAYOUT_CLS = WorkingLayout
+    LAYOUT_CLS = WorkingLayout
     #: The class of the working positions to be generated (subclass of
     #: :class:`WorkingPosition`).
-    WORKING_POSITION_CLS = WorkingPosition
+    POSITION_CLS = WorkingPosition
 
     # A key for the rack position in the parameter map generated during
     # the conversion.
@@ -72,15 +78,14 @@ class BaseLayoutConverter(BaseAutomationTool):
         self.rack_layout = rack_layout
 
         #: A map containing the validator objects for each parameter
-        #: (:class:`thelma.automation.tools.utils.base.ParameterAliasValidator`).
-        self.parameter_validators = None
+        #: (:class:`thelma.automation.utils.base.ParameterAliasValidator`).
+        self._parameter_validators = None
 
         #: Maps the derived WorkingPositions onto rack positions.
-        self.position_map = None
+        self.__position_map = None
 
-        #: A list of optional parameters which do not have to be specified
-        #: in the layout at all.
-        self.optional_parameters = None
+        #: Parameters which do not have to be specified in the layout at all.
+        self._optional_parameters = None
 
         #: Lists for intermediate error storage.
         self._multiple_tags = None
@@ -90,9 +95,9 @@ class BaseLayoutConverter(BaseAutomationTool):
         Resets all attributes except for the :attr:`rack_layout`.
         """
         BaseAutomationTool.reset(self)
-        self.position_map = dict()
-        self.parameter_validators = None
-        self.optional_parameters = []
+        self.__position_map = dict()
+        self._parameter_validators = None
+        self._optional_parameters = set()
         self._multiple_tags = []
 
     def run(self):
@@ -102,7 +107,7 @@ class BaseLayoutConverter(BaseAutomationTool):
         self.reset()
         self.add_info('Start conversion ...')
 
-        self.__check_input_values()
+        self._check_input()
         if not self.has_errors():
             self._initialize_parameter_validators()
             self._initialize_other_attributes()
@@ -112,15 +117,14 @@ class BaseLayoutConverter(BaseAutomationTool):
                 tag_set = self.rack_layout.get_tags_for_position(rack_position)
                 parameter_map = self._get_parameter_map(tag_set, rack_position)
                 working_position = self.__obtain_working_position(parameter_map)
-                self.position_map[rack_position] = working_position
-        self.__record_common_errors()
-        self._record_additional_position_errors()
+                self.__position_map[rack_position] = working_position
+        self._record_errors()
 
         if not self.has_errors():
             self.return_value = self.__create_layout_from_map()
             self.add_info('Layout conversion completed.')
 
-    def __check_input_values(self):
+    def _check_input(self):
         """
         Checks the validity of the initialisation values.
         """
@@ -138,11 +142,11 @@ class BaseLayoutConverter(BaseAutomationTool):
         All parameters which are not in the :attr:`REQUIRED` list are
         set as optional.
         """
-        self.parameter_validators = self.PARAMETER_SET.create_all_validators()
+        self._parameter_validators = self.PARAMETER_SET.create_all_validators()
 
         for parameter in self.PARAMETER_SET.ALL:
             if not parameter in self.PARAMETER_SET.REQUIRED:
-                self.optional_parameters.append(parameter)
+                self._optional_parameters.add(parameter)
 
     def _initialize_other_attributes(self):
         """
@@ -164,18 +168,18 @@ class BaseLayoutConverter(BaseAutomationTool):
             all_predicates.add(tag.predicate)
 
         has_tag_map = dict()
-        for parameter, validator in self.parameter_validators.iteritems():
+        for parameter, validator in self._parameter_validators.iteritems():
             has_tag_map[parameter] = False
             for predicate in all_predicates:
                 if validator.has_alias(predicate):
                     has_tag_map[parameter] = True
 
         for parameter, has_tag in has_tag_map.iteritems():
-            if not has_tag and not parameter in self.optional_parameters:
+            if not has_tag and not parameter in self._optional_parameters:
                 msg = 'There is no %s specification for this rack layout. ' \
                        'Valid factor names are: %s (case-insensitive).' \
-                    % (parameter,
-                       list(self.parameter_validators[parameter].aliases))
+                    % (parameter, self._get_joined_str(
+                       self._parameter_validators[parameter].aliases))
                 self.add_error(msg)
 
     def _get_parameter_map(self, tag_set, rack_position):
@@ -188,13 +192,13 @@ class BaseLayoutConverter(BaseAutomationTool):
                        % (rack_position))
 
         parameter_map = {self._RACK_POSITION_KEY : rack_position}
-        for parameter in self.parameter_validators.keys():
+        for parameter in self._parameter_validators.keys():
             parameter_map[parameter] = None
 
         for tag in tag_set:
             #: Find parameter for this tag (if any).
             predicate = None
-            for parameter, validator in self.parameter_validators.iteritems():
+            for parameter, validator in self._parameter_validators.iteritems():
                 if validator.has_alias(tag.predicate):
                     predicate = parameter
                     break
@@ -213,19 +217,24 @@ class BaseLayoutConverter(BaseAutomationTool):
         Derives a working position from a parameter map (including validity
         checks). Invokes :func:`_get_position_keywords_and_values`.
         """
-        kw = self._get_position_init_values(parameter_map)
+        rack_pos = parameter_map[self._RACK_POSITION_KEY]
+        kw = self._get_position_init_values(parameter_map, rack_pos)
         if kw is None: return None
+        if not kw.has_key('rack_position'):
+            kw['rack_position'] = rack_pos
 
-        working_pos = self.WORKING_POSITION_CLS(**kw) #pylint: disable=E1102
+        working_pos = self.POSITION_CLS(**kw) #pylint: disable=E1102
         return working_pos
 
-    def _get_position_init_values(self, parameter_map):
+    def _get_position_init_values(self, parameter_map, rack_pos):
         """
-        Derives all values required to initialize new working position
-        (including validity checks) as keyqord dictionary. If everything
+        Derives all values required to initialise new working position
+        (including validity checks) as keyword dictionary. If everything
         is fine the keyword dictionary will be used to create a new
         working position, otherwise there are records stored in the
-        intermediate error sotrage lists and *None* is returned.
+        intermediate error storage lists and *None* is returned.
+
+        The rack position does not have to be included.
         """
         raise NotImplementedError('Abstract method')
 
@@ -234,12 +243,11 @@ class BaseLayoutConverter(BaseAutomationTool):
         Helper function converting a boolean string into boolean. If the
         conversion fails an error is recorded and None is returned.
         """
-        if self.WORKING_POSITION_CLS.RECORD_FALSE_VALUES and bool_str is None:
+        if not self.POSITION_CLS.RECORD_FALSE_VALUES and bool_str is None:
             return False
 
         try:
-            bool_value = self.WORKING_POSITION_CLS.parse_boolean_tag_value(
-                                                                    bool_str)
+            bool_value = self.POSITION_CLS.parse_boolean_tag_value(bool_str)
         except ValueError:
             info = '%s (%s)' % (pos_label, bool_str)
             error_list.append(info)
@@ -247,30 +255,21 @@ class BaseLayoutConverter(BaseAutomationTool):
 
         return bool_value
 
-    def __record_common_errors(self):
+    def _record_errors(self):
         """
-        This method records errors that can occur in all subclasses.
+        Records errors for events that might occur position for several
+        positions (errors that have been collected during parameter map
+        and working positions generation).
         """
         if len(self._multiple_tags) > 0:
             msg = 'Some parameter have been specified multiple times for ' \
                   'the same rack position: %s.' % (self._multiple_tags)
             self.add_error(msg)
 
-    def _record_additional_position_errors(self):
-        """
-        This method is meant to raise/record errors and warnings that have been
-        collected during parameter map and working position generation.
-        The errors could in theory also be recorded during execution.
-        However, lots of similar errors that only differ in rack positions
-        specification might spam the log, that's why you can store the
-        referring rack position and launch the log events here.
-        """
-        raise NotImplementedError('Abstract method')
-
     def _record_invalid_boolean_error(self, flag_name, error_list):
         """
         Helper method recording the error messsage for invalid booleans
-        (see :func:`_record_additional_position_errors`).
+        (see :func:`_record_errors`).
         """
         if len(error_list) > 0:
             msg = 'The "%s" flag must be a boolean. The values for ' \
@@ -286,21 +285,14 @@ class BaseLayoutConverter(BaseAutomationTool):
 
         working_layout = self._initialize_working_layout(self.rack_layout.shape)
         for rack_position in get_positions_for_shape(self.rack_layout.shape):
-            working_position = self.position_map[rack_position]
+            working_position = self.__position_map[rack_position]
             if working_position is None: continue
-            try:
-                working_layout.add_position(working_position)
-            except TypeError:
-                msg = 'You can only add %s objects to this layout. You have ' \
-                      'tried to add a %s object. This is a programming error .' \
-                      'Please contact the IT department.' \
-                      % (self.WORKING_POSITION_CLS.__name__,
-                         working_position.__class__.__name__)
-                self.add_error(msg)
-                break
-            except ValueError, errmsg:
-                self.add_error(errmsg)
-                break
+            self._run_and_record_error(working_layout.add_position,
+                    base_msg='Error when trying to add position to layout: ',
+                    error_types=set([ValueError, AttributeError, KeyError,
+                                     TypeError]),
+                    **dict(working_position=working_position))
+            if self.has_errors(): break
 
         if self.has_errors(): return None
         self._perform_layout_validity_checks(working_layout)
@@ -312,7 +304,7 @@ class BaseLayoutConverter(BaseAutomationTool):
         Initialises the working layout.
         """
         kw = dict(shape=shape)
-        return self.WORKING_LAYOUT_CLS(**kw) #pylint: disable=E1102
+        return self.LAYOUT_CLS(**kw) #pylint: disable=E1102
 
     def _perform_layout_validity_checks(self, working_layout):
         """
@@ -321,18 +313,22 @@ class BaseLayoutConverter(BaseAutomationTool):
         raise NotImplementedError('Abstract method')
 
 
-class MoleculeDesignPoolLayoutConverter(BaseLayoutConverter): #pylint: disable=W0223
+class MoleculeDesignPoolLayoutConverter(BaseLayoutConverter):
     """
-    Abstract base class converting an rack_layout into an molecule design pool
-    layout
-    (:class:`thelma.automation.tools.utils.base.MoleculeDesignPoolLayout`).
+    Abstract class converting a :class:`thelma.models.racklayout.RackLayout`
+    into an molecule design pool layout
+    (:class:`thelma.automation.utils.layouts.MoleculeDesignPoolLayout`).
 
-    :Note: Untreated positions are converted to empty positions.
+    :Note: Untreated and untransfected positions are converted to empty
+    positions because these position type only serve documentational purposes.
+
+    **Return Value:**
+        :class:`thelma.automation.utils.layouts.MoleculeDesignPoolLayout`
     """
 
     PARAMETER_SET = MoleculeDesignPoolParameters
-    WORKING_LAYOUT_CLS = MoleculeDesignPoolLayout
-    WORKING_POSITION_CLS = MoleculeDesignPoolPosition
+    LAYOUT_CLS = MoleculeDesignPoolLayout
+    POSITION_CLS = MoleculeDesignPoolPosition
 
     def __init__(self, rack_layout, log):
         """
@@ -354,70 +350,159 @@ class MoleculeDesignPoolLayoutConverter(BaseLayoutConverter): #pylint: disable=W
         #: The molecule design pool aggregate
         #: (see :class:`thelma.models.aggregates.Aggregate`)
         #: used to obtain check the validity of molecule design pool IDs.
-        self._pool_aggregate = get_root_aggregate(IMoleculeDesignPool)
+        self.__pool_aggregate = get_root_aggregate(IMoleculeDesignPool)
         #: Stores the molecule design pools for molecule design pool IDs.
-        self._pool_map = None
+        self.__pool_map = None
 
         # intermediate storage of invalid rack positions
-        self._unknown_pools = None
-        self._invalid_pos_type = None
+        self.__unknown_pools = None
+        self.__invalid_pos_type = None
+        self.__missing_pool = None
+        self.__type_mismatch = None
 
     def reset(self):
         BaseLayoutConverter.reset(self)
-        self._pool_map = dict()
-        self._unknown_pools = []
-        self._invalid_pos_type = set()
+        self.__pool_map = dict()
+        self.__unknown_pools = []
+        self.__invalid_pos_type = set()
+        self.__missing_pool = set()
+        self.__type_mismatch = set()
 
-    def _determine_position_type(self, pool_id):
+    def _get_position_init_values(self, parameter_map, rack_pos):
         """
-        Determines the position type for a molecule design pool.
+        Make sure position type and pool comply with each other.
         """
+        pool_id = parameter_map[self.PARAMETER_SET.MOLECULE_DESIGN_POOL]
+        pos_type = None
+        if parameter_map.has_key(self.PARAMETER_SET.POS_TYPE):
+            pos_type = parameter_map[self.PARAMETER_SET.POS_TYPE]
+
+        if pool_id is None:
+            if pos_type is None or self._is_empty_type(pos_type):
+                return None
+            self.__missing_pool.add(rack_pos.label)
+            return None
+
+        if pos_type is None:
+            pos_type = self.__determine_position_type(pool_id)
+            if pos_type is None: return None
+        elif not self._check_type_validity(pos_type, pool_id):
+            return None
+
+        if self._is_empty_type(pos_type):
+            # these position are technically empty, they are only required
+            # for documentation
+            return None
+
         if is_valid_number(pool_id, is_integer=True):
-            return FIXED_POSITION_TYPE
+            pool = self.__get_molecule_design_pool_for_id(pool_id,
+                                                          rack_pos.label)
+            if pool is None: return None
+        else:
+            pool = pool_id
 
+        kw = dict(molecule_design_pool=pool)
+        if self.POSITION_CLS.EXPOSE_POSITION_TYPE:
+            kw['position_type'] = pos_type
+        return kw
+
+    def _is_empty_type(self, pos_type):
+        """
+        Returns *True* if a position type is empty, untreated or untransfected.
+        """
+        if pos_type == EMPTY_POSITION_TYPE:
+            return True
+        elif self.PARAMETER_SET.is_untreated_type(pos_type):
+            return True
+        else:
+            return False
+
+    def __determine_position_type(self, pool_id):
+        """
+        We do not use the :func:`_run_and_record_error` method because we do
+        not want to record potentials errors right away but postpone that
+        after the position collection phase.
+        """
         try:
             pos_type = self.PARAMETER_SET.get_position_type(pool_id)
         except ValueError:
-            self._invalid_pos_type.add(pool_id)
+            self.__invalid_pos_type.add(pool_id)
             return None
         else:
             return pos_type
 
-    def _get_molecule_design_pool_for_id(self, pool_id, position_label):
+    def _check_type_validity(self, pos_type, pool_id):
         """
-        Checks whether the molecule design pool for a fixed position is a
-        valid one.
+        Is invoked if the position type is stored in the rack layout.
         """
-        if self._pool_map.has_key(pool_id):
-            return self._pool_map[pool_id]
+        exp_type = None
+
+        if self.PARAMETER_SET.is_untreated_type(pool_id):
+            if not self.PARAMETER_SET.is_valid_untreated_value(pos_type):
+                exp_type = self._get_joined_str(self.PARAMETER_SET.\
+                        VALID_UNTREATED_NONE_REPLACERS, is_strs=False,
+                        separator='/')
+        elif pool_id == MOCK_POSITION_TYPE:
+            if not self.PARAMETER_SET.is_valid_mock_value(pos_type):
+                exp_type = MOCK_POSITION_TYPE
+        elif pool_id == LIBRARY_POSITION_TYPE:
+            if not pos_type == LIBRARY_POSITION_TYPE:
+                exp_type = LIBRARY_POSITION_TYPE
+
+        if exp_type is None: return True
+        info = 'pool %s (expected: %s, found: %s)' % (pool_id, exp_type,
+                                                      pos_type)
+        self.__type_mismatch.add(info)
+        return False
+
+    def __get_molecule_design_pool_for_id(self, pool_id, position_label):
+        """
+        Returns the :class:`MoleculeDesignPool` entity for a position and
+        checks whether it is a valid (=known) one.
+        """
+        if self.__pool_map.has_key(pool_id):
+            return self.__pool_map[pool_id]
 
         if not is_valid_number(pool_id, is_integer=True):
             info = '%s (%s)' % (pool_id, position_label)
-            self._unknown_pools.append(info)
+            self.__unknown_pools.append(info)
             return None
 
-        entity = self._pool_aggregate.get_by_id(pool_id)
+        entity = self.__pool_aggregate.get_by_id(pool_id)
         if entity is None:
             info = '%s (%s)' % (pool_id, position_label)
-            self._unknown_pools.append(info)
+            self.__unknown_pools.append(info)
             return None
 
-        self._pool_map[pool_id] = entity
+        self.__pool_map[pool_id] = entity
         return entity
 
-    def _record_additional_position_errors(self):
-        """
-        Launches collected position errors.
-        """
-        if len(self._unknown_pools) > 0:
+    def _record_errors(self):
+        BaseLayoutConverter._record_errors(self)
+
+        if len(self.__unknown_pools) > 0:
             msg = 'Some molecule design pool IDs could not be found in the ' \
-                  'DB: %s.' % (', '.join(sorted(self._unknown_pools)))
+                  'DB: %s.' % (self._get_joined_str(self.__unknown_pools))
             self.add_error(msg)
 
-        if len(self._invalid_pos_type) > 0:
-            msg = 'Unable to determine position types for the following ' \
-                  'pool IDs: %s.' % (', '.join(sorted(
-                                                list(self._invalid_pos_type))))
+        if len(self.__invalid_pos_type) > 0:
+            msg = 'Unknown or unsupported position types for the following ' \
+                  'pool IDs: %s. Supported position types: %s.' \
+                   % (self._get_joined_str(self.__invalid_pos_type),
+                      self._get_joined_str(
+                            self.PARAMETER_SET.ALLOWED_POSITION_TYPES))
+            self.add_error(msg)
+
+        if len(self.__missing_pool) > 0:
+            msg = 'Some position have non-empty position types although ' \
+                  'there is no pool for them: %s.' \
+                   % (self._get_joined_str(self.__missing_pool))
+            self.add_error(msg)
+
+        if len(self.__type_mismatch) > 0:
+            msg = 'The pool IDs and position types for the following pools ' \
+                  'do not match: %s.' \
+                   % (self._get_joined_str(self.__type_mismatch))
             self.add_error(msg)
 
     def _perform_layout_validity_checks(self, working_layout):
@@ -428,17 +513,17 @@ class MoleculeDesignPoolLayoutConverter(BaseLayoutConverter): #pylint: disable=W
         working_layout.close()
 
 
-class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter): #pylint: disable=W0223
+class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter):
     """
     Converts an rack_layout into a TransferLayout
-    (:class:`thelma.automation.tools.utils.transfer.TransferLayout`).
+    (:class:`thelma.automation.utils.layouts.TransferLayout`).
     """
 
     NAME = 'Transfer Layout Converter'
 
     PARAMETER_SET = TransferParameters
-    WORKING_LAYOUT_CLS = TransferLayout
-    WORKING_POSITION_CLS = TransferPosition
+    LAYOUT_CLS = TransferLayout
+    POSITION_CLS = TransferPosition
 
     def __init__(self, rack_layout, log):
         """
@@ -472,6 +557,12 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter): #pylint: disab
         self.__missing_transfer_target = dict()
         self._transfer_targets = dict()
 
+    def _initialize_parameter_validators(self):
+        MoleculeDesignPoolLayoutConverter._initialize_parameter_validators(self)
+        for parameter in self.PARAMETER_SET.TRANSFER_TARGET_PARAMETERS:
+            if not self.PARAMETER_SET.must_have_transfer_targets(parameter):
+                self._optional_parameters.add(parameter)
+
     def _initialize_other_attributes(self):
         """
         Initialises the target well storage.
@@ -480,91 +571,70 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter): #pylint: disab
         for parameter in self.PARAMETER_SET.TRANSFER_TARGET_PARAMETERS:
             self._transfer_targets[parameter] = []
 
-    def _get_parameter_map(self, tag_set, rack_position):
-        """
-        Returns a dictionary containing the parameter values for a
-        rack position.
-        """
-        self.add_debug('Get parameter map for rack position %s ...' \
-                       % (rack_position))
+    def _get_position_init_values(self, parameter_map, rack_pos):
+        kw = MoleculeDesignPoolLayoutConverter._get_position_init_values(self,
+                                                      parameter_map, rack_pos)
+        if kw is None: return None
 
-        parameter_map = {self._RACK_POSITION_KEY : rack_position}
-        for parameter in self.parameter_validators.keys():
-            parameter_map[parameter] = None
+        target_tag_value = parameter_map[self.PARAMETER_SET.TRANSFER_TARGETS]
+        tts = self._parse_target_tag_value(target_tag_value, rack_pos,
+                                           self.PARAMETER_SET.TRANSFER_TARGETS)
+        if tts is None: return None # an error has occurred
 
-        for tag in tag_set:
-            #: Find parameter for this tag (if any).
-            predicate = None
-            for parameter, validator in self.parameter_validators.iteritems():
-                if validator.has_alias(tag.predicate):
-                    predicate = parameter
-                    break
-            if predicate is None: continue
-            value = tag.value
-            if value == WorkingPosition.NONE_REPLACER: value = None
-            if not parameter_map[predicate.lower()] is None:
-                msg = 'Parameter "%s" for rack position %s has been ' \
-                      'specified multiple times!' \
-                      % (tag.predicate, rack_position)
-                self.add_error(msg)
+        kw['transfer_targets'] = tts
+        return kw
 
-            if parameter in TransferParameters.TRANSFER_TARGET_PARAMETERS:
-                value = self.__parse_target_tag_value(value, rack_position,
-                                                      parameter_name=parameter)
-
-            parameter_map[predicate] = value
-
-        return parameter_map
-
-    def __parse_target_tag_value(self, target_tag_value, rack_position,
-                                 parameter_name):
+    def _parse_target_tag_value(self, target_tag_value, rack_position,
+                                parameter_name):
         """
         Converts the value of a target tag into a TargetTransfer List.
         """
-        if target_tag_value is None: return None
-        try:
-            transfer_targets = TransferPosition.parse_target_tag_value(
-                                                            target_tag_value)
-        except ValueError:
-            error_msg = '"%s" (%s)' % (target_tag_value, rack_position.label)
-            self.__invalid_target_string[parameter_name].append(error_msg)
-            return None
+        if target_tag_value is None:
+            transfer_targets = []
         else:
-            return transfer_targets
+            try:
+                transfer_targets = TransferPosition.parse_target_tag_value(
+                                                                target_tag_value)
+            except ValueError:
+                error_msg = '"%s" (%s)' % (target_tag_value, rack_position.label)
+                add_list_map_element(self.__invalid_target_string, parameter_name,
+                                     error_msg)
+                return None
 
-    def _are_valid_transfer_targets(self, transfer_targets, rack_position,
-                                    parameter_name=None):
+        if not self.__are_valid_transfer_targets(transfer_targets,
+                                     rack_position, parameter_name):
+            return None
+
+        return transfer_targets
+
+    def __are_valid_transfer_targets(self, transfer_targets, rack_position,
+                                     parameter_name):
         """
         Stores the transfer targets and checks their consistency.
         """
-        if transfer_targets is None:
+        if transfer_targets is None or len(transfer_targets) < 1:
             if self.PARAMETER_SET.must_have_transfer_targets(parameter_name):
-                self.__missing_transfer_target[parameter_name].\
-                        append(rack_position.label)
+                add_list_map_element(self.__missing_transfer_target,
+                                     parameter_name, rack_position.label)
                 return False
             else:
                 return True
 
         for transfer_target in transfer_targets:
-            if transfer_target.position_label in self._transfer_targets[
+            if transfer_target.hash_value in self._transfer_targets[
                                                             parameter_name]:
-                error_msg = '%s (source: %s)' % (
-                                   transfer_target.position_label,
-                                   rack_position.label)
-                self.__duplicate_targets[parameter_name].append(error_msg)
+                error_msg = '%s' % (transfer_target)
+                add_list_map_element(self.__duplicate_targets, parameter_name,
+                                     error_msg)
                 return False
             else:
-                self._transfer_targets[parameter_name].append(
-                                                transfer_target.position_label)
+                add_list_map_element(self._transfer_targets, parameter_name,
+                                     transfer_target.hash_value)
 
         return True
 
-    def _record_additional_position_errors(self):
-        """
-        Records errors that have been collected for rack positions.
-        """
-        MoleculeDesignPoolLayoutConverter._record_additional_position_errors(
-                                                                        self)
+    def _record_errors(self):
+        MoleculeDesignPoolLayoutConverter._record_errors(self)
 
         if len(self.__invalid_target_string) > 0:
             msg = 'The following rack positions have invalid target position ' \
@@ -579,9 +649,10 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter): #pylint: disab
             self.add_error(msg)
 
         if len(self.__missing_transfer_target) > 0:
-            msg = '%s must have transfer targets. The transfer targets are ' \
-                  'missing for the following positions: %s.' \
-                  % (self.WORKING_POSITION_CLS.__name__,
+            msg = 'Position of this type (%s) must have certain transfer ' \
+                  'targets. The transfer targets are missing for the ' \
+                  'following positions: %s.' \
+                  % (self.POSITION_CLS.__name__,
                      self.__get_error_record_string(
                                             self.__missing_transfer_target))
             self.add_error(msg)
@@ -596,16 +667,10 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter): #pylint: disab
         else:
             records = []
             for parameter, infos in recorded_events.iteritems():
-                record = '%s: %s' % (parameter.replace('_', ' '),
-                                     ', '.join(infos))
+                record = 'parameter "%s": %s' % (parameter.replace('_', ' '),
+                                                 ', '.join(infos))
                 records.append(record)
             return ' -- '.join(records)
-
-    def _perform_layout_validity_checks(self, working_layout):
-        """
-        Use this method to check the validity of the generated layout.
-        """
-        pass
 
 
 class LibraryLayoutConverter(BaseLayoutConverter):
@@ -617,8 +682,8 @@ class LibraryLayoutConverter(BaseLayoutConverter):
     NAME = 'Library Layout Converter'
 
     PARAMETER_SET = LibraryLayoutParameters
-    WORKING_POSITION_CLS = LibraryLayoutPosition
-    WORKING_LAYOUT_CLASS = LibraryLayout
+    POSITION_CLS = LibraryLayoutPosition
+    LAYOUT_CLS = LibraryLayout
 
     def __init__(self, rack_layout, log):
         """
@@ -640,23 +705,18 @@ class LibraryLayoutConverter(BaseLayoutConverter):
         BaseLayoutConverter.reset(self)
         self.__invalid_flag = []
 
-    def _get_position_init_values(self, parameter_map):
+    def _get_position_init_values(self, parameter_map, rack_pos):
         is_lib_pos_str = parameter_map[self.PARAMETER_SET.IS_LIBRARY_POS]
-        rack_pos = parameter_map[self._RACK_POSITION_KEY]
-        pos_label = rack_pos.label
         if is_lib_pos_str is None: return None
 
-        is_lib_pos = self._get_boolean_value(is_lib_pos_str, pos_label,
+        is_lib_pos = self._get_boolean_value(is_lib_pos_str, rack_pos.label,
                                              self.__invalid_flag)
         if is_lib_pos is None: return None
-        return dict(rack_position=rack_pos, is_library_position=is_lib_pos)
+        return dict(is_library_position=is_lib_pos)
 
-    def _record_additional_position_errors(self):
-        """
-        Records specific errors that have been collection during position
-        generation.
-        """
-        self._record_invalid_boolean_error('sample position',
+    def _record_errors(self):
+        BaseLayoutConverter._record_errors(self)
+        self._record_invalid_boolean_error('library position',
                                            self.__invalid_flag)
 
     def _perform_layout_validity_checks(self, working_layout):

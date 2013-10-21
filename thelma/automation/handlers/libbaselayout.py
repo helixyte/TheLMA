@@ -6,9 +6,9 @@ AAB
 """
 from thelma.automation.handlers.base import LayoutParserHandler
 from thelma.automation.parsers.libbaselayout import LibraryBaseLayoutParser
-from thelma.automation.tools.libcreation.base import LibraryBaseLayout
-from thelma.automation.tools.libcreation.base import LibraryBaseLayoutPosition
-from thelma.automation.tools.semiconstants import get_rack_position_from_indices
+from thelma.automation.semiconstants import get_rack_position_from_indices
+from thelma.automation.utils.layouts import LibraryLayout
+from thelma.automation.utils.layouts import LibraryLayoutPosition
 
 __docformat__ = 'reStructuredText en'
 
@@ -60,8 +60,8 @@ class LibraryBaseLayoutParserHandler(LayoutParserHandler):
                 rack_pos = get_rack_position_from_indices(
                                 row_index=rack_pos_container.row_index,
                                 column_index=rack_pos_container.column_index)
-                base_pos = LibraryBaseLayoutPosition(rack_position=rack_pos,
-                                                     is_sample_position=True)
+                base_pos = LibraryLayoutPosition(rack_position=rack_pos,
+                                                 is_library_position=True)
                 self.__base_layout.add_position(base_pos)
 
         if not self.has_errors() and len(self.__base_layout) < 1:
@@ -79,4 +79,4 @@ class LibraryBaseLayoutParserHandler(LayoutParserHandler):
         """
         self._determine_rack_shape()
         if not self._rack_shape is None:
-            self.__base_layout = LibraryBaseLayout(self._rack_shape)
+            self.__base_layout = LibraryLayout(self._rack_shape)

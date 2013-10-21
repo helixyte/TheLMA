@@ -5,8 +5,6 @@ Test cases for model classes related to molecule design libraries.
 
 from everest.testing import RdbContextManager
 from everest.testing import check_attributes
-from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.library import LibraryPlate
 from thelma.models.library import MoleculeDesignLibrary
@@ -22,8 +20,8 @@ class MoleculeDesignLibraryModelTestCase(ThelmaEntityTestCase):
         pool = self._get_entity(IMoleculeDesignPool, '205200')
         pool_set = self._create_molecule_design_pool_set(
                                         molecule_design_pools=set([pool]))
-        final_volume = 8 / VOLUME_CONVERSION_FACTOR
-        final_conc = 3000 / CONCENTRATION_CONVERSION_FACTOR
+        final_volume = 0.000008 # 8 ul
+        final_conc = 0.000003000 # 3000 nM = 3 uM
         iso_request = self._create_stock_sample_creation_iso_request()
         number_layouts = 17
         rack_layout = self._create_rack_layout()

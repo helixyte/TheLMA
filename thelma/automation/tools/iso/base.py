@@ -3,15 +3,18 @@ Base classes, functions and constants for ISO processing (type-independent).
 
 AAB
 """
-from thelma.automation.tools.semiconstants import get_96_rack_shape
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
-from thelma.automation.tools.utils.converters import TransferLayoutConverter
-from thelma.automation.tools.utils.layouts import TransferLayout
-from thelma.automation.tools.utils.layouts import TransferParameters
-from thelma.automation.tools.utils.layouts import TransferPosition
-from thelma.automation.tools.utils.verifier import BaseRackVerifier
 from thelma.automation.tools.worklists.series import SerialWriterExecutorTool
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.converters import TransferLayoutConverter
+from thelma.automation.utils.layouts import BaseRackVerifier
+from thelma.automation.utils.layouts import EMPTY_POSITION_TYPE
+from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
+from thelma.automation.utils.layouts import TransferLayout
+from thelma.automation.utils.layouts import TransferParameters
+from thelma.automation.utils.layouts import TransferPosition
 from thelma.models.iso import StockRack
 from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.rack import TubeRack
@@ -147,6 +150,10 @@ class IsoRackContainer(object):
         #: The rack or plate.
         self.rack = rack
 
+        #: Contains the rack role and number (see
+        #: :func:`LABELS.create_rack_marker`).
+        self.rack_marker = rack_marker
+
         if label is None:
             label = rack.label
         #: The rack or stock rack label.
@@ -155,10 +162,6 @@ class IsoRackContainer(object):
         if role is None:
             values = _ISO_LABELS_BASE.parse_rack_marker(rack_marker)
             role = values[_ISO_LABELS_BASE.MARKER_RACK_ROLE]
-
-        #: Contains the rack role and number (see
-        #: :func:`LABELS.create_rack_marker`).
-        self.rack_marker = rack_marker
         #: Final, preparation or stock preparation plate or stock rack
         #: (see :class:`LABELS`).
         self.role = role
@@ -180,7 +183,7 @@ class StockRackParameters(TransferParameters):
     Stores pool, tube and transfer target data for stock racks.
     """
     DOMAIN = 'stock_rack'
-    ALLOWS_UNTREATED_POSITIONS = False
+    ALLOWED_POSITION_TYPES = [FIXED_POSITION_TYPE, EMPTY_POSITION_TYPE]
 
     #: The molecule design pool (tag value: molecule design pool id).
     MOLECULE_DESIGN_POOL = TransferParameters.MOLECULE_DESIGN_POOL
@@ -189,22 +192,14 @@ class StockRackParameters(TransferParameters):
     #: The target positions including transfer volumes (list of
     # :class:`TransferTarget` objects).
     TRANSFER_TARGETS = TransferParameters.TRANSFER_TARGETS
-    MUST_HAVE_TRANSFER_TARGETS = True
+    MUST_HAVE_TRANSFER_TARGETS = {TRANSFER_TARGETS : True}
 
     REQUIRED = [MOLECULE_DESIGN_POOL, TUBE_BARCODE, TRANSFER_TARGETS]
     ALL = REQUIRED
 
-    ALIAS_MAP = {MOLECULE_DESIGN_POOL : TransferParameters.ALIAS_MAP[
-                                                        MOLECULE_DESIGN_POOL],
-                 TUBE_BARCODE : ['container_barcode'],
-                 TRANSFER_TARGETS : TransferParameters.ALIAS_MAP[
-                                                        TRANSFER_TARGETS]}
-
-    DOMAIN_MAP = {MOLECULE_DESIGN_POOL : TransferParameters.DOMAIN_MAP[
-                                                        MOLECULE_DESIGN_POOL],
-                  TUBE_BARCODE : DOMAIN,
-                  TRANSFER_TARGETS : TransferParameters.DOMAIN_MAP[
-                                                            TRANSFER_TARGETS]}
+    ALIAS_MAP = dict(TransferParameters.ALIAS_MAP, **{
+                                TUBE_BARCODE : ['container_barcode']})
+    DOMAIN_MAP = dict(TransferParameters.DOMAIN_MAP, **{TUBE_BARCODE : DOMAIN})
 
 
 class StockRackPosition(TransferPosition):
@@ -212,7 +207,7 @@ class StockRackPosition(TransferPosition):
     Represents a position in a stock rack that is used for ISO processing.
     """
     PARAMETER_SET = StockRackParameters
-    EXPOSE_POSTIIONS_TYPE = False
+    EXPOSE_POSITION_TYPE = False
 
     def __init__(self, rack_position, molecule_design_pool, tube_barcode,
                  transfer_targets):
@@ -258,16 +253,17 @@ class StockRackPosition(TransferPosition):
         for tt in self.transfer_targets:
             if not tt.target_rack_marker == plate_marker: continue
             trg_pos = get_rack_position_from_label(tt.position_label)
-            pst = PlannedSampleTransfer.get_entity(volume=tt.transfer_volume,
-                                source_position=self.rack_position,
-                                target_position=trg_pos)
+            pst = PlannedSampleTransfer.get_entity(
+                        volume=tt.transfer_volume / VOLUME_CONVERSION_FACTOR,
+                        source_position=self.rack_position,
+                        target_position=trg_pos)
             psts.append(pst)
         return psts
 
     def get_required_stock_volume(self):
         """
         Returns the sum of the transfer volumes for all target positions
-        plus the stock dead volume.
+        plus the stock dead volume *in ul*.
         """
         vol = STOCK_DEAD_VOLUME
         for tt in self.transfer_targets:
@@ -280,10 +276,8 @@ class StockRackPosition(TransferPosition):
         return parameter_map
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) and \
-            self.rack_position == other.rack_position and \
-            self.molecule_design_pool == other.molecule_design_pool and \
-            self.tube_barcode == other.tube_barcode
+        if not TransferPosition.__eq__(self, other): return False
+        return self.tube_barcode == other.tube_barcode
 
     def __repr__(self):
         str_format = '<%s rack position: %s, molecule design pool ID: %s, ' \
@@ -299,7 +293,7 @@ class StockRackLayout(TransferLayout):
     The layout for a stock rack that is used in ISO processing. The rack
     shape is always 8x12.
     """
-    WORKING_POSITION_CLS = StockRackPosition
+    POSITION_CLS = StockRackPosition
 
     def __init__(self):
         """
@@ -330,7 +324,8 @@ class StockRackLayoutConverter(TransferLayoutConverter):
 
     NAME = 'Stock Rack Layout Converter'
     PARAMETER_SET = StockRackParameters
-    WORKING_LAYOUT_CLASS = StockRackLayout
+    LAYOUT_CLS = StockRackLayout
+    POSITION_CLS = StockRackPosition
 
     def __init__(self, rack_layout, log):
         """
@@ -346,77 +341,34 @@ class StockRackLayoutConverter(TransferLayoutConverter):
         TransferLayoutConverter.__init__(self, rack_layout=rack_layout, log=log)
 
         # Intermediate error storage
-        self.__missing_pool = None
-        self.__missing_transfer_targets = None
         self.__missing_tube_barcode = None
 
     def reset(self):
         TransferLayoutConverter.reset(self)
-        self.__missing_pool = []
-        self.__missing_transfer_targets = []
         self.__missing_tube_barcode = []
 
-    def _get_position_init_values(self, parameter_map):
-        rack_position = parameter_map[self._RACK_POSITION_KEY]
-        pool_id = parameter_map[self.PARAMETER_SET.MOLECULE_DESIGN_POOL]
+    def _get_position_init_values(self, parameter_map, rack_pos):
+        kw = TransferLayoutConverter._get_position_init_values(self,
+                                            parameter_map, rack_pos)
+        if kw is None: return None
+
         tube_barcode = parameter_map[self.PARAMETER_SET.TUBE_BARCODE]
-        transfer_targets = parameter_map[self.PARAMETER_SET.TRANSFER_TARGETS]
-
-        if pool_id is None and tube_barcode is None \
-                                            and transfer_targets is None:
+        if tube_barcode is None or len(tube_barcode) < 2:
+            self.__missing_tube_barcode.append(rack_pos.label)
             return None
 
-        is_valid = True
+        kw['tube_barcode'] = tube_barcode
+        return kw
 
-        if tube_barcode is None or len(tube_barcode) < 1:
-            self.__missing_tube_barcode.append(rack_position.label)
-            is_valid = False
-
-        if not self._are_valid_transfer_targets(transfer_targets,
-                                                rack_position):
-            is_valid = False
-
-        if pool_id is None:
-            self.__missing_pool.append(rack_position.label)
-            is_valid = False
-        else:
-            pool = self._get_molecule_design_pool_for_id(pool_id,
-                                                         rack_position.label)
-            if pool is None: is_valid = False
-
-        if is_valid:
-            kw = dict(rack_position=rack_position, molecule_design_pool=pool,
-                      tube_barcode=tube_barcode,
-                      transfer_targets=transfer_targets)
-            return kw
-        else:
-            return None
-
-    def _record_additional_position_errors(self):
-        """
-        Records errors that have been collected for rack positions.
-        """
-        TransferLayoutConverter._record_additional_position_errors(self)
-
-        if len(self.__missing_pool) > 0:
-            msg = 'The following positions to not have a molecule design ' \
-                  'pool ID: %s.' % (', '.join(sorted(self.__missing_pool)))
-            self.add_error(msg)
-
+    def _record_errors(self):
+        TransferLayoutConverter._record_errors(self)
         if len(self.__missing_tube_barcode) > 0:
             msg = 'The following positions to not have tube barcode: %s.' \
                   % (', '.join(sorted(self.__missing_tube_barcode)))
             self.add_error(msg)
 
-        if len(self.__missing_transfer_targets) > 0:
-            msg = 'A control rack position must have at least one transfer ' \
-                  'target. The following rack position do not have a ' \
-                  'transfer target: %s.' \
-                   % (', '.join(sorted(self.__missing_transfer_targets)))
-            self.add_error(msg)
-
     def _initialize_working_layout(self, shape):
-        return self.WORKING_LAYOUT_CLS()
+        return self.LAYOUT_CLS()
 
     def _perform_layout_validity_checks(self, working_layout):
         """
@@ -474,10 +426,6 @@ class StockRackVerifier(BaseRackVerifier):
         if self._expected_layout is None:
             msg = 'Error when trying to convert stock rack layout!'
             self.add_error(msg)
-
-    def _get_expected_pools(self, pool_pos):
-        if pool_pos is None: return None
-        return self._get_expected_pools(pool_pos.molecule_design_pool)
 
     def _get_minimum_volume(self, pool_pos):
         """

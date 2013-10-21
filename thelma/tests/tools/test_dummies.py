@@ -9,6 +9,7 @@ from thelma.automation.parsers.tubehandler import XL20OutputParser
 from thelma.automation.tools.dummies import XL20Dummy
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 from thelma.automation.tools.writers import LINEBREAK_CHAR
+from thelma.tests.tools.tooltestingutils import TestingLog
 
 
 class XL20OutputFileCreatorTestCase(ToolsAndUtilsTestCase):
@@ -16,6 +17,7 @@ class XL20OutputFileCreatorTestCase(ToolsAndUtilsTestCase):
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
         self.WL_PATH = 'thelma:tests/tools/worklists/xl20outputwriter/'
+        self.log = TestingLog()
         self.worklist_stream = None
         self.worklist = \
         '''"Source Rack";"Source Position";"Tube Barcode";"Destination Rack";"Destination Position"
@@ -35,7 +37,8 @@ class XL20OutputFileCreatorTestCase(ToolsAndUtilsTestCase):
         del self.exp_output
 
     def _create_tool(self):
-        self.tool = XL20Dummy(xl20_worklist_stream=self.worklist_stream)
+        self.tool = XL20Dummy(xl20_worklist_stream=self.worklist_stream,
+                              log=self.log)
 
     def __continue_setup(self):
         self.worklist_stream = StringIO(self.worklist)
@@ -44,6 +47,7 @@ class XL20OutputFileCreatorTestCase(ToolsAndUtilsTestCase):
     def test_result(self):
         self.__continue_setup()
         result = self.tool.get_result()
+        self.assert_is_not_none(result)
         content = result.read()
         parser_cls = XL20OutputParser
         exp_date = datetime.now().strftime(parser_cls.DATE_FORMAT)

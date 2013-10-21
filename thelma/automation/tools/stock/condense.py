@@ -8,24 +8,24 @@ AAB
 from StringIO import StringIO
 from datetime import datetime
 from everest.repositories.rdb import Session
-from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.semiconstants import get_96_rack_shape
-from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.semiconstants import get_rack_position_from_indices
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_positions_for_shape
+from thelma.automation.semiconstants import get_rack_position_from_indices
+from thelma.automation.tools.base import SessionTool
 from thelma.automation.tools.stock.base import RackLocationQuery
 from thelma.automation.tools.stock.base import STOCK_ITEM_STATUS
 from thelma.automation.tools.stock.base import STOCK_RACK_SIZE
 from thelma.automation.tools.stock.base import STOCK_TUBE_SPECS
 from thelma.automation.tools.stock.base import get_stock_tube_specs_db_term
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.base import create_in_term_for_db_queries
-from thelma.automation.tools.utils.base import get_trimmed_string
-from thelma.automation.tools.utils.base import sort_rack_positions
 from thelma.automation.tools.worklists.tubehandler import TubeTransferData
 from thelma.automation.tools.worklists.tubehandler import XL20WorklistWriter
 from thelma.automation.tools.writers import TxtWriter
 from thelma.automation.tools.writers import create_zip_archive
-import logging
+from thelma.automation.utils.base import CustomQuery
+from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.base import create_in_term_for_db_queries
+from thelma.automation.utils.base import get_trimmed_string
+from thelma.automation.utils.base import sort_rack_positions
 
 
 __docformat__ = "reStructuredText en"
@@ -38,7 +38,7 @@ __all__ = ['StockCondenser',
            'StockCondenseReportWriter']
 
 
-class StockCondenser(BaseAutomationTool):
+class StockCondenser(SessionTool):
     """
     This tools generates worklists for the XL20 tubehandler. The worklist
     aim to moved racks between stock rack in such a way that racks with
@@ -71,8 +71,7 @@ class StockCondenser(BaseAutomationTool):
     #: The file name of the XL20 report file.
     REPORT_FILE_NAME = 'stock_condense_generation_report.txt'
 
-    def __init__(self, racks_to_empty=None, excluded_racks=None,
-                 logging_level=logging.WARNING, add_default_handlers=False):
+    def __init__(self, racks_to_empty=None, excluded_racks=None, **kw):
         """
         Constructor:
 
@@ -83,26 +82,14 @@ class StockCondenser(BaseAutomationTool):
         :param excluded_racks: A list of barcodes from stock racks that shall
             not be used.
         :type excluded_racks: A list or set of rack barcodes
-
-        :param logging_level: defines the least severe level of logging
-                    event the log will record
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
         """
-        BaseAutomationTool.__init__(self, logging_level=logging_level,
-                                    add_default_handlers=add_default_handlers,
-                                    depending=False)
+        SessionTool.__init__(self, depending=False, **kw)
 
         #: The number of empty racks the run shall result in (optional).
         self.racks_to_empty = racks_to_empty
         #: A list of barcodes from stock racks that shall not be used.
         self.excluded_racks = excluded_racks
         if excluded_racks is None: self.excluded_racks = []
-
-        # The DB session used for the queries.
-        self.__session = None
 
         #: Maps :class:`StockCondenseRack` objects onto tube counts.
         self.__tube_count_map = None
@@ -134,8 +121,7 @@ class StockCondenser(BaseAutomationTool):
         """
         Resets all values except for initialisation values.
         """
-        BaseAutomationTool.reset(self)
-        self.__session = None
+        SessionTool.reset(self)
         self.__tube_count_map = None
         self.__donor_racks = dict()
         self.__receiver_racks = dict()
@@ -205,19 +191,13 @@ class StockCondenser(BaseAutomationTool):
         self.add_debug('Run rack query ...')
 
         try:
-            query_instance = CondenseRackQuery()
-        except ValueError as e:
-            self.add_error(e)
-        else:
-            query_instance.run(session=self.__session)
-            self.__tube_count_map = query_instance.rack_map
-
-            if self.__tube_count_map is None:
-                msg = 'Error when running rack query!'
-                self.add_error(msg)
-            elif len(self.__tube_count_map) < 0:
-                msg = 'The rack query did not return any racks!'
-                self.add_error(msg)
+            query = CondenseRackQuery()
+            self._run_query(query, 'Error when running rack query: ')
+            if not self.has_errors():
+                self.__tube_count_map = query.get_query_results()
+                if len(self.__tube_count_map) < 0:
+                    msg = 'The rack query did not return any racks!'
+                    self.add_error(msg)
         finally:
             CondenseRackQuery.shut_down()
 
@@ -377,16 +357,13 @@ class StockCondenser(BaseAutomationTool):
         """
         self.add_debug('Get tube data ...')
 
-        query_instance = RackContainerQuery(
-                                donor_racks=self.__donor_racks.values(),
-                                receiver_racks=self.__receiver_racks.values())
+        query = RackContainerQuery(donor_racks=self.__donor_racks.values(),
+                            receiver_racks=self.__receiver_racks.values())
 
-        try:
-            query_instance.run(session=self.__session)
-        except ValueError as e:
-            self.add_error(e)
-        else:
-            mismatching_tubes = query_instance.mismatching_tubes
+        self._run_query(query, base_error_msg='Error when trying to fetch ' \
+                                              'tube data for racks: ')
+        if not self.has_errors():
+            mismatching_tubes = query.mismatching_tubes
             if len(mismatching_tubes) > 0:
                 mismatching_tubes.sort()
                 msg = 'Some stock racks contain tubes that do not match the ' \
@@ -441,15 +418,13 @@ class StockCondenser(BaseAutomationTool):
             all_racks[rack_barcode] = scr
 
         query = RackLocationQuery(rack_barcodes=all_racks.keys())
-        query.run(session=self.__session)
-
-        for rack_barcode, location_name in query.location_names.iteritems():
-            if location_name is None: continue
-            location_index = query.location_indices[rack_barcode]
-            loc_info = location_name
-            if not location_index is None:
-                loc_info += ', index: %s' % (location_index)
-            all_racks[rack_barcode].location = loc_info
+        self._run_query(query, 'Error when trying to find rack locations ' \
+                               'in the DB: ')
+        if not self.has_errors():
+            location_map = query.get_query_results()
+            for rack_barcode, location_str in location_map.iteritems():
+                if location_str is None: continue
+                all_racks[rack_barcode].location = location_str
 
     def __write_files(self):
         """
@@ -635,18 +610,16 @@ class StockCondenseRack(object):
         return str_format % params
 
 
-class CondenseRackQuery(object):
+class CondenseRackQuery(CustomQuery):
     """
     Runs the first query (number of tubes per stock rack) and converts the
     results into :class:`StockCondenseRack` objects.
 
     There might only be one object at a time (singleton-like).
     """
-
     _instance = None
 
-    #: This query determines the number of tubes per stock rack.
-    QUERY = \
+    QUERY_TEMPLATE = \
     'SELECT DISTINCT x.rack_barcode AS rack_barcode, ' \
                     'x.desired_count AS tube_count ' \
     'FROM container, container_barcode, containment, container_specs, ' \
@@ -674,11 +647,13 @@ class CondenseRackQuery(object):
     'ORDER BY x.desired_count DESC, x.rack_barcode '
 
     #: The query result column (required to parse the query results).
-    QUERY_RESULTS = ('rack_barcode', 'tube_count')
+    COLUMN_NAMES = ('rack_barcode', 'tube_count')
     #: The index of the rack barcode within the query result.
     RACK_BARCODE_INDEX = 0
     #: The index of the tube count within the query result.
     TUBE_COUNT_INDEX = 1
+
+    RESULT_COLLECTION_CLS = dict
 
     def __new__(self):
         """
@@ -693,13 +668,6 @@ class CondenseRackQuery(object):
         else:
             raise ValueError('There is already an instance of this class!')
 
-    def __init__(self):
-        """
-        Constructor
-        """
-        #: :class:`StockCondenseRack` objects mapped onto tube counts.
-        self.rack_map = dict()
-
     @classmethod
     def shut_down(cls):
         """
@@ -707,26 +675,17 @@ class CondenseRackQuery(object):
         """
         cls._instance = None
 
-    def run(self, session):
-        """
-        Runs the query and creates the stock condense racks.
-        """
+    def _get_params_for_sql_statement(self):
         tube_specs = get_stock_tube_specs_db_term()
-        statement = self.QUERY % (tube_specs, STOCK_ITEM_STATUS,
-                        tube_specs, STOCK_ITEM_STATUS, STOCK_RACK_SIZE)
+        return (tube_specs, STOCK_ITEM_STATUS, tube_specs, STOCK_ITEM_STATUS,
+                STOCK_RACK_SIZE)
 
-        #pylint: disable=W0142
-        results = session.query(*self.QUERY_RESULTS).\
-                  from_statement(statement).all()
-        #pylint: enable=W0142
-
-        for record in results:
-            rack_barcode = record[self.RACK_BARCODE_INDEX]
-            tube_count = record[self.TUBE_COUNT_INDEX]
-            scr = StockCondenseRack(rack_barcode=rack_barcode,
-                                    tube_count=tube_count)
-
-            add_list_map_element(self.rack_map, tube_count, scr)
+    def _store_result(self, result_record):
+        rack_barcode = result_record[self.RACK_BARCODE_INDEX]
+        tube_count = result_record[self.TUBE_COUNT_INDEX]
+        scr = StockCondenseRack(rack_barcode=rack_barcode,
+                                tube_count=tube_count)
+        add_list_map_element(self._results, tube_count, scr)
 
     def __str__(self):
         return self.__class__.__name__
@@ -735,16 +694,12 @@ class CondenseRackQuery(object):
         return self.__class__.__name__
 
 
-class RackContainerQuery(object):
+class RackContainerQuery(CustomQuery):
     """
     Runs the second query (getting the tube information for each rack).
     The results are added to the :class:`StockCondenseRack` objects.
-
-    There might only be one object at a time (singleton-like).
     """
-
-    #: This query finds the tubes of each rack barode.
-    QUERY = \
+    QUERY_TEMPLATE = \
         'SELECT r.barcode AS rack_barcode, rc.row AS row_index, ' \
             'rc.col AS column_index, cb.barcode AS tube_barcode, ' \
             'c.item_status AS tube_status, cs.name AS tube_specs_name ' \
@@ -758,7 +713,7 @@ class RackContainerQuery(object):
         'ORDER BY r.barcode'
 
     #: The query result column (required to parse the query results).
-    QUERY_RESULTS = ('rack_barcode', 'row_index', 'column_index',
+    COLUMN_NAMES = ('rack_barcode', 'row_index', 'column_index',
                      'tube_barcode', 'tube_status', 'tube_specs_name')
     #: The index of the rack barcode within the query result.
     RACK_BARCODE_INDEX = 0
@@ -783,6 +738,7 @@ class RackContainerQuery(object):
         :param receiver_racks: The receiver racks mapped onto rack barcodes.
         :type receiver_racks: :class:`list` or iterable
         """
+        CustomQuery.__init__(self)
         #: All stock condense racks mapped onto rack barcodes.
         self.rack_map = dict()
 
@@ -794,45 +750,34 @@ class RackContainerQuery(object):
         #: Stores data about found tubes that do not match the stock constraints
         self.mismatching_tubes = []
 
-    def run(self, session):
-        """
-        Runs the query and adds the tube data to the stock condense rack.
-        """
+    def _get_params_for_sql_statement(self):
         rack_term = create_in_term_for_db_queries(self.rack_map.keys(),
                                                   as_string=True)
-        statement = self.QUERY % (rack_term)
+        return (rack_term)
 
-        #pylint: disable=W0142
-        results = session.query(*self.QUERY_RESULTS).\
-                  from_statement(statement).all()
-        #pylint: enable=W0142
+    def _store_result(self, result_record):
+        rack_barcode = result_record[self.RACK_BARCODE_INDEX]
+        scr = self.rack_map[rack_barcode]
+        rack_pos = get_rack_position_from_indices(
+                            row_index=result_record[self.ROW_INDEX_INDEX],
+                            column_index=result_record[self.COLUMN_INDEX_INDEX])
+        tube_barcode = result_record[self.TUBE_BARCODE_INDEX]
 
-        for record in results:
-            rack_barcode = record[self.RACK_BARCODE_INDEX]
-            scr = self.rack_map[rack_barcode]
-            rack_pos = get_rack_position_from_indices(
-                                row_index=record[self.ROW_INDEX_INDEX],
-                                column_index=record[self.COLUMN_INDEX_INDEX])
-            tube_barcode = record[self.TUBE_BARCODE_INDEX]
+        tube_status = result_record[self.TUBE_STATUS_INDEX]
+        if not tube_status == STOCK_ITEM_STATUS:
+            info = '%s (status: %s, rack: %s)' \
+                    % (str(tube_barcode), tube_status, rack_barcode)
+            self.mismatching_tubes.append(info)
+            return None
 
-            tube_status = record[self.TUBE_STATUS_INDEX]
-            if not tube_status == STOCK_ITEM_STATUS:
-                info = '%s (status: %s, rack: %s)' \
-                        % (str(tube_barcode), tube_status, rack_barcode)
-                self.mismatching_tubes.append(info)
-                continue
+        tube_specs_name = result_record[self.TUBE_SPECS_NAME_INDEX]
+        if not tube_specs_name in STOCK_TUBE_SPECS:
+            info = '%s (tube specs: %s, rack: %s)' \
+                    % (str(tube_barcode), tube_specs_name, rack_barcode)
+            self.mismatching_tubes.append(info)
+            return None
 
-            tube_specs_name = record[self.TUBE_SPECS_NAME_INDEX]
-            if not tube_specs_name in STOCK_TUBE_SPECS:
-                info = '%s (tube specs: %s, rack: %s)' \
-                        % (str(tube_barcode), tube_specs_name, rack_barcode)
-                self.mismatching_tubes.append(info)
-                continue
-
-            scr.add_tube(rack_pos, tube_barcode)
-
-    def __str__(self):
-        return self.__class__.__name__
+        scr.add_tube(rack_pos, tube_barcode)
 
     def __repr__(self):
         str_format = '<%s number of racks: %s>'

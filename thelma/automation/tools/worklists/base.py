@@ -3,10 +3,10 @@ Base constants, functions and classes for liquid transfers.
 
 AAB
 """
-from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
-from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.semiconstants import get_reservoir_spec
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.automation.semiconstants import get_positions_for_shape
+from thelma.automation.semiconstants import get_reservoir_spec
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.models.liquidtransfer import ReservoirSpecs
 
 __docformat__ = 'reStructuredText en'

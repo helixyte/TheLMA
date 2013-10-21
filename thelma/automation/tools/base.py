@@ -3,11 +3,11 @@
 :Author: AAB, berger at cenix-bioscience dot com
 """
 
-from thelma import ThelmaLog
 from everest.repositories.rdb import Session
+from thelma import ThelmaLog
 from thelma.automation.errors import EventRecording
-from thelma.automation.tools.semiconstants import clear_semiconstant_caches
-from thelma.automation.tools.semiconstants import initialize_semiconstant_caches
+from thelma.automation.semiconstants import clear_semiconstant_caches
+from thelma.automation.semiconstants import initialize_semiconstant_caches
 
 __docformat__ = 'reStructuredText en'
 

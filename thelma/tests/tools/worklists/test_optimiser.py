@@ -4,13 +4,12 @@ Tests for class involved in Biomek layout optimisation.
 AAB
 """
 from everest.testing import check_attributes
+from thelma.automation.semiconstants import get_384_rack_shape
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_rack_position_from_label
+from thelma.automation.tools.metadata.base import TransfectionPosition
 from thelma.automation.tools.metadata.isolayoutfinder \
     import TransfectionTransferItem
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionPosition
-from thelma.automation.tools.semiconstants import get_384_rack_shape
-from thelma.automation.tools.semiconstants import get_96_rack_shape
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.worklists.optimiser import SourceSubcolumn
 from thelma.automation.tools.worklists.optimiser import TransferSubcolumn
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase

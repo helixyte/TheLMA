@@ -2,14 +2,14 @@
 Tools involved in lab ISO generation.
 
 """
+from thelma.automation.semiconstants import get_pipetting_specs_biomek
+from thelma.automation.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.iso.jobcreator import IsoJobCreator
 from thelma.automation.tools.iso.lab.base import LABELS
 from thelma.automation.tools.iso.lab.planner import LabIsoBuilder
 from thelma.automation.tools.iso.lab.planner import LabIsoPlanner
 from thelma.automation.tools.iso.lab.planner import LibraryIsoPlanner
-from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
-from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
 from thelma.models.iso import ISO_TYPES
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import TRANSFER_TYPES

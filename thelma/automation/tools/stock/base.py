@@ -3,8 +3,8 @@ Base constants and functions for stock-=related tasks.
 
 AAB
 """
-from thelma.automation.tools.utils.base import CustomQuery
-from thelma.automation.tools.utils.base import create_in_term_for_db_queries
+from thelma.automation.utils.base import CustomQuery
+from thelma.automation.utils.base import create_in_term_for_db_queries
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 from thelma.models.moleculetype import MoleculeType
 

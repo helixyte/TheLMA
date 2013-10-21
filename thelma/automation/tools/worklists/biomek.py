@@ -4,15 +4,15 @@ This module deals with the creation of worklist files for the Biomek.
 AAB
 """
 from math import ceil
-from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
-from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import get_trimmed_string
-from thelma.automation.tools.utils.base import round_up
-from thelma.automation.tools.utils.base import sort_rack_positions
+from thelma.automation.semiconstants import get_pipetting_specs_biomek
+from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.tools.worklists.base import EmptyPositionManager
 from thelma.automation.tools.worklists.writers import WorklistWriter
 from thelma.automation.tools.writers import CsvColumnParameters
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import get_trimmed_string
+from thelma.automation.utils.base import round_up
+from thelma.automation.utils.base import sort_rack_positions
 from thelma.models.liquidtransfer import ReservoirSpecs
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.rack import Plate
@@ -141,7 +141,7 @@ class SampleTransferWorklistWriter(BiomekWorklistWriter):
 
     NAME = 'Biomek Transfer Worklist Writer'
 
-    SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_TRANSFER
+    TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_TRANSFER
 
     def __init__(self, planned_worklist, target_rack, source_rack, log,
                  ignored_positions=None, pipetting_specs=None):
@@ -232,11 +232,11 @@ class SampleTransferWorklistWriter(BiomekWorklistWriter):
         Sorts the planned transfers of the worklist by source position.
         """
         source_positions = dict()
-        for planned_transfer in self.planned_worklist.planned_transfers:
-            source_pos = planned_transfer.source_position
+        for plt in self.planned_worklist:
+            source_pos = plt.source_position
             if not source_positions.has_key(source_pos):
                 source_positions[source_pos] = []
-            source_positions[source_pos].append(planned_transfer)
+            source_positions[source_pos].append(plt)
 
         sorted_source_positions = sort_rack_positions(source_positions.keys())
         sorted_transfers = []
@@ -246,9 +246,9 @@ class SampleTransferWorklistWriter(BiomekWorklistWriter):
                 sorted_transfers.append(planned_transfers[0])
             else:
                 target_positions = dict()
-                for planned_transfer in planned_transfers:
-                    target_pos = planned_transfer.target_position
-                    target_positions[target_pos] = planned_transfer
+                for plt in planned_transfers:
+                    target_pos = plt.target_position
+                    target_positions[target_pos] = plt
                 sorted_target_positions = sort_rack_positions(
                                                         target_positions.keys())
                 for target_pos in sorted_target_positions:
@@ -266,7 +266,7 @@ class SampleDilutionWorklistWriter(BiomekWorklistWriter):
 
     NAME = 'Biomek Dilution Worklist Writer'
 
-    SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_DILUTION
+    TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_DILUTION
 
     #: The name of the optional diluent info column.
     DILUENT_INFO_HEADER = 'DiluentInformation'
@@ -436,15 +436,15 @@ class SampleDilutionWorklistWriter(BiomekWorklistWriter):
         Sorts the planned transfers of the worklist by source position.
         """
         target_positions = dict()
-        for planned_transfer in self.planned_worklist.planned_transfers:
-            target_pos = planned_transfer.target_position
-            target_positions[target_pos] = planned_transfer
+        for plt in self.planned_worklist:
+            target_pos = plt.target_position
+            target_positions[target_pos] = plt
 
         sorted_target_positions = sort_rack_positions(target_positions.keys())
         sorted_transfers = []
         for target_pos in sorted_target_positions:
-            planned_transfer = target_positions[target_pos]
-            sorted_transfers.append(planned_transfer)
+            plt = target_positions[target_pos]
+            sorted_transfers.append(plt)
 
         return sorted_transfers
 

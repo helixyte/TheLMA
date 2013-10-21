@@ -4,6 +4,16 @@ what sort of plates and layout we need.
 
 AAB
 """
+from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
+from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_item_status_future
+from thelma.automation.semiconstants import get_max_dilution_factor
+from thelma.automation.semiconstants import get_min_transfer_volume
+from thelma.automation.semiconstants import get_pipetting_specs
+from thelma.automation.semiconstants import get_positions_for_shape
+from thelma.automation.semiconstants import get_rack_specs_from_reservoir_specs
+from thelma.automation.semiconstants import get_reservoir_spec
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.iso.jobcreator import IsoProvider
 from thelma.automation.tools.iso.lab.base import DILUENT_INFO
@@ -14,36 +24,25 @@ from thelma.automation.tools.iso.lab.base import LabIsoPosition
 from thelma.automation.tools.iso.lab.base import LabIsoPrepLayout
 from thelma.automation.tools.iso.lab.base import LabIsoPrepPosition
 from thelma.automation.tools.iso.lab.base import get_stock_takeout_volume
-from thelma.automation.tools.semiconstants \
-    import get_rack_specs_from_reservoir_specs
-from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
-from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
-from thelma.automation.tools.semiconstants import get_96_rack_shape
-from thelma.automation.tools.semiconstants import get_item_status_future
-from thelma.automation.tools.semiconstants import get_max_dilution_factor
-from thelma.automation.tools.semiconstants import get_min_transfer_volume
-from thelma.automation.tools.semiconstants import get_pipetting_specs
-from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.semiconstants import get_reservoir_spec
 from thelma.automation.tools.stock.tubepicking import TubePicker
-from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.base import are_equal_values
-from thelma.automation.tools.utils.base import get_trimmed_string
-from thelma.automation.tools.utils.base import is_larger_than
-from thelma.automation.tools.utils.base import is_smaller_than
-from thelma.automation.tools.utils.base import is_valid_number
-from thelma.automation.tools.utils.base import round_up
-from thelma.automation.tools.utils.iso import IsoRequestAssociationData
-from thelma.automation.tools.utils.iso import IsoRequestLayoutConverter
-from thelma.automation.tools.utils.iso import IsoRequestPosition
-from thelma.automation.tools.utils.layouts import FIXED_POSITION_TYPE
-from thelma.automation.tools.utils.layouts import MOCK_POSITION_TYPE
-from thelma.automation.tools.utils.layouts import TransferTarget
-from thelma.automation.tools.utils.racksector import QuadrantIterator
-from thelma.automation.tools.utils.racksector import RackSectorTranslator
 from thelma.automation.tools.worklists.base import get_dynamic_dead_volume
+from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.base import are_equal_values
+from thelma.automation.utils.base import get_trimmed_string
+from thelma.automation.utils.base import is_larger_than
+from thelma.automation.utils.base import is_smaller_than
+from thelma.automation.utils.base import is_valid_number
+from thelma.automation.utils.base import round_up
+from thelma.automation.utils.iso import IsoRequestAssociationData
+from thelma.automation.utils.iso import IsoRequestLayoutConverter
+from thelma.automation.utils.iso import IsoRequestPosition
+from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
+from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
+from thelma.automation.utils.layouts import TransferTarget
+from thelma.automation.utils.racksector import QuadrantIterator
+from thelma.automation.utils.racksector import RackSectorTranslator
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import LabIso
 from thelma.models.iso import LabIsoRequest
@@ -716,7 +715,7 @@ class LabIsoPlanner(IsoProvider):
         self.__mock_container = None
         self._has_floatings = None
         self.__number_floatings = 0
-        self._queued_pools = None
+        self._queued_pools = dict()
         self.__floating_pool_containers = dict()
         self.__floating_stock_conc = None
         self.__association_data = None
@@ -861,8 +860,8 @@ class LabIsoPlanner(IsoProvider):
                         iso.molecule_design_pool_set.molecule_design_pools)
 
         pool_set = self.iso_request.molecule_design_pool_set
-        self._queued_pools = pool_set.molecule_design_pools.difference(
-                                                                    used_pools)
+        queued_pools = pool_set.molecule_design_pools.difference(used_pools)
+        for pool in queued_pools: self._queued_pools[pool.id] = pool
 
         if len(self._queued_pools) < 1:
             msg = 'There are no unused molecule design pools left!'
@@ -948,7 +947,7 @@ class LabIsoPlanner(IsoProvider):
         :attr:`__MIN_CYBIO_TRANSFER_NUMBER`.
         """
         association_data, regard_controls = IsoRequestAssociationData.\
-                find(log=self.log, iso_request_layout=self._iso_request_layout)
+                    find(log=self.log, layout=self._iso_request_layout)
 
         if not association_data is None:
             if regard_controls:
@@ -1053,6 +1052,8 @@ class LabIsoPlanner(IsoProvider):
                 self.add_error(msg)
             else:
                 all_floating_candidates = tube_picker.get_unsorted_candidates()
+                for candidate in all_floating_candidates:
+                    candidate.set_pool(self._queued_pools[candidate.pool_id])
                 num_isos = float(len(sorted_candidates)) \
                            / self.__number_floatings
                 self._real_number_isos = round_up(num_isos, 0)

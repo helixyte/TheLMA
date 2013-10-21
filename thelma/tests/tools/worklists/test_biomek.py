@@ -3,25 +3,26 @@ Test for BioMek worklist writers.
 
 AAB
 """
-from thelma.automation.tools.semiconstants import PIPETTING_SPECS_NAMES
-from thelma.automation.tools.semiconstants import get_96_rack_shape
-from thelma.automation.tools.semiconstants import get_item_status_managed
-from thelma.automation.tools.semiconstants import get_min_transfer_volume
-from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
-from thelma.automation.tools.semiconstants import get_pipetting_specs_manual
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_item_status_managed
+from thelma.automation.semiconstants import get_min_transfer_volume
+from thelma.automation.semiconstants import get_pipetting_specs_biomek
+from thelma.automation.semiconstants import get_pipetting_specs_manual
+from thelma.automation.semiconstants import get_rack_position_from_label
+from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.automation.tools.worklists.biomek \
-    import ContainerDilutionWorklistWriter
+    import SampleDilutionWorklistWriter
 from thelma.automation.tools.worklists.biomek \
-    import ContainerTransferWorklistWriter
+    import SampleTransferWorklistWriter
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IRackShape
 from thelma.models.container import Tube
 from thelma.models.container import TubeSpecs
 from thelma.models.container import WellSpecs
-from thelma.models.liquidtransfer import PlannedContainerDilution
-from thelma.models.liquidtransfer import PlannedContainerTransfer
-from thelma.models.liquidtransfer import PlannedRackTransfer
+from thelma.models.liquidtransfer import PlannedRackSampleTransfer
+from thelma.models.liquidtransfer import PlannedSampleDilution
+from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import ReservoirSpecs
 from thelma.models.rack import PlateSpecs
@@ -31,11 +32,11 @@ from thelma.tests.tools.tooltestingutils import TestingLog
 
 
 
-class BiomekWorklistWriterTestCase(FileCreatorTestCase):
+class _BiomekWorklistWriterTestCase(FileCreatorTestCase):
 
     def set_up(self):
         FileCreatorTestCase.set_up(self)
-        self.WL_PATH = 'thelma:tests/tools/worklists/writer/'
+        self.WL_PATH = 'thelma:tests/tools/worklists/biomek/'
         self.log = TestingLog()
         self.target_rack = None
         self.worklist = None
@@ -104,11 +105,11 @@ class BiomekWorklistWriterTestCase(FileCreatorTestCase):
         self._compare_csv_file_stream(tool_stream, file_name)
 
 
-class ContainerTransferWorklistWriterTestCase(BiomekWorklistWriterTestCase):
+class SampleTransferWorklistWriterTestCase(_BiomekWorklistWriterTestCase):
 
     def set_up(self):
-        BiomekWorklistWriterTestCase.set_up(self)
-        self.WL_FILE = 'container_transfer_worklist.csv'
+        _BiomekWorklistWriterTestCase.set_up(self)
+        self.WL_FILE = 'sample_transfer_worklist.csv'
         self.source_rack = None
         # target position label and transfer volume
         self.target_positions = dict(A2=20, A3=50, B2=20, B3=50)
@@ -119,7 +120,7 @@ class ContainerTransferWorklistWriterTestCase(BiomekWorklistWriterTestCase):
         self.target_container_volume = 0.000010 # 10 ul
 
     def tear_down(self):
-        BiomekWorklistWriterTestCase.tear_down(self)
+        _BiomekWorklistWriterTestCase.tear_down(self)
         del self.WL_FILE
         del self.source_rack
         del self.target_positions
@@ -127,7 +128,7 @@ class ContainerTransferWorklistWriterTestCase(BiomekWorklistWriterTestCase):
         del self.target_container_volume
 
     def _create_tool(self):
-        self.tool = ContainerTransferWorklistWriter(log=self.log,
+        self.tool = SampleTransferWorklistWriter(log=self.log,
                             planned_worklist=self.worklist,
                             target_rack=self.target_rack,
                             source_rack=self.source_rack,
@@ -142,7 +143,9 @@ class ContainerTransferWorklistWriterTestCase(BiomekWorklistWriterTestCase):
         self._create_tool()
 
     def __create_worklist(self):
-        self.worklist = PlannedWorklist(label='ContainerTransferWriterTest')
+        self.worklist = PlannedWorklist(label='ContainerTransferWriterTest',
+                            transfer_type=TRANSFER_TYPES.SAMPLE_TRANSFER,
+                            pipetting_specs=self.pipetting_specs)
         for source_label, source_data in self.source_positions.iteritems():
             source_position = get_rack_position_from_label(source_label)
             if source_position in self.ignored_positions: continue
@@ -150,10 +153,10 @@ class ContainerTransferWorklistWriterTestCase(BiomekWorklistWriterTestCase):
                 target_position = get_rack_position_from_label(target_label)
                 transfer_volume = self.target_positions[target_label] \
                                   / VOLUME_CONVERSION_FACTOR
-                pct = PlannedContainerTransfer(volume=transfer_volume,
+                pst = PlannedSampleTransfer.get_entity(volume=transfer_volume,
                             source_position=source_position,
                             target_position=target_position)
-                self.worklist.planned_transfers.append(pct)
+                self.worklist.planned_liquid_transfers.append(pst)
 
     def __create_target_rack(self):
         self.target_rack = self.plate_specs.create_rack(label='target rack',
@@ -192,10 +195,10 @@ class ContainerTransferWorklistWriterTestCase(BiomekWorklistWriterTestCase):
         self.__continue_setup()
         self.ignored_positions = [get_rack_position_from_label('A1')]
         self._create_tool()
-        self._check_result('container_transfer_worklist_ign.csv')
+        self._check_result('sample_transfer_worklist_ign.csv')
         # ignored positions without samples in source rack
         self.__continue_setup()
-        self._check_result('container_transfer_worklist_ign.csv')
+        self._check_result('sample_transfer_worklist_ign.csv')
 
     def test_result_pipetting_specs(self):
         self.target_positions['A2'] = 1
@@ -205,12 +208,12 @@ class ContainerTransferWorklistWriterTestCase(BiomekWorklistWriterTestCase):
                              'target A2 (1.0 ul)')
         self.pipetting_specs = get_pipetting_specs_manual()
         self.__continue_setup()
-        self._check_result('container_transfer_worklist_man.csv')
+        self._check_result('sample_transfer_worklist_man.csv')
 
     def test_invalid_input_values(self):
         self.__continue_setup()
         wl = self.worklist
-        self.worklist = self.worklist.planned_transfers
+        self.worklist = self.worklist.planned_liquid_transfers
         self._test_and_expect_errors('planned worklist must be a ' \
                                      'PlannedWorklist object')
         self.worklist = wl
@@ -222,7 +225,7 @@ class ContainerTransferWorklistWriterTestCase(BiomekWorklistWriterTestCase):
         self.ignored_positions = dict()
         self._test_and_expect_errors('ignored position list must be a list')
         self.ignored_positions = ['A1']
-        self._test_and_expect_errors('ignored rack position must be a ' \
+        self._test_and_expect_errors('ignored position must be a ' \
                                      'RackPosition object')
         self.ignored_positions = ign
         src_rack = self.source_rack
@@ -235,9 +238,10 @@ class ContainerTransferWorklistWriterTestCase(BiomekWorklistWriterTestCase):
 
     def test_unsupported_transfer_type(self):
         self.__continue_setup()
-        prt = PlannedRackTransfer(volume=self.target_container_volume,
-                  source_sector_index=0, target_sector_index=0, sector_number=1)
-        self.worklist.planned_transfers.append(prt)
+        prst = PlannedRackSampleTransfer.get_entity(
+                volume=self.target_container_volume,
+                number_sectors=1, source_sector_index=0, target_sector_index=0)
+        self.worklist.planned_liquid_transfers.append(prst)
         self._test_and_expect_errors('Some transfers planned in the worklist ' \
                                      'are not supported')
 
@@ -272,7 +276,7 @@ class ContainerTransferWorklistWriterTestCase(BiomekWorklistWriterTestCase):
     def test_target_volume_too_large(self):
         self.well_max_volume = 0.000050 # 50 ul
         self.__continue_setup()
-        self._test_and_expect_errors('Some target container cannot take up ' \
+        self._test_and_expect_errors('Some target containers cannot take up ' \
                                      'the transfer volume')
 
     def test_source_container_missing(self):
@@ -290,11 +294,11 @@ class ContainerTransferWorklistWriterTestCase(BiomekWorklistWriterTestCase):
                 'enough volume to provide liquid for all target containers')
 
 
-class ContainerDilutionWorklistWriterTestCase(BiomekWorklistWriterTestCase):
+class SampleDilutionWorklistWriterTestCase(_BiomekWorklistWriterTestCase):
 
     def set_up(self):
-        BiomekWorklistWriterTestCase.set_up(self)
-        self.WL_FILE = 'container_dilution_worklist.csv'
+        _BiomekWorklistWriterTestCase.set_up(self)
+        self.WL_FILE = 'sample_dilution_worklist.csv'
         self.reservoir_specs = None
         # target position, diluent info, transfer volume in ul
         self.target_positions = dict(A1=['mix1', 10],
@@ -310,7 +314,7 @@ class ContainerDilutionWorklistWriterTestCase(BiomekWorklistWriterTestCase):
         self.reservoir_max_dead_volume = 0.000100 # 100 ul
 
     def tear_down(self):
-        BiomekWorklistWriterTestCase.tear_down(self)
+        _BiomekWorklistWriterTestCase.tear_down(self)
         del self.WL_FILE
         del self.reservoir_specs
         del self.target_positions
@@ -321,7 +325,7 @@ class ContainerDilutionWorklistWriterTestCase(BiomekWorklistWriterTestCase):
         del self.reservoir_max_dead_volume
 
     def _create_tool(self):
-        self.tool = ContainerDilutionWorklistWriter(log=self.log,
+        self.tool = SampleDilutionWorklistWriter(log=self.log,
                                 planned_worklist=self.worklist,
                                 target_rack=self.target_rack,
                                 source_rack_barcode=self.source_rack_barcode,
@@ -337,14 +341,16 @@ class ContainerDilutionWorklistWriterTestCase(BiomekWorklistWriterTestCase):
         self._create_tool()
 
     def __create_worklist(self):
-        self.worklist = PlannedWorklist(label='ContainerDilutionWriterTest')
+        self.worklist = PlannedWorklist(label='SampleDilutionWriterTest',
+                            pipetting_specs=self.pipetting_specs,
+                            transfer_type=TRANSFER_TYPES.SAMPLE_DILUTION)
         for pos_label, transfer_data in self.target_positions.iteritems():
             rack_pos = get_rack_position_from_label(pos_label)
             volume = transfer_data[1] / VOLUME_CONVERSION_FACTOR
-            pcd = PlannedContainerDilution(volume=volume,
-                                           target_position=rack_pos,
-                                           diluent_info=transfer_data[0])
-            self.worklist.planned_transfers.append(pcd)
+            psd = PlannedSampleDilution.get_entity(volume=volume,
+                            diluent_info=transfer_data[0],
+                            target_position=rack_pos)
+            self.worklist.planned_liquid_transfers.append(psd)
 
     def __create_reservoir_specs(self):
         self.reservoir_specs = ReservoirSpecs(
@@ -383,16 +389,16 @@ class ContainerDilutionWorklistWriterTestCase(BiomekWorklistWriterTestCase):
         self.ignored_positions = [get_rack_position_from_label('A1'),
                                   get_rack_position_from_label('B2')]
         self._create_tool()
-        self._check_result('container_dilution_worklist_ign.csv')
+        self._check_result('sample_dilution_worklist_ign.csv')
         # ignored positions without samples in target rack
         self.__continue_setup()
-        self._check_result('container_dilution_worklist_ign.csv')
+        self._check_result('sample_dilution_worklist_ign.csv')
 
     def test_result_split_volumes(self):
         self.well_max_volume = 0.001000 # 1000 ul
         self.target_positions['F6'] = ('mix1', 501)
         self.__continue_setup()
-        self._check_result('container_dilution_worklist_split.csv')
+        self._check_result('sample_dilution_worklist_split.csv')
         self._check_warning_messages('Some dilution volumes exceed the ' \
                                      'allowed maximum transfer volume')
 
@@ -401,7 +407,7 @@ class ContainerDilutionWorklistWriterTestCase(BiomekWorklistWriterTestCase):
         self.reservoir_max_dead_volume = 0.000020 # 20 ul
         self.reservoir_min_dead_volume = 0.000010 # 10 ul
         self.__continue_setup()
-        self._check_result('container_dilution_worklist_cap.csv')
+        self._check_result('sample_dilution_worklist_cap.csv')
         self._check_warning_messages('The source for the following diluents ' \
                 'has been split and distributed over several containers ' \
                 'because one single container could not have taken up the ' \
@@ -415,12 +421,12 @@ class ContainerDilutionWorklistWriterTestCase(BiomekWorklistWriterTestCase):
                              'target A1 (1.0 ul)')
         self.pipetting_specs = get_pipetting_specs_manual()
         self.__continue_setup()
-        self._check_result('container_dilution_worklist_man.csv')
+        self._check_result('sample_dilution_worklist_man.csv')
 
     def test_invalid_input_values(self):
         self.__continue_setup()
         wl = self.worklist
-        self.worklist = self.worklist.planned_transfers
+        self.worklist = self.worklist.planned_liquid_transfers
         self._test_and_expect_errors('planned worklist must be a ' \
                                      'PlannedWorklist object')
         self.worklist = wl
@@ -441,7 +447,7 @@ class ContainerDilutionWorklistWriterTestCase(BiomekWorklistWriterTestCase):
         self.ignored_positions = dict()
         self._test_and_expect_errors('ignored position list must be a list')
         self.ignored_positions = ['A1']
-        self._test_and_expect_errors('ignored rack position must be a ' \
+        self._test_and_expect_errors('ignored position must be a ' \
                                      'RackPosition object')
         self.ignored_positions = ign
         self.pipetting_specs = 3
@@ -450,9 +456,10 @@ class ContainerDilutionWorklistWriterTestCase(BiomekWorklistWriterTestCase):
 
     def test_unsupported_transfer_type(self):
         self.__continue_setup()
-        prt = PlannedRackTransfer(volume=self.target_container_volume,
-                source_sector_index=0, target_sector_index=0, sector_number=1)
-        self.worklist.planned_transfers.append(prt)
+        prst = PlannedRackSampleTransfer.get_entity(number_sectors=1,
+                    volume=self.target_container_volume,
+                    source_sector_index=0, target_sector_index=0)
+        self.worklist.planned_liquid_transfers.append(prst)
         self._test_and_expect_errors('Some transfers planned in the worklist ' \
                                      'are not supported')
 
@@ -477,7 +484,7 @@ class ContainerDilutionWorklistWriterTestCase(BiomekWorklistWriterTestCase):
     def test_target_volume_too_large(self):
         self.well_max_volume = 0.000050 # 50 ul
         self.__continue_setup()
-        self._test_and_expect_errors('Some target container cannot take up ' \
+        self._test_and_expect_errors('Some target containers cannot take up ' \
                                      'the transfer volume')
 
     def test_not_enough_source_containers(self):

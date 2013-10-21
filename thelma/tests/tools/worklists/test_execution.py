@@ -4,28 +4,28 @@ Transfer execution test cases.
 AAB
 """
 from everest.testing import check_attributes
-from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
-from thelma.automation.tools.semiconstants import get_384_rack_shape
-from thelma.automation.tools.semiconstants import get_96_rack_shape
-from thelma.automation.tools.semiconstants import get_item_status_future
-from thelma.automation.tools.semiconstants import get_item_status_managed
-from thelma.automation.tools.semiconstants import get_pipetting_specs_biomek
-from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.tools.semiconstants import get_pipetting_specs_manual
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.semiconstants import ITEM_STATUS_NAMES
+from thelma.automation.semiconstants import get_384_rack_shape
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_item_status_future
+from thelma.automation.semiconstants import get_item_status_managed
+from thelma.automation.semiconstants import get_pipetting_specs_biomek
+from thelma.automation.semiconstants import get_pipetting_specs_cybio
+from thelma.automation.semiconstants import get_pipetting_specs_manual
+from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.worklists.execution \
-    import ContainerDilutionWorklistExecutor
+    import RackSampleTransferExecutor
 from thelma.automation.tools.worklists.execution \
-    import ContainerTransferWorklistExecutor
+    import SampleDilutionWorklistExecutor
 from thelma.automation.tools.worklists.execution \
-    import RackTransferExecutor
+    import SampleTransferWorklistExecutor
 from thelma.automation.tools.worklists.execution import SampleComponent
 from thelma.automation.tools.worklists.execution import SampleData
 from thelma.automation.tools.worklists.execution import SourceSample
 from thelma.automation.tools.worklists.execution import TargetSample
 from thelma.automation.tools.worklists.execution import TransferredSample
+from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IOrganization
 from thelma.interfaces import IReservoirSpecs
@@ -35,9 +35,9 @@ from thelma.models.container import ContainerLocation
 from thelma.models.container import Tube
 from thelma.models.container import TubeSpecs
 from thelma.models.container import WellSpecs
-from thelma.models.liquidtransfer import PlannedContainerDilution
-from thelma.models.liquidtransfer import PlannedContainerTransfer
-from thelma.models.liquidtransfer import PlannedRackTransfer
+from thelma.models.liquidtransfer import PlannedRackSampleTransfer
+from thelma.models.liquidtransfer import PlannedSampleDilution
+from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.rack import Plate
@@ -50,7 +50,7 @@ from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 
-class ExecutionHelperClassesTestCase(ToolsAndUtilsTestCase):
+class _ExecutionHelperClassesTestCase(ToolsAndUtilsTestCase):
 
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
@@ -92,7 +92,7 @@ class ExecutionHelperClassesTestCase(ToolsAndUtilsTestCase):
         return SampleComponent(molecule=mol, concentration=concentration)
 
 
-class SampleComponentTestCase(ExecutionHelperClassesTestCase):
+class SampleComponentTestCase(_ExecutionHelperClassesTestCase):
 
     def __get_init_data(self):
         md = self._get_entity(IMoleculeDesign, '11')
@@ -108,13 +108,13 @@ class SampleComponentTestCase(ExecutionHelperClassesTestCase):
         check_attributes(sc, kw)
 
 
-class SampleDataTestCase(ExecutionHelperClassesTestCase):
+class SampleDataTestCase(_ExecutionHelperClassesTestCase):
 
     def test_init(self):
         self.assert_raises(TypeError, SampleData, self.volume)
 
 
-class TransferredSampleTestCase(ExecutionHelperClassesTestCase):
+class TransferredSampleTestCase(_ExecutionHelperClassesTestCase):
 
     def __get_transferred_sample(self):
         return TransferredSample(volume=self.volume)
@@ -162,7 +162,7 @@ class TransferredSampleTestCase(ExecutionHelperClassesTestCase):
         self.assert_equal(ts.sample_components.keys(), [12])
 
 
-class SourceSampleTestCase(ExecutionHelperClassesTestCase):
+class SourceSampleTestCase(_ExecutionHelperClassesTestCase):
 
     def __get_source_sample(self):
         ss = SourceSample(volume=self.volume)
@@ -187,25 +187,25 @@ class SourceSampleTestCase(ExecutionHelperClassesTestCase):
         ss = self.__get_source_sample()
         self.assert_equal(ss.total_transfer_volume, 0)
         rack_pos = get_rack_position_from_label('A1')
-        # planned container dilutions are not allowed
-        pcd = PlannedContainerDilution(volume=1 / VOLUME_CONVERSION_FACTOR,
-                                       target_position=rack_pos,
-                                       diluent_info='diluent')
-        self.assert_raises(TypeError, ss.create_and_add_transfer, pcd)
+        # planned sample dilutions are not allowed
+        psd = PlannedSampleDilution.get_entity(diluent_info='diluent',
+                                    volume=1 / VOLUME_CONVERSION_FACTOR,
+                                    target_position=rack_pos)
+        self.assert_raises(TypeError, ss.create_and_add_transfer, psd)
         # planned container transfer
-        pct = PlannedContainerTransfer(volume=1 / VOLUME_CONVERSION_FACTOR,
-                                       source_position=rack_pos,
-                                       target_position=rack_pos)
-        ts1 = ss.create_and_add_transfer(pct)
+        pst = PlannedSampleTransfer.get_entity(source_position=rack_pos,
+                                volume=1 / VOLUME_CONVERSION_FACTOR,
+                                target_position=rack_pos)
+        ts1 = ss.create_and_add_transfer(pst)
         self.assert_is_not_none(ts1)
         self.assert_equal(ts1.volume, 1)
         self.assert_equal(len(ts1.sample_components), 1)
         self.assert_equal(ss.total_transfer_volume, 1)
         # planned rack transfer
-        prt = PlannedRackTransfer(volume=2 / VOLUME_CONVERSION_FACTOR,
-                                  source_sector_index=0, target_sector_index=0,
-                                  sector_number=1)
-        ts2 = ss.create_and_add_transfer(prt)
+        prst = PlannedRackSampleTransfer.get_entity(number_sectors=1,
+                                volume=2 / VOLUME_CONVERSION_FACTOR,
+                                  source_sector_index=0, target_sector_index=0)
+        ts2 = ss.create_and_add_transfer(prst)
         self.assert_is_not_none(ts2)
         self.assert_equal(ts2.volume, 2)
         self.assert_equal(len(ts2.sample_components), 1)
@@ -227,10 +227,10 @@ class SourceSampleTestCase(ExecutionHelperClassesTestCase):
         self.assert_equal(sm.molecule.molecule_design.id, 11)
         # add planned container transfer
         rack_pos = get_rack_position_from_label('A1')
-        pct = PlannedContainerTransfer(volume=1 / VOLUME_CONVERSION_FACTOR,
-                                       source_position=rack_pos,
-                                       target_position=rack_pos)
-        ts1 = ss.create_and_add_transfer(pct)
+        pst = PlannedSampleTransfer.get_entity(source_position=rack_pos,
+                                        volume=1 / VOLUME_CONVERSION_FACTOR,
+                                        target_position=rack_pos)
+        ts1 = ss.create_and_add_transfer(pst)
         self.assert_is_not_none(ts1)
         self.assert_equal(ts1.volume, 1)
         self.assert_equal(len(ts1.sample_components), 1)
@@ -244,7 +244,7 @@ class SourceSampleTestCase(ExecutionHelperClassesTestCase):
         self.assert_equal(sm, updated_sm)
 
 
-class TargetSampleTestCase(ExecutionHelperClassesTestCase):
+class TargetSampleTestCase(_ExecutionHelperClassesTestCase):
 
     def __get_target_sample(self):
         ts = TargetSample(volume=self.volume)
@@ -276,25 +276,28 @@ class TargetSampleTestCase(ExecutionHelperClassesTestCase):
     def test_create_and_add_transfer(self):
         ts = self.__get_target_sample()
         self.assert_equal(ts.final_volume, 5)
-        # planned container transfers are not allowed
+        # planned sample transfers are not allowed
         rack_pos = get_rack_position_from_label('A1')
-        pct = PlannedContainerTransfer(volume=5 / VOLUME_CONVERSION_FACTOR,
-                        source_position=rack_pos, target_position=rack_pos)
-        self.assert_raises(TypeError, ts.create_and_add_transfer, pct)
-        # planned rack transfers are not allowed
-        prt = PlannedRackTransfer(volume=5 / VOLUME_CONVERSION_FACTOR,
-                source_sector_index=0, target_sector_index=0, sector_number=1)
-        self.assert_raises(TypeError, ts.create_and_add_transfer, prt)
-        # planned container dilution
-        pcd = PlannedContainerDilution(volume=5 / VOLUME_CONVERSION_FACTOR,
-                                target_position=rack_pos, diluent_info='some')
-        transfer = ts.create_and_add_transfer(pcd)
+        pst = PlannedSampleTransfer.get_entity(source_position=rack_pos,
+                                    volume=5 / VOLUME_CONVERSION_FACTOR,
+                                    target_position=rack_pos)
+        self.assert_raises(TypeError, ts.create_and_add_transfer, pst)
+        # planned rack sample transfers are not allowed
+        prst = PlannedRackSampleTransfer.get_entity(number_sectors=1,
+                                volume=5 / VOLUME_CONVERSION_FACTOR,
+                                source_sector_index=0, target_sector_index=0)
+        self.assert_raises(TypeError, ts.create_and_add_transfer, prst)
+        # planned sample dilution
+        psd = PlannedSampleDilution.get_entity(diluent_info='some',
+                                volume=5 / VOLUME_CONVERSION_FACTOR,
+                                target_position=rack_pos)
+        transfer = ts.create_and_add_transfer(psd)
         self.assert_is_not_none(transfer)
         self.assert_equal(transfer.volume, 5)
         self.assert_equal(len(transfer.sample_components), 0)
         self.assert_equal(ts.final_volume, 10)
         # two transfers are not allowed
-        self.assert_raises(AttributeError, ts.create_and_add_transfer, pcd)
+        self.assert_raises(AttributeError, ts.create_and_add_transfer, psd)
 
     def test_update_container(self):
         # prepare sample
@@ -364,7 +367,7 @@ class TargetSampleTestCase(ExecutionHelperClassesTestCase):
             self.assert_equal(found_mds, expected_mds)
 
 
-class LiquidTransferExecutorTestCase(ToolsAndUtilsTestCase):
+class _LiquidTransferExecutorTestCase(ToolsAndUtilsTestCase):
 
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
@@ -420,7 +423,7 @@ class LiquidTransferExecutorTestCase(ToolsAndUtilsTestCase):
 
     def _continue_setup(self, create_sample_molecules_src=True,
                               create_sample_molecules_trg=True):
-        self._create_worklist()
+        self._create_test_worklist()
         self._create_rack_specs()
         self._create_source_rack()
         self._create_target_rack()
@@ -451,7 +454,7 @@ class LiquidTransferExecutorTestCase(ToolsAndUtilsTestCase):
                                         label='execution_test_tube_rack_specs',
                                         tube_specs=[self.tube_specs])
 
-    def _create_worklist(self):
+    def _create_test_worklist(self):
         raise NotImplementedError('Abstract method.')
 
     def _create_source_rack(self):
@@ -538,42 +541,46 @@ class LiquidTransferExecutorTestCase(ToolsAndUtilsTestCase):
     def _test_target_volume_too_large(self):
         self.container_max_volume = (self.container_max_volume / 5.)
         self._continue_setup()
-        self._test_and_expect_errors('Some target container cannot take up ' \
+        self._test_and_expect_errors('Some target containers cannot take up ' \
                                      'the transfer volume')
 
 
-class WorklistExecutorTestCase(LiquidTransferExecutorTestCase): #pylint: disable=W0223
+class _WorklistExecutorTestCase(_LiquidTransferExecutorTestCase): #pylint: disable=W0223
 
     def set_up(self):
-        LiquidTransferExecutorTestCase.set_up(self)
+        _LiquidTransferExecutorTestCase.set_up(self)
         self.worklist = None
         self.ignored_positions = []
 
     def tear_down(self):
-        LiquidTransferExecutorTestCase.tear_down(self)
+        _LiquidTransferExecutorTestCase.tear_down(self)
         del self.worklist
         del self.ignored_positions
 
+    def _reset_worklist(self):
+        self.worklist.executed_worklists = []
+
     def _test_invalid_planned_worklist(self):
-        self._continue_setup()
-        self.worklist = self.worklist.planned_transfers
+        wl = self.worklist
+        self.worklist = self.worklist.planned_liquid_transfers
         self._test_and_expect_errors('The planned worklist must be a ' \
                                      'PlannedWorklist object')
+        self.worklist = wl
 
     def _test_invalid_ignored_positions(self):
-        self._continue_setup()
         self.ignored_positions = dict()
         self._test_and_expect_errors('The ignored position list must be a ' \
                                      'list object')
         self.ignored_positions = ['A1', 'B2']
         self._test_and_expect_errors('The ignored rack position must be a ' \
                                      'RackPosition object')
+        self.ignored_positions = None
 
 
-class ContainerDilutionWorklistExecutorTestCase(WorklistExecutorTestCase):
+class SampleDilutionWorklistExecutorTestCase(_WorklistExecutorTestCase):
 
     def set_up(self):
-        WorklistExecutorTestCase.set_up(self)
+        _WorklistExecutorTestCase.set_up(self)
         self.reservoir_specs = self._get_entity(IReservoirSpecs)
         # result data
         # position label, transfer volume, result volume, result conc
@@ -587,14 +594,14 @@ class ContainerDilutionWorklistExecutorTestCase(WorklistExecutorTestCase):
         self.diluent_info = 'buffer'
 
     def tear_down(self):
-        WorklistExecutorTestCase.tear_down(self)
+        _WorklistExecutorTestCase.tear_down(self)
         del self.reservoir_specs
         del self.result_data
         del self.rack_setup_pos_target
         del self.diluent_info
 
     def _create_tool(self):
-        self.tool = ContainerDilutionWorklistExecutor(
+        self.tool = SampleDilutionWorklistExecutor(
                       planned_worklist=self.worklist,
                       target_rack=self.target_rack,
                       user=self.executor_user,
@@ -603,15 +610,17 @@ class ContainerDilutionWorklistExecutorTestCase(WorklistExecutorTestCase):
                       log=self.log,
                       ignored_positions=self.ignored_positions)
 
-    def _create_worklist(self):
-        self.worklist = PlannedWorklist(label='container dilution worklist')
+    def _create_test_worklist(self):
+        self.worklist = PlannedWorklist(label='sample dilution worklist',
+                                pipetting_specs=self.pipetting_specs,
+                                transfer_type=TRANSFER_TYPES.SAMPLE_DILUTION)
         for pos_label, transfer_data in self.result_data.iteritems():
             volume = transfer_data[0] / VOLUME_CONVERSION_FACTOR
             rack_pos = get_rack_position_from_label(pos_label)
-            pcd = PlannedContainerDilution(volume=volume,
+            psd = PlannedSampleDilution.get_entity(volume=volume,
                                     target_position=rack_pos,
                                     diluent_info=self.diluent_info)
-            self.worklist.planned_transfers.append(pcd)
+            self.worklist.planned_liquid_transfers.append(psd)
 
     def _fill_target_rack(self, create_sample_molecules=True):
         md = self.molecule_design_target
@@ -645,19 +654,20 @@ class ContainerDilutionWorklistExecutorTestCase(WorklistExecutorTestCase):
         # check executed transfers
         if number_executed_transfers is None:
             number_executed_transfers = len(self.result_data)
-        self.assert_equal(len(ew.executed_transfers), number_executed_transfers)
+        self.assert_equal(len(ew.executed_liquid_transfers),
+                          number_executed_transfers)
         container_map = dict()
         timestamp = None
-        for et in ew.executed_transfers:
-            self._check_executed_transfer(et, TRANSFER_TYPES.CONTAINER_DILUTION)
-            pt = et.planned_transfer
-            pos_label = pt.target_position.label
-            container_map[pos_label] = et.target_container
-            self.assert_equal(et.reservoir_specs, self.reservoir_specs)
+        for elt in ew.executed_liquid_transfers:
+            self._check_executed_transfer(elt, TRANSFER_TYPES.SAMPLE_DILUTION)
+            plt = elt.planned_liquid_transfer
+            pos_label = plt.target_position.label
+            container_map[pos_label] = elt.target_container
+            self.assert_equal(elt.reservoir_specs, self.reservoir_specs)
             if timestamp is None:
-                timestamp = et.timestamp
+                timestamp = elt.timestamp
             else:
-                self.assert_equal(et.timestamp, timestamp)
+                self.assert_equal(elt.timestamp, timestamp)
         # check target rack
         self.assert_equal(self.target_rack.status.name,
                           ITEM_STATUS_NAMES.MANAGED)
@@ -697,6 +707,7 @@ class ContainerDilutionWorklistExecutorTestCase(WorklistExecutorTestCase):
         self._continue_setup()
         self.target_rack = self.target_plate
         self.__check_result()
+        self._reset_worklist()
         self.target_rack = self.target_tube_rack
         self.__check_result()
 
@@ -709,6 +720,7 @@ class ContainerDilutionWorklistExecutorTestCase(WorklistExecutorTestCase):
         self._continue_setup()
         self.target_rack = self.target_plate
         self.__check_result(number_executed_transfers=3)
+        self._reset_worklist()
         self.target_rack = self.target_tube_rack
         self.__check_result(number_executed_transfers=3)
 
@@ -722,8 +734,10 @@ class ContainerDilutionWorklistExecutorTestCase(WorklistExecutorTestCase):
     def test_no_sample_molecules(self):
         self._continue_setup(create_sample_molecules_trg=False)
         self.target_rack = self.target_plate
+        self._reset_worklist()
         self.__check_result(check_sample_molecules=False)
         self.target_rack = self.target_tube_rack
+        self._reset_worklist()
         self.__check_result(check_sample_molecules=False)
 
     def test_pipetting_specs(self):
@@ -746,12 +760,14 @@ class ContainerDilutionWorklistExecutorTestCase(WorklistExecutorTestCase):
 
     def test_invalid_transfer_type(self):
         self._continue_setup()
-        prt = PlannedRackTransfer(volume=self.starting_volume_target,
+        prst = PlannedRackSampleTransfer.get_entity(number_sectors=1,
+                                  volume=self.starting_volume_target,
                                   source_sector_index=0,
-                                  target_sector_index=0,
-                                  sector_number=1)
+                                  target_sector_index=0)
         self.worklist = PlannedWorklist(label='invalid worklist',
-                                        planned_transfers=[prt])
+                                planned_liquid_transfers=[prst],
+                                pipetting_specs=self.pipetting_specs,
+                                transfer_type=TRANSFER_TYPES.SAMPLE_DILUTION)
         self._create_tool()
         self._test_and_expect_errors('Some transfers planned in the worklist ' \
                                      'are not supported')
@@ -787,10 +803,10 @@ class ContainerDilutionWorklistExecutorTestCase(WorklistExecutorTestCase):
                                      'following target positions')
 
 
-class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
+class SampleTransferWorklistExecutorTestCase(_WorklistExecutorTestCase):
 
     def set_up(self):
-        WorklistExecutorTestCase.set_up(self)
+        _WorklistExecutorTestCase.set_up(self)
         # result data
         # source volume, source conc, final volume, target labels
         self.source_data = dict(A1=(100, 120, 40, ['A2', 'A3']),
@@ -803,13 +819,13 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
                                 B3=(50, 60, 200, 20, 2))
 
     def tear_down(self):
-        WorklistExecutorTestCase.tear_down(self)
+        _WorklistExecutorTestCase.tear_down(self)
         del self.source_data
         del self.target_data
 
     def _create_tool(self):
         self.log = TestingLog()
-        self.tool = ContainerTransferWorklistExecutor(log=self.log,
+        self.tool = SampleTransferWorklistExecutor(log=self.log,
                             planned_worklist=self.worklist,
                             target_rack=self.target_rack,
                             user=self.executor_user,
@@ -817,8 +833,10 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
                             ignored_positions=self.ignored_positions,
                             pipetting_specs=self.pipetting_specs)
 
-    def _create_worklist(self):
-        self.worklist = PlannedWorklist(label='container transfer worklist')
+    def _create_test_worklist(self):
+        self.worklist = PlannedWorklist(label='sample transfer worklist',
+                                pipetting_specs=self.pipetting_specs,
+                                transfer_type=TRANSFER_TYPES.SAMPLE_TRANSFER)
         for src_label, src_data in self.source_data.iteritems():
             src_pos = get_rack_position_from_label(src_label)
             tgt_labels = src_data[3]
@@ -826,10 +844,10 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
                 trg_pos = get_rack_position_from_label(tgt_label)
                 trg_data = self.target_data[tgt_label]
                 volume = trg_data[0] / VOLUME_CONVERSION_FACTOR
-                pct = PlannedContainerTransfer(volume=volume,
+                pst = PlannedSampleTransfer.get_entity(volume=volume,
                                 source_position=src_pos,
                                 target_position=trg_pos)
-                self.worklist.planned_transfers.append(pct)
+                self.worklist.planned_liquid_transfers.append(pst)
 
     def _fill_source_rack(self, create_sample_molecules=True):
         md = self.molecule_design_source
@@ -878,21 +896,22 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
         # check executed transfers
         if number_executed_transfers is None:
             number_executed_transfers = len(self.target_data)
-        self.assert_equal(len(ew.executed_transfers), number_executed_transfers)
+        self.assert_equal(len(ew.executed_liquid_transfers),
+                          number_executed_transfers)
         src_container_map = dict()
         trg_container_map = dict()
         timestamp = None
-        for et in ew.executed_transfers:
-            self._check_executed_transfer(et, TRANSFER_TYPES.CONTAINER_TRANSFER)
-            pt = et.planned_transfer
-            src_label = pt.source_position.label
-            trg_label = pt.target_position.label
-            src_container_map[src_label] = et.source_container
-            trg_container_map[trg_label] = et.target_container
+        for elt in ew.executed_liquid_transfers:
+            self._check_executed_transfer(elt, TRANSFER_TYPES.SAMPLE_TRANSFER)
+            plt = elt.planned_liquid_transfer
+            src_label = plt.source_position.label
+            trg_label = plt.target_position.label
+            src_container_map[src_label] = elt.source_container
+            trg_container_map[trg_label] = elt.target_container
             if timestamp is None:
-                timestamp = et.timestamp
+                timestamp = elt.timestamp
             else:
-                self.assert_equal(et.timestamp, timestamp)
+                self.assert_equal(elt.timestamp, timestamp)
         # check source rack
         for container in self.source_rack.containers:
             rack_pos = container.location.position
@@ -966,6 +985,7 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
         self.target_rack = self.target_plate
         self.source_rack = self.source_plate
         self.__check_result()
+        self._reset_worklist()
         self.target_rack = self.target_tube_rack
         self.source_rack = self.source_tube_rack
         self.__check_result()
@@ -982,6 +1002,7 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
         self.__check_result(number_executed_transfers=2)
         self.target_rack = self.target_tube_rack
         self.source_rack = self.source_tube_rack
+        self._reset_worklist()
         self.__check_result(number_executed_transfers=2)
 
     def test_no_sample_molecules_source(self):
@@ -995,6 +1016,7 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
         self.target_rack = self.target_plate
         self.source_rack = self.source_plate
         self.__check_result(check_sample_molecules_src=False)
+        self._reset_worklist()
         self.target_rack = self.target_tube_rack
         self.source_rack = self.source_tube_rack
         self.__check_result(check_sample_molecules_src=False)
@@ -1010,35 +1032,10 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
         self.target_rack = self.target_plate
         self.source_rack = self.source_plate
         self.__check_result()
+        self._reset_worklist()
         self.target_rack = self.target_tube_rack
         self.source_rack = self.source_tube_rack
         self.__check_result()
-
-    def test_valid_range_overwritten(self):
-        self.target_data['A2'] = (1, 11, round((120 / 11.), 1),
-                                  round((120 / 1.1), 1), 2)
-        self.source_data['A1'] = (100, 120, 49, ['A2', 'A3'])
-        self._continue_setup()
-        self._test_and_expect_errors('Some transfer volumes are smaller than ' \
-                                     'the allowed minimum transfer volume')
-        self.tool.reset()
-        self.tool.set_minimum_transfer_volume(1)
-        self.target_rack = self.target_plate
-        self.source_rack = self.source_plate
-        self.__check_result(create_tool=False)
-        # check errors
-        self._create_tool()
-        self.tool.set_minimum_transfer_volume('-1')
-        result = self.tool.get_result()
-        self.assert_is_none(result)
-        self._check_error_messages('The minimum transfer volume must be a ' \
-                                   'positive number. Obtained: -1.')
-        self._create_tool()
-        self.tool.set_maximum_transfer_volume('4,3')
-        result = self.tool.get_result()
-        self.assert_is_none(result)
-        self._check_error_messages('The maximum transfer volume must be a ' \
-                                   'positive number. Obtained: 4,3.')
 
     def test_pipetting_specs(self):
         self.target_data['A2'] = (1, 11, round((120 / 11.), 1),
@@ -1068,12 +1065,14 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
 
     def test_invalid_transfer_type(self):
         self._continue_setup()
-        prt = PlannedRackTransfer(volume=self.starting_volume_target,
+        prst = PlannedRackSampleTransfer.get_entity(number_sectors=1,
+                                  volume=self.starting_volume_target,
                                   source_sector_index=0,
-                                  target_sector_index=0,
-                                  sector_number=1)
+                                  target_sector_index=0)
         self.worklist = PlannedWorklist(label='invalid worklist',
-                                        planned_transfers=[prt])
+                                planned_liquid_transfers=[prst],
+                                pipetting_specs=self.pipetting_specs,
+                                transfer_type=TRANSFER_TYPES.SAMPLE_TRANSFER)
         self._create_tool()
         self._test_and_expect_errors('Some transfers planned in the worklist ' \
                                      'are not supported')
@@ -1125,9 +1124,10 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
         self._continue_setup()
         m2_pos = get_rack_position_from_label('M2')
         g1_pos = get_rack_position_from_label('G1')
-        pct = PlannedContainerTransfer(volume=self.starting_volume_target,
+        pst = PlannedSampleTransfer.get_entity(
+                    volume=self.starting_volume_target,
                     source_position=m2_pos, target_position=g1_pos)
-        self.worklist.planned_transfers.append(pct)
+        self.worklist.planned_liquid_transfers.append(pst)
         self._test_and_expect_errors('Could not find containers for the ' \
                                      'following source positions')
         self.source_data['G1'] = (100, 120, 90, ['M2'])
@@ -1137,12 +1137,12 @@ class ContainerTransferWorklistExecutorTestCase(WorklistExecutorTestCase):
                                      'following target positions')
 
 
-class RackTransferExecutorTestCase(LiquidTransferExecutorTestCase):
+class RackSampleTransferExecutorTestCase(_LiquidTransferExecutorTestCase):
 
     def set_up(self):
-        LiquidTransferExecutorTestCase.set_up(self)
+        _LiquidTransferExecutorTestCase.set_up(self)
         self.pipetting_specs = get_pipetting_specs_cybio()
-        self.planned_rack_transfer = None
+        self.planned_rack_sample_transfer = None
         # result data
         self.transfer_volume = 0.000010 # 10 ul
         # source volume, source conc, source final volume
@@ -1171,8 +1171,8 @@ class RackTransferExecutorTestCase(LiquidTransferExecutorTestCase):
         self.use_plates = False
 
     def tear_down(self):
-        LiquidTransferExecutorTestCase.tear_down(self)
-        del self.planned_rack_transfer
+        _LiquidTransferExecutorTestCase.tear_down(self)
+        del self.planned_rack_sample_transfer
         del self.transfer_volume
         del self.source_data
         del self.target_data
@@ -1188,12 +1188,15 @@ class RackTransferExecutorTestCase(LiquidTransferExecutorTestCase):
         del self.use_plates
 
     def _create_tool(self):
-        self.tool = RackTransferExecutor(log=self.log,
-                    planned_rack_transfer=self.planned_rack_transfer,
-                    target_rack=self.target_rack,
-                    source_rack=self.source_rack,
-                    user=self.executor_user,
-                    pipetting_specs=self.pipetting_specs)
+        self.tool = RackSampleTransferExecutor(log=self.log,
+                planned_rack_sample_transfer=self.planned_rack_sample_transfer,
+                target_rack=self.target_rack, source_rack=self.source_rack,
+                user=self.executor_user, pipetting_specs=self.pipetting_specs)
+
+    def _set_one_to_one_data(self):
+        self.sector_number = 1
+        self.target_sector_index = 0
+        self.source_sector_index = 0
 
     def _create_rack_specs(self):
         if self.well_specs is None:
@@ -1222,12 +1225,13 @@ class RackTransferExecutorTestCase(LiquidTransferExecutorTestCase):
                                                    tube_specs=[self.tube_specs])
             self.tube_rack_specs = self.target_rack_specs
 
-    def _create_worklist(self):
-        self.planned_rack_transfer = PlannedRackTransfer(
+    def _create_test_worklist(self):
+        self.planned_rack_sample_transfer = \
+                PlannedRackSampleTransfer.get_entity(
                                 volume=self.transfer_volume,
                                 source_sector_index=self.source_sector_index,
                                 target_sector_index=self.target_sector_index,
-                                sector_number=self.sector_number)
+                                number_sectors=self.sector_number)
 
     def _create_source_rack(self):
         self.source_rack = self.source_rack_specs.create_rack(
@@ -1290,7 +1294,8 @@ class RackTransferExecutorTestCase(LiquidTransferExecutorTestCase):
         ert = self.tool.get_result()
         self.assert_is_not_none(ert)
         # check executed transfer
-        self.assert_equal(ert.planned_transfer, self.planned_rack_transfer)
+        self.assert_equal(ert.planned_liquid_transfer,
+                          self.planned_rack_sample_transfer)
         self.assert_equal(ert.source_rack.barcode, self.source_rack_barcode)
         self.assert_equal(ert.target_rack.barcode, self.target_rack_barcode)
         self.assert_equal(ert.user, self.executor_user)
@@ -1360,6 +1365,7 @@ class RackTransferExecutorTestCase(LiquidTransferExecutorTestCase):
         self.__check_result()
 
     def test_result_one_to_one_plate(self):
+        self._set_one_to_one_data()
         self.use_plates = True
         # target vol (start), target conc (start), target final vol,
         # source final conc, target final conc, source well label,
@@ -1375,6 +1381,7 @@ class RackTransferExecutorTestCase(LiquidTransferExecutorTestCase):
         self.__check_result()
 
     def test_result_one_to_one_tube_rack(self):
+        self._set_one_to_one_data()
         # target vol (start), target conc (start), target final vol,
         # source final conc, target final conc, source well label,
         # number of sample molecules
@@ -1483,11 +1490,11 @@ class RackTransferExecutorTestCase(LiquidTransferExecutorTestCase):
         self._test_invalid_target_rack()
         self._test_invalid_pipetting_specs()
         a1_pos = get_rack_position_from_label('A1')
-        self.planned_rack_transfer = PlannedContainerTransfer(
+        self.planned_rack_sample_transfer = PlannedSampleTransfer.get_entity(
                         volume=0.000050, source_position=a1_pos,
                         target_position=a1_pos)
-        self._test_and_expect_errors('The planned rack transfer must be a ' \
-                                     'PlannedRackTransfer object')
+        self._test_and_expect_errors('The planned rack sample transfer must ' \
+                                     'be a PlannedRackSampleTransfer object')
 
     def test_translator_init_failure(self):
         self.sector_number = 3
@@ -1544,7 +1551,7 @@ class RackTransferExecutorTestCase(LiquidTransferExecutorTestCase):
         # number of sample molecules
         self.target_data['B2'] = (95, 120, 110, 0, 0, 'A1', 2)
         self._continue_setup()
-        self._test_and_expect_errors('Some target container cannot take up ' \
+        self._test_and_expect_errors('Some target containers cannot take up ' \
                                      'the transfer volume')
 
     def test_source_volume_too_small(self):

@@ -6,9 +6,9 @@ Created on November 30, 2012.
 from everest.entities.utils import get_root_aggregate
 from everest.querying.specifications import eq
 from thelma.automation.parsers.rackscanning import RackScanningParser
+from thelma.automation.semiconstants import ITEM_STATUS_NAMES
+from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.interfaces import IContainerSpecs
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import IRack

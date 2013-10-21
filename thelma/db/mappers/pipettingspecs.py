@@ -14,7 +14,7 @@ def create_mapper(pipetting_specs_tbl):
     tbl = pipetting_specs_tbl
     m = mapper(PipettingSpecs, pipetting_specs_tbl,
                id_attribute='pipetting_specs_id',
-               slug_expression=lambda cls: as_slug_expression(cls.name),
+               slug_expression=lambda cls: as_slug_expression(cls._name), # pylint: disable=W0212
                properties=dict(
                         _name=tbl.c.name,
                         _min_transfer_volume=tbl.c.min_transfer_volume,

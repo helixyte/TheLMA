@@ -4,11 +4,11 @@ This module provides class to deal with experiment batch operations.
 AAB
 """
 from StringIO import StringIO
+from thelma.automation.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.experiment.manual import ExperimentManualExecutor
 from thelma.automation.tools.experiment.mastermix import get_experiment_executor
 from thelma.automation.tools.experiment.mastermix import get_experiment_writer
-from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.writers import create_zip_archive
 from thelma.automation.tools.writers import read_zip_archive
 from thelma.models.job import ExperimentJob

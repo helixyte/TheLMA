@@ -3,17 +3,17 @@ This module deals with the creation of worklist files.
 
 AAB
 """
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import get_trimmed_string
 from thelma.automation.tools.writers import CsvWriter
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import get_trimmed_string
+from thelma.automation.utils.base import is_larger_than
+from thelma.automation.utils.base import is_smaller_than
 from thelma.models.liquidtransfer import PipettingSpecs
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.rack import Plate
 from thelma.models.rack import Rack
 from thelma.models.rack import RackPosition
-from thelma.automation.tools.utils.base import is_larger_than
-from thelma.automation.tools.utils.base import is_smaller_than
 
 
 __docformat__ = 'reStructuredText en'
@@ -210,9 +210,9 @@ class WorklistWriter(CsvWriter):
         """
         unsupported_transfer_type = []
 
-        for pt in self.planned_worklist.planned_transfers:
-            if not pt.type == self.TRANSFER_TYPE:
-                unsupported_transfer_type.append(pt)
+        for plt in self.planned_worklist:
+            if not plt.transfer_type == self.TRANSFER_TYPE:
+                unsupported_transfer_type.append(plt)
 
         if len(unsupported_transfer_type) > 0:
             msg = 'Some transfers planned in the worklist are not supported: ' \
@@ -332,7 +332,7 @@ class WorklistWriter(CsvWriter):
             self.add_error(msg)
 
         if len(self._target_volume_too_large) > 0:
-            msg = 'Some target container cannot take up the transfer volume: ' \
+            msg = 'Some target containers cannot take up the transfer volume: ' \
                   '%s. ' % (', '.join(sorted(self._target_volume_too_large)))
             if self._target_max_volume is not None:
                 msg += 'Assumed maximum volume per target well: %s ul.' \

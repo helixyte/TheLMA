@@ -21,7 +21,7 @@ AAB
 """
 from thelma.automation.parsers.base import ExcelFileParser
 from thelma.automation.parsers.base import ExcelSheetParsingContainer
-from thelma.automation.tools.utils.base import is_valid_number
+from thelma.automation.utils.base import is_valid_number
 
 __docformat__ = "reStructuredText en"
 

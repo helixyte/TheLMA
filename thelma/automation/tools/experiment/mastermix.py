@@ -4,8 +4,8 @@ metadata types that provide mastermix support.
 
 AAB
 """
+from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.experiment.base import ExperimentTool
-from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.worklists.series import RackSampleTransferJob
 from thelma.automation.tools.worklists.series import SampleTransferJob
 from thelma.automation.tools.writers import merge_csv_streams

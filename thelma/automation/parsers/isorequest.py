@@ -46,16 +46,18 @@ a ISO request object by the parsers handler. At this, the handler will store
 information as :ref:`machine tags <machinetags>`
 (:class:`thelma.models.tagging.Tag`).
 
-There are always **up to 8** machine tags per ISO layout position:
+There are always **up to 7** machine tags per ISO layout position:
 
-    1. :ref:`position type <position_type>` (empty, fixed or floating)
-    2. molecule design set (storing the molecule design set ID or \'*sample*\')
+    1. :ref:`position type <position_type>` (empty, fixed, floating, library,
+        untreated, untransfected)
+    2. molecule design pool (storing the molecule design pool ID or a
+       placeholder - placeholder are equal to the position type they stand
+       for, the only exception is \'sample\' which stands for \'floating\')
     3. optional: reagent name (the name of RNAi agent)
     4. optional: reagent dilution factor (the volume of the RNAi agent)
     5. optional: ISO volume
     6. optional: ISO concentration
-    7. optional: desired supplier (or \'*any*\' for fixed positions)
-    8. optional: final concentration
+    7. optional: final concentration
 
 :Note: The position type is determined automatically depending on the
     the molecule design specification.
@@ -131,8 +133,9 @@ Composition of Source Files
   different options that marked with the following key words (all case
   insensitive, arbitrary order): \'*ISO CONCENTRATION*\', \'*ISO VOLUME*\'
   \'*DELIVERY DATE*\', \'*PLATE SET LABEL*\', \'*COMMENT*\',
-  \'*REAGENT NAME*\', \'*REAGENT VOLUME*\', \'*SUPPLIER*\',
-  \'*NUMBER OF ALIQUOTS\'* (screening only), \'*FINAL CONCENTRATION*\'
+  \'*REAGENT NAME*\', \'*REAGENT VOLUME*\', \'*NUMBER OF ALIQUOTS\'*
+  (screening only), \'*FINAL CONCENTRATION*\',
+  \'LIBRARY\' (library screening only)
   and \'*MOLECULE DESIGN LIBRARY*\' (library screening only). The allowed
   and required keywords are defined by the experiment scenario and are
   set by an external parser handler.
@@ -140,9 +143,10 @@ Composition of Source Files
   same row as the referring value.
 * The value for the plate set label must be specified. All other values are
   optional.
-* Values for concentration, volume or supplier given in the metadata part
-  will be treated as default values. If there are layout definitions for
-  these values, too, the referring values might be overwritten.
+* Values in the metadata part for parameters will be treated as default values
+  (position-specific parameters such as the concentration for mock positions
+  is always *None* are always set to valid values).
+  There can only be either a default value or a layout specification.
 * The delivery date must be specified the following way: ::
 
     dd.MM.yyyy         (day-month-year)
@@ -156,8 +160,8 @@ Composition of Source Files
   or the end marker.
 * There are 7 possible parameter tags (factors) for layouts:
   \'*MOLECULE DESIGN*\', \'*ISO VOLUME*\', \'*ISO CONCENTRATION*\',
-  \'*REAGENT NAME*\', \'*REAGENT VOLUME*\', \'*FINAL CONCENTRATION*\' and
-  \'*SUPPLIER*\' (all case-insensitive).The allowed and required parameters
+  \'*REAGENT NAME*\', \'*REAGENT VOLUME*\' and \'*FINAL CONCENTRATION*\'
+  (all case-insensitive). The allowed and required parameters
   are defined by the experiment scenario and are set by an external parser
   handler. Other factor names can be used as well. They will not be regarded in
   the ISO and transfection process.
@@ -199,9 +203,9 @@ Implementation
 ..............
 """
 
-from thelma.automation.parsers.base import ExcelMoleculeDesignPoolLayoutParser
 from thelma.automation.parsers.base \
         import ExcelMoleculeDesignPoolLayoutParsingContainer
+from thelma.automation.parsers.base import ExcelMoleculeDesignPoolLayoutParser
 from thelma.automation.parsers.base import ExcelParsingContainer
 from thelma.automation.parsers.base import RackParsingContainer
 
@@ -259,7 +263,8 @@ class IsoRequestParser(ExcelMoleculeDesignPoolLayoutParser):
         #: Stores the values for the ISO metadata.
         self.metadata_value_map = dict()
         #: Stores values and distributions for the ISO parameters (molecule
-        #: design, concentration, reagent name, reagent dil factor and supplier).
+        #: design, concentration, reagent name, reagent dil factor,
+        #: final concentration).
         self.parameter_map = dict()
 
     def reset(self):
@@ -535,9 +540,7 @@ class _IsoSheetParsingContainer(ExcelMoleculeDesignPoolLayoutParsingContainer):
 
 class _IsoParameterContainer(ExcelParsingContainer):
     """
-    ParsingContainer subclass for the storage of ISO parameter data
-    (molecule design, desired supplier, concentration, reagent name,
-    reagent dilution factor).
+    ParsingContainer subclass for the storage of ISO request parameter data.
     """
 
     def __init__(self, parser, parameter_name, tag_predicates):

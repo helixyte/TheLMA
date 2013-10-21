@@ -10,10 +10,10 @@ Handlers can also access the parsing logs.
 
 from everest.entities.utils import get_root_aggregate
 from thelma.automation.errors import EventRecording
-from thelma.automation.tools.semiconstants import get_384_rack_shape
-from thelma.automation.tools.semiconstants import get_96_rack_shape
-from thelma.automation.tools.semiconstants import get_rack_position_from_indices
-from thelma.automation.tools.utils.layouts import MoleculeDesignPoolParameters
+from thelma.automation.semiconstants import get_384_rack_shape
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_rack_position_from_indices
+from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
 from thelma.interfaces import IRackShape
 from thelma.models.rack import RackPositionSet
 from thelma.models.tagging import Tag

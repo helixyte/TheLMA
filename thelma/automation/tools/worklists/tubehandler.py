@@ -4,9 +4,9 @@ Classes for tubehandler (XL20) related tasks.
 from StringIO import StringIO
 from thelma.automation.handlers.tubehandler import XL20OutputParserHandler
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.utils.base import add_list_map_element
 from thelma.automation.tools.writers import CsvColumnParameters
 from thelma.automation.tools.writers import CsvWriter
+from thelma.automation.utils.base import add_list_map_element
 from thelma.models.rack import TubeRack
 from thelma.models.tubetransfer import TubeTransfer
 from thelma.models.tubetransfer import TubeTransferWorklist

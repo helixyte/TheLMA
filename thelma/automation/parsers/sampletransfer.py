@@ -113,9 +113,9 @@ from thelma.automation.parsers.base import ExcelLayoutSheetParsingContainer
 from thelma.automation.parsers.base import ExcelParsingContainer
 from thelma.automation.parsers.base import RackParsingContainer
 from thelma.automation.parsers.base import TagDefinitionParsingContainer
-from thelma.automation.tools.utils.base import ParameterAliasValidator
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.base import is_valid_number
+from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.base import is_valid_number
+from thelma.automation.utils.layouts import ParameterAliasValidator
 
 __docformat__ = "reStructuredText en"
 

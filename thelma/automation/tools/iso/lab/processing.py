@@ -4,6 +4,9 @@ the transfers from stock and the actual series processing.
 
 AAB
 """
+from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.automation.semiconstants import get_reservoir_spec
 from thelma.automation.tools.iso.base import IsoRackContainer
 from thelma.automation.tools.iso.base import StockRackVerifier
 from thelma.automation.tools.iso.base import StockTransferWriterExecutor
@@ -13,14 +16,12 @@ from thelma.automation.tools.iso.lab.base import LABELS
 from thelma.automation.tools.iso.lab.base import LabIsoLayout
 from thelma.automation.tools.iso.lab.base import LabIsoPrepLayoutConverter
 from thelma.automation.tools.iso.lab.base import create_instructions_writer
-from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
-from thelma.automation.tools.semiconstants import get_reservoir_spec
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.verifier import BaseRackVerifier
 from thelma.automation.tools.worklists.series import RackSampleTransferJob
 from thelma.automation.tools.worklists.series import SampleDilutionJob
 from thelma.automation.tools.worklists.series import SampleTransferJob
 from thelma.automation.tools.writers import merge_csv_streams
+from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.layouts import BaseRackVerifier
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import IsoAliquotPlate
 from thelma.models.iso import IsoJobPreparationPlate
@@ -32,7 +33,6 @@ from thelma.models.library import LibraryPlate
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.rack import Plate
 from thelma.models.status import ITEM_STATUSES
-from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
 
 
 __docformat__ = 'reStructuredText en'

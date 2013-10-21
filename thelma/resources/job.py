@@ -14,9 +14,9 @@ from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from pyramid.httpexceptions import HTTPBadRequest
+from thelma.automation.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.experiment import get_executor
 from thelma.automation.tools.experiment import get_manual_executor
-from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 from thelma.interfaces import IExperiment
 from thelma.interfaces import IIso
 from thelma.interfaces import IItemStatus

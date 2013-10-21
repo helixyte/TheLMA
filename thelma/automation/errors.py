@@ -85,7 +85,7 @@ class EventRecording(object):
         #: recorded anymore.
         #: However, the execution of running methods is still aborted.
         #: Use :func:`disable_error_and_warning_recording` to activate.
-        self.__disable_err_warn_rec = False
+        self._disable_err_warn_rec = False
         #: If this is set to *True* the execution of methods is aborted
         #: silently.
         self._abort_execution = False
@@ -95,7 +95,7 @@ class EventRecording(object):
         Use this method to disable recording of error and warning events.
         In cases of errors, method execution will still be aborted, though.
         """
-        self.__disable_err_warn_rec = True
+        self._disable_err_warn_rec = True
 
     def get_messages(self, logging_level=logging.WARNING):
         """
@@ -120,6 +120,7 @@ class EventRecording(object):
         """
         self.log.reset()
         self._error_count = 0
+        self._abort_execution = False
 
     def set_log_recording_level(self, log_level):
         """
@@ -159,7 +160,7 @@ class EventRecording(object):
 
         """
         evt = LogEvent(self.NAME, error_msg)
-        if not self.__disable_err_warn_rec: self.log.add_critical(evt)
+        if not self._disable_err_warn_rec: self.log.add_critical(evt)
         self._adjust_error_count(logging.CRITICAL)
 
     def add_error(self, error_msg):
@@ -172,7 +173,7 @@ class EventRecording(object):
         :type error_msg: :class:`string`
         """
         evt = LogEvent(self.NAME, error_msg)
-        if not self.__disable_err_warn_rec: self.log.add_error(evt)
+        if not self._disable_err_warn_rec: self.log.add_error(evt)
         self._adjust_error_count(logging.ERROR)
 
     def add_warning(self, warning_msg):
@@ -185,7 +186,7 @@ class EventRecording(object):
         """
         evt = LogEvent(self.NAME, warning_msg,
                        is_exception=False)
-        if not self.__disable_err_warn_rec: self.log.add_warning(evt)
+        if not self._disable_err_warn_rec: self.log.add_warning(evt)
         self._adjust_error_count(logging.WARNING)
 
     def add_info(self, info_msg):
@@ -229,10 +230,10 @@ class EventRecording(object):
         Increases the tools error count if the severity of a logging level
         is equal or above the :attr:`ERROR_THRESHOLD`.
         """
-        if logging_level >= self.ERROR_THRESHOLD and \
-                                            not self.__disable_err_warn_rec:
-            self._error_count += 1
-        self._abort_execution = True
+        if logging_level >= self.ERROR_THRESHOLD:
+            if not self._disable_err_warn_rec:
+                self._error_count += 1
+            self._abort_execution = True
 
     def add_log_handlers(self, handlers):
         """

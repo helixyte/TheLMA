@@ -5,28 +5,30 @@ AAB
 """
 from thelma.automation.tools.iso.base import IsoRackContainer
 from thelma.automation.tools.iso.base import _ISO_LABELS_BASE
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.converters import TransferLayoutConverter
-from thelma.automation.tools.utils.iso import IsoRequestPosition
-from thelma.automation.tools.utils.layouts import FLOATING_POSITION_TYPE
-from thelma.automation.tools.utils.layouts import LIBRARY_POSITION_TYPE
-from thelma.automation.tools.utils.layouts import MOCK_POSITION_TYPE
-from thelma.automation.tools.utils.layouts import TransferLayout
-from thelma.automation.tools.utils.layouts import TransferParameters
-from thelma.automation.tools.utils.layouts import TransferPosition
-from thelma.automation.tools.utils.layouts import TransferTarget
-from thelma.automation.tools.utils.layouts import get_converted_number
-from thelma.automation.tools.utils.layouts import get_trimmed_string
-from thelma.automation.tools.utils.layouts import is_valid_number
 from thelma.automation.tools.worklists.base import TRANSFER_ROLES
 from thelma.automation.tools.writers import TxtWriter
+from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.converters import TransferLayoutConverter
+from thelma.automation.utils.layouts import EMPTY_POSITION_TYPE
+from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
+from thelma.automation.utils.layouts import FLOATING_POSITION_TYPE
+from thelma.automation.utils.layouts import LIBRARY_POSITION_TYPE
+from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
+from thelma.automation.utils.layouts import TransferLayout
+from thelma.automation.utils.layouts import TransferParameters
+from thelma.automation.utils.layouts import TransferPosition
+from thelma.automation.utils.layouts import TransferTarget
+from thelma.automation.utils.layouts import get_converted_number
+from thelma.automation.utils.layouts import get_trimmed_string
+from thelma.automation.utils.layouts import is_valid_number
 from thelma.models.iso import LabIso
 from thelma.models.iso import LabIsoRequest
 from thelma.models.job import IsoJob
 from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.organization import Organization
+from thelma.models.moleculedesign import MoleculeDesignPool
 
 __all__ = ['get_stock_takeout_volume',
+           'LABELS',
            'LabIsoParameters',
            'LabIsoPosition',
            'LabIsoLayout',
@@ -162,7 +164,8 @@ class LABELS(_ISO_LABELS_BASE):
         The job label contains the ticket ID and a running number as job number
         (you can get a new ISO number with :func:`get_new_job_number`).
         """
-        value_parts = [ticket_number, cls.__FILL_ISO_JOB, job_number]
+        job_num_str = '%02i' % (job_number)
+        value_parts = [ticket_number, cls.__FILL_ISO_JOB, job_num_str]
         return cls._create_label(value_parts)
 
     @classmethod
@@ -192,17 +195,18 @@ class LABELS(_ISO_LABELS_BASE):
         return cls._create_label(value_parts)
 
     @classmethod
-    def parse_rack_label(cls, plate_label):
+    def parse_rack_label(cls, rack_label):
         """
         The rack label contains the ticket ID and ISO or ISO job number,
         and a rack marker (rack role and (optionally) rack number).
         """
-        value_parts = cls._get_value_parts(plate_label)
+        value_parts = cls._get_value_parts(rack_label)
         ticket_number = cls._parse_int_str(value_parts[0])
         entity_num = cls._parse_int_str(value_parts[2])
         rack_marker = value_parts[3]
-        value_parts[cls.MARKER_RACK_MARKER] = rack_marker
+        value_parts[-1] = rack_marker
         values = cls.parse_rack_marker(rack_marker)
+        values[cls.MARKER_RACK_MARKER] = rack_marker
         values[cls.MARKER_TICKET_NUMBER] = ticket_number
         values[cls.MARKER_ENTITY_NUM] = entity_num
         return values
@@ -251,7 +255,7 @@ class LABELS(_ISO_LABELS_BASE):
         """
         The final plate label is replaces the working label of final (aliquot
         and library) plates once the plate generation is completed. It
-        contains the ISO request label, the ISO number and (optinally) a
+        contains the ISO request label, the ISO number and (optionally) a
         plate number.
         """
         iso_request = iso.iso_request
@@ -268,7 +272,9 @@ class LabIsoParameters(TransferParameters):
     """
 
     DOMAIN = 'iso_plate'
-    ALLOWS_UNTREATED_POSITIONS = False
+    ALLOWED_POSITION_TYPES = [FIXED_POSITION_TYPE, FLOATING_POSITION_TYPE,
+                              MOCK_POSITION_TYPE, LIBRARY_POSITION_TYPE,
+                              EMPTY_POSITION_TYPE]
 
     #: The target concentration in the plate *in nM*.
     CONCENTRATION = 'concentration'
@@ -292,14 +298,9 @@ class LabIsoParameters(TransferParameters):
     #: for starting wells).
     STOCK_RACK_MARKER = 'stock_rack_marker'
 
-    #: Is used to mark floating positions for which there has been no pool
-    #: anymore.
-    MISSING_FLOATING = 'missing_floating'
-
-
-    REQUIRED = TransferParameters.REQUIRED + [CONCENTRATION, VOLUME]
-    ALL = REQUIRED + [STOCK_TUBE_BARCODE, STOCK_RACK_BARCODE, TRANSFER_TARGETS,
-                      SECTOR_INDEX, STOCK_RACK_MARKER]
+    REQUIRED = TransferParameters.REQUIRED
+    ALL = TransferParameters.ALL + [STOCK_TUBE_BARCODE, STOCK_RACK_BARCODE,
+                SECTOR_INDEX, STOCK_RACK_MARKER, CONCENTRATION, VOLUME]
 
     ALIAS_MAP = dict(TransferParameters.ALIAS_MAP, **{
                  CONCENTRATION : ['preparation_concentration'],
@@ -322,6 +323,9 @@ class LabIsoPosition(TransferPosition):
     #: Used in the ISO planning phase to mark a staring position for which
     #: there is no tube barcode yet.
     TEMP_STOCK_DATA = 'to be defined'
+    #: Is used to mark floating positions for which there has been no pool
+    #: anymore.
+    MISSING_FLOATING = 'missing_floating'
 
     def __init__(self, rack_position, molecule_design_pool, position_type,
                  concentration, volume, transfer_targets=None,
@@ -367,35 +371,47 @@ class LabIsoPosition(TransferPosition):
             the source stock rack (only for starting wells).
         :type stock_rack_marker: :class:`str`
         """
+        if position_type is None:
+            msg = 'The position type for a %s position must not be None!' \
+                  % (self.__class__.__name__)
+            raise ValueError(msg)
         TransferPosition.__init__(self, rack_position=rack_position,
                                   molecule_design_pool=molecule_design_pool,
-                                  transfer_targets=transfer_targets)
+                                  transfer_targets=transfer_targets,
+                                  position_type=position_type)
 
-        if (position_type == MOCK_POSITION_TYPE and \
-                            not molecule_design_pool == MOCK_POSITION_TYPE) or \
-                            (molecule_design_pool == MOCK_POSITION_TYPE and \
-                             not position_type == MOCK_POSITION_TYPE):
-            msg = 'For mock positions both molecule design pool ID and ' \
-                  'position type must be "%s".' % (MOCK_POSITION_TYPE)
-            raise ValueError(msg)
-
-        if not molecule_design_pool == MOCK_POSITION_TYPE and \
-                                            not is_valid_number(concentration):
+        if concentration is None:
+            if self.is_fixed or self.is_floating or self.is_library:
+                msg = 'The concentration for %s lab ISO positions must ' \
+                      'not be None!' % (self.position_type)
+                raise ValueError(msg)
+        elif not is_valid_number(concentration):
             msg = 'The concentration must be a positive number (obtained: ' \
                   '%s).' % (concentration)
             raise ValueError(msg)
-        if not is_valid_number(volume):
+
+        if volume is None:
+            if self.is_fixed or self.is_floating or self.is_mock or \
+                                                    self.is_library:
+                msg = 'The volume for %s lab ISO positions must not be None!' \
+                      % (self.position_type)
+                raise ValueError(msg)
+        elif not is_valid_number(volume):
             msg = 'The volume must a positive number (obtained: %s)' % (volume)
             raise ValueError(msg)
 
         if not stock_tube_barcode is None and \
-                                not isinstance(stock_tube_barcode, basestring):
-            msg = 'The stock tube barcode must be a string (obtained: %s).' \
+                    (not isinstance(stock_tube_barcode, basestring) or \
+                     len(stock_tube_barcode) < 2):
+            msg = 'The stock tube barcode must be a string of at least 2 ' \
+                  'characters length (obtained: %s).' \
                    % (stock_tube_barcode.__class__.__name__)
             raise TypeError(msg)
         if not stock_rack_barcode is None and \
-                                not isinstance(stock_rack_barcode, basestring):
-            msg = 'The stock rack barcode must be a string (obtained: %s).' \
+                    (not isinstance(stock_rack_barcode, basestring) or \
+                     len(stock_rack_barcode) < 2):
+            msg = 'The stock rack barcode must be a string of at least 2 ' \
+                  'characters length (obtained: %s).' \
                    % (stock_rack_barcode.__class__.__name__)
             raise TypeError(msg)
         if not sector_index is None and not is_valid_number(sector_index,
@@ -404,10 +420,9 @@ class LabIsoPosition(TransferPosition):
                   '%s).' % (sector_index)
             raise ValueError(msg)
         if not stock_rack_marker is None and \
-                (not isinstance(stock_rack_marker, basestring) or \
-                 len(stock_rack_marker) < 2):
-            msg = 'The stock rack marker must be a string of at least 2 ' \
-                  'characters length (obtained: %s).' % (stock_rack_marker)
+                                not isinstance(stock_rack_marker, basestring):
+            msg = 'The stock rack marker must be a string (obtained: %s).' \
+                  % (stock_rack_marker)
             raise TypeError(msg)
 
         if not stock_tube_barcode is None:
@@ -428,11 +443,7 @@ class LabIsoPosition(TransferPosition):
 
         #: The maximum volume in the plate (after all dilutions but before
         #: usage as source well).
-        self.volume = float(volume)
-
-        #: The supplier for molecule (fixed positions only - not stored in
-        #: the DB).
-        self._supplier = None
+        self.volume = get_converted_number(volume)
 
         #: The (lowest) sector index in the final ISO plate (only for samples
         #: that are transferred via the CyBio).
@@ -441,11 +452,48 @@ class LabIsoPosition(TransferPosition):
         #: (only for starting wells).
         self.stock_rack_marker = stock_rack_marker
 
-        if self.is_mock:
-            self.concentration = None
-            self.stock_rack_barcode = None
-            self.stock_tube_barcode = None
-            self.stock_rack_marker = None
+        non_values = dict(stock_tube_barcode=stock_tube_barcode,
+                          stock_rack_barcode=stock_rack_barcode,
+                          stock_rack_marker=stock_rack_marker)
+        if self.is_library:
+            non_values['transfer_targets'] = transfer_targets
+            self.__check_non_values(non_values)
+        elif self.is_mock:
+            non_values['concentration'] = concentration
+            self.__check_non_values(non_values)
+        elif self.is_empty:
+            non_values['volume'] = volume
+            non_values['sector_index'] = sector_index
+            non_values['transfer_targets'] = transfer_targets
+            non_values['concentration'] = concentration
+            self.__check_non_values(non_values)
+
+    def __check_non_values(self, value_map):
+        """
+        Helper method making sure that certain values are None.
+        """
+        for attr_name, value in value_map.iteritems():
+            if attr_name == 'transfer_targets':
+                if not (value is None or len(value) < 1):
+                    msg = 'Lab ISO position of this type (%s) must not have ' \
+                          'transfer targets!' % (self.position_type)
+                    raise ValueError(msg)
+            elif not value is None:
+                msg = 'The %s for %s lab ISO positions must be None!' \
+                      % (attr_name, self.position_type)
+                raise ValueError(msg)
+
+    def _get_position_type(self, position_type):
+        """
+        This method has to be overwritten because floating position are also
+        allowed to have molecule design pool entities as pool (after their
+        placeholders have been replaced by a picked tube pool).
+        """
+        if position_type == FLOATING_POSITION_TYPE:
+            if self.molecule_design_pool == self.MISSING_FLOATING  or \
+                   isinstance(self.molecule_design_pool, MoleculeDesignPool):
+                return position_type
+        return TransferPosition._get_position_type(self, position_type)
 
     @classmethod
     def create_mock_position(cls, rack_position, volume):
@@ -461,7 +509,8 @@ class LabIsoPosition(TransferPosition):
         """
         return cls(rack_position=rack_position,
                    molecule_design_pool=MOCK_POSITION_TYPE,
-                   position_type=MOCK_POSITION_TYPE, volume=volume)
+                   position_type=MOCK_POSITION_TYPE, volume=volume,
+                   concentration=None)
 
     @property
     def is_missing_floating(self):
@@ -470,7 +519,8 @@ class LabIsoPosition(TransferPosition):
         not been a pool left for it (they are marked by a special
         molecule design pool placeholder).
         """
-        return self.molecule_design_pool == self.PARAMETER_SET.MISSING_FLOATING
+        if not self.is_floating: return False
+        return self.molecule_design_pool == self.MISSING_FLOATING
 
     @property
     def is_inactivated(self):
@@ -544,39 +594,51 @@ class LabIsoPosition(TransferPosition):
 
         :raises ValueError: If there is already a pool for a floating
             position, if (in case of fixed positions) if the pool of tube
-            candidate and position do not match or if there is already a
-            non-placeholde stock tube barcode set.
+            candidate and position do not match, if the tube candidate for
+            a fixed position is *None* or if the position type is not
+            fixed or floating.
+        :raises AttributeError: If there is already a non-placeholder stock
+            tube barcode set.
         :return: The LabIsoPosition or *None* if any value is invalid.
         """
         if self.is_floating:
             if not isinstance(self.molecule_design_pool, basestring):
                 msg = 'The pool for this floating position is already set ' \
                       '(%s!)' % (self.molecule_design_pool)
-                raise ValueError(msg)
+                raise AttributeError(msg)
+            if tube_candidate is None:
+                return self.create_missing_floating_copy()
+            else:
+                pool = tube_candidate.get_pool()
         elif self.is_fixed:
             pool = self.molecule_design_pool
-            if not tube_candidate.pool == pool:
-                msg = 'The pools of the position (%s) and the tube candidate ' \
-                      '(%s) do not match!' % (pool, tube_candidate.pool)
+            if tube_candidate is None:
+                msg = 'The tube candidate for a fixed position must not be ' \
+                      'None!'
                 raise ValueError(msg)
+            elif not tube_candidate.pool_id == pool.id:
+                msg = 'The pools of the position (%s) and the tube candidate ' \
+                      '(%i) do not match!' % (pool, tube_candidate.pool_id)
+                raise ValueError(msg)
+        else:
+            msg = 'Completed copies can only be created for fixed and ' \
+                  'floating positions. This is a %s position.' \
+                   % (self.position_type)
+            raise ValueError(msg)
 
         stock_tube_barcode, stock_rack_barcode = None, None
-        if self.is_floating and tube_candidate is None:
-            return self.create_missing_floating_copy()
-        elif self.stock_tube_barcode == self.TEMP_STOCK_DATA:
+        if self.stock_tube_barcode == self.TEMP_STOCK_DATA:
             stock_tube_barcode = tube_candidate.tube_barcode
             stock_rack_barcode = tube_candidate.rack_barcode
         elif self.stock_tube_barcode is not None:
             msg = 'There is already a stock tube barcode set for this ' \
                   'position (%s)!' % (self.stock_tube_barcode)
-            raise ValueError(msg)
+            raise AttributeError(msg)
 
         kw = dict(molecule_design_pool=pool,
                   position_type=self.position_type,
                   stock_tube_barcode=stock_tube_barcode,
                   stock_rack_barcode=stock_rack_barcode,
-                  concentration=self.concentration,
-                  volume=self.volume,
                   transfer_targets=self.transfer_targets)
         return self.__create_adjusted_copy(**kw)
 
@@ -585,8 +647,8 @@ class LabIsoPosition(TransferPosition):
         Creates a floating position which is empty because no pool has been
         left for it (used to find ignored positions for worklists).
         """
-        kw = dict(molecule_design_pool=self.PARAMETER_SET.MISSING_FLOATING,
-                  position_type=FLOATING_POSITION_TYPE)
+        kw = dict(molecule_design_pool=self.MISSING_FLOATING,
+                  position_type=self.position_type)
         return self.__create_adjusted_copy(**kw)
 
     def __create_adjusted_copy(self, **kw):
@@ -596,6 +658,9 @@ class LabIsoPosition(TransferPosition):
         """
         self._add_class_specific_keywords(kw)
         kw['rack_position'] = self.rack_position
+        kw['concentration'] = self.concentration
+        kw['volume'] = self.volume
+        kw['sector_index'] = self.sector_index
         return self.__class__(**kw)
 
     def _add_class_specific_keywords(self, kw):
@@ -605,42 +670,18 @@ class LabIsoPosition(TransferPosition):
         """
         pass
 
-    def as_transfer_target(self):
+    def as_transfer_target(self, target_plate_marker):
         """
         Returns a :class:`TransferTarget` for a :class:`StockRackPosition`.
         For starting wells only.
+
+        :param target_plate_marker: The rack marker for the rack
+            (see :func:`LABELS.create_rack_marker`) in which position is located.
+        :type target_plate_marker: :class:`basestring`
         """
         return TransferTarget(rack_position=self.rack_position,
                               transfer_volume=self.get_stock_takeout_volume(),
-                              target_rack_marker=self.stock_rack_marker)
-
-    def set_supplier(self, supplier):
-        """
-        Sets the supplier for the molecule (fixed positions only, not stored in
-        the DB).
-
-        :param supplier: The supplier for the molecule.
-        :type supplier: :class:`thelma.models.organization.Organization`
-
-        :raises ValueError: If the position is a mock or a floating type.
-        :raises TypeError: If the supplier is not an Organisation.
-        """
-        if self.is_mock or self.is_floating:
-            msg = 'Suppliers for mock and floating positions are not supported!'
-            raise ValueError(msg)
-
-        if not isinstance(supplier, Organization):
-            msg = 'The supplier must be an Organization object ' \
-                  '(obtained: %s).' % (supplier.__class__.__name__)
-            raise TypeError(msg)
-
-        self._supplier = supplier
-
-    def get_supplier(self):
-        """
-        Returns the supplier.
-        """
-        return self._supplier
+                              target_rack_marker=target_plate_marker)
 
     def _get_parameter_values_map(self):
         parameters = TransferPosition._get_parameter_values_map(self)
@@ -656,10 +697,9 @@ class LabIsoPosition(TransferPosition):
         return parameters
 
     def __eq__(self, other):
-        return isinstance(other, self.__class__) \
-                and self.rack_position == other.rack_position \
-                and self.molecule_design_pool == other.molecule_design_pool \
-                and self.concentration == other.concentration
+        if not TransferPosition.__eq__(self, other): return False
+        return self.concentration == other.concentration and \
+               self.volume == other.volume
 
     def __repr__(self):
         str_format = '<%s %s, pool: %s, concentration: %s, volume: %s, ' \
@@ -676,7 +716,7 @@ class LabIsoLayout(TransferLayout):
     """
     Represents a plate in a lab ISO preparation process.
     """
-    WORKING_POSITION_CLS = LabIsoPosition
+    POSITION_CLS = LabIsoPosition
 
     #: Is used to indicate working position without sector indices in sector
     #: maps (see :func:`get_sector_map`).
@@ -685,6 +725,7 @@ class LabIsoLayout(TransferLayout):
     def get_sorted_floating_positions(self):
         """
         Returns the floating positions sorted by pool ID.
+        Is invoked before assigning tube candidates to floating positions.
         """
         floating_map = dict()
         for plate_pos in self.get_sorted_working_positions():
@@ -730,26 +771,6 @@ class LabIsoLayout(TransferLayout):
             add_list_map_element(sector_map, sector_marker, plate_pos)
         return sector_map
 
-    def get_supplier_map(self):
-        """
-        Returns a dictionary mapping supplier IDs onto the molecule design pool
-        IDs they are meant for (no mocks and no floatings).
-        """
-        supplier_map = dict()
-
-        for plate_pos in self._position_map.values():
-            if plate_pos.is_mock or plate_pos.is_floating: continue
-            pool_id = plate_pos.molecule_design_pool_id
-            if supplier_map.has_key(pool_id): continue
-            supplier = plate_pos.get_supplier()
-            if supplier is None:
-                supplier_id = IsoRequestPosition.ANY_SUPPLIER_INDICATOR
-            else:
-                supplier_id = supplier.id
-            supplier_map[pool_id] = supplier_id
-
-        return supplier_map
-
     def create_rack_layout(self):
         """
         Also makes sure all starting wells have non-temporary data (otherwise
@@ -764,7 +785,7 @@ class LabIsoLayout(TransferLayout):
         the layout mut not be converted into a rack layout and a error is
         raised.
         """
-        tmp_value = self.WORKING_POSITION_CLS.TEMP_STOCK_DATA
+        tmp_value = self.POSITION_CLS.TEMP_STOCK_DATA
         for plate_pos in self._position_map.values():
             if not plate_pos.is_starting_well: continue
             if plate_pos.stock_tube_barcode == tmp_value or \
@@ -780,8 +801,8 @@ class LabIsoLayoutConverter(TransferLayoutConverter):
     NAME = 'ISO Plate Layout Converter'
 
     PARAMETER_SET = LabIsoParameters
-    WORKING_LAYOUT_CLS = LabIsoLayout
-    WORKING_POSITION_CLS = LabIsoPosition
+    LAYOUT_CLS = LabIsoLayout
+    POSITION_CLS = LabIsoPosition
 
     def __init__(self, rack_layout, log):
         """
@@ -797,144 +818,175 @@ class LabIsoLayoutConverter(TransferLayoutConverter):
         TransferLayoutConverter.__init__(self, rack_layout=rack_layout, log=log)
 
         # intermediate storage of invalid rack positions
-        self.__missing_pool = None
-        self.__invalid_pool = None
-        self.__missing_type = None
-        self.__missing_conc = None
         self.__invalid_conc = None
-        self.__missing_vol = None
         self.__invalid_vol = None
-        self.__inconsistent_type = None
+        self.__invalid_sector_index = None
+        self.__invalid_tube_barcode = None
+        self.__invalid_rack_barcode = None
+        self.__transfer_target_not_allowed = None
+        self.__invalid_floating = None
+        self.__tube_data_not_allowed = None
 
     def reset(self):
         """
         Resets all attributes except for the :attr:`rack_layout`.
         """
         TransferLayoutConverter.reset(self)
-        self.__missing_pool = []
-        self.__invalid_pool = []
-        self.__missing_type = []
-        self.__missing_conc = []
         self.__invalid_conc = []
-        self.__missing_vol = []
         self.__invalid_vol = []
-        self.__inconsistent_type = []
+        self.__invalid_sector_index = []
+        self.__invalid_tube_barcode = []
+        self.__invalid_rack_barcode = []
+        self.__transfer_target_not_allowed = []
+        self.__invalid_floating = set()
+        self.__tube_data_not_allowed = []
 
-    def _get_position_init_values(self, parameter_map):
-        rack_position = parameter_map[self._RACK_POSITION_KEY]
-        pool_id = parameter_map[self.PARAMETER_SET.MOLECULE_DESIGN_POOL]
-        pos_type = parameter_map[self.PARAMETER_SET.POS_TYPE]
-        tube_barcode = parameter_map[self.PARAMETER_SET.STOCK_TUBE_BARCODE]
-        rack_barcode = parameter_map[self.PARAMETER_SET.STOCK_RACK_BARCODE]
+    def _get_position_init_values(self, parameter_map, rack_pos):
+        kw = TransferLayoutConverter._get_position_init_values(self,
+                                                parameter_map, rack_pos)
+        if kw is None: return None
+        pos_label = rack_pos.label
+
+        pos_type = kw['position_type']
+
+        invalid = False
         concentration = parameter_map[self.PARAMETER_SET.CONCENTRATION]
-        volume = parameter_map[self.PARAMETER_SET.VOLUME]
-        transfer_targets = parameter_map[self.PARAMETER_SET.TRANSFER_TARGETS]
-
-        is_valid = True
-        if pool_id is None and pos_type is None:
-            return None
-        elif not self._are_valid_transfer_targets(transfer_targets,
-                                                  rack_position):
-            is_valid = False
-
-        rack_pos_label = rack_position.label
-
-        if pool_id is None:
-            self.__missing_pool.append(rack_pos_label)
-            is_valid = False
-        if pos_type is None:
-            self.__missing_type.append(rack_pos_label)
-            is_valid = False
-        else:
-            mock_value = MOCK_POSITION_TYPE
-            if (pos_type == mock_value and not pool_id == mock_value) or \
-                        (not pos_type == mock_value and pool_id == mock_value):
-                self.__inconsistent_type.append(rack_pos_label)
-                is_valid = False
-
-        if pool_id == MOCK_POSITION_TYPE:
-            pool = pool_id
-        elif pos_type == FLOATING_POSITION_TYPE and \
-                                pool_id == self.PARAMETER_SET.MISSING_FLOATING:
-            pool = pool_id
-        else:
-            pool = self._get_molecule_design_pool_for_id(pool_id,
-                                                         rack_pos_label)
-            if pool is None:
-                is_valid = False
-            elif concentration is None:
-                self.__missing_conc.append(rack_pos_label)
-                is_valid = False
-
-        if not concentration is None and not is_valid_number(concentration):
-            info = '%s (%s)' % (rack_pos_label, concentration)
+        if pos_type == MOCK_POSITION_TYPE:
+            if not concentration is None:
+                info = '%s (%s)' % (pos_label, concentration)
+                self.__invalid_conc.append(info)
+                invalid = True
+        elif not is_valid_number(concentration):
+            info = '%s (%s)' % (pos_label, concentration)
             self.__invalid_conc.append(info)
-            is_valid = False
+            invalid = True
 
-        if volume is None:
-            self.__missing_vol.append(rack_pos_label)
-            is_valid = False
+        volume = parameter_map[self.PARAMETER_SET.VOLUME]
         if not is_valid_number(volume):
-            info = '%s (%s)' % (rack_pos_label, volume)
+            info = '%s (%s)' % (pos_label, volume)
             self.__invalid_vol.append(info)
-            is_valid = False
+            invalid = True
 
-        if not is_valid:
-            return None
-        else:
-            kw = dict(rack_position=rack_position,
-                      molecule_design_pool=pool,
-                      position_type=pos_type,
-                      concentration=concentration,
-                      volume=volume,
-                      transfer_targets=transfer_targets,
-                      stock_tube_barcode=tube_barcode,
-                      stock_rack_barcode=rack_barcode)
-            return kw
+        if pos_type == LIBRARY_POSITION_TYPE:
+            tts = kw['transfer_targets']
+            if not (tts is None or len(tts) < 1):
+                self.__transfer_target_not_allowed.append(pos_label)
+                invalid = True
 
-    def _record_additional_position_errors(self):
+        sector_index = parameter_map[self.PARAMETER_SET.SECTOR_INDEX]
+        if sector_index is not None and not is_valid_number(sector_index,
+                                        may_be_zero=True, is_integer=True):
+            info = '%s (%s)' % (pos_label, sector_index)
+            self.__invalid_sector_index.append(info)
+            invalid = True
+
+        stock_tube_barcode = parameter_map[
+                                        self.PARAMETER_SET.STOCK_TUBE_BARCODE]
+        if stock_tube_barcode is not None and len(stock_tube_barcode) < 2:
+            info = '%s (%s)' % (pos_label, stock_tube_barcode)
+            self.__invalid_tube_barcode.append(info)
+            invalid = True
+        stock_rack_barcode = parameter_map[
+                                        self.PARAMETER_SET.STOCK_RACK_BARCODE]
+        if stock_rack_barcode is not None and len(stock_rack_barcode) < 2:
+            info = '%s (%s)' % (pos_label, stock_rack_barcode)
+            self.__invalid_rack_barcode.append(info)
+            invalid = True
+
+        stock_rack_marker = parameter_map[self.PARAMETER_SET.STOCK_RACK_MARKER]
+        if pos_type == MOCK_POSITION_TYPE or pos_type == LIBRARY_POSITION_TYPE:
+            for val in (stock_tube_barcode, stock_rack_barcode,
+                        stock_rack_marker):
+                if not val is None:
+                    self.__tube_data_not_allowed.append(pos_label)
+                    invalid = True
+                    break
+
+        if invalid: return None
+        kw['concentration'] = concentration
+        kw['volume'] = volume
+        kw['sector_index'] = sector_index
+        kw['stock_tube_barcode'] = stock_tube_barcode
+        kw['stock_rack_barcode'] = stock_rack_barcode
+        kw['stock_rack_marker'] = stock_rack_marker
+        return kw
+
+    def _check_type_validity(self, pos_type, pool_id):
+        """
+        Floating position must either be missing strings or pools.
+        """
+        if pos_type == FLOATING_POSITION_TYPE:
+            if pool_id == self.POSITION_CLS.MISSING_FLOATING:
+                return True
+            elif is_valid_number(pool_id, is_integer=True):
+                return True
+            else:
+                self.__invalid_floating.add(pool_id)
+                return False
+        return TransferLayoutConverter._check_type_validity(self, pos_type,
+                                                            pool_id)
+
+    def _record_errors(self):
         """
         Records errors that have been collected for rack positions.
         """
-        TransferLayoutConverter._record_additional_position_errors(self)
+        TransferLayoutConverter._record_errors(self)
 
-        if len(self.__missing_pool) > 0:
-            msg = 'The molecule design pool IDs for the following rack ' \
-                  'positions are missing: %s.' \
-                   % (', '.join(self.__missing_pool))
-            self.add_error(msg)
-
-        if len(self.__missing_type) > 0:
-            msg = 'The position type for the following positions are ' \
-                  'missing: %s.' % (', '.join(self.__missing_type))
-            self.add_error(msg)
-
-        if len(self.__missing_conc) > 0:
-            msg = 'The following rack positions do not have a concentration: ' \
-                  '%s.' % (', '.join(self.__missing_conc))
-            self.add_error(msg)
         if len(self.__invalid_conc) > 0:
-            msg = 'The concentration must be a positive number. The ' \
-                  'following rack positions have invalid concentrations: %s.' \
+            msg = 'The concentration must be a positive number (or *None* ' \
+                  'for mock positions). The following positions in the ' \
+                  'layout have invalid concentrations: %s.' \
                    % (', '.join(self.__invalid_conc))
             self.add_error(msg)
 
-        if len(self.__missing_vol) > 0:
-            msg = 'The following rack positions do not have a volume: %s.' \
-                  % (', '.join(self.__missing_vol))
-            self.add_error(msg)
         if len(self.__invalid_vol) > 0:
             msg = 'The volume must be a positive number. The following rack ' \
-                  'positions have invalid volume: %s.' % \
+                  'positions have invalid volumes: %s.' % \
                   (', '.join(self.__invalid_vol))
             self.add_error(msg)
 
-        if len(self.__inconsistent_type) > 0:
-            msg = 'The mock positions both molecule design pool ID and ' \
-                  'position type must be "%s". The types for the following ' \
-                  'positions are inconsistent: %s.' \
-                   % (MOCK_POSITION_TYPE, ', '.join(self.__inconsistent_type))
+        if len(self.__invalid_floating) > 0:
+            msg = 'Pools for floating positions for lab ISO plate must ' \
+                  'either be a missing placeholder ("%s") or a pool ID. The ' \
+                  'following floating position pools are invalid: %s.' \
+                  % (self.POSITION_CLS.MISSING_FLOATING,
+                     self._get_joined_str(self.__invalid_floating))
             self.add_error(msg)
+
+        if len(self.__invalid_rack_barcode) > 0:
+            msg = 'The stock rack barcode must be at least 2 characters long ' \
+                  'if it is specified. The following positions ins the ' \
+                  'layout have invalid stock rack barcodes: %s.' \
+                  % (self._get_joined_str(self.__invalid_rack_barcode))
+            self.add_error(msg)
+
+        if len(self.__invalid_tube_barcode) > 0:
+            msg = 'The stock tube barcode must be at least 2 characters long ' \
+                  'if it is specified. The following positions ins the ' \
+                  'layout have invalid stock tube barcodes: %s.' \
+                  % (self._get_joined_str(self.__invalid_tube_barcode))
+            self.add_error(msg)
+
+        if len(self.__invalid_sector_index) > 0:
+            msg = 'The sector index must be a non-negative integer or None. ' \
+                  'The following positions in the layout have invalid sector ' \
+                  'indices: %s.' \
+                  % (self._get_joined_str(self.__invalid_sector_index))
+            self.add_error(msg)
+
+        if len(self.__transfer_target_not_allowed) > 0:
+            msg = 'Library lab ISO position must not have transfer targets. ' \
+                  'The following library positions violate this rule: %s.' \
+                   % (self._get_joined_str(self.__transfer_target_not_allowed))
+            self.add_error(msg)
+
+        if len(self.__tube_data_not_allowed) > 0:
+            msg = 'Mock and library ISO plate positions must not have stock ' \
+                  'tube or rack data. The following positions violate this ' \
+                  'rule: %s.' \
+                  % (self._get_joined_str(self.__tube_data_not_allowed))
+            self.add_error(msg)
+
 
 
 class FinalLabIsoParameters(LabIsoParameters):
@@ -961,7 +1013,6 @@ class FinalLabIsoPosition(LabIsoPosition):
     or an ISO.
     """
     PARAMETER_SET = FinalLabIsoParameters
-
     RECORD_FALSE_VALUES = False
 
     def __init__(self, rack_position, molecule_design_pool, position_type,
@@ -1024,6 +1075,11 @@ class FinalLabIsoPosition(LabIsoPosition):
                                   sector_index=sector_index,
                                   stock_rack_marker=stock_rack_marker)
 
+        if from_job and not self.is_fixed:
+            msg = 'Only fixed final lab ISO positions can be provided from ' \
+                  'a job. This one is a %s type.' % (self.position_type)
+            raise ValueError(msg)
+
         #: Is the pool for this position handled by the ISO job (*True*) or
         #: the ISO (*False*)?
         self.from_job = from_job
@@ -1044,7 +1100,8 @@ class FinalLabIsoPosition(LabIsoPosition):
         """
         attr_names = ('rack_position', 'molecule_design_pool', 'position_type',
                       'concentration', 'volume', 'transfer_targets',
-                      'stock_tube_barcode', 'stock_rack_barcode')
+                      'stock_tube_barcode', 'stock_rack_barcode',
+                      'stock_rack_marker')
         kw = dict()
         for attr_name in attr_names:
             value = getattr(iso_plate_pos, attr_name)
@@ -1088,7 +1145,7 @@ class FinalLabIsoLayout(LabIsoLayout):
     library screenings) a library plate (:class:`IsoLibraryPlate`)
     to be completed..
     """
-    WORKING_POSITION_CLS = FinalLabIsoPosition
+    POSITION_CLS = FinalLabIsoPosition
 
 
 class FinalLabIsoLayoutConverter(LabIsoLayoutConverter):
@@ -1098,8 +1155,8 @@ class FinalLabIsoLayoutConverter(LabIsoLayoutConverter):
     NAME = 'ISO Final Plate Layout Converter'
 
     PARAMETER_SET = FinalLabIsoParameters
-    WORKING_LAYOUT_CLS = FinalLabIsoLayout
-    WORKING_POSITION_CLS = FinalLabIsoPosition
+    LAYOUT_CLS = FinalLabIsoLayout
+    POSITION_CLS = FinalLabIsoPosition
 
     def __init__(self, rack_layout, log):
         """
@@ -1116,26 +1173,38 @@ class FinalLabIsoLayoutConverter(LabIsoLayoutConverter):
 
         # intermediate error storage
         self.__invalid_from_job = None
+        self.__true_not_allowed = None
 
     def reset(self):
         LabIsoLayoutConverter.reset(self)
         self.__invalid_from_job = []
+        self.__true_not_allowed = []
 
-    def _get_position_init_values(self, parameter_map):
-        rack_position = parameter_map[self._RACK_POSITION_KEY]
+    def _get_position_init_values(self, parameter_map, rack_pos):
+        kw = LabIsoLayoutConverter._get_position_init_values(self, parameter_map,
+                                                             rack_pos)
+        if kw is None: return None
+
         from_job_str = parameter_map[self.PARAMETER_SET.FROM_JOB]
-
-        kw = LabIsoLayoutConverter._get_position_init_values(self,
-                                                               parameter_map)
-        from_job = self._get_boolean_value(from_job_str, rack_position.label,
+        from_job = self._get_boolean_value(from_job_str, rack_pos.label,
                                            self.__invalid_from_job)
-        if from_job is None or kw is None: return None
+        if from_job is None: return None
+        if from_job and not kw['position_type'] == FIXED_POSITION_TYPE:
+            self.__true_not_allowed.append(rack_pos.label)
+            return None
+
         kw['from_job'] = from_job
         return kw
 
-    def _record_additional_position_errors(self):
-        LabIsoLayoutConverter._record_additional_position_errors(self)
+    def _record_errors(self):
+        LabIsoLayoutConverter._record_errors(self)
         self._record_invalid_boolean_error('from job', self.__invalid_from_job)
+
+        if len(self.__true_not_allowed) > 0:
+            msg = 'Only fixed position might originate from a job. The ' \
+                  'following non-fixed positions violate this rule: %s.' \
+                  % (self._get_joined_str(self.__true_not_allowed))
+            self.add_error(msg)
 
 
 class LabIsoPrepParameters(LabIsoParameters):
@@ -1147,8 +1216,11 @@ class LabIsoPrepParameters(LabIsoParameters):
 
     DOMAIN = 'iso_prep_plate'
 
+    ALLOWED_POSITION_TYPES = [FIXED_POSITION_TYPE, FLOATING_POSITION_TYPE,
+                              EMPTY_POSITION_TYPE]
+
     #: The transfer targets *on the final ISO plate*.
-    EXTERNAL_TRANSFER_TARGETS = 'external_transfer_targets'
+    EXTERNAL_TRANSFER_TARGETS = 'external_targets'
     TRANSFER_TARGET_PARAMETERS = LabIsoParameters.TRANSFER_TARGET_PARAMETERS \
                                  + [EXTERNAL_TRANSFER_TARGETS]
     MUST_HAVE_TRANSFER_TARGETS = \
@@ -1233,12 +1305,7 @@ class LabIsoPrepPosition(LabIsoPosition):
         #: least 1.
         self.external_targets = self._check_transfer_targets(
                                 self.PARAMETER_SET.EXTERNAL_TRANSFER_TARGETS,
-                                external_targets, 'external plate targets')
-
-        invalid_types = (MOCK_POSITION_TYPE, LIBRARY_POSITION_TYPE)
-        if position_type in invalid_types:
-            raise TypeError('ISO preparation position must not be %s ' \
-                            'positions!' % (position_type))
+                                external_targets, 'external plate target')
 
     def _add_class_specific_keywords(self, kw):
         kw['external_targets'] = self.external_targets
@@ -1249,12 +1316,17 @@ class LabIsoPrepPosition(LabIsoPosition):
                                                         self.external_targets
         return parameters
 
+    def _get_transfer_target_map(self):
+        return {self.PARAMETER_SET.TRANSFER_TARGETS : self.transfer_targets,
+                self.PARAMETER_SET.EXTERNAL_TRANSFER_TARGETS : \
+                        self.external_targets}
+
 
 class LabIsoPrepLayout(LabIsoLayout):
     """
     Represents a lab ISO preparation plate.
     """
-    WORKING_POSITION_CLS = LabIsoPrepPosition
+    POSITION_CLS = LabIsoPrepPosition
 
 
 class LabIsoPrepLayoutConverter(LabIsoLayoutConverter):
@@ -1264,21 +1336,20 @@ class LabIsoPrepLayoutConverter(LabIsoLayoutConverter):
     NAME = 'ISO Preparation Plate Layout Converter'
 
     PARAMETER_SET = LabIsoPrepParameters
-    WORKING_LAYOUT_CLS = LabIsoPrepLayout
-    WORKING_POSITION_CLS = LabIsoPrepPosition
+    LAYOUT_CLS = LabIsoPrepLayout
+    POSITION_CLS = LabIsoPrepPosition
 
-    def _get_position_init_values(self, parameter_map):
-        rack_position = parameter_map[self._RACK_POSITION_KEY]
-        external_targets = parameter_map[
-                                self.PARAMETER_SET.EXTERNAL_TRANSFER_TARGETS]
-
+    def _get_position_init_values(self, parameter_map, rack_pos):
         kw = LabIsoLayoutConverter._get_position_init_values(self,
-                                                               parameter_map)
-        if not self._are_valid_transfer_targets(external_targets,
-                   rack_position, self.PARAMETER_SET.EXTERNAL_TRANSFER_TARGETS):
-            return None
+                                                     parameter_map, rack_pos)
+        if kw is None: return kw
 
-        if not kw is None: kw['external_targets'] = external_targets
+        ext_tt_tag_value = parameter_map[
+                                self.PARAMETER_SET.EXTERNAL_TRANSFER_TARGETS]
+        ext_tts = self._parse_target_tag_value(ext_tt_tag_value, rack_pos,
+                                self.PARAMETER_SET.EXTERNAL_TRANSFER_TARGETS)
+        if ext_tts is None: return None
+        kw['external_targets'] = ext_tts
         return kw
 
 

@@ -10,11 +10,11 @@ from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
 from thelma.automation.tools.stock.tubepicking import SinglePoolQuery
 from thelma.automation.tools.stock.tubepicking import TubePickingQuery
 from thelma.automation.tools.stock.tubepicking import TubePoolQuery
-from thelma.automation.tools.utils.base import add_list_map_element
-from thelma.automation.tools.utils.base import are_equal_values
-from thelma.automation.tools.utils.base import create_in_term_for_db_queries
-from thelma.automation.tools.utils.base import get_trimmed_string
-from thelma.automation.tools.utils.base import is_smaller_than
+from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.base import are_equal_values
+from thelma.automation.utils.base import create_in_term_for_db_queries
+from thelma.automation.utils.base import get_trimmed_string
+from thelma.automation.utils.base import is_smaller_than
 from thelma.models.moleculedesign import MoleculeDesignPool
 
 

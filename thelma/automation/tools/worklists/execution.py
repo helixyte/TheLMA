@@ -3,28 +3,28 @@ Classes for the execution of planned liquid transfers and worklists.
 
 AAB
 """
+from thelma.automation.semiconstants import ITEM_STATUS_NAMES
+from thelma.automation.semiconstants import get_item_status_managed
+from thelma.automation.semiconstants import get_pipetting_specs_cybio
+from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
-from thelma.automation.tools.semiconstants import get_item_status_managed
-from thelma.automation.tools.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.utils.base import are_equal_values
-from thelma.automation.tools.utils.base import get_trimmed_string
-from thelma.automation.tools.utils.base import is_larger_than
-from thelma.automation.tools.utils.base import is_smaller_than
-from thelma.automation.tools.utils.racksector import RackSectorTranslator
-from thelma.automation.tools.utils.racksector import check_rack_shape_match
-from thelma.automation.tools.utils.racksector import get_sector_positions
+from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import are_equal_values
+from thelma.automation.utils.base import get_trimmed_string
+from thelma.automation.utils.base import is_larger_than
+from thelma.automation.utils.base import is_smaller_than
+from thelma.automation.utils.racksector import RackSectorTranslator
+from thelma.automation.utils.racksector import check_rack_shape_match
+from thelma.automation.utils.racksector import get_sector_positions
+from thelma.models.liquidtransfer import ExecutedRackSampleTransfer
 from thelma.models.liquidtransfer import ExecutedSampleDilution
 from thelma.models.liquidtransfer import ExecutedSampleTransfer
-from thelma.models.liquidtransfer import ExecutedRackSampleTransfer
 from thelma.models.liquidtransfer import ExecutedWorklist
 from thelma.models.liquidtransfer import PipettingSpecs
+from thelma.models.liquidtransfer import PlannedRackSampleTransfer
 from thelma.models.liquidtransfer import PlannedSampleDilution
 from thelma.models.liquidtransfer import PlannedSampleTransfer
-from thelma.models.liquidtransfer import PlannedRackSampleTransfer
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import ReservoirSpecs
 from thelma.models.liquidtransfer import TRANSFER_TYPES
@@ -339,7 +339,7 @@ class LiquidTransferExecutor(BaseAutomationTool):
             self.add_error(msg)
 
         if len(self._target_volume_too_large) > 0:
-            msg = 'Some target container cannot take up the transfer volume: ' \
+            msg = 'Some target containers cannot take up the transfer volume: ' \
                   '%s. ' % (', '.join(sorted(self._target_volume_too_large)))
             if self._target_max_volume is not None:
                 msg += 'Assumed maximum volume per target well: %s ul.' \
@@ -797,14 +797,15 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
 
     TRANSFER_TYPE = TRANSFER_TYPES.RACK_SAMPLE_TRANSFER
 
-    def __init__(self, planned_rack_transfer, target_rack, source_rack, user,
-                 log, pipetting_specs=None):
+    def __init__(self, planned_rack_sample_transfer, target_rack, source_rack,
+                 user, log, pipetting_specs=None):
         """
         Constructor:
 
-        :param planned_rack_transfer: The planned rack transfer to execute.
-        :type planned_rack_transfer:
-            :class:`thelma.models.liquidtransfer.PlannedRackTransfer`
+        :param planned_rack_sample_transfer: The planned rack sample transfer
+            to execute.
+        :type planned_rack_sample_transfer:
+            :class:`thelma.models.liquidtransfer.PlannedRackSampleTransfer`
 
         :param target_rack: The rack into which the volumes will be dispensed.
         :type target_rack: :class:`thelma.models.rack.Rack`
@@ -828,8 +829,8 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
                                         pipetting_specs=pipetting_specs,
                                         user=user, log=log)
 
-        #: The planned rack transfer to execute.
-        self.planned_rack_transfer = planned_rack_transfer
+        #: The planned rack sample transfer to execute.
+        self.planned_rack_sample_transfer = planned_rack_sample_transfer
         #: The source from which to take the volumes.
         self.source_rack = source_rack
 
@@ -861,7 +862,8 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
         LiquidTransferExecutor._check_input(self)
 
         self._check_input_class('planned rack sample transfer',
-                        self.planned_rack_transfer, PlannedRackSampleTransfer)
+                        self.planned_rack_sample_transfer,
+                        PlannedRackSampleTransfer)
         self._check_input_class('source rack', self.source_rack, Rack)
 
     def _init_source_data(self):
@@ -883,7 +885,7 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
         self.__setup_translator()
         if not self.has_errors():
             self.__check_shape_and_sector_match()
-            self._is_valid_transfer_volume(self.planned_rack_transfer)
+            self._is_valid_transfer_volume(self.planned_rack_sample_transfer)
 
     def __setup_translator(self):
         """
@@ -899,11 +901,14 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
             self.__translation_behaviour = RackSectorTranslator.\
                         get_translation_behaviour(
                         source_shape=src_shape, target_shape=trg_shape,
-                        number_sectors=self.planned_rack_transfer.sector_number)
+                        number_sectors=self.planned_rack_sample_transfer.\
+                                       number_sectors)
 
         try:
-            self._translator = RackSectorTranslator.from_planned_rack_transfer(
-                        planned_rack_transfer=self.planned_rack_transfer,
+            self._translator = RackSectorTranslator.\
+                        from_planned_rack_sample_transfer(
+                        planned_rack_sample_transfer=\
+                                            self.planned_rack_sample_transfer,
                         behaviour=self.__translation_behaviour)
         except ValueError as e:
             msg = 'Error when trying to initialise rack sector translator. ' \
@@ -930,26 +935,28 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
                   'shape: %s, number of sectors: %i, source sector: %i, ' \
                   'target sector: %i, translation type: %s.' \
                   % (src_shape, trg_shape,
-                     self.planned_rack_transfer.sector_number,
-                     self.planned_rack_transfer.source_sector_index,
-                     self.planned_rack_transfer.target_sector_index,
+                     self.planned_rack_sample_transfer.number_sectors,
+                     self.planned_rack_sample_transfer.source_sector_index,
+                     self.planned_rack_sample_transfer.target_sector_index,
                      self.__translation_behaviour)
             self.add_error(msg)
 
         if self.__translation_behaviour == RackSectorTranslator.ONE_TO_MANY \
-                and not self.planned_rack_transfer.target_sector_index == 0:
+                and not self.planned_rack_sample_transfer.\
+                                                    target_sector_index == 0:
             msg = 'The target sector index for one to many translations must ' \
                   'be 0 (obtained: %i, source rack shape: %s, ' \
                   'target rack shape: %s!)' \
-                   % (self.planned_rack_transfer.target_sector_index,
+                   % (self.planned_rack_sample_transfer.target_sector_index,
                       src_shape, trg_shape)
             self.add_error(msg)
         elif self.__translation_behaviour == RackSectorTranslator.MANY_TO_ONE \
-                and not self.planned_rack_transfer.source_sector_index == 0:
+                and not self.planned_rack_sample_transfer.\
+                                                    source_sector_index == 0:
             msg = 'The source sector index for many to one translations must ' \
                   'be 0 (obtained: %i, source rack shape: %s, ' \
                   'target rack shape: %s!)' \
-                   % (self.planned_rack_transfer.source_sector_index,
+                   % (self.planned_rack_sample_transfer.source_sector_index,
                       src_shape, trg_shape)
             self.add_error(msg)
 
@@ -984,7 +991,7 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
             source_sample = self._get_source_sample(source_pos)
             if not source_sample is None:
                 transfer_sample = source_sample.create_and_add_transfer(
-                                                    self.planned_rack_transfer)
+                                            self.planned_rack_sample_transfer)
                 target_sample = self._get_target_sample(target_pos)
                 target_sample.add_transfer(transfer_sample)
 
@@ -994,10 +1001,10 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
         also set the return value.
         """
         self.return_value = ExecutedRackSampleTransfer(
-                        source_rack=self.source_rack,
-                        target_rack=self.target_rack, user=self.user,
-                        planned_rack_transfer=self.planned_rack_transfer,
-                        timestamp=self.now)
+                source_rack=self.source_rack,
+                target_rack=self.target_rack, user=self.user,
+                planned_rack_sample_transfer=self.planned_rack_sample_transfer,
+                timestamp=self.now)
 
     def _create_executed_liquid_transfer(self, planned_liquid_transfer):
         """
@@ -1022,9 +1029,11 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
                                                     self.target_rack.rack_shape)
         else:
             target_positions = get_sector_positions(
-                    sector_index=self.planned_rack_transfer.target_sector_index,
+                    sector_index=self.planned_rack_sample_transfer.\
+                                 target_sector_index,
                     rack_shape=self.target_rack.rack_shape,
-                    number_sectors=self.planned_rack_transfer.sector_number)
+                    number_sectors=self.planned_rack_sample_transfer.\
+                                   number_sectors)
 
         tubes = []
         for rack_pos in target_positions:

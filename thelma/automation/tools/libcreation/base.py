@@ -1,24 +1,24 @@
-"""
-Base classes and constants for library creation ticket.
-
-AAB
-"""
-from everest.entities.utils import get_root_aggregate
-from thelma.automation.tools.utils.base import ParameterSet
-from thelma.automation.tools.utils.base import WorkingLayout
-from thelma.automation.tools.utils.base import WorkingPosition
-from thelma.automation.tools.utils.base import is_valid_number
-from thelma.automation.tools.utils.base import round_up
-from thelma.automation.tools.utils.converters import BaseLayoutConverter
-from thelma.interfaces import IMoleculeDesignPool
-from thelma.models.moleculedesign import MoleculeDesignPool
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
-from thelma.models.moleculetype import MOLECULE_TYPE_IDS
-from thelma.models.tagging import Tag
-from thelma.automation.tools.poolcreation.base import StockSampleCreationLayout
-
-__docformat__ = 'reStructuredText en'
-
+#"""
+#Base classes and constants for library creation ticket.
+#
+#AAB
+#"""
+#from everest.entities.utils import get_root_aggregate
+#from thelma.automation.tools.poolcreation.base import StockSampleCreationLayout
+#from thelma.automation.utils.base import ParameterSet
+#from thelma.automation.utils.base import WorkingLayout
+#from thelma.automation.utils.base import WorkingPosition
+#from thelma.automation.utils.base import is_valid_number
+#from thelma.automation.utils.base import round_up
+#from thelma.automation.utils.converters import BaseLayoutConverter
+#from thelma.interfaces import IMoleculeDesignPool
+#from thelma.models.moleculedesign import MoleculeDesignPool
+#from thelma.models.moleculedesign import MoleculeDesignPoolSet
+#from thelma.models.moleculetype import MOLECULE_TYPE_IDS
+#from thelma.models.tagging import Tag
+#
+#__docformat__ = 'reStructuredText en'
+#
 #__all__ = ['NUMBER_SECTORS',
 #           'NUMBER_MOLECULE_DESIGNS',
 #           'MOLECULE_DESIGN_TRANSFER_VOLUME',
@@ -281,54 +281,54 @@ __docformat__ = 'reStructuredText en'
 #        working_layout.close()
 #
 #
-
-class LibraryLayout(StockSampleCreationLayout):
-    """
-    A special :class:`StockSampleCreationLayout` for a plate involived
-    in library generation (either :class:`IsoAliquotPlate` (rack shape 16x24)
-    or :class:`IsoSectorPreparationPlate` (rack shape 8x12)).
-    """
-    def __init__(self, shape):
-        """
-        Constructor:
-
-        :param shape: The rack shape.
-        :type shape: :class:`thelma.models.rack.RackShape`
-        """
-        StockSampleCreationLayout.__init__(self, shape)
-
-        #: Allows validation of new position (is only set, if the layout is
-        #: initialised via :func:`from_base_layout`.
-        self.base_layout_positions = None
-
-    @classmethod
-    def from_base_layout(cls, base_layout):
-        """
-        Creates a new library layout which will only accept positions that
-        are part of the base layout.
-        """
-        base_layout.close()
-        layout = LibraryLayout(shape=base_layout.shape)
-        layout.base_layout_positions = base_layout.get_positions()
-        return layout
-
-    def add_position(self, working_position):
-        """
-        Adds a :class:`Working_position` to the layout.
-
-        :param working_position: The transfer position to be added.
-        :type working_position: :class:`LibraryPosition`
-
-        :raise ValueError: If the rack position is not allowed by the
-            base layout.
-        :raises TypeError: If the added position is not a
-            :class:`TransferPosition` object.
-        """
-        rack_pos = working_position.rack_position
-        if not self.base_layout_positions is None and \
-                    not rack_pos in self.base_layout_positions:
-            msg = 'Position %s is not part of the base layout. It must not ' \
-                  'take up samples.' % (rack_pos)
-            raise ValueError(msg)
-
-        WorkingLayout.add_position(self, working_position)
+#
+#class LibraryLayout(StockSampleCreationLayout):
+#    """
+#    A special :class:`StockSampleCreationLayout` for a plate involived
+#    in library generation (either :class:`IsoAliquotPlate` (rack shape 16x24)
+#    or :class:`IsoSectorPreparationPlate` (rack shape 8x12)).
+#    """
+#    def __init__(self, shape):
+#        """
+#        Constructor:
+#
+#        :param shape: The rack shape.
+#        :type shape: :class:`thelma.models.rack.RackShape`
+#        """
+#        StockSampleCreationLayout.__init__(self, shape)
+#
+#        #: Allows validation of new position (is only set, if the layout is
+#        #: initialised via :func:`from_base_layout`.
+#        self.base_layout_positions = None
+#
+#    @classmethod
+#    def from_base_layout(cls, base_layout):
+#        """
+#        Creates a new library layout which will only accept positions that
+#        are part of the base layout.
+#        """
+#        base_layout.close()
+#        layout = LibraryLayout(shape=base_layout.shape)
+#        layout.base_layout_positions = base_layout.get_positions()
+#        return layout
+#
+#    def add_position(self, working_position):
+#        """
+#        Adds a :class:`Working_position` to the layout.
+#
+#        :param working_position: The transfer position to be added.
+#        :type working_position: :class:`LibraryPosition`
+#
+#        :raise ValueError: If the rack position is not allowed by the
+#            base layout.
+#        :raises TypeError: If the added position is not a
+#            :class:`TransferPosition` object.
+#        """
+#        rack_pos = working_position.rack_position
+#        if not self.base_layout_positions is None and \
+#                    not rack_pos in self.base_layout_positions:
+#            msg = 'Position %s is not part of the base layout. It must not ' \
+#                  'take up samples.' % (rack_pos)
+#            raise ValueError(msg)
+#
+#        WorkingLayout.add_position(self, working_position)

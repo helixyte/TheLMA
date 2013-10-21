@@ -3,12 +3,12 @@ Tests for worklist tools base classes and functions.
 
 AAB
 """
-from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
-from thelma.automation.tools.semiconstants import get_96_rack_shape
-from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.semiconstants import get_reservoir_spec
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_positions_for_shape
+from thelma.automation.semiconstants import get_rack_position_from_label
+from thelma.automation.semiconstants import get_reservoir_spec
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.worklists.base import EmptyPositionManager
 from thelma.automation.tools.worklists.base import get_dynamic_dead_volume
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase

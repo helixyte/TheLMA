@@ -14,8 +14,8 @@ from everest.resources.descriptors import terminal_attribute
 from thelma.automation.handlers.rackscanning \
                                     import AnyRackScanningParserHandler
 from thelma.automation.handlers.rackscanning import RackScanningLayout
+from thelma.automation.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 from thelma.interfaces import IChemicalStructure
 from thelma.interfaces import IContainerSpecs
 from thelma.interfaces import IItemStatus

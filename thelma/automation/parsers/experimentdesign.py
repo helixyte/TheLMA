@@ -127,11 +127,11 @@ Implementation
 ..............
 """
 
-from thelma.automation.parsers.base import ExcelMoleculeDesignPoolLayoutParser
 from thelma.automation.parsers.base \
     import ExcelMoleculeDesignPoolLayoutParsingContainer
+from thelma.automation.parsers.base import ExcelMoleculeDesignPoolLayoutParser
 from thelma.automation.parsers.base import RackParsingContainer
-from thelma.automation.tools.utils.base import get_trimmed_string
+from thelma.automation.utils.base import get_trimmed_string
 
 __docformat__ = "reStructuredText en"
 

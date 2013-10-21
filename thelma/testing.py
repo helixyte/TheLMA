@@ -384,7 +384,7 @@ class EntityCreatorMixin(object):
         if not 'label' in kw:
             kw['label'] = 'test.isr.label'
         if not 'iso' in kw:
-            kw['iso'] = self._get_entity(IIso)
+            kw['iso'] = self._create_lab_iso()
         if not 'rack' in kw:
             kw['rack'] = self._get_entity(ITubeRack)
         if not 'rack_layout' in kw:
