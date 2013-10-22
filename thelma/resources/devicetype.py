@@ -24,8 +24,7 @@ class DeviceTypeMember(Member):
     title = attribute_alias('label')
     name = terminal_attribute(str, 'name')
     label = terminal_attribute(str, 'label')
-    devices = collection_attribute(IDevice, 'devices',
-                                   backref='type', is_nested=False)
+    devices = collection_attribute(IDevice, 'devices', backref='type')
 
     def update(self, member):
         super(DeviceTypeMember, self).update(member)

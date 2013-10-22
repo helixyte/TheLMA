@@ -35,8 +35,7 @@ class ProjectMember(Member):
     creation_date = terminal_attribute(datetime, 'creation_date')
     leader = member_attribute(IUser, 'leader')
     customer = member_attribute(IOrganization, 'customer')
-    subprojects = collection_attribute(ISubproject, 'subprojects',
-                                       is_nested=True)
+    subprojects = collection_attribute(ISubproject, 'subprojects')
 
     def __getitem__(self, name):
         if name == 'subprojects':

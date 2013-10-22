@@ -13,6 +13,7 @@ from everest.resources.descriptors import terminal_attribute
 from thelma.interfaces import IDevice
 from thelma.interfaces import IRack
 from thelma.resources.base import RELATION_BASE_URL
+from everest.representers.interfaces import IDataElement
 
 __docformat__ = 'reStructuredText en'
 
@@ -37,13 +38,16 @@ class LocationMember(Member):
     rack = member_attribute(IRack, 'rack')
     empty = terminal_attribute(bool, 'empty')
 
-    def update_from_data(self, data_element):
-        prx = DataElementAttributeProxy(data_element)
-        loc = self.get_entity()
-        if prx.rack is None:
-            loc.checkout_rack()
+    def update(self, data):
+        if IDataElement.providedBy(data): # pylint: disable=E1101
+            prx = DataElementAttributeProxy(data)
+            loc = self.get_entity()
+            if prx.rack is None:
+                loc.checkout_rack()
+            else:
+                loc.checkin_rack(prx.rack.get_entity())
         else:
-            loc.checkin_rack(prx.rack.get_entity())
+            Member.update(self, data)
 
 
 class LocationCollection(Collection):

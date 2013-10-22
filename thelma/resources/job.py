@@ -25,6 +25,7 @@ from thelma.interfaces import IUser
 from thelma.models.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
 import logging
+from everest.representers.interfaces import IDataElement
 
 __docformat__ = 'reStructuredText en'
 
@@ -59,15 +60,18 @@ class ExperimentJobMember(JobMember):
         else:
             raise KeyError(name)
 
-    def update_from_data(self, data_element):
-        prx = DataElementAttributeProxy(data_element)
-        exp_nodes = prx.experiments
-        if exp_nodes is not None:
-            for exp_node in exp_nodes:
-                exp_rack_nodes = exp_node.experiment_racks
-                exp_id = exp_node.id
-                if exp_rack_nodes is not None and len(exp_rack_nodes) > 0:
-                    self.__update_experiment_racks(exp_rack_nodes, exp_id)
+    def update(self, data):
+        if IDataElement.providedBy(data): # pylint: disable=E1101
+            prx = DataElementAttributeProxy(data)
+            exp_nodes = prx.experiments
+            if exp_nodes is not None:
+                for exp_node in exp_nodes:
+                    exp_rack_nodes = exp_node.experiment_racks
+                    exp_id = exp_node.id
+                    if exp_rack_nodes is not None and len(exp_rack_nodes) > 0:
+                        self.__update_experiment_racks(exp_rack_nodes, exp_id)
+        else:
+            JobMember.update(self, data)
 
     def __update_experiment_racks(self, exp_rack_nodes, exp_id):
         plate_node = exp_rack_nodes[0].plate

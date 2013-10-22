@@ -10,6 +10,7 @@ from everest.interfaces import IUserMessageNotifier
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.querying.specifications import DescendingOrderSpecification
 from everest.representers.dataelements import DataElementAttributeProxy
+from everest.representers.interfaces import IDataElement
 from everest.resources.base import Collection
 from everest.resources.base import Member
 from everest.resources.descriptors import attribute_alias
@@ -85,8 +86,11 @@ class IsoMember(Member):
 #                                              'iso_aliquot_plates_plates')
     iso_job = member_attribute(IIsoJob, 'iso_job')
 
-    def update_from_data(self, data_element):
-        pass
+    def update(self, data):
+        if IDataElement.providedBy(data): # pylint: disable=E1101
+            pass
+        else:
+            Member.update(self, data)
 
 
 class LabIsoMember(IsoMember):

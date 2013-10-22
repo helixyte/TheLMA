@@ -16,6 +16,8 @@ from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import IMoleculeType
 from thelma.interfaces import ISupplierMoleculeDesign
 from thelma.resources.base import RELATION_BASE_URL
+from everest.entities.interfaces import IEntity
+from everest.constants import CARDINALITIES
 
 __docformat__ = 'reStructuredText en'
 
@@ -43,7 +45,8 @@ class MoleculeDesignMember(Member):
     molecule_type = member_attribute(IMoleculeType, 'molecule_type')
     chemical_structures = collection_attribute(IChemicalStructure,
                                                'chemical_structures')
-    genes = collection_attribute(IGene, 'genes', is_nested=False)
+    genes = collection_attribute(IGene, 'genes',
+                                 cardinality=CARDINALITIES.MANYTOMANY)
     supplier_molecule_designs = \
             collection_attribute(ISupplierMoleculeDesign,
                                  'supplier_molecule_designs')
@@ -68,8 +71,11 @@ class MoleculeDesignSetMember(Member):
                                             'molecule_designs')
     set_type = terminal_attribute(str, 'set_type')
 
-    def update_from_entity(self, new_entity):
-        self.get_entity().molecule_designs = new_entity.molecule_designs
+    def update(self, data):
+        if IEntity.providedBy(data): # pylint: disable=E1101
+            self.get_entity().molecule_designs = data.molecule_designs
+        else:
+            Member.update(self, data)
 
 
 class MoleculeDesignPoolMember(MoleculeDesignSetMember):
@@ -100,6 +106,5 @@ class MoleculeDesignPoolSetMember(Member):
 
     molecule_type = member_attribute(IMoleculeType, 'molecule_type')
     molecule_design_pools = collection_attribute(IMoleculeDesignPool,
-                                                 'molecule_design_pools',
-                                                 is_nested=True)
+                                                 'molecule_design_pools')
 

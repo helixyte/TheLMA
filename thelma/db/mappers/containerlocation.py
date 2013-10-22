@@ -1,7 +1,7 @@
 """
 Container location mapper.
 """
-from everest.repositories.rdb.utils import OrderClauseList
+from everest.repositories.rdb.querying import OrderClauseList
 from sqlalchemy import sql
 from sqlalchemy.orm import composite
 from sqlalchemy.orm import mapper
