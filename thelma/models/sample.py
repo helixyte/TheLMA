@@ -86,13 +86,14 @@ class Sample(Entity):
     #: The molecules present in this sample
     #: (:class:`SampleMolecule`) incl.  meta data (e.g. concentration).
     sample_molecules = None
-    #: All samples which are aliquots of a `StockSample` reference the ID
-    #: of the stock sample's
-    #: :class:`thelma.models.moleculedesign.MoleculeDesignPool`. This
-    #: attribute may be `None` for samples that are created by mixing several
-    #: stock samples; it will certainly be `None` if the designs of the
-    #: sample molecules have not all the same molecule type.
+    # FIXME: We should consider a proper inheritance tree here.
+    #: For aliquots of a `StockSample`, this is the design pool ID; else,
+    #: *None*.
     molecule_design_pool_id = None
+    #: For aliquots of a `StockSample`, this is the product ID; else, *None*.
+    product_id = None
+    #: For aliquots of a `StockSample`, this is the supplier; else, *None*.
+    supplier = None
 
     def __init__(self, volume, container, **kw):
         Entity.__init__(self, **kw)
@@ -164,6 +165,9 @@ class StockSample(Sample):
     #: The molecule design pool for the sample molecules in this stock
     #: sample.
     molecule_design_pool = None
+    #: The product ID for the molecule design pool / supplier combination
+    #: in this stock sample. This is dynamically selected by the mapper.
+    product_id = None
 
     def __init__(self, volume, container, molecule_design_pool, supplier,
                  molecule_type, concentration, **kw):

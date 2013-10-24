@@ -8,12 +8,18 @@ from everest.repositories.rdb import Aggregate
 from everest.utils import get_filter_specification_visitor
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.expression import and_
 from sqlalchemy.sql.expression import func
 from sqlalchemy.sql.expression import over
+from thelma.models.container import Tube
 from thelma.models.location import BarcodedLocation
+from thelma.models.moleculedesign import MoleculeDesignPool
 from thelma.models.rack import Plate
 from thelma.models.rack import Rack
 from thelma.models.rack import TubeRack
+from thelma.models.sample import Sample
+from thelma.models.sample import StockSample
+from thelma.models.suppliermoleculedesign import SupplierMoleculeDesign
 
 __docformat__ = 'reStructuredText en'
 __author__ = 'F Oliver Gathmann'
@@ -156,10 +162,34 @@ class _FilterVisitorFactories(object):
         visitor_cls = get_filter_specification_visitor(EXPRESSION_KINDS.SQL)
         return visitor_cls(Rack, custom_clause_factories)
 
+    @classmethod
+    def _tube_filter_visitor_factory(cls, session): # disregard session pylint: disable=W0613
+        # FIXME: This is necessary because we build our query expressions
+        #        from the instrumented attributes of the entity class -
+        #        which is Sample, not StockSample.
+        def sample_product_id_expr(product_id):
+            # Using hidden instrumented attributes pylint: disable=E1101
+            return Tube.sample.has(
+                and_(StockSample.sample_id == Sample.sample_id,
+                     StockSample.molecule_design_pool.has(
+                         MoleculeDesignPool.supplier_molecule_designs.any(
+                             and_(SupplierMoleculeDesign.product_id == product_id,
+                                  SupplierMoleculeDesign.supplier_id == StockSample.supplier_id,
+                                  SupplierMoleculeDesign.is_current)
+                                                                   ))))
+            # pylint: enable=E1101
+
+        custom_clause_factories = {
+            ('sample.product_id', 'equal_to') : sample_product_id_expr,
+            }
+        visitor_cls = get_filter_specification_visitor(EXPRESSION_KINDS.SQL)
+        return visitor_cls(Tube, custom_clause_factories)
+
     __map = {BarcodedLocation:'_location_filter_visitor_factory',
              Rack:'_rack_filter_visitor_factory',
              TubeRack:'_rack_filter_visitor_factory',
              Plate:'_rack_filter_visitor_factory',
+             Tube:'_tube_filter_visitor_factory',
              }
 
     @classmethod
@@ -184,25 +214,3 @@ class _OrderVisitorFactories(object):
         else:
             res = None
         return res
-
-
-class CacheLoaderRegistry(object):
-    """
-    Cache loader registry for static entity loaders. These are used by the
-    caching entity store to populate in-memory root collections.
-    """
-    def __init__(self):
-        self.__loaders = {}
-
-    def register_loader(self, entity_class, loader):
-        self.__loaders[entity_class] = loader
-
-    def __call__(self, entity_class):
-        loader = self.__loaders.get(entity_class)
-        if not loader is None:
-            ents = loader()
-        else:
-            ents = []
-        return ents
-
-cache_loader_registry = CacheLoaderRegistry()

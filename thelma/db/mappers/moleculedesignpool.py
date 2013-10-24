@@ -4,12 +4,12 @@ Molecule design set mapper.
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy import event
 from sqlalchemy.orm import relationship
+from sqlalchemy.orm.session import object_session
 from thelma.models.gene import Gene
 from thelma.models.moleculedesign import MOLECULE_DESIGN_SET_TYPES
 from thelma.models.moleculedesign import MoleculeDesignPool
 from thelma.models.moleculetype import MoleculeType
 from thelma.models.suppliermoleculedesign import SupplierMoleculeDesign
-from sqlalchemy.orm.session import object_session
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']
@@ -54,4 +54,4 @@ def check_init(target, args, kwargs): # unused args pylint:disable=W0613
     molecule_designs = args[0]
     session = object_session(next(iter(molecule_designs)))
     if not session is None:
-        session.flush(molecule_designs)
+        session.flush()

@@ -197,6 +197,11 @@
                     name="namespace"
                     value="http://schemata.cenix-bioscience.com/container" />
             </attribute>
+            <attribute name="sample_supplier">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/container" />
+            </attribute>
         </representer>
         <representer
             kind="collection"

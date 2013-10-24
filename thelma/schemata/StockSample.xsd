@@ -36,13 +36,9 @@
     >
     </import>
 
-    <complexType
-        name="StockSampleType"
-    >
+    <complexType name="StockSampleType">
         <complexContent>
-            <extension
-                base="sh:ResourceType"
-            >
+            <extension base="sh:ResourceType">
                 <choice>
                     <element
                         name="link"
@@ -50,56 +46,48 @@
                     >
                     </element>
                     <sequence>
-                        <element
-                            ref="md:molecule_designs"
-                        >
+                        <element ref="md:molecule_designs">
                         </element>
-                        <element
-                            ref="o:organization"
-                        >
+                        <element ref="o:organization">
                         </element>
-                        <element
-                            ref="mt:molecule_type"
-                        >
+                        <element ref="mt:molecule_type">
                         </element>
                         <element
                             name="concentration"
                             type="float"
                         >
                         </element>
+                        <element
+                            name="product_id"
+                            type="string"
+                        ></element>
                     </sequence>
                 </choice>
             </extension>
         </complexContent>
     </complexType>
 
-    <complexType
-        name="StockSampleCollectionType"
-    >
-         <choice>
-             <element
-                 ref="ss:stocksample"
-                 maxOccurs="unbounded"
-                 minOccurs="0"
-             >
-             </element>
-             <element
-                 name="link"
-                 type="ss:StockSampleCollectionLinkType"
-                 maxOccurs="1"
-                 minOccurs="0"
-             >
-             </element>
-         </choice>
+    <complexType name="StockSampleCollectionType">
+        <choice>
+            <element
+                ref="ss:stocksample"
+                maxOccurs="unbounded"
+                minOccurs="0"
+            >
+            </element>
+            <element
+                name="link"
+                type="ss:StockSampleCollectionLinkType"
+                maxOccurs="1"
+                minOccurs="0"
+            >
+            </element>
+        </choice>
     </complexType>
 
-    <complexType
-        name="StockSampleLinkType"
-    >
+    <complexType name="StockSampleLinkType">
         <complexContent>
-            <restriction
-                base="sh:LinkType"
-            >
+            <restriction base="sh:LinkType">
                 <attribute
                     name="rel"
                     type="string"
@@ -109,13 +97,9 @@
         </complexContent>
     </complexType>
 
-    <complexType
-        name="StockSampleCollectionLinkType"
-    >
+    <complexType name="StockSampleCollectionLinkType">
         <complexContent>
-            <restriction
-                base="sh:LinkType"
-            >
+            <restriction base="sh:LinkType">
                 <attribute
                     name="rel"
                     type="string"

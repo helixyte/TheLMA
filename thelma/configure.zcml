@@ -16,7 +16,7 @@
         aggregate_class="thelma.models.aggregates.ThelmaRdbAggregate" />
 
     <memory_repository
-        cache_loader="thelma.models.aggregates.cache_loader_registry"
+        cache_loader="thelma.models.cacheloaderregistry.cache_loader_registry"
         />
 
     <!-- MESSAGING -->
