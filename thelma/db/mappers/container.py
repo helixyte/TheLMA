@@ -28,7 +28,7 @@ def create_mapper(container_tbl):
                                        ),
                  sample=relationship(Sample, uselist=False,
                                      back_populates='container',
-#                                     lazy='joined'
+                                     lazy='joined'
                                      ),
                  #empty=True or False if it has no sample or volume is 0
                  status=relationship(ItemStatus, uselist=False),
