@@ -188,7 +188,9 @@ def initialize_mappers(tables, views):
                                 tables['pooled_supplier_molecule_design'],
                                 tables['supplier_molecule_design'],
                                 tables['molecule_design_set_gene'])
-    stocksample.create_mapper(sample_mapper, tables['stock_sample'])
+    stocksample.create_mapper(sample_mapper, tables['stock_sample'],
+                              tables['pooled_supplier_molecule_design'],
+                              tables['supplier_molecule_design'])
     moleculedesignpoolset.create_mapper(
                         tables['molecule_design_pool_set'],
                         tables['molecule_design_pool_set_member'],

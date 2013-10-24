@@ -164,6 +164,9 @@ class StockSample(Sample):
     #: The molecule design pool for the sample molecules in this stock
     #: sample.
     molecule_design_pool = None
+    #: The product ID for the molecule design pool / supplier combination
+    #: in this stock sample. This is dynamically selected by the mapper.
+    product_id = None
 
     def __init__(self, volume, container, molecule_design_pool, supplier,
                  molecule_type, concentration, **kw):
