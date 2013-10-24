@@ -18,6 +18,7 @@ from thelma.interfaces import IRackPosition
 from thelma.interfaces import IRackSpecs
 from thelma.interfaces import ISampleMolecule
 from thelma.resources.base import RELATION_BASE_URL
+from thelma.interfaces import IOrganization
 #from thelma.interfaces import IMoleculeDesignPool
 
 
@@ -56,6 +57,10 @@ class ContainerMember(Member):
 
 class TubeMember(ContainerMember):
     relation = "%s/tube" % RELATION_BASE_URL
+
+    # None in containers that do not hold stock samples.
+    sample_product_id = terminal_attribute(str, 'sample.product_id')
+    sample_supplier = member_attribute(IOrganization, 'sample.supplier')
 
     @property
     def title(self):
