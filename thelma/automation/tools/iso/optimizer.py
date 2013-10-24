@@ -11,6 +11,7 @@ from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.iso.prep_utils import PrepIsoLayout
 from thelma.automation.tools.iso.prep_utils import get_stock_takeout_volume
 from thelma.automation.tools.semiconstants import get_rack_position_from_indices
+from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
 from thelma.automation.tools.stock.base import STOCK_ITEM_STATUS
 from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
@@ -227,8 +228,8 @@ class IsoOptimizer(BaseAutomationTool):
         """
         Determines the largest volume needed.
         """
-        floating_volume = 0
-        fixed_volume = 0
+        floating_volume = STOCK_DEAD_VOLUME
+        fixed_volume = STOCK_DEAD_VOLUME
 
         prep_layout_pools = set()
         for prep_pos in self.prep_layout.working_positions():
@@ -643,7 +644,8 @@ class IsoVolumeSpecificOptimizer(BaseAutomationTool):
                 continue
             volume = prep_pos.get_stock_takeout_volume()
             if volume is None: continue # happens if not a starting well
-            if not volumes.has_key(pool_id): volumes[pool_id] = 0
+            if not volumes.has_key(pool_id):
+                volumes[pool_id] = STOCK_DEAD_VOLUME
             volumes[pool_id] += volume
 
         if len(is_floating) > 0:
