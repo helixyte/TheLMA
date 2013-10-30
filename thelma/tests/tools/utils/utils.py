@@ -312,6 +312,7 @@ class RackSectorTestCase(ToolsAndUtilsTestCase):
         self.position_data = None
         self.cases = (1, 2, 3, 4)
         self.pool_agg = get_root_aggregate(IMoleculeDesignPool)
+        self.current_case_num = None
 
     def tear_down(self):
         ToolsAndUtilsTestCase.tear_down(self)
@@ -323,10 +324,11 @@ class RackSectorTestCase(ToolsAndUtilsTestCase):
         del self.position_data
         del self.cases
         del self.pool_agg
+        del self.current_case_num
 
     def _continue_setup(self):
         if self.position_data is None:
-            self.position_data = self._get_case_data(1)
+            self.position_data = self._get_case_data(3)
         self._init_layout()
         self._fill_layout()
         self._create_tool()
@@ -338,88 +340,108 @@ class RackSectorTestCase(ToolsAndUtilsTestCase):
         raise NotImplementedError('Abstract method.')
 
     def _get_case_data(self, case_num):
+        self.current_case_num = case_num
         if case_num == 1:
-            # different pools and concentration, 1 associated
+            # different pools and concentration, 1 empty
+            # will not allow for sector association because
+            # concentration combinations are not allowed
             return dict(
-            A4=[1, 1, 10], B3=[2, None, None], B4=[3, 1, 30],
-            A6=[1, 2, 10], B5=[2, 3, 20], B6=[3, 2, 30],
-            C2=[1, 'md_5', 10], D1=[2, 'md_6', 20], D2=[3, 'md_5', 30],
-            C4=[1, 'untreated', None], D3=[2, None, None], D4=[3, None, None],
-            E2=[1, 'md_9', 10], F1=[2, 'md_8', 20], F2=[3, 'md_9', 30])
+                C3=[0, 1, 10], C4=[1, 2, 20],
+                    D3=[2, 'mock', None], D4=[3, 'mock', None],
+                C5=[0, 3, 10], C6=[1, 4, 20],
+                    D5=[2, 'md_001', 30], D6=[3, None, None],
+                E3=[0, 6, 10], E4=[1, None, None],
+                    F3=[2, 'md_002', 30], F4=[3, 'untreated', None],
+                E5=[0, 7, 10], E6=[1, 9, 20],
+                    F5=[2, 10, 30], F6=[3, None, None])
         elif case_num == 2:
-            # different pools, equal concentrations, 1 associated, 1 empty
+            # different pools, equal concentrations, 1 empty
             return dict(
-            A4=[1, 1, 10], B3=[2, None, None], B4=[3, 1, 10],
-            A6=[1, 2, 10], B5=[2, 3, 10], B6=[3, 2, 10],
-            C2=[1, 'md_5', 10], D1=[2, 'md_6', 10], D2=[3, 'md_5', 10],
-            C4=[1, 'untreated', None], D3=[2, None, None], D4=[3, None, None],
-            E2=[1, 'md_9', 10], F1=[2, 'md_8', 10], F2=[3, 'md_9', 10])
+                C3=[0, 1, 10], C4=[1, 2, 10],
+                    D3=[2, 'mock', None], D4=[3, 'mock', None],
+                C5=[0, 3, 10], C6=[1, 4, 10],
+                    D5=[2, 'md_001', 10], D6=[3, None, None],
+                E3=[0, 6, 10], E4=[1, None, None],
+                    F3=[2, 'md_002', 10], F4=[3, 'untreated', None],
+                E5=[0, 7, 10], E6=[1, 9, 10],
+                    F5=[2, 10, 10], F6=[3, None, None])
         elif case_num == 3:
-            # equal pools, different concentrations
+            # 2 x 2 association, different concentrations
             return dict(
-            A4=[1, 1, 10], B3=[2, 1, 20], B4=[3, 1, 30],
-            A6=[1, 2, 10], B5=[2, 2, 20], B6=[3, 2, 30],
-            C2=[1, 'md_5', 10], D1=[2, 'md_5', 20], D2=[3, 'md_5', 30],
-            C4=[1, 'untreated', None], D3=[2, None, None], D4=[3, None, None],
-            E2=[1, 'md_9', 10], F1=[2, 'md_9', 20], F2=[3, 'md_9', 30])
+                C3=[0, 1, 10], C4=[1, 'mock', None],
+                    D3=[2, 1, 20], D4=[3, 'mock', None],
+                C5=[0, 3, 10], C6=[1, 4, 10],
+                    D5=[2, 3, 20], D6=[3, 4, 20],
+                E3=[0, 'md_001', 10], E4=[1, 'md_002', 10],
+                    F3=[2, 'md_001', 20], F4=[3, 'md_002', 20],
+                E5=[0, 5, 10], E6=[1, 5, 10],
+                    F5=[2, 5, 20], F6=[3, 5, 20],
+                E7=[0, 'md_003', 10], E8=[1, 'md_004', 10],
+                    F7=[2, 'md_003', 20], F8=[3, 'md_004', 20],)
         elif case_num == 4:
-            # equal pools, equal concentrations
+            # 2 x 2 association, all equal concentrations
             return dict(
-            A4=[1, 1, 10], B3=[2, 1, 10], B4=[3, 1, 10],
-            A6=[1, 2, 10], B5=[2, 2, 10], B6=[3, 2, 10],
-            C2=[1, 'md_5', 10], D1=[2, 'md_5', 10], D2=[3, 'md_5', 10],
-            C4=[1, 'untreated', None], D3=[2, None, None], D4=[3, None, None],
-            E2=[1, 'md_9', 10], F1=[2, 'md_9', 10], F2=[3, 'md_9', 10])
+                C3=[0, 1, 10], C4=[1, 'mock', None],
+                    D3=[2, 1, 10], D4=[3, 'mock', None],
+                C5=[0, 3, 10], C6=[1, 4, 10],
+                    D5=[2, 3, 10], D6=[3, 4, 10],
+                E3=[0, 'md_001', 10], E4=[1, 'md_002', 10],
+                    F3=[2, 'md_001', 10], F4=[3, 'md_002', 10],
+                E5=[0, 5, 10], E6=[1, 5, 10],
+                    F5=[2, 5, 10], F6=[3, 5, 10])
 
-    def _get_expected_sector_concentrations(self, case_number,
-                                            include_none_sectors=True):
-        if case_number == 1: # different pools and concentration, 1 associated
+    def _get_expected_sector_concentrations(self, include_none_sectors=True):
+        if self.current_case_num == 1:
+            # different pools and concentration, 1 empty
             if include_none_sectors:
-                return {0 : None, 1 : 10, 2 : 20, 3 : 30}
+                return {0 : 10, 1 : 20, 2 : 30, 3 : None}
             else:
-                return {1 : 10, 2 : 20, 3 : 30}
-        elif case_number == 2: # different pools, equal conc, 1 associated
+                return {0 : 10, 1 : 20, 2 : 30}
+        elif self.current_case_num == 2:
+            # different pools, equal concentrations, 1 empty
             if include_none_sectors:
-                return {0 : None, 1 : 10, 2 : 10, 3 : 10}
+                return {0 : 10, 1 : 10, 2 : 10, 3 : None}
             else:
-                return {1 : 10, 2 : 10, 3 : 10}
-        elif case_number == 3: # equal pools, different concentrations
-            if include_none_sectors:
-                return {0 : None, 1 : 10, 2 : 20, 3 : 30}
-            else:
-                return {1 : 10, 2 : 20, 3 : 30}
-        else: # equal pools, equal concentrations
-            if include_none_sectors:
-                return {0 : None, 1 : 10, 2 : 10, 3 : 10}
-            else:
-                return {1 : 10, 2 : 10, 3 : 10}
+                return {0 : 10, 1 : 10, 2 : 10}
+        elif self.current_case_num == 3:
+            # 2 x 2 association, different concentrations
+            return {0 : 10, 1 : 10, 2 : 20, 3 : 20}
+        else: # 2 x 2 association, all equal concentrations
+            return {0 : 10, 1 : 10, 2 : 10, 3 : 10}
 
-    def _get_expected_associated_sectors(self, case_number):
-        if case_number == 1: # different pools and concentration, 1 associated
-            return [[1, 3], [2]]
-        elif case_number == 2: # different pools, equal conc, 1 associated
-            return [[1, 3], [2]]
-        elif case_number == 3: # equal pools, different concentrations
-            return [[1, 2, 3]]
-        else: # equal pools, equal concentrations
-            return [[1, 2, 3]]
+    def _get_expected_associated_sectors(self):
+        if self.current_case_num == 1:
+            # different pools and concentration, 1 empty
+            return None
+        elif self.current_case_num == 2:
+            # different pools, equal concentrations, 1 empty
+            return [[0], [1], [2]]
+        elif self.current_case_num == 3:
+            # 2 x 2 association, different concentrations
+            return [[0, 2], [1, 3]]
+        else: # 2 x 2 association, all equal concentrations
+            return [[0, 2], [1, 3]]
 
-    def _get_expected_parent_sectors(self, case_number):
-        if case_number == 1: # different pools and concentration, 1 associated
-            return {1 : 3, 2 : None, 3 : None}
-        elif case_number == 2: # different pools, equal conc, 1 associated
-            return {1 : None, 2 : None, 3 : 1}
-        elif case_number == 3: # equal pools, different concentrations
-            return {1 : 2, 2 : 3, 3 : None}
-        else: # equal pools, equal concentrations
-            return {1 : None, 2 : 1, 3 : 2}
+    def _get_expected_parent_sectors(self):
+        if self.current_case_num == 1:
+            # different pools and concentration, 1 empty
+            return {0 : None, 1 : None, 2 : None}
+        elif self.current_case_num == 2:
+            # different pools, equal concentrations, 1 empty
+            return {0 : None, 1 : None, 2 : None}
+        elif self.current_case_num == 3:
+            # 2 x 2 association, different concentrations
+            return {0 : 2, 1 : 3, 2 : None, 3 : None}
+        else: # 2 x 2 association, all equal concentrations
+            return {0 : None, 1 : None, 2 : 0, 3 : 1}
 
     def _get_pool(self, pool_id):
         if not isinstance(pool_id, int): return pool_id
         if self.pool_map.has_key(pool_id):
             return self.pool_map[pool_id]
         pool = self.pool_agg.get_by_id(pool_id + 205600)
-        self.assert_is_not_none(pool)
+        if pool is None:
+            raise ValueError('Pool ID %i is not known!' % (pool_id))
         self.pool_map[pool_id] = pool
         return pool
 
@@ -460,30 +482,74 @@ class RackSectorTestCase(ToolsAndUtilsTestCase):
 
     def _check_value_determiner_run(self, exp_map):
         sector_map = self.tool.get_result()
-        self.assert_is_not_none(sector_map)
-        self.assert_equal(sector_map, exp_map)
+        if sector_map is None:
+            msg = 'Sector map for case %i is None!' % (self.current_case_num)
+            raise AssertionError(msg)
+        if not sector_map == exp_map:
+            msg = 'The sector map for case %i differs from the expected map!' \
+                  '\nExpected:%s\nFound:%s\n' \
+                   % (self.current_case_num, exp_map, sector_map)
+            raise AssertionError(msg)
 
     def _test_sector_associator(self):
         for case_num in self.cases:
             self.position_data = self._get_case_data(case_num)
             self._continue_setup()
             if self.tool is None: self._create_sector_associator()
-            exp_association = self._get_expected_associated_sectors(case_num)
+            exp_association = self._get_expected_associated_sectors()
             self._check_sector_associator_run(exp_association)
 
     def _create_sector_associator(self):
         raise NotImplementedError('Abstract method.')
 
     def _check_sector_associator_run(self, exp_association):
-        association = self.tool.get_result()
-        self.assert_is_not_none(association)
-        self.assert_equal(sorted(association), sorted(exp_association))
+        if exp_association is None:
+            self._test_and_expect_errors('All sector set must have the ' \
+                'same combination of concentrations to ensure all samples ' \
+                'are treated equally.')
+        else:
+            association = self.tool.get_result()
+            if association is None:
+                msg = 'Associations for case %i is None!' \
+                       % (self.current_case_num)
+                raise AssertionError(msg)
+            if not sorted(association) == sorted(exp_association):
+                msg = 'The associations for case %i differs from the ' \
+                      'expected map!\nExpected:%s\nFound:%s\n' \
+                       % (self.current_case_num, exp_association, association)
+                raise AssertionError(msg)
+
+    def _test_associator_inconsistent_quadrants(self, exp_msg):
+        self.position_data = self._get_case_data(4)
+        self.position_data['F6'] = [3, None, None]
+        self._continue_setup()
+        self._test_and_expect_errors(exp_msg)
+
+    def _test_associator_different_set_lengths(self, exp_msg):
+        self.position_data = self._get_case_data(3)
+        self.position_data['C6'] = [1, 2, 10]
+        self.position_data['E4'] = [1, 2, 10]
+        self._continue_setup()
+        self._test_and_expect_errors(exp_msg)
+
+    def _test_different_concentration_combinations(self):
+        self.position_data = self._get_case_data(3)
+        for pos_data in self.position_data.values():
+            if pos_data[2] is None: continue
+            sector_num = pos_data[0] + 1
+            pos_data[2] = sector_num * 10
+        self._continue_setup()
+        self._test_and_expect_errors('All sector set must have the same ' \
+            'combination of concentrations to ensure all samples are ' \
+            'treated equally. This rule is not met. Talk to Anna, please. ' \
+            'Associated sectors: [[0, 2], [1, 3]], concentrations: 0 (10.0) ' \
+            '- 1 (20.0) - 2 (30.0) - 3 (40.0).')
 
     def _test_association_data_384(self):
         for case_num in self.cases:
             self.position_data = self._get_case_data(case_num)
             self._continue_setup()
-            self._check_association_data_384(case_num)
+            self._check_association_data_384()
 
     def _test_assocation_data_96(self):
         self.rack_shape = get_96_rack_shape()
@@ -491,7 +557,7 @@ class RackSectorTestCase(ToolsAndUtilsTestCase):
             self.position_data = self._get_case_data(case_num)
             self._continue_setup()
             self._adjust_96_layout_for_association_data_test()
-            self._check_association_data_96(case_num)
+            self._check_association_data_96()
 
     def _adjust_96_layout_for_association_data_test(self):
         raise NotImplementedError('Abstract method.')
@@ -499,31 +565,39 @@ class RackSectorTestCase(ToolsAndUtilsTestCase):
     def _create_association_data(self):
         raise NotImplementedError('Abstract method.')
 
-    def _check_association_data_384(self, case_num):
+    def _check_association_data_384(self):
+        exp_associations = self._get_expected_associated_sectors()
+        if exp_associations is None:
+            self._expect_error(ValueError, self._create_association_data,
+                        'Error when trying to find rack sector association.')
+            return None
         ad = self._create_association_data()
         self.assert_is_not_none(ad)
         self.assert_equal(ad.number_sectors, 4)
-        exp_conc = self._get_expected_sector_concentrations(case_num, False)
+        exp_conc = self._get_expected_sector_concentrations(False)
         if not ad.sector_concentrations == exp_conc:
             msg = 'The sector maps for case %i differ. Expected: %s, ' \
-                  'found: %s.' % (case_num, exp_conc, ad.sector_concentrations)
+                  'found: %s.' % (self.current_case_num, exp_conc,
+                                  ad.sector_concentrations)
             raise AssertionError(msg)
-        exp_associations = self._get_expected_associated_sectors(case_num)
         if not sorted(ad.associated_sectors) == sorted(exp_associations):
             msg = 'The associated sectors for case %i differ: Expected: %s, ' \
-                  'found: %s.' % (case_num, exp_associations,
+                  'found: %s.' % (self.current_case_num, exp_associations,
                                   ad.associated_sectors)
             raise AssertionError(msg)
-        exp_parents = self._get_expected_parent_sectors(case_num)
+        exp_parents = self._get_expected_parent_sectors()
         if not exp_parents == ad.parent_sectors:
             msg = 'The parent sectors for case %i differ: Expected: %s, ' \
-                  'found: %s.' % (case_num, exp_parents, ad.parent_sectors)
+                  'found: %s.' % (self.current_case_num, exp_parents,
+                                  ad.parent_sectors)
             raise AssertionError(msg)
         return ad
 
-    def _check_association_data_96(self, case_num):
-        if case_num == 1 or case_num == 3:
-            self.assert_raises(ValueError, self._create_association_data)
+    def _check_association_data_96(self):
+        if self.current_case_num == 1 or self.current_case_num == 3:
+            self._expect_error(ValueError, self._create_association_data,
+                'There is more than 1 concentration although there is is ' \
+                'only one rack sector!')
             return None
         else:
             ad = self._create_association_data()

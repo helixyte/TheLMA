@@ -7,4 +7,4 @@ The ISO volumes and ISO concentrations for this metadata have been set manually.
 WARNINGS
 --------
 
-Experiment Metadata Generator - You did not specify an ISO layout. The system will try to generate the ISO layout by itself.
+Experiment Metadata Generator - You did not specify an ISO request layout. The system will try to generate the layout by itself.

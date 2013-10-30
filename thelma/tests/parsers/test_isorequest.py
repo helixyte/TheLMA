@@ -8,968 +8,883 @@ from datetime import date
 from everest.testing import check_attributes
 from thelma.automation.handlers.isorequest import IsoRequestParserHandler
 from thelma.automation.parsers.isorequest import IsoRequestParser
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionParameters
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionPosition
-from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.utils.iso import IsoParameters
-from thelma.models.moleculetype import MOLECULE_TYPE_IDS
-from thelma.models.rack import RackPositionSet
-from thelma.models.tagging import Tag
+from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.automation.semiconstants import get_384_rack_shape
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_positions_for_shape
+from thelma.automation.semiconstants import get_rack_position_from_label
+from thelma.automation.tools.metadata.base import TransfectionLayout
+from thelma.automation.tools.metadata.base import TransfectionParameters
+from thelma.automation.tools.metadata.base import TransfectionPosition
+from thelma.automation.utils.iso import IsoRequestParameters
+from thelma.automation.utils.layouts import EMPTY_POSITION_TYPE
+from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
+from thelma.automation.utils.layouts import FLOATING_POSITION_TYPE
+from thelma.automation.utils.layouts import LIBRARY_POSITION_TYPE
+from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
+from thelma.automation.utils.layouts import UNTRANSFECTED_POSITION_TYPE
+from thelma.models.iso import LabIsoRequest
+from thelma.models.library import MoleculeDesignLibrary
 from thelma.models.utils import get_user
 from thelma.tests.tools.tooltestingutils import ParsingTestCase
 
 
-class IsoRequestParserTest(ParsingTestCase):
+# I (Anna) have summarized several files in one test case to speed things up
+# because test setup and tear down take the most time during testing
+
+class _IsoRequestParserTestCase(ParsingTestCase):
 
     _PARSER_CLS = IsoRequestParser
+    _TEST_FILE_SUBDIRECTORY = ''
 
     def set_up(self):
         ParsingTestCase.set_up(self)
         self.user = get_user('it')
-        self.NAMESPACE = 'iso'
-        self.VALID_FILE = None
-        self.VALID_FILE_OPTI = 'valid_opti.xls'
-        self.VALID_FILE_SCREEN = 'valid_screen.xls'
-        self.TEST_FILE_PATH = 'thelma:tests/parsers/isos/'
-        self.EMPTY_TAG = Tag(IsoParameters.DOMAIN, IsoParameters.POS_TYPE,
-                             IsoParameters.EMPTY_TYPE_VALUE)
+        self.VALID_FILE = 'valid_file.xls'
+        self.TEST_FILE_PATH = 'thelma:tests/parsers/isorequest/%s/' \
+                               % (self._TEST_FILE_SUBDIRECTORY)
         self.experiment_type_id = None
+        # expected result values
+        self.expected_ir_attrs = dict()
+        self.exp_layout_shape = None
+        # pos_label - pool, pos_type, iso vol, iso conc, final conc, reagent
+        # name, reagent df
+        self.layout_data = dict()
+        self.exp_association_data_values = dict()
+        self.num_add_control_tags = 2
+        self.num_add_other_tags = 8
 
     def tear_down(self):
         ParsingTestCase.tear_down(self)
-        del self.NAMESPACE
-        del self.VALID_FILE_OPTI
-        del self.VALID_FILE_SCREEN
-        del self.EMPTY_TAG
         del self.experiment_type_id
+        del self.expected_ir_attrs
+        del self.layout_data
+        del self.exp_association_data_values
+        del self.num_add_control_tags
+        del self.num_add_other_tags
 
     def _create_tool(self):
         self.tool = IsoRequestParserHandler.create(stream=self.stream,
                                 requester=self.user, log=self.log,
                                 experiment_type_id=self.experiment_type_id)
 
+    def _check_result(self):
+        self._continue_setup()
+        iso_request = self.tool.get_result()
+        self.assert_is_not_none(iso_request)
+        self.assert_true(isinstance(iso_request, LabIsoRequest))
+        self.assert_true(self.tool.has_iso_sheet())
+        self.__check_entity_values(iso_request)
+        self.__check_transfection_layout()
+        self.__check_association_data()
+        self._check_additional_trps()
+
+    def __check_entity_values(self, iso_request):
+        check_attributes(iso_request, self.expected_ir_attrs)
+        self.assert_equal(len(iso_request.isos), 0)
+        self.assert_is_none(iso_request.iso_plate_reservoir_specs)
+        self.assert_is_none(iso_request.experiment_metadata)
+
+    def __check_transfection_layout(self):
+        exp_layout = self._build_expected_layout()
+        attrs = ('molecule_design_pool', 'iso_volume', 'iso_concentration',
+                 'final_concentration', 'reagent_name', 'reagent_dil_factor')
+        tool_layout = self.tool.get_transfection_layout()
+        self.assert_equal(len(tool_layout), len(exp_layout))
+        self.assert_equal(tool_layout.shape, exp_layout.shape)
+        for rack_pos, exp_pos in exp_layout.iterpositions():
+            tool_pos = tool_layout.get_working_position(rack_pos)
+            if tool_pos is None:
+                msg = 'Position %s is missing!' % (rack_pos.label)
+                raise AssertionError(msg)
+            self.assert_is_not_none(tool_pos)
+            for attr_name in attrs:
+                if not getattr(exp_pos, attr_name) == \
+                                        getattr(tool_pos, attr_name):
+                    msg = 'Different value for attribute %s in position %s.\n' \
+                          'Found: %s\nExpected: %s' \
+                           % (attr_name, rack_pos.label,
+                              getattr(tool_pos, attr_name),
+                              getattr(exp_pos, attr_name))
+                    raise AssertionError(msg)
+            self.assert_is_none(tool_pos.optimem_dil_factor)
+
+    def _build_expected_layout(self):
+        exp_layout = TransfectionLayout(shape=self.exp_layout_shape)
+        for pos_label, pos_data in self.layout_data.iteritems():
+            rack_pos = get_rack_position_from_label(pos_label)
+            pool_id = pos_data[0]
+            if isinstance(pool_id, int):
+                pool = self._get_pool(pool_id)
+            else:
+                pool = pool_id
+            tf_pos = TransfectionPosition(rack_position=rack_pos,
+                        molecule_design_pool=pool,
+                        position_type=pos_data[1],
+                        iso_volume=pos_data[2],
+                        iso_concentration=pos_data[3],
+                        final_concentration=pos_data[4],
+                        reagent_name=pos_data[5],
+                        reagent_dil_factor=pos_data[6])
+            exp_layout.add_position(tf_pos)
+        return exp_layout
+
+    def __check_association_data(self):
+        ass_data = self.tool.get_association_data()
+        if self.exp_association_data_values is None:
+            self.assert_is_none(ass_data)
+        else:
+            for attr_name, exp_value in self.exp_association_data_values.\
+                                        iteritems():
+                value = getattr(ass_data, attr_name)
+                if attr_name == 'associated_sectors': value.sort()
+                if not exp_value == value:
+                    msg = 'The %s values for the association data differs.' \
+                          'Expected:%s\nFound:%s' % (attr_name, exp_value, value)
+                    raise AssertionError(msg)
+
+    def _check_additional_trps(self):
+        add_trps = self.tool.get_additional_trps()
+        self.assert_equal(len(add_trps), 3)
+        for trps in add_trps.values():
+            self.assert_equal(len(trps.tags), 1)
+            rps = trps.rack_position_set
+            for tag in trps.tags:
+                self.assert_equal(tag.domain, 'transfection')
+                self.assert_equal(tag.predicate, 'sample type')
+                if len(rps) == self.num_add_control_tags:
+                    self.assert_true(tag.value in ('pos_control',
+                                                   'neg_control'))
+                else:
+                    self.assert_equal(tag.value, 'sample')
+                    self.assert_equal(len(rps), self.num_add_other_tags)
+
     def _test_and_expect_errors(self, msg=None):
         ParsingTestCase._test_and_expect_errors(self, msg=msg)
         self.assert_is_none(self.tool.get_transfection_layout())
         self.assert_is_none(self.tool.get_additional_trps())
+        self.assert_is_none(self.tool.get_association_data())
 
     def _test_invalid_user(self):
         self._continue_setup(self.VALID_FILE)
         self.user = None
         self._test_and_expect_errors('The requester must be a User object')
 
-    def _test_unspecific_errors(self):
-        self._test_levels_interrupted()
-        self._test_value_without_code()
-        self._test_no_iso_sheet()
-        self._test_invalid_shape()
-        self._test_different_shapes()
-        self._test_no_level_marker()
-        self._test_no_code_marker()
-        self._test_no_levels()
-        self._test_level_without_code()
-        self._test_no_layout()
-        self._test_no_pool_tag_definition()
-        self._test_unknown_md_pool()
-        self._test_no_controls()
-        self._test_duplicate_pool_definition()
-        self._test_wrong_alignment()
-        self._test_missing_metadata()
-        self._test_wrong_metadata()
-        self._test_wrong_date()
-        self._test_duplicate_specification()
-        self._test_duplicate_tag()
-        self._test_0_concentration()
-        self._test_order_stock_conc()
-        self._test_missing_level()
-        self._test_reagent_dil_factor_0()
-        self._test_invalid_reagent_dil_factor()
-        self._test_invalid_final_concentration()
-        self._test_unicode()
-        self._test_plate_set_label_too_long()
-        self._test_larger_than_stock_concentration()
+    def _test_invalid_file(self, file_name, msg):
+        self.log.reset()
+        ParsingTestCase._test_invalid_file(self, file_name, msg)
 
-    def _test_levels_interrupted(self):
-        self._test_invalid_file('lv_interrupted.xls',
-                'Tag value (level) code "7" not found for factor ' \
-                '"Molecule design pool id".')
 
-    def _test_value_without_code(self):
-        self._test_invalid_file('value_without_code.xls',
-                'Tag value (level) code "8" not found for factor ' \
-                '"Molecule design pool id"')
+class _IsoRequestParserHandlerUnspecificErrorsDummy(IsoRequestParserHandler):
+    """
+    Used to test errors which are not specific for the experiment type.
+    """
+    SUPPORTED_SCENARIO = 'QPCR' # we need to use a valid one for display names
+    ALLOWED_POSITION_TYPES = set([FIXED_POSITION_TYPE, FLOATING_POSITION_TYPE,
+                              MOCK_POSITION_TYPE, LIBRARY_POSITION_TYPE,
+                              UNTRANSFECTED_POSITION_TYPE, EMPTY_POSITION_TYPE])
 
-    def _test_no_iso_sheet(self):
-        self._test_invalid_file('no_sheet.xls', '')
+    ISO_REQUEST_LAYOUT_PARAMETERS = IsoRequestParameters.ALL
+    TRANSFECTION_LAYOUT_PARAMETERS = [
+                TransfectionParameters.FINAL_CONCENTRATION,
+                TransfectionParameters.REAGENT_DIL_FACTOR]
+    REQUIRED_METADATA = [IsoRequestParserHandler.PLATE_SET_LABEL_KEY,
+                         IsoRequestParserHandler.DELIVERY_DATE_KEY,
+                         IsoRequestParserHandler.COMMENT_KEY]
+    OPTIONAL_PARAMETERS = [IsoRequestParameters.ISO_VOLUME,
+                           TransfectionParameters.REAGENT_NAME,
+                           TransfectionParameters.FINAL_CONCENTRATION]
 
-    def _test_invalid_shape(self):
-        self._test_invalid_file('invalid_shape.xls',
-                                'Invalid layout block shape (8x11)')
+    def _create_positions(self):
+        parameter_map = self.parser.parameter_map
+        pool_container = parameter_map[IsoRequestParameters.
+                                       MOLECULE_DESIGN_POOL]
 
-    def _test_different_shapes(self):
-        self._test_invalid_file('different_shapes.xls',
-            'There are 2 different layout shapes in the file (16x24 and 8x12)')
+        for pos_container in self.parser.shape.position_containers:
+            pos_label = pos_container.label
 
-    def _test_no_level_marker(self):
-        self._test_invalid_file('no_lv_marker.xls',
+            pool_id = self._get_value_for_rack_pos(pool_container, pos_label)
+            pos_type = self._get_position_type(pool_id, pos_label)
+            if pos_type is None: continue
+
+            pool = self._get_molecule_design_pool_for_id(pool_id, pos_type,
+                                                         pos_label)
+
+            iso_volume = self._get_iso_volume(pos_label, pos_type, True)
+            iso_conc = self._get_iso_concentration(pos_label, pos_type, True)
+            final_conc = self._get_final_concentration(pos_label, pos_type,
+                                                       True)
+            reagent_name = self._get_reagent_name(pos_label, pos_type)
+            reagent_df = self._get_reagent_dilution_factor(pos_label, pos_type)
+
+            # Create position
+            if pos_type == EMPTY_POSITION_TYPE or pool is None: continue
+            kw = dict(molecule_design_pool=pool, iso_volume=iso_volume,
+                  iso_concentration=iso_conc, reagent_name=reagent_name,
+                  reagent_dil_factor=reagent_df, final_concentration=final_conc)
+            self._add_position_to_layout(pos_container, kw)
+
+
+class IsoRequestUnspecificErrorsTestCase(_IsoRequestParserTestCase):
+
+    _TEST_FILE_SUBDIRECTORY = 'unspecific'
+
+    def set_up(self):
+        _IsoRequestParserTestCase.set_up(self)
+        self.expected_ir_attrs = dict(comment='Fits to all scenarios',
+                    requester=self.user,
+                    delivery_date=date(2016, 9, 17),
+                    process_job_first=True,
+                    number_aliquots=1)
+        self.exp_layout_shape = get_96_rack_shape()
+        # pos_label - pool, pos_type, iso vol, iso conc, final conc, reagent
+        # name, reagent df
+        self.layout_data = dict(
+            b2=[205200, 'fixed', None, 500, 5, 'mix1', 14],
+            b3=[205200, 'fixed', None, 500, 10, 'mix1', 14],
+            c2=[1056000, 'fixed', None, 500, 5, 'mix1', 14],
+            c3=[1056000, 'fixed', None, 500, 10, 'mix1', 14],
+            d2=['md_001', 'floating', None, 500, 5, 'mix1', 14],
+            d3=['md_002', 'floating', None, 500, 10, 'mix1', 14],
+            e2=['mock', 'mock', None, 'None', 'None', 'mix1', 14],
+            e3=['mock', 'mock', None, 'None', 'None', 'mix1', 14],
+            f2=['library', 'library', None, 500, 5, 'mix1', 14],
+            f3=['library', 'library', None, 500, 10, 'mix1', 14],
+            g2=['untransfected', 'untransfected', 'None', 'None',
+                'untransfected', 'None', 'untransfected'],
+            g3=['untransfected', 'untransfected', 'None', 'None',
+                'untransfected', 'None', 'untransfected'])
+        self.num_add_control_tags = 2
+        self.num_add_other_tags = 8
+
+    def _create_tool(self):
+        self.tool = _IsoRequestParserHandlerUnspecificErrorsDummy(
+                        stream=self.stream, log=self.log, requester=self.user)
+
+    def test_if_result(self):
+        self._test_if_result()
+
+    def test_result(self):
+        self._check_result()
+
+    def test_result_associations(self):
+        # 2x2 sectors horizontal, including controls
+        self.VALID_FILE = 'valid_file_asso_384a.xls'
+        self.exp_layout_shape = get_384_rack_shape()
+        self.num_add_control_tags = 4
+        self.num_add_other_tags = 12
+        self.exp_association_data_values = dict(
+                number_sectors=4,
+                associated_sectors=[[0, 1], [2, 3]],
+                parent_sectors={0 : 1, 1 : None, 2 : 3, 3 : None},
+                sector_concentrations={0 : 5, 1 : 10, 2: 5, 3 : 10},
+                iso_concentrations={0 : 50, 1 : 100, 2: 50, 3 : 100},
+                sector_volumes={0 : 2, 1 : 2, 2 : 2, 3 : 2})
+        # pos_label - pool, pos_type, iso vol, iso conc, final conc, reagent
+        # name, reagent df
+        self.layout_data = dict(
+            b3=[205200, 'fixed', 2, 50, 5, 'mix1', 14],
+            b4=[205200, 'fixed', 2, 100, 10, 'mix1', 14],
+            b5=[1056000, 'fixed', 2, 50, 5, 'mix1', 14],
+            b6=[1056000, 'fixed', 2, 100, 10, 'mix1', 14],
+            c3=['md_001', 'floating', 2, 50, 5, 'mix1', 14],
+            c4=['md_001', 'floating', 2, 100, 10, 'mix1', 14],
+            c5=['md_003', 'floating', 2, 50, 5, 'mix1', 14],
+            c6=['md_003', 'floating', 2, 100, 10, 'mix1', 14],
+            d3=['md_002', 'floating', 2, 50, 5, 'mix1', 14],
+            d4=['md_002', 'floating', 2, 100, 10, 'mix1', 14],
+            d5=['md_004', 'floating', 2, 50, 5, 'mix1', 14],
+            d6=['md_004', 'floating', 2, 100, 10, 'mix1', 14],
+            e3=[205200, 'fixed', 2, 50, 5, 'mix1', 14],
+            e4=[205200, 'fixed', 2, 100, 10, 'mix1', 14],
+            e5=[1056000, 'fixed', 2, 50, 5, 'mix1', 14],
+            e6=[1056000, 'fixed', 2, 100, 10, 'mix1', 14],
+            f3=['mock', 'mock', 2, 'mock', 'mock', 'mix1', 14],
+            f4=['mock', 'mock', 2, 'mock', 'mock', 'mix1', 14],
+            f5=['untransfected', 'untransfected', 'None', 'untransfected',
+                'untransfected', 'None', 'None'],
+            f6=['untransfected', 'untransfected', 'None', 'untransfected',
+                'untransfected', 'None', 'None'])
+        self._check_result()
+        # 2x2 sectors vertical, without controls
+        # pos_label - pool, pos_type, iso vol, iso conc, final conc, reagent
+        # name, reagent df
+        self.VALID_FILE = 'valid_file_asso_384b.xls'
+        self.layout_data = dict(
+            c3=[205200, 'fixed', 2, 150, 15, 'mix1', 14],
+            c4=[205200, 'fixed', 2, 100, 10, 'mix1', 14],
+            d3=[205200, 'fixed', 2, 50, 5, 'mix1', 14],
+            d4=['untransfected', 'untransfected', 'None', 'None', 'None',
+                'None', 'None'],
+            c5=[1056000, 'fixed', 2, 150, 15, 'mix1', 14],
+            c6=[1056000, 'fixed', 2, 100, 10, 'mix1', 14],
+            d5=[1056000, 'fixed', 2, 50, 5, 'mix1', 14],
+            d6=['mock', 'mock', 2, 'None', 'None', 'mix1', 14],
+            e3=['md_001', 'floating', 2, 100, 10, 'mix1', 14],
+            e4=['md_002', 'floating', 2, 100, 10, 'mix1', 14],
+            e5=['md_003', 'floating', 2, 100, 10, 'mix1', 14],
+            e6=['md_004', 'floating', 2, 100, 10, 'mix1', 14],
+            f3=['md_001', 'floating', 2, 50, 5, 'mix1', 14],
+            f4=['md_002', 'floating', 2, 50, 5, 'mix1', 14],
+            f5=['md_003', 'floating', 2, 50, 5, 'mix1', 14],
+            f6=['md_004', 'floating', 2, 50, 5, 'mix1', 14],
+            g3=[205200, 'fixed', 2, 150, 15, 'mix1', 14],
+            g4=[205200, 'fixed', 2, 100, 10, 'mix1', 14],
+            h3=[205200, 'fixed', 2, 50, 5, 'mix1', 14],
+            h4=['untransfected', 'untransfected', 'None', 'None', 'None',
+                'None', 'None'],
+            g5=[1056000, 'fixed', 2, 150, 15, 'mix1', 14],
+            g6=[1056000, 'fixed', 2, 100, 10, 'mix1', 14],
+            h5=[1056000, 'fixed', 2, 50, 5, 'mix1', 14],
+            h6=['mock', 'mock', 2, 'None', 'None', 'mix1', 14])
+        self.expected_ir_attrs['process_job_first'] = False
+        self.exp_association_data_values = dict(
+                number_sectors=4,
+                associated_sectors=[[0, 2], [1, 3]],
+                parent_sectors={0 : None, 1 : None, 2 : 0, 3 : 1},
+                sector_concentrations={0 : 10, 1 : 10, 2: 5, 3 : 5},
+                iso_concentrations={0 : 100, 1 : 100, 2: 50, 3 : 50},
+                sector_volumes={0 : 2, 1 : 2, 2 : 2, 3 : 2})
+        self.num_add_control_tags = 6
+        self._check_result()
+        # 4 independent sectors, controls not included
+        self.VALID_FILE = 'valid_file_asso_384c.xls'
+        self.layout_data['e3'] = ['md_001', 'floating', 2, 100, 10, 'mix1', 14]
+        self.layout_data['e4'] = ['md_002', 'floating', 2, 100, 10, 'mix1', 14]
+        self.layout_data['e5'] = ['md_003', 'floating', 2, 100, 10, 'mix1', 14]
+        self.layout_data['e6'] = ['md_004', 'floating', 2, 100, 10, 'mix1', 14]
+        self.layout_data['f3'] = ['md_005', 'floating', 2, 100, 10, 'mix1', 14]
+        self.layout_data['f4'] = ['md_006', 'floating', 2, 100, 10, 'mix1', 14]
+        self.layout_data['f5'] = ['md_007', 'floating', 2, 100, 10, 'mix1', 14]
+        self.layout_data['f6'] = ['md_008', 'floating', 2, 100, 10, 'mix1', 14]
+        self.exp_association_data_values = dict(
+                number_sectors=4,
+                associated_sectors=[[0], [1], [2], [3]],
+                parent_sectors={0 : None, 1 : None, 2 : None, 3 : None},
+                sector_concentrations={0 : 10, 1 : 10, 2: 10, 3 : 10},
+                iso_concentrations={0 : 100, 1 : 100, 2: 100, 3 : 100},
+                sector_volumes={0 : 2, 1 : 2, 2 : 2, 3 : 2})
+        self._check_result()
+
+    def test_invalid_input_values(self):
+        self._test_invalid_user()
+
+    def test_no_sheet(self):
+        # no sheet, no error
+        self._continue_setup('no_sheet.xls')
+        ir = self.tool.get_result()
+        self.assert_is_none(ir)
+        self.assert_false(self.tool.has_errors())
+
+    def test_general_parser_errors(self):
+        self._test_invalid_file('unicode.xls', 'Unknown character in cell D36')
+        self._test_invalid_file('no_level_marker.xls',
             'Invalid factor definition! There must be a "Code" marker next ' \
             'to and a "Level" marker below the "Factor" marker!')
-
-    def _test_no_code_marker(self):
         self._test_invalid_file('no_code_marker.xls',
             'Invalid factor definition! There must be a "Code" marker next ' \
             'to and a "Level" marker below the "Factor" marker!')
-
-    def _test_no_levels(self):
-        self._continue_setup('no_levels.xls')
-        iso_request = self.tool.get_result()
-        self.assert_is_not_none(iso_request)
-
-    def _test_level_without_code(self):
-        self._test_invalid_file('level_without_code.xls',
-            'cell D19: There are levels in definition for factor ' \
-            '"sample_type" that do not have a code!')
-
-    def _test_no_layout(self):
-        self._test_invalid_file('no_layout.xls',
-                                'Could not find a layout definition')
-
-    def _test_no_pool_tag_definition(self):
-        self._test_invalid_file('no_pool_tag_definition.xls',
-            'Could not find a tag definition for molecule design pool IDs!')
-
-    def _test_unknown_md_pool(self):
-        self._test_invalid_file('unknown_md_pool.xls',
-            'The following molecule design pools are unknown: 999999999 (B2)')
-
-    def _test_no_controls(self):
-        self._test_invalid_file('no_controls.xls',
-            'There are no fixed positions in this ISO layout!')
-
-    def _test_duplicate_pool_definition(self):
-        self._test_invalid_file('duplicate_pool.xls',
-            'There are 2 different molecule design pool tag definitions')
-
-    def _test_wrong_alignment(self):
-        self._test_invalid_file('wrong_alignment.xls',
-            'Unable to find tags (factors) for layout in row 4! Please ' \
+        self._test_invalid_file('duplicate_tag.xls', 'Duplicate tag "type"')
+        self._test_invalid_file('missing_code.xls',
+            'On sheet "ISO" cell C37: There are levels in definition for ' \
+            'factor "reagent dilution factor" that do not have a code!')
+        self._test_invalid_file('code_without_label.xls',
+            'cell B51: There is a code without label!')
+        self._test_invalid_file('layout_alignment.xls',
+            'Unable to find tags (factors) for layout in row 3! Please ' \
             'check the alignment of your layouts!')
+        self._test_invalid_file('no_layouts.xls',
+            'Could not find a layout definition on this sheet. Please make ' \
+            'sure you have indicated them correctly.')
+        self._test_invalid_file('invalid_rack_shape.xls',
+            'cell F37: Invalid layout block shape (8x11). Make sure you ' \
+            'have placed an "end" maker, too.')
+        self._test_invalid_file('different_rack_shapes.xls',
+            'There are 2 different layout shapes in the file (16x24 and ' \
+            '8x12). For this parser, all layout dimensions have to be the ' \
+            'same.')
+        self._test_invalid_file('duplicate_code.xls',
+            'Duplicate code "2" for factor "molecule design pool id".')
+        self._test_invalid_file('unknown_code.xls',
+            'Tag value (level) code "4" not found for factor "molecule ' \
+            'design pool id".')
+        self._test_invalid_file('duplicate_pool_definition.xls',
+            'There are 2 different molecule design pool tag definitions ' \
+            '("molecule design pool id" and "molecule design pool")')
+        self._test_invalid_file('levels_interrupted.xls',
+            'Tag value (level) code "u" not found for factor "molecule ' \
+            'design pool id".')
+        self._test_invalid_file('level_without_code.xls',
+            'cell C17: There are levels in definition for factor ' \
+            '"molecule design pool id" that do not have a code!')
 
-    def _test_missing_metadata(self):
-        self._test_invalid_file('missing_metadata.xls',
+    def test_specific_parser_errors(self):
+        self._test_invalid_file('unknown_metadata_key.xls',
+            'Unknown metadata specifiers: iso request label. Please use ' \
+            'only the following specifiers: comment, delivery_date, ' \
+            'final_concentration, iso_concentration, iso_volume, ' \
+            'number_of_aliquots, plate_set_label, reagent_dilution_factor, ' \
+            'reagent_name')
+        self._test_invalid_file('missing_metadata_value.xls',
             'Could not find value for the following ISO meta data ' \
-            'specifications: plate_set_label')
-
-    def _test_wrong_metadata(self):
-        self._test_invalid_file('wrong_metadata.xls',
-                                'Unknown metadata specifier')
-
-    def _test_wrong_date(self):
-        self._test_invalid_file('wrong_date.xls',
-                                'Cannot read the delivery date')
-
-    def _test_duplicate_tag(self):
-        self._continue_setup('duplicate_tag.xls')
-        self._test_and_expect_errors('Duplicate tag "sample_type"')
-
-    def _test_duplicate_specification(self):
-        self._test_invalid_file('duplicate_specification.xls',
+            'specifications: comment')
+        self._test_invalid_file('no_pool_definition.xls',
+            'Could not find a tag definition for molecule design pool IDs!')
+        self._test_invalid_file('missing_parameter.xls',
+            'There are no values specified for the parameter ' \
+            '"reagent_dilution_factor". Please give a default value at the ' \
+            'beginning of the sheet or specify the values as factor and ' \
+            'levels. Valid factor names are: reagent_concentration, ' \
+            'reagent_dilution_factor.')
+        self._test_invalid_file('default_and_layout_value.xls',
             'You have specified both a default value and a layout for the ' \
-            '"iso_concentration" parameter! Please choose one option')
+            '"iso_concentration" parameter! Please choose one option.')
 
-    def _test_0_concentration(self):
-        self._test_invalid_file('concentration_0.xls',
-                                'invalid ISO concentration')
-        self._check_error_messages('Affected positions: B2, B3, B4')
-
-    def _test_order_stock_conc(self):
-        self._test_invalid_file('stock_conc_order.xls',
-            'Ordering molecule design pools in stock concentration is not ' \
-            'allowed for this kind of experiment metadata')
-
-    def _test_missing_level(self):
-        self._test_invalid_file('missing_levels.xls',
-            'Tag value (level) code "5" not found for factor "sample_type"')
-
-    def _test_reagent_dil_factor_0(self):
-        self._test_invalid_file('reagent_vol_0.xls',
-            'Invalid or missing reagent dilution factor for rack positions: ' \
-            'default value')
-
-    def _test_invalid_reagent_dil_factor(self):
+    def test_parameter_values(self):
+        self._test_invalid_file('invalid_iso_volume.xls',
+            'Some positions in the ISO request layout have invalid ISO ' \
+            'volumes. The volume must be a positive number or left blank. ' \
+            'Untreated position may have a volume "None", "untreated" or ' \
+            '"untransfected". Affected positions: default value.')
+        self._test_invalid_file('invalid_iso_volume_untreated.xls',
+            'Some positions in the ISO request layout have invalid ISO ' \
+            'volumes. The volume must be a positive number or left blank. ' \
+            'Untreated position may have a volume "None", "untreated" or ' \
+            '"untransfected". Affected positions: ')
+        self._test_invalid_file('invalid_iso_concentration.xls',
+            'Some positions in the ISO request layout have invalid ISO ' \
+            'concentration. The concentration must be a positive number or ' \
+            'left blank. Mock and untreated positions may have the values ' \
+            '"None", "mock", "untreated" or "untransfected". Affected ' \
+            'positions: default value.')
+        self._test_invalid_file('invalid_iso_concentration_mock.xls',
+             'Some positions in the ISO request layout have invalid ISO ' \
+             'concentration. The concentration must be a positive number or ' \
+             'left blank. Mock and untreated positions may have the values ' \
+             '"None", "mock", "untreated" or "untransfected". Affected ' \
+             'positions: E2, E3.')
+        self._test_invalid_file('invalid_iso_concentration_untreated.xls',
+             'Some positions in the ISO request layout have invalid ISO ' \
+             'concentration. The concentration must be a positive number or ' \
+             'left blank. Mock and untreated positions may have the values ' \
+             '"None", "mock", "untreated" or "untransfected". Affected ' \
+             'positions: G2, G3.')
+        self._test_invalid_file('invalid_final_concentration.xls',
+            'Invalid final concentration for the following rack positions ' \
+            'in the ISO request layout: B2, C2, D2, F2. The final ' \
+            'concentration must be a positive number! Mock and untreated ' \
+            'positions may have the values "None", "mock", "untreated" or ' \
+            '"untransfected" or no value.')
+        self._test_invalid_file('invalid_final_concentration_mock.xls',
+            'Invalid final concentration for the following rack positions ' \
+            'in the ISO request layout: E2, E3. The final ' \
+            'concentration must be a positive number! Mock and untreated ' \
+            'positions may have the values "None", "mock", "untreated" or ' \
+            '"untransfected" or no value.')
+        self._test_invalid_file('invalid_final_concentration_untreated.xls',
+            'Invalid final concentration for the following rack positions ' \
+            'in the ISO request layout: G2, G3. The final ' \
+            'concentration must be a positive number! Mock and untreated ' \
+            'positions may have the values "None", "mock", "untreated" or ' \
+            '"untransfected" or no value.')
         self._test_invalid_file('invalid_reagent_dil_factor.xls',
-            'Invalid or missing reagent dilution factor for rack positions: ' \
-            'default value')
+            'Invalid or missing reagent dilution factor for rack positions ' \
+            'in the ISO request layout: C2, C3. The dilution factor must be ' \
+            '1 or larger! Untreated position may have the values "None", ' \
+            '"untreated" or "untransfected".')
+        self._test_invalid_file('invalid_reagent_dil_factor_untreated.xls',
+            'Invalid or missing reagent dilution factor for rack positions ' \
+            'in the ISO request layout: G2, G3. The dilution factor must be ' \
+            '1 or larger! Untreated position may have the values "None", ' \
+            '"untreated" or "untransfected".')
+        self._test_invalid_file('invalid_reagent_name.xls',
+            'Invalid or missing reagent name for the following rack ' \
+            'positions in the ISO request layout: default value. The ' \
+            'reagent name must have a length of at least 2! Untreated ' \
+            'position may have the values "None", "untreated" or ' \
+            '"untransfected".')
+        self._test_invalid_file('forbidden_parameters.xls',
+            'Some factors must not be specified as layouts, because there ' \
+            'might only be one value for the whole layout (use the metadata ' \
+            'specification in this case) or no value at all (current ' \
+            'experiment type: qPCR). Invalid factors found: reagent name')
 
-    def _test_invalid_final_concentration(self):
-        self._test_invalid_file('invalid_final_conc.xls',
-                                'Invalid final concentration')
+    def test_pools(self):
+        self._test_invalid_file('missing_pool.xls',
+                'Some position have parameter values although there is no ' \
+                'pool for them: B4 (reagent_dilution_factor).')
+        self._test_invalid_file('unknown_pool.xls',
+            'The following molecule design pools are unknown: ' \
+            '1 (B2, B3) - 2 (C2, C3)')
 
-    def _test_unicode(self):
-        self._test_invalid_file('unicode.xls', 'Unknown character in cell D39')
+    def test_position_types(self):
+        self._test_invalid_file('invalid_position_type.xls',
+                'The following position types are not allowed in the ISO ' \
+                'request layout for this experiment metadata type')
+        # uses qPCR as fake experiment scenario
+        self._check_error_messages(': untreated (G2, G3).')
+        self._test_invalid_file('unknown_position_type.xls',
+                'Unable to determine the position type for the following ' \
+                'pool IDs: floatings (D2, D3). Allowed position types for ' \
+                'this type of experiment are: empty, fixed, floating, ' \
+                'library, mock, untransfected')
 
-    def _test_plate_set_label_too_long(self):
-        self._test_invalid_file('plate_set_label_too_long.xls',
-                                'maximum length for plate set labels')
+    def test_inconsistent_iso_data(self):
+        exp_msg = 'There are positions in this ISO request layout that lack ' \
+                'either an ISO volume or an ISO concentration. If you set a ' \
+                'value for one position, you need to set it for all other ' \
+                'positions as well (mock, untreated and untransfected ' \
+                'positions are excepted).'
+        self._test_invalid_file('inconsistent_iso_volume.xls', exp_msg)
+        self._test_invalid_file('inconsistent_iso_concentration.xls', exp_msg)
 
-    def _test_larger_than_stock_concentration(self):
-        self._test_invalid_file('larger_than_stock.xls',
-            'Some concentrations you have ordered are larger than the stock ' \
-            'concentration for that molecule type')
+    def test_layout_validity(self):
+        self._test_invalid_file('no_controls.xls',
+            'There are no fixed positions in this ISO request layout!')
+        self._test_invalid_file('more_than_stock_conc.xls',
+            'Some concentrations you have ordered are larger than the ' \
+            'stock concentration for that molecule type (50000 nM): B2, B3, ' \
+            'C2, C3.')
+
+    def test_association_errors(self):
+        self._test_invalid_file('association_no_final_conc.xls',
+            'If you use floating positions in an 384-well ISO request layout ' \
+            'you have to provide final concentration to enable sorting by ' \
+            'sectors. Please regard, that the  different concentrations for ' \
+            'a molecule design pool must be located in the same rack sector ' \
+            'and that the distribution of concentrations must be the same ' \
+            'for all quadrants.')
+        self._test_invalid_file('association_failure.xls',
+            'Error when trying to associated rack sectors! The floating ' \
+            'positions in 384-well ISO request layouts must be arranged in ' \
+            'rack sectors to enable the use of the CyBio robot during ISO ' \
+            'generation. If floating molecule design pools shall occur ' \
+            'several times, all occurrences must be located in the same ' \
+            'rack sector and that the distribution of concentrations must ' \
+            'be the same for all quadrants.')
+        self._test_invalid_file('association_several_final_conc.xls',
+            'Some ISO concentrations in the layout that are involved in ' \
+            'rack sector formation are related to more than one distinct ' \
+            'final concentration: ISO conc: 50 uM (final concentrations: ' \
+            '1, 5) - ISO conc: 100 uM (final concentrations: 2, 10).')
+        self._test_invalid_file('association_several_iso_conc.xls',
+            'Some final concentrations in the layout that are involved in ' \
+            'rack sector formation are related to more than one distinct ' \
+            'ISO concentration: final conc: 5 uM (ISO concentrations: ' \
+            '10, 50) - final conc: 10 uM (ISO concentrations: 20, 100).')
+
+    def test_entity_creation_errors(self):
+        self._test_invalid_file('label_too_long.xls',
+            'The maximum length for plate set labels is 17 characters ' \
+            '(obtained: "this_label_is_a_bit_too_long", 28 characters).')
+        self._test_invalid_file('invalid_date.xls',
+            'Cannot read the delivery date. Please use the following date ' \
+            'format: dd.MM.yyyy')
+        self._continue_setup('invalid_date_format.xls')
+        res = self.tool.get_result()
+        self.assert_is_not_none(res)
+        self._check_warning_messages(
+            'The delivery date has could not be encoded because Excel has ' \
+            'delivered an unexpected format. Make sure the cell is formatted ' \
+            'as "text" and reload the file or adjust the delivery date ' \
+            'manually after upload, please.')
 
 
-class IsoRequestOptiParserTestCase(IsoRequestParserTest):
+class IsoRequestParserOptiTestCase(_IsoRequestParserTestCase):
+
+    _TEST_FILE_SUBDIRECTORY = 'opti'
 
     def set_up(self):
-        IsoRequestParserTest.set_up(self)
-        self.VALID_FILE = self.VALID_FILE_OPTI
+        _IsoRequestParserTestCase.set_up(self)
         self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
+        self.expected_ir_attrs = dict(
+                    comment='Robot-opti parser test',
+                    requester=self.user,
+                    delivery_date=date(2016, 9, 17),
+                    process_job_first=True,
+                    number_aliquots=1,
+                    label='robot_opt_test')
+        # pos_label - pool, pos_type, iso vol, iso conc, final conc, reagent
+        # name, reagent df
+        self.layout_data = dict(
+            b2=[205200, 'fixed', None, 100, 10, 'mix1', 28],
+            b3=[205200, 'fixed', None, 100, 10, 'mix1', 28],
+            c2=[1056000, 'fixed', None, 100, 10, 'mix1', 28],
+            c3=[1056000, 'fixed', None, 100, 10, 'mix1', 28],
+            d2=[330001, 'fixed', None, 10000, 10, 'mix2', 28],
+            d3=[330001, 'fixed', None, 10000, 10, 'mix2', 28],
+            e2=['mock', 'mock', None, None, 'None', 'mix1', 28],
+            e3=['untreated', 'untreated', 'None', None, 'None', None, 'None'],
+            b5=['md_001', 'floating', None, 100, 10, 'mix1', 28],
+            c5=['md_002', 'floating', None, 100, 10, 'mix1', 28],
+            d5=['md_003', 'floating', None, 100, 10, 'mix1', 28])
+        self.exp_layout_shape = get_96_rack_shape()
+        self.num_add_control_tags = 2
+        self.num_add_other_tags = 7
 
     def test_if_result(self):
-        self.VALID_FILE = self.VALID_FILE_OPTI
         self._test_if_result()
 
-    def test_handler_user(self):
-        self._test_invalid_user()
-
     def test_result(self):
-        self._continue_setup(self.VALID_FILE_OPTI)
-        iso_request = self.tool.get_result()
-        self.assert_is_not_none(iso_request)
-        # check metadata
-        delivery_date = date(2011, 7, 10)
-        attrs = dict(delivery_date=delivery_date, plate_set_label='test_iso',
-                     number_aliquots=1, requester=self.user,
-                     isos=[], owner='', experiment_metadata=None,
-                     comment='some comment')
-        check_attributes(iso_request, attrs)
-        # check rack layout
-        rl = iso_request.iso_layout
-        self.assert_equal(len(rl.tagged_rack_position_sets), 16)
-        self.assert_equal(len(rl.get_positions()), 18)
-        # parameter tags
-        fixed_tag = Tag(IsoParameters.DOMAIN,
-                        IsoParameters.MOLECULE_DESIGN_POOL, '330001')
-        b4_pos = get_rack_position_from_label('B4')
-        fixed_positions = [b4_pos]
-        fixed_pos_set = rl.get_positions_for_tag(fixed_tag)
-        self._compare_pos_sets(fixed_positions, fixed_pos_set)
-        fixed_type_tag = Tag(IsoParameters.DOMAIN, IsoParameters.POS_TYPE,
-                             IsoParameters.FIXED_TYPE_VALUE)
-        b2_pos = get_rack_position_from_label('B2')
-        b3_pos = get_rack_position_from_label('B3')
-        b5_pos = get_rack_position_from_label('B5')
-        fixed_type_positions = [b2_pos, b3_pos, b4_pos, b5_pos]
-        fixed_type_pos_set = rl.get_positions_for_tag(fixed_type_tag)
-        self._compare_pos_sets(fixed_type_positions, fixed_type_pos_set)
-        float_type_tag = Tag(IsoParameters.DOMAIN, IsoParameters.POS_TYPE,
-                             IsoParameters.FLOATING_TYPE_VALUE)
-        float_positions = rl.get_positions_for_tag(float_type_tag)
-        self.assert_equal(len(float_positions), 12)
-        float_tag = Tag(IsoParameters.DOMAIN,
-                        IsoParameters.MOLECULE_DESIGN_POOL, 'md_002')
-        float_positions = [get_rack_position_from_label('D3'),
-                           get_rack_position_from_label('E3'),
-                           get_rack_position_from_label('F3'),
-                           get_rack_position_from_label('G3')]
-        float_pos_set = rl.get_positions_for_tag(float_tag)
-        self._compare_pos_sets(float_positions, float_pos_set)
-        conc_tag = Tag(IsoParameters.DOMAIN, IsoParameters.ISO_CONCENTRATION,
-                       '50')
-        conc_positions = [b2_pos, b3_pos, b4_pos, b5_pos]
-        conc_pos_set = rl.get_positions_for_tag(conc_tag)
-        self._compare_pos_sets(conc_positions, conc_pos_set)
-        # metadata specification only
-        vol_tag = Tag(IsoParameters.DOMAIN, IsoParameters.ISO_VOLUME, '4')
-        vol_pos_set = rl.get_positions_for_tag(vol_tag)
-        self.assert_equal(len(vol_pos_set), 17)
-        d7_pos = get_rack_position_from_label('D7')
-        exp_set = rl.get_positions()
-        exp_set.remove(d7_pos) # untreated
-        self.assert_equal(vol_pos_set, exp_set)
-        # layout overwrites metadata
-        name_tag = Tag(TransfectionParameters.DOMAIN,
-                       TransfectionParameters.REAGENT_NAME, 'RNAi Mix2')
-        name_positions = [get_rack_position_from_label('F2'),
-                          get_rack_position_from_label('F3'),
-                          get_rack_position_from_label('F4'),
-                          get_rack_position_from_label('G2'),
-                          get_rack_position_from_label('G3'),
-                          get_rack_position_from_label('G4')]
-        name_pos_set = rl.get_positions_for_tag(name_tag)
-        self._compare_pos_sets(name_positions, name_pos_set)
-        name1_tag = Tag(TransfectionParameters.DOMAIN,
-                        TransfectionParameters.REAGENT_NAME, 'RNAi Mix')
-        name1_pos_set = rl.get_positions_for_tag(name1_tag)
-        self.assert_equal(len(name1_pos_set), 11)
-        # additional tags (are not store in the rack layout)
-        add_trps = self.tool.get_additional_trps()
-        self.assert_equal(len(add_trps), 5)
-        sample_type_tag = Tag('transfection', 'sample_type', 'pos')
-        has_tag = False
-        for trps in add_trps.values():
-            self.assert_equal(len(trps.tags), 1)
-            for tag in trps.tags:
-                if tag == sample_type_tag:
-                    has_tag = True
-                    exp_pos_set = [get_rack_position_from_label('B2'),
-                                   get_rack_position_from_label('B3')]
-                    self._compare_pos_sets(exp_pos_set,
-                                           trps.rack_position_set.positions)
-        self.assert_true(has_tag)
-        # check untreated
-        d7_tf = self.tool.get_transfection_layout().get_working_position(d7_pos)
-        self.assert_is_not_none(d7_tf)
-        self.assert_true(d7_tf.is_untreated)
-        self.assert_true(d7_tf.reagent_name, TransfectionPosition.NONE_REPLACER)
+        self._check_result()
+        self._check_warning_messages('There are untreated or untransfected ' \
+            'positions in your ISO request layout! You do not need to mark ' \
+            'them here, because the system considers them to be empty and ' \
+            'will not transfer them to the experiment cell plates!')
 
-    def test_unspecific_errors(self):
-        self._test_unspecific_errors()
-
-    def test_missing_parameter(self):
-        self._test_invalid_file('missing_parameter.xls',
-            'There are no values specified for the parameter "reagent_name"')
-
-    def test_no_supplier(self):
-        self._continue_setup('no_supplier.xls')
-        iso_request = self.tool.get_result()
-        self.assert_is_not_none(iso_request)
-
-    def test_replace_floating_positions(self):
-        self._continue_setup('replace_floatings.xls')
-        iso_request = self.tool.get_result()
-        self.assert_is_not_none(iso_request)
-        all_tags = iso_request.iso_layout.get_tags()
-        float_tags = []
-        for tag in all_tags:
-            if tag.predicate == IsoParameters.MOLECULE_DESIGN_POOL and \
-                                IsoParameters.FLOATING_INDICATOR in tag.value:
-                float_tags.append(tag)
-        self.assert_equal(len(float_tags), 12)
-        for i in range(12):
-            tag = Tag(IsoParameters.DOMAIN, IsoParameters.MOLECULE_DESIGN_POOL,
-                      '%s%03i' % (IsoParameters.FLOATING_INDICATOR, (i + 1)))
-            self.assert_true(tag in float_tags)
-        sl = self.tool.get_transfection_layout()
-        counter = 0
-        for tf_pos in sl.get_sorted_working_positions():
-            if not tf_pos.is_floating: continue
-            counter += 1
-            exp_placeholder = 'md_%03i' % (counter)
-            self.assert_equal(tf_pos.molecule_design_pool, exp_placeholder)
+    def test_result_association(self):
+        self.VALID_FILE = 'valid_file_association.xls'
+        self.exp_layout_shape = get_384_rack_shape()
+        del self.layout_data['e3']
+        for pos_data in self.layout_data.values():
+            pos_data[3] = None
+        self.layout_data['e2'][3] = 'None'
+        self.exp_association_data_values = dict(
+                number_sectors=4,
+                associated_sectors=[[0], [1], [2], [3]],
+                parent_sectors={0 : None, 1 : None, 2 : None, 3 : None},
+                sector_concentrations={0 : 10, 1: 10, 2 : 10, 3 : 10},
+                iso_concentrations={0 : None, 1: None, 2 : None, 3 : None},
+                sector_volumes={0 : None, 1: None, 2 : None, 3 : None})
+        self.num_add_other_tags -= 1
+        self._check_result()
+        warnings = ' '.join(self.tool.get_messages())
+        self.assert_false('There are untreated or untransfected ' \
+            'positions in your ISO request layout!' in warnings)
 
 
-    def test_384_opti_more_than_96_mds(self):
-        self._test_invalid_file(self.VALID_FILE_SCREEN,
-            '384-well optimisation ISO layouts with more than 96 ' \
-            'distinct molecule design pool IDs are not supported')
+class IsoRequestParserScreenTestCase(_IsoRequestParserTestCase):
 
-    def test_stock_concentration(self):
-        self._test_invalid_file('opti_stock_conc.xls',
-            'Ordering molecule design pools in stock concentration is ' \
-            'not allowed for this kind of experiment metadata.')
-
-    def test_missing_iso_volume(self):
-        self._test_invalid_file('missing_iso_volume.xls',
-            'There are positions in this ISO layout that lack either an ' \
-            'ISO volume or an ISO concentration.')
-
-    def test_missing_iso_concentration(self):
-        self._test_invalid_file('missing_iso_concentration.xls',
-            'There are positions in this ISO layout that lack either an ' \
-            'ISO volume or an ISO concentration.')
-
-
-class IsoRequestScreenParserTestCase(IsoRequestParserTest):
+    _TEST_FILE_SUBDIRECTORY = 'screen'
 
     def set_up(self):
-        IsoRequestParserTest.set_up(self)
-        self.VALID_FILE = self.VALID_FILE_SCREEN
+        _IsoRequestParserTestCase.set_up(self)
         self.experiment_type_id = EXPERIMENT_SCENARIOS.SCREENING
+        self.exp_layout_shape = get_384_rack_shape()
+        self.expected_ir_attrs = dict(
+                    comment='Standard screen parser test',
+                    requester=self.user,
+                    delivery_date=date(2016, 9, 17),
+                    process_job_first=True,
+                    number_aliquots=2,
+                    label='scr_test')
+        self.exp_association_data_values = dict(
+                    number_sectors=4,
+                    associated_sectors=[[0], [1], [2], [3]],
+                    parent_sectors={0 : None, 1 : None, 2 : None, 3 : None},
+                    sector_concentrations={0: 10, 1 : 10, 2 : 10, 3 : 10},
+                    sector_volumes={0 : None, 1 : None, 2 : None, 3 : None},
+                    iso_concentrations={0 : None, 1 : None, 2 : None, 3 : None})
+        # pos_label - pool, pos_type, iso vol, iso conc, final conc, reagent
+        # name, reagent df
+        self.layout_data = dict(
+            b2=[205200, 'fixed', None, None, 10, 'mix1', 140],
+            b3=[1056000, 'fixed', None, None, 10, 'mix1', 140],
+            b4=[330001, 'fixed', None, None, 10, 'mix1', 140],
+            b5=['mock', 'mock', None, 'None', 'None', 'mix1', 140],
+            c2=['md_001', 'floating', None, None, 10, 'mix1', 140],
+            c3=['md_002', 'floating', None, None, 10, 'mix1', 140],
+            c4=['md_003', 'floating', None, None, 10, 'mix1', 140],
+            c5=['md_004', 'floating', None, None, 10, 'mix1', 140],
+            d2=['md_005', 'floating', None, None, 10, 'mix1', 140],
+            d3=['md_006', 'floating', None, None, 10, 'mix1', 140],
+            d4=['md_007', 'floating', None, None, 10, 'mix1', 140],
+            d5=['md_008', 'floating', None, None, 10, 'mix1', 140],
+            e2=[205200, 'fixed', None, None, 10, 'mix1', 140],
+            e3=[1056000, 'fixed', None, None, 10, 'mix1', 140],
+            e4=[330001, 'fixed', None, None, 10, 'mix1', 140],
+            e5=['untransfected', 'untransfected', 'untransfected', 'None',
+                'None', 'untransfected', 'untransfected'])
+        self.num_add_control_tags = 2
+        self.num_add_other_tags = 12
 
     def _test_and_expect_errors(self, msg=None):
-        IsoRequestParserTest._test_and_expect_errors(self, msg=msg)
-        self.assert_is_none(self.tool.get_association_data())
-        self.assert_is_none(self.tool.get_molecule_type())
+        _IsoRequestParserTestCase._test_and_expect_errors(self, msg=msg)
         self.assert_is_none(self.tool.get_iso_volume())
 
     def test_if_result(self):
         self._test_if_result()
 
-    def test_handler_user(self):
-        self._test_invalid_user()
+    def test_result(self):
+        self._check_result()
+        self.assert_is_none(self.tool.get_iso_volume())
+        # 96-well layout
+        self.VALID_FILE = 'valid_file_96.xls'
+        for pos_label, pos_data in self.layout_data.iteritems():
+            if not pos_label == 'e5':
+                pos_data[2] = 5
+        self.exp_association_data_values = None
+        self.exp_layout_shape = get_96_rack_shape()
+        self._check_result()
+        self.assert_equal(self.tool.get_iso_volume(), 5)
 
-    def test_screening_result(self):
-        self._continue_setup(self.VALID_FILE)
-        iso_request = self.tool.get_result()
-        self.assert_is_not_none(iso_request)
-        tf_layout = self.tool.get_transfection_layout()
-        self.assert_equal(len(tf_layout), 308)
-        all_tags = tf_layout.get_tags()
-        self.assert_equal(len(all_tags), 294)
-        k23_pos = get_rack_position_from_label('K23')
-        k23_tf = tf_layout.get_working_position(k23_pos)
-        self.assert_is_not_none(k23_tf)
-        self.assert_true(k23_tf.is_untreated)
-        reag_name_tag = Tag(TransfectionParameters.DOMAIN,
-                            TransfectionParameters.REAGENT_NAME,
-                            'RNAiMax')
-        reag_df_tag = Tag(TransfectionParameters.DOMAIN,
-                          TransfectionParameters.REAGENT_DIL_FACTOR, '600')
-        iso_vol_tag = Tag(IsoParameters.DOMAIN, IsoParameters.ISO_VOLUME, '1')
-        mock_tag = Tag(IsoParameters.DOMAIN, IsoParameters.POS_TYPE,
-                         IsoParameters.MOCK_TYPE_VALUE)
-        mock_md_tag = Tag(IsoParameters.DOMAIN,
-                          IsoParameters.MOLECULE_DESIGN_POOL,
-                          IsoParameters.MOCK_TYPE_VALUE)
-        mock_pos = get_rack_position_from_label('C10')
-        mock_tags = [mock_tag, mock_md_tag, iso_vol_tag, reag_name_tag,
-                     reag_df_tag,
-                     Tag(IsoParameters.DOMAIN, IsoParameters.ISO_CONCENTRATION,
-                         TransfectionPosition.NONE_REPLACER),
-                     Tag(TransfectionParameters.DOMAIN,
-                         TransfectionParameters.FINAL_CONCENTRATION,
-                         TransfectionPosition.NONE_REPLACER)]
-        mock_tag_set = tf_layout.get_tags_for_position(mock_pos)
-        self.assert_equal(len(mock_tags), len(mock_tag_set))
-        for tag in mock_tags: self.assert_true(tag in mock_tag_set)
-        control_pos = get_rack_position_from_label('C4')
-        control_tag = Tag(IsoParameters.DOMAIN,
-                          IsoParameters.MOLECULE_DESIGN_POOL,
-                          '205201')
-        iso_conc_tag = Tag(IsoParameters.DOMAIN,
-                           IsoParameters.ISO_CONCENTRATION, '5000')
-        fixed_tag = Tag(IsoParameters.DOMAIN, IsoParameters.POS_TYPE,
-                        IsoParameters.FIXED_TYPE_VALUE)
-        final_conc_tag = Tag(TransfectionParameters.DOMAIN,
-                             TransfectionParameters.FINAL_CONCENTRATION, '10')
-        control_tags = [control_tag, fixed_tag, iso_conc_tag, iso_vol_tag,
-                        reag_name_tag, reag_df_tag, final_conc_tag]
-        control_tag_set = tf_layout.get_tags_for_position(control_pos)
-        self.assert_equal(len(control_tags), len(control_tag_set))
-        for tag in control_tags: self.assert_true(tag in control_tag_set)
-        md_positions = ['C4', 'F14', 'K8', 'M17']
-        md_pos_set = tf_layout.get_positions_for_tag(control_tag)
-        self.assert_equal(len(md_positions), len(md_pos_set))
-        for pos in md_pos_set: self.assert_true(pos.label in md_positions)
-        self.assert_equal(self.tool.get_molecule_type().id,
-                          MOLECULE_TYPE_IDS.SIRNA)
-        self.assert_equal(self.tool.get_iso_volume(), 1)
-        # test rack sector association
-        ad = self.tool.get_association_data()
-        self.assert_equal(ad.number_sectors, 1)
-        exp_concentrations = {0 : 10}
-        self.assert_equal(ad.sector_concentrations, exp_concentrations)
-        exp_parent_sectors = {0 : None}
-        self.assert_equal(ad.parent_sectors, exp_parent_sectors)
-        exp_associated_sectors = [[0]]
-        ass_sectors = ad.associated_sectors
-        self.assert_equal(len(ass_sectors), len(exp_associated_sectors))
-        for sectors in exp_associated_sectors:
-            self.assert_true(sectors in ass_sectors)
-
-    def test_screening_with_multiple_concentrations(self):
-        self._continue_setup('valid_screening_several_conc.xls')
-        iso_request = self.tool.get_result()
-        self.assert_is_not_none(iso_request)
-        tf_layout = self.tool.get_transfection_layout()
-        b13_pos = get_rack_position_from_label('B13')
-        b14_pos = get_rack_position_from_label('B14')
-        b13_tf = tf_layout.get_working_position(b13_pos)
-        b14_tf = tf_layout.get_working_position(b14_pos)
-        self.assert_equal(b13_tf.molecule_design_pool,
-                          b14_tf.molecule_design_pool)
-        self.assert_equal(b13_tf.molecule_design_pool, 'md_002')
-        c13_pos = get_rack_position_from_label('C13')
-        c14_pos = get_rack_position_from_label('C14')
-        c13_tf = tf_layout.get_working_position(c13_pos)
-        c14_tf = tf_layout.get_working_position(c14_pos)
-        self.assert_equal(c13_tf.molecule_design_pool,
-                          c14_tf.molecule_design_pool)
-        self.assert_equal(c13_tf.molecule_design_pool, 'md_013')
-        # test mock
-        mock_tag = Tag(IsoParameters.DOMAIN, IsoParameters.MOLECULE_DESIGN_POOL,
-                       IsoParameters.MOCK_TYPE_VALUE)
-        mock_positions = [get_rack_position_from_label('C9'),
-                          get_rack_position_from_label('C10'),
-                          get_rack_position_from_label('I21'),
-                          get_rack_position_from_label('I22')]
-        mock_pos_set = iso_request.iso_layout.get_positions_for_tag(mock_tag)
-        self._compare_pos_sets(mock_positions, mock_pos_set)
-        self.assert_equal(self.tool.get_molecule_type().id,
-                          MOLECULE_TYPE_IDS.SIRNA)
-        self.assert_equal(self.tool.get_iso_volume(), 4)
-        # test rack sector association
-        ad = self.tool.get_association_data()
-        self.assert_equal(ad.number_sectors, 4)
-        exp_concentrations = {0 : 10, 1: 20, 2 : 10, 3 : 20}
-        self.assert_equal(ad.sector_concentrations, exp_concentrations)
-        exp_parent_sectors = {0 : 1, 1 : None, 2 : 3, 3 : None}
-        self.assert_equal(ad.parent_sectors, exp_parent_sectors)
-        exp_associated_sectors = [[0, 1], [2, 3]]
-        ass_sectors = ad.associated_sectors
-        self.assert_equal(len(ass_sectors), len(exp_associated_sectors))
-        for sectors in exp_associated_sectors:
-            self.assert_true(sectors in ass_sectors)
-
-    def test_screening_with_multiple_concentrations2(self):
-        # other typical case
-        self._continue_setup('valid_screening_several_conc2.xls')
-        iso_request = self.tool.get_result()
-        self.assert_is_not_none(iso_request)
-        tf_layout = self.tool.get_transfection_layout()
-        c19_pos = get_rack_position_from_label('C19')
-        c20_pos = get_rack_position_from_label('C20')
-        d19_pos = get_rack_position_from_label('D19')
-        c19_tf = tf_layout.get_working_position(c19_pos)
-        c20_tf = tf_layout.get_working_position(c20_pos)
-        d19_tf = tf_layout.get_working_position(d19_pos)
-        self.assert_equal(c19_tf.molecule_design_pool,
-                          c20_tf.molecule_design_pool)
-        self.assert_equal(c19_tf.molecule_design_pool,
-                          d19_tf.molecule_design_pool)
-        self.assert_equal(c19_tf.molecule_design_pool, 'md_002')
-        self.assert_equal(c19_tf.final_concentration, 50)
-        self.assert_equal(c19_tf.iso_concentration, None)
-        self.assert_equal(c20_tf.final_concentration, 100)
-        self.assert_equal(c20_tf.iso_concentration, None)
-        self.assert_equal(d19_tf.final_concentration, 150)
-        self.assert_equal(d19_tf.iso_concentration, None)
-        self.assert_equal(self.tool.get_iso_volume(), None)
-        # test rack sector association
-        ad = self.tool.get_association_data()
-        self.assert_equal(ad.number_sectors, 4)
-        exp_concentrations = {0 : 50, 1: 100, 2 : 150, 3 : None}
-        self.assert_equal(ad.sector_concentrations, exp_concentrations)
-        exp_parent_sectors = {0 : 1, 1 : 2, 2 : None}
-        self.assert_equal(ad.parent_sectors, exp_parent_sectors)
-        exp_associated_sectors = [[0, 1, 2]]
-        ass_sectors = ad.associated_sectors
-        self.assert_equal(len(ass_sectors), len(exp_associated_sectors))
-        for sectors in exp_associated_sectors:
-            self.assert_true(sectors in ass_sectors)
-        # check molecule type
-        self.assert_equal(self.tool.get_molecule_type().id,
-                          MOLECULE_TYPE_IDS.SIRNA)
-
-    def test_unspecific_errors(self):
-        self._test_unspecific_errors()
-
-    def test_missing_parameter(self):
-        self._test_invalid_file('missing_parameter.xls', 'Could not find ' \
-            'value for the following ISO meta data specifications')
-
-    def test_screening_inconsistent_rack_sectors(self):
-        self._test_invalid_file('screen_unequal_conc_blocks.xls',
-            'Error when trying to associated rack sectors!')
-
-    def test_different_number_of_concentrations(self):
-        self._test_invalid_file('screen_inconsistent_conc_number.xls',
-            'The concentrations within the ISO layout are not consistent. ' \
-            'Some sample positions have more or different concentrations ' \
-            'than others.')
-
-    def test_screening_with_multiple_final_concentrations(self):
-        self._test_invalid_file('multiple_final_conc.xls',
-            'final concentrations in the screening layout are related to ' \
-            'more than one ISO concentration or vice versa')
-
-    def test_screening_with_multiple_iso_concentrations(self):
-        self._test_invalid_file('multiple_iso_conc.xls',
-            'final concentrations in the screening layout are related to ' \
-            'more than one ISO concentration or vice versa')
-
-    def test_screening_with_iso_volume_layout(self):
-        self._test_invalid_file('screen_with_iso_volume.xls',
-            'Some factors must not be specified as layouts')
-        self._check_error_messages('iso volume')
-
-    def test_screening_with_reagent_name_layout(self):
-        self._test_invalid_file('screen_with_reagent_name.xls',
-            'Some factors must not be specified as layouts')
-        self._check_error_messages('reagent name')
-
-    def test_screening_with_reagent_dilution_factor_layout(self):
-        self._test_invalid_file('screen_with_reagent_dil_factor.xls',
-            'Some factors must not be specified as layouts')
-        self._check_error_messages('reagent dilution factor')
-
-    def test_screening_missing_final_conc(self):
-        self._test_invalid_file('screen_missing_final_conc.xls',
-            'Invalid final concentration for the following rack positions')
-
-    def test_screening_invalid_iso_conc_default(self):
-        self._test_invalid_file('invalid_default_iso_conc_screen.xls',
-                                'invalid ISO concentration')
-
-    def test_screening_invalid_final_conc_default(self):
-        self._test_invalid_file('invalid_default_final_conc_screen.xls',
-                                'Invalid final concentration')
-
-    def test_screening_missing_number_of_aliquots(self):
-        self._test_invalid_file('screen_missing_aliquot.xls',
-                                'number_of_aliquots')
-
-    def test_screening_invalid_number_of_aliquots(self):
-        self._test_invalid_file('screen_invalid_aliquot.xls',
-            'number of aliquots must be a positive integer')
-
-    def test_different_molecule_types_screening(self):
-        self._test_invalid_file('different_molecule_types_screen.xls',
-            'There is more than one molecule type in the ISO layout')
-
-    def test_stock_concentration_multi_conc(self):
-        self._test_invalid_file('screen_stock_conc_multi_conc.xls',
-            'Ordering molecule design pools in stock concentration is not ' \
-            'allowed for this kind of experiment metadata.')
+    def test_invalid_number_aliquots(self):
+        self._test_invalid_file('invalid_number_aliquots.xls',
+            'The number of aliquots must be a positive integer (obtained: 2.3)')
+        self._test_invalid_file('missing_number_aliquot.xls',
+            'Could not find value for the following ISO meta data ' \
+            'specifications: number_of_aliquots')
 
 
-class IsoRequestLibraryParserTestCase(IsoRequestParserTest):
-    """
-    We test only experiment type specific tests here because other wise
-    we would need a whole bunch of new test files.
-    """
+class IsoRequestParserLibraryTestCase(_IsoRequestParserTestCase):
+
+    _TEST_FILE_SUBDIRECTORY = 'library'
+
     def set_up(self):
-        IsoRequestParserTest.set_up(self)
-        self.VALID_FILE = 'valid_library.xls'
+        _IsoRequestParserTestCase.set_up(self)
         self.experiment_type_id = EXPERIMENT_SCENARIOS.LIBRARY
+        self.exp_layout_shape = get_384_rack_shape()
+        self.expected_ir_attrs = dict(
+                comment='library screening parser test case',
+                requester=self.user,
+                delivery_date=date(2016, 9, 17),
+                process_job_first=True,
+                number_aliquots=1,
+                label='default') # no label placeholder of the parser handler
+        self.num_add_control_tags = 2
+        self.num_add_other_tags = 280 # 276 library + 4 others
+        # pos_label - pool, pos_type, iso vol, iso conc, final conc, reagent
+        # name, reagent df
+        self.layout_data = dict(
+                b2=[205200, 'fixed', None, None, 10, 'mix1', 140],
+                b9=[205200, 'fixed', None, None, 10, 'mix1', 140],
+                d2=[1056000, 'fixed', None, None, 10, 'mix1', 140],
+                d9=[1056000, 'fixed', None, None, 10, 'mix1', 140],
+                f2=[330001, 'fixed', None, None, 10, 'mix1', 140],
+                f9=[330001, 'fixed', None, None, 10, 'mix1', 140],
+                h2=['mock', 'mock', None, None, 'mock', 'mix1', 140],
+                h9=['untransfected', 'untransfected', None, None,
+                    'untransfected', 'untransfected', 'untransfected'])
 
     def _test_and_expect_errors(self, msg=None):
-        IsoRequestParserTest._test_and_expect_errors(self, msg=msg)
+        _IsoRequestParserTestCase._test_and_expect_errors(self, msg=msg)
         self.assert_is_none(self.tool.get_library())
         self.assert_is_none(self.tool.get_final_concentration())
         self.assert_is_none(self.tool.get_reagent_name())
         self.assert_is_none(self.tool.get_reagent_dil_factor())
 
+    def _build_expected_layout(self):
+        exp_layout = _IsoRequestParserTestCase._build_expected_layout(self)
+        shape = self.exp_layout_shape
+        for rack_pos in get_positions_for_shape(shape):
+            if rack_pos.column_index in (0, shape.number_columns - 1):
+                continue
+            if rack_pos.row_index in (0, shape.number_rows - 1):
+                continue
+            if rack_pos.label in (
+                     'B2', 'D2', 'F2', 'H2', 'B9', 'D9', 'F9', 'H9',
+                     'B15', 'D15', 'F15', 'H15', 'B21', 'D21', 'F21', 'H21',
+                     'I3', 'K3', 'M3', 'O3', 'I10', 'K10', 'M10', 'O10',
+                     'I16', 'K16', 'M16', 'O16', 'I22', 'K22', 'M22', 'O22'):
+                continue
+            tf_pos = TransfectionPosition(rack_position=rack_pos,
+                            molecule_design_pool=LIBRARY_POSITION_TYPE,
+                            iso_volume=None, iso_concentration=None,
+                            final_concentration=10,
+                            reagent_name='mix1', reagent_dil_factor=140)
+            exp_layout.add_position(tf_pos)
+        return exp_layout
+
     def test_if_result(self):
         self._test_if_result()
 
-    def test_handler_user(self):
-        self._test_invalid_user()
-
     def test_result(self):
-        self._continue_setup(self.VALID_FILE)
-        iso_request = self.tool.get_result()
-        self.assert_is_not_none(iso_request)
-        # check metadata
-        delivery_date = date(2012, 7, 17)
-        attrs = dict(delivery_date=delivery_date, plate_set_label='poollib',
-                     number_aliquots=1, requester=self.user,
-                     isos=[], owner='', experiment_metadata=None,
-                     comment='library ISO request test')
-        check_attributes(iso_request, attrs)
-        # check rack layout
-        rl = iso_request.iso_layout
-        self.assert_equal(len(rl.tagged_rack_position_sets), 285)
-        self.assert_equal(len(rl.get_positions()), 292)
-        # parameter tag
-        pool_tag = Tag(IsoParameters.DOMAIN, IsoParameters.MOLECULE_DESIGN_POOL,
-                       '205200')
-        positions_pool = [get_rack_position_from_label('D2'),
-                          get_rack_position_from_label('D15'),
-                          get_rack_position_from_label('K10'),
-                          get_rack_position_from_label('K22')]
-        pos_set_pool = rl.get_positions_for_tag(pool_tag)
-        self._compare_pos_sets(positions_pool, pos_set_pool)
-        # additional tag (are not stored in the rack rack layout yet)
-        num_tag = Tag(TransfectionParameters.DOMAIN, 'Number designs', '1')
-        has_tag = False
-        add_trps = self.tool.get_additional_trps()
-        self.assert_equal(len(add_trps), 3)
-        for trps in add_trps.values():
-            self.assert_equal(len(trps.tags), 1)
-            for tag in trps.tags:
-                if tag == num_tag:
-                    has_tag = True
-                    exp_pos_set = [get_rack_position_from_label('D2'),
-                                   get_rack_position_from_label('D15'),
-                                   get_rack_position_from_label('K10'),
-                                   get_rack_position_from_label('K22')]
-                    self._compare_pos_sets(exp_pos_set,
-                                           trps.rack_position_set.positions)
-        self.assert_true(has_tag)
-        # additional handler values
+        self._check_result()
         lib = self.tool.get_library()
         self.assert_is_not_none(lib)
+        self.assert_true(isinstance(lib, MoleculeDesignLibrary))
         self.assert_equal(lib.label, 'poollib')
-        self.assert_equal(self.tool.get_final_concentration(), 30)
-        self.assert_equal(self.tool.get_reagent_name(), 'RNAiMax')
-        self.assert_equal(self.tool.get_reagent_dil_factor(), 1400)
+        self.assert_equal(self.tool.get_final_concentration(), 10)
+        self.assert_equal(self.tool.get_reagent_name(), 'mix1')
+        self.assert_equal(self.tool.get_reagent_dil_factor(), 140)
 
-    def test_invalid_metadata(self):
-        self._test_invalid_file('library_invalid_metadata.xls',
-                                'Unknown metadata specifiers')
+    def test_unknown_library(self):
+        self._test_invalid_file('unknown_library.xls',
+                                'Unknown library "otherlib"')
 
-    def test_library_with_iso_concentration(self):
-        self._test_invalid_file('library_with_iso_concentration.xls',
-                                'Invalid factors found: iso concentration')
-
-    def test_library_with_iso_volume(self):
-        self._test_invalid_file('library_with_iso_volume.xls',
-                                'Invalid factors found: iso volume')
-
-    def test_library_with_reagent_dilution_factor(self):
-        self._test_invalid_file('library_with_reagent_df.xls',
-            'Invalid factors found: reagent dilution factor')
-
-    def test_library_with_reagent_name(self):
-        self._test_invalid_file('library_with_reagent_name.xls',
-                             'Invalid factors found: reagent name')
-
-    def test_library_with_final_concentration(self):
-        self._test_invalid_file('library_with_final_conc.xls',
-                             'Invalid factors found: final concentration')
-
-    def test_library_invalid_final_concentration(self):
-        self._test_invalid_file('library_invalid_final_conc.xls',
-                                'Invalid final concentration')
-
-    def test_library_invalid_supplier(self):
-        self._test_invalid_file('library_invalid_supplier.xls',
-                                'Some suppliers could not be found in the DB')
-
-    def test_library_unknown_library(self):
-        self._test_invalid_file('library_unknown_library.xls',
-                                'Unknown library "unknown_lib"')
-
-    def test_library_invalid_rack_shape(self):
-        self._test_invalid_file('library_invalid_shape.xls',
-            'Library "poollib" requires a 16x24 layout. You have provided a ' \
-            '8x12 layout')
-
-    def test_library_no_controls(self):
-        self._test_invalid_file('library_no_controls.xls',
-            'There are no fixed positions in this ISO layout!')
-
-    def test_library_missing_sample_position(self):
-        self._test_invalid_file('library_missing_sample_position.xls',
-            'The following positions are reserved for library samples: J3. ' \
-            'You have assigned a different position type to them')
-
-    def test_library_invalid_sample_position(self):
-        self._test_invalid_file('library_invalid_sample_position.xls',
-            'The following positions are reserved for library samples: J3. ' \
-            'You have assigned a different position type to them')
-
-    def test_library_additional_sample_position(self):
-        self._test_invalid_file('library_additional_sample_position.xls',
-            'The following positions must not be samples: I3, K3, M3, O3')
+    def test_not_library_compliant(self):
+        self._test_invalid_file('different_rack_shape.xls',
+            'Library "poollib" requires a 16x24 layout. You have provided ' \
+            'a 8x12 layout.')
+        self._test_invalid_file('no_fixed_positions.xls',
+            'There are no fixed positions in this ISO request layout!')
+        self._test_invalid_file('missing_library_positions.xls',
+            'The following positions are reserved for library samples: ' \
+            'C21, E21, G21, J22, L22, N22. You have assigned a different ' \
+            'position type to them.')
+        self._test_invalid_file('invalid_library_pos.xls',
+            'The following positions must not be samples: I3, K3, M3, O3.')
 
 
-class IsoRequestManualParserTestCase(IsoRequestParserTest):
-    """
-    We test only experiment type specific tests here because other wise
-    we would need a whole bunch of new test files.
-    """
+class IsoRequestParserManualTestCase(_IsoRequestParserTestCase):
+
+    _TEST_FILE_SUBDIRECTORY = 'manual'
 
     def set_up(self):
-        IsoRequestParserTest.set_up(self)
-        self.VALID_FILE = 'valid_manual.xls'
+        _IsoRequestParserTestCase.set_up(self)
         self.experiment_type_id = EXPERIMENT_SCENARIOS.MANUAL
+        self.exp_layout_shape = get_96_rack_shape()
+        self.expected_ir_attrs = dict(
+                    label='man_opt_test',
+                    comment='manual opti parser test case',
+                    delivery_date=date(2016, 9, 17),
+                    number_aliquots=1,
+                    requester=self.user,
+                    process_job_first=True)
+        # pos_label - pool, pos_type, iso vol, iso conc, final conc, reagent
+        # name, reagent df
+        self.layout_data = dict(
+                b2=[205200, 'fixed', 2, 5000, None, None, None],
+                b3=[205200, 'fixed', 2, 5000, None, None, None],
+                b4=[205200, 'fixed', 1, 10000, None, None, None],
+                c2=[1056000, 'fixed', 2, 5000, None, None, None],
+                c3=[1056000, 'fixed', 2, 5000, None, None, None],
+                c4=[1056000, 'fixed', 1, 10000, None, None, None],
+                d2=[330001, 'fixed', 2, 5000, None, None, None],
+                d3=[330001, 'fixed', 2, 5000, None, None, None])
+        self.num_add_control_tags = 3
+        self.num_add_other_tags = 2
 
     def test_if_result(self):
         self._test_if_result()
-
-    def test_handler_user(self):
-        self._test_invalid_user()
-
-    def __test_result(self):
-        self._continue_setup(self.VALID_FILE)
-        iso_request = self.tool.get_result()
-        self.assert_is_not_none(iso_request)
-        # check metadata
-        delivery_date = date(2012, 8, 7)
-        attrs = dict(delivery_date=delivery_date, plate_set_label='test_manual',
-                     number_aliquots=1, requester=self.user,
-                     isos=[], owner='', experiment_metadata=None,
-                     comment='This is test file for manual scenarios.')
-        check_attributes(iso_request, attrs)
-        # check rack layout
-        rl = iso_request.iso_layout
-        self.assert_equal(len(rl.tagged_rack_position_sets), 7)
-        self.assert_equal(len(rl.get_positions()), 4)
-        # check transfection parameters
-        b2_pos = get_rack_position_from_label('B2')
-        b3_pos = get_rack_position_from_label('B3')
-        b4_pos = get_rack_position_from_label('B4')
-        b5_pos = get_rack_position_from_label('B5')
-        md_tag = Tag(IsoParameters.DOMAIN, IsoParameters.MOLECULE_DESIGN_POOL,
-                     '205201')
-        md_positions = [b3_pos]
-        md_pos_set = rl.get_positions_for_tag(md_tag)
-        self._compare_pos_sets(md_positions, md_pos_set)
-        # check label coded tags
-        vol_tag = Tag(IsoParameters.DOMAIN, IsoParameters.ISO_VOLUME, '4')
-        vol_positions = [b2_pos, b3_pos]
-        vol_pos_set = rl.get_positions_for_tag(vol_tag)
-        self._compare_pos_sets(vol_positions, vol_pos_set)
-        # test metadata specification only
-        supplier_tag = Tag(IsoParameters.DOMAIN, IsoParameters.SUPPLIER,
-                           'Ambion')
-        supplier_positions = [b2_pos, b3_pos, b4_pos, b5_pos]
-        supplier_pos_set = rl.get_positions_for_tag(supplier_tag)
-        self._compare_pos_sets(supplier_positions, supplier_pos_set)
-        # additional tags
-        sample_type_tag = Tag('transfection', 'sample_type', 'pos')
-        add_tags = self.tool.get_additional_trps()
-        self.assert_equal(len(add_tags), 3)
-        sample_type_positions = [b2_pos]
-        exp_pos_set = RackPositionSet.from_positions(sample_type_positions)
-        exp_hash_value = exp_pos_set.hash_value
-        has_tag = False
-        for pos_hash_value, trps in add_tags.iteritems():
-            self.assert_equal(len(trps.tags), 1)
-            for tag in trps.tags:
-                if sample_type_tag == tag:
-                    has_tag = True
-                    self.assert_equal(pos_hash_value, exp_hash_value)
-        self.assert_true(has_tag)
-
-    def test_result_96(self):
-        self.__test_result()
-
-    def test_result_384(self):
-        self.VALID_FILE = 'valid_manual_384.xls'
-        self.__test_result()
-
-    def test_manual_with_invalid_metadata(self):
-        self._test_invalid_file('manual_invalid_metadata.xls',
-            'Unknown metadata specifiers: final concentration, number of ' \
-            'aliquots, reagent dilution factor, reagent name')
-
-    def test_manual_with_mock(self):
-        self._test_invalid_file('manual_with_mock.xls',
-            'There are some positions in the ISO layout that are not allowed ' \
-            'for this type of experiment metadata (manual optimisation): ' \
-            'mock (B6).')
-
-    def test_manual_with_untreated(self):
-        self._test_invalid_file('manual_with_untreated.xls',
-            'There are some positions in the ISO layout that are not allowed ' \
-            'for this type of experiment metadata (manual optimisation): ' \
-            'untreated (B6).')
-
-    def test_manual_with_floating(self):
-        self._test_invalid_file('manual_with_floating.xls',
-            'There are some positions in the ISO layout that are not allowed ' \
-            'for this type of experiment metadata (manual optimisation): ' \
-            'floating (B6, B7).')
-
-#    TODO: review after ISO processing refactoring
-#    def test_manual_duplicate_molecule_design_pool(self):
-#        self._test_invalid_file('manual_duplicate_md.xls',
-#            'If you order a molecule design pool in stock concentration, ' \
-#            'this pool may only occur once on the ISO plate. The following ' \
-#            'pools violate this rule: 330001.')
-
-    def test_manual_invalid_dilution_volumes(self):
-        self._test_invalid_file('manual_invalid_dilution_volumes.xls',
-            'The volumes you have requested are not sufficient to prepare ' \
-            'the requested dilution of the stock concentration')
-
-    def test_manual_no_pools(self):
-        self._test_invalid_file('manual_no_pools.xls',
-            'There are no fixed positions in this ISO layout!')
-
-#    TODO: review after ISO processing refactoring
-#    def test_manual_too_many_pools(self):
-#        self._test_invalid_file('manual_too_many_pools.xls',
-#            '384-well manual optimisation ISO layouts with more than 96 ' \
-#            'distinct molecule design pools are not supported')
-
-
-class IsoRequestOrderParserTestCase(IsoRequestParserTest):
-
-    def set_up(self):
-        IsoRequestParserTest.set_up(self)
-        self.VALID_FILE = 'valid_order.xls'
-        self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
-
-
-    def test_if_result(self):
-        self._test_if_result()
-
-    def test_handler_user(self):
-        self._test_invalid_user()
 
     def test_result(self):
-        self._continue_setup()
-        iso_request = self.tool.get_result()
-        self.assert_is_not_none(iso_request)
-        # check metadata
-        delivery_date = date(2013, 7, 1)
-        attrs = dict(delivery_date=delivery_date,
-                     plate_set_label='all_sorts_of_pools',
-                     number_aliquots=1, requester=self.user,
-                     isos=[], owner='', experiment_metadata=None,
-                     comment='ISO request without experiment')
-        check_attributes(iso_request, attrs)
-        # check rack layout
-        rl = iso_request.iso_layout
-        pos_b2 = get_rack_position_from_label('B2')
-        pos_b4 = get_rack_position_from_label('B4')
-        pos_b6 = get_rack_position_from_label('B6')
-        pos_b8 = get_rack_position_from_label('B8')
-        pos_b10 = get_rack_position_from_label('B10')
-        all_positions = [pos_b2, pos_b4, pos_b6, pos_b8, pos_b10]
-        self.assert_equal(len(rl.tagged_rack_position_sets), 6)
-        pos_set = rl.get_positions()
-        self._compare_pos_sets(all_positions, pos_set)
-        # check transfection layout
-        tf_layout = self.tool.get_transfection_layout()
-        self.assert_equal(len(tf_layout), len(all_positions))
-        b2_tf = tf_layout.get_working_position(pos_b2)
-        self.assert_equal(b2_tf.molecule_design_pool_id, 205201)
-        self.assert_equal(b2_tf.iso_volume, 1)
-        self.assert_equal(b2_tf.supplier.name, 'Ambion')
-        b8_tf = tf_layout.get_working_position(pos_b8)
-        self.assert_equal(b8_tf.molecule_design_pool_id, 1056000)
-        self.assert_equal(b8_tf.iso_volume, 1)
-        self.assert_is_none(b8_tf.supplier)
-        # check additional tags
-        add_tags = self.tool.get_additional_trps()
-        self.assert_equal(len(add_tags), 5)
-        pool_tag = Tag('transfection', 'molecule_type', 'siRNA pool')
-        pool_positions = [pos_b8]
-        exp_pos_set = RackPositionSet.from_positions(pool_positions)
-        exp_hash_value = exp_pos_set.hash_value
-        has_tag = False
-        for pos_hash_value, trps in add_tags.iteritems():
-            self.assert_equal(len(trps.tags), 1)
-            for tag in trps.tags:
-                if pool_tag == tag:
-                    has_tag = True
-                    self.assert_equal(pos_hash_value, exp_hash_value)
-        self.assert_true(has_tag)
+        self._check_result()
 
-    def test_plate_label_too_long(self):
-        self._test_invalid_file('order_plate_label_too_long.xls',
-                'The maximum length for plate set labels is 20 characters ' \
-                '(obtained: "this_label_is_a_little_too_long", 31 characters)')
 
-    def test_with_mock_positions(self):
-        self._test_invalid_file('order_with_mock.xls',
-            'There are some positions in the ISO layout that are not allowed ' \
-            'for this type of experiment metadata (ISO without experiment): ' \
-            'mock (B10)')
+class IsoRequestParserOrderTestCase(_IsoRequestParserTestCase):
 
-    def test_with_untreated_positions(self):
-        self._test_invalid_file('order_with_untreated.xls',
-            'There are some positions in the ISO layout that are not allowed ' \
-            'for this type of experiment metadata (ISO without experiment): ' \
-            'untreated (B10)')
+    _TEST_FILE_SUBDIRECTORY = 'order'
 
-    def test_with_untreated_floatings(self):
-        self._test_invalid_file('order_with_floating.xls',
-            'There are some positions in the ISO layout that are not allowed ' \
-            'for this type of experiment metadata (ISO without experiment): ' \
-            'floating (B10)')
+    def set_up(self):
+        _IsoRequestParserTestCase.set_up(self)
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
+        self.exp_layout_shape = get_96_rack_shape()
+        # pos_label - pool, pos_type, iso vol, iso conc, final conc, reagent
+        # name, reagent df
+        self.layout_data = dict(
+            b2=[205200, 'fixed', 2, None, None, None, None],
+            c2=[1056000, 'fixed', 2, None, None, None, None],
+            d2=[330001, 'fixed', 2, None, None, None, None],
+            e2=[1068580, 'fixed', 2, None, None, None, None])
+        self.expected_ir_attrs = dict(
+                        label='order_test',
+                        delivery_date=date(2016, 9, 17),
+                        number_aliquots=1,
+                        process_job_first=True,
+                        requester=self.user,
+                        comment='order only parser test case')
+        self.num_add_control_tags = 1
+        self.num_add_other_tags = 2
 
-    def test_multiple_occurrence(self):
-        self._test_invalid_file('order_multiple_occurrence.xls',
-            'In an ISO request without experiment, each molecule design pool ' \
-            'may occur only once. The following pools occur several times: ' \
-            '180202, 1056000')
+    def test_if_result(self):
+        self._test_if_result()
+
+    def test_result(self):
+        self._check_result()
+
+    def test_more_than_one_occurrence(self):
+        self._test_invalid_file('more_than_one.xls',
+            'In an ISO request without experiment, each molecule design ' \
+            'pool may occur only once. The following pools occur several ' \
+            'times: 330001, 1056000')

@@ -6,23 +6,20 @@ add the missing values to the source layout.
 AAB
 """
 from everest.entities.utils import get_root_aggregate
+from thelma.automation.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.semiconstants import get_384_rack_shape
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_rack_position_from_label
+from thelma.automation.tools.metadata.base import TransfectionAssociationData
+from thelma.automation.tools.metadata.base import TransfectionLayout
+from thelma.automation.tools.metadata.base import TransfectionPosition
 from thelma.automation.tools.metadata.generation \
     import RobotSupportDeterminatorLibrary
 from thelma.automation.tools.metadata.generation \
     import RobotSupportDeterminatorOpti
 from thelma.automation.tools.metadata.generation \
     import RobotSupportDeterminatorScreen
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionAssociationData
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionLayout
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionPosition
-from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
-from thelma.automation.tools.semiconstants import get_384_rack_shape
-from thelma.automation.tools.semiconstants import get_96_rack_shape
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.utils.base import UNTREATED_POSITION_TYPE
+from thelma.automation.utils.layouts import UNTREATED_POSITION_TYPE
 from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeType
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
@@ -30,7 +27,7 @@ from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 
-class RobotSupportDeterminerTestCase(ToolsAndUtilsTestCase):
+class _RobotSupportDeterminerTestCase(ToolsAndUtilsTestCase):
 
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
@@ -44,7 +41,7 @@ class RobotSupportDeterminerTestCase(ToolsAndUtilsTestCase):
         self.position_data = None
         self.odf_map = dict()
         self.set_dilution_factors = True
-        self.floating_optimem_df = 4
+        self.layout_optimem_df = 4
         self.floating_mt = get_root_aggregate(IMoleculeType).\
                                       get_by_id(MOLECULE_TYPE_IDS.SIRNA)
 
@@ -57,7 +54,7 @@ class RobotSupportDeterminerTestCase(ToolsAndUtilsTestCase):
         del self.number_design_racks
         del self.position_data
         del self.set_dilution_factors
-        del self.floating_optimem_df
+        del self.layout_optimem_df
         del self.floating_mt
 
     def _continue_setup(self):
@@ -90,10 +87,12 @@ class RobotSupportDeterminerTestCase(ToolsAndUtilsTestCase):
                         final_concentration=final_conc)
             self.source_layout.add_position(tf_pos)
             if self.set_dilution_factors:
-                if tf_pos.is_floating or tf_pos.is_mock:
-                    tf_pos.set_optimem_dilution_factor(self.floating_optimem_df)
+                if tf_pos.is_untreated_type:
+                    pass
                 elif tf_pos.is_fixed:
                     tf_pos.store_optimem_dilution_factor()
+                else:
+                    tf_pos.set_optimem_dilution_factor(self.layout_optimem_df)
         self.source_layout.set_floating_molecule_type(self.floating_mt)
 
     def _check_result(self):
@@ -104,9 +103,21 @@ class RobotSupportDeterminerTestCase(ToolsAndUtilsTestCase):
             result_data = self.position_data[rack_pos.label]
             pool_id = tf_pos.molecule_design_pool_id
             self.assert_equal(pool_id, result_data[0])
-            self.assert_equal(tf_pos.final_concentration, result_data[1])
-            self.assert_equal(tf_pos.iso_concentration, result_data[3])
-            self.assert_equal(tf_pos.iso_volume, result_data[5])
+            if not tf_pos.final_concentration == result_data[1]:
+                msg = 'Different final concentration for position %s. ' \
+                      'Expected: %s. Found: %s.' % (rack_pos.label,
+                       result_data[1], tf_pos.final_concentration)
+                raise AssertionError(msg)
+            if not tf_pos.iso_concentration == result_data[3]:
+                msg = 'Different ISO concentration for position %s. ' \
+                      'Expected: %s. Found: %s.' % (rack_pos.label,
+                       result_data[3], tf_pos.iso_concentration)
+                raise AssertionError(msg)
+            if not tf_pos.iso_volume == result_data[5]:
+                msg = 'Different ISO volume for position %s. ' \
+                      'Expected: %s. Found: %s.' % (rack_pos.label,
+                       result_data[5], tf_pos.iso_volume)
+                raise AssertionError(msg)
 
     def _test_result_calculate(self):
         self._continue_setup()
@@ -194,15 +205,17 @@ class RobotSupportDeterminerTestCase(ToolsAndUtilsTestCase):
                         'Worklist support is disabled now.')
 
     def _test_invalid_source_layout(self):
-        self._continue_setup()
+        ori_layout = self.source_layout
         self.source_layout = None
         self._test_and_expect_errors('The source layout must be a ' \
                                      'TransfectionLayout object')
+        self.source_layout = ori_layout
 
     def _test_invalid_number_replicates(self):
-        self._continue_setup()
+        num_rep = self.number_replicates
         self.number_replicates = float(self.number_replicates)
         self._test_and_expect_errors('The number of replicates must be a int')
+        self.number_replicates = num_rep
 
     def _test_missing_iso_concentration(self):
         i = 0
@@ -241,10 +254,10 @@ class RobotSupportDeterminerTestCase(ToolsAndUtilsTestCase):
         self._continue_setup()
         self._test_and_expect_errors(msg)
 
-class RobotSupportDeterminerOptiTestCase(RobotSupportDeterminerTestCase):
+class RobotSupportDeterminerOptiTestCase(_RobotSupportDeterminerTestCase):
 
     def set_up(self):
-        RobotSupportDeterminerTestCase.set_up(self)
+        _RobotSupportDeterminerTestCase.set_up(self)
         self.design_rack_associations = []
         self.layout_shape = get_96_rack_shape()
         # pos label - md pool id, final conc, iso conc (ini), iso conc (final),
@@ -266,7 +279,7 @@ class RobotSupportDeterminerOptiTestCase(RobotSupportDeterminerTestCase):
                        'mock' : MOLECULE_TYPE_IDS.SIRNA}
 
     def tear_down(self):
-        RobotSupportDeterminerTestCase.tear_down(self)
+        _RobotSupportDeterminerTestCase.tear_down(self)
         del self.design_rack_associations
 
     def _create_tool(self):
@@ -276,7 +289,7 @@ class RobotSupportDeterminerOptiTestCase(RobotSupportDeterminerTestCase):
                         design_rack_associations=self.design_rack_associations)
 
     def _continue_setup(self):
-        RobotSupportDeterminerTestCase._continue_setup(self)
+        _RobotSupportDeterminerTestCase._continue_setup(self)
         self.__create_design_layouts()
         self._create_tool()
 
@@ -304,7 +317,7 @@ class RobotSupportDeterminerOptiTestCase(RobotSupportDeterminerTestCase):
                 target_labels = pos_data[i + 6]
                 for trg_label in target_labels:
                     trg_pos = get_rack_position_from_label(trg_label)
-                    tf_pos.add_cell_plate_position(trg_pos)
+                    tf_pos.cell_plate_positions.add(trg_pos)
             self.design_rack_associations.append(tf_layout)
 
     def test_result_calculate(self):
@@ -333,14 +346,10 @@ class RobotSupportDeterminerOptiTestCase(RobotSupportDeterminerTestCase):
     def test_result_no_support_deepwell(self):
         self._test_result_no_support_deepwell()
 
-    def test_invalid_source_layout(self):
-        self._test_invalid_source_layout()
-
-    def test_invalid_number_replicates(self):
-        self._test_invalid_number_replicates()
-
-    def test_invalid_design_rack_layouts(self):
+    def test_invalid_input_values(self):
         self._continue_setup()
+        self._test_invalid_source_layout()
+        self._test_invalid_number_replicates()
         self.design_rack_associations = dict()
         self._test_and_expect_errors('The design rack association list must ' \
                                      'be a list')
@@ -365,27 +374,45 @@ class RobotSupportDeterminerOptiTestCase(RobotSupportDeterminerTestCase):
                 'A1, B1, C1, D1, E1')
 
 
-class RobotSupportDeterminerScreenTestCase(RobotSupportDeterminerTestCase):
+class RobotSupportDeterminerScreenTestCase(_RobotSupportDeterminerTestCase):
 
     def set_up(self):
-        RobotSupportDeterminerTestCase.set_up(self)
+        _RobotSupportDeterminerTestCase.set_up(self)
         self.handler_iso_volume = None
         self.association_data = None
+        self.regard_controls = True
         self.layout_shape = get_384_rack_shape()
+        self.__set_position_data()
+
+    def __set_position_data(self):
         # pos label - md pool id, final conc, iso conc (ini), iso conc (final),
         # iso vol (ini), iso vol (final)
-        self.position_data = dict(
+        if self.regard_controls:
+            self.position_data = dict(
                 A1=[205201, 10, None, 560, None, 3.8],
                 A2=[205201, 20, None, 1120, None, 3.8],
                 C1=[205202, 10, None, 560, None, 3.8],
                 C2=[205202, 20, None, 1120, None, 3.8],
                 E1=['mock', None, None, None, None, 3.8],
                 E2=['mock', None, None, None, None, 3.8])
+        else:
+            self.position_data = dict(
+                A1=[205201, 10, None, 560, None, 3.8],
+                A2=[205201, 20, None, 1120, None, 3.8],
+                A3=['md_001', 10, None, 560, None, 3.8],
+                A4=['md_001', 20, None, 1120, None, 3.8],
+                C1=[330001, 10, None, 560, None, 3.8],
+                C2=[330001, 20, None, 1120, None, 3.8],
+                C3=['md_002', 10, None, 560, None, 3.8],
+                C4=['md_002', 20, None, 1120, None, 3.8],
+                E1=['mock', None, None, None, None, 3.8],
+                E2=['mock', None, None, None, None, 3.8])
 
     def tear_down(self):
-        RobotSupportDeterminerTestCase.tear_down(self)
+        _RobotSupportDeterminerTestCase.tear_down(self)
         del self.handler_iso_volume
         del self.association_data
+        del self.regard_controls
 
     def _create_tool(self):
         self.tool = RobotSupportDeterminatorScreen(log=self.log,
@@ -396,15 +423,22 @@ class RobotSupportDeterminerScreenTestCase(RobotSupportDeterminerTestCase):
                     association_data=self.association_data)
 
     def _continue_setup(self):
-        RobotSupportDeterminerTestCase._continue_setup(self)
+        _RobotSupportDeterminerTestCase._continue_setup(self)
+        self.__set_layout_optimem_df()
         self.handler_iso_volume = self.position_data.values()[0][4]
         self.__create_association_data()
         self._create_tool()
 
+    def __set_layout_optimem_df(self):
+        for tf_pos in self.source_layout.working_positions():
+            if tf_pos.is_fixed:
+                tf_pos.set_optimem_dilution_factor(self.layout_optimem_df)
+
     def __create_association_data(self):
         if self.layout_shape.name == RACK_SHAPE_NAMES.SHAPE_384:
             self.association_data = TransfectionAssociationData(log=self.log,
-                                    transfection_layout=self.source_layout)
+                                      layout=self.source_layout,
+                                      regard_controls=self.regard_controls)
 
     def _continue_setup_deepwell(self):
         self.number_replicates = 10
@@ -420,32 +454,30 @@ class RobotSupportDeterminerScreenTestCase(RobotSupportDeterminerTestCase):
 
     def test_result_calculate_384(self):
         self._test_result_calculate()
+        self.regard_controls = False
+        self.__set_position_data()
+        self._test_result_calculate()
 
     def test_result_calculate_96(self):
         self.layout_shape = get_96_rack_shape()
         self._test_result_calculate()
+        self.regard_controls = False
+        self._test_result_calculate()
 
     def test_result_compare_384(self):
+        self.__set_position_data()
         self._test_result_compare()
-
-    def test_result_volume_adjustment(self):
-        for pos_data in self.position_data.values():
-            if not pos_data[1] is None:
-                pos_data[1] = pos_data[1] / 10
-                pos_data[3] = pos_data[3] / 10
-            pos_data[4] = 1
-            pos_data[5] = 5
-        self._continue_setup()
-        self._check_result()
-        self._check_warning_messages('The ISO volume has to be increased to ' \
-            '5.0 ul, because the requested ISO concentration is so low that ' \
-            'that it requires a larger dilution volume.')
-        self.assert_true(self.tool.supports_mastermix)
-        self.assert_false(self.tool.use_deep_well)
+        self.regard_controls = False
+        self.__set_position_data()
+        self._test_result_calculate()
 
     def test_result_compare_96(self):
+        self.__set_position_data()
         self.layout_shape = get_96_rack_shape()
         self._test_result_compare()
+        self.regard_controls = False
+        self.__set_position_data()
+        self._test_result_calculate()
 
     def test_result_deep_well_384(self):
         self._test_result_deep_well_384()
@@ -455,7 +487,7 @@ class RobotSupportDeterminerScreenTestCase(RobotSupportDeterminerTestCase):
         self._test_result_deep_well()
 
     def test_result_molecule_type(self):
-        self.floating_optimem_df = 3
+        self.layout_optimem_df = 3
         self.floating_mt = get_root_aggregate(IMoleculeType).\
                            get_by_id(MOLECULE_TYPE_IDS.MIRNA_INHI)
         self.position_data = dict(
@@ -487,35 +519,39 @@ class RobotSupportDeterminerScreenTestCase(RobotSupportDeterminerTestCase):
         self.layout_shape = get_96_rack_shape()
         self._test_result_no_support_deepwell()
 
-    def test_invalid_source_layout(self):
-        self._test_invalid_source_layout()
-
-    def test_invalid_number_replicates(self):
-        self._test_invalid_number_replicates()
-
-    def test_invalid_number_design_racks(self):
+    def test_invalid_input_values(self):
         self._continue_setup()
+        self._test_invalid_source_layout()
+        self._test_invalid_number_replicates()
+        num_racks = self.number_design_racks
         self.number_design_racks = float(self.number_design_racks)
         self._test_and_expect_errors('The number of design racks must be a int')
-
-    def test_invalid_handler_iso_volume(self):
-        self._continue_setup()
+        self.number_design_racks = num_racks
+        vol = self.handler_iso_volume
         self.handler_iso_volume = 0
-        self._test_and_expect_errors('The handler must be a positive number ' \
-                                     '(obtained: 0)')
+        self._test_and_expect_errors('The handler ISO volume must be a ' \
+                                     'positive number (obtained: 0)')
         self.handler_iso_volume = 'as'
-        self._test_and_expect_errors('The handler must be a positive number ' \
-                                     '(obtained: as)')
-
-    def test_invalid_association_data(self):
-        self._continue_setup()
-        self.association_data = None
+        self._test_and_expect_errors('The handler ISO volume must be a ' \
+                                     'positive number (obtained: as)')
+        self.handler_iso_volume = vol
+        self.association_data = 3
         self._test_and_expect_errors('The association data must be a ' \
                                      'TransfectionAssociationData object')
-        self.source_layout.shape = get_96_rack_shape()
+        self.association_data = None
+        self._create_tool()
         self._check_result()
         self.assert_true(self.tool.supports_mastermix)
         self.assert_false(self.tool.use_deep_well)
+
+    def test_different_optimem_dilution_factors(self):
+        self._continue_setup()
+        for tf_pos in self.source_layout.working_positions():
+            if tf_pos.is_fixed:
+                tf_pos.set_optimem_dilution_factor(7)
+                break
+        self._test_and_expect_errors('There are more than one different ' \
+                                 'OptiMem dilution factors in the layout: 4, 7')
 
     def test_missing_iso_concentration_96(self):
         self.layout_shape = get_96_rack_shape()
@@ -538,10 +574,10 @@ class RobotSupportDeterminerScreenTestCase(RobotSupportDeterminerTestCase):
         self._test_and_expect_errors('The minimum ISO volume you can order ' \
                                      'is 1 ul. You ordered 0.5 ul.')
 
-class RobotSupportDeterminerLibraryTestCase(RobotSupportDeterminerTestCase):
+class RobotSupportDeterminerLibraryTestCase(_RobotSupportDeterminerTestCase):
 
     def set_up(self):
-        RobotSupportDeterminerTestCase.set_up(self)
+        _RobotSupportDeterminerTestCase.set_up(self)
         self.library = self._get_entity(IMoleculeDesignLibrary, 'poollib')
         self.final_conc = None
         self.layout_shape = get_384_rack_shape()
@@ -549,16 +585,16 @@ class RobotSupportDeterminerLibraryTestCase(RobotSupportDeterminerTestCase):
         # iso vol (ini), iso vol (final)
         self.position_data = dict(
                 B2=[205201, 10, None, 1270, None, 4],
-                C2=['md_1', 10, None, 1270, None, 4],
+                C2=['md_001', 10, None, 1270, None, 4],
                 D2=['mock', None, None, None, None, 4],
-                E2=['md_2', 10, None, 1270, None, 4],
+                E2=['md_002', 10, None, 1270, None, 4],
                 F2=['untreated', None, None, None, None, None],
-                G2=['md_3', 10, None, 1270, None, 4])
+                G2=['md_003', 10, None, 1270, None, 4])
         #pylint: disable=E1103
         self.set_dilution_factors = False
 
     def tear_down(self):
-        RobotSupportDeterminerTestCase.tear_down(self)
+        _RobotSupportDeterminerTestCase.tear_down(self)
         del self.library
         del self.final_conc
 
@@ -571,7 +607,7 @@ class RobotSupportDeterminerLibraryTestCase(RobotSupportDeterminerTestCase):
                                 handler_final_concentration=self.final_conc)
 
     def _continue_setup(self):
-        RobotSupportDeterminerTestCase._continue_setup(self)
+        _RobotSupportDeterminerTestCase._continue_setup(self)
         for pos_data in self.position_data.values():
             if pos_data[1] is not None:
                 self.final_conc = pos_data[1]
@@ -579,7 +615,7 @@ class RobotSupportDeterminerLibraryTestCase(RobotSupportDeterminerTestCase):
         self._create_tool()
 
     def _test_and_expect_errors(self, msg=None):
-        RobotSupportDeterminerTestCase._test_and_expect_errors(self, msg=msg)
+        _RobotSupportDeterminerTestCase._test_and_expect_errors(self, msg=msg)
         self.assert_is_none(self.tool.get_optimem_dil_factor())
 
     def __check_optimem_dil_factor(self, optimem_df):
@@ -609,19 +645,14 @@ class RobotSupportDeterminerLibraryTestCase(RobotSupportDeterminerTestCase):
         self.assert_false(self.tool.supports_mastermix)
         self.assert_false(self.tool.use_deep_well)
 
-    def test_invalid_source_layout(self):
-        self._test_invalid_source_layout()
-
-    def test_invalid_number_replicates(self):
-        self._test_invalid_number_replicates()
-
-    def test_invalid_number_design_racks(self):
+    def test_invalid_input_values(self):
         self._continue_setup()
+        self._test_invalid_source_layout()
+        self._test_invalid_number_replicates()
+        num_racks = self.number_design_racks
         self.number_design_racks = float(self.number_design_racks)
         self._test_and_expect_errors('The number of design racks must be a int')
-
-    def test_invalid_library(self):
-        self._continue_setup()
+        self.number_design_racks = num_racks
         self.library = None
         self._test_and_expect_errors('The molecule design library must be a ' \
                                      'MoleculeDesignLibrary object')

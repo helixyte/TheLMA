@@ -439,7 +439,7 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
     NUMBER_ALIQUOTS_TITLE = 'Number of Aliquots'
     #: The title for the aliquot plate rack shape.
     ISO_RACK_SHAPE_TITLE = 'ISO Plate Format'
-    #: The title for the deep well row.
+    #: The title for the ISO plate specs row.
     ISO_RACK_SPECS_TITLE = 'ISO Plate Specs'
     #: The title for the experiment cell plate rack shape.
     EXP_RACK_SHAPE_TITLE = 'Cell Plate Format'
@@ -584,11 +584,11 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
             requester = iso_request.requester
             table_values[self.REQUESTER_TITLE] = requester.username
             table_values[self.NUMBER_PLATES_TITLE] = \
-                                        '%i' % (iso_request.number_plates)
+                                    '%i' % (iso_request.expected_number_isos)
             table_values[self.NUMBER_ALIQUOTS_TITLE] = \
-                                        '%i' % (iso_request.number_aliquots)
+                                    '%i' % (iso_request.number_aliquots)
             table_values[self.PLATE_SET_LABEL_TITLE] = \
-                                        str(iso_request.plate_set_label)
+                                    str(iso_request.label)
 
             del_date = iso_request.delivery_date
             if del_date:
@@ -597,12 +597,12 @@ class IsoRequestTicketDescriptionBuilder(BaseAutomationTool):
                 del_date_value = self.UNKNOWN_MARKER
             table_values[self.DELIVERY_DATE_TITLE] = del_date_value
 
-            shape_name = iso_request.iso_layout.shape.name
+            shape_name = iso_request.rack_layout.shape.name
             table_values[self.ISO_RACK_SHAPE_TITLE] = shape_name
             iso_plate_specs = iso_request.iso_plate_reservoir_specs
             table_values[self.ISO_RACK_SPECS_TITLE] = iso_plate_specs.name
 
-            comment_value = self.experiment_metadata.iso_request.comment
+            comment_value = self.experiment_metadata.lab_iso_request.comment
             if comment_value is None: comment_value = ' '
             table_values[self.COMMENT_TITLE] = comment_value
 

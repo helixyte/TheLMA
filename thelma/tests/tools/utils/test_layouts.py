@@ -144,8 +144,8 @@ class WorkingPositionTestCase(ToolsAndUtilsTestCase):
         return _WorkingPositionDummy(**self.__get_kw())
 
     def test_init(self):
-        self.assert_raises(NotImplementedError, WorkingPosition,
-                           **dict(rack_position=self.rack_pos))
+        self._expect_error(NotImplementedError, WorkingPosition,
+                       'Abstract class.', **dict(rack_position=self.rack_pos))
         wp = self.__get_position()
         self.assert_is_not_none(wp)
         check_attributes(wp, self.__get_kw())
@@ -203,8 +203,9 @@ class WorkingPositionTestCase(ToolsAndUtilsTestCase):
                           True)
         self.assert_equal(WorkingPosition.parse_boolean_tag_value('False'),
                           False)
-        self.assert_raises(ValueError, WorkingPosition.parse_boolean_tag_value,
-                           'None')
+        self._expect_error(ValueError, WorkingPosition.parse_boolean_tag_value,
+                           'Invalid string for boolean conversion: None',
+                           **dict(boolean_str='None'))
 
 
 class _WorkingLayoutDummy(WorkingLayout):
@@ -263,8 +264,8 @@ class WorkingLayoutTestCase(ToolsAndUtilsTestCase):
         return wl
 
     def test_init(self):
-        self.assert_raises(NotImplementedError, WorkingLayout,
-                           **dict(shape=self.shape))
+        self._expect_error(NotImplementedError, WorkingLayout,
+                       'Abstract class.', **dict(shape=self.shape))
         wl = self.__get_layout(with_positions=False)
         self.assert_is_not_none(wl)
 
@@ -278,7 +279,10 @@ class WorkingLayoutTestCase(ToolsAndUtilsTestCase):
         self.assert_equal(len(wl), 1)
         self.assert_equal(wl.get_working_position(wp1.rack_position), wp1)
         self.assert_is_none(wl.get_working_position(wp2.rack_position))
-        self.assert_raises(TypeError, wl.add_position, 2)
+        self._expect_error(TypeError, wl.add_position,
+                   'A position to be added must be a ' \
+                   '_WorkingPositionDummy object (obtained type: int).',
+                   **dict(working_position=2))
         wl.del_position(wp1.rack_position)
         self.assert_equal(len(wl), 0)
         self.assert_is_none(wl.get_working_position(wp1.rack_position))
@@ -286,7 +290,9 @@ class WorkingLayoutTestCase(ToolsAndUtilsTestCase):
         self.assert_equal(len(wl), 0)
         beyond_pos = get_rack_position_from_label('o24')
         wp1.rack_position = beyond_pos
-        self.assert_raises(KeyError, wl.add_position, wp1)
+        self._expect_error(KeyError, wl.add_position,
+                           'Position O24 is beyond the layout range (8x12)',
+                           **dict(working_position=wp1))
 
     def test_equality(self):
         wl1 = self.__get_layout()
@@ -457,8 +463,12 @@ class MoleculeDesignPoolParametersTestCase(_MoleculeDesignPoolClassesTestCase):
         self.assert_equal(meth('untreated'), UNTREATED_POSITION_TYPE)
         self.assert_equal(meth('untransfected'), UNTRANSFECTED_POSITION_TYPE)
         self.assert_equals(meth(None), EMPTY_POSITION_TYPE)
-        self.assert_raises(ValueError, meth, 1.2)
-        self.assert_raises(ValueError, meth, 'fixed')
+        self._expect_error(ValueError, meth,
+                   'Unable to determine type for molecule design pool: 1.2',
+                   **dict(molecule_design_pool=1.2))
+        self._expect_error(ValueError, meth,
+                   'Unable to determine type for molecule design pool: fixed.',
+                   **dict(molecule_design_pool='fixed'))
 
     def test_is_untreated_type(self):
         self.assert_true(MoleculeDesignPoolParameters.is_untreated_type(
@@ -480,13 +490,6 @@ class MoleculeDesignPoolParametersTestCase(_MoleculeDesignPoolClassesTestCase):
             res = MoleculeDesignPoolParameters.is_valid_untreated_value(val)
             self.assert_equal(res, exp_res)
 
-    def test_is_valid_untransfected_value(self):
-        m = {'mock' : True, 'MOCK' : True, None : True, 'None' : True,
-             'fixed' : False, 'empty' : False, 'untreated' : False}
-        for val, exp_res in m.iteritems():
-            res = MoleculeDesignPoolParameters.is_valid_mock_value(val)
-            self.assert_equal(res, exp_res)
-
 
 class MoleculeDesignPoolPositionTestCase(_MoleculeDesignPoolClassesTestCase):
 
@@ -495,14 +498,18 @@ class MoleculeDesignPoolPositionTestCase(_MoleculeDesignPoolClassesTestCase):
     def test_init(self):
         self._test_position_init()
         attrs = self._get_init_data('a1')
-        self.assert_raises(NotImplementedError, MoleculeDesignPoolPosition,
-                           **attrs)
+        self._expect_error(NotImplementedError, MoleculeDesignPoolPosition,
+                           'Abstract class', **attrs)
         pool = attrs['molecule_design_pool']
         attrs['molecule_design_pool'] = pool.id
-        self.assert_raises(TypeError, self.POS_CLS, **attrs)
+        self._expect_error(TypeError, self.POS_CLS,
+                           'The molecule design pool must be a ' \
+                           'MoleculeDesignPool (obtained: int)', **attrs)
         attrs['molecule_design_pool'] = pool
         attrs['position_type'] = MOCK_POSITION_TYPE
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The position type for this pool (fixed) does not match ' \
+                'the passed position type (mock)', **attrs)
 
     def test_type_properties(self):
         self._test_position_type_properties()
@@ -547,8 +554,8 @@ class MoleculeDesignPoolLayoutTestCase(_MoleculeDesignPoolClassesTestCase):
 
     def test_init(self):
         attrs = dict(shape=get_96_rack_shape)
-        self.assert_raises(NotImplementedError, MoleculeDesignPoolLayout,
-                           **attrs)
+        self._expect_error(NotImplementedError, MoleculeDesignPoolLayout,
+                           'Abstract class', **attrs)
         self._test_layout_init()
 
     def test_floating_molecule_type(self):
@@ -558,8 +565,9 @@ class MoleculeDesignPoolLayoutTestCase(_MoleculeDesignPoolClassesTestCase):
                                                         MOLECULE_TYPE_IDS.SIRNA)
         pl.set_floating_molecule_type(mt)
         self.assert_equal(pl.floating_molecule_type, mt)
-        self.assert_raises(TypeError, pl.set_floating_molecule_type,
-                           MOLECULE_TYPE_IDS.MIRNA_INHI)
+        self._expect_error(TypeError, pl.set_floating_molecule_type,
+                   'The molecule type must be a MoleculeType (obtained: str).',
+                   **dict(molecule_type=MOLECULE_TYPE_IDS.MIRNA_INHI))
 
     def test_floating_stock_concentration(self):
         pl = self._create_test_layout()
@@ -569,7 +577,9 @@ class MoleculeDesignPoolLayoutTestCase(_MoleculeDesignPoolClassesTestCase):
         conc_in_M = 50000 / CONCENTRATION_CONVERSION_FACTOR
         pl.set_floating_stock_concentration(conc_in_M)
         self.assert_equal(pl.floating_stock_concentration, 50000)
-        self.assert_raises(ValueError, pl.set_floating_stock_concentration, -4)
+        self._expect_error(ValueError, pl.set_floating_stock_concentration,
+                   'The stock concentration must be a positive number ' \
+                   '(obtained: -4)', **dict(stock_concentration= -4))
 
     def test_close(self):
         pl = self._create_test_layout()
@@ -580,7 +590,9 @@ class MoleculeDesignPoolLayoutTestCase(_MoleculeDesignPoolClassesTestCase):
         self.assert_true(pl.is_closed)
         self.assert_equal(len(pl), 6)
         self.assert_is_none(pl.get_working_position(empty_pos.rack_position))
-        self.assert_raises(AttributeError, pl.add_position, empty_pos)
+        self._expect_error(AttributeError, pl.add_position,
+                           'The layout is closed!',
+                           **dict(working_position=empty_pos))
 
     def test_create_rack_layout(self):
         pl = self._create_test_layout()
@@ -770,14 +782,20 @@ class TransferTargetTestCase(ToolsAndUtilsTestCase):
         self._check_object(attrs)
         ori_pos = attrs['rack_position']
         attrs['rack_position'] = 3
-        self.assert_raises(TypeError, self.test_cls, **attrs)
+        self._expect_error(TypeError, self.test_cls,
+               'The rack position must be a RackPosition or a string ' \
+               '(obtained: int).', **attrs)
         attrs['rack_position'] = ori_pos
         ori_vol = attrs['transfer_volume']
         attrs['transfer_volume'] = -2
-        self.assert_raises(ValueError, self.test_cls, **attrs)
+        self._expect_error(ValueError, self.test_cls,
+               'The transfer volume must be a positive number (obtained: -2).',
+               **attrs)
         attrs['transfer_volume'] = ori_vol
         attrs['target_rack_marker'] = 3
-        self.assert_raises(TypeError, self.test_cls, **attrs)
+        self._expect_error(TypeError, self.test_cls,
+                   'The target rack marker must be string (obtained: int)!',
+                   **attrs)
 
     def test_hash_value(self):
         attrs = self._get_init_data()
@@ -805,7 +823,9 @@ class TransferTargetTestCase(ToolsAndUtilsTestCase):
         attrs['target_rack_marker'] = None
         self._check_object(attrs, tt2)
         info3 = info2.replace(':', '_')
-        self.assert_raises(ValueError, TransferTarget.parse_info_string, info3)
+        self._expect_error(ValueError, TransferTarget.parse_info_string,
+               'Could not find ":" delimiter in info string (obtained: A1_5!)',
+               **dict(info_string=info3))
 
 
 class _TransferParameterDummy(TransferParameters):
@@ -840,7 +860,7 @@ class _TransferPositionDummy(TransferPosition):
                                   position_type=position_type,
                                   transfer_targets=transfer_targets)
         self._check_transfer_targets(self.PARAMETER_SET.MANDATORY_TARGETS,
-                              mandatory_targets, name='mandatory targets')
+                              mandatory_targets, name='mandatory target')
         self.mandatory_targets = mandatory_targets
 
     def _get_parameter_values_map(self):
@@ -939,7 +959,8 @@ class TransferParametersTestCase(_TransferClassesBaseTestCase):
                          params.MANDATORY_TARGETS))
         self.assert_false(params.must_have_transfer_targets(
                           params.TRANSFER_TARGETS))
-        self.assert_raises(KeyError, params.must_have_transfer_targets, 'inv')
+        self._expect_error(KeyError, params.must_have_transfer_targets, '',
+                           **dict(parameter_name='inv'))
 
 
 class TransferPositionTestCase(_TransferClassesBaseTestCase):
@@ -953,15 +974,24 @@ class TransferPositionTestCase(_TransferClassesBaseTestCase):
         attrs['transfer_targets'] = []
         check_attributes(tp, attrs)
         attrs['mandatory_targets'] = None
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+               'A _TransferPositionDummy must have at least one mandatory ' \
+               'target!', **attrs)
         attrs['mandatory_targets'] = []
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+               'A _TransferPositionDummy must have at least one mandatory ' \
+               'target!', **attrs)
         attrs['mandatory_targets'] = self.tts[1]
-        self.assert_raises(TypeError, self.POS_CLS, **attrs)
+        self._expect_error(TypeError, self.POS_CLS,
+                'The mandatory targets must be passed as list (obtained: ' \
+                'TransferTarget).', **attrs)
         attrs['mandatory_targets'] = [1]
-        self.assert_raises(TypeError, self.POS_CLS, **attrs)
+        self._expect_error(TypeError, self.POS_CLS,
+               'The mandatory target must be TransferTarget objects ' \
+               '(obtained: int).', **attrs)
         del attrs['mandatory_targets']
-        self.assert_raises(NotImplementedError, TransferPosition, **attrs)
+        self._expect_error(NotImplementedError, TransferPosition,
+                           'Abstract class', **attrs)
 
     def test_equality(self):
         irr_values = dict(transfer_targets=[self.tts[1]],
@@ -991,9 +1021,12 @@ class TransferPositionTestCase(_TransferClassesBaseTestCase):
         self.assert_equal(tp.mandatory_targets, [self.tts[1], self.tts[2]])
         self.assert_equal(tp.transfer_targets, [self.tts[3], self.tts[4],
                                                 self.tts[2]])
-        self.assert_raises(TypeError, tp.add_transfer_target, 1)
+        self._expect_error(TypeError, tp.add_transfer_target,
+                'Transfer targets wells must be TransferTarget objects ' \
+                '(obtained: 1, type: int)', **dict(transfer_target=1))
         # test duplicate hash
-        self.assert_raises(ValueError, tp.add_transfer_target, self.tts[2])
+        self._expect_error(ValueError, tp.add_transfer_target,
+                           'Duplicate target position B2prep1', self.tts[2])
 
     def test_get_targets_tag_value(self):
         tp = self._get_position('a1')
@@ -1001,7 +1034,9 @@ class TransferPositionTestCase(_TransferClassesBaseTestCase):
                           self._TT_TAG_VALUES['a1'])
         self.assert_equal(self._MT_TAG_VALUES['a1'], tp.get_targets_tag_value(
                           _TransferParameterDummy.MANDATORY_TARGETS))
-        self.assert_raises(ValueError, tp.get_targets_tag_value, 'inv')
+        self._expect_error(ValueError, tp.get_targets_tag_value,
+                           'Parameter "inv" is no transfer target parameter!',
+                           **dict(parameter_name='inv'))
 
     def test_get_targets_tag(self):
         tp = self._get_position('a1')
@@ -1014,10 +1049,14 @@ class TransferPositionTestCase(_TransferClassesBaseTestCase):
         tp.transfer_targets = []
         self.assert_is_none(tp.get_targets_tag(
                             _TransferParameterDummy.TRANSFER_TARGETS))
-        self.assert_raises(ValueError, tp.get_targets_tag, 'inv')
+        self._expect_error(ValueError, tp.get_targets_tag,
+               'Parameter "inv" is no transfer target parameter!',
+               **dict(parameter_name='inv'))
         tp.mandatory_targets = []
-        self.assert_raises(AttributeError, tp.get_targets_tag,
-                           _TransferParameterDummy.MANDATORY_TARGETS)
+        self._expect_error(AttributeError, tp.get_targets_tag,
+                'There are no transfer targets for the mandatory transfer ' \
+                'parameter "mandatory_targets"!',
+                _TransferParameterDummy.MANDATORY_TARGETS)
 
     def test_parse_tag_value(self):
         value = 'C2:1:prep2-D2:1:prep2'
@@ -1025,8 +1064,9 @@ class TransferPositionTestCase(_TransferClassesBaseTestCase):
         self.assert_equal(exp_tts,
                           TransferPosition.parse_target_tag_value(value))
         value_dup = 'C2:1:prep2-C2:1:prep2'
-        self.assert_raises(ValueError, TransferPosition.parse_target_tag_value,
-                           value_dup)
+        self._expect_error(ValueError, TransferPosition.parse_target_tag_value,
+                           'Duplicate transfer target: C2prep2',
+                           **dict(target_tag_value=value_dup))
 
     def test_get_parameter_tag(self):
         tp = self._get_position('b1')
@@ -1055,7 +1095,9 @@ class TransferLayoutTestCase(_TransferClassesBaseTestCase):
         self.assert_equal(len(tl), 1)
         self.pos_data['b1'] = self.pos_data['a1']
         tp2 = self._get_position('b1')
-        self.assert_raises(ValueError, tl.add_position, tp2)
+        self._expect_error(ValueError, tl.add_position,
+                           'Duplicate target well C2prep2!',
+                           **dict(working_position=tp2))
         tl.del_position(tp1.rack_position)
         self.assert_equal(len(tl), 0)
         tl.add_position(tp2)
@@ -1176,7 +1218,9 @@ class LibraryLayoutPositionTestCase(ToolsAndUtilsTestCase):
         self.assert_is_not_none(lp2)
         check_attributes(lp2, attrs)
         attrs['is_library_position'] = None
-        self.assert_raises(TypeError, self.test_cls, **attrs)
+        self._expect_error(TypeError, self.test_cls,
+                'The "library position" flag must be a bool (obtained: ' \
+                'NoneType).', **attrs)
 
     def test_equality(self):
         attrs = self.__get_init_data()
@@ -1222,7 +1266,8 @@ class LibraryLayoutTestCase(ToolsAndUtilsTestCase):
         self.assert_true(ll.is_closed)
         self.assert_equal(len(ll), 2)
         self.assert_is_none(ll.get_working_position(a2_pos))
-        self.assert_raises(AttributeError, ll.add_position, a2_lp)
+        self._expect_error(AttributeError, ll.add_position,
+                       'The layout is closed!', **dict(working_position=a2_lp))
 
     def test_create_rack_layout(self):
         ll = self.__create_test_layout()

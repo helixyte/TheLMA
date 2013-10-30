@@ -45,7 +45,7 @@ class IsoRequestParameters(MoleculeDesignPoolParameters):
     POS_TYPE = MoleculeDesignPoolParameters.POS_TYPE
 
     REQUIRED = [MOLECULE_DESIGN_POOL]
-    ALL = [MOLECULE_DESIGN_POOL, ISO_CONCENTRATION, ISO_VOLUME, POS_TYPE]
+    ALL = MoleculeDesignPoolParameters.ALL + [ISO_VOLUME, ISO_CONCENTRATION]
 
     ALIAS_MAP = dict(MoleculeDesignPoolParameters.ALIAS_MAP, **{
                     ISO_CONCENTRATION : [], ISO_VOLUME : []})
@@ -55,6 +55,20 @@ class IsoRequestParameters(MoleculeDesignPoolParameters):
 
     #: The minimum volume that can be requested by the stock management in ul.
     MINIMUM_ISO_VOLUME = 1
+
+    MOCK_NON_PARAMETERS = MoleculeDesignPoolParameters.MOCK_NON_PARAMETERS \
+                          + [ISO_CONCENTRATION]
+
+    @classmethod
+    def is_valid_mock_value(cls, value, parameter):
+        if not super(IsoRequestParameters, cls).is_valid_mock_value(value,
+                                                                    parameter):
+            return False
+        if parameter == cls.ISO_VOLUME:
+            if value is None or is_valid_number(value):
+                return True
+            return False
+        return True
 
 
 class IsoRequestPosition(MoleculeDesignPoolPosition):
@@ -356,7 +370,8 @@ class IsoRequestLayoutConverter(MoleculeDesignPoolLayoutConverter):
             is_valid = False
 
         if is_mock:
-            if not IsoRequestPosition.is_valid_mock_value(iso_conc):
+            if not IsoRequestPosition.is_valid_mock_value(iso_conc,
+                                  self.PARAMETER_SET.ISO_CONCENTRATION):
                 info = '%s (%s, mock position)' % (iso_conc, pos_label)
                 self.__invalid_iso_concentration.append(info)
                 is_valid = False
@@ -515,7 +530,7 @@ class IsoRequestSectorAssociator(RackSectorAssociator):
         """
         if not layout_pos is None and layout_pos.is_fixed and \
                                                 not self.regard_controls:
-            return layout_pos.NONE_REPLACER
+            return None
         else:
             return RackSectorAssociator._get_molecule_design_pool_id(self,
                                                                      layout_pos)
@@ -566,6 +581,14 @@ class IsoRequestAssociationData(AssociationData):
         """
         return self.__sector_volumes
 
+    @property
+    def regard_controls(self):
+        """
+        Do fixed positions adhere to the sector data (*True*) or do they
+        have to be treated separately (*False*)?
+        """
+        return self.__regard_controls
+
     def _find_concentrations(self, layout):
         """
         The name of the concentration attribute is derived from the
@@ -613,6 +636,8 @@ class IsoRequestAssociationData(AssociationData):
         if self.__sector_volumes is None:
             msg = 'Error when trying to determine sector volumes.'
             raise ValueError(msg)
+        else:
+            self._remove_none_sectors(self.__sector_volumes)
 
     @classmethod
     def find(cls, log, layout):
@@ -643,6 +668,6 @@ class IsoRequestAssociationData(AssociationData):
             try:
                 ad = cls(**kw)
             except ValueError:
-                return None
+                return None, None
 
         return ad, regard_controls

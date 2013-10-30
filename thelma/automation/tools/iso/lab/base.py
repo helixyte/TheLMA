@@ -26,6 +26,7 @@ from thelma.models.iso import LabIsoRequest
 from thelma.models.job import IsoJob
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.moleculedesign import MoleculeDesignPool
+from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
 
 __all__ = ['get_stock_takeout_volume',
            'LABELS',
@@ -313,6 +314,21 @@ class LabIsoParameters(TransferParameters):
                  STOCK_TUBE_BARCODE : DOMAIN, STOCK_RACK_BARCODE : DOMAIN,
                  SECTOR_INDEX : DOMAIN, STOCK_RACK_MARKER : DOMAIN})
 
+    MOCK_NON_PARAMETERS = MoleculeDesignPoolParameters.MOCK_NON_PARAMETERS \
+                          + [CONCENTRATION, STOCK_TUBE_BARCODE,
+                             STOCK_RACK_BARCODE, STOCK_RACK_MARKER]
+
+    @classmethod
+    def is_valid_mock_value(cls, value, parameter):
+        if not super(LabIsoParameters, cls).is_valid_mock_value(value,
+                                                                parameter):
+            return False
+        if parameter == cls.VOLUME:
+            return is_valid_number(value)
+        elif parameter == cls.SECTOR_INDEX:
+            return is_valid_number(value, may_be_zero=True, is_integer=True)
+        return True
+
 
 class LabIsoPosition(TransferPosition):
     """
@@ -404,15 +420,13 @@ class LabIsoPosition(TransferPosition):
                     (not isinstance(stock_tube_barcode, basestring) or \
                      len(stock_tube_barcode) < 2):
             msg = 'The stock tube barcode must be a string of at least 2 ' \
-                  'characters length (obtained: %s).' \
-                   % (stock_tube_barcode.__class__.__name__)
+                  'characters length (obtained: %s).' % (stock_tube_barcode)
             raise TypeError(msg)
         if not stock_rack_barcode is None and \
                     (not isinstance(stock_rack_barcode, basestring) or \
                      len(stock_rack_barcode) < 2):
             msg = 'The stock rack barcode must be a string of at least 2 ' \
-                  'characters length (obtained: %s).' \
-                   % (stock_rack_barcode.__class__.__name__)
+                  'characters length (obtained: %s).' % (stock_rack_barcode)
             raise TypeError(msg)
         if not sector_index is None and not is_valid_number(sector_index,
                                         may_be_zero=True, is_integer=True):
@@ -452,9 +466,9 @@ class LabIsoPosition(TransferPosition):
         #: (only for starting wells).
         self.stock_rack_marker = stock_rack_marker
 
-        non_values = dict(stock_tube_barcode=stock_tube_barcode,
-                          stock_rack_barcode=stock_rack_barcode,
-                          stock_rack_marker=stock_rack_marker)
+        non_values = {'stock tube barcode' : stock_tube_barcode,
+                      'stock rack barcode' : stock_rack_barcode,
+                      'stock rack marker' : stock_rack_marker}
         if self.is_library:
             non_values['transfer_targets'] = transfer_targets
             self.__check_non_values(non_values)
@@ -463,8 +477,7 @@ class LabIsoPosition(TransferPosition):
             self.__check_non_values(non_values)
         elif self.is_empty:
             non_values['volume'] = volume
-            non_values['sector_index'] = sector_index
-            non_values['transfer_targets'] = transfer_targets
+            non_values['sector index'] = sector_index
             non_values['concentration'] = concentration
             self.__check_non_values(non_values)
 
@@ -604,7 +617,7 @@ class LabIsoPosition(TransferPosition):
         if self.is_floating:
             if not isinstance(self.molecule_design_pool, basestring):
                 msg = 'The pool for this floating position is already set ' \
-                      '(%s!)' % (self.molecule_design_pool)
+                      '(%s)!' % (self.molecule_design_pool)
                 raise AttributeError(msg)
             if tube_candidate is None:
                 return self.create_missing_floating_copy()

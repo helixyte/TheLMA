@@ -56,9 +56,8 @@ class PlannedWorklistGenerator(BaseAutomationTool):
 
         self._check_input()
         if not self.has_errors(): self._set_label()
-        if not self.has_errors():
-            self._create_planned_liquid_transfers()
-            transfer_type = self.__get_transfer_type()
+        if not self.has_errors(): self._create_planned_liquid_transfers()
+        if not self.has_errors(): transfer_type = self.__get_transfer_type()
         if not self.has_errors():
             planned_worklist = PlannedWorklist(label=self._label,
                  transfer_type=transfer_type,
@@ -97,8 +96,8 @@ class PlannedWorklistGenerator(BaseAutomationTool):
         Also makes sure that there is only one distinct transfer type.
         """
         transfer_types = set()
-        for pt in self._planned_liquid_transfers:
-            transfer_types.add(pt.transfer_type)
+        for plt in self._planned_liquid_transfers:
+            transfer_types.add(plt.transfer_type)
 
         if len(transfer_types) > 1:
             msg = 'The planned transfers for this worklist "%s" have ' \
@@ -106,5 +105,9 @@ class PlannedWorklistGenerator(BaseAutomationTool):
                    ', '.join(sorted(list(transfer_types))))
             self.add_error(msg)
             return None
+        elif len(transfer_types) < 1:
+            msg = 'There are no transfer types scheduled for this planned ' \
+                  'worklist: %s!' % (self._label)
+            self.add_error(msg)
         else:
             return list(transfer_types)[0]

@@ -212,7 +212,7 @@ from thelma.automation.parsers.base import RackParsingContainer
 __docformat__ = "reStructuredText en"
 __all__ = ['IsoRequestParser',
            '_IsoSheetParsingContainer',
-           '_IsoParameterContainer']
+           '_ParameterContainer']
 
 
 class IsoRequestParser(ExcelMoleculeDesignPoolLayoutParser):
@@ -262,9 +262,7 @@ class IsoRequestParser(ExcelMoleculeDesignPoolLayoutParser):
 
         #: Stores the values for the ISO metadata.
         self.metadata_value_map = dict()
-        #: Stores values and distributions for the ISO parameters (molecule
-        #: design, concentration, reagent name, reagent dil factor,
-        #: final concentration).
+        #: Stores the :class:`_ParameterContainer` for each allowed parameter.
         self.parameter_map = dict()
 
     def reset(self):
@@ -345,7 +343,7 @@ class _IsoSheetParsingContainer(ExcelMoleculeDesignPoolLayoutParsingContainer):
         #: stores the parameter containers
         self.parameter_map = {}
         for parameter, alias_list in self._parser.layout_parameters.iteritems():
-            self.parameter_map[parameter] = _IsoParameterContainer(self._parser,
+            self.parameter_map[parameter] = _ParameterContainer(self._parser,
                                             parameter, alias_list)
         # III instance variables for intermediate data storage
 
@@ -461,7 +459,7 @@ class _IsoSheetParsingContainer(ExcelMoleculeDesignPoolLayoutParsingContainer):
                           'beginning of the sheet or specify the values as ' \
                           'factor and levels. Valid factor names are: %s.'  \
                            % (parameter_container.parameter_name,
-                              ','.join(alias_list))
+                              ', '.join(alias_list))
                     self._create_error(msg)
 
     # pylint: disable=W0613
@@ -538,7 +536,7 @@ class _IsoSheetParsingContainer(ExcelMoleculeDesignPoolLayoutParsingContainer):
         return None
 
 
-class _IsoParameterContainer(ExcelParsingContainer):
+class _ParameterContainer(ExcelParsingContainer):
     """
     ParsingContainer subclass for the storage of ISO request parameter data.
     """

@@ -64,6 +64,26 @@ class IsoRequestClassesBaseTestCase(MoleculeDesignPoolBaseTestCase):
         return tags
 
 
+class IsoRequestParametersTestCase(IsoRequestClassesBaseTestCase):
+
+    def test_is_valid_mock_value(self):
+        # iso concentration
+        m = {'mock' : True, 'MOCK' : True, None : True, 'None' : True,
+             'fixed' : False, 'empty' : False, 'untreated' : False,
+             50 : False}
+        parameter = IsoRequestParameters.ISO_CONCENTRATION
+        for val, exp_res in m.iteritems():
+            res = IsoRequestParameters.is_valid_mock_value(val, parameter)
+            self.assert_equal(res, exp_res)
+        # iso volume
+        m = {'mock' : False, 'MOCK' : False, None : True, 'None' : False,
+             'fixed' : False, 'empty' : False, 50 : True}
+        parameter = IsoRequestParameters.ISO_VOLUME
+        for val, exp_res in m.iteritems():
+            res = IsoRequestParameters.is_valid_mock_value(val, parameter)
+            self.assert_equal(res, exp_res)
+
+
 class IsoRequestPositionTestCase(IsoRequestClassesBaseTestCase):
 
     def test_init(self):
@@ -74,70 +94,102 @@ class IsoRequestPositionTestCase(IsoRequestClassesBaseTestCase):
         ep = self._get_position('g1', attrs=kw)
         self.assert_is_not_none(ep)
         kw['iso_concentration'] = 'None'
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                   'The ISO concentration must be None for empty ' \
+                   'positions', **kw)
         kw['iso_concentration'] = None
         kw['iso_volume'] = 5
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                   'The ISO volume must be None for empty positions ' \
+                   '(obtained: 5.0)!', **kw)
 
     def test_untransfected_init_failures(self):
         kw = self._get_init_data('f1')
         ip = self._get_position('f1', attrs=kw)
         self.assert_is_not_none(ip)
         kw['iso_concentration'] = 5
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The value "5.0" is invalid for the ISO concentration of ' \
+                'untransfected positions. Allowed values are: (None, ' \
+                '\'UNTREATED\', \'NONE\', \'UNTRANSFECTED\')', **kw)
         kw['iso_concentration'] = 'untransfected'
         kw['iso_volume'] = 5
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The value "5.0" is invalid for the ISO volume of ' \
+                'untransfected positions. Allowed values are: (None, ' \
+                '\'UNTREATED\', \'NONE\', \'UNTRANSFECTED\')', **kw)
 
     def test_untreated_init_failures(self):
         kw = self._get_init_data('e1')
         ip = self._get_position('e1', attrs=kw)
         self.assert_is_not_none(ip)
         kw['iso_concentration'] = 5
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The value "5.0" is invalid for the ISO concentration of ' \
+                'untreated positions. Allowed values are: (None, ' \
+                '\'UNTREATED\', \'NONE\', \'UNTRANSFECTED\')', **kw)
         kw['iso_concentration'] = 'untreated'
         kw['iso_volume'] = 5
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The value "5.0" is invalid for the ISO volume of ' \
+                'untreated positions. Allowed values are: (None, ' \
+                '\'UNTREATED\', \'NONE\', \'UNTRANSFECTED\')', **kw)
 
     def test_library_init_failure(self):
         kw = self._get_init_data('d1')
         ip = self._get_position('d1', attrs=kw)
         self.assert_is_not_none(ip)
         kw['iso_concentration'] = LIBRARY_POSITION_TYPE
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                   'The ISO concentration must be a positive number ' \
+                   '(obtained: library).', **kw)
         kw['iso_concentration'] = None
         kw['iso_volume'] = LIBRARY_POSITION_TYPE
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                    'The ISO volume must be a positive number ' \
+                    '(obtained: library).', **kw)
 
     def test_mock_init_failure(self):
         kw = self._get_init_data('c1')
         ip = self._get_position('d1', attrs=kw)
         self.assert_is_not_none(ip)
         kw['iso_concentration'] = 50
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+            'The value "50.0" is invalid for the ISO concentration of ' \
+            'mock positions. Allowed values are: (None, \'MOCK\', \'NONE\')',
+            **kw)
         kw['iso_concentration'] = 'None'
         kw['iso_volume'] = -2
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+            'The ISO volume must be a positive number (obtained: -2).', **kw)
 
     def test_floating_init_failure(self):
         kw = self._get_init_data('b1')
         ip = self._get_position('b1', attrs=kw)
         self.assert_is_not_none(ip)
         kw['iso_concentration'] = -4
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The ISO concentration must be a positive number ' \
+                '(obtained: -4).', **kw)
         kw['iso_concentration'] = None
         kw['iso_volume'] = -2
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+               'The ISO volume must be a positive number ' \
+               '(obtained: -2).', **kw)
 
     def test_fixed_init_failure(self):
         kw = self._get_init_data('a1')
         ip = self._get_position('a1', attrs=kw)
         self.assert_is_not_none(ip)
         kw['iso_concentration'] = -4
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The ISO concentration must be a positive number ' \
+                '(obtained: -4).', **kw)
         kw['iso_concentration'] = None
         kw['iso_volume'] = -4
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+               'The ISO volume must be a positive number ' \
+               '(obtained: -4).', **kw)
 
     def test_equality(self):
         self._test_position_equality(dict(iso_concentration=70, iso_volume=100),
@@ -309,7 +361,7 @@ class _IsoRequestRackSectorToolTestCase(RackSectorTestCase):
             ir_pos = IsoRequestPosition(rack_position=rack_pos,
                                          molecule_design_pool=pool,
                                          iso_concentration=iso_conc,
-                                         iso_volume=(pos_data[0] * 2))
+                                         iso_volume=((pos_data[0] + 1) * 2))
             self.layout.add_position(ir_pos)
 
     def _test_invalid_regard_controls(self):
@@ -319,8 +371,8 @@ class _IsoRequestRackSectorToolTestCase(RackSectorTestCase):
         self.regard_controls = True
 
     def _adjust_pos_data_for_regard_control_test(self):
-        self.position_data = self._get_case_data(1)
-        self.position_data['A6'] = [1, 5, 15]
+        self.position_data = self._get_case_data(3)
+        self.position_data['C6'] = [1, 5, 70]
 
     def _create_value_determiner(self):
         self.tool = IsoRequestValueDeterminer(log=self.log,
@@ -345,6 +397,20 @@ class _IsoRequestRackSectorToolTestCase(RackSectorTestCase):
             if not pool_pos.is_empty:
                 pool_pos.iso_volume = iso_vol
 
+    def _get_expected_sector_volumes(self):
+        if self.current_case_num == 1:
+            # different pools and concentration, 1 empty
+            raise AssertionError('The association for case %i should always ' \
+                                 'fail!' % (self.current_case_num))
+        elif self.current_case_num == 2:
+            # different pools, equal concentrations, 1 empty
+            return {0 : 2, 1 : 4, 2 : 6}
+        elif self.current_case_num == 3:
+            # 2 x 2 association, different concentrations
+            return {0 : 2, 1 : 4, 2 : 6, 3 : 8}
+        else: # 2 x 2 association, all equal concentrations
+            return {0 : 2, 1 : 4, 2 : 6, 3 : 8}
+
 
 class IsoRequestValueDetermineTestCase(_IsoRequestRackSectorToolTestCase):
 
@@ -358,10 +424,10 @@ class IsoRequestValueDetermineTestCase(_IsoRequestRackSectorToolTestCase):
         self._adjust_pos_data_for_regard_control_test()
         self._continue_setup()
         self._test_and_expect_errors('There is more than one value for ' \
-                 'sector 2! Attribute: iso_concentration. Values: 10.0, 15.0')
+                 'sector 2! Attribute: iso_concentration. Values: 10, 70')
         self.regard_controls = False
         self._create_tool()
-        exp_map = {0 : None, 1 : 10, 2 : 20, 3 : 30}
+        exp_map = self._get_expected_sector_concentrations(3)
         self._check_value_determiner_run(exp_map)
 
     def test_invalid_input_values(self):
@@ -378,7 +444,7 @@ class IsoRequestValueDetermineTestCase(_IsoRequestRackSectorToolTestCase):
         self._adjust_pos_data_for_regard_control_test()
         self._continue_setup()
         self._test_and_expect_errors('There is more than one value for ' \
-                 'sector 2! Attribute: iso_concentration. Values: 10.0, 15.0')
+                 'sector 2! Attribute: iso_concentration. Values: 10, 70')
 
 
 class IsoRequestRackSectorAssociatorTestCase(_IsoRequestRackSectorToolTestCase):
@@ -396,7 +462,7 @@ class IsoRequestRackSectorAssociatorTestCase(_IsoRequestRackSectorToolTestCase):
                                      'sector concentrations.')
         self.regard_controls = False
         self._create_tool()
-        exp_res = [[1, 3], [2]]
+        exp_res = self._get_expected_associated_sectors()
         self._check_sector_associator_run(exp_res)
 
     def test_invalid_input_values(self):
@@ -411,13 +477,23 @@ class IsoRequestRackSectorAssociatorTestCase(_IsoRequestRackSectorToolTestCase):
         self._test_and_expect_errors('Error when trying to determine rack ' \
                                      'sector concentrations.')
 
-    def test_pool_inconsistence(self):
-        self.position_data = self._get_case_data(1)
-        self.position_data['A6'][1] = 5
-        self._continue_setup()
-        self._test_and_expect_errors('The molecule design pools in the ' \
-                 'different quadrants are not consistent. First occurrence ' \
-                 'in the following block: A6, B5, B6')
+    def test_inconsistent_quadrants(self):
+        exp_msg = 'The molecule design pools in the different quadrants are ' \
+            'not consistent. Found associated pools: 0.1.2 ([\'E5\', \'E6\', ' \
+            '\'F5\']) - 0.2 ([\'C3\', \'D3\'], [\'C5\', \'D5\'], [\'E3\', ' \
+            '\'F3\']) - 1.3 ([\'C6\', \'D6\'], [\'E4\', \'F4\']).'
+        self._test_associator_inconsistent_quadrants(exp_msg)
+
+    def test_different_set_lengths(self):
+        exp_msg = 'The sets of molecule design pools in ' \
+            'a quadrant have different lengths: 0.1.2.3 ([\'E5\', \'E6\', ' \
+            '\'F5\', \'F6\']) - 0.2 ([\'C3\', \'D3\'], [\'C5\', \'D5\'], ' \
+            '[\'E3\', \'F3\'], [\'E7\', \'F7\']) - 1 ([\'C6\'], [\'E4\']) - ' \
+            '1.3 ([\'E8\', \'F8\']) - 3 ([\'D6\'], [\'F4\'])'
+        self._test_associator_different_set_lengths(exp_msg)
+
+    def test_different_concentration_combinations(self):
+        self._test_different_concentration_combinations()
 
 
 class IsoRequestAssociationDataTestCase(_IsoRequestRackSectorToolTestCase):
@@ -425,11 +501,12 @@ class IsoRequestAssociationDataTestCase(_IsoRequestRackSectorToolTestCase):
     def test_result_384(self):
         self._test_association_data_384()
 
-    def _check_association_data_384(self, case_num):
+    def _check_association_data_384(self):
         ad = _IsoRequestRackSectorToolTestCase._check_association_data_384(
-                                                            self, case_num)
-        exp_volumes = {0 : None, 1 : 2, 2 : 4, 3 : 6}
-        self.assert_equal(ad.sector_volumes, exp_volumes)
+                                                                     self)
+        if not ad is None:
+            exp_volumes = self._get_expected_sector_volumes()
+            self.assert_equal(ad.sector_volumes, exp_volumes)
 
     def test_result_96(self):
         self._test_assocation_data_96()
@@ -437,26 +514,28 @@ class IsoRequestAssociationDataTestCase(_IsoRequestRackSectorToolTestCase):
             if pool_pos.is_empty: continue
             pool_pos.iso_volume = (2 * pool_pos.iso_volume)
             break
-        self.assert_raises(ValueError, self._create_association_data)
+        self._expect_error(ValueError, self._create_association_data,
+                           'Error when trying to determine sector volumes.')
 
-    def _check_association_data_96(self, case_num):
-        ad = _IsoRequestRackSectorToolTestCase._check_association_data_96(self,
-                                                                      case_num)
+    def _check_association_data_96(self):
+        ad = _IsoRequestRackSectorToolTestCase._check_association_data_96(self)
         if not ad is None:
             self.assert_equal({0 : 10}, ad.sector_volumes)
 
     def test_regard_controls(self):
         self._adjust_pos_data_for_regard_control_test()
         self._continue_setup()
-        self.assert_raises(ValueError, self._create_association_data)
+        self._expect_error(ValueError, self._create_association_data,
+                           'Error when trying to find rack sector association.')
         self.assert_equal(len(self.log.get_messages(logging.ERROR)), 0)
         self.regard_controls = False
-        self._check_association_data_384(1)
+        self._check_association_data_384()
 
     def test_failure(self):
         self._adjust_pos_data_for_regard_control_test()
         self._continue_setup()
-        self.assert_raises(ValueError, self._create_association_data)
+        self._expect_error(ValueError, self._create_association_data,
+                           'Error when trying to find rack sector association.')
         self.assert_equal(len(self.log.get_messages(logging.ERROR)), 0)
 
     def test_find(self):
@@ -471,9 +550,8 @@ class IsoRequestAssociationDataTestCase(_IsoRequestRackSectorToolTestCase):
                                        layout=self.layout)
         self.assert_is_not_none(ad)
         self.assert_false(regard_controls)
-        for pool_pos in self.layout.working_positions():
-            if not pool_pos.is_floating: continue
-            pool_pos.iso_volume = (2 * pool_pos.iso_volume)
-            break
-        self.assert_is_none(IsoRequestAssociationData.find(log=self.log,
-                                       layout=self.layout))
+        rack_pos = get_rack_position_from_label('E3')
+        ir_pos = self.layout.get_working_position(rack_pos)
+        ir_pos.iso_volume = 1000
+        self.assert_equal((None, None), IsoRequestAssociationData.find(
+                                        log=self.log, layout=self.layout))

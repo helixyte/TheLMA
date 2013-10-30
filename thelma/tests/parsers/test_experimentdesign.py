@@ -7,19 +7,18 @@ AAB May 12, 2011
 from thelma.automation.handlers.experimentdesign \
     import ExperimentDesignParserHandler
 from thelma.automation.parsers.experimentdesign import ExperimentDesignParser
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionParameters
-from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
-from thelma.automation.tools.semiconstants import get_experiment_type_isoless
-from thelma.automation.tools.semiconstants import get_experiment_type_library
-from thelma.automation.tools.semiconstants \
+from thelma.automation.semiconstants \
     import get_experiment_type_manual_optimisation
-from thelma.automation.tools.semiconstants import get_experiment_type_order
-from thelma.automation.tools.semiconstants \
+from thelma.automation.semiconstants \
     import get_experiment_type_robot_optimisation
-from thelma.automation.tools.semiconstants import get_experiment_type_screening
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.utils.base import UNTREATED_POSITION_TYPE
+from thelma.automation.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.semiconstants import get_experiment_type_isoless
+from thelma.automation.semiconstants import get_experiment_type_library
+from thelma.automation.semiconstants import get_experiment_type_order
+from thelma.automation.semiconstants import get_experiment_type_screening
+from thelma.automation.semiconstants import get_rack_position_from_label
+from thelma.automation.tools.metadata.base import TransfectionParameters
+from thelma.automation.utils.layouts import UNTREATED_POSITION_TYPE
 from thelma.models.tagging import Tag
 from thelma.models.utils import get_user
 from thelma.tests.tools.tooltestingutils import ParsingTestCase
@@ -31,7 +30,7 @@ class ExperimentDesignParserHandlerTestCase(ParsingTestCase):
 
     def set_up(self):
         ParsingTestCase.set_up(self)
-        self.TEST_FILE_PATH = 'thelma:tests/parsers/experiment_design/'
+        self.TEST_FILE_PATH = 'thelma:tests/parsers/experimentdesign/'
         self.user = get_user('it')
         self.scenario = None
 
@@ -73,12 +72,12 @@ class ExperimentDesignParserHandlerTestCase(ParsingTestCase):
         self.__check_experiment_design_attributes(ed)
         d1_layout = None
         b12_layout = None
-        for design_rack in ed.design_racks:
+        for design_rack in ed.experiment_design_racks:
             if design_rack.label == '1':
-                d1_layout = design_rack.layout
+                d1_layout = design_rack.rack_layout
                 continue
             elif design_rack.label == 'b12':
-                b12_layout = design_rack.layout
+                b12_layout = design_rack.rack_layout
                 continue
         self.__check_shared_tagged_rack_positions_sets(d1_layout)
         self.__check_color_coded_tag(d1_layout, b12_layout)
@@ -89,7 +88,7 @@ class ExperimentDesignParserHandlerTestCase(ParsingTestCase):
         self.assert_is_none(ed.experiment_metadata)
         self.assert_is_none(ed.worklist_series)
         self.assert_equal(len(ed.experiments), 0)
-        self.assert_equal(len(ed.design_racks), 6)
+        self.assert_equal(len(ed.experiment_design_racks), 6)
 
     def __check_color_coded_tag(self, d1_layout, b12_layout):
         a1_pos = get_rack_position_from_label('A1')
@@ -154,8 +153,8 @@ class ExperimentDesignParserHandlerTestCase(ParsingTestCase):
 
     def __get_all_predicates(self, ed):
         predicates = set()
-        for design_rack in ed.design_racks:
-            tags = design_rack.layout.get_tags()
+        for design_rack in ed.experiment_design_racks:
+            tags = design_rack.rack_layout.get_tags()
             for tag in tags: predicates.add(tag.predicate)
         return predicates
 
@@ -306,15 +305,15 @@ class ExperimentDesignParserHandlerTestCase(ParsingTestCase):
         self._set_isoless_values()
         self._continue_setup()
         ed = self.tool.get_result()
-        self.assert_equal(len(ed.design_racks), 3)
+        self.assert_equal(len(ed.experiment_design_racks), 3)
         cp_yes = Tag(self.tool.TAG_DOMAIN, 'Compound', 'yes')
         cp_no = Tag(self.tool.TAG_DOMAIN, 'Compound', 'no')
         cell_values = {'1' : ('line A', 'star'), '2' : ('line B', 'sun'),
                        '3' : ('both', 'sky')}
         b2_pos = get_rack_position_from_label('B2')
         d2_pos = get_rack_position_from_label('D2')
-        for drack in ed.design_racks:
-            layout = drack.layout
+        for drack in ed.experiment_design_racks:
+            layout = drack.rack_layout
             trp_sets = layout.tagged_rack_position_sets
             self.assert_equal(len(trp_sets), 3)
             data = cell_values[drack.label]

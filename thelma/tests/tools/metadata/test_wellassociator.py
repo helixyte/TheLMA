@@ -5,32 +5,31 @@ in an experiment cell plate well.
 
 AAB
 """
-from pkg_resources import resource_filename # pylint: disable=E0611,F0401
-from thelma.automation.tools.metadata.transfection_utils import TransfectionPosition
 from thelma.automation.handlers.experimentdesign \
     import ExperimentDesignParserHandler
 from thelma.automation.handlers.isorequest import IsoRequestParserHandler
+from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.automation.semiconstants import get_384_rack_shape
+from thelma.automation.semiconstants import get_experiment_metadata_type
+from thelma.automation.tools.metadata.base import TransfectionLayoutConverter
+from thelma.automation.tools.metadata.base import TransfectionParameters
+from thelma.automation.tools.metadata.base import TransfectionPosition
 from thelma.automation.tools.metadata.generation \
     import WellAssociatorOptimisation
 from thelma.automation.tools.metadata.generation import WellAssociatorManual
-from thelma.automation.tools.metadata.transfection_utils \
-    import TransfectionLayoutConverter
-from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.tools.semiconstants import get_384_rack_shape
-from thelma.automation.tools.semiconstants import get_experiment_metadata_type
 from thelma.models.racklayout import RackLayout
 from thelma.models.utils import get_user
+from thelma.tests.tools.tooltestingutils import FileReadingTestCase
 from thelma.tests.tools.tooltestingutils import SilentLog
 from thelma.tests.tools.tooltestingutils import TestingLog
-from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
-class WellAssociatorTestCase(ToolsAndUtilsTestCase):
+class _WellAssociatorTestCase(FileReadingTestCase):
 
     def set_up(self):
-        ToolsAndUtilsTestCase.set_up(self)
+        FileReadingTestCase.set_up(self)
         self.log = TestingLog()
         self.silent_log = SilentLog()
-        self.FILE_PATH = 'thelma:tests/tools/metadata/associator/'
+        self.TEST_FILE_PATH = 'thelma:tests/tools/metadata/associator/'
         self.VALID_FILE = None
         # ini values
         self.experiment_design = None
@@ -43,17 +42,14 @@ class WellAssociatorTestCase(ToolsAndUtilsTestCase):
         self.final_concentration2 = 200
         self.mock_labels = []
         # other values
-        self.source = None
         self.experiment_type_id = None
         self.pass_design_rack_layouts = False
         self.user = get_user('it')
 
     def tear_down(self):
-        ToolsAndUtilsTestCase.tear_down(self)
+        FileReadingTestCase.tear_down(self)
         del self.log
         del self.silent_log
-        del self.FILE_PATH
-        del self.VALID_FILE
         del self.experiment_design
         del self.source_layout
         del self.design_rack_layouts
@@ -62,37 +58,25 @@ class WellAssociatorTestCase(ToolsAndUtilsTestCase):
         del self.final_concentration1
         del self.final_concentration2
         del self.mock_labels
-        del self.source
         del self.experiment_type_id
         del self.pass_design_rack_layouts
 
     def _continue_setup(self, file_name=None):
-        if file_name is None: file_name = self.VALID_FILE
-        self.__read_file(file_name)
+        FileReadingTestCase._continue_setup(self, file_name)
         self.__parse_experiment_design()
         self.__parse_iso_request()
         if self.pass_design_rack_layouts: self.__generate_design_rack_layouts()
         self._create_tool()
 
-    def __read_file(self, file_name):
-        test_file = self.FILE_PATH + file_name
-        fn = test_file.split(':')
-        f = resource_filename(*fn)
-        try:
-            stream = open(f, 'rb')
-            self.source = stream.read()
-        finally:
-            stream.close()
-
     def __parse_experiment_design(self):
         em_type = get_experiment_metadata_type(self.experiment_type_id)
-        ed_handler = ExperimentDesignParserHandler(stream=self.source,
+        ed_handler = ExperimentDesignParserHandler(stream=self.stream,
                             requester=self.user, scenario=em_type,
                             log=self.silent_log)
         self.experiment_design = ed_handler.get_result()
 
     def __parse_iso_request(self):
-        iso_handler = IsoRequestParserHandler.create(stream=self.source,
+        iso_handler = IsoRequestParserHandler.create(stream=self.stream,
                             experiment_type_id=self.experiment_type_id,
                             requester=self.user, log=self.silent_log)
         iso_request = iso_handler.get_result() #pylint: disable=W0612
@@ -100,10 +84,10 @@ class WellAssociatorTestCase(ToolsAndUtilsTestCase):
 
     def __generate_design_rack_layouts(self):
         self.design_rack_layouts = dict()
-        for design_rack in self.experiment_design.design_racks:
+        for design_rack in self.experiment_design.experiment_design_racks:
             converter = TransfectionLayoutConverter(log=self.silent_log,
-                                    rack_layout=design_rack.layout,
-                                    is_iso_layout=False)
+                                    rack_layout=design_rack.rack_layout,
+                                    is_iso_request_layout=False)
             tf_layout = converter.get_result()
             self.design_rack_layouts[design_rack.label] = tf_layout
 
@@ -138,12 +122,13 @@ class WellAssociatorTestCase(ToolsAndUtilsTestCase):
                 conc = concentration_map[rack_pos]
                 if rack_pos.label in self.mock_labels:
                     self.assert_true(TransfectionPosition.\
-                                     is_valid_mock_value(conc))
+                             is_valid_mock_value(conc,
+                                    TransfectionParameters.FINAL_CONCENTRATION))
                 else:
                     self.assert_equal(conc, final_conc)
 
     def _test_and_expect_errors(self, msg=None):
-        ToolsAndUtilsTestCase._test_and_expect_errors(self, msg=msg)
+        FileReadingTestCase._test_and_expect_errors(self, msg=msg)
         self.assert_is_none(self.tool.get_final_concentrations())
 
     def _test_invalid_experiment_design(self):
@@ -160,17 +145,17 @@ class WellAssociatorTestCase(ToolsAndUtilsTestCase):
 
     def _test_layout_conversion_error(self):
         self._continue_setup()
-        for design_rack in self.experiment_design.design_racks:
-            design_rack.layout = RackLayout(shape=get_384_rack_shape())
+        for design_rack in self.experiment_design.experiment_design_racks:
+            design_rack.rack_layout = RackLayout(shape=get_384_rack_shape())
             break
         self._test_and_expect_errors('Error when trying to convert layout ' \
                                      'for design rack')
 
 
-class WellAssociatorTestCaseManual(WellAssociatorTestCase):
+class WellAssociatorTestCaseManual(_WellAssociatorTestCase):
 
     def set_up(self):
-        WellAssociatorTestCase.set_up(self)
+        _WellAssociatorTestCase.set_up(self)
         self.VALID_FILE = 'valid_manual.xls'
         self.experiment_type_id = EXPERIMENT_SCENARIOS.MANUAL
         # src label; value: target labels
@@ -208,10 +193,10 @@ class WellAssociatorTestCaseManual(WellAssociatorTestCase):
                                      'the following positions in design rack')
 
 
-class WellAssociatorTestCaseOpti(WellAssociatorTestCase):
+class WellAssociatorTestCaseOpti(_WellAssociatorTestCase):
 
     def set_up(self):
-        WellAssociatorTestCase.set_up(self)
+        _WellAssociatorTestCase.set_up(self)
         self.VALID_FILE = 'valid_opti.xls'
         self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
         # src label; value: target labels
@@ -240,7 +225,7 @@ class WellAssociatorTestCaseOpti(WellAssociatorTestCase):
                                 design_rack_layouts=self.design_rack_layouts)
 
     def _check_result(self):
-        WellAssociatorTestCase._check_result(self)
+        _WellAssociatorTestCase._check_result(self)
         completed_src_layout = self.tool.get_completed_source_layout()
         self.assert_is_not_none(completed_src_layout)
         expected_length = len(set(self.result_data_1.keys() \
@@ -251,7 +236,7 @@ class WellAssociatorTestCaseOpti(WellAssociatorTestCase):
             self.assert_is_not_none(tf_pos.final_concentration)
 
     def _test_and_expect_errors(self, msg=None):
-        WellAssociatorTestCase._test_and_expect_errors(self, msg=msg)
+        _WellAssociatorTestCase._test_and_expect_errors(self, msg=msg)
         self.assert_is_none(self.tool.get_completed_source_layout())
 
     def test_result(self):

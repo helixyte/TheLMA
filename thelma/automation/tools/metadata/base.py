@@ -10,6 +10,7 @@ from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.semiconstants import get_reservoir_specs_standard_96
 from thelma.automation.tools.worklists.base import get_dynamic_dead_volume
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.base import get_converted_number
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import is_valid_number
@@ -21,13 +22,12 @@ from thelma.automation.utils.iso import IsoRequestParameters
 from thelma.automation.utils.iso import IsoRequestPosition
 from thelma.automation.utils.iso import IsoRequestSectorAssociator
 from thelma.automation.utils.iso import IsoRequestValueDeterminer
+from thelma.automation.utils.layouts import LIBRARY_POSITION_TYPE
 from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 from thelma.models.moleculetype import MoleculeType
 from thelma.models.racklayout import RackLayout
 from thelma.models.tagging import TaggedRackPositionSet
-import copy
-from thelma.automation.utils.layouts import LIBRARY_POSITION_TYPE
 
 __docformat__ = "reStructuredText en"
 
@@ -67,12 +67,8 @@ class TransfectionParameters(IsoRequestParameters):
     #: final concentration.
     OPTIMEM_DIL_FACTOR = 'optimem_dilution_factor'
 
-    #: A list of the attributes/parameters that need to be set.
-    REQUIRED = [MOLECULE_DESIGN_POOL]
-    #: A list of all available attributes/parameters.
-    ALL = [FINAL_CONCENTRATION, MOLECULE_DESIGN_POOL, ISO_VOLUME,
-           ISO_CONCENTRATION, POS_TYPE, REAGENT_NAME, REAGENT_DIL_FACTOR,
-           OPTIMEM_DIL_FACTOR]
+    ALL = IsoRequestParameters.ALL + [REAGENT_NAME, REAGENT_DIL_FACTOR,
+                                      FINAL_CONCENTRATION, OPTIMEM_DIL_FACTOR]
 
     #: A map storing alias predicates for each parameter.
     ALIAS_MAP = dict(IsoRequestParameters.ALIAS_MAP, **{
@@ -111,6 +107,23 @@ class TransfectionParameters(IsoRequestParameters):
 
     #: The default molecule type for mock positions.
     DEFAULT_MOLECULE_TYPE = MOLECULE_TYPE_IDS.SIRNA
+
+    MOCK_NON_PARAMETERS = IsoRequestParameters.MOCK_NON_PARAMETERS \
+                          + [FINAL_CONCENTRATION]
+
+    @classmethod
+    def is_valid_mock_value(cls, value, parameter):
+        if not super(TransfectionParameters, cls).is_valid_mock_value(value,
+                                                                  parameter):
+            return False
+        if parameter in {cls.REAGENT_DIL_FACTOR, cls.OPTIMEM_DIL_FACTOR}:
+            if value is None: return True
+            return is_valid_number(value)
+        elif parameter == cls.REAGENT_NAME:
+            if value is None: return True
+            if not isinstance(value, basestring) or not len(value) > 2:
+                return False
+        return True
 
     @classmethod
     def calculate_iso_volume(cls, number_target_wells, number_replicates,
@@ -377,6 +390,17 @@ class TransfectionParameters(IsoRequestParameters):
                                                                      mock_mt)
             return optimem_df
 
+    @classmethod
+    def get_floating_placeholder(cls, num):
+        """
+        Returns a value floating placeholder (suitable for recognition as
+        floating via :func:`get_position_type`).
+
+        :param num: a number for the placeholder
+        :type num: :class:`int`
+        """
+        return '%s%03i' % (cls.FLOATING_INDICATOR, num)
+
 
 class TransfectionPosition(IsoRequestPosition):
     """
@@ -464,7 +488,7 @@ class TransfectionPosition(IsoRequestPosition):
                         (not isinstance(self.reagent_name, basestring) or \
                          len(self.reagent_name) < 2):
                 msg = 'The reagent name must be at least 2 characters long ' \
-                      'if there is one (obtained: %s)!' % (self.reagent_name)
+                      'if there is one (obtained: "%s")!' % (self.reagent_name)
                 raise ValueError(msg)
             numericals = [tf_attrs[1], tf_attrs[3]]
             if self.is_mock:
@@ -524,6 +548,7 @@ class TransfectionPosition(IsoRequestPosition):
     def set_optimem_dilution_factor(self, optimem_df):
         """
         The OptiMem dilution factor must be a positive number.
+        The factor might only be set ones, except for fixed positions.
 
         :raises AttributeError: If the factor has been set before.
         :raises ValueError: If the factor is not a positive number.
@@ -532,7 +557,7 @@ class TransfectionPosition(IsoRequestPosition):
             msg = 'The OptiMem dilution factor must be a positive number ' \
                   '(obtained: %s).' % (optimem_df)
             raise ValueError(msg)
-        if not self._optimem_dil_factor is None:
+        if not self._optimem_dil_factor is None and not self.is_fixed:
             raise AttributeError('The OptiMem dilution factor has already ' \
                                  'been set!')
 
@@ -596,7 +621,16 @@ class TransfectionPosition(IsoRequestPosition):
         """
         Returns a copy of this transfection position.
         """
-        return copy.deepcopy(self)
+        tf_pos = TransfectionPosition(rack_position=self.rack_position,
+                      molecule_design_pool=self.molecule_design_pool,
+                      position_type=self.position_type,
+                      reagent_name=self.reagent_name,
+                      reagent_dil_factor=self.reagent_dil_factor,
+                      iso_volume=self.iso_volume,
+                      iso_concentration=self.iso_concentration,
+                      final_concentration=self.final_concentration,
+                      optimem_dil_factor=self._optimem_dil_factor)
+        return tf_pos
 
     def _get_parameter_values_map(self):
         """
@@ -939,7 +973,6 @@ class TransfectionLayoutConverter(IsoRequestLayoutConverter):
             self.__invalid_optimem_factor.append(info)
             invalid = True
 
-
         if reagent_name is None:
             if self.__is_mastermix_template:
                 self.__missing_reagent_name.append(pos_label)
@@ -964,7 +997,8 @@ class TransfectionLayoutConverter(IsoRequestLayoutConverter):
 
         if not final_conc is None:
             if pos_type == MOCK_POSITION_TYPE:
-                if not TransfectionPosition.is_valid_mock_value(final_conc):
+                if not TransfectionPosition.is_valid_mock_value(final_conc,
+                            self.PARAMETER_SET.FINAL_CONCENTRATION):
                     info = '%s (%s)' % (pos_label, final_conc)
                     self.__invalid_final_concentration.append(info)
                     invalid = True
@@ -1082,6 +1116,65 @@ class TransfectionSectorAssociator(IsoRequestSectorAssociator):
             return IsoRequestSectorAssociator._get_molecule_design_pool_id(self,
                                                                      layout_pos)
 
+    def _check_associated_sectors(self):
+        """
+        Since all floating positions are regarded as the same pool, the default
+        sector association will not work if we do have controls to distinguish
+        sectors.
+        """
+        if not self.regard_controls and self.number_sectors > 1:
+            self.__find_floating_only_associations()
+        else:
+            IsoRequestSectorAssociator._check_associated_sectors(self)
+
+    def __find_floating_only_associations(self):
+        """
+        Since all floating are treated in the same way we exclude the
+        possibility of equal concentrations in a rack sectors if controls
+        are not regarded as in this case we have 2 ways to interpreted
+        findings (remember that the floating placeholder have not been
+        assigned yet).
+
+        Example: 4 floatings with the same contration can either be regarded
+        as 4 independent pools or as 4 pool in 4-fold replicate. As the second
+        case is more likely in our company we choose the first case for
+        interpretation. If scientists want a different interpretation
+        we have to adjust this manually.
+        """
+        concentrations = dict()
+        present_sectors = []
+        for sector_index, conc in self._sector_concentrations.iteritems():
+            if conc is not None:
+                add_list_map_element(concentrations, conc, sector_index)
+                present_sectors.append(sector_index)
+        if len(self._associated_sectors) > 1:
+            msg = 'Unable to adjust floating position association ' \
+                  'because basic assumptions are not met. This is ' \
+                  'a programming error. Talk to Anna, please.'
+            raise AssertionError(msg)
+
+        if len(present_sectors) > 1:
+            current_sets = []
+            if len(concentrations) == 1:
+                for sector_index in present_sectors:
+                    current_sets.append([sector_index])
+            elif len(concentrations) > 1:
+                while len(concentrations) > 0:
+                    current_set = []
+                    del_conc = []
+                    for conc, sectors in concentrations.iteritems():
+                        sectors.sort()
+                        si = sectors.pop(0)
+                        current_set.append(si)
+                        if len(sectors) < 1: del_conc.append(conc)
+                    current_sets.append(current_set)
+                    for conc in del_conc: del concentrations[conc]
+        else:
+            current_sets = [[present_sectors[0]]]
+
+        if self._are_valid_sets(current_sets):
+            self._associated_sectors = current_sets
+
 
 class TransfectionAssociationData(IsoRequestAssociationData):
     """
@@ -1135,4 +1228,6 @@ class TransfectionAssociationData(IsoRequestAssociationData):
         if self.__iso_concentrations is None:
             msg = ', '.join(determiner.get_messages())
             raise ValueError(msg)
+        else:
+            self._remove_none_sectors(self.__iso_concentrations)
 

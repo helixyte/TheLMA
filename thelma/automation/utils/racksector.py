@@ -11,7 +11,6 @@ from thelma.automation.semiconstants import get_rack_position_from_indices
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.layouts import MoleculeDesignPoolLayout
-from thelma.automation.utils.layouts import WorkingPosition
 
 
 __docformat__ = 'reStructuredText en'
@@ -836,25 +835,32 @@ class RackSectorAssociator(BaseAutomationTool):
         self.number_sectors = number_sectors
 
         #: The concentration for each rack sector.
-        self.__sector_concentrations = None
+        self._sector_concentrations = None
+
+        #: Stores the set for each sector set hash.
+        self.__sector_set_hashes = None
+        #: Stores the pos label sets for each sector set hash.
+        self.__sector_set_positions = None
 
         #: The rack sectors sharing the same molecule design sets within a
         #: quadrant.
-        self.__associated_sectors = None
+        self._associated_sectors = None
 
     def reset(self):
         """
         Resets all values except the initialisation values.
         """
         BaseAutomationTool.reset(self)
-        self.__sector_concentrations = None
-        self.__associated_sectors = []
+        self._sector_concentrations = None
+        self._associated_sectors = []
+        self.__sector_set_hashes = dict()
+        self.__sector_set_positions = dict()
 
     def get_sector_concentrations(self):
         """
         Returns the sector concentration map.
         """
-        return self._get_additional_value(self.__sector_concentrations)
+        return self._get_additional_value(self._sector_concentrations)
 
     def run(self):
         """
@@ -867,7 +873,7 @@ class RackSectorAssociator(BaseAutomationTool):
         if not self.has_errors(): self.__get_concentrations_for_sectors()
         if not self.has_errors(): self.__determine_association()
         if not self.has_errors():
-            self.return_value = self.__associated_sectors
+            self.return_value = self._associated_sectors
             self.add_info('Association completed.')
 
     def _check_input(self):
@@ -886,9 +892,9 @@ class RackSectorAssociator(BaseAutomationTool):
         value_determiner = self._init_value_determiner()
         if self._disable_err_warn_rec:
             value_determiner.disable_error_and_warning_recording()
-        self.__sector_concentrations = value_determiner.get_result()
+        self._sector_concentrations = value_determiner.get_result()
 
-        if self.__sector_concentrations is None:
+        if self._sector_concentrations is None:
             msg = 'Error when trying to determine rack sector concentrations.'
             self.add_error(msg)
 
@@ -904,49 +910,32 @@ class RackSectorAssociator(BaseAutomationTool):
         """
         quadrant_iterator = QuadrantIterator(number_sectors=self.number_sectors)
         for quadrant_wps in quadrant_iterator.get_all_quadrants(self.layout):
-            associated_sectors = self.__associate_pool_sets(quadrant_wps)
-            if associated_sectors is None: break
+            self.__find_sector_sets(quadrant_wps)
+        self._check_associated_sectors()
 
-    def __associate_pool_sets(self, quadrant_wps):
+    def __find_sector_sets(self, quadrant_wps):
         """
-        Determines the molecule design pools of a quadrant and associated
-        sectors accordingly. The sectors associations must be the same
-        for the whole layout (except for empty positions).
+        Sectors sharing the same pool ID or pool ID placeholder are regarded
+        as one set.
+        Pool IDs with a value of *None* are not regarded.
         """
         pools = dict()
+        pos_labels = dict()
 
         for sector_index, pool_pos in quadrant_wps.iteritems():
             pool = self._get_molecule_design_pool_id(pool_pos)
-            add_list_map_element(pools, pool, sector_index)
-
-        all_associated_sectors = []
-        for sectors in self.__associated_sectors:
-            for sector_index in sectors:
-                all_associated_sectors.append(sector_index)
+            if not pool is None:
+                add_list_map_element(pools, pool, sector_index)
+                add_list_map_element(pos_labels, pool,
+                                     pool_pos.rack_position.label)
 
         for pool, sectors in pools.iteritems():
-            if pool == WorkingPosition.NONE_REPLACER: continue
-            sectors.sort()
-            present = False
-            for sector_index in sectors:
-                if sector_index in all_associated_sectors:
-                    present = True
-                    break
-            if not present:
-                self.__associated_sectors.append(sectors)
-            elif not sectors in self.__associated_sectors and \
-                        not self.__is_superset(sectors):
-                labels = []
-                for iso_pos in quadrant_wps.values():
-                    if not iso_pos is None:
-                        labels.append(iso_pos.rack_position.label)
-                msg = 'The molecule design pools in the different quadrants ' \
-                      'are not consistent. First occurrence in the ' \
-                      'following block: %s.' % (self._get_joined_str(labels))
-                self.add_error(msg)
-                return None
-
-        return pools.values()
+            sector_hash = self._get_joined_str(sectors, is_strs=False,
+                                               separator='.')
+            if not self.__sector_set_hashes.has_key(sector_hash):
+                self.__sector_set_hashes[sector_hash] = sectors
+            add_list_map_element(self.__sector_set_positions, sector_hash,
+                                 pos_labels[pool])
 
     def _get_molecule_design_pool_id(self, layout_pos):
         """
@@ -955,26 +944,97 @@ class RackSectorAssociator(BaseAutomationTool):
         None replacers.
         """
         if layout_pos is None:
-            pool_id = self.LAYOUT_CLS.POSITION_CLS.NONE_REPLACER
+            pool_id = None
         elif layout_pos.is_mock or layout_pos.is_empty:
-            pool_id = layout_pos.NONE_REPLACER
+            pool_id = None
         else:
             pool_id = layout_pos.molecule_design_pool_id
         return pool_id
 
-    def __is_superset(self, sectors):
+    def _check_associated_sectors(self):
         """
-        Checks whether the given sector set is a combination of known sets.
+        Sectors sets are sorted by size first. Larger sets must incorporate all
+        known smaller sets sharing these sector indices.
+        All final sets must have the same length to insure all potential
+        floating positions are treated in the same manner.
         """
-        stored_sets = []
-        for stored_set in self.__associated_sectors:
-            for sector_index in stored_set:
-                if sector_index in sectors:
-                    stored_sets += stored_set
-                    break
+        length_map = dict()
+        for sectors in self.__sector_set_hashes.values():
+            add_list_map_element(length_map, len(sectors), sectors)
 
-        stored_sets.sort()
-        return stored_sets == sectors
+        current_sets = []
+        used_sectors = dict()
+        invalid = False
+
+        for length in sorted(length_map.keys()):
+            if invalid: break
+            sector_sets = length_map[length]
+            for sector_set in sector_sets:
+                all_new = True
+                all_present = True
+                for si in sector_set:
+                    if not used_sectors.has_key(si):
+                        all_present = False
+                        used_sectors[si] = sector_set
+                    else:
+                        all_new = False
+                if all_new:
+                    current_sets.append(sector_set)
+                    continue
+                elif not all_present:
+                    invalid = True
+                    break
+                for si in sector_set:
+                    smaller_set = used_sectors[si]
+                    for smaller_set_index in smaller_set:
+                        if not smaller_set_index in sector_set:
+                            invalid = True
+                            break
+
+        if invalid:
+            msg = 'The molecule design pools in the different quadrants are ' \
+                  'not consistent. Found associated pools: %s.' \
+                   % (self._get_joined_map_str(self.__sector_set_positions,
+                      all_strs=False))
+            self.add_error(msg)
+        elif self._are_valid_sets(current_sets):
+            self._associated_sectors = current_sets
+
+    def _are_valid_sets(self, current_sets):
+        """
+        Makes sure the current sector sets have equal size and concentration
+        combinations. Otherwise we could not make sure that all samples
+        are treated in the same way.
+        """
+        set_lengths = set()
+        set_concentrations = set()
+        for sector_set in current_sets:
+            set_length = len(sector_set)
+            set_lengths.add(set_length)
+            concentrations = []
+            for sector_index in sector_set:
+                concentrations.append(self._sector_concentrations[sector_index])
+            conc_tup = tuple(sorted(concentrations))
+            set_concentrations.add(conc_tup)
+
+        if len(set_lengths) > 1:
+            msg = 'The sets of molecule design pools in a quadrant have ' \
+                  'different lengths: %s.' \
+                  % (self._get_joined_map_str(self.__sector_set_positions,
+                     all_strs=False))
+            self.add_error(msg)
+            return False
+        elif len(set_concentrations) > 1:
+            msg = 'All sector set must have the same combination of ' \
+                  'concentrations to ensure all samples are treated equally. ' \
+                  'This rule is not met. Talk to Anna, please. Associated ' \
+                  'sectors: %s, concentrations: %s.' \
+                   % (current_sets, self._get_joined_map_str(
+                                self._sector_concentrations, all_strs=False))
+            self.add_error(msg)
+            return False
+
+        return True
 
 
 class AssociationData(object):
@@ -1069,7 +1129,7 @@ class AssociationData(object):
                 if record_errors: log.add_error(msg)
                 raise ValueError(msg)
 
-        else: # number secctors = 4
+        else: # number sectors = 4
             self.__find_relationships(layout, log, record_errors)
 
     def _find_concentrations(self, layout):
@@ -1077,18 +1137,6 @@ class AssociationData(object):
         Finds all different concentrations in the layout.
         """
         raise NotImplementedError('Abstract method.')
-
-    def __find_present_sector(self, layout, log):
-        """
-        Returns the indices of sectors that have values (assummes a 384-position
-        layout).
-        """
-        value_determiner = self._init_value_determiner(layout, log)
-        sector_values = value_determiner.get_result()
-        present_sectors = []
-        for sector_index, value in sector_values.iteritems():
-            if value is not None: present_sectors.append(sector_index)
-        return present_sectors
 
     def _init_value_determiner(self, layout, log):
         """
@@ -1144,3 +1192,17 @@ class AssociationData(object):
         Initialises the associator.
         """
         raise NotImplementedError('Abstract method.')
+
+    def _remove_none_sectors(self, sector_map):
+        """
+        Helper functions removing sectors with None values from value maps.
+        """
+        del_indices = []
+        for sector_index in sector_map.keys():
+            if not self._sector_concentrations.has_key(sector_index):
+                del_indices.append(sector_index)
+        for sector_index in del_indices:
+            del sector_map[sector_index]
+
+    def __str__(self):
+        return self.__class__.__name__

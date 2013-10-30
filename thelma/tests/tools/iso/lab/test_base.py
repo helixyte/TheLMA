@@ -234,7 +234,9 @@ class _LabIsoClassesBaseTestCase(MoleculeDesignPoolBaseTestCase):
         lip1.stock_rack_marker = None
         lip1.stock_tube_barcode = self.POS_CLS.TEMP_STOCK_DATA
         lip1.stock_rack_barcode = self.POS_CLS.TEMP_STOCK_DATA
-        self.assert_raises(AttributeError, lip1.create_completed_copy, tc)
+        self._expect_error(AttributeError, lip1.create_completed_copy,
+                'The pool for this floating position is already set (205200)!',
+                **dict(tube_candidate=tc))
         lip1.molecule_design_pool = 'md_1'
         self.assert_is_none(lip1.stock_rack_marker)
         copy1 = lip1.create_completed_copy(tc)
@@ -263,7 +265,9 @@ class _LabIsoClassesBaseTestCase(MoleculeDesignPoolBaseTestCase):
         lip2.stock_tube_barcode = self.POS_CLS.TEMP_STOCK_DATA
         lip2.stock_rack_barcode = self.POS_CLS.TEMP_STOCK_DATA
         lip2.stock_rack_marker = None
-        self.assert_raises(ValueError, lip2.create_completed_copy, tc)
+        self._expect_error(ValueError, lip2.create_completed_copy,
+                'The pools of the position (205200) and the tube candidate ' \
+                '(330001) do not match!', **dict(tube_candidate=tc))
         lip2.molecule_design_pool = self._get_pool(tc.pool_id)
         copy4 = lip2.create_completed_copy(tc)
         self.assert_is_not_none(copy4)
@@ -273,10 +277,14 @@ class _LabIsoClassesBaseTestCase(MoleculeDesignPoolBaseTestCase):
         for attr_name in equal_attrs:
             self.assert_equal(getattr(lip2, attr_name),
                               getattr(copy4, attr_name))
-        self.assert_raises(ValueError, lip2.create_completed_copy, None)
+        self._expect_error(ValueError, lip2.create_completed_copy,
+                   'The tube candidate for a fixed position must not be None!',
+                   **dict(tube_candidate=None))
         lip2.stock_tube_barcode = None
         lip2.stock_rack_barcode = None
-        self.assert_raises(AttributeError, copy4.create_completed_copy, tc)
+        self._expect_error(AttributeError, copy4.create_completed_copy,
+                   'There is already a stock tube barcode set for this ' \
+                   'position (1009)!', **dict(tube_candidate=tc))
         copy5 = lip2.create_completed_copy(tc)
         self.assert_is_not_none(copy5)
         self.assert_is_none(copy5.stock_tube_barcode)
@@ -285,7 +293,9 @@ class _LabIsoClassesBaseTestCase(MoleculeDesignPoolBaseTestCase):
         for pos_label in ('c1', 'd1', 'e1'):
             if not self.pos_data.has_key(pos_label): continue
             lip = self._get_position(pos_label)
-            self.assert_raises(ValueError, lip.create_completed_copy, tc)
+            self._expect_error(ValueError, lip.create_completed_copy,
+                    'Completed copies can only be created for fixed and ' \
+                    'floating positions', **dict(tube_candidate=tc))
 
 
 class LabIsoPositionTestCase(_LabIsoClassesBaseTestCase):
@@ -295,7 +305,9 @@ class LabIsoPositionTestCase(_LabIsoClassesBaseTestCase):
         attrs = self._get_init_data('b1')
         ori_pos_type = attrs['position_type']
         attrs['position_type'] = None
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The position type for a LabIsoPosition position must not ' \
+                'be None!', **attrs)
         attrs['position_type'] = ori_pos_type
         attrs['molecule_design_pool'] = self._get_pool(205200)
         lip1 = self.POS_CLS(**attrs) # would cause error in superclass
@@ -309,115 +321,187 @@ class LabIsoPositionTestCase(_LabIsoClassesBaseTestCase):
         for attrs in attr_sets:
             ori_pool = attrs['molecule_design_pool']
             attrs['molecule_design_pool'] = 'mock'
-            self.assert_raises(ValueError, self.POS_CLS, **attrs)
+            self._expect_error(ValueError, self.POS_CLS,
+                    'The position type for this pool (mock) does not match ' \
+                    'the passed position type', **attrs)
             attrs['molecule_design_pool'] = ori_pool
             attrs['concentration'] = -1
-            self.assert_raises(ValueError, self.POS_CLS, **attrs)
+            self._expect_error(ValueError, self.POS_CLS,
+                    'The concentration must be a positive number ' \
+                    '(obtained: -1).', **attrs)
             attrs['concentration'] = None
-            self.assert_raises(ValueError, self.POS_CLS, **attrs)
+            self._expect_error(ValueError, self.POS_CLS,
+                    'The concentration for %s lab ISO positions must not be ' \
+                    'None!' % (attrs['position_type']), **attrs)
             attrs['concentration'] = 50
             attrs['volume'] = -1
-            self.assert_raises(ValueError, self.POS_CLS, **attrs)
+            self._expect_error(ValueError, self.POS_CLS,
+                    'The volume must a positive number (obtained: -1)', **attrs)
             attrs['volume'] = None
-            self.assert_raises(ValueError, self.POS_CLS, **attrs)
+            self._expect_error(ValueError, self.POS_CLS,
+                    'The volume for %s lab ISO positions must not be None!' \
+                    % (attrs['position_type']), **attrs)
             attrs['volume'] = 1
             attrs['stock_tube_barcode'] = 1001
-            self.assert_raises(TypeError, self.POS_CLS, **attrs)
+            self._expect_error(TypeError, self.POS_CLS,
+                    'The stock tube barcode must be a string of at least 2 ' \
+                    'characters length (obtained: 1001)', **attrs)
             attrs['stock_tube_barcode'] = 'a'
-            self.assert_raises(TypeError, self.POS_CLS, **attrs)
+            self._expect_error(TypeError, self.POS_CLS,
+                    'The stock tube barcode must be a string of at least 2 ' \
+                    'characters length (obtained: a)', **attrs)
             attrs['stock_tube_barcode'] = '1001'
             attrs['stock_rack_barcode'] = 9999999
-            self.assert_raises(TypeError, self.POS_CLS, **attrs)
+            self._expect_error(TypeError, self.POS_CLS,
+                    'The stock rack barcode must be a string of at least 2 ' \
+                    'characters length (obtained: 9999999)', **attrs)
             attrs['stock_rack_barcode'] = '1'
-            self.assert_raises(TypeError, self.POS_CLS, **attrs)
+            self._expect_error(TypeError, self.POS_CLS,
+                    'The stock rack barcode must be a string of at least 2 ' \
+                    'characters length (obtained: 1)', **attrs)
             attrs['stock_rack_barcode'] = '09999999'
             attrs['stock_rack_marker'] = 123
-            self.assert_raises(TypeError, self.POS_CLS, **attrs)
+            self._expect_error(TypeError, self.POS_CLS,
+                    'The stock rack marker must be a string (obtained: 123)',
+                    **attrs)
             attrs['stock_rack_marker'] = 's'
             attrs['sector_index'] = 1.5
-            self.assert_raises(ValueError, self.POS_CLS, **attrs)
+            self._expect_error(ValueError, self.POS_CLS,
+                    'The sector index must be a non-negative integer ' \
+                    '(obtained: 1.5)', **attrs)
             attrs['sector_index'] = -1
-            self.assert_raises(ValueError, self.POS_CLS, **attrs)
+            self._expect_error(ValueError, self.POS_CLS,
+                    'The sector index must be a non-negative integer ' \
+                    '(obtained: -1)', **attrs)
 
     def test_mock_init_failures(self):
         attrs = self._get_init_data('c1')
         attrs['molecule_design_pool'] = 'md_1'
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The position type for this pool (floating) does not match ' \
+                'the passed position type (mock)!', **attrs)
         attrs['molecule_design_pool'] = MOCK_POSITION_TYPE
         attrs['concentration'] = 1
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The concentration for mock lab ISO positions must be None!',
+                **attrs)
         attrs['concentration'] = None
         attrs['volume'] = -1
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The volume must a positive number (obtained: -1)', **attrs)
         attrs['volume'] = None
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The volume for mock lab ISO positions must not be None!',
+                **attrs)
         attrs['volume'] = 1
         attrs['stock_tube_barcode'] = '1001'
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The stock tube barcode for mock lab ISO positions must be ' \
+                'None!', **attrs)
         attrs['stock_tube_barcode'] = None
         attrs['stock_rack_barcode'] = '09999999'
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The stock rack barcode for mock lab ISO positions must be ' \
+                'None!', **attrs)
         attrs['stock_rack_barcode'] = None
         attrs['stock_rack_marker'] = 's#2'
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The stock rack marker for mock lab ISO positions must be ' \
+                'None!', **attrs)
         attrs['stock_rack_marker'] = None
         attrs['sector_index'] = 1.5
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The sector index must be a non-negative integer ' \
+                '(obtained: 1.5)', **attrs)
         attrs['sector_index'] = -1
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The sector index must be a non-negative integer ' \
+                '(obtained: -1)', **attrs)
 
     def test_library_init_failures(self):
         attrs = self._get_init_data('d1')
         ori_pool = attrs['molecule_design_pool']
         attrs['molecule_design_pool'] = 'mock'
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The position type for this pool (mock) does not match the ' \
+                'passed position type (library)', **attrs)
         attrs['molecule_design_pool'] = ori_pool
         attrs['concentration'] = -1
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The concentration must be a positive number (obtained: -1)',
+                **attrs)
         attrs['concentration'] = None
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The concentration for library lab ISO positions must not ' \
+                'be None!', **attrs)
         attrs['concentration'] = 50
         attrs['volume'] = -1
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The volume must a positive number (obtained: -1)', **attrs)
         attrs['volume'] = None
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The volume for library lab ISO positions must not be None!',
+                **attrs)
         attrs['volume'] = 1
         attrs['stock_tube_barcode'] = '1001'
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The stock tube barcode for library lab ISO positions must ' \
+                'be None!', **attrs)
         attrs['stock_tube_barcode'] = None
         attrs['stock_rack_barcode'] = '09999999'
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The stock rack barcode for library lab ISO positions must ' \
+                'be None!', **attrs)
         attrs['stock_rack_barcode'] = None
         attrs['stock_rack_marker'] = 's#2'
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The stock rack marker for library lab ISO positions must ' \
+                'be None!', **attrs)
         attrs['stock_rack_marker'] = None
         attrs['sector_index'] = 1.5
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The sector index must be a non-negative integer ' \
+                '(obtained: 1.5)', **attrs)
         attrs['sector_index'] = -1
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The sector index must be a non-negative integer ' \
+                '(obtained: -1)', **attrs)
 
     def test_empty_init_failure(self):
         attrs = self._get_init_data('e1')
         attrs['molecule_design_pool'] = 'md_1'
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The position type for this pool (floating) does not match ' \
+                'the passed position type (empty)', **attrs)
         attrs['molecule_design_pool'] = None
         attrs['concentration'] = 1
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The concentration for empty lab ISO positions must be None!',
+                **attrs)
         attrs['concentration'] = None
         attrs['volume'] = 1
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The volume for empty lab ISO positions must be None!', **attrs)
         attrs['volume'] = None
         attrs['stock_tube_barcode'] = '1001'
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The stock tube barcode for empty lab ISO positions must be ' \
+                'None!', **attrs)
         attrs['stock_tube_barcode'] = None
         attrs['stock_rack_barcode'] = '09999999'
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The stock rack barcode for empty lab ISO positions must be ' \
+                'None!', **attrs)
         attrs['stock_rack_barcode'] = None
         attrs['stock_rack_marker'] = 's#2'
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The stock rack marker for empty lab ISO positions must be ' \
+                'None!', **attrs)
         attrs['stock_rack_marker'] = None
         attrs['sector_index'] = 1
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The sector index for empty lab ISO positions must be None!',
+                **attrs)
 
     def test_equality(self):
         self._test_position_equality(
@@ -459,7 +543,8 @@ class LabIsoPositionTestCase(_LabIsoClassesBaseTestCase):
         self.assert_is_not_none(lip1.stock_rack_marker)
         lip2 = self._get_position('a1')
         self.assert_false(lip2.is_inactivated)
-        self.assert_raises(AttributeError, lip2.inactivate)
+        self._expect_error(AttributeError, lip2.inactivate,
+                           'fixed positions must not be inactivated!')
 
     def test_is_starting_well(self):
         exp_values = dict(a1=True, a2=False, b1=True, c1=False, d1=False)
@@ -555,7 +640,9 @@ class LabIsoLayoutTestCase(_LabIsoClassesBaseTestCase):
         self.assert_is_not_none(rl)
         lip2 = self._get_layout_pos('a1', layout)
         lip2.stock_tube_barcode = self.POS_CLS.TEMP_STOCK_DATA
-        self.assert_raises(AttributeError, layout.create_rack_layout)
+        self._expect_error(AttributeError, layout.create_rack_layout,
+                'There are still starting wells without stock data in the ' \
+                'layout!')
 
 
 class _LabIsoLayoutBaseConverterTestCase(ConverterTestCase,
@@ -616,6 +703,7 @@ class _LabIsoLayoutBaseConverterTestCase(ConverterTestCase,
         for k in self.tag_key_map.keys():
             exp_tags = self.tag_data[k]
             for tag in exp_tags: tags.add(tag)
+        tags = filter(None, tags) # pylint: disable=W0141
         return tags
 
     def _test_position_for_tag(self, layout):
@@ -625,8 +713,9 @@ class _LabIsoLayoutBaseConverterTestCase(ConverterTestCase,
         self._compare_pos_sets(exp_positions, pos_set)
 
     def _test_tag_for_position(self, layout):
-        rack_pos = get_rack_position_from_label('a3')
+        rack_pos = get_rack_position_from_label('a2')
         exp_tags = self.tag_data[2]
+        exp_tags = filter(None, exp_tags) # pylint: disable=W0141
         tag_set = layout.get_tags_for_position(rack_pos)
         self._compare_tag_sets(exp_tags, tag_set)
 
@@ -749,7 +838,10 @@ class FinalLabIsoPositionTestCase(_FinalLabIsoClassesBaseTestCase):
             attrs = self._get_init_data(pos_label)
             if attrs['position_type'] == FIXED_POSITION_TYPE: continue
             attrs['from_job'] = True
-            self.assert_raises(ValueError, self.POS_CLS, **attrs)
+            self._expect_error(ValueError, self.POS_CLS,
+                    'Only fixed final lab ISO positions can be provided from ' \
+                    'a job. This one is a %s type.' % (attrs['position_type']),
+                    **attrs)
 
     def test_equality(self):
         self._test_position_equality(
@@ -884,17 +976,26 @@ class LabIsoPrepPositionTestCase(_LabIsoPrepClassesBaseTestCase):
             attrs = self._get_init_data(pos_label)
             if attrs['position_type'] == EMPTY_POSITION_TYPE:
                 attrs['external_targets'] = [self.ext_tts[1]]
+                self._expect_error(ValueError, self.POS_CLS,
+                    'Empty positions must not have external plate targets!',
+                    **attrs)
             else:
                 attrs['external_targets'] = None
-            self.assert_raises(ValueError, self.POS_CLS, **attrs)
+                self._expect_error(ValueError, self.POS_CLS,
+                    'A LabIsoPrepPosition must have at least one external ' \
+                    'plate target!', **attrs)
         attrs = self._get_init_data('a2')
         attrs['molecule_design_pool'] = LIBRARY_POSITION_TYPE
         attrs['position_type'] = LIBRARY_POSITION_TYPE
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The position type "library" is not allowed for this ' \
+                'parameter set (LabIsoPrepParameters)!', **attrs)
         attrs['molecule_design_pool'] = MOCK_POSITION_TYPE
         attrs['position_type'] = MOCK_POSITION_TYPE
         attrs['concentration'] = None
-        self.assert_raises(ValueError, self.POS_CLS, **attrs)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The position type "mock" is not allowed for this parameter ' \
+                'set (LabIsoPrepParameters)!', **attrs)
 
     def test_equality(self):
         self._test_position_equality(

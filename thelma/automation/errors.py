@@ -4,6 +4,7 @@
 """
 from thelma import LogEvent
 from thelma import ThelmaLog
+from thelma.automation.utils.base import get_trimmed_string
 import logging
 
 __docformat__ = 'reStructuredText en'
@@ -393,14 +394,14 @@ class EventRecording(object):
             if e.__class__ in error_types and not base_msg is None:
                 self.add_error(base_msg + e)
             else:
-                raise e
+                return None
         else:
             return return_value
 
     def _get_joined_str(self, item_list, is_strs=True, sort_items=True,
                         separator=', '):
         """
-        Helper method converting the passed list into a join string, separated
+        Helper method converting the passed list into a joined string, separated
         by comma (default). By default, the elements are sorted before
         conversion. This is handy i.e. when printing error messages.
 
@@ -428,7 +429,56 @@ class EventRecording(object):
             item_strs = item_list
         else:
             item_strs = []
-            for item in item_list: item_strs.append(str(item))
+            for item in item_list: item_strs.append(get_trimmed_string(item))
 
         return separator.join(item_strs)
 
+    def _get_joined_map_str(self, item_map, str_pattern='%s (%s)',
+                            all_strs=True, sort_lists=True, separator=' - '):
+        """
+        Helper method converting the passed map into a joined string, separated
+        by comma (default). By default, the elements of the lists are sorted
+        before conversion (map keys are always sorted).
+        This is handy i.e. when printing error messages.
+
+        If the map values are iterables, :func:`_get_joined_str` is used to
+        generate a string for the list.
+
+        :param item_map: The recorded events in a map.
+        :type item_map: :class:`map` having iterables as values
+
+        :param str_pattern: Is used to convert key-value pairs into a string.
+            The first placeholder is used by the key, the second by the joined
+            string value.
+        :type str_pattern: :class:`str` with 2 string placeholders
+        :default str_pattern: *%s (%s)*
+
+        :param all_strs: Are the value list items strings (only applicable
+            if the value is an iterable)?  If not the items must be
+            converted first. Without conversion the join method will
+            raise an error.
+        :type all_strs: :class:`bool`
+        :default all_strs: *True*
+
+        :param sort_lists: Shall the values items in be sorted?
+            (only applicable if the value is an iterable)
+        :type sort_lists: :class:`bool`
+        :default sort_lists: *True*
+
+        :param separator: The string to use for the joining the key-value
+            strings.
+        :type separator: :class:`str`
+        :default separator: whitespace, dash, whitespace
+        """
+        details = []
+        for k in sorted(item_map.keys()):
+            v = item_map[k]
+            if isinstance(v, (list, set, dict, tuple)):
+                v_str = self._get_joined_str(v, is_strs=all_strs,
+                                             sort_items=sort_lists)
+            else:
+                v_str = str(v)
+            details_str = str_pattern % (get_trimmed_string(k), v_str)
+            details.append(details_str)
+
+        return separator.join(details)

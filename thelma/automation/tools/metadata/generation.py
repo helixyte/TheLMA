@@ -18,7 +18,6 @@ from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.semiconstants import get_experiment_metadata_type
-from thelma.automation.semiconstants import get_max_dilution_factor
 from thelma.automation.semiconstants import get_min_transfer_volume
 from thelma.automation.semiconstants import get_pipetting_specs_biomek
 from thelma.automation.semiconstants import get_pipetting_specs_cybio
@@ -31,7 +30,7 @@ from thelma.automation.tools.metadata.base import TransfectionAssociationData
 from thelma.automation.tools.metadata.base import TransfectionLayout
 from thelma.automation.tools.metadata.base import TransfectionLayoutConverter
 from thelma.automation.tools.metadata.base import TransfectionParameters
-from thelma.automation.tools.metadata.isolayoutfinder \
+from thelma.automation.tools.metadata.transfectionlayoutfinder \
     import TransfectionLayoutFinder
 from thelma.automation.tools.metadata.worklist \
     import ExperimentWorklistGenerator
@@ -63,10 +62,11 @@ __all__ = ['ExperimentMetadataGenerator',
            'ExperimentMetadataGeneratorManual',
            'ExperimentMetadataGeneratorIsoless',
            '_GENERATOR_CLASSES',
-           'RobotSupportDeterminator',
+           '_RobotSupportDeterminator',
            'RobotSupportDeterminatorOpti',
            'RobotSupportDeterminatorScreen',
-           'WellAssociator',
+           'RobotSupportDeterminatorLibrary',
+           '_WellAssociator',
            'WellAssociatorManual',
            'WellAssociatorOptimisation'
            ]
@@ -272,7 +272,7 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
         if not self.has_errors(): self.__check_blocked_entities()
 
         if not self.has_errors():
-            if self.HAS_ISO_REQUEST: self.__look_for_compounds()
+            if self.HAS_ISO_REQUEST: self.__look_for_fixed_compounds()
             self.__update_metadata()
             self.return_value = self.experiment_metadata
             self.add_info('Metadata generation completed.')
@@ -458,9 +458,8 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
 
     def _set_optimem_dilution_factors(self):
         """
-        Sets the molecule types for floating and mock positions (required for
-        ISO volume and concentration determinations and stock concentration
-        checks).
+        Sets the molecule types for non-fixed positions (required for
+        ISO volume and concentration determinations).
         """
         pass
 
@@ -493,13 +492,15 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
             self._source_layout.close()
             for design_rack in self._experiment_design.experiment_design_racks:
                 new_rack_layout = self._source_layout.\
-                    complete_rack_layout_with_screening_tags(design_rack.layout,
-                                  self._iso_request.iso_layout, self.requester)
+                    complete_rack_layout_with_screening_tags(
+                                design_rack.rack_layout,
+                                self._iso_request.rack_layout, self.requester)
                 design_rack.layout = new_rack_layout
 
     def _check_iso_concentrations(self):
         """
         Checks whether the ordered ISO concentrations are small enough.
+        TODO:
         """
         self.add_debug('Check ISO concentrations ...')
 
@@ -564,8 +565,29 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
     def _set_iso_plate_specs(self):
         """
         Sets the :class:`ReservoirSpecs` for the final ISO plates.
+        Is only called if the specs have not been set before.
         """
-        pass
+        max_iso_vol = 0
+        for tf_pos in self._source_layout.working_positions():
+            if tf_pos.is_untreated_type: continue
+            max_iso_vol = max(tf_pos.iso_volume, max_iso_vol)
+
+        if self._source_layout.shape.name == RACK_SHAPE_NAMES.SHAPE_384:
+            rs = get_reservoir_specs_standard_384()
+        else:
+            rs = get_reservoir_specs_standard_96()
+            max_rs_vol = rs.max_volume * VOLUME_CONVERSION_FACTOR
+            if is_larger_than(max_iso_vol, max_rs_vol):
+                rs = get_reservoir_specs_deep_96()
+
+        max_rs_vol = rs.max_volume * VOLUME_CONVERSION_FACTOR
+        if is_larger_than(max_iso_vol, max_rs_vol):
+            msg = 'The maximum ISO volume you have ordered (%s ul) does not ' \
+                  'fit into the standard plates types (assumed here: %s). ' \
+                  'Talk to the stock management, please.' \
+                   % (get_trimmed_string(max_iso_vol), rs.description)
+            self.add_warning(msg)
+        self._iso_plate_specs = rs
 
     def __generate_worklists(self):
         """
@@ -602,7 +624,7 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
             floating_positions = self._source_layout.get_floating_positions()
             number_floatings = len(floating_positions)
             plate_number = round_up(float(queued_pools) / number_floatings, 0)
-            self._iso_request.number_plates = int(plate_number)
+            self._iso_request.expected_number_isos = int(plate_number)
 
     def __check_blocked_entities(self):
         """
@@ -623,16 +645,16 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
         old_iso_request = self.experiment_metadata.lab_iso_request
 
         changed_attributes = []
-        if old_iso_request.number_aliquots != \
+        if not old_iso_request.number_aliquots == \
                                         self._iso_request.number_aliquots:
             changed_attributes.append('number of aliquots')
-        if old_iso_request.plate_set_label != \
-                                        self._iso_request.plate_set_label:
+        if not old_iso_request.label == self._iso_request.label and \
+                    not self._iso_request.label == \
+                    IsoRequestParserHandler.NO_LABEL_PLACEHOLDER:
             changed_attributes.append('plate set label')
 
         converter = TransfectionLayoutConverter(log=self.log,
-                                    rack_layout=old_iso_request.iso_layout,
-                                    check_well_uniqueness=False)
+                                    rack_layout=old_iso_request.rack_layout)
         layout = converter.get_result()
         if layout is None:
             msg = 'Error when trying to convert ISO layout of the existing ' \
@@ -640,7 +662,7 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
             self.add_error(msg)
         elif not TransfectionLayout.compare_ignoring_untreated_types(layout,
                                                         self._source_layout):
-            changed_attributes.append('ISO layout')
+            changed_attributes.append('ISO request layout')
 
         if len(changed_attributes) > 0:
             msg = 'The current file upload would change some properties of ' \
@@ -648,7 +670,7 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
                   'because there are already ISOs for this experiment ' \
                   'metadata. Differences: %s. Ask the stock management to ' \
                   'cancel all ISOs or adjust your file, please.' \
-                  % (changed_attributes)
+                  % (self._get_joined_str(changed_attributes))
             self.add_error(msg)
         else:
             self._iso_request.comment = old_iso_request.comment
@@ -671,14 +693,14 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
 
         trp_map = dict()
         for design_rack in current_design_racks:
-            trp_sets = design_rack.layout.tagged_rack_position_sets
+            trp_sets = design_rack.rack_layout.tagged_rack_position_sets
             trp_map[design_rack.label] = trp_sets
         for design_rack in new_design_racks:
             if not trp_map.has_key(design_rack.label):
                 differences.append('different design rack labels')
                 break
             current_sets = trp_map[design_rack.label]
-            new_sets = design_rack.layout.tagged_rack_position_sets
+            new_sets = design_rack.rack_layout.tagged_rack_position_sets
             if not len(current_sets) == len(new_sets):
                 differences.append('different number of tag sets in ' \
                                    'design rack "%s"' % (design_rack.label))
@@ -705,7 +727,7 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
                   % (differences)
             self.add_error(msg)
 
-    def __look_for_compounds(self):
+    def __look_for_fixed_compounds(self):
         """
         Searches the non-floating positions for compounds (compounds have
         very different stock concentrations).
@@ -724,16 +746,6 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
                 compound_stock_concentrations.append(info)
                 found_compounds.add(pool_id)
 
-        if self._pool_set is not None and \
-                self._pool_set.molecule_type.id == MOLECULE_TYPE_IDS.COMPOUND:
-            for pool in self._pool_set:
-                if pool.id in found_compounds: continue
-                stock_conc = round(pool.default_stock_concentration \
-                                   * CONCENTRATION_CONVERSION_FACTOR, 1)
-                info = '%s (%s nM)' % (pool.id, '{0:,}'.format(stock_conc))
-                compound_stock_concentrations.append(info)
-                found_compounds.add(pool.id)
-
         if len(compound_stock_concentrations) > 0:
             msg = 'Attention! There are compounds among your control ' \
                   'molecule design pools. We have found the following stock ' \
@@ -741,7 +753,7 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
                   'correct stock concentration for every compound in your ' \
                   'experiment since otherwise you might receive a deviating ' \
                   'concentration. Talk to Michael or Anna, please.' \
-                   % (', '.join(sorted(compound_stock_concentrations)))
+                   % (self._get_joined_str(compound_stock_concentrations))
             self.add_warning(msg)
 
     def __update_metadata(self):
@@ -751,9 +763,10 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
         self.add_debug('Generate metadata entity ...')
 
         if self._iso_request is not None:
-            self._iso_request.iso_layout = self._source_layout.\
+            self._iso_request.rack_layout = self._source_layout.\
                             create_merged_rack_layout(self._additional_trps,
                                                       self.requester)
+            self._iso_request.iso_plate_reservoir_specs = self._iso_plate_specs
             # The ISO request owner must be maintained (important for running
             # ISO processing).
             former_ir = self.experiment_metadata.lab_iso_request
@@ -845,8 +858,8 @@ class ExperimentMetadataGeneratorOpti(ExperimentMetadataGenerator):
             else:
                 # Otherwise we want to get a layout from the experiment
                 # design ...
-                msg = 'You did not specify an ISO layout. The system will ' \
-                      'try to generate the ISO layout by itself.'
+                msg = 'You did not specify an ISO request layout. The system ' \
+                      'will try to generate the layout by itself.'
                 self.add_warning(msg)
 
                 iso_request = self.__find_iso_layout_and_create_iso_request()
@@ -885,12 +898,6 @@ class ExperimentMetadataGeneratorOpti(ExperimentMetadataGenerator):
                         requester=self.requester,
                         rack_layout=self._source_layout.create_rack_layout(),
                         comment='autogenerated layout')
-
-            iso_request = LabIsoRequest(
-                            iso_layout=self._source_layout.create_rack_layout(),
-                            requester=self.requester,
-                            plate_set_label='%i' % (self._ticket_number),
-                            comment='autogenerated layout')
             return iso_request
 
     def _set_optimem_dilution_factors(self):
@@ -899,7 +906,6 @@ class ExperimentMetadataGeneratorOpti(ExperimentMetadataGenerator):
         (required for ISO volume and concentration determinations).
         """
         self.add_debug('Set molecule types ...')
-
 
         floating_odf = None
         if self._source_layout.floating_molecule_type is not None:
@@ -991,7 +997,7 @@ class ExperimentMetadataGeneratorOpti(ExperimentMetadataGenerator):
                 info_item = 'set %i: positions: %s' % (c,
                             ', '.join(sorted(ambiguous_positions[hash_value])))
                 items.append(info_item)
-            msg = 'Each position in the ISO layout must have a unique ' \
+            msg = 'Each position in the ISO request layout must have a unique ' \
                   'combination of the following factor levels: molecule ' \
                   'design pool ID, final concentration, reagent name and ' \
                   'reagent dilution factor. The following positions have ' \
@@ -1066,21 +1072,68 @@ class ExperimentMetadataGeneratorScreen(ExperimentMetadataGenerator):
 
     def _set_optimem_dilution_factors(self):
         """
-        Sets the OptiMem dilution factor for floating and mock positions
-        (required for ISO volume and concentration determinations). The
-        Optimem dilution factor (and molecule type) must be the same for all
-        positions (compliance with fixed position is tested later).
+        Sets the OptiMem dilution factor of all positions to the factor for
+        the floating position type. The Optimem dilution factor must be the
+        same for all positions to enable CyBio compatibility.
+        If there are not
         """
         self.add_debug('Set molecule types ...')
 
-        optimem_df = TransfectionParameters.\
-                        get_optimem_dilution_factor_from_molecule_type(
-                        self._source_layout.floating_molecule_type)
+        floating_odf = None
+        if not self._pool_set is None:
+            floating_odf = TransfectionParameters.\
+                            get_optimem_dilution_factor_from_molecule_type(
+                            self._source_layout.floating_molecule_type)
+
+        fixed_odfs = dict()
+        mock_positions = []
         for tf_pos in self._source_layout.working_positions():
-            if tf_pos.is_fixed:
+            if tf_pos.is_floating:
+                tf_pos.set_optimem_dilution_factor(floating_odf)
+            elif tf_pos.is_mock:
+                if floating_odf is None:
+                    mock_positions.append(tf_pos)
+                else:
+                    tf_pos.set_optimem_dilution_factor(floating_odf)
+            elif tf_pos.is_fixed:
                 tf_pos.store_optimem_dilution_factor()
-            elif tf_pos.is_mock or tf_pos.is_floating:
-                tf_pos.set_optimem_dilution_factor(optimem_df)
+                add_list_map_element(fixed_odfs, tf_pos.optimem_dil_factor,
+                                     tf_pos)
+
+
+
+        if floating_odf is None or len(fixed_odfs) > 1 or \
+                                        not fixed_odfs.has_key(floating_odf):
+            other_odfs = set()
+            if floating_odf is None:
+                layout_odf = TransfectionParameters.\
+                         get_layout_mock_optimem_molecule_type(
+                                                        self._source_layout)
+            else:
+                layout_odf = floating_odf
+
+            for mock_pos in mock_positions:
+                mock_pos.set_optimem_dilution_factor(layout_odf)
+            for odf, fixed_positions in fixed_odfs.iteritems():
+                if are_equal_values(odf, layout_odf): continue
+                pools = set()
+                for fixed_pos in fixed_positions:
+                    fixed_pos.set_optimem_dilution_factor(layout_odf)
+                    pools.add(fixed_pos.molecule_design_pool.id)
+                info = '%s (pools: %s)' % (get_trimmed_string(odf),
+                        self._get_joined_str(pools, is_strs=False))
+                other_odfs.add(info)
+
+            if len(other_odfs) > 0:
+                msg = 'The OptiMem dilution factor for all positions has ' \
+                      'been set to %s, which is the default factor for the ' \
+                      'molecule type of the floating positions, although ' \
+                      'some fixed positions have different default factors: ' \
+                      '%s. If this is not suitable for your experiment, do ' \
+                      'not use robot-support for mastermix preparation.' \
+                      % (get_trimmed_string(layout_odf),
+                         self._get_joined_str(other_odfs))
+                self.add_warning(msg)
 
     def _associate_iso_layout_and_design(self):
         """
@@ -1100,8 +1153,7 @@ class ExperimentMetadataGeneratorScreen(ExperimentMetadataGenerator):
                 number_design_racks=len(self._experiment_design.\
                                         experiment_design_racks),
                 handler_iso_volume=self.__handler_iso_volume,
-                association_data=self.__association_data,
-                controls_in_sectors=self._iso_request.process_job_first)
+                association_data=self.__association_data)
         self._source_layout = determinator.get_result()
 
         if self._source_layout is None:
@@ -1252,7 +1304,8 @@ class ExperimentMetadataGeneratorLibrary(ExperimentMetadataGenerator):
 
     def _determine_plate_number(self):
         """
-        The plate number is defined by the library.
+        The plate number is defined by the library - each layout will
+        be used once.
         """
         self.add_debug('Determine number of plates ...')
         return self.__library.number_layouts
@@ -1383,7 +1436,7 @@ _GENERATOR_CLASSES = {
                      }
 
 
-class RobotSupportDeterminator(BaseAutomationTool):
+class _RobotSupportDeterminator(BaseAutomationTool):
     """
     Determines whether the ISO volumes and concentrations of a tool
     support mastermix preparation via robot and adds the missing values
@@ -1463,7 +1516,7 @@ class RobotSupportDeterminator(BaseAutomationTool):
 
         self._check_input()
         if not self.has_errors(): self._init_iso_reservoir_specs()
-        if self.supports_mastermix is not None:
+        if self.supports_mastermix is None:
             if not self.has_errors(): self._check_iso_concentrations()
             if not self.has_errors(): self._check_iso_volumes()
             if not self.has_errors(): self._complete_layout()
@@ -1547,7 +1600,7 @@ class RobotSupportDeterminator(BaseAutomationTool):
         self._layout_has_iso_concentrations = \
                                 self.source_layout.has_iso_concentrations()
         if positions is None:
-            positions = self.source_layout.get_positions()
+            positions = self.source_layout.working_positions()
 
         if self._layout_has_iso_concentrations:
 
@@ -1657,7 +1710,7 @@ class RobotSupportDeterminator(BaseAutomationTool):
         raise NotImplementedError('Abstract method.')
 
 
-class RobotSupportDeterminatorOpti(RobotSupportDeterminator):
+class RobotSupportDeterminatorOpti(_RobotSupportDeterminator):
     """
     The determiner for optimisations requires the result of the well
     assignments (see :class:`WellAssociatorOptimisation`).
@@ -1688,7 +1741,7 @@ class RobotSupportDeterminatorOpti(RobotSupportDeterminator):
             each design rack containing well assignments.
         :type design_rack_associations: list of transfection layouts
         """
-        RobotSupportDeterminator.__init__(self, log=log,
+        _RobotSupportDeterminator.__init__(self, log=log,
                                       source_layout=source_layout,
                                       number_replicates=number_replicates)
 
@@ -1706,12 +1759,12 @@ class RobotSupportDeterminatorOpti(RobotSupportDeterminator):
         self.__new_volumes_values = None
 
     def reset(self):
-        RobotSupportDeterminator.reset(self)
+        _RobotSupportDeterminator.reset(self)
         self.__target_count_map = dict()
         self.__new_volumes_values = dict()
 
     def _check_input(self):
-        RobotSupportDeterminator._check_input(self)
+        _RobotSupportDeterminator._check_input(self)
         if self._check_input_class('design rack association list',
                                    self.design_rack_associations, list):
             for layout in self.design_rack_associations:
@@ -1824,19 +1877,17 @@ class RobotSupportDeterminatorOpti(RobotSupportDeterminator):
             tf_pos.iso_volume = new_volume
 
 
-class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
+class RobotSupportDeterminatorScreen(_RobotSupportDeterminator):
     """
     For concentrations the determiner works position-based. For the ISO volume,
     there is only one value for the whole layout.
 
     **Return Value:** updated source layout
     """
-
     PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.CYBIO
 
     def __init__(self, log, source_layout, number_replicates,
-                 number_design_racks, handler_iso_volume,
-                 association_data, controls_in_sectors):
+                 number_design_racks, handler_iso_volume, association_data):
         """
         Constructor:
 
@@ -1858,15 +1909,11 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
             parser handler.
         :type handler_iso_volume: :class:`float` (positive number).
 
-        :param association_data: The IsoAssociation data (only for 384-well
-            layouts).
-        :type association_data: :class:`IsoAssociationData`
-
-        :param controls_in_sectors: Are the controls covered by the sector
-            preparation? There can be a difference in the concentrations.
-        :type controls_in_sectors: :class:`bool`
+        :param association_data: The TransfectionAssociation data
+            (optional) contains rack sector relationship data.
+        :type association_data: :class:`TransfectionAssociationData`
         """
-        RobotSupportDeterminator.__init__(self, log=log,
+        _RobotSupportDeterminator.__init__(self, log=log,
                                       source_layout=source_layout,
                                       number_replicates=number_replicates)
 
@@ -1874,11 +1921,9 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
         self.number_design_racks = number_design_racks
         #: The ISO volume from the ISO request parser handler.
         self.handler_iso_volume = handler_iso_volume
-        #: The IsoAssociation data (only for 384-well layouts).
+        #: The :class:`TransfectionAssociationData` (optional) contains
+        #: rack sector relationship data.
         self.association_data = association_data
-        #: Are the controls covered by the sector preparation? There can be
-        #: a difference in the concentrations.
-        self.controls_in_sectors = controls_in_sectors
 
         #: The final ISO volume.
         self.__iso_volume = None
@@ -1890,32 +1935,28 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
         self.__optimem_df = None
 
     def reset(self):
-        RobotSupportDeterminator.reset(self)
+        _RobotSupportDeterminator.reset(self)
         self.__iso_volume = None
         self.__iso_concentrations = dict()
         self.__optimem_df = None
 
     def _check_input(self):
-        RobotSupportDeterminator._check_input(self)
+        _RobotSupportDeterminator._check_input(self)
 
         self._check_input_class('number of design racks',
                                 self.number_design_racks, int)
 
         if not self.handler_iso_volume is None:
             if not is_valid_number(self.handler_iso_volume):
-                msg = 'The handler must be a positive number (obtained: %s).' \
-                      % (self.handler_iso_volume)
+                msg = 'The handler ISO volume must be a positive number ' \
+                      '(obtained: %s).' % (self.handler_iso_volume)
                 self.add_error(msg)
             else:
                 self.handler_iso_volume = float(self.handler_iso_volume)
 
-        if not self.has_errors() and \
-                 not self.source_layout.shape.name == RACK_SHAPE_NAMES.SHAPE_96:
+        if not self.association_data is None:
             self._check_input_class('association data', self.association_data,
                                     TransfectionAssociationData)
-
-        self._check_input_class('"controls in sectors" flag',
-                                self.controls_in_sectors, bool)
 
     def _get_max_target_count(self):
         """
@@ -1930,23 +1971,41 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
         For 96-well layouts the determination is position based (we can used
         the superclass function). In case of 384-well layouts, the determination
         works on rack sectors (:attr:`association_data`) for floatings.
-        Controls (fixed positions) might be included depedning on the value
-        of :attr:``
+        Controls (fixed positions) might be included depedning on the
+        :attr:`regard_controls` value of the association data.
         """
-        self.__optimem_df = TransfectionParameters.\
-                            get_optimem_dilution_factor_from_molecule_type(
-                            self.source_layout.floating_molecule_type)
+        self.__determine_layout_optimem_dil_factor()
 
-        if self.source_layout.shape.name == RACK_SHAPE_NAMES.SHAPE_96:
-            RobotSupportDeterminator._check_iso_concentrations(self)
+        if not self.has_errors():
+            if self.association_data is None:
+                _RobotSupportDeterminator._check_iso_concentrations(self)
+            else:
+                controls_in_sectors = self.association_data.regard_controls
+                self.__check_sector_iso_concentration()
+                other_positions = []
+                for tf_pos in self.source_layout.working_positions():
+                    if tf_pos.is_fixed and not controls_in_sectors:
+                        other_positions.append(tf_pos)
+                if len(other_positions) > 0:
+                    self._check_iso_concentrations_for_positions(
+                                                            other_positions)
+
+    def __determine_layout_optimem_dil_factor(self):
+        """
+        All positions in layout should have the same optimem dilution factor.
+        """
+        odfs = set()
+        for tf_pos in self.source_layout.working_positions():
+            if tf_pos.is_untreated_type: continue
+            odfs.add(tf_pos.optimem_dil_factor)
+
+        if len(odfs) > 1:
+            msg = 'There are more than one different OptiMem dilution ' \
+                  'factors in the layout: %s!' % (self._get_joined_str(odfs,
+                                                            is_strs=False))
+            self.add_error(msg)
         else:
-            self.__check_sector_iso_concentration()
-            other_positions = []
-            for tf_pos in self.source_layout.working_positions():
-                if tf_pos.is_fixed and not self.controls_in_sectors:
-                    other_positions.append(tf_pos)
-            if len(other_positions) > 0:
-                self._check_iso_concentrations_for_positions(other_positions)
+            self.__optimem_df = list(odfs)[0]
 
     def __check_sector_iso_concentration(self):
         """
@@ -2003,7 +2062,7 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
                             pipetting_specs=get_pipetting_specs_cybio())
 
         if self.handler_iso_volume is None:
-            iso_volume = max(min_cybio_transfer_volume, required_volume)
+            self.__iso_volume = max(min_cybio_transfer_volume, required_volume)
         else:
             if is_smaller_than(self.handler_iso_volume,
                                min_cybio_transfer_volume):
@@ -2012,11 +2071,7 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
                        % (min_cybio_transfer_volume, self.handler_iso_volume)
                 self.add_error(msg)
             else:
-                iso_volume = self.handler_iso_volume
-
-        if not self.has_errors():
-            self.__iso_volume = self.__check_aliquot_dilution_compatibility(
-                                                                 iso_volume)
+                self.__iso_volume = self.handler_iso_volume
 
         if not self.has_errors() and not self.handler_iso_volume is None:
             if is_smaller_than(self.__iso_volume, required_volume):
@@ -2032,67 +2087,6 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
 
         if not self.has_errors and self._has_compatible_volumes:
             self.__check_deep_well_usage()
-
-    def __check_aliquot_dilution_compatibility(self, iso_volume):
-        """
-        In case of 96-well layout we do not need to check anything.
-
-        For 384-well layouts we need to check whether there is a dilution
-        required between preparation plate and aliquot plate and whether the
-        ISO volume is sufficient large for the dilution.
-        """
-        if self.source_layout.shape.name == RACK_SHAPE_NAMES.SHAPE_96:
-            return iso_volume
-
-        pip_specs = PIPETTING_SPECS_NAMES.CYBIO
-        min_cybio_transfer_volume = get_min_transfer_volume(pip_specs)
-        max_dil_factor = get_max_dilution_factor(pip_specs)
-        aliquot_dil_factor = 1
-        stock_conc = get_default_stock_concentration(
-                                    self.source_layout.floating_molecule_type)
-
-        parent_concentrations = set()
-        for sector_index, parent_sector in self.association_data.\
-                                           parent_sectors.iteritems():
-            if not parent_sector is None: continue
-            iso_conc = self.__iso_concentrations[sector_index]
-            parent_concentrations.add(iso_conc)
-
-        while is_smaller_than(aliquot_dil_factor, max_dil_factor):
-            increment = False
-            for iso_conc in parent_concentrations:
-                df = stock_conc / (iso_conc * aliquot_dil_factor)
-                if is_larger_than(df, max_dil_factor): increment = True
-            if increment:
-                aliquot_dil_factor += 1
-                continue
-            break
-
-        if aliquot_dil_factor == 1:
-            return iso_volume
-        else:
-            don_vol = iso_volume / aliquot_dil_factor
-            buff_vol = iso_volume - don_vol
-            adjusted = False
-
-            if is_smaller_than(don_vol, min_cybio_transfer_volume):
-                don_vol = min_cybio_transfer_volume
-                buff_vol = min_cybio_transfer_volume * (aliquot_dil_factor - 1)
-                adjusted = True
-            # The buffer volume is always at least as big as the donation volume
-            # because the dilution factor 2 at minimum.
-
-            if adjusted:
-                new_iso_volume = don_vol + buff_vol
-                msg = 'The ISO volume has to be increased to %.1f ul, ' \
-                      'because the requested ISO concentration is so low ' \
-                      'that that it requires a larger dilution volume. ' \
-                      'Assumed minimum transfer volume for the CyBio: %i ul. ' \
-                       % (new_iso_volume, min_cybio_transfer_volume)
-                self.add_warning(msg)
-                return new_iso_volume
-            else:
-                return iso_volume
 
     def __check_deep_well_usage(self):
         """
@@ -2114,13 +2108,18 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
         the superclass function). In case of 384-well layouts, the determination
         works on rack sector.
         """
-        if self.source_layout.shape.name == RACK_SHAPE_NAMES.SHAPE_96:
-            RobotSupportDeterminator._replace_concentrations(self)
+        if self.association_data is None:
+            _RobotSupportDeterminator._replace_concentrations(self)
         else:
             quad_iter = QuadrantIterator(self.association_data.number_sectors)
             for quadrant_wps in quad_iter.get_all_quadrants(self.source_layout):
                 for sector_index, tf_pos in quadrant_wps.iteritems():
                     if tf_pos is None: continue
+                    rack_pos = tf_pos.rack_position
+                    if self._new_concentration_values.has_key(rack_pos):
+                        tf_pos.iso_concentration = \
+                                        self._new_concentration_values[rack_pos]
+                        continue
                     if tf_pos.is_mock or tf_pos.is_untreated_type: continue
                     iso_conc = self.__iso_concentrations[sector_index]
                     tf_pos.iso_concentration = iso_conc
@@ -2134,7 +2133,7 @@ class RobotSupportDeterminatorScreen(RobotSupportDeterminator):
             tf_pos.iso_volume = self.__iso_volume
 
 
-class RobotSupportDeterminatorLibrary(RobotSupportDeterminator):
+class RobotSupportDeterminatorLibrary(_RobotSupportDeterminator):
     """
     There is only one ISO concentration, ISO volume and OptiMem dilution factor
     for the layout. ISO concentration and ISO volume are defined by the library.
@@ -2175,7 +2174,7 @@ class RobotSupportDeterminatorLibrary(RobotSupportDeterminator):
             from the ISO request parser handler.
         :type handler_final_concentration: :class:`float` (positive number).
         """
-        RobotSupportDeterminator.__init__(self, log=log,
+        _RobotSupportDeterminator.__init__(self, log=log,
                                       source_layout=source_layout,
                                       number_replicates=number_replicates)
 
@@ -2192,7 +2191,7 @@ class RobotSupportDeterminatorLibrary(RobotSupportDeterminator):
         self.__optimem_dil_factor = None
 
     def reset(self):
-        RobotSupportDeterminator.reset(self)
+        _RobotSupportDeterminator.reset(self)
         self.__optimem_dil_factor = None
 
     def get_optimem_dil_factor(self):
@@ -2202,7 +2201,7 @@ class RobotSupportDeterminatorLibrary(RobotSupportDeterminator):
         return self._get_additional_value(self.__optimem_dil_factor)
 
     def _check_input(self):
-        RobotSupportDeterminator._check_input(self)
+        _RobotSupportDeterminator._check_input(self)
 
         self._check_input_class('molecule design library', self.library,
                                 MoleculeDesignLibrary)
@@ -2221,7 +2220,7 @@ class RobotSupportDeterminatorLibrary(RobotSupportDeterminator):
         """
         The specs must match the ones defined by the library
         """
-        RobotSupportDeterminator._init_iso_reservoir_specs(self)
+        _RobotSupportDeterminator._init_iso_reservoir_specs(self)
 
         plate_specs_lib = self.library.plate_specs
         if not plate_specs_lib is None:
@@ -2352,7 +2351,7 @@ class RobotSupportDeterminatorLibrary(RobotSupportDeterminator):
                                   self._has_compatible_concentrations
 
 
-class WellAssociator(BaseAutomationTool):
+class _WellAssociator(BaseAutomationTool):
     """
     Finds the source well for each well in an design rack layout. The outcome
     is stored in a map.
@@ -2448,7 +2447,8 @@ class WellAssociator(BaseAutomationTool):
                                 ExperimentDesign)
         self._check_input_class('source layout', self.source_layout,
                                 TransfectionLayout)
-        self._check_input_map_classes(self.design_rack_layouts,
+        if not self.design_rack_layouts is None:
+            self._check_input_map_classes(self.design_rack_layouts,
                     'design rack layout map', 'design rack label', basestring,
                     'design rack layout', TransfectionLayout)
 
@@ -2467,10 +2467,10 @@ class WellAssociator(BaseAutomationTool):
         self.add_debug('Convert design rack layouts ...')
 
         self.design_rack_layouts = dict()
-        for design_rack in self.experiment_design.design_racks:
+        for design_rack in self.experiment_design.experiment_design_racks:
             converter = TransfectionLayoutConverter(log=self.log,
-                                    rack_layout=design_rack.layout,
-                                    is_iso_layout=False)
+                                    rack_layout=design_rack.rack_layout,
+                                    is_iso_request_layout=False)
             tf_layout = converter.get_result()
             if tf_layout is None:
                 msg = 'Error when trying to convert layout for design rack ' \
@@ -2499,9 +2499,9 @@ class WellAssociator(BaseAutomationTool):
         raise NotImplementedError('Abstract method.')
 
 
-class WellAssociatorOptimisation(WellAssociator):
+class WellAssociatorOptimisation(_WellAssociator):
     """
-    A WellAssociator for optimisation cases. Association is based on
+    A _WellAssociator for optimisation cases. Association is based on
     combinations of molecule design pool ID, reagent name, reagent dilution
     factor and (optinal) final concentration.
 
@@ -2532,7 +2532,7 @@ class WellAssociatorOptimisation(WellAssociator):
             rack labels
         :default design_rack_layouts: *None*
         """
-        WellAssociator.__init__(self, experiment_design=experiment_design,
+        _WellAssociator.__init__(self, experiment_design=experiment_design,
                                 source_layout=source_layout, log=log,
                                 design_rack_layouts=design_rack_layouts)
 
@@ -2556,7 +2556,7 @@ class WellAssociatorOptimisation(WellAssociator):
         """
         Resets all values except for initialisation values.
         """
-        WellAssociator.reset(self)
+        _WellAssociator.reset(self)
         self.__source_triplet_map = dict()
         self.__reagent_name = None
         self.__reagent_dilution_factor = None
@@ -2699,7 +2699,7 @@ class WellAssociatorOptimisation(WellAssociator):
             hash_value = tf_pos.hash_full
 
             if not self._source_data_map.has_key(hash_value):
-                info = '%s (md %s, %s (%s), %s nM)' \
+                info = '%s (pool %s, %s (%s), %s nM)' \
                         % (trg_pos.label,
                            get_trimmed_string(tf_pos.molecule_design_pool_id),
                            tf_pos.reagent_name,
@@ -2744,7 +2744,7 @@ class WellAssociatorOptimisation(WellAssociator):
 
             partial_hash = tf_pos.hash_partial
             if not self.__source_triplet_map.has_key(partial_hash):
-                info = '%s (md %s, %s (%s), %s nM)' \
+                info = '%s (pool %s, %s (%s), %s nM)' \
                         % (trg_pos.label,
                            get_trimmed_string(tf_pos.molecule_design_pool_id),
                            tf_pos.reagent_name,
@@ -2780,7 +2780,7 @@ class WellAssociatorOptimisation(WellAssociator):
             return associated_positions
 
 
-class WellAssociatorManual(WellAssociator):
+class WellAssociatorManual(_WellAssociator):
     """
     A WellAssociator for manual optimisation type experiments. The association
     is based on molecule design pools.

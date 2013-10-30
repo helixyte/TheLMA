@@ -76,7 +76,6 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
     #: label later.
     NO_LABEL_PLACEHOLDER = 'default'
 
-
     #: The separator for date tokens (day-month-year)
     DATE_SEPARATOR = '.'
     #: Keyword indicating a delivery date specification.
@@ -90,34 +89,31 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
     #: Keyword indicating a library name (library screenings only).
     LIBRARY_KEY = 'molecule_design_library'
 
-    #: By default, all position types are allowed.
-    ALLOWED_POSITION_TYPES = set([FIXED_POSITION_TYPE, FLOATING_POSITION_TYPE,
-                              LIBRARY_POSITION_TYPE, MOCK_POSITION_TYPE,
-                              UNTREATED_POSITION_TYPE,
-                              UNTRANSFECTED_POSITION_TYPE, EMPTY_POSITION_TYPE])
+    #: By default, only fixed and empty position types are allowed.
+    ALLOWED_POSITION_TYPES = {FIXED_POSITION_TYPE, EMPTY_POSITION_TYPE}
 
     #: A list of parameters that do not need to specified at all.
     OPTIONAL_PARAMETERS = None
     #: A list of the metadata values that have be specified (as metadata).
     REQUIRED_METADATA = None
     #: A list of metadata values that are allowed be specified as metadata.
-    ALLOWED_METADATA = [PLATE_SET_LABEL_KEY, DELIVERY_DATE_KEY, COMMENT_KEY,
+    ALLOWED_METADATA = {PLATE_SET_LABEL_KEY, DELIVERY_DATE_KEY, COMMENT_KEY,
                         NUMBER_ALIQUOT_KEY, IsoRequestParameters.ISO_VOLUME,
                         IsoRequestParameters.ISO_CONCENTRATION,
                         TransfectionParameters.FINAL_CONCENTRATION,
                         TransfectionParameters.REAGENT_NAME,
-                        TransfectionParameters.REAGENT_DIL_FACTOR]
+                        TransfectionParameters.REAGENT_DIL_FACTOR}
 
-    #: The ISO parameters that might be specified in a layout as list.
-    ISO_LAYOUT_PARAMETERS = None
+    #: The ISO request parameters that might be specified in a layout as list.
+    ISO_REQUEST_LAYOUT_PARAMETERS = None
     #: The transfection parameters that might be specified in a layout as list.
     TRANSFECTION_LAYOUT_PARAMETERS = None
 
     #: A list of numerical parameter values.
-    _NUMERICAL_PARAMETERS = [IsoRequestParameters.ISO_VOLUME,
+    _NUMERICAL_PARAMETERS = {IsoRequestParameters.ISO_VOLUME,
                              IsoRequestParameters.ISO_CONCENTRATION,
                              TransfectionParameters.FINAL_CONCENTRATION,
-                             TransfectionParameters.REAGENT_DIL_FACTOR]
+                             TransfectionParameters.REAGENT_DIL_FACTOR}
 
 
     def __init__(self, stream, requester, log):
@@ -167,16 +163,18 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         self._iso_concentrations = dict()
 
         # List for error collection.
+        self.__missing_pool = dict()
         self._invalid_vol = []
         self._invalid_conc = []
         self._invalid_name = []
         self._invalid_df = []
-        self._invalid_pool = []
+        self.__invalid_pool = dict()
         self._invalid_fconc = []
         self._has_volume_layout = False
         self._has_name_layout = False
         self._has_reagent_df_layout = False
-        self._invalid_position_type = dict()
+        self.__invalid_position_type = dict()
+        self.__unknown_position_type = dict()
 
         # lookups for numerical values
         self.__invalid_lookup = {
@@ -275,12 +273,13 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         Returns a map of parameters for ISO and transfection that might
         be specified by layouts (with their alias lists as values).
         """
-        valid_parameters = {}
-        for parameter in self.ISO_LAYOUT_PARAMETERS:
-            if parameter == IsoRequestParameters.POS_TYPE: continue
-            alias_list = IsoRequestParameters.get_all_alias(parameter)
-            valid_parameters[parameter] = alias_list
-        for parameter in self.TRANSFECTION_LAYOUT_PARAMETERS:
+        valid_parameters = dict()
+        layout_parameters = set(self.ISO_REQUEST_LAYOUT_PARAMETERS \
+                                + self.TRANSFECTION_LAYOUT_PARAMETERS)
+        ign_parameters = {TransfectionParameters.POS_TYPE,
+                          TransfectionParameters.OPTIMEM_DIL_FACTOR}
+        for parameter in layout_parameters:
+            if parameter in ign_parameters: continue
             alias_list = TransfectionParameters.get_all_alias(parameter)
             valid_parameters[parameter] = alias_list
 
@@ -417,6 +416,12 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         """
         raise NotImplementedError('Abstract method.')
 
+    def _add_position_to_layout(self, pos_container, kw):
+        rack_pos = self._convert_to_rack_position(pos_container)
+        kw['rack_position'] = rack_pos
+        tf_pos = TransfectionPosition(**kw)
+        self.transfection_layout.add_position(tf_pos)
+
     def _get_value_for_rack_pos(self, parameter_container, pos_label):
         """
         Retrieves the value of a parameter for a specified
@@ -424,45 +429,51 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         """
         if not parameter_container.well_map.has_key(pos_label):
             return None
-        return parameter_container.well_map[pos_label]
+        value = parameter_container.well_map[pos_label]
+        return value
 
-    def _get_molecule_design_pool_for_id(self, pool_id, pos_label):
+    def _get_position_type(self, pool_id, pos_label):
+        """
+        If the position type is not allowed for this experiment scenario,
+        an error is recorded an the return value is *None*.
+        """
+        if is_valid_number(pool_id, is_integer=True):
+            return FIXED_POSITION_TYPE
+
+        pos_type = self._run_and_record_error(
+                                TransfectionParameters.get_position_type,
+                                base_msg=None, error_types={ValueError},
+                                **dict(molecule_design_pool=pool_id))
+        if pos_type is None:
+            add_list_map_element(self.__unknown_position_type, pool_id,
+                                 pos_label)
+            return None
+
+        if not pos_type in self.ALLOWED_POSITION_TYPES:
+            add_list_map_element(self.__invalid_position_type, pos_type,
+                                 pos_label)
+            return None
+
+        return pos_type
+
+    def _get_molecule_design_pool_for_id(self, pool_id, pos_type, pos_label):
         """
         Returns the molecule design set or placeholder for a molecule design
         pool ID.
         """
-        if pool_id is None: return None
+        if not pos_type == FIXED_POSITION_TYPE: return pool_id
 
-        # fixed positions have pool IDs (integer)
-        # we cannot use the get_position_type() function because this
-        # expects pool entities and we only have pool IDs
-        if is_valid_number(pool_id, positive=True, is_integer=True):
-            if self._pool_map.has_key(pool_id): return self._pool_map[pool_id]
+        if self._pool_map.has_key(pool_id): return self._pool_map[pool_id]
+
+        pool = self._pool_aggregate.get_by_id(int(pool_id))
+        if pool is None:
             pool = self._pool_aggregate.get_by_id(int(pool_id))
             if pool is None:
-                info = '%s (%s)' % (get_trimmed_string(pool_id), pos_label)
-                self._invalid_pool.append(info)
+                add_list_map_element(self.__invalid_pool, pool_id, pos_label)
                 return None
-            self._pool_map[pool_id] = pool
-            return pool
 
-        # other position types can be identified by get_position_type()
-        try:
-            pos_type = TransfectionParameters.get_position_type(pool_id)
-        except ValueError:
-            info = '%s (%s)' % (pool_id, pos_label)
-            self._invalid_pool.append(info)
-            return None
-
-        if not pos_type in self.ALLOWED_POSITION_TYPES:
-            add_list_map_element(self._invalid_position_type, pos_type,
-                                 pos_label)
-            return None
-
-        if pos_type == FLOATING_POSITION_TYPE:
-            return pool_id
-        else:
-            return pos_type # is the same for mock and untreated
+        self._pool_map[pool_id] = pool
+        return pool
 
     def _is_valid_reagent_name(self, reagent_name, pos_label):
         """
@@ -471,21 +482,34 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         if reagent_name is None:
             self._invalid_name.append(pos_label)
             return False
-        elif len(reagent_name) < 2:
+        elif len(str(reagent_name)) < 2:
             self._invalid_name.append(pos_label)
             return False
 
         return True
 
-    def _get_numerical_parameter_value(self, parameter, pos_label, is_mock,
-                                       is_untreated, may_be_none=False):
+    def _get_numerical_parameter_value(self, parameter, pos_label, pos_type,
+                                       may_be_none):
         """
         Returns the numerical parameter value for the given rack position.
         """
         container = self.parser.parameter_map[parameter]
 
+        if (pos_type == EMPTY_POSITION_TYPE):
+            if not container.has_layout: return None
+            value = self._get_value_for_rack_pos(container, pos_label)
+            if not value is None:
+                add_list_map_element(self.__missing_pool, pos_label, parameter)
+            return None
+
+        is_mock = (pos_type == MOCK_POSITION_TYPE)
+        is_untreated_type = TransfectionParameters.is_untreated_type(pos_type)
+
         if not container.has_layout:
-            if is_mock or is_untreated:
+            if is_mock and parameter in TransfectionParameters.\
+                                                        MOCK_NON_PARAMETERS:
+                return TransfectionPosition.NONE_REPLACER
+            elif is_untreated_type:
                 return TransfectionPosition.NONE_REPLACER
             else:
                 return self._metadata_lookup[parameter]
@@ -494,10 +518,10 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         error_list = self.__invalid_lookup[parameter]
 
         if is_mock:
-            if not TransfectionPosition.is_valid_mock_value(value):
+            if not TransfectionPosition.is_valid_mock_value(value, parameter):
                 error_list.append(pos_label)
                 return None
-        elif is_untreated:
+        elif is_untreated_type:
             if not TransfectionPosition.is_valid_untreated_value(value):
                 error_list.append(pos_label)
                 return None
@@ -507,57 +531,61 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
                                             error_list): return None
         return value
 
-    def _get_final_concentration(self, pos_label, is_mock, is_untreated,
-                                 may_be_none=None):
+    def _get_final_concentration(self, pos_label, pos_type, may_be_none=None):
         """
         Helper function returning the final concentration for the given
         rack position.
         """
         parameter = TransfectionParameters.FINAL_CONCENTRATION
         return self._get_numerical_parameter_value(parameter, pos_label,
-                                         is_mock, is_untreated, may_be_none)
+                                                   pos_type, may_be_none)
 
-    def _get_iso_concentration(self, pos_label, is_mock, is_untreated,
-                               may_be_none=None):
+    def _get_iso_concentration(self, pos_label, pos_type, may_be_none=None):
         """
         Returns the ISO concentration for the given rack position.
         """
-        iso_conc = self._get_numerical_parameter_value(
-                IsoRequestParameters.ISO_CONCENTRATION, pos_label, is_mock,
-                is_untreated, may_be_none)
-        if iso_conc is None: return None
+        parameter = IsoRequestParameters.ISO_CONCENTRATION
+        return self._get_numerical_parameter_value(parameter, pos_label,
+                                                   pos_type, may_be_none)
 
-        if not self._iso_concentrations.has_key(iso_conc):
-            self._iso_concentrations[iso_conc] = []
-        self._iso_concentrations[iso_conc].append(pos_label)
-
-        return iso_conc
-
-    def _get_iso_volume(self, pos_label, is_mock, is_untreated,
-                        may_be_none=None):
+    def _get_iso_volume(self, pos_label, pos_type, may_be_none=None):
         """
         Helper function returning the ISO volume for the given rack position.
         """
         parameter = IsoRequestParameters.ISO_VOLUME
         return self._get_numerical_parameter_value(parameter, pos_label,
-                                         is_mock, is_untreated, may_be_none)
+                                                   pos_type, may_be_none)
 
-    def _get_reagent_name(self, pos_label, is_untreated):
+    def _get_reagent_name(self, pos_label, pos_type):
         """
         Returns the reagent name for the given rack position.
         """
-
-        container = self.parser.parameter_map[
+        if self.parser.parameter_map.has_key(
+                                        TransfectionParameters.REAGENT_NAME):
+            container = self.parser.parameter_map[
                                         TransfectionParameters.REAGENT_NAME]
+            has_layout = container.has_layout
+        else:
+            has_layout = False
 
-        if not container.has_layout:
-            if is_untreated:
+        if (pos_type == EMPTY_POSITION_TYPE):
+            if not has_layout: return None
+            value = self._get_value_for_rack_pos(container, pos_label)
+            if not value is None:
+                add_list_map_element(self.__missing_pool, pos_label,
+                                     TransfectionParameters.REAGENT_NAME)
+            return None
+
+        is_untreated_type = TransfectionParameters.is_untreated_type(pos_type)
+
+        if not has_layout:
+            if is_untreated_type:
                 return TransfectionPosition.NONE_REPLACER
             else:
                 return self._reagent_name_metadata
 
         reagent_name = self._get_value_for_rack_pos(container, pos_label)
-        if is_untreated:
+        if is_untreated_type:
             if not TransfectionPosition.is_valid_untreated_value(reagent_name):
                 self._invalid_name.append(pos_label)
                 return None
@@ -565,6 +593,18 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
             return None
 
         return reagent_name
+
+    def _get_reagent_dilution_factor(self, pos_label, pos_type):
+        """
+        Returns the reagent name for the given rack position.
+        """
+        parameter = TransfectionParameters.REAGENT_DIL_FACTOR
+        rdf = self._get_numerical_parameter_value(parameter, pos_label, pos_type,
+                                                  may_be_none=True)
+        if (is_valid_number(rdf) and float(rdf) < 1):
+            self._invalid_df.append(pos_label)
+            return None
+        return rdf
 
     def _record_errors(self):
         """
@@ -575,20 +615,27 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
             msg = 'There are positions in this ISO request layout that lack ' \
                   'either an ISO volume or an ISO concentration. If you set ' \
                   'a value for one position, you need to set it for all ' \
-                  'other positions as well (exception: mock positions do not ' \
-                  'need a concentration).'
+                  'other positions as well (mock, untreated and ' \
+                  'untransfected positions are excepted).'
             self.add_error(msg)
 
-        if len(self._invalid_pool) > 0:
+        if len(self.__missing_pool) > 0:
+            msg = 'Some position have parameter values although there is no ' \
+                  'pool for them: %s.' % (self._get_joined_map_str(
+                       self.__missing_pool))
+            self.add_error(msg)
+
+        if len(self.__invalid_pool) > 0:
             msg = 'The following molecule design pools are unknown: %s.' \
-                  % (self._get_joined_str(self._invalid_pool))
+                  % (self._get_joined_map_str(self.__invalid_pool,
+                     sort_lists=False))
             self.add_error(msg)
 
         if len(self._invalid_vol) > 0:
             msg = 'Some positions in the ISO request layout have invalid ISO ' \
                   'volumes. The volume must be a positive number or left ' \
-                  'blank. Untreated position may have a volume "None" or ' \
-                  '"untreated". Affected positions: %s.' \
+                  'blank. Untreated position may have a volume "None", ' \
+                  '"untreated" or "untransfected". Affected positions: %s.' \
                   % (self._get_joined_str(self._invalid_vol))
             self.add_error(msg)
 
@@ -596,15 +643,16 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
             msg = 'Some positions in the ISO request layout have invalid ISO ' \
                   'concentration. The concentration must be a positive ' \
                   'number or left blank. Mock and untreated positions may ' \
-                  'have the values "None", "mock" and "untreated". Affected ' \
-                  'positions: %s.' % (self._get_joined_str(self._invalid_conc))
+                  'have the values "None", "mock", "untreated" or ' \
+                  '"untransfected". Affected positions: %s.' \
+                  % (self._get_joined_str(self._invalid_conc))
             self.add_error(msg)
 
         if len(self._invalid_name) > 0:
             msg = 'Invalid or missing reagent name for the following rack ' \
                   'positions in the ISO request layout: %s. The reagent ' \
                   'name must have a length of at least 2! Untreated position ' \
-                  'may have the values "None" or "untreated".' \
+                  'may have the values "None", "untreated" or "untransfected".' \
                    % (self._get_joined_str(self._invalid_name))
             self.add_error(msg)
 
@@ -612,7 +660,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
             msg = 'Invalid or missing reagent dilution factor for rack ' \
                   'positions in the ISO request layout: %s. The dilution ' \
                   'factor must be 1 or larger! Untreated position may have ' \
-                  'the values "None" or "untreated".' \
+                  'the values "None", "untreated" or "untransfected".' \
                   % (self._get_joined_str(self._invalid_df))
             self.add_error(msg)
 
@@ -625,17 +673,20 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
                   % (self._get_joined_str(self._invalid_fconc))
             self.add_error(msg)
 
-        if len(self._invalid_position_type) > 0:
-            type_positions = []
-            for pos_type, positions in self._invalid_position_type.iteritems():
-                pos_type_str = '%s (%s)' % (pos_type,
-                                           self._get_joined_str(positions))
-                type_positions.append(pos_type_str)
+        if len(self.__unknown_position_type) > 0:
+            msg = 'Unable to determine the position type for the following ' \
+                  'pool IDs: %s. Allowed position types for this type of ' \
+                  'experiment are: %s.' % (self._get_joined_map_str(
+                   self.__unknown_position_type, sort_lists=False),
+                   self._get_joined_str(self.ALLOWED_POSITION_TYPES))
+            self.add_error(msg)
+
+        if len(self.__invalid_position_type) > 0:
             msg = 'The following position types are not allowed in the ISO ' \
                   'request layout for this experiment metadata type (%s): %s.' \
                   % (get_experiment_metadata_type(self.SUPPORTED_SCENARIO).\
-                    display_name, self._get_joined_str(type_positions,
-                                                       separator=' -- '))
+                    display_name, self._get_joined_map_str(
+                            self.__invalid_position_type, sort_lists=False))
             self.add_error(msg)
 
     def _check_layout_validity(self, has_floatings): #pylint: disable=W0613
@@ -677,28 +728,6 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
             msg = 'There are no fixed positions in this ISO request layout!'
             self.add_error(msg)
 
-    def _check_for_unrequired_untreated_positions(self):
-        """
-        Technically, untreated position are empty, they contain just cells.
-        The distinction serves documentational reasons only and is only
-        required in the experiment design. Thus, experiment metadata types
-        that provide separate *Transfection* and *ISO* sheets do not need
-        to mark untreated positions in the ISO request layout. On the contrary,
-        marking them might mislead to the assumption that there was a transfer
-        connection between the ISO and experiment wells.
-        """
-        has_untreated = False
-        for tf_pos in self.transfection_layout.working_positions():
-            if tf_pos.is_untreated_type:
-                has_untreated = True
-                break
-        if has_untreated:
-            msg = 'There are untreated positions in your ISO request layout! ' \
-                  'You do not need to mark them here, because the system ' \
-                  'considers them to be empty and will not transfer them ' \
-                  'to the experiment cell plates!'
-            self.add_warning(msg)
-
     def _sort_floatings(self):
         """
         In 96-well layouts the sorting is done by position. 384-well layouts
@@ -707,18 +736,24 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         """
         if self.transfection_layout.shape.name == RACK_SHAPE_NAMES.SHAPE_96:
             self._sort_floatings_by_position()
+        elif not self.transfection_layout.has_final_concentrations():
+            msg = 'If you use floating positions in an 384-well ISO request ' \
+                  'layout you have to provide final concentration to enable ' \
+                  'sorting by sectors. Please regard, that the  ' \
+                  'different concentrations for a molecule design pool must ' \
+                  'be located in the same rack sector and that the ' \
+                  'distribution of concentrations must be the same for all ' \
+                  'quadrants. If you have questions, ask Anna, please.'
+            self.add_error(msg)
         else:
             self.__association_data = self.__get_association_data()
-
-
             if not self.__association_data is None:
-                if self.__association_data.number_sectors == 4:
-                    associated_sectors = self.__association_data.\
-                                         associated_sectors
-                    self.__adjust_floatings_for_concentrations(
-                                                            associated_sectors)
-                else:
+                parent_sectors = set(
+                        self.__association_data.parent_sectors.values())
+                if parent_sectors == {None}: # all sectors independent
                     self._sort_floatings_by_position()
+                else:
+                    self.__adjust_floatings_for_concentrations()
 
     def _sort_floatings_by_position(self):
         """
@@ -747,7 +782,14 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         association_data, regard_controls = TransfectionAssociationData.find(
                                 log=self.log, layout=self.transfection_layout)
         if association_data is None:
-            msg = 'Error when trying to associated rack sectors!'
+            msg = 'Error when trying to associated rack sectors! The ' \
+                  'floating positions in 384-well ISO request layouts must ' \
+                  'be arranged in rack sectors to enable the use of the ' \
+                  'CyBio robot during ISO generation. If floating molecule ' \
+                  'design pools shall occur several times, all occurrences ' \
+                  'must be located in the same rack sector and that the ' \
+                  'distribution of concentrations must be the same for all ' \
+                  'quadrants. If you have questions, ask Anna, please.'
             self.add_error(msg)
             return None
         elif self.__has_consistent_final_concentration(association_data):
@@ -762,96 +804,68 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         concentration.
         """
         iso_concentrations = association_data.iso_concentrations
+        final_concentrations = association_data.sector_concentrations
 
-        iso_conc_map = dict()
-        final_conc_map = dict()
-        invalid_concentrations = []
-        for sector_index, final_conc in association_data.sector_concentrations.\
-                                      iteritems():
-            if final_conc is None: continue
-            iso_conc = iso_concentrations[sector_index]
-            if iso_conc is None: continue
+        iso_map = dict()
+        final_map = dict()
+        for sector_index, iso_conc in iso_concentrations.iteritems():
+            final_conc = final_concentrations[sector_index]
+            if not iso_conc is None:
+                add_list_map_element(iso_map, iso_conc, final_conc)
+            if not final_conc is None:
+                add_list_map_element(final_map, final_conc, iso_conc)
 
-            if iso_conc_map.has_key(iso_conc):
-                fc = iso_conc_map[iso_conc]
-                if not are_equal_values(fc, final_conc):
-                    info = 'ISO %.1f nM (final concentrations: %1.f nM and ' \
-                           '%.1f nM)' % (iso_conc, fc, final_conc)
-                    invalid_concentrations.append(info)
-            else:
-                iso_conc_map[iso_conc] = final_conc
+        prom_iso_conc = dict()
+        for iso_conc, final_concentrations in iso_map.iteritems():
+            if len(set(final_concentrations)) > 1:
+                prom_iso_conc[iso_conc] = final_concentrations
+        if len(prom_iso_conc) > 0:
+            msg = 'Some ISO concentrations in the layout that are ' \
+                  'involved in rack sector formation are related to more ' \
+                  'than one distinct final concentration: %s.' \
+                   % (self._get_joined_map_str(prom_iso_conc,
+                      str_pattern='ISO conc: %s uM (final concentrations: %s)',
+                      all_strs=False))
+            self.add_error(msg)
+            return False
 
-            if final_conc_map.has_key(final_conc):
-                ic = final_conc_map[final_conc]
-                if not are_equal_values(ic, iso_conc):
-                    info = 'final %.1f nM (ISO concentrations: %1.f nM and ' \
-                           '%.1f nM)' % (final_conc, ic, iso_conc)
-                    invalid_concentrations.append(info)
-            else:
-                final_conc_map[final_conc] = iso_conc
-
-        if len(invalid_concentrations) > 0:
-            msg = 'Some final concentrations in the screening layout are ' \
-                  'related to more than one ISO concentration or vice versa: ' \
-                  '%s.' % (invalid_concentrations)
+        prom_final_conc = dict()
+        for final_conc, iso_concentrations in final_map.iteritems():
+            if len(set(iso_concentrations)) > 1:
+                prom_final_conc[final_conc] = iso_concentrations
+        if len(prom_final_conc) > 0:
+            msg = 'Some final concentrations in the layout that are ' \
+                  'involved in rack sector formation are related to more ' \
+                  'than one distinct ISO concentration: %s.' \
+                   % (self._get_joined_map_str(prom_final_conc,
+                      str_pattern='final conc: %s uM (ISO concentrations: %s)',
+                      all_strs=False))
             self.add_error(msg)
             return False
 
         return True
 
-    def __adjust_floatings_for_concentrations(self, associated_sectors):
+    def __adjust_floatings_for_concentrations(self):
         """
-        Adjust the floating positions in case of multiple concentrations.
+        Adjust the floating positions in case of several occurrences of a
+        pool within a quadrant.
         """
-        associated_sectors.sort()
-        quadrant_iterator = QuadrantIterator(number_sectors=4)
-
-        consistent_concentrations = True
-        final_concentrations = None
+        associated_sectors = sorted(self.__association_data.associated_sectors)
+        quadrant_iter = QuadrantIterator(number_sectors=4)
 
         counter = 0
-
-        for quadrant_positions in quadrant_iterator.get_all_quadrants(
+        for quadrant_wps in quadrant_iter.get_all_quadrants(
                                     working_layout=self.transfection_layout):
             for sectors in associated_sectors:
                 new_placeholder = None
-                concentrations = set()
                 for sector_index in sectors:
-                    tf_pos = quadrant_positions[sector_index]
-                    if tf_pos is None: continue
-                    if not tf_pos.is_floating: continue
+                    tf_pos = quadrant_wps[sector_index]
+                    if tf_pos is None or not tf_pos.is_floating: continue
                     if new_placeholder is None:
                         counter += 1
-                        new_placeholder = '%s%03i' % (
-                               IsoRequestParameters.FLOATING_INDICATOR, counter)
+                        new_placeholder = TransfectionParameters.\
+                                          get_floating_placeholder(counter)
                     tf_pos.molecule_design_pool = new_placeholder
-                    concentrations.add(tf_pos.final_concentration)
-
-                # Check whether all final concentrations are found.
-                if len(concentrations) < 1: continue
-                if final_concentrations is None:
-                    final_concentrations = concentrations
-                    continue
-
-                if not len(final_concentrations) == len(concentrations):
-                    consistent_concentrations = False
-                    break
-
-                for final_conc in concentrations:
-                    if not final_conc in final_concentrations:
-                        consistent_concentrations = False
-                        break
-
-        if not consistent_concentrations:
-            msg = 'The concentrations within the ISO request layout are not ' \
-                  'consistent. Some sample positions have more or different ' \
-                  'concentrations than others. Please regard, that the  ' \
-                  'different concentrations for a molecule design pool must ' \
-                  'be located in the same rack sector and that the ' \
-                  'diestribution of concentrations must be the same for all ' \
-                  'quadrants. If you have questions, ask Anna, please.'
-            self.add_error(msg)
-
 
     def __create_iso_request(self):
         """
@@ -1035,12 +1049,16 @@ class IsoRequestParserHandlerOpti(IsoRequestParserHandler):
     """
     SUPPORTED_SCENARIO = EXPERIMENT_SCENARIOS.OPTIMISATION
 
+    ALLOWED_POSITION_TYPES = {FIXED_POSITION_TYPE, EMPTY_POSITION_TYPE,
+                    FLOATING_POSITION_TYPE, MOCK_POSITION_TYPE,
+                    UNTREATED_POSITION_TYPE, UNTRANSFECTED_POSITION_TYPE}
+
     OPTIONAL_PARAMETERS = [IsoRequestParameters.ISO_VOLUME,
                            IsoRequestParameters.ISO_CONCENTRATION,
                            TransfectionParameters.FINAL_CONCENTRATION]
     REQUIRED_METADATA = [IsoRequestParserHandler.PLATE_SET_LABEL_KEY]
 
-    ISO_LAYOUT_PARAMETERS = IsoRequestParameters.ALL
+    ISO_REQUEST_LAYOUT_PARAMETERS = IsoRequestParameters.ALL
     TRANSFECTION_LAYOUT_PARAMETERS = [
                             TransfectionParameters.FINAL_CONCENTRATION,
                             TransfectionParameters.REAGENT_NAME,
@@ -1050,61 +1068,61 @@ class IsoRequestParserHandlerOpti(IsoRequestParserHandler):
         self.add_debug('Create transfection positions ...')
 
         parameter_map = self.parser.parameter_map
-        pool_container = parameter_map[IsoRequestParameters.MOLECULE_DESIGN_POOL]
+        pool_container = parameter_map[
+                                    IsoRequestParameters.MOLECULE_DESIGN_POOL]
 
         for pos_container in self.parser.shape.position_containers:
             pos_label = pos_container.label
 
-            # Check properties
             pool_id = self._get_value_for_rack_pos(pool_container, pos_label)
-            pool = self._get_molecule_design_pool_for_id(pool_id, pos_label)
-            if pool is None: continue
+            pos_type = self._get_position_type(pool_id, pos_label)
+            if pos_type is None: continue
 
-            is_mock = (pool == MOCK_POSITION_TYPE)
-            is_untreated = TransfectionParameters.is_untreated_type(pool)
+            pool = self._get_molecule_design_pool_for_id(pool_id, pos_type,
+                                                         pos_label)
 
-            iso_volume = self._get_iso_volume(pos_label, False, is_untreated,
-                                              True)
-            iso_conc = self._get_iso_concentration(pos_label, is_mock,
-                                                   is_untreated, True)
-            final_conc = self._get_final_concentration(pos_label, is_mock,
-                                                       is_untreated, True)
+            iso_volume = self._get_iso_volume(pos_label, pos_type, True)
+            iso_conc = self._get_iso_concentration(pos_label, pos_type, True)
+            final_conc = self._get_final_concentration(pos_label, pos_type,
+                                                       True)
+            reagent_name = self._get_reagent_name(pos_label, pos_type)
+            reagent_df = self._get_reagent_dilution_factor(pos_label, pos_type)
 
-            reagent_name = self._get_reagent_name(pos_label, is_untreated)
-            reagent_df = self.__get_reagent_df(pos_label, is_untreated)
-
-            # Create position
-            rack_pos = self._convert_to_rack_position(pos_container)
-            tf_pos = TransfectionPosition(rack_position=rack_pos,
-                            molecule_design_pool=pool, iso_volume=iso_volume,
-                            iso_concentration=iso_conc,
-                            reagent_name=reagent_name,
-                            reagent_dil_factor=reagent_df,
-                            final_concentration=final_conc)
-            self.transfection_layout.add_position(tf_pos)
-
-    def __get_reagent_df(self, pos_label, is_untreated):
-        """
-        Helper function returning the reagent dilution factor for the given
-        rack position.
-        """
-        parameter = TransfectionParameters.REAGENT_DIL_FACTOR
-        rdf = self._get_numerical_parameter_value(parameter, pos_label, False,
-                                                  is_untreated)
-        if rdf is None:
-            return None
-        elif rdf < 1:
-            self._invalid_df.append(pos_label)
-            return None
-        else:
-            return rdf
+            if pos_type == EMPTY_POSITION_TYPE or pool is None: continue
+            kw = dict(molecule_design_pool=pool,
+                      iso_volume=iso_volume, iso_concentration=iso_conc,
+                      reagent_name=reagent_name, reagent_dil_factor=reagent_df,
+                      final_concentration=final_conc)
+            self._add_position_to_layout(pos_container, kw)
 
     def _check_layout_validity(self, has_floatings):
         """
         Checks scenario-dependent properties of the transfection layout.
         """
         IsoRequestParserHandler._check_layout_validity(self, has_floatings)
-        self._check_for_unrequired_untreated_positions()
+        self.__check_for_unrequired_untreated_positions()
+
+    def __check_for_unrequired_untreated_positions(self):
+        """
+        Technically, untreated position are empty, they contain just cells.
+        The distinction serves documentational reasons only and is only
+        required in the experiment design. Thus, experiment metadata types
+        that provide separate *Transfection* and *ISO* sheets do not need
+        to mark untreated positions in the ISO request layout. On the contrary,
+        marking them might mislead to the assumption that there was a transfer
+        connection between the ISO and experiment wells.
+        """
+        has_untreated = False
+        for tf_pos in self.transfection_layout.working_positions():
+            if tf_pos.is_untreated_type:
+                has_untreated = True
+                break
+        if has_untreated:
+            msg = 'There are untreated or untransfected positions in your ' \
+                  'ISO request layout! You do not need to mark them here, ' \
+                  'because the system considers them to be empty and will ' \
+                  'not transfer them to the experiment cell plates!'
+            self.add_warning(msg)
 
 
 class IsoRequestParserHandlerScreen(IsoRequestParserHandler):
@@ -1114,6 +1132,9 @@ class IsoRequestParserHandlerScreen(IsoRequestParserHandler):
     **Return Value:** ISO request (:class:`thelma.models.iso.IsoRequest`).
     """
     SUPPORTED_SCENARIO = EXPERIMENT_SCENARIOS.SCREENING
+    ALLOWED_POSITION_TYPES = {FIXED_POSITION_TYPE, FLOATING_POSITION_TYPE,
+                              MOCK_POSITION_TYPE, UNTREATED_POSITION_TYPE,
+                              UNTRANSFECTED_POSITION_TYPE, EMPTY_POSITION_TYPE}
 
     OPTIONAL_PARAMETERS = [IsoRequestParameters.ISO_CONCENTRATION,
                            IsoRequestParameters.ISO_VOLUME]
@@ -1122,7 +1143,7 @@ class IsoRequestParserHandlerScreen(IsoRequestParserHandler):
                          TransfectionParameters.REAGENT_NAME,
                          TransfectionParameters.REAGENT_DIL_FACTOR]
 
-    ISO_LAYOUT_PARAMETERS = [IsoRequestParameters.MOLECULE_DESIGN_POOL,
+    ISO_REQUEST_LAYOUT_PARAMETERS = [IsoRequestParameters.MOLECULE_DESIGN_POOL,
                              IsoRequestParameters.ISO_CONCENTRATION]
     TRANSFECTION_LAYOUT_PARAMETERS = [
                                     TransfectionParameters.FINAL_CONCENTRATION]
@@ -1142,16 +1163,6 @@ class IsoRequestParserHandlerScreen(IsoRequestParserHandler):
         IsoRequestParserHandler.__init__(self, stream=stream, log=log,
                                          requester=requester)
 
-        #: The rack sector association data.
-        self.__association_data = None
-
-    def get_association_data(self):
-        """
-        Return the association data.
-        """
-        if self.return_value is None: return None
-        return self.__association_data
-
     def get_iso_volume(self):
         """
         Returns the ISO volume from the sheet (there is only a metadata value).
@@ -1163,50 +1174,43 @@ class IsoRequestParserHandlerScreen(IsoRequestParserHandler):
         self.add_debug('Create transfection positions ...')
 
         parameter_map = self.parser.parameter_map
-        pool_container = parameter_map[IsoRequestParameters.MOLECULE_DESIGN_POOL]
+        pool_container = parameter_map[
+                                    IsoRequestParameters.MOLECULE_DESIGN_POOL]
         iso_volume = self._metadata_lookup[IsoRequestParameters.ISO_VOLUME]
         reagent_df = self._metadata_lookup[
                                     TransfectionParameters.REAGENT_DIL_FACTOR]
+        reagent_name = self._reagent_name_metadata
 
         for pos_container in self.parser.shape.position_containers:
             pos_label = pos_container.label
-            is_valid_position = True
 
-            # Check properties
             pool_id = self._get_value_for_rack_pos(pool_container, pos_label)
-            pool = self._get_molecule_design_pool_for_id(pool_id, pos_label)
-            if pool is None: continue
-            is_mock = (pool == MOCK_POSITION_TYPE)
-            is_untreated = TransfectionParameters.is_untreated_type(pool)
+            pos_type = self._get_position_type(pool_id, pos_label)
+            if pos_type is None: continue
 
-            final_conc = self._get_final_concentration(pos_label, is_mock,
-                                                       is_untreated)
-            if final_conc is None and not (is_mock or is_untreated):
-                is_valid_position = False
-            iso_conc = self._get_iso_concentration(pos_label, is_mock,
-                                                   is_untreated, True)
-            if (is_mock or is_untreated):
-                pass
-            elif iso_conc is None and final_conc is None:
-                is_valid_position = False
+            pool = self._get_molecule_design_pool_for_id(pool_id, pos_type,
+                                                         pos_label)
 
-            if not is_valid_position: continue
+            final_conc = self._get_final_concentration(pos_label, pos_type,
+                                                       False)
+            iso_conc = self._get_iso_concentration(pos_label, pos_type,
+                                                   False)
 
-            rack_pos = self._convert_to_rack_position(pos_container)
-            if is_untreated:
-                pos_type = pool
-                tf_pos = TransfectionPosition.create_untreated_position(
-                          rack_position=rack_pos,
-                          position_type=pos_type)
+            if pos_type == EMPTY_POSITION_TYPE or pool is None: continue
+            if TransfectionParameters.is_untreated_type(pos_type):
+                use_reaged_df = pos_type
+                use_reagent_name = pos_type
+                use_iso_vol = pos_type
             else:
-                tf_pos = TransfectionPosition(rack_position=rack_pos,
-                          molecule_design_pool=pool,
-                          iso_volume=iso_volume,
-                          iso_concentration=iso_conc,
-                          final_concentration=final_conc,
-                          reagent_name=self._reagent_name_metadata,
-                          reagent_dil_factor=reagent_df)
-            self.transfection_layout.add_position(tf_pos)
+                use_reaged_df = reagent_df
+                use_reagent_name = reagent_name
+                use_iso_vol = iso_volume
+
+            kw = dict(molecule_design_pool=pool, iso_volume=use_iso_vol,
+                  iso_concentration=iso_conc, final_concentration=final_conc,
+                  reagent_dil_factor=use_reaged_df,
+                  reagent_name=use_reagent_name)
+            self._add_position_to_layout(pos_container, kw)
 
     def _get_number_aliquots(self, metadata_value_map):
         """
@@ -1230,6 +1234,9 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
     **Return Value:** ISO request (:class:`thelma.models.iso.IsoRequest`).
     """
     SUPPORTED_SCENARIO = EXPERIMENT_SCENARIOS.LIBRARY
+    ALLOWED_POSITION_TYPES = {FIXED_POSITION_TYPE, EMPTY_POSITION_TYPE,
+                          LIBRARY_POSITION_TYPE, MOCK_POSITION_TYPE,
+                          UNTREATED_POSITION_TYPE, UNTRANSFECTED_POSITION_TYPE}
 
     OPTIONAL_PARAMETERS = []
     REQUIRED_METADATA = [IsoRequestParserHandler.LIBRARY_KEY,
@@ -1237,7 +1244,7 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
                          TransfectionParameters.REAGENT_NAME,
                          TransfectionParameters.REAGENT_DIL_FACTOR]
 
-    ISO_LAYOUT_PARAMETERS = [IsoRequestParameters.MOLECULE_DESIGN_POOL]
+    ISO_REQUEST_LAYOUT_PARAMETERS = [IsoRequestParameters.MOLECULE_DESIGN_POOL]
     TRANSFECTION_LAYOUT_PARAMETERS = []
 
     ALLOWED_METADATA = [IsoRequestParserHandler.PLATE_SET_LABEL_KEY,
@@ -1361,36 +1368,29 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
         for pos_container in self.parser.shape.position_containers:
             pos_label = pos_container.label
 
-            # Check properties
             pool_id = self._get_value_for_rack_pos(pool_container, pos_label)
-            pool = self._get_molecule_design_pool_for_id(pool_id, pos_label)
-            if pool is None: continue # error
+            pos_type = self._get_position_type(pool_id, pos_label)
+            pool = self._get_molecule_design_pool_for_id(pool_id, pos_type,
+                                                         pos_label)
+            if pos_type is None or pool is None: continue
 
-            rack_pos = self._convert_to_rack_position(pos_container)
-            if TransfectionParameters.is_untreated_type(pool):
-                tf_pos = TransfectionPosition.create_untreated_position(
-                          rack_position=rack_pos, position_type=pool)
-            elif pool == MOCK_POSITION_TYPE:
-                tf_pos = TransfectionPosition.create_mock_position(
-                          rack_position=rack_pos)
-            elif pool == LIBRARY_POSITION_TYPE:
-                tf_pos = TransfectionPosition.create_library_position(
-                          rack_position=rack_pos)
+            if TransfectionParameters.is_untreated_type(pos_type):
+                use_reagent_name = pos_type
+                use_reagent_df = pos_type
+                use_final_conc = pos_type
             else:
-                tf_pos = TransfectionPosition(rack_position=rack_pos,
-                          molecule_design_pool=pool)
-            self.transfection_layout.add_position(tf_pos)
-
-        for tp in self.transfection_layout.working_positions():
-            if tp.is_empty:
-                continue
-            else:
-                if tp.is_mock:
-                    tp.final_concentration = MOCK_POSITION_TYPE
+                if pos_type == MOCK_POSITION_TYPE:
+                    use_final_conc = pos_type
                 else:
-                    tp.final_concentration = final_conc
-                tp.reagent_name = self._reagent_name_metadata
-                tp.reagent_dil_factor = reagent_df
+                    use_final_conc = final_conc
+                use_reagent_df = reagent_df
+                use_reagent_name = self._reagent_name_metadata
+
+            kw = dict(molecule_design_pool=pool,
+                      final_concentration=use_final_conc,
+                      reagent_name=use_reagent_name,
+                      reagent_dil_factor=use_reagent_df)
+            self._add_position_to_layout(pos_container, kw)
 
     def _check_layout_validity(self, has_floatings): #pylint: disable=W0613
         """
@@ -1400,7 +1400,7 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
         are not taken by library positions) and that there is at least one
         control (fixed position).
         """
-        library_positions = set([self.__lib_base_layout.get_positions()])
+        library_positions = set(self.__lib_base_layout.get_positions())
         missing_library_pos = []
         invalid_library_pos = []
 
@@ -1419,7 +1419,7 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
                 missing_library_pos.append(rack_pos.label)
 
         if not has_controls:
-            msg = 'There are no fixed positions in this ISO reuqest layout!'
+            msg = 'There are no fixed positions in this ISO request layout!'
             self.add_error(msg)
 
         if len(missing_library_pos) > 0:
@@ -1443,6 +1443,7 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
     **Return Value:** ISO request (:class:`thelma.models.iso.IsoRequest`).
     """
     SUPPORTED_SCENARIO = EXPERIMENT_SCENARIOS.MANUAL
+    ALLOWED_POSITION_TYPES = {FIXED_POSITION_TYPE, EMPTY_POSITION_TYPE}
 
     OPTIONAL_PARAMETERS = []
     REQUIRED_METADATA = [IsoRequestParserHandler.PLATE_SET_LABEL_KEY]
@@ -1452,9 +1453,7 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
                         IsoRequestParameters.ISO_CONCENTRATION,
                         IsoRequestParameters.ISO_VOLUME]
 
-    ALLOWED_POSITION_TYPES = [FIXED_POSITION_TYPE, EMPTY_POSITION_TYPE]
-
-    ISO_LAYOUT_PARAMETERS = IsoRequestParameters.ALL
+    ISO_REQUEST_LAYOUT_PARAMETERS = IsoRequestParameters.ALL
     TRANSFECTION_LAYOUT_PARAMETERS = []
 
     #: A list of numerical parameter values.
@@ -1474,21 +1473,20 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
         for pos_container in self.parser.shape.position_containers:
             pos_label = pos_container.label
 
-            # Check properties
             pool_id = self._get_value_for_rack_pos(pool_container, pos_label)
-            pool = self._get_molecule_design_pool_for_id(pool_id, pos_label)
+            pos_type = self._get_position_type(pool_id, pos_label)
+            # only fixed and empty are allowed
+            if pos_type is None: continue
+            pool = self._get_molecule_design_pool_for_id(pool_id, pos_type,
+                                                         pos_label)
+
+            iso_vol = self._get_iso_volume(pos_label, pos_type, False)
+            iso_conc = self._get_iso_concentration(pos_label, pos_type, False)
             if pool is None: continue
 
-            iso_volume = self._get_iso_volume(pos_label, False, False, False)
-            iso_conc = self._get_iso_concentration(pos_label, False, False,
-                                                   False)
-
-            # Create position
-            rack_pos = self._convert_to_rack_position(pos_container)
-            tf_pos = TransfectionPosition(rack_position=rack_pos,
-                            molecule_design_pool=pool, iso_volume=iso_volume,
-                            iso_concentration=iso_conc)
-            self.transfection_layout.add_position(tf_pos)
+            kw = dict(molecule_design_pool=pool,
+                      iso_volume=iso_vol, iso_concentration=iso_conc)
+            self._add_position_to_layout(pos_container, kw)
 
 
 class IsoRequestParserHandlerOrder(IsoRequestParserHandler):
@@ -1502,7 +1500,7 @@ class IsoRequestParserHandlerOrder(IsoRequestParserHandler):
     """
     SUPPORTED_SCENARIO = EXPERIMENT_SCENARIOS.ORDER_ONLY
 
-    ALLOWED_POSITION_TYPES = [FIXED_POSITION_TYPE, EMPTY_POSITION_TYPE]
+    ALLOWED_POSITION_TYPES = {FIXED_POSITION_TYPE, EMPTY_POSITION_TYPE}
 
     ALLOWED_METADATA = [IsoRequestParserHandler.PLATE_SET_LABEL_KEY,
                         IsoRequestParserHandler.DELIVERY_DATE_KEY,
@@ -1511,7 +1509,7 @@ class IsoRequestParserHandlerOrder(IsoRequestParserHandler):
     OPTIONAL_PARAMETERS = []
     REQUIRED_METADATA = [IsoRequestParserHandler.PLATE_SET_LABEL_KEY]
 
-    ISO_LAYOUT_PARAMETERS = [IsoRequestParameters.MOLECULE_DESIGN_POOL,
+    ISO_REQUEST_LAYOUT_PARAMETERS = [IsoRequestParameters.MOLECULE_DESIGN_POOL,
                              IsoRequestParameters.ISO_VOLUME]
     TRANSFECTION_LAYOUT_PARAMETERS = []
 
@@ -1530,18 +1528,18 @@ class IsoRequestParserHandlerOrder(IsoRequestParserHandler):
         for pos_container in self.parser.shape.position_containers:
             pos_label = pos_container.label
 
-            # Check properties
             pool_id = self._get_value_for_rack_pos(pool_container, pos_label)
-            pool = self._get_molecule_design_pool_for_id(pool_id, pos_label)
+            pos_type = self._get_position_type(pool_id, pos_label)
+            # only fixed and empty are allowed
+            if pos_type is None: continue
+            pool = self._get_molecule_design_pool_for_id(pool_id, pos_type,
+                                                         pos_label)
+
+            iso_volume = self._get_iso_volume(pos_label, pos_type, False)
             if pool is None: continue
 
-            iso_volume = self._get_iso_volume(pos_label, False, False, False)
-
-            # Create position
-            rack_pos = self._convert_to_rack_position(pos_container)
-            tf_pos = TransfectionPosition(rack_position=rack_pos,
-                            molecule_design_pool=pool, iso_volume=iso_volume)
-            self.transfection_layout.add_position(tf_pos)
+            kw = dict(molecule_design_pool=pool, iso_volume=iso_volume)
+            self._add_position_to_layout(pos_container, kw)
 
     def _check_layout_validity(self, has_floatings):
         """

@@ -292,9 +292,6 @@ class ExcelFileParser(BaseParser): #pylint: disable=W0223
 
     NAME = 'ExcelFileParser'
 
-    # Color codes which are recognized as empty cells.
-    EMPTY_COLOR_CODES = (None, (255, 255, 255))
-
     def __init__(self, stream, log):
         """
         :param stream: file name and path
@@ -441,30 +438,6 @@ class ExcelFileParser(BaseParser): #pylint: disable=W0223
             except ValueError:
                 pass
         return conv_value
-
-    @classmethod
-    def get_cell_color(cls, sheet, row_index, column_index):
-        """
-        Returns a hashable value representing the color of the specified
-        sheet cell.
-
-        :note: the background color index alone does not seem to be enough
-              to reliably specify a cell's color. You also need to include the
-              pattern color index.
-        """
-        book = sheet.book
-        xf_idx = sheet.cell_xf_index(row_index, column_index)
-        bg = book.xf_list[xf_idx].background
-        return (book.colour_map[bg.pattern_colour_index],
-                book.colour_map[bg.background_colour_index])
-
-    @classmethod
-    def is_without_colour(cls, color):
-        """
-        Checks if the given color value is the system default.
-        """
-        return color[0] in cls.EMPTY_COLOR_CODES \
-               and color[1] in cls.EMPTY_COLOR_CODES
 
     @staticmethod
     def get_cell_name(row_index, column_index):

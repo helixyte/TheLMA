@@ -443,7 +443,7 @@ class MoleculeDesignPoolLayoutConverter(BaseLayoutConverter):
                         VALID_UNTREATED_NONE_REPLACERS, is_strs=False,
                         separator='/')
         elif pool_id == MOCK_POSITION_TYPE:
-            if not self.PARAMETER_SET.is_valid_mock_value(pos_type):
+            if not pos_type == MOCK_POSITION_TYPE:
                 exp_type = MOCK_POSITION_TYPE
         elif pool_id == LIBRARY_POSITION_TYPE:
             if not pos_type == LIBRARY_POSITION_TYPE:

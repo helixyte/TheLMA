@@ -11,6 +11,7 @@ from thelma.automation.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.metadata.base import TransfectionLayout
 from thelma.automation.tools.metadata.base import TransfectionParameters
+from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.tools.worklists.generation \
                 import PlannedWorklistGenerator
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
@@ -28,11 +29,11 @@ __docformat__ = 'reStructuredText en'
 __all__ = ['_SUPPORTED_SCENARIOS',
            'EXPERIMENT_WORKLIST_PARAMETERS',
            'ExperimentWorklistGenerator',
-           'OptimemWorklistGenerator',
-           'ReagentWorklistGenerator',
-           'BiomekTransferWorklistGenerator',
-           'CybioTransferWorklistGenerator',
-           'CellSuspensionWorklistGenerator',
+           '_OptimemWorklistGenerator',
+           '_ReagentWorklistGenerator',
+           '_BiomekTransferWorklistGenerator',
+           '_CybioTransferWorklistGenerator',
+           '_CellSuspensionWorklistGenerator',
            ]
 
 
@@ -237,7 +238,7 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
         """
         Generates the optimem dilution worklist.
         """
-        generator = OptimemWorklistGenerator(log=self.log,
+        generator = _OptimemWorklistGenerator(log=self.log,
                                     experiment_metadata_label=self.label,
                                     transfection_layout=self.source_layout)
         worklist = generator.get_result()
@@ -254,7 +255,7 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
         """
         Generates the transfection reagent worklist.
         """
-        generator = ReagentWorklistGenerator(log=self.log,
+        generator = _ReagentWorklistGenerator(log=self.log,
                                         experiment_metadata_label=self.label,
                                         transfection_layout=self.source_layout)
         worklist = generator.get_result()
@@ -297,7 +298,7 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
         if self.__design_series is None:
             self.__design_series = WorklistSeries()
 
-        transfer_generator = CybioTransferWorklistGenerator(log=self.log,
+        transfer_generator = _CybioTransferWorklistGenerator(log=self.log,
                                     experiment_metadata_label=self.label)
         self.__generate_transfer_worklist(transfer_generator, transfer_index,
                                           self.__design_series)
@@ -305,7 +306,7 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
         for rack_pos, tf_pos in self.source_layout.iterpositions():
             tf_pos.cell_plate_positions = [rack_pos]
 
-        cell_generator = CellSuspensionWorklistGenerator(log=self.log,
+        cell_generator = _CellSuspensionWorklistGenerator(log=self.log,
                                         label=self.label,
                                         transfection_layout=self.source_layout)
         self.__generate_cell_worklist(cell_generator, cell_index,
@@ -319,17 +320,17 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
         """
         self.add_debug('Create cell plate worklists for design racks ...')
 
-        for design_rack in self.experiment_design.design_racks:
+        for design_rack in self.experiment_design.experiment_design_racks:
             worklist_series = WorklistSeries()
             completed_layout = self.design_rack_associations[design_rack.label]
             label = '%s-%s' % (self.label, design_rack.label)
 
-            transfer_generator = BiomekTransferWorklistGenerator(label=label,
+            transfer_generator = _BiomekTransferWorklistGenerator(label=label,
                             transfection_layout=completed_layout, log=self.log)
             self.__generate_transfer_worklist(transfer_generator,
                                               transfer_index, worklist_series)
 
-            cell_generator = CellSuspensionWorklistGenerator(label,
+            cell_generator = _CellSuspensionWorklistGenerator(label,
                                                     completed_layout, self.log)
             self.__generate_cell_worklist(cell_generator, cell_index,
                                           worklist_series)
@@ -368,7 +369,7 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
                                  index=worklist_index)
 
 
-class OptimemWorklistGenerator(PlannedWorklistGenerator):
+class _OptimemWorklistGenerator(PlannedWorklistGenerator):
     """
     This tool generates a container dilution worklist for the
     ISO-to-Experiment-Plate worklist series.
@@ -452,7 +453,7 @@ class OptimemWorklistGenerator(PlannedWorklistGenerator):
         return float(transfection_pos.iso_volume) * (dil_factor - 1)
 
 
-class ReagentWorklistGenerator(PlannedWorklistGenerator):
+class _ReagentWorklistGenerator(PlannedWorklistGenerator):
     """
     This tool generates a container dilution worklist for the
     ISO-to-Experiment-Plate worklist series.
@@ -516,7 +517,7 @@ class ReagentWorklistGenerator(PlannedWorklistGenerator):
         """
         self.add_debug('Generate planned container dilutions ...')
 
-        invalid_dil_factor = []
+        invalid_dil_factor = dict()
 
         for rack_pos, tf_pos in self.transfection_layout.iterpositions():
             if tf_pos.is_empty: continue
@@ -526,9 +527,8 @@ class ReagentWorklistGenerator(PlannedWorklistGenerator):
                                 calculate_initial_reagent_dilution(
                                 float(tf_pos.reagent_dil_factor))
             if ini_dil_factor <= 1:
-                info = '%s (%s)' % (rack_pos.label,
-                                    tf_pos.reagent_dil_factor)
-                invalid_dil_factor.append(info)
+                add_list_map_element(invalid_dil_factor,
+                                     tf_pos.reagent_dil_factor, rack_pos.label)
                 continue
             rdf_str = get_trimmed_string(tf_pos.reagent_dil_factor)
             diluent_info = '%s (%s)' % (tf_pos.reagent_name, rdf_str)
@@ -541,11 +541,11 @@ class ReagentWorklistGenerator(PlannedWorklistGenerator):
         if len(invalid_dil_factor) > 0:
             msg = 'Invalid dilution reagent factor for rack positions: %s. ' \
                   'The factor would result in an initial dilution factor of ' \
-                  'less then 1!' % (get_trimmed_string(invalid_dil_factor))
+                  'less then 1!' % (self._get_joined_map_str(invalid_dil_factor))
             self.add_error(msg)
 
 
-class BiomekTransferWorklistGenerator(PlannedWorklistGenerator):
+class _BiomekTransferWorklistGenerator(PlannedWorklistGenerator):
     """
     This tool generates a container transfer worklist for the
     ISO-to-Experiment-Plate worklist series.
@@ -619,7 +619,7 @@ class BiomekTransferWorklistGenerator(PlannedWorklistGenerator):
                 self._add_planned_transfer(pst)
 
 
-class CybioTransferWorklistGenerator(PlannedWorklistGenerator):
+class _CybioTransferWorklistGenerator(PlannedWorklistGenerator):
     """
     This tool creates a rack transfer worklist for the ISO-to-Experiment-Plate
     worklist series.
@@ -687,7 +687,7 @@ class CybioTransferWorklistGenerator(PlannedWorklistGenerator):
         self._add_planned_transfer(prst)
 
 
-class CellSuspensionWorklistGenerator(PlannedWorklistGenerator):
+class _CellSuspensionWorklistGenerator(PlannedWorklistGenerator):
     """
     This tool generates a container transfer worklist for the
     ISO-to-Experiment-Plate worklist series.

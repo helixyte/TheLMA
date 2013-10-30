@@ -123,7 +123,6 @@ class ParameterSet(object):
         :type parameter: A value of this parameter set.
         :return: a list parameter aliases (:class:`string` objects)
         """
-
         aliases = [parameter]
         aliases.extend(cls.ALIAS_MAP[parameter])
         return set(aliases)
@@ -397,14 +396,14 @@ class WorkingLayout(object):
         """
         if not (isinstance(working_position, self.POSITION_CLS)):
             msg = 'A position to be added must be a %s object (obtained ' \
-                  'type: %s).' % (self.POSITION_CLS,
+                  'type: %s).' % (self.POSITION_CLS.__name__,
                                   working_position.__class__.__name__)
             raise TypeError(msg)
 
         rack_pos = working_position.rack_position
         if not self.shape.contains_position(rack_pos):
             msg = 'Position %s is beyond the layout range (%s).' \
-                   % (rack_pos.label, self.shape.name)
+                   % (rack_pos.label, str(self.shape.name))
             raise KeyError(msg)
 
         return True
@@ -661,6 +660,10 @@ class MoleculeDesignPoolParameters(ParameterSet):
     #: *None* in mock positions.
     VALID_MOCK_NONE_REPLACERS = (None, MOCK_TYPE_VALUE.upper(),
                                  WorkingPosition.NONE_REPLACER.upper())
+    #: Contains parameters whose values must be None (or a valid replacer
+    #: for mock positions).
+    MOCK_NON_PARAMETERS = []
+
 
     @classmethod
     def get_position_type(cls, molecule_design_pool):
@@ -719,13 +722,21 @@ class MoleculeDesignPoolParameters(ParameterSet):
         return cls.__is_valid_value(value, cls.VALID_UNTREATED_NONE_REPLACERS)
 
     @classmethod
-    def is_valid_mock_value(cls, value):
+    def is_valid_mock_value(cls, value, parameter):
         """
         Since mock position lack some parameters (e.g. concentrations)
         the values for these parameters must be *None* or a valid replacer.
         Valid values for are *None*, \'None\' and \'mock\'.
+        If the parameter requires a non-like values, the validity is checked.
+        Checks for parameters have to be implemented by subclasses. By default,
+        the value is always valid.
         """
-        return cls.__is_valid_value(value, cls.VALID_MOCK_NONE_REPLACERS)
+        if not MOCK_POSITION_TYPE in cls.ALLOWED_POSITION_TYPES:
+            return False
+        if parameter in cls.MOCK_NON_PARAMETERS:
+            return cls.__is_valid_value(value, cls.VALID_MOCK_NONE_REPLACERS)
+        else:
+            return True
 
     @classmethod
     def __is_valid_value(cls, value, allowed_values):
@@ -943,7 +954,7 @@ class MoleculeDesignPoolPosition(WorkingPosition):
         return cls.PARAMETER_SET.is_valid_untreated_value(value)
 
     @classmethod
-    def is_valid_mock_value(cls, value):
+    def is_valid_mock_value(cls, value, parameter):
         """
         Since mock position lack some parameters (e.g. concentrations)
         the values for these parameters must be *None* or a valid replacer.
@@ -951,7 +962,7 @@ class MoleculeDesignPoolPosition(WorkingPosition):
 
         Invokes :func:`MoleculeDesignPoolParameters.is_valid_mock_value`
         """
-        return cls.PARAMETER_SET.is_valid_mock_value(value)
+        return cls.PARAMETER_SET.is_valid_mock_value(value, parameter)
 
     def get_tag_set(self):
         """
@@ -988,9 +999,9 @@ class MoleculeDesignPoolPosition(WorkingPosition):
                 and str(other.molecule_design_pool) == \
                                                 str(self.molecule_design_pool))
 
-    def str(self):
+    def __str__(self):
         return '%s (%s)' % (self.rack_position.label,
-                            self.molecule_design_pool_id)
+                            self.molecule_design_pool)
 
     def __repr__(self):
         str_format = '<%s type: %s, rack position: %s, molecule design ' \
@@ -1189,7 +1200,7 @@ class TransferTarget(object):
 
         if not target_rack_marker is None and \
                             not isinstance(target_rack_marker, basestring):
-            msg = 'The tarvget rack marker must be string (obtained: %s)!' \
+            msg = 'The target rack marker must be string (obtained: %s)!' \
                   % (target_rack_marker.__class__.__name__)
             raise TypeError(msg)
 
@@ -1359,7 +1370,11 @@ class TransferPosition(MoleculeDesignPoolPosition):
         Checks the type and presence of transfer targets for the given
         parameter.
         """
-        if target_list is None or len(target_list) < 1:
+        if not (target_list is None or isinstance(target_list, list)):
+            msg = 'The %ss must be passed as list (obtained: %s).' \
+                  % (name, target_list.__class__.__name__)
+            raise TypeError(msg)
+        elif target_list is None or len(target_list) < 1:
             if self.PARAMETER_SET.must_have_transfer_targets(parameter_name) \
                                                     and not self.is_empty:
                 msg = 'A %s must have at least one %s!' \
@@ -1367,10 +1382,6 @@ class TransferPosition(MoleculeDesignPoolPosition):
                 raise ValueError(msg)
             else:
                 return []
-        elif not isinstance(target_list, list):
-            msg = 'The %ss must be passed as list (obtained: %s).' \
-                  % (name, target_list.__class__.__name__)
-            raise TypeError(msg)
         elif self.is_empty:
             msg = 'Empty positions must not have %ss!' % (name)
             raise ValueError(msg)
@@ -1428,7 +1439,7 @@ class TransferPosition(MoleculeDesignPoolPosition):
         target_list = self.get_transfer_target_list(parameter_name)
 
         if not isinstance(transfer_target, TransferTarget):
-            msg = 'Transfer targets wells must be TransferTarget objects' \
+            msg = 'Transfer targets wells must be TransferTarget objects ' \
                   '(obtained: %s, type: %s).' % (transfer_target,
                                         transfer_target.__class__.__name__)
             raise TypeError(msg)

@@ -3,9 +3,6 @@ Tools generating reports for experiment metadata uploads.
 """
 from thelma import ThelmaLog
 from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.semiconstants import get_reservoir_specs_deep_96
-from thelma.automation.semiconstants import get_reservoir_specs_standard_384
-from thelma.automation.semiconstants import get_reservoir_specs_standard_96
 from thelma.automation.tools.metadata.base import TransfectionLayout
 from thelma.automation.tools.metadata.base import TransfectionParameters
 from thelma.automation.tools.metadata.generation \
@@ -100,12 +97,12 @@ class ExperimentMetadataAssignmentWriter(CsvWriter):
         self.final_concentrations = None
 
         #: Intermediate storage for the column values.
-        self.__source_well_values = []
-        self.__design_rack_values = []
-        self.__target_well_values = []
-        self.__iso_volume_values = []
-        self.__iso_concentration_values = []
-        self.__final_concentration_values = []
+        self.__source_well_values = None
+        self.__design_rack_values = None
+        self.__target_well_values = None
+        self.__iso_volume_values = None
+        self.__iso_concentration_values = None
+        self.__final_concentration_values = None
 
     def reset(self):
         """
@@ -797,7 +794,7 @@ class ExperimentMetadataReportUploader(BaseTracTool):
     ISO_LESS_COMMENT = 'There is no ISO request for this experiment set.'
 
     #: The comment addition for experiments with ISO.
-    ISO_COMMENT = 'The ISO volumes and concentrations have been %s %s'
+    ISO_COMMENT = 'The ISO volumes and concentrations have been %s'
     #: Comment addition if robot support is not available.
     ROBOT_OPTION_YES = 'You can download !BioMek worklists for the ' \
                        'transfer from the ISO into cell plates.'
@@ -811,9 +808,6 @@ class ExperimentMetadataReportUploader(BaseTracTool):
                      % (ROBOT_OPTION_NO)
     #: Base comment completion for library experiments.
     LIBRARY_OPTION = 'set by the system according to the library values. '
-
-    #: Message indicating the use of deep well plates for aliquot plates.
-    USE_DEEP_WELL_WARNING = 'ATTENTION: Use deep well plates for the ISO plate!'
 
     #: The description for the Excel file.
     EXCEL_DESCRIPTION = 'Experiment metadata excel file.'
@@ -991,8 +985,8 @@ class ExperimentMetadataReportUploader(BaseTracTool):
                                     em_log=self.generator.log,
                                     em_label=self.generator.return_value.label)
         else:
-            source_layout = self.generator.get_source_layout()
-            iso_rs = self.__get_iso_reservoir_specs(source_layout)
+            iso_rs = self.generator.return_value.lab_iso_request.\
+                     iso_plate_reservoir_specs
             number_replicates = self.generator.return_value.number_replicates
             info_writer = ExperimentMetadataInfoWriter(self.generator.log,
                         number_replicates=number_replicates,
@@ -1003,19 +997,6 @@ class ExperimentMetadataReportUploader(BaseTracTool):
         if self.__info_stream is None:
             msg = 'Error when trying to write info file stream!'
             self.add_error(msg)
-
-    def __get_iso_reservoir_specs(self, source_layout):
-        """
-        Determines and returns the reservoir specs for the ISO plate.
-        """
-        if source_layout.shape.name == '16x24':
-            rs = get_reservoir_specs_standard_384()
-        else:
-            if self.generator.use_deep_well:
-                rs = get_reservoir_specs_deep_96()
-            else:
-                rs = get_reservoir_specs_standard_96()
-        return rs
 
     def __write_assignment_stream(self):
         """
@@ -1080,11 +1061,7 @@ class ExperimentMetadataReportUploader(BaseTracTool):
             else:
                 calc_option = self.MANUAL_OPTION
 
-            if self.generator.use_deep_well:
-                deep_well = self.USE_DEEP_WELL_WARNING
-            else:
-                deep_well = ''
-            iso_option = self.ISO_COMMENT % (calc_option, deep_well)
+            iso_option = self.ISO_COMMENT % (calc_option)
 
         self.__comment = self.BASE_COMMENT % (iso_option)
 

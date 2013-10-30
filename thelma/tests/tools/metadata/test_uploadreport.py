@@ -15,15 +15,12 @@ from thelma.automation.tools.metadata.uploadreport \
     import ExperimentMetadataIsoPlateWriter
 from thelma.automation.tools.metadata.uploadreport \
     import ExperimentMetadataReportUploader
-from thelma.automation.tools.metadata.uploadreport \
-    import RequiredStockVolumeWriter
-from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.tools.semiconstants import get_experiment_metadata_type
+from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.automation.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.worklists.base import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.worklists.base import get_reservoir_spec
 from thelma.interfaces import ISubproject
 from thelma.models.experiment import ExperimentMetadata
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from thelma.models.utils import get_user
 from thelma.tests.tools.tooltestingutils \
     import ExperimentMetadataReadingTestCase
@@ -32,8 +29,8 @@ from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import TracToolTestCase
 
 
-class ExperimentMetadataReportTestCase(FileCreatorTestCase,
-                                       ExperimentMetadataReadingTestCase):
+class _ExperimentMetadataReportTestCase(FileCreatorTestCase,
+                                        ExperimentMetadataReadingTestCase):
 
     def set_up(self):
         ExperimentMetadataReadingTestCase.set_up(self)
@@ -74,7 +71,7 @@ class ExperimentMetadataReportTestCase(FileCreatorTestCase,
         self.generator = ExperimentMetadataReadingTestCase._continue_setup(
                                                             self, file_name)
         if not self.experiment_metadata is None:
-            self.iso_request = self.experiment_metadata.iso_request
+            self.iso_request = self.experiment_metadata.lab_iso_request
             self.source_layout = self.generator.get_source_layout()
         self._create_tool()
 
@@ -105,7 +102,7 @@ class ExperimentMetadataReportTestCase(FileCreatorTestCase,
 
 
 class ExperimentMetadataAssignmentWriterTestCase(
-                                            ExperimentMetadataReportTestCase):
+                                            _ExperimentMetadataReportTestCase):
 
     def _create_tool(self):
         self.tool = ExperimentMetadataAssignmentWriter(log=self.log,
@@ -131,7 +128,7 @@ class ExperimentMetadataAssignmentWriterTestCase(
         self._test_invalid_generator()
 
 
-class ExperimentMetadataIsoPlateWriterTestCase(ExperimentMetadataReportTestCase):
+class ExperimentMetadataIsoPlateWriterTestCase(_ExperimentMetadataReportTestCase):
 
 
     def _create_tool(self):
@@ -166,17 +163,17 @@ class ExperimentMetadataIsoPlateWriterTestCase(ExperimentMetadataReportTestCase)
         self._test_invalid_generator()
 
 
-class ExperimentMetadataInfoWriterTestCase(ExperimentMetadataReportTestCase):
+class ExperimentMetadataInfoWriterTestCase(_ExperimentMetadataReportTestCase):
 
     def set_up(self):
-        ExperimentMetadataReportTestCase.set_up(self)
+        _ExperimentMetadataReportTestCase.set_up(self)
         self.supports_mastermix = True
         self.reservoir_specs = get_reservoir_spec(
                                             RESERVOIR_SPECS_NAMES.STANDARD_96)
         self.number_replicates = 3
 
     def tear_down(self):
-        ExperimentMetadataReportTestCase.tear_down(self)
+        _ExperimentMetadataReportTestCase.tear_down(self)
         del self.supports_mastermix
         del self.reservoir_specs
         del self.number_replicates
@@ -229,10 +226,10 @@ class ExperimentMetadataInfoWriterTestCase(ExperimentMetadataReportTestCase):
 
 
 class ExperimentMetadataInfoWriterWarningOnlyTestCase(
-                                            ExperimentMetadataReportTestCase):
+                                            _ExperimentMetadataReportTestCase):
 
     def set_up(self):
-        ExperimentMetadataReportTestCase.set_up(self)
+        _ExperimentMetadataReportTestCase.set_up(self)
         self.experiment_type_id = EXPERIMENT_SCENARIOS.ISO_LESS
 
     def _create_tool(self):
@@ -276,10 +273,10 @@ class ExperimentMetadataInfoWriterWarningOnlyTestCase(
 
 
 class ExperimentMetadataInfoWriterLibraryTestCase(
-                                            ExperimentMetadataReportTestCase):
+                                            _ExperimentMetadataReportTestCase):
 
     def set_up(self):
-        ExperimentMetadataReportTestCase.set_up(self)
+        _ExperimentMetadataReportTestCase.set_up(self)
         self.experiment_type_id = EXPERIMENT_SCENARIOS.LIBRARY
 
     def _create_tool(self):
@@ -318,81 +315,23 @@ class ExperimentMetadataInfoWriterLibraryTestCase(
                                 '"support mastermix" flag from the generator')
 
 
-class RequiredStockVolumeWriterTestCase(ExperimentMetadataReportTestCase):
-
-    def _create_tool(self):
-        self.tool = RequiredStockVolumeWriter(
-            source_layout=self.source_layout,
-            molecule_design_pool_set=
-                        self.experiment_metadata.molecule_design_pool_set,
-            iso_request=self.iso_request, log=self.log)
-
-    def test_result_opti(self):
-        self._continue_setup()
-        tool_stream = self.tool.get_result()
-        self.assert_is_not_none(tool_stream)
-        self._compare_csv_file_stream(tool_stream, 'stock_volumes_opti.csv')
-
-    def test_result_screen(self):
-        self.experiment_type_id = EXPERIMENT_SCENARIOS.SCREENING
-        self._continue_setup()
-        tool_stream = self.tool.get_result()
-        self.assert_is_not_none(tool_stream)
-        self._compare_csv_file_stream(tool_stream, 'stock_volumes_screen.csv')
-
-    def test_result_manual(self):
-        self.experiment_type_id = EXPERIMENT_SCENARIOS.MANUAL
-        self._continue_setup()
-        tool_stream = self.tool.get_result()
-        self.assert_is_not_none(tool_stream)
-        self._compare_csv_file_stream(tool_stream, 'stock_volumes_manual.csv')
-
-    def test_invalid_source_layout(self):
-        self._continue_setup()
-        self.source_layout = None
-        self._test_and_expect_errors('source layout must be a ' \
-                                     'TransfectionLayout')
-
-    def test_invalid_pool_set(self):
-        self._continue_setup()
-        self.experiment_metadata.molecule_design_pool_set = self.iso_request
-        self._test_and_expect_errors('molecule design pool set must be a '
-                                     'MoleculeDesignPoolSet')
-
-    def test_invalid_iso_request(self):
-        self._continue_setup()
-        self.iso_request = None
-        self._test_and_expect_errors('The ISO request must be a IsoRequest')
-
-    def test_prep_layout_finder_failure(self):
-        self.experiment_type_id = EXPERIMENT_SCENARIOS.SCREENING
-        self._continue_setup()
-        empty_set = \
-            MoleculeDesignPoolSet(molecule_type=
-                                  self.experiment_metadata \
-                                      .molecule_design_pool_set.molecule_type)
-        self.experiment_metadata.molecule_design_pool_set = empty_set
-        self._test_and_expect_errors('Error when trying to determine ' \
-                                     'preparation plate layout!')
-
-
 class ExperimentMetadataReportUploaderTestCase(TracToolTestCase,
-                                ExperimentMetadataReportTestCase):
+                                _ExperimentMetadataReportTestCase):
 
     def set_up(self):
-        ExperimentMetadataReportTestCase.set_up(self)
+        _ExperimentMetadataReportTestCase.set_up(self)
         TracToolTestCase.set_up_as_add_on(self)
         self.em_link = 'http://em_test_link.lnk'
         self.ir_link = 'http://iso_request_test_link.lnk'
 
     def tear_down(self):
-        ExperimentMetadataReportTestCase.tear_down(self)
+        _ExperimentMetadataReportTestCase.tear_down(self)
         TracToolTestCase.tear_down_as_add_on(self)
         del self.em_link
         del self.ir_link
 
     def _continue_setup(self, file_name=None):
-        ExperimentMetadataReportTestCase._continue_setup(self, file_name)
+        _ExperimentMetadataReportTestCase._continue_setup(self, file_name)
         self._create_ticket()
         self._create_tool()
 
@@ -415,11 +354,11 @@ class ExperimentMetadataReportUploaderTestCase(TracToolTestCase,
         self.assert_equal(len(self.tool.return_value), number_files)
 
     def test_result_opti(self):
-        self.__check_result(number_files=5)
+        self.__check_result(number_files=4)
 
     def test_result_screen(self):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.SCREENING
-        self.__check_result(number_files=4)
+        self.__check_result(number_files=3)
 
     def test_result_library(self):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.LIBRARY
@@ -427,7 +366,7 @@ class ExperimentMetadataReportUploaderTestCase(TracToolTestCase,
 
     def test_result_manual(self):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.MANUAL
-        self.__check_result(number_files=5)
+        self.__check_result(number_files=3)
 
     def test_result_isoless(self):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.ISO_LESS
@@ -453,12 +392,6 @@ class ExperimentMetadataReportUploaderTestCase(TracToolTestCase,
         self.ir_link = [self.ir_link]
         self._continue_setup()
         self._test_and_expect_errors('ISO request link must be a basestring')
-
-    def test_failed_description_building(self):
-        self._continue_setup()
-        self.generator.use_deep_well = 'True'
-        self._test_and_expect_errors('Error when trying to generate ticket ' \
-                                     'description')
 
     def test_failed_stream_generation(self):
         self._continue_setup()

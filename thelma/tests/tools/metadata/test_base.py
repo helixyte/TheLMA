@@ -102,6 +102,27 @@ class _TransfectionClassesBaseTestCase(IsoRequestClassesBaseTestCase):
 
 class TransfectionParametersTestCase(_TransfectionClassesBaseTestCase):
 
+    def test_is_valid_mock_value(self):
+        # final concentration
+        m = {'mock' : True, 'MOCK' : True, None : True, 'None' : True,
+             'fixed' : False, 'empty' : False, 'untreated' : False}
+        self.__check_results(m, TransfectionParameters.FINAL_CONCENTRATION)
+        # reagent name
+        m = {'mock' : True, None : True, 'None' : True, 2 : False,
+             '1' : False, 'm' : False, 'mix' : True}
+        self.__check_results(m, TransfectionParameters.REAGENT_NAME)
+        # reagent dilution factor
+        m = {12.3 : True, '12.3' : True, None : True, 'mock' : False,
+             - 2: False}
+        self.__check_results(m, TransfectionParameters.REAGENT_DIL_FACTOR)
+        # optimem dil factor
+        self.__check_results(m, TransfectionParameters.OPTIMEM_DIL_FACTOR)
+
+    def __check_results(self, result_map, parameter):
+        for val, exp_res in result_map.iteritems():
+            res = TransfectionParameters.is_valid_mock_value(val, parameter)
+            self.assert_equal(res, exp_res)
+
     def test_calculate_iso_volume(self):
         reservoir_specs = get_reservoir_specs_standard_96()
         biomek_specs = get_pipetting_specs_biomek()
@@ -233,112 +254,177 @@ class TransfectionPositionTestCase(_TransfectionClassesBaseTestCase):
         ep = self._get_position('g1', attrs=kw)
         self.assert_is_not_none(ep)
         kw['reagent_name'] = 'None'
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+            'The reagent name must be None for empty positions ' \
+            '(obtained: None)!', **kw)
         kw['reagent_name'] = None
         kw['reagent_dil_factor'] = 'None'
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+            'The reagent dilution factor must be None for empty positions ' \
+            '(obtained: None)!', **kw)
         kw['reagent_dil_factor'] = None
         kw['final_concentration'] = 'None'
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+            'The final concentration must be None for empty positions ' \
+            '(obtained: None)!', **kw)
         kw['final_concentration'] = None
         kw['optimem_dil_factor'] = 2
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+            'The optimem dilution factor must be None for empty positions ' \
+            '(obtained: 2)!', **kw)
 
     def test_untransfected_init_failures(self):
         kw = self._get_init_data('f1')
         ep = self._get_position('f1', attrs=kw)
         self.assert_is_not_none(ep)
         kw['reagent_name'] = 'mix1'
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+               'The value "mix1" is invalid for the reagent name of ' \
+               'untransfected positions. Allowed values are: (None, ' \
+               '\'UNTREATED\', \'NONE\', \'UNTRANSFECTED\')', **kw)
         kw['reagent_name'] = None
         kw['reagent_dil_factor'] = 1400
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The value "1400.0" is invalid for the reagent dilution ' \
+                'factor of untransfected positions. Allowed values are: ' \
+                '(None, \'UNTREATED\', \'NONE\', \'UNTRANSFECTED\')', **kw)
         kw['reagent_dil_factor'] = None
         kw['final_concentration'] = 5
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The value "5.0" is invalid for the final concentration ' \
+                'of untransfected positions. Allowed values are: ' \
+                '(None, \'UNTREATED\', \'NONE\', \'UNTRANSFECTED\')', **kw)
         kw['final_concentration'] = None
         kw['optimem_dil_factor'] = 2
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The value "2" is invalid for the optimem dilution ' \
+                'factor of untransfected positions. Allowed values are: ' \
+                '(None, \'UNTREATED\', \'NONE\', \'UNTRANSFECTED\')', **kw)
 
     def test_untreated_init_failures(self):
         kw = self._get_init_data('e1')
         ep = self._get_position('e1', attrs=kw)
         self.assert_is_not_none(ep)
         kw['reagent_name'] = 'mix1'
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+               'The value "mix1" is invalid for the reagent name of ' \
+               'untreated positions. Allowed values are: (None, ' \
+               '\'UNTREATED\', \'NONE\', \'UNTRANSFECTED\')', **kw)
         kw['reagent_name'] = None
         kw['reagent_dil_factor'] = 1400
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The value "1400.0" is invalid for the reagent dilution ' \
+                'factor of untreated positions. Allowed values are: ' \
+                '(None, \'UNTREATED\', \'NONE\', \'UNTRANSFECTED\')', **kw)
         kw['reagent_dil_factor'] = None
         kw['final_concentration'] = 5
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The value "5.0" is invalid for the final concentration ' \
+                'of untreated positions. Allowed values are: ' \
+                '(None, \'UNTREATED\', \'NONE\', \'UNTRANSFECTED\')', **kw)
         kw['final_concentration'] = None
         kw['optimem_dil_factor'] = 2
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The value "2" is invalid for the optimem dilution ' \
+                'factor of untreated positions. Allowed values are: ' \
+                '(None, \'UNTREATED\', \'NONE\', \'UNTRANSFECTED\')', **kw)
 
     def test_library_init_failure(self):
         kw = self._get_init_data('d1')
         ep = self._get_position('d1', attrs=kw)
         self.assert_is_not_none(ep)
         kw['reagent_name'] = 3
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+               'The reagent name must be at least 2 characters long if ' \
+               'there is one (obtained: "3")!', **kw)
         kw['reagent_name'] = None
         kw['reagent_dil_factor'] = LIBRARY_POSITION_TYPE
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The reagent dilution factor must be a positive number ' \
+                '(obtained: library).', **kw)
         kw['reagent_dil_factor'] = None
         kw['final_concentration'] = LIBRARY_POSITION_TYPE
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The final concentration must be a positive number ' \
+                '(obtained: library).', **kw)
         kw['final_concentration'] = None
         kw['optimem_dil_factor'] = LIBRARY_POSITION_TYPE
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The optimem dilution factor must be a positive number ' \
+                '(obtained: library).', **kw)
 
     def test_mock_init_failure(self):
         kw = self._get_init_data('c1')
         ep = self._get_position('c1', attrs=kw)
         self.assert_is_not_none(ep)
         kw['reagent_name'] = 3
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+               'The reagent name must be at least 2 characters long if ' \
+               'there is one (obtained: "3")!', **kw)
         kw['reagent_name'] = None
         kw['reagent_dil_factor'] = -2
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The reagent dilution factor must be a positive number ' \
+                '(obtained: -2).', **kw)
         kw['reagent_dil_factor'] = None
         kw['final_concentration'] = 'default'
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The value "default" is invalid for the final concentration ' \
+                'of mock positions. Allowed values are: (None, \'MOCK\', ' \
+                '\'NONE\')', **kw)
         kw['final_concentration'] = None
         kw['optimem_dil_factor'] = 'default'
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The optimem dilution factor must be a positive number ' \
+                '(obtained: default)', **kw)
 
     def test_floating_init_failure(self):
         kw = self._get_init_data('b1')
         ep = self._get_position('b1', attrs=kw)
         self.assert_is_not_none(ep)
         kw['reagent_name'] = 3
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+               'The reagent name must be at least 2 characters long if ' \
+               'there is one (obtained: "3")!', **kw)
         kw['reagent_name'] = None
         kw['reagent_dil_factor'] = -2
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The reagent dilution factor must be a positive number ' \
+                '(obtained: -2).', **kw)
         kw['reagent_dil_factor'] = None
         kw['final_concentration'] = -2
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+               'The final concentration must be a positive number ' \
+               '(obtained: -2).', **kw)
         kw['final_concentration'] = None
         kw['optimem_dil_factor'] = 'default'
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The optimem dilution factor must be a positive number ' \
+                '(obtained: default).', **kw)
 
     def test_fixed_init_failure(self):
         kw = self._get_init_data('a1')
         ep = self._get_position('a1', attrs=kw)
         self.assert_is_not_none(ep)
         kw['reagent_name'] = 'm'
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+               'The reagent name must be at least 2 characters long if ' \
+               'there is one (obtained: "m")!', **kw)
         kw['reagent_name'] = None
         kw['reagent_dil_factor'] = -2
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The reagent dilution factor must be a positive number ' \
+                '(obtained: -2).', **kw)
         kw['reagent_dil_factor'] = None
         kw['final_concentration'] = -2
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The final concentration must be a positive number ' \
+                '(obtained: -2).', **kw)
         kw['final_concentration'] = None
         kw['optimem_dil_factor'] = 'default'
-        self.assert_raises(ValueError, self.POS_CLS, **kw)
+        self._expect_error(ValueError, self.POS_CLS,
+                'The optimem dilution factor must be a positive number ' \
+                '(obtained: default).', **kw)
 
     def test_equality(self):
         self._test_position_equality(
@@ -379,20 +465,24 @@ class TransfectionPositionTestCase(_TransfectionClassesBaseTestCase):
     def test_optimem_dilution_factor(self):
         tp1 = self._get_position('a1')
         self.assert_equal(tp1.optimem_dil_factor, 7)
-        self.assert_raises(AttributeError, setattr,
-                           *(tp1, 'optimem_dil_factor', 2))
+        self._expect_error(AttributeError, setattr, 'can\'t set attribute',
+                *(tp1, 'optimem_dil_factor', 2))
         tp1.store_optimem_dilution_factor()
         self.assert_equal(tp1.optimem_dil_factor, 4)
+        self._expect_error(AttributeError, tp1.set_optimem_dilution_factor,
+                'The OptiMem dilution factor has already been set!',
+                **dict(optimem_df=2))
         attrs = self._get_init_data('b1')
         del attrs['optimem_dil_factor']
         tp2 = self._get_position('b1', attrs)
         self.assert_is_none(tp2.optimem_dil_factor)
-        self.assert_raises(AttributeError, setattr,
-                           *(tp1, 'optimem_dil_factor', 2))
-        self.assert_raises(ValueError, tp2.set_optimem_dilution_factor, 'a')
+        self._expect_error(AttributeError, setattr, 'can\'t set attribute',
+                *(tp2, 'optimem_dil_factor', 2))
+        self._expect_error(ValueError, tp2.set_optimem_dilution_factor,
+                'The OptiMem dilution factor must be a positive number ' \
+                '(obtained: a)', **dict(optimem_df='a'))
         tp2.set_optimem_dilution_factor(9)
         self.assert_equal(tp2.optimem_dil_factor, 9)
-        self.assert_raises(AttributeError, tp2.set_optimem_dilution_factor, 8)
 
     def test_get_total_dilution_factor(self):
         tp1 = self._get_position('a1') # odf 7
@@ -792,41 +882,58 @@ class _TransfectionRackSectorToolTestCase(_IsoRequestRackSectorToolTestCase):
     LAYOUT_CLS = TransfectionLayout
 
     def _get_case_data(self, case_num):
-        # all cases would fail with a normal ISO value associator because
+        self.current_case_num = case_num
+        # these cases would fail with a normal ISO value associator because
         # all flaoting placeholders here are different. However, the
         # transfection associator treats all floating positions as one pool
         if case_num == 1:
-            # different pools and concentration, 1 associated
+            # different pools and concentration, 1 empty
             return dict(
-            A4=[1, 1, 10], B3=[2, None, None], B4=[3, 1, 30],
-            A6=[1, 2, 10], B5=[2, 3, 20], B6=[3, 2, 30],
-            C2=[1, 'md_5', 10], D1=[2, 'md_6', 20], D2=[3, 'md_7', 30],
-            C4=[1, 'untreated', None], D3=[2, None, None], D4=[3, None, None],
-            E2=[1, 'md_9', 10], F1=[2, 'md_8', 20], F2=[3, 'md_4', 30])
+                C3=[0, 1, 10], C4=[1, 2, 20],
+                    D3=[2, 'mock', None], D4=[3, 'mock', None],
+                C5=[0, 3, 10], C6=[1, 4, 20],
+                    D5=[2, 'md_001', 30], D6=[3, None, None],
+                E3=[0, 'md_002', 10], E4=[1, 'md_004', 20],
+                    F3=[2, 'md_003', 30], F4=[3, 'untreated', None],
+                E5=[0, 7, 10], E6=[1, 9, 20],
+                    F5=[2, 10, 30], F6=[3, None, None])
         elif case_num == 2:
-            # different pools, equal concentrations, 1 associated, 1 empty
+            # different pools, equal concentrations, 1 empty
             return dict(
-            A4=[1, 1, 10], B3=[2, None, None], B4=[3, 1, 10],
-            A6=[1, 2, 10], B5=[2, 3, 10], B6=[3, 2, 10],
-            C2=[1, 'md_5', 10], D1=[2, 'md_6', 10], D2=[3, 'md_7', 10],
-            C4=[1, 'untreated', None], D3=[2, None, None], D4=[3, None, None],
-            E2=[1, 'md_1', 10], F1=[2, 'md_2', 10], F2=[3, 'md_3', 10])
+                C3=[0, 1, 10], C4=[1, 2, 10],
+                    D3=[2, 'mock', None], D4=[3, 'mock', None],
+                C5=[0, 3, 10], C6=[1, 4, 10],
+                    D5=[2, 'md_001', 10], D6=[3, None, None],
+                E3=[0, 'md_003', 10], E4=[1, 'md_004', 10],
+                    F3=[2, 'md_002', 10], F4=[3, 'untreated', None],
+                E5=[0, 7, 10], E6=[1, 9, 10],
+                    F5=[2, 10, 10], F6=[3, None, None])
         elif case_num == 3:
-            # equal pools, different concentrations
+            # 2 x 2 association, different concentrations
             return dict(
-            A4=[1, 1, 10], B3=[2, 1, 20], B4=[3, 1, 30],
-            A6=[1, 2, 10], B5=[2, 2, 20], B6=[3, 2, 30],
-            C2=[1, 'md_5', 10], D1=[2, 'md_6', 20], D2=[3, 'md_7', 30],
-            C4=[1, 'untreated', None], D3=[2, None, None], D4=[3, None, None],
-            E2=[1, 'md_1', 10], F1=[2, 'md_2', 20], F2=[3, 'md_3', 30])
+                C3=[0, 1, 10], C4=[1, 'mock', None],
+                    D3=[2, 1, 20], D4=[3, 'mock', None],
+                C5=[0, 3, 10], C6=[1, 4, 10],
+                    D5=[2, 3, 20], D6=[3, 4, 20],
+                E3=[0, 'md_001', 10], E4=[1, 'md_001', 10],
+                    F3=[2, 'md_001', 20], F4=[3, 'md_002', 20],
+                E5=[0, 5, 10], E6=[1, 5, 10],
+                    F5=[2, 5, 20], F6=[3, 5, 20],
+                E7=[0, 'md_003', 10], E8=[1, 'md_004', 10],
+                    F7=[2, 'md_003', 20], F8=[3, 'md_004', 20])
         elif case_num == 4:
-            # equal pools, equal concentrations
+            # 2 x 2 association, all equal concentrations
             return dict(
-            A4=[1, 1, 10], B3=[2, 1, 10], B4=[3, 1, 10],
-            A6=[1, 2, 10], B5=[2, 2, 10], B6=[3, 2, 10],
-            C2=[1, 'md_5', 10], D1=[2, 'md_6', 10], D2=[3, 'md_7', 10],
-            C4=[1, 'untreated', None], D3=[2, None, None], D4=[3, None, None],
-            E2=[1, 'md_1', 10], F1=[2, 'md_2', 10], F2=[3, 'md_3', 10])
+                C3=[0, 1, 10], C4=[1, 'mock', None],
+                    D3=[2, 1, 10], D4=[3, 'mock', None],
+                C5=[0, 3, 10], C6=[1, 4, 10],
+                    D5=[2, 3, 10], D6=[3, 4, 10],
+                E3=[0, 'md_001', 10], E4=[1, 'md_001', 10],
+                    F3=[2, 'md_001', 10], F4=[3, 'md_002', 10],
+                E5=[0, 5, 10], E6=[1, 5, 10],
+                    F5=[2, 5, 10], F6=[3, 5, 10],
+                E7=[0, 'md_003', 10], E8=[1, 'md_004', 10],
+                    F7=[2, 'md_003', 10], F8=[3, 'md_004', 10])
 
     def _fill_layout(self):
         for pos_label, pos_data in self.position_data.iteritems():
@@ -837,12 +944,14 @@ class _TransfectionRackSectorToolTestCase(_IsoRequestRackSectorToolTestCase):
                 self.layout.add_position(ir_pos)
                 continue
             conc = pos_data[2]
+            iso_conc = None
+            if not conc is None: iso_conc = conc * 3
             pool = self._get_pool(pool_id)
             ir_pos = TransfectionPosition(rack_position=rack_pos,
                                           molecule_design_pool=pool,
                                           final_concentration=conc,
-                                          iso_volume=(pos_data[0] * 2),
-                                          iso_concentration=conc * 3)
+                                          iso_volume=((pos_data[0] + 1) * 2),
+                                          iso_concentration=iso_conc)
             self.layout.add_position(ir_pos)
 
     def _create_sector_associator(self):
@@ -854,17 +963,28 @@ class _TransfectionRackSectorToolTestCase(_IsoRequestRackSectorToolTestCase):
         return TransfectionAssociationData(layout=self.layout,
                            regard_controls=self.regard_controls, log=self.log)
 
-    def _get_expected_associated_sectors(self, case_number):
-        if not self.regard_controls:
-            return [[1, 2, 3]]
-        return _IsoRequestRackSectorToolTestCase.\
-                            _get_expected_associated_sectors(self, case_number)
+    def _get_expected_associated_sectors(self):
+        if not self.regard_controls and self.current_case_num == 1:
+            return [[0, 1, 2]]
+        elif not self.regard_controls and self.current_case_num == 4:
+            return [[0], [1], [2], [3]]
+        else:
+            return _IsoRequestRackSectorToolTestCase.\
+                                 _get_expected_associated_sectors(self)
 
-    def _get_expected_parent_sectors(self, case_number):
-        if not self.regard_controls:
-            return {1: 2, 2: 3, 3: None}
+    def _get_expected_parent_sectors(self):
+        if not self.regard_controls and self.current_case_num == 1:
+            return {0: 1, 1 : 2, 2 : None}
+        if not self.regard_controls and self.current_case_num == 4:
+            return {0: None, 1 : None, 2 : None, 3 : None}
         return _IsoRequestRackSectorToolTestCase._get_expected_parent_sectors(
-                                                            self, case_number)
+                                                                        self)
+
+    def _get_expected_sector_volumes(self):
+        if not self.regard_controls and self.current_case_num == 1:
+            return {0 : 2, 1 : 4, 2 : 6}
+        return _IsoRequestRackSectorToolTestCase._get_expected_sector_volumes(
+                                                                        self)
 
 
 class TransfectionRackSectorAssociatorTestCase(
@@ -883,8 +1003,15 @@ class TransfectionRackSectorAssociatorTestCase(
                                      'sector concentrations.')
         self.regard_controls = False
         self._create_tool()
-        exp_res = [[1, 2, 3]]
+        exp_res = self._get_expected_associated_sectors()
         self._check_sector_associator_run(exp_res)
+        # check other cases - all floatings are treated the same way but
+        # the result should remain the same
+        for case_num in (1, 2, 4):
+            self.position_data = self._get_case_data(case_num)
+            self._continue_setup()
+            exp_res = self._get_expected_associated_sectors()
+            self._check_sector_associator_run(exp_res)
 
     def test_invalid_input_values(self):
         self._continue_setup()
@@ -898,38 +1025,60 @@ class TransfectionRackSectorAssociatorTestCase(
         self._test_and_expect_errors('Error when trying to determine rack ' \
                                      'sector concentrations.')
 
-    def test_pool_inconsistence(self):
-        self.position_data = self._get_case_data(1)
-        self.position_data['A6'][1] = 5
-        self._continue_setup()
-        self._test_and_expect_errors('The molecule design pools in the ' \
-                 'different quadrants are not consistent. First occurrence ' \
-                 'in the following block: A6, B5, B6')
+    def test_inconsistent_quadrants(self):
+        exp_msg = 'The molecule design pools in the different quadrants are ' \
+            'not consistent. Found associated pools: 0.1.2 ([\'E5\', \'E6\', ' \
+            '\'F5\']) - 0.1.2.3 ([\'E3\', \'E4\', \'F3\', \'F4\'], [\'E7\', ' \
+            '\'E8\', \'F7\', \'F8\']) - 0.2 ([\'C3\', \'D3\'], [\'C5\', ' \
+            '\'D5\']) - 1.3 ([\'C6\', \'D6\']).'
+        self._test_associator_inconsistent_quadrants(exp_msg)
+
+    def test_different_set_lengths(self):
+        exp_msg = 'The sets of molecule design pools in a quadrant have ' \
+            'different lengths: 0.1.2.3 ([\'E5\', \'E6\', \'F5\', \'F6\'], '\
+            '[\'E7\', \'E8\', \'F7\', \'F8\']) - 0.2 ([\'C3\', \'D3\'], ' \
+            '[\'C5\', \'D5\']) - 0.2.3 ([\'E3\', \'F3\', \'F4\']) - 1 ' \
+            '([\'C6\'], [\'E4\']) - 3 ([\'D6\']).'
+        self._test_associator_different_set_lengths(exp_msg)
+
+    def test_different_concentration_combinations(self):
+        self._test_different_concentration_combinations()
 
 
 class TransfectionAssociationDataTestCase(_TransfectionRackSectorToolTestCase):
 
-    def __get_expected_iso_concentrations(self, case_number):
-        if case_number == 1: # different pools and concentration, 1 associated
-            return {0 : None, 1 : 30, 2 : 60, 3 : 90}
-        elif case_number == 2: # different pools, equal conc, 1 associated
-            return {0 : None, 1 : 30, 2 : 30, 3 : 30}
-        elif case_number == 3: # equal pools, different concentrations
-            return {0 : None, 1 : 30, 2 : 60, 3 : 90}
-        else: # equal pools, equal concentrations
-            return {0 : None, 1 : 30, 2 : 30, 3 : 30}
+    def __get_expected_iso_concentrations(self):
+        if self.current_case_num == 1:
+            # different pools and concentration, 1 empty
+            return {0 : 30, 1 : 60, 2 : 90}
+        elif self.current_case_num == 2:
+            # different pools, equal concentrations, 1 empty
+            return {0 : 30, 1 : 30, 2 : 30}
+        elif self.current_case_num == 3:
+            # 2 x 2 association, different concentrations
+            return {0 : 30, 1 : 30, 2 : 60, 3 : 60}
+        else: # 2 x 2 association, all equal concentrations
+            return {0 : 30, 1 : 30, 2 : 30, 3 : 30}
 
     def test_result_384(self):
         self._test_association_data_384()
 
-    def _check_association_data_384(self, case_num):
+    def _check_association_data_384(self):
         ad = _TransfectionRackSectorToolTestCase._check_association_data_384(
-                                                            self, case_num)
-        exp_volumes = {0 : None, 1 : 2, 2 : 4, 3 : 6}
-        self.assert_equal(ad.sector_volumes, exp_volumes)
-        exp_iso_concentrations = self.__get_expected_iso_concentrations(
-                                                                    case_num)
-        self.assert_equal(ad.iso_concentrations, exp_iso_concentrations)
+                                                                        self)
+        if not ad is None:
+            exp_volumes = self._get_expected_sector_volumes()
+            if not ad.sector_volumes == exp_volumes:
+                msg = 'The sector volumes for case %i differ.\nExpected: %s' \
+                      '\nFound:%s' % (self.current_case_num, exp_volumes,
+                                      ad.sector_volumes)
+                raise AssertionError(msg)
+            exp_iso_concentrations = self.__get_expected_iso_concentrations()
+            if not ad.iso_concentrations == exp_iso_concentrations:
+                msg = 'The ISO concentrations for case %i differ.\n' \
+                      'Expected: %s\nFound:%s' % (self.current_case_num,
+                              exp_iso_concentrations, ad.iso_concentrations)
+                raise AssertionError(msg)
 
     def test_result_96(self):
         self._test_assocation_data_96()
@@ -940,14 +1089,17 @@ class TransfectionAssociationDataTestCase(_TransfectionRackSectorToolTestCase):
             break
         ori_vol = pp.iso_volume
         pp.iso_volume = (2 * ori_vol)
-        self.assert_raises(ValueError, self._create_association_data)
+        self._expect_error(ValueError, self._create_association_data,
+                           'Error when trying to determine sector volumes.')
         pp.iso_volume = ori_vol
         pp.iso_concentration = (2 * pp.iso_concentration)
-        self.assert_raises(ValueError, self._create_association_data)
+        self._expect_error(ValueError, self._create_association_data,
+               'There is more than one value for sector 1! Attribute: ' \
+               'iso_concentration. Values: 30, 60.')
 
-    def _check_association_data_96(self, case_num):
+    def _check_association_data_96(self):
         ad = _TransfectionRackSectorToolTestCase._check_association_data_96(
-                                                            self, case_num)
+                                                                        self)
         if not ad is None:
             self.assert_equal({0 : 10}, ad.sector_volumes)
             self.assert_equal({0 : 30}, ad.iso_concentrations)
@@ -955,15 +1107,23 @@ class TransfectionAssociationDataTestCase(_TransfectionRackSectorToolTestCase):
     def test_regard_controls(self):
         self._adjust_pos_data_for_regard_control_test()
         self._continue_setup()
-        self.assert_raises(ValueError, self._create_association_data)
+        self._expect_error(ValueError, self._create_association_data,
+                    'Error when trying to find rack sector association.')
         self.assert_equal(len(self.log.get_messages(logging.ERROR)), 0)
         self.regard_controls = False
-        self._check_association_data_384(1)
+        self._check_association_data_384()
+        # check other cases - all floatings are treated the same way but
+        # the result should remain the same
+        for case_num in (1, 2, 4):
+            self.position_data = self._get_case_data(case_num)
+            self._continue_setup()
+            self._check_association_data_384()
 
     def test_failure(self):
         self._adjust_pos_data_for_regard_control_test()
         self._continue_setup()
-        self.assert_raises(ValueError, self._create_association_data)
+        self._expect_error(ValueError, self._create_association_data,
+                           'Error when trying to find rack sector association.')
         self.assert_equal(len(self.log.get_messages(logging.ERROR)), 0)
 
     def test_find(self):
@@ -985,9 +1145,9 @@ class TransfectionAssociationDataTestCase(_TransfectionRackSectorToolTestCase):
             break
         ori_vol = pp.iso_volume
         pp.iso_volume = (2 * ori_vol)
-        self.assert_is_none(TransfectionAssociationData.find(log=self.log,
-                                       layout=self.layout))
+        self.assert_equal((None, None), TransfectionAssociationData.find(
+                          log=self.log, layout=self.layout))
         pp.iso_volume = ori_vol
         pp.iso_concentration = pp.iso_concentration * 2
-        self.assert_is_none(TransfectionAssociationData.find(log=self.log,
-                                       layout=self.layout))
+        self.assert_equal((None, None), TransfectionAssociationData.find(
+                                    log=self.log, layout=self.layout))

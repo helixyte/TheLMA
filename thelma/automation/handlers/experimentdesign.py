@@ -264,7 +264,7 @@ class ExperimentDesignParserHandler(MoleculeDesignPoolLayoutParserHandler):
 
         for design_rack in self.__design_racks:
             value_maps = self.__get_values_for_rack_layout(validators,
-                                                           design_rack.layout)
+                                                       design_rack.rack_layout)
             if self.__check_for_molecule_designs(value_maps, design_rack.label):
                 self.__check_numerical_values(value_maps, design_rack.label)
                 self.__check_reagent_name(value_maps, design_rack.label)
@@ -338,9 +338,8 @@ class ExperimentDesignParserHandler(MoleculeDesignPoolLayoutParserHandler):
                 pool = pool_map[rack_pos]
 
                 if (pool == MOCK_POSITION_TYPE):
-                    if parameter == TransfectionParameters.FINAL_CONCENTRATION \
-                                and not TransfectionPosition.\
-                                        is_valid_mock_value(value):
+                    if not TransfectionParameters.is_valid_mock_value(value,
+                                                                  parameter):
                         add_list_map_element(invalid_mock, parameter,
                                              rack_pos.label)
 

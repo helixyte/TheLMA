@@ -206,8 +206,8 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
             callable_obj(*args, **kw)
         except StandardError as e:
             if not isinstance(e, error_cls):
-                msg = 'Wrong error class. Expected: %s, got: %s.' \
-                      % (error_cls.__name__, e.__class__.__name__)
+                msg = 'Wrong error class. Expected: %s, got: %s. \nMsg: %s' \
+                      % (error_cls.__name__, e.__class__.__name__, str(e))
                 raise AssertionError(msg)
             got_msg = str(e)
             if not exp_msg in got_msg:
@@ -215,14 +215,20 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
                       '\nFound: "%s".' % (exp_msg, got_msg)
                 raise AssertionError(msg)
 
-    def _check_error_messages(self, msg):
+    def _check_error_messages(self, exp_msg):
         errors = self.tool.get_messages(logging.ERROR)
-        error_msgs = ' '.join(errors)
-        self.assert_true(msg in error_msgs)
+        error_msgs = '\n'.join(errors)
+        if not exp_msg in error_msgs:
+            msg = 'Could not find error message.\nExpected: %s\nFound: %s' \
+                  % (exp_msg, error_msgs)
+            raise AssertionError(msg)
 
-    def _check_warning_messages(self, msg):
-        warnings = ' '.join(self.tool.get_messages())
-        self.assert_true(msg in warnings)
+    def _check_warning_messages(self, exp_msg):
+        warnings = '\n'.join(self.tool.get_messages())
+        if not exp_msg in warnings:
+            msg = 'Could not find warning message.\nExpected: %s\nFound: %s' \
+                  % (exp_msg, warnings)
+            raise AssertionError(msg)
 
     def _check_executed_transfer(self, et, expected_type):
         self.assert_equal(et.transfer_type, expected_type)
@@ -240,13 +246,14 @@ class FileReadingTestCase(ToolsAndUtilsTestCase):
 
     def tear_down(self):
         ToolsAndUtilsTestCase.tear_down(self)
-        del self.stream
+        try:
+            del self.stream
+        except AttributeError:
+            pass
         del self.VALID_FILE
         del self.TEST_FILE_PATH
-        clear_semiconstant_caches()
 
     def _continue_setup(self, file_name=None):
-        initialize_semiconstant_caches()
         self.__read_file(file_name)
 
     def _test_invalid_file(self, file_name, msg):
@@ -260,11 +267,11 @@ class FileReadingTestCase(ToolsAndUtilsTestCase):
         f = resource_filename(*file_name) # pylint: disable=W0142
         try:
             stream = open(f, 'rb')
+            self.stream = stream.read()
         except IOError:
             raise IOError('Unable to find file "%s"' % (complete_file))
-        else:
-            self.stream = stream.read()
-            stream.close()
+        finally:
+            if not stream is None: stream.close()
 
 
 class ParsingTestCase(FileReadingTestCase):

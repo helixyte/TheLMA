@@ -49,4 +49,4 @@ The ISO concentration is determined using the following formula:
 WARNINGS
 --------
 
-Experiment Metadata Generator - You did not specify an ISO layout. The system will try to generate the ISO layout by itself.
+Experiment Metadata Generator - You did not specify an ISO request layout. The system will try to generate the layout by itself.
