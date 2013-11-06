@@ -17,6 +17,8 @@ from pyramid.registry import Registry
 from pyramid.testing import DummyRequest
 from sqlalchemy import event
 from sqlalchemy.orm.session import Session
+from thelma.automation.tools.iso.library import LibraryScreeningWorklistUploader
+from thelma.automation.tools.iso.library import LibraryScreeningStockTransferReportUploader
 from thelma.automation.tools.poolcreation.ticket \
     import PoolCreationStockTransferReporter
 from thelma.automation.tools.poolcreation.ticket \
@@ -29,6 +31,7 @@ from thelma.automation.tools.stock.sampleregistration import \
     ISampleRegistrationItem
 from thelma.automation.tools.stock.sampleregistration import \
     ISupplierSampleRegistrationItem
+from thelma.interfaces import IIsoJob
 from thelma.interfaces import IIsoRequest
 from thelma.interfaces import ILibraryCreationIso
 from thelma.interfaces import IMoleculeDesignLibrary
@@ -1168,3 +1171,130 @@ class CustomLiquidTransferWorklistExecutor(ToolCommand):
                          callback=_user_callback),
                    )
                    ]
+
+
+class LibraryScreeningIsoGeneratorToolCommand(ToolCommand):
+
+    name = 'libraryscreeningisogenerator'
+    tool = 'thelma.automation.tools.iso.library:LibraryScreeningIsoGenerator'
+
+    @classmethod
+    def get_iso_request(cls, value):
+        agg = get_root_aggregate(IIsoRequest)
+        ir = agg.get_by_id(value)
+        return ir
+
+    _iso_request_callback = LazyOption(lambda cls, value, options: # pylint: disable=W0108
+                    LibraryScreeningIsoGeneratorToolCommand.get_iso_request(value))
+
+    _layout_plates_callback = LazyOption(lambda cls, value, options:
+                                                  value.split(','))
+    option_defs = [('--iso-request-id',
+                    'iso_request',
+                    dict(help='The library screening ISO request for which ' \
+                              'to generate the ISOs.',
+                        action='callback',
+                        type='int',
+                        callback=_iso_request_callback),
+                    ),
+                   ('--layout-plates',
+                    'layout_plate_barcodes',
+                    dict(help='The barcodes of the layout plates which ' \
+                              'shall belong to the ISO.',
+                        action='callback',
+                        type='string',
+                        callback=_layout_plates_callback)
+                    )
+                   ]
+
+
+    @classmethod
+    def finalize(cls, tool, options):
+        if not tool.has_errors():
+            job_agg = get_root_aggregate(IIsoJob)
+            job_agg.add(tool.return_value)
+
+
+class LibraryScreeningWorklistWriterToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
+
+    @classmethod
+    def get_iso_job(cls, value):
+        agg = get_root_aggregate(IIsoJob)
+        agg.filter = eq(label=value)
+        return list(agg.iterator())[0]
+
+    _iso_job_callback = LazyOption(lambda cls, value, options: # pylint: disable=W0108
+                    LibraryScreeningWorklistWriterToolCommand.get_iso_job(value))
+
+    name = 'libraryscreeningworklistwriter'
+    tool = 'thelma.automation.tools.iso.library:LibraryScreeningWorklistGenerator'
+    option_defs = [('--iso-job',
+                    'iso_job',
+                    dict(help='Label of the ISO job for which ' \
+                              'you want to get worklist files.',
+                        action='callback',
+                        type='string',
+                        callback=_iso_job_callback),
+                    ),
+                   ('--stock-rack-barcode',
+                    'stock_rack_barcode',
+                    dict(help='The barcode for the stock rack you want to use.',
+                         type='string')
+                    ),
+                   ]
+
+    @classmethod
+    def finalize(cls, tool, options):
+        if not tool.has_errors() and not options.simulate:
+            uploader = LibraryScreeningWorklistUploader(
+                        iso_job=tool.iso_job,
+                        file_map=tool.return_value)
+            uploader.send_request()
+            if not uploader.transaction_completed():
+                msg = 'Error during transmission to Trac!'
+                print msg
+
+
+
+class LibraryScreeningExecutorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
+
+    @classmethod
+    def get_iso_job(cls, value):
+        agg = get_root_aggregate(IIsoJob)
+        agg.filter = eq(label=value)
+        return list(agg.iterator())[0]
+
+    _iso_job_callback = LazyOption(lambda cls, value, options: # pylint: disable=W0108
+                    LibraryScreeningExecutorToolCommand.get_iso_job(value))
+
+    _user_callback = \
+        LazyOption(lambda cls, value, options:
+                        get_root_aggregate(IUser).get_by_slug(value))
+
+    name = 'libraryscreeningexecutor'
+    tool = 'thelma.automation.tools.iso.library:LibraryScreeningIsoExecutor'
+    option_defs = [('--iso-job',
+                    'iso_job',
+                    dict(help='Label of the ISO job for which ' \
+                              'you want to get worklist files.',
+                        action='callback',
+                        type='string',
+                        callback=_iso_job_callback),
+                    ),
+                   ('--user',
+                    'user',
+                    dict(help='The name of the executor user.',
+                         type='string',
+                         action='callback',
+                         callback=_user_callback)
+                    ),
+                   ]
+
+    @classmethod
+    def finalize(cls, tool, options):
+        if not tool.has_errors() and not options.simulate:
+            reporter = LibraryScreeningStockTransferReportUploader(executor=tool)
+            reporter.send_request()
+            if not reporter.transaction_completed():
+                msg = 'Error during transmission to Trac!'
+                print msg
