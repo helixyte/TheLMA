@@ -127,8 +127,8 @@ class LabIsoJobCreator(IsoJobCreator):
         """
         self.__job_prep_plate_layouts = self.__builder.\
                                         complete_job_preparation_plates()
-        layouts = {LABELS.ROLE_FINAL : self.__builder.final_iso_layout}.\
-                  update(self.__job_prep_plate_layouts)
+        layouts = dict(self.__job_prep_plate_layouts,
+                       **{LABELS.ROLE_FINAL : self.__builder.final_iso_layout})
         number_stock_racks = self.__builder.distribute_pools_to_stock_racks(
                                                       layouts, for_job=True)
         return number_stock_racks
@@ -197,6 +197,7 @@ class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
             self.__worklist_series = WorklistSeries()
             self.__sort_layouts()
             self.__create_buffer_worklists()
+            self.__create_transfer_worklists()
         if not self.has_errors():
             self.return_value = self.__worklist_series
             self.add_info('Worklist series generation completed.')
@@ -250,7 +251,7 @@ class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
             self.__create_worklist(worklist_label, planned_dilutions,
                                    TRANSFER_TYPES.SAMPLE_DILUTION)
 
-    def __create_transfer_worklist(self):
+    def __create_transfer_worklists(self):
         """
         The order of the transfer worklists is more complicated than with
         the dilutions. We start with the starting wells of each layouts and
@@ -332,7 +333,7 @@ class LabIsoWorklistSeriesGenerator(BaseAutomationTool):
             index_map[i] = trg_plate_marker
 
         for i in sorted(index_map.keys()):
-            trg_plate_marker = transfer_map[i]
+            trg_plate_marker = index_map[i]
             worklist_label = self.__create_worklist_label(trg_plate_marker,
                                                           source_plate_marker)
             pts = transfer_map[trg_plate_marker]

@@ -261,7 +261,7 @@ class TubePickingQuery(CustomQuery): # pylint: disable=W0223
     pool IDs).
     """
     #: The candidate type.
-    CANDIDATE_CLS = None
+    CANDIDATE_CLS = TubeCandidate
 
     #: If *True* result values for the column names \'row_index\' and
     #: '\column_index\' are converted into a :class:`RackPosition` before
@@ -294,7 +294,7 @@ class TubePickingQuery(CustomQuery): # pylint: disable=W0223
         column_index = None
         kw = dict()
 
-        for i in range(self.COLUMN_NAMES):
+        for i in range(len(self.COLUMN_NAMES)):
             col_name = self.COLUMN_NAMES[i]
             if col_name in self.IGNORE_COLUMNS: continue
             value = result_record[i]
@@ -594,7 +594,7 @@ class TubePicker(SessionTool):
         if requested_tubes is None: requested_tubes = []
         #: A list of barcodes from stock tubes that are supposed to be used
         #: (for fixed positions).
-        self.requested_tubes = set(requested_tubes)
+        self.requested_tubes = requested_tubes
 
         #: The pools mapped onto their IDs.
         self._pool_map = None
@@ -603,7 +603,7 @@ class TubePicker(SessionTool):
         self._stock_samples = None
 
         #: Returns all candidates in the same order as in the query result.
-        #: Use :func:`get_unsorted_candidates` to acces this list.
+        #: Use :func:`get_unsorted_candidates` to access this list.
         self._unsorted_candidates = None
         #: The picked candidates ordered by pools.
         self._picked_candidates = None
@@ -628,7 +628,8 @@ class TubePicker(SessionTool):
         self._check_input()
         if not self.has_errors(): self._create_pool_map()
         if not self.has_errors(): self._get_stock_samples()
-        if not self.has_errors(): self._run_optimizer()
+        if not self.has_errors() and len(self._stock_samples) > 0:
+            self._run_optimizer()
 
         if not self.has_errors():
             self.return_value = self._picked_candidates
@@ -666,8 +667,9 @@ class TubePicker(SessionTool):
 
         self._check_input_list_classes('excluded rack', self.excluded_racks,
                                        basestring, may_be_empty=True)
-        self._check_input_list_classes('requested tube', self.requested_tubes,
-                                       basestring, may_be_empty=True)
+        if self._check_input_list_classes('requested tube',
+                    self.requested_tubes, basestring, may_be_empty=True):
+            self.requested_tubes = set(self.requested_tubes)
 
     def _create_pool_map(self):
         """
@@ -717,8 +719,8 @@ class TubePicker(SessionTool):
         self._run_query(query, 'Error when trying to run optimizing query: ')
 
         if not self.has_errors():
-            candidates = query.get_query_results()
-            for candidate in candidates:
+            self._unsorted_candidates = query.get_query_results()
+            for candidate in self._unsorted_candidates:
                 if candidate.rack_barcode in self.excluded_racks: continue
                 self._store_candidate_data(candidate)
 

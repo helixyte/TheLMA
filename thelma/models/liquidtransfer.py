@@ -173,9 +173,6 @@ class PlannedLiquidTransfer(Entity):
         return isinstance(other, self.__class__) and \
                 self._hash_value == other.hash_value
 
-    def __str__(self):
-        return self._hash_value
-
 
 class PlannedSampleDilution(PlannedLiquidTransfer):
     """

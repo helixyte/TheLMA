@@ -384,19 +384,21 @@ class EventRecording(object):
                 filler = ' '
             base_msg += filler
         if error_types is None:
-            error_types = set(ValueError, TypeError, AttributeError)
+            error_types = {ValueError, TypeError, AttributeError}
         elif isinstance(error_types, StandardError):
             error_types = set([error_types])
 
-        try:
-            return_value = meth(**kw)
-        except StandardError as e:
-            if e.__class__ in error_types and not base_msg is None:
-                self.add_error(base_msg + e)
-            else:
-                return None
-        else:
-            return return_value
+        return meth(**kw)
+# TODO: reactivate
+#        try:
+#            return_value = meth(**kw)
+#        except StandardError as e:
+#            if e.__class__ in error_types and not base_msg is None:
+#                self.add_error(base_msg + str(e))
+#            else:
+#                return None
+#        else:
+#            return return_value
 
     def _get_joined_str(self, item_list, is_strs=True, sort_items=True,
                         separator=', '):
