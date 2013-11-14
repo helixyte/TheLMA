@@ -1220,17 +1220,16 @@ class LibraryScreeningWorklistWriterToolCommand(ToolCommand): # no __init__ pyli
     @classmethod
     def get_iso_job(cls, value):
         agg = get_root_aggregate(IIsoJob)
-        agg.filter = eq(label=value)
-        return list(agg.iterator())[0]
+        return agg.get_by_id(value)
 
     _iso_job_callback = LazyOption(lambda cls, value, options: # pylint: disable=W0108
                     LibraryScreeningWorklistWriterToolCommand.get_iso_job(value))
 
     name = 'libraryscreeningworklistwriter'
     tool = 'thelma.automation.tools.iso.library:LibraryScreeningWorklistGenerator'
-    option_defs = [('--iso-job',
+    option_defs = [('--iso-job-id',
                     'iso_job',
-                    dict(help='Label of the ISO job for which ' \
+                    dict(help='ID of the ISO job for which ' \
                               'you want to get worklist files.',
                         action='callback',
                         type='string',
@@ -1261,8 +1260,7 @@ class LibraryScreeningExecutorToolCommand(ToolCommand): # no __init__ pylint: di
     @classmethod
     def get_iso_job(cls, value):
         agg = get_root_aggregate(IIsoJob)
-        agg.filter = eq(label=value)
-        return list(agg.iterator())[0]
+        return agg.get_by_id(value)
 
     _iso_job_callback = LazyOption(lambda cls, value, options: # pylint: disable=W0108
                     LibraryScreeningExecutorToolCommand.get_iso_job(value))
@@ -1273,9 +1271,9 @@ class LibraryScreeningExecutorToolCommand(ToolCommand): # no __init__ pylint: di
 
     name = 'libraryscreeningexecutor'
     tool = 'thelma.automation.tools.iso.library:LibraryScreeningIsoExecutor'
-    option_defs = [('--iso-job',
+    option_defs = [('--iso-job-id',
                     'iso_job',
-                    dict(help='Label of the ISO job for which ' \
+                    dict(help='ID of the ISO job for which ' \
                               'you want to get worklist files.',
                         action='callback',
                         type='string',

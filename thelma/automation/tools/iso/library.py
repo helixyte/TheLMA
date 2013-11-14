@@ -150,7 +150,8 @@ class LibraryScreeningIsoGenerator(BaseAutomationTool):
         if not self.has_errors(): self.__create_preparation_layout()
         if not self.has_errors(): self.__run_optimizer()
         if not self.has_errors(): self.__distribute_candidates()
-        if not self.has_errors(): self.__create_worklist_series()
+        if not self.has_errors() and self.iso_request.worklist_series is None:
+            self.__create_worklist_series()
         if not self.has_errors(): self.__create_iso_job()
         if not self.has_errors():
             self.return_value = self.__iso_job
@@ -270,20 +271,24 @@ class LibraryScreeningIsoGenerator(BaseAutomationTool):
     def __create_iso_job(self):
         ps = RACK_SPECS_NAMES.from_name(RACK_SPECS_NAMES.STANDARD_96)
         job_num = len(self.iso_request.iso_jobs) + 1
-        job_label = 'ISO_job_%02i' % (job_num)
+        ticket_number = self.iso_request.experiment_metadata.ticket_number
+        job_label = '%i_job_%02i' % (ticket_number, job_num)
         prep_plate = ps.create_rack(label='plate_%s' % (job_label),
                                     status=get_item_status_future())
 
-        isos = []
+        isos = dict()
         for plate in self.__plates.values():
             layout_num = int(plate.label.split('-')[1])
             iso_label = 'ISO_%i' % (layout_num)
-            iso = Iso(label=iso_label, iso_request=self.iso_request,
-                iso_type=ISO_TYPES.STANDARD,
-                rack_layout=self.__prep_layout.create_rack_layout())
-            isos.append(iso)
+            if isos.has_key(iso_label):
+                iso = isos[iso_label]
+            else:
+                iso = Iso(label=iso_label, iso_request=self.iso_request,
+                    iso_type=ISO_TYPES.STANDARD,
+                    rack_layout=self.__prep_layout.create_rack_layout())
+                isos[iso_label] = iso
+                IsoPreparationPlate(iso=iso, plate=prep_plate)
             IsoAliquotPlate(iso=iso, plate=plate)
-            IsoPreparationPlate(iso=iso, plate=prep_plate)
 
         agg = get_root_aggregate(IJobType)
         job_type = agg.get_by_id(15)
@@ -292,7 +297,7 @@ class LibraryScreeningIsoGenerator(BaseAutomationTool):
             self.add_error(msg)
         else:
             self.__iso_job = IsoJob(label=job_label, job_type=job_type,
-                                    isos=isos, user=get_user('it'))
+                                    isos=isos.values(), user=get_user('it'))
 
 
 class _WorklistSeriesCreator(BaseAutomationTool):
@@ -562,12 +567,12 @@ class LibraryScreeningWorklistGenerator(BaseAutomationTool):
         self.__write_file(overview_writer, '%s_overview.txt', 'overview')
 
     def __write_biomek_files(self):
-
         layout_plates = dict()
         prep_plate = None
         for iso in self.iso_job.isos:
-            layout_plate = iso.iso_aliquot_plates[0].plate
-            layout_plates[layout_plate.barcode] = layout_plate
+            for l_plate in iso.iso_aliquot_plates:
+                layout_plate = l_plate.plate
+                layout_plates[layout_plate.barcode] = layout_plate
             if prep_plate is None:
                 prep_plate = iso.iso_preparation_plate.plate
 
@@ -950,6 +955,7 @@ class LibraryScreeningIsoExecutor(BaseAutomationTool):
         BaseAutomationTool.__init__(self, depending=False)
         self.user = user
         self.iso_job = iso_job
+        self.entity = self.iso_job
 
         self.__control_stock_rack = None
         self.__control_layout = None
@@ -1019,8 +1025,9 @@ class LibraryScreeningIsoExecutor(BaseAutomationTool):
         for iso in self.iso_job:
             if self.__prep_plate is None:
                 self.__prep_plate = iso.iso_preparation_plate.plate
-            aliquot_plate = iso.iso_aliquot_plates[0].plate
-            self.__aliquot_plates[aliquot_plate.barcode] = aliquot_plate
+            for a_plate in iso.iso_aliquot_plates:
+                aliquot_plate = a_plate.plate
+                self.__aliquot_plates[aliquot_plate.barcode] = aliquot_plate
 
         stock_worklist = self.__control_stock_rack.planned_worklist
         ps_biomek = get_pipetting_specs_biomek()
@@ -1077,7 +1084,7 @@ class LibraryScreeningIsoExecutor(BaseAutomationTool):
             msg = 'Series executor failed!'
             self.add_error(msg)
         else:
-            self.__executed_stock_worklists = [executed_worklists[0]]
+            self.__executed_stock_worklists = {0: executed_worklists[0]}
 
     def get_executed_stock_worklists(self):
         return self._get_additional_value(self.__executed_stock_worklists)
@@ -1090,3 +1097,8 @@ class LibraryScreeningIsoExecutor(BaseAutomationTool):
 class LibraryScreeningStockTransferReportUploader(StockTransferReportUploader):
 
     EXECUTOR_CLS = LibraryScreeningIsoExecutor
+
+    def _get_plate_str(self):
+        entity = self.executor.iso_job
+        barcode = entity.isos[0].iso_preparation_plate.plate.barcode
+        return 'ISO job "%s" (%s)' % (entity.label, barcode)

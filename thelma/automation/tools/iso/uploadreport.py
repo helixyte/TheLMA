@@ -262,7 +262,7 @@ class StockTransferReportUploader(BaseTracTool):
         """
         job_data = []
         for iso in iso_job.isos:
-            iso_str = '%s (%s)' % (iso.label, iso.preparation_plate)
+            iso_str = '%s (%s)' % (iso_job.label, iso.preparation_plate)
             job_data.append(iso_str)
 
         job_data.sort()
