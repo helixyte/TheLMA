@@ -210,7 +210,6 @@ class LabIsoBuilder(object):
         add_list_map_element(self.planned_dilutions, plate_marker,
                              planned_sample_dilution)
 
-
     def add_intraplate_transfer(self, planned_transfer, plate_marker,
                                 intraplate_ancestor_count):
         """
