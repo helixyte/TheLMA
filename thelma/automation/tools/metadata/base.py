@@ -1136,8 +1136,8 @@ class TransfectionSectorAssociator(IsoRequestSectorAssociator):
         assigned yet).
 
         Example: 4 floatings with the same contration can either be regarded
-        as 4 independent pools or as 4 pool in 4-fold replicate. As the second
-        case is more likely in our company we choose the first case for
+        as 4 independent pools or as 1 pool in 4-fold replicate. As the first
+        case is more likely in our company we choose the this case for
         interpretation. If scientists want a different interpretation
         we have to adjust this manually.
         """

@@ -173,9 +173,6 @@ class PlannedLiquidTransfer(Entity):
         return isinstance(other, self.__class__) and \
                 self._hash_value == other.hash_value
 
-    def __str__(self):
-        return self._hash_value
-
 
 class PlannedSampleDilution(PlannedLiquidTransfer):
     """
@@ -654,12 +651,6 @@ class WorklistSeries(Entity):
     def __eq__(self, other):
         return (isinstance(other, WorklistSeries) and self.id == other.id)
 
-    def __ne__(self, other):
-        return not (self.__eq__(other))
-
-    def __str__(self):
-        return self.id
-
     def __repr__(self):
         str_format = '<%s id: %s, number of worklists: %i>'
         params = (self.__class__.__name__, self.id,
@@ -707,11 +698,8 @@ class WorklistSeriesMember(Entity):
                 self.planned_worklist == other.planned_worklist and \
                 self.worklist_series == other.worklist_series)
 
-    def __ne__(self, other):
-        return not (self.__eq__(other))
-
     def __str__(self):
-        return '%s:%s' % (self.planned_worklist, self.worklist_series)
+        return '%s:%s' % (self.worklist_series, self.planned_worklist)
 
     def __repr__(self):
         str_format = '<%s planned worklist: %s, index: %s, worklist ' \

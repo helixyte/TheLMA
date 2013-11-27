@@ -187,10 +187,6 @@ class BaseLayoutConverter(BaseAutomationTool):
         Returns a dictionary containing the parameter values for a
         rack position.
         """
-
-        self.add_debug('Get parameter map for rack position %s ...' \
-                       % (rack_position))
-
         parameter_map = {self._RACK_POSITION_KEY : rack_position}
         for parameter in self._parameter_validators.keys():
             parameter_map[parameter] = None

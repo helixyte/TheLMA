@@ -113,7 +113,17 @@ CREATE TABLE iso_job_preparation_plate (
   CONSTRAINT iso_job_unique_preparation_plate UNIQUE (rack_id)
 );
 
--- add number stock racks column to ISO job
+-- add association table for ISO job worklist series
+
+CREATE TABLE worklist_series_iso_job (
+  job_id INTEGER NOT NULL
+    REFERENCES iso_job (job_id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  worklist_series_id INTEGER NOT NULL
+    REFERENCES worklist_series (worklist_series_id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT worklist_series_iso_job_pkey PRIMARY KEY (job_id)
+);
 
 
 CREATE OR REPLACE VIEW db_version AS SELECT 17.2 AS version;

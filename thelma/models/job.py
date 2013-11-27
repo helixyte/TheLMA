@@ -132,7 +132,12 @@ class IsoJob(Job):
     #: :class:`thelma.models.iso.IsoJobPreparationPlate`).
     iso_job_preparation_plates = None
 
-    def __init__(self, label, user, isos, number_stock_racks, **kw):
+    #: Contains the worklists specific to the (lab) ISO job processing. Can
+    #: be *None*; :class:`thelma.models.liquidtransfer.WorklistSeries`
+    worklist_series = None
+
+    def __init__(self, label, user, isos, number_stock_racks,
+                 worklist_series=None, **kw):
         """
         Constructor
         """
@@ -141,6 +146,7 @@ class IsoJob(Job):
         Job.__init__(self, label=label, user=user, job_type=JOB_TYPES.ISO, **kw)
         self.isos = isos
         self.number_stock_racks = number_stock_racks
+        self.worklist_series = worklist_series
 
     @property
     def iso_request(self):

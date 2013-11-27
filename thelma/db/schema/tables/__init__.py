@@ -101,6 +101,7 @@ from thelma.db.schema.tables import userpreferences
 from thelma.db.schema.tables import worklistseries
 from thelma.db.schema.tables import worklistseriesexperimentdesign
 from thelma.db.schema.tables import worklistseriesexperimentdesignrack
+from thelma.db.schema.tables import worklistseriesisojob
 from thelma.db.schema.tables import worklistseriesisorequest
 from thelma.db.schema.tables import worklistseriesmember
 
@@ -282,6 +283,8 @@ def initialize_tables(metadata):
     iso_pool_set_tbl = isopoolset.create_table(metadata, iso_tbl,
                                                molecule_design_pool_set_tbl)
     iso_job_tbl = isojob.create_table(metadata, job_tbl)
+    worklist_series_iso_job_tbl = worklistseriesisojob.create_table(metadata,
+                                            iso_job_tbl, worklist_series_tbl)
     iso_job_member_tbl = isojobmember.create_table(metadata, job_tbl, iso_tbl)
 
     stock_rack_tbl = stockrack.create_table(metadata, rack_tbl, rack_layout_tbl,

@@ -505,7 +505,6 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
         self.add_debug('Check ISO concentrations ...')
 
         above_stock = []
-        above_crit = []
 
         for rack_pos, tf_pos in self._source_layout.iterpositions():
             if tf_pos.is_mock or tf_pos.is_untreated_type: continue
@@ -515,22 +514,6 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
                 stock_conc = tf_pos.stock_concentration
 
             iso_concentration = tf_pos.iso_concentration
-            crit_iso_conc = TransfectionParameters.\
-                            get_critical_iso_concentration(stock_conc)
-
-            if are_equal_values(iso_concentration, stock_conc):
-                continue
-            elif is_larger_than(iso_concentration, crit_iso_conc):
-                crit_fconc = TransfectionParameters.\
-                        get_critical_final_concentration(stock_conc,
-                                                    tf_pos.optimem_dil_factor)
-                info = '%s (ordered: %.1f nM, critical ISO: %.1f nM, ' \
-                       'critical final: %.1f nM)' % (rack_pos,
-                        iso_concentration, crit_iso_conc, crit_fconc)
-                above_crit.append(info)
-            else:
-                continue
-
             if is_larger_than(iso_concentration, stock_conc):
                 info = '%s (ordered: %.1f nM, stock: %.1f nM)' \
                        % (rack_pos.label, iso_concentration, stock_conc)
@@ -544,15 +527,6 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
                   'your file, please. Details: %s.' \
                    % (self._get_joined_str(above_stock))
             self.add_error(msg)
-        elif len(above_crit) > 0:
-            msg = 'Some ISO concentration are larger than the critical ISO ' \
-                  'concentration for the referring molecule type. Using ' \
-                  'that large concentrations will increase the waste volume ' \
-                  'generated during ISO processing. Furthermore, it might ' \
-                  'cause concentration inaccuracies when using the BioMek. ' \
-                  'The inaccuracies are within a range of 1 percent. ' \
-                  'Affected positions: %s.' % (self._get_joined_str(above_crit))
-            self.add_warning(msg)
 
     def _determine_mastermix_support(self):
         """
@@ -776,6 +750,7 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
             if self._iso_request.label == IsoRequestParserHandler.\
                                                         NO_LABEL_PLACEHOLDER:
                 self._iso_request.label = self.experiment_metadata.label
+            self._iso_request.molecule_design_pool_set = self._pool_set
 
         new_em = ExperimentMetadata(
                     label=self.experiment_metadata.label,
@@ -785,7 +760,6 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
                     experiment_design=self._experiment_design,
                     ticket_number=self._ticket_number,
                     lab_iso_request=self._iso_request,
-                    molecule_design_pool_set=self._pool_set,
                     experiment_metadata_type=\
                             self.experiment_metadata.experiment_metadata_type)
         self.experiment_metadata = new_em
@@ -1244,6 +1218,7 @@ class ExperimentMetadataGeneratorLibrary(ExperimentMetadataGenerator):
         if not handler is None:
             self.supports_mastermix = None
             self.__library = handler.get_library()
+            self._iso_request.molecule_design_library = self.__library
             self.__parameter_values[
                                 TransfectionParameters.FINAL_CONCENTRATION] = \
                                             handler.get_final_concentration()

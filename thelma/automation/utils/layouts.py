@@ -1251,7 +1251,9 @@ class TransferTarget(object):
 
     def __eq__(self, other):
         return isinstance(other, TransferTarget) and \
-               self.position_label == other.position_label
+               self.position_label == other.position_label and \
+               self.transfer_volume == other.transfer_volume and \
+               self.target_rack_marker == other.target_rack_marker
 
     def __ne__(self, other):
         return not (self.__eq__(other))

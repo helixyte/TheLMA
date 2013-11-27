@@ -8,12 +8,14 @@ from thelma.models.iso import IsoJobStockRack
 from thelma.models.job import IsoJob
 from thelma.models.job import JOB_TYPES
 from thelma.models.iso import IsoJobPreparationPlate
+from thelma.models.liquidtransfer import WorklistSeries
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
 
 
-def create_mapper(job_mapper, iso_job_tbl, iso_job_member_tbl):
+def create_mapper(job_mapper, iso_job_tbl, iso_job_member_tbl,
+                  worklist_series_iso_request_tbl):
     "Mapper factory."
 
     m = mapper(IsoJob, iso_job_tbl,
@@ -30,6 +32,11 @@ def create_mapper(job_mapper, iso_job_tbl, iso_job_member_tbl):
                     isos=relationship(Iso, secondary=iso_job_member_tbl,
                                     back_populates='iso_job',
                                     cascade='all, delete-orphan',
-                                    single_parent=True))
+                                    single_parent=True),
+                    worklist_series=relationship(WorklistSeries,
+                                    cascade='all, delete-orphan',
+                                    uselist=False, single_parent=True,
+                                    secondary=worklist_series_iso_request_tbl)
+                    )
                )
     return m

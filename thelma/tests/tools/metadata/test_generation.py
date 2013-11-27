@@ -4,6 +4,7 @@ AAB Aug 08, 2011
 """
 
 from datetime import date
+from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.automation.handlers.experimentdesign \
     import ExperimentDesignParserHandler
 from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
@@ -180,9 +181,9 @@ class _ExperimentMetadataGeneratorTestCase(FileReadingTestCase):
         else:
             self.assert_is_none(iso_request)
         if self.len_pool_set == 0:
-            self.assert_is_none(em.molecule_design_pool_set)
+            self.assert_is_none(iso_request.molecule_design_pool_set)
         else:
-            self.assert_equal(len(em.molecule_design_pool_set),
+            self.assert_equal(len(iso_request.molecule_design_pool_set),
                               self.len_pool_set)
 
     def __check_worklists_series(self, em):
@@ -998,6 +999,8 @@ class ExperimentMetadataGeneratorLibraryTestCase(
         self.expected_ir_data['comment'] = 'with mastermix support'
         self.expected_ir_data['iso_plate_reservoir_specs'] = \
                                         get_reservoir_specs_standard_384()
+        lib = self._get_entity(IMoleculeDesignLibrary, 'poollib')
+        self.expected_ir_data['molecule_design_library'] = lib
         self.iso_volume = 4
         self.iso_concentration = 1270
         self.optimem_df = 9.1

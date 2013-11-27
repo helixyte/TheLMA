@@ -330,14 +330,10 @@ class ExperimentMetadata(Entity):
     #: Type of experiments to be performed with this metadata
     #: (see :class:`ExperimentMetadataType`).
     experiment_metadata_type = None
-    #: The molecule design pool used to test the targets
-    #: (:class:`thelma.models.moleculedesign.MoleculeDesignPoolSet`)
-    molecule_design_pool_set = None
 
     def __init__(self, label, subproject, number_replicates,
                  experiment_metadata_type, experiment_design=None,
-                 ticket_number=None, lab_iso_request=None,
-                 molecule_design_pool_set=None, creation_date=None,
+                 ticket_number=None, lab_iso_request=None, creation_date=None,
                  **kw):
         Entity.__init__(self, **kw)
         self.label = label
@@ -346,7 +342,6 @@ class ExperimentMetadata(Entity):
         self.lab_iso_request = lab_iso_request
         self.number_replicates = number_replicates
         self.ticket_number = ticket_number
-        self.molecule_design_pool_set = molecule_design_pool_set
         if creation_date is None:
             creation_date = get_utc_time()
         self.creation_date = creation_date
@@ -357,6 +352,15 @@ class ExperimentMetadata(Entity):
         #: For instances of this class, the slug is derived from the
         #: :attr:`label`.
         return slug_from_string(self.label)
+
+    @property
+    def molecule_design_pool_set(self):
+        """
+        The molecule design pool used to test the targets
+        (:class:`thelma.models.moleculedesign.MoleculeDesignPoolSet`).
+        """
+        if self.lab_iso_request is None: return None
+        return self.lab_iso_request.molecule_design_pool_set
 
     @classmethod
     def create_from_data(cls, data):

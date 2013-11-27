@@ -278,7 +278,8 @@ def initialize_mappers(tables, views):
     stocksamplecreationiso.create_mapper(iso_mapper,
                                          tables['stock_sample_creation_iso'])
     isojob.create_mapper(job_mapper, tables['iso_job'],
-                         tables['iso_job_member'])
+                         tables['iso_job_member'],
+                         tables['worklist_series_iso_job'])
     isojobpreparationplate.create_mapper(tables['iso_job_preparation_plate'])
     stock_rack_mapper = stockrack.create_mapper(tables['stock_rack'])
     isojobstockrack.create_mapper(stock_rack_mapper,

@@ -980,10 +980,11 @@ class LabIsoPrepPositionTestCase(_LabIsoPrepClassesBaseTestCase):
                     'Empty positions must not have external plate targets!',
                     **attrs)
             else:
+                attrs['transfer_targets'] = None
                 attrs['external_targets'] = None
                 self._expect_error(ValueError, self.POS_CLS,
-                    'A LabIsoPrepPosition must have at least one external ' \
-                    'plate target!', **attrs)
+                    'A LabIsoPrepPosition must have at least on transfer ' \
+                    'target or external target!', **attrs)
         attrs = self._get_init_data('a2')
         attrs['molecule_design_pool'] = LIBRARY_POSITION_TYPE
         attrs['position_type'] = LIBRARY_POSITION_TYPE

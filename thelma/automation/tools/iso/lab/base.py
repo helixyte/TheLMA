@@ -459,9 +459,11 @@ class LabIsoPosition(TransferPosition):
         #: usage as source well).
         self.volume = get_converted_number(volume)
 
+        if not sector_index is None: sector_index = int(sector_index)
         #: The (lowest) sector index in the final ISO plate (only for samples
         #: that are transferred via the CyBio).
         self.sector_index = sector_index
+
         #: The plate marker (see :class:`LABELS`) for the source stock rack
         #: (only for starting wells).
         self.stock_rack_marker = stock_rack_marker
@@ -674,6 +676,7 @@ class LabIsoPosition(TransferPosition):
         kw['concentration'] = self.concentration
         kw['volume'] = self.volume
         kw['sector_index'] = self.sector_index
+        kw['stock_rack_marker'] = self.stock_rack_marker
         return self.__class__(**kw)
 
     def _add_class_specific_keywords(self, kw):
@@ -1238,7 +1241,7 @@ class LabIsoPrepParameters(LabIsoParameters):
                                  + [EXTERNAL_TRANSFER_TARGETS]
     MUST_HAVE_TRANSFER_TARGETS = \
                             dict(LabIsoParameters.MUST_HAVE_TRANSFER_TARGETS,
-                                 **{EXTERNAL_TRANSFER_TARGETS : True})
+                                 **{EXTERNAL_TRANSFER_TARGETS : False})
 
     REQUIRED = LabIsoParameters.REQUIRED + [EXTERNAL_TRANSFER_TARGETS]
     ALL = LabIsoParameters.ALL + [EXTERNAL_TRANSFER_TARGETS]
@@ -1319,6 +1322,12 @@ class LabIsoPrepPosition(LabIsoPosition):
         self.external_targets = self._check_transfer_targets(
                                 self.PARAMETER_SET.EXTERNAL_TRANSFER_TARGETS,
                                 external_targets, 'external plate target')
+
+        if len(self.transfer_targets) < 1 and len(self.external_targets) < 1 \
+                and not self.is_empty:
+            msg = 'A %s must have at least on transfer target or external ' \
+                  'target!' % (self.__class__.__name__)
+            raise ValueError(msg)
 
     def _add_class_specific_keywords(self, kw):
         kw['external_targets'] = self.external_targets
