@@ -197,6 +197,11 @@
                     name="namespace"
                     value="http://schemata.cenix-bioscience.com/container" />
             </attribute>
+            <attribute name="sample_supplier">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/container" />
+            </attribute>
         </representer>
         <representer
             kind="collection"
@@ -1348,9 +1353,40 @@
                 value="isor" />
             <attribute name="isos">
                 <option
+                    name="ignore"
+                    value="false" />
+                <option
                     name="write_as_link"
                     value="true" />
             </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="iso_request" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="iso_requests" />
+        </representer>
+    </resource>
+
+    <!-- Lab ISO request -->
+
+    <resource
+        interface="thelma.interfaces.ILabIsoRequest"
+        member=".iso.LabIsoRequestMember"
+        collection_root_name="lab-iso-requests"
+        entity="thelma.models.iso.LabIsoRequest"
+    >
+        <representer content_type="everest.mime.XmlMime">
             <attribute name="requester">
                 <option
                     name="namespace"
@@ -1363,25 +1399,7 @@
         >
             <option
                 name="xml_tag"
-                value="iso_request" />
-            <attribute name="rack_layout">
-                <option
-                    name="ignore"
-                    value="false" />
-                <option
-                    name="write_as_link"
-                    value="false" />
-            </attribute>
-            <attribute name="rack_layout.tagged_rack_position_sets">
-                <option
-                    name="write_as_link"
-                    value="true" />
-            </attribute>
-            <attribute name="isos">
-                <option
-                    name="ignore"
-                    value="false" />
-            </attribute>
+                value="lab_iso_request" />
             <attribute name="requester">
                 <option
                     name="ignore"
@@ -1398,14 +1416,24 @@
                     name="write_as_link"
                     value="true" />
             </attribute>
+            <attribute name="rack_layout">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="rack_layout.tagged_rack_position_sets">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
         </representer>
         <representer
             kind="collection"
             content_type="everest.mime.XmlMime"
         >
-            <option
-                name="xml_tag"
-                value="iso_requests" />
             <attribute name="rack_layout">
                 <option
                     name="write_as_link"
@@ -1414,17 +1442,7 @@
         </representer>
     </resource>
 
-	<!-- Lab ISO request -->
-
-	<resource
-        interface="thelma.interfaces.ILabIsoRequest"
-        member=".iso.LabIsoRequestMember"
-        collection_root_name="lab-iso-requests"
-        entity="thelma.models.iso.LabIsoRequest"
-    >
-    </resource>
-
-	<resource
+    <resource
         interface="thelma.interfaces.IStockSampleCreationIsoRequest"
         member=".iso.StockSampleCreationIsoRequestMember"
         collection_root_name="stock-sample-creation-iso-requests"
@@ -1437,7 +1455,6 @@
     <resource
         interface="thelma.interfaces.IIsoStockRack"
         member=".iso.IsoStockRackMember"
-        collection=".iso.IsoStockRackCollection"
         entity="thelma.models.iso.IsoStockRack"
         expose="false"
     >
@@ -1551,11 +1568,11 @@
             <option
                 name="xml_tag"
                 value="job" />
-            <!-- <attribute name="experiments"> <option name="ignore" value="false"
-                type="zope.configuration.fields.Bool" /> <option name="write_as_link" value="false"
-                type="zope.configuration.fields.Bool" /> </attribute> <attribute name="experiments.experiment_racks">
-                <option name="ignore" value="false" type="zope.configuration.fields.Bool"
-                /> <option name="write_as_link" value="true" type="zope.configuration.fields.Bool"
+            <!-- <attribute name="experiments"> <option name="ignore" value="false" 
+                type="zope.configuration.fields.Bool" /> <option name="write_as_link" value="false" 
+                type="zope.configuration.fields.Bool" /> </attribute> <attribute name="experiments.experiment_racks"> 
+                <option name="ignore" value="false" type="zope.configuration.fields.Bool" 
+                /> <option name="write_as_link" value="true" type="zope.configuration.fields.Bool" 
                 /> </attribute> -->
         </representer>
         <representer
@@ -1565,7 +1582,7 @@
             <option
                 name="xml_tag"
                 value="jobs" />
-            <!-- <attribute name="experiments"> <option name="write_as_link"
+            <!-- <attribute name="experiments"> <option name="write_as_link" 
                 value="true" type="zope.configuration.fields.Bool" /> </attribute> -->
         </representer>
     </resource>
@@ -1662,10 +1679,10 @@
                     name="write_as_link"
                     value="true" />
             </attribute>
-            <!-- <attribute name="experiments.experiment_design.experiment_metadata.experiment_design">
-                <option name="write_as_link" value="true" type="zope.configuration.fields.Bool"
-                /> </attribute> <attribute name="experiments.experiment_design.experiment_metadata.iso_request">
-                <option name="write_as_link" value="true" type="zope.configuration.fields.Bool"
+            <!-- <attribute name="experiments.experiment_design.experiment_metadata.experiment_design"> 
+                <option name="write_as_link" value="true" type="zope.configuration.fields.Bool" 
+                /> </attribute> <attribute name="experiments.experiment_design.experiment_metadata.iso_request"> 
+                <option name="write_as_link" value="true" type="zope.configuration.fields.Bool" 
                 /> </attribute> -->
         </representer>
 
@@ -2739,7 +2756,7 @@
             <option
                 name="xml_tag"
                 value="plate_specs" />
-            <!-- <attribute name="well_specs"> <option name="ignore" value="false"
+            <!-- <attribute name="well_specs"> <option name="ignore" value="false" 
                 type="zope.configuration.fields.Bool" /> </attribute> -->
         </representer>
     </resource>
@@ -2968,8 +2985,8 @@
             <option
                 name="xml_prefix"
                 value="si" />
-            <!-- FIXME: uncomment once we can properly transmit the molecule
-                design pool link <attribute name="molecule_design_pool_id"> <option name="ignore"
+            <!-- FIXME: uncomment once we can properly transmit the molecule 
+                design pool link <attribute name="molecule_design_pool_id"> <option name="ignore" 
                 value="true" > </option> </attribute> -->
             <attribute name="molecule_design_pool.molecule_designs">
                 <option

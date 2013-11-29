@@ -805,8 +805,9 @@ class RackSectorAssociator(BaseAutomationTool):
 
     **Return Value:** A list of lists (each list containing the indices of
         rack sector associated with one another).
-    """
 
+    TODO: find a way to deal with floatings without distinct placeholder
+    """
     #: The attribute by which to sort the ISO positions into sectors.
     SECTOR_ATTR_NAME = None
     #: The working layout class supported by this associator (subclass of

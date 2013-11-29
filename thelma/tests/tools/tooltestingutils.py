@@ -214,6 +214,8 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
                 msg = 'Unable to find expected message.\nExpected: "%s".' \
                       '\nFound: "%s".' % (exp_msg, got_msg)
                 raise AssertionError(msg)
+        else:
+            raise AssertionError('No error has been raised!')
 
     def _check_error_messages(self, exp_msg):
         errors = self.tool.get_messages(logging.ERROR)

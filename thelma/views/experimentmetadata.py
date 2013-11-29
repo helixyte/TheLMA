@@ -18,6 +18,7 @@ from thelma.automation.tools.metadata.uploadreport import \
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.utils import get_current_user
 import logging
+from everest.mime import XlsMime
 
 
 __docformat__ = 'reStructuredText en'
@@ -41,7 +42,7 @@ class PutExperimentMetadataMemberView(PutMemberView):
     __generator = None
 
     def _extract_request_data(self):
-        if self.request.content_type == 'application/vnd.xls':
+        if self.request.content_type == XlsMime.mime_type_string:
             data = self.__extract_from_xls(self.request.body)
         else:
             data = PutMemberView._extract_request_data(self)

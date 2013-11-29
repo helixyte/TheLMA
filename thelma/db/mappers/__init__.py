@@ -193,7 +193,9 @@ def initialize_mappers(tables, views):
                                 tables['pooled_supplier_molecule_design'],
                                 tables['supplier_molecule_design'],
                                 tables['molecule_design_set_gene'])
-    stocksample.create_mapper(sample_mapper, tables['stock_sample'])
+    stocksample.create_mapper(sample_mapper, tables['stock_sample'],
+                              tables['pooled_supplier_molecule_design'],
+                              tables['supplier_molecule_design'])
     moleculedesignpoolset.create_mapper(
                         tables['molecule_design_pool_set'],
                         tables['molecule_design_pool_set_member'],
@@ -276,7 +278,8 @@ def initialize_mappers(tables, views):
     stocksamplecreationiso.create_mapper(iso_mapper,
                                          tables['stock_sample_creation_iso'])
     isojob.create_mapper(job_mapper, tables['iso_job'],
-                         tables['iso_job_member'])
+                         tables['iso_job_member'],
+                         tables['worklist_series_iso_job'])
     isojobpreparationplate.create_mapper(tables['iso_job_preparation_plate'])
     stock_rack_mapper = stockrack.create_mapper(tables['stock_rack'])
     isojobstockrack.create_mapper(stock_rack_mapper,

@@ -343,7 +343,7 @@ class EntityCreatorMixin(object):
             kw['requester'] = self._get_entity(IUser, 'it')
         if not 'rack_layout' in kw:
             kw['rack_layout'] = self._create_rack_layout()
-        if not 'iso_plate_reservoir_specs' is None:
+        if not 'iso_plate_reservoir_specs' in kw:
             kw['iso_plate_reservoir_specs'] = self._get_entity(IReservoirSpecs)
         return self._create_entity(LabIsoRequest, kw)
 

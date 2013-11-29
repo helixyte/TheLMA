@@ -73,6 +73,7 @@ class StockSampleMember(SampleMember):
     supplier = member_attribute(IOrganization, 'supplier')
     molecule_type = member_attribute(IMoleculeType, 'molecule_type')
     concentration = terminal_attribute(float, 'concentration')
+    product_id = terminal_attribute(str, 'product_id')
 
 
 class MoleculeMember(Member):

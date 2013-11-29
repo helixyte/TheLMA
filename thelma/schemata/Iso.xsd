@@ -4,7 +4,7 @@
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
     xmlns:iso="http://schemata.cenix-bioscience.com/iso"
-    xmlns:iss="http://schemata.cenix-bioscience.com/isosamplestockrack"
+    xmlns:iss="http://schemata.cenix-bioscience.com/isostockrack"
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
     xmlns:isor="http://schemata.cenix-bioscience.com/isorequest"
     xmlns:mdps="http://schemata.cenix-bioscience.com/moleculedesignpoolset"
@@ -18,8 +18,8 @@
     >
     </import>
     <import
-        schemaLocation="IsoSampleStockRack.xsd"
-        namespace="http://schemata.cenix-bioscience.com/isosamplestockrack"
+        schemaLocation="IsoStockRack.xsd"
+        namespace="http://schemata.cenix-bioscience.com/isostockrack"
     >
     </import>
     <import
@@ -50,64 +50,94 @@
         namespace="http://schemata.cenix-bioscience.com/job"
     >
     </import>
+
+    <group name="IsoBase">
+        <sequence>
+            <element
+                name="iso_type"
+                type="string"
+            >
+            </element>
+            <element
+                name="label"
+                type="string"
+            >
+            </element>
+            <element
+                name="status"
+                type="string"
+            >
+            </element>
+            <element
+                name="number_stock_racks"
+                type="nonNegativeInteger"
+            >
+            </element>
+            <element
+                ref="isor:lab_iso_request"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element ref="rl:rack_layout">
+            </element>
+            <element
+                ref="mdps:molecule_design_pool_set"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element
+                name="optimizer_excluded_racks"
+                type="string"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element
+                name="optimizer_required_racks"
+                type="string"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+<!--             <element
+                ref="j:iso_job"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element
+                ref="iss:iso_sector_stock_racks"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+ -->        </sequence>
+    </group>
+
     <complexType
         name="IsoType"
+        abstract="true"
     >
         <complexContent>
-            <extension
-                base="sh:ResourceType"
-            >
+            <extension base="sh:ResourceType">
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="LabIsoType">
+        <complexContent>
+            <extension base="iso:IsoType">
                 <choice>
                     <element
                         name="link"
-                        type="iso:IsoLinkType"
+                        type="iso:LabIsoLinkType"
                     >
                     </element>
                     <sequence>
                         <element
-                            name="label"
-                            type="string"
-                        >
-                        </element>
-                        <element
-                            ref="isor:iso_request"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
-                            ref="mdps:molecule_design_pool_set"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
-                            name="status"
-                            type="string"
-                        >
-                        </element>
-                        <element
-                            name="optimizer_excluded_racks"
-                            type="string"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
-                            name="optimizer_required_racks"
-                            type="string"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
                             ref="rl:rack_layout"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
-                            ref="iss:iso_sample_stock_racks"
                             minOccurs="0"
                             maxOccurs="1"
                         >
@@ -126,45 +156,34 @@
                             maxOccurs="1"
                         >
                         </element>
-                        <element
-                            ref="j:iso_job"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
                     </sequence>
                 </choice>
             </extension>
         </complexContent>
     </complexType>
 
-    <complexType
-        name="IsoCollectionType"
-    >
-         <choice>
-             <element
-                 ref="iso:iso"
-                 maxOccurs="unbounded"
-                 minOccurs="0"
-             >
-             </element>
-             <element
-                 name="link"
-                 type="iso:IsoCollectionLinkType"
-                 maxOccurs="1"
-                 minOccurs="0"
-             >
-             </element>
-         </choice>
+    <complexType name="IsoCollectionType">
+        <choice>
+            <choice
+                maxOccurs="unbounded"
+                minOccurs="0"
+            >
+                <element ref="iso:lab_iso">
+                </element>
+            </choice>
+            <element
+                name="link"
+                type="iso:IsoCollectionLinkType"
+                maxOccurs="1"
+                minOccurs="0"
+            >
+            </element>
+        </choice>
     </complexType>
 
-    <complexType
-        name="IsoLinkType"
-    >
+    <complexType name="IsoLinkType">
         <complexContent>
-            <restriction
-                base="sh:LinkType"
-            >
+            <restriction base="sh:LinkType">
                 <attribute
                     name="rel"
                     type="string"
@@ -174,13 +193,21 @@
         </complexContent>
     </complexType>
 
-    <complexType
-        name="IsoCollectionLinkType"
-    >
+    <complexType name="LabIsoLinkType">
         <complexContent>
-            <restriction
-                base="sh:LinkType"
-            >
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/lab-iso"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType name="IsoCollectionLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
                 <attribute
                     name="rel"
                     type="string"
@@ -193,6 +220,12 @@
     <element
         name="iso"
         type="iso:IsoType"
+    >
+    </element>
+
+    <element
+        name="lab_iso"
+        type="iso:LabIsoType"
     >
     </element>
 

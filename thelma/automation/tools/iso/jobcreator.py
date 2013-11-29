@@ -149,9 +149,11 @@ class IsoJobCreator(BaseAutomationTool):
         job_label = LABELS.create_job_label(ticket_number=ticket_number,
                                             job_number=job_num)
         number_stock_racks = self._get_number_stock_racks()
+        worklist_series = self._create_iso_job_worklist_series()
         self._iso_job = IsoJob(label=job_label, user=self.job_owner,
                                isos=self._isos,
-                               number_stock_racks=number_stock_racks)
+                               number_stock_racks=number_stock_racks,
+                               worklist_series=worklist_series)
         self._create_iso_job_racks()
 
     def _get_number_stock_racks(self):
@@ -166,6 +168,13 @@ class IsoJobCreator(BaseAutomationTool):
         create any racks.
         """
         pass
+
+    def _create_iso_job_worklist_series(self):
+        """
+        Creates the worklist series containing the worklists that are specific
+        to the ISO job. By default, there is no worklist series.
+        """
+        return None
 
 
 class IsoProvider(BaseAutomationTool):

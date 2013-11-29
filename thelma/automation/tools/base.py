@@ -157,7 +157,7 @@ class SessionTool(BaseAutomationTool): # pylint: disable=W0223
         if necessary. If the message is *None* there is no error recorded.
         """
         self._run_and_record_error(query.run, base_msg=base_error_msg,
-                                   error_types=set(ValueError),
+                                   error_types=ValueError,
                                    session=self.__session)
 
     def run(self):

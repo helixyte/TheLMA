@@ -5,6 +5,7 @@
     xmlns="http://www.w3.org/2001/XMLSchema"
     xmlns:j="http://schemata.cenix-bioscience.com/job"
     xmlns:e="http://schemata.cenix-bioscience.com/experiment"
+    xmlns:iso="http://schemata.cenix-bioscience.com/iso"
     xmlns:r="http://schemata.cenix-bioscience.com/rack"
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
     xmlns:u="http://schemata.cenix-bioscience.com/user"
@@ -22,6 +23,12 @@
     </import>
 
     <import
+        schemaLocation="Iso.xsd"
+        namespace="http://schemata.cenix-bioscience.com/iso"
+    >
+    </import>
+
+    <import
         schemaLocation="User.xsd"
         namespace="http://schemata.cenix-bioscience.com/user"
     >
@@ -33,60 +40,69 @@
     >
     </import>
 
+    <group name="JobBase">
+        <sequence>
+            <element
+                name="label"
+                type="string"
+            >
+            </element>
+            <element
+                ref="u:user"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element
+                name="job_type"
+                type="string"
+            >
+            </element>
+            <element
+                name="creation_time"
+                type="dateTime"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+        </sequence>
+    </group>
+
     <complexType
         name="JobType"
+        abstract="true"
     >
         <complexContent>
-            <extension
-                base="sh:ResourceType"
-            >
+            <extension base="sh:ResourceType">
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="IsoJobType">
+        <complexContent>
+            <extension base="j:JobType">
                 <choice>
                     <element
                         name="link"
                         type="j:JobLinkType"
-                    >
-                    </element>
+                    ></element>
                     <sequence>
+                        <group ref="j:JobBase">
+                        </group>
                         <element
-                            name="label"
-                            type="string"
+                            name="isos"
+                            type="iso:IsoType"
+                            minOccurs="1"
+                            maxOccurs="unbounded"
                         >
                         </element>
                         <element
-                            name="description"
-                            type="string"
-                            minOccurs="0"
-                            maxOccurs="1"
+                            name="number_stock_racks"
+                            type="positiveInteger"
                         >
                         </element>
                         <element
-                            ref="u:user"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
-                            name="status"
-                            type="string"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
-                            name="creation_time"
-                            type="dateTime"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
-                            ref="e:experiments"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
-                            name="iso_job_stock_rack"
+                            name="iso_job_stock_racks"
                             type="r:RackType"
                             minOccurs="0"
                             maxOccurs="1"
@@ -98,53 +114,14 @@
         </complexContent>
     </complexType>
 
-    <complexType name="IsoJobType">
+    <complexType name="ExperimentJobType">
         <complexContent>
             <extension base="j:JobType">
-
-       <!--       <choice>
-                    <element
-                        name="link"
-                        type="j:JobLinkType"
-                    ></element>
-                    <sequence>
-                        <element
-                            ref="r:tube_rack"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
-                            ref="rsp:tube_rack_specs"
-                            maxOccurs="1"
-                            minOccurs="0"
-                        >
-                        </element>
-                        <element
-                            ref="csp:tube_specs"
-                            minOccurs="1"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <group ref="j:JobBase">
-                        </group>
-                    </sequence>
-                </choice>
-                 -->
-        </extension>
-           </complexContent>
-       </complexType>
-
-        <complexType name="ExperimentJobType">
-            <complexContent>
-            <extension base="j:JobType">
             </extension>
-           </complexContent>
-       </complexType>
+        </complexContent>
+    </complexType>
 
-    <complexType
-        name="JobCollectionType"
-    >
+    <complexType name="JobCollectionType">
         <sequence
             maxOccurs="unbounded"
             minOccurs="0"
@@ -165,13 +142,9 @@
         </sequence>
     </complexType>
 
-    <complexType
-        name="JobLinkType"
-    >
+    <complexType name="JobLinkType">
         <complexContent>
-            <restriction
-                base="sh:LinkType"
-            >
+            <restriction base="sh:LinkType">
                 <attribute
                     name="rel"
                     type="string"
@@ -181,13 +154,9 @@
         </complexContent>
     </complexType>
 
-    <complexType
-        name="JobCollectionLinkType"
-    >
+    <complexType name="JobCollectionLinkType">
         <complexContent>
-            <restriction
-                base="sh:LinkType"
-            >
+            <restriction base="sh:LinkType">
                 <attribute
                     name="rel"
                     type="string"

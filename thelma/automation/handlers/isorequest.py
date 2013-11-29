@@ -875,7 +875,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         self.add_info('Create ISO request ...')
 
         metadata_value_map = self.parser.metadata_value_map
-        number_aliquots = self._get_number_aliquots(metadata_value_map)
+        number_aliquots = self.__get_number_aliquots(metadata_value_map)
         label = self.__get_iso_request_label(metadata_value_map,
                                              number_aliquots)
         comment = metadata_value_map[self.COMMENT_KEY]
@@ -895,12 +895,24 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
             self.return_value = iso_request
             self.add_info('ISO request creating complete.')
 
-    def _get_number_aliquots(self, metadata_value_map): #pylint: disable=W0613
+    def __get_number_aliquots(self, metadata_value_map):
         """
-        Obtains the number of aliquots. It is 1 by default, except for
-        screening cases.
+        The default value for the number of aliquots is always one.
+        In some scenarios this value might be overwritten.
         """
-        return 1
+        if not self.NUMBER_ALIQUOT_KEY in self.ALLOWED_METADATA:
+            return 1
+
+        number_aliquots = metadata_value_map[self.NUMBER_ALIQUOT_KEY]
+        if number_aliquots is None: return 1
+
+        if not is_valid_number(number_aliquots, is_integer=True):
+            msg = 'The number of aliquots must be a positive integer ' \
+                  '(obtained: %s).' % (number_aliquots)
+            self.add_error(msg)
+            return None
+        else:
+            return int(number_aliquots)
 
     def __get_iso_request_label(self, metadata_value_map, number_aliquots):
         """
@@ -1212,20 +1224,6 @@ class IsoRequestParserHandlerScreen(IsoRequestParserHandler):
                   reagent_name=use_reagent_name)
             self._add_position_to_layout(pos_container, kw)
 
-    def _get_number_aliquots(self, metadata_value_map):
-        """
-        Obtains the number of aliquots for screening cases (or the default
-        value for optimisations).
-        """
-        number_aliquots = metadata_value_map[self.NUMBER_ALIQUOT_KEY]
-        if not is_valid_number(number_aliquots, is_integer=True):
-            msg = 'The number of aliquots must be a positive integer ' \
-                  '(obtained: %s).' % (number_aliquots)
-            self.add_error(msg)
-            return None
-        else:
-            return int(number_aliquots)
-
 
 class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
     """
@@ -1251,6 +1249,7 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
                         IsoRequestParserHandler.DELIVERY_DATE_KEY,
                         IsoRequestParserHandler.COMMENT_KEY,
                         IsoRequestParserHandler.LIBRARY_KEY,
+                        IsoRequestParserHandler.NUMBER_ALIQUOT_KEY,
                         TransfectionParameters.FINAL_CONCENTRATION,
                         TransfectionParameters.REAGENT_NAME,
                         TransfectionParameters.REAGENT_DIL_FACTOR]

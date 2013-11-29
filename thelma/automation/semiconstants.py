@@ -417,10 +417,10 @@ class PIPETTING_SPECS_NAMES(SemiconstantCache):
 
     __MIN_TRANSFER_VOL_ATTR = 'min_transfer_volume'
     __MAX_TRANSFER_VOL_ATTR = 'max_transfer_volume'
-    __MIN_DIL_FACTOR_ATTR = 'max_dilution_factor'
+    __MAX_DIL_FACTOR_ATTR = 'max_dilution_factor'
     __ATTRS = {__MIN_TRANSFER_VOL_ATTR : VOLUME_CONVERSION_FACTOR,
                __MAX_TRANSFER_VOL_ATTR : VOLUME_CONVERSION_FACTOR,
-               __MIN_DIL_FACTOR_ATTR : 1 }
+               __MAX_DIL_FACTOR_ATTR : 1 }
     __value_cache = dict()
 
     @classmethod
@@ -517,7 +517,7 @@ class PIPETTING_SPECS_NAMES(SemiconstantCache):
         :raises ValueError: if the specs are unknown
         """
         return cls.__get_attribute_value(pipetting_specs,
-                                         cls.__MIN_TRANSFER_VOL_ATTR)
+                                         cls.__MAX_DIL_FACTOR_ATTR)
 
 
 #: A short cut for :func:`PIPETTING_SPECS_NAMES.from_name`.
@@ -889,7 +889,7 @@ get_rack_position_from_indices = RACK_POSITION_LABELS.from_indices
 __ALL_SEMICONSTANT_CLASSES = [ITEM_STATUS_NAMES,
                               EXPERIMENT_SCENARIOS,
                               RACK_SHAPE_NAMES,
-                              PIPETTING_SPECS_NAMES,
+#                              PIPETTING_SPECS_NAMES,
                               RESERVOIR_SPECS_NAMES,
                               RACK_SPECS_NAMES,
                               RACK_POSITION_LABELS,

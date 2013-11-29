@@ -261,7 +261,7 @@ class TubePickingQuery(CustomQuery): # pylint: disable=W0223
     pool IDs).
     """
     #: The candidate type.
-    CANDIDATE_CLS = None
+    CANDIDATE_CLS = TubeCandidate
 
     #: If *True* result values for the column names \'row_index\' and
     #: '\column_index\' are converted into a :class:`RackPosition` before
@@ -294,7 +294,7 @@ class TubePickingQuery(CustomQuery): # pylint: disable=W0223
         column_index = None
         kw = dict()
 
-        for i in range(self.COLUMN_NAMES):
+        for i in range(len(self.COLUMN_NAMES)):
             col_name = self.COLUMN_NAMES[i]
             if col_name in self.IGNORE_COLUMNS: continue
             value = result_record[i]
@@ -545,15 +545,18 @@ class TubePicker(SessionTool):
 
     **Return Value:** the candidates objects
     """
+    NAME = 'Tube Picker'
+
     def __init__(self, log, molecule_design_pools, stock_concentration,
                  take_out_volume=None, excluded_racks=None,
                  requested_tubes=None):
         """
         Constructor:
 
-        :param molecule_design_pools: The molecule design pool IDs for which
+        :param molecule_design_pools: The molecule design pools for which
             to run the query.
-        :type molecule_design_pools: :class:`set` of molecule design pool IDs
+        :type molecule_design_pools: :class:`set` of molecule design pools
+            (:class:`thelma.models.moleculedesign.MoleculeDesignPool`)
 
         :param stock_concentration: The stock concentration for the pools
             *in nM*.
@@ -594,7 +597,7 @@ class TubePicker(SessionTool):
         if requested_tubes is None: requested_tubes = []
         #: A list of barcodes from stock tubes that are supposed to be used
         #: (for fixed positions).
-        self.requested_tubes = set(requested_tubes)
+        self.requested_tubes = requested_tubes
 
         #: The pools mapped onto their IDs.
         self._pool_map = None
@@ -603,7 +606,7 @@ class TubePicker(SessionTool):
         self._stock_samples = None
 
         #: Returns all candidates in the same order as in the query result.
-        #: Use :func:`get_unsorted_candidates` to acces this list.
+        #: Use :func:`get_unsorted_candidates` to access this list.
         self._unsorted_candidates = None
         #: The picked candidates ordered by pools.
         self._picked_candidates = None
@@ -628,7 +631,8 @@ class TubePicker(SessionTool):
         self._check_input()
         if not self.has_errors(): self._create_pool_map()
         if not self.has_errors(): self._get_stock_samples()
-        if not self.has_errors(): self._run_optimizer()
+        if not self.has_errors() and len(self._stock_samples) > 0:
+            self._run_optimizer()
 
         if not self.has_errors():
             self.return_value = self._picked_candidates
@@ -666,8 +670,9 @@ class TubePicker(SessionTool):
 
         self._check_input_list_classes('excluded rack', self.excluded_racks,
                                        basestring, may_be_empty=True)
-        self._check_input_list_classes('requested tube', self.requested_tubes,
-                                       basestring, may_be_empty=True)
+        if self._check_input_list_classes('requested tube',
+                    self.requested_tubes, basestring, may_be_empty=True):
+            self.requested_tubes = set(self.requested_tubes)
 
     def _create_pool_map(self):
         """
@@ -696,7 +701,10 @@ class TubePicker(SessionTool):
                 found_pools.add(pool_id)
                 self._stock_samples.extend(stock_sample_ids)
 
-            if not len(found_pools) == len(self._pool_map):
+            if len(found_pools) < 1:
+                msg = 'Did not find any candidate!'
+                self.add_error(msg)
+            elif not len(found_pools) == len(self._pool_map):
                 missing_pools = []
                 for pool_id, md_id in self._pool_map.iteritems():
                     if not pool_id in found_pools:
@@ -717,8 +725,8 @@ class TubePicker(SessionTool):
         self._run_query(query, 'Error when trying to run optimizing query: ')
 
         if not self.has_errors():
-            candidates = query.get_query_results()
-            for candidate in candidates:
+            self._unsorted_candidates = query.get_query_results()
+            for candidate in self._unsorted_candidates:
                 if candidate.rack_barcode in self.excluded_racks: continue
                 self._store_candidate_data(candidate)
 

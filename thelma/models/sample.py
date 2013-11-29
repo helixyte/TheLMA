@@ -164,6 +164,9 @@ class StockSample(Sample):
     #: The molecule design pool for the sample molecules in this stock
     #: sample.
     molecule_design_pool = None
+    #: The product ID for the molecule design pool / supplier combination
+    #: in this stock sample. This is dynamically selected by the mapper.
+    product_id = None
 
     def __init__(self, volume, container, molecule_design_pool, supplier,
                  molecule_type, concentration, **kw):
@@ -176,10 +179,14 @@ class StockSample(Sample):
         self.molecule_type = molecule_type
         self.concentration = concentration
         # Create the sample molecules for this stock sample. By definition,
-        # they all have the same supplier and same concentration.
+        # they all have the same supplier and same concentration (which is
+        # determined by dividing the total concentration by the number of
+        # sample molecules).
+        sm_mol_conc = \
+            concentration / len(molecule_design_pool.molecule_designs)
         for molecule_design in molecule_design_pool.molecule_designs:
             mol = Molecule(molecule_design, supplier)
-            self.make_sample_molecule(mol, concentration)
+            self.make_sample_molecule(mol, sm_mol_conc)
 
     def register(self):
         self.registration = SampleRegistration(self, self.volume)

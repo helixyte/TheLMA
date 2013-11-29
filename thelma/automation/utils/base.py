@@ -240,7 +240,7 @@ def create_in_term_for_db_queries(values, as_string=False):
     tuple_content = ', '.join(str(i) for i in as_string_list)
     return '(%s)' % (tuple_content)
 
-def add_list_map_element(value_map, map_key, new_element):
+def add_list_map_element(value_map, map_key, new_element, as_set=False):
     """
     Adds the passed element to the passed map (assuming all map value
     being lists).
@@ -253,10 +253,26 @@ def add_list_map_element(value_map, map_key, new_element):
 
     :param new_element: The element to be added.
     :type new_element: any
+
+    :param as_set: Shall the value be a set (*True*) or a list
+        (*False*, default)?
+    :type as_set: :class:`bool`
+    :default as_set: *False* (list)
     """
-    if not value_map.has_key(map_key):
-        value_map[map_key] = []
-    value_map[map_key].append(new_element)
+    if value_map.has_key(map_key):
+        values = value_map[map_key]
+    else:
+        if as_set:
+            values = set()
+        else:
+            values = list()
+        value_map[map_key] = values
+
+    if as_set:
+        values.add(new_element)
+    else:
+        values.append(new_element)
+
 
 def get_nested_dict(parent_dict, map_key):
     """

@@ -176,7 +176,7 @@ class ExperimentMetadataMember(Member):
     experiment_design_racks = \
             collection_attribute(IExperimentDesignRack,
                                  'experiment_design.design_racks')
-    iso_request = member_attribute(IIsoRequest, 'iso_request')
+    iso_request = member_attribute(IIsoRequest, 'lab_iso_request')
     creation_date = terminal_attribute(datetime, 'creation_date')
     experiment_metadata_type = member_attribute(IExperimentMetadataType,
                                                 'experiment_metadata_type')

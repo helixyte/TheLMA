@@ -103,7 +103,7 @@ class ExperimentWorklistRenderer(CustomRenderer):
             msg_notifier = reg.getUtility(IUserMessageNotifier)
             msg_notifier.notify(" -- ".join(warnings))
         if zip_stream == None:
-            raise HTTPBadRequest(" --".join(tool.log.get_messages()))
+            raise HTTPBadRequest(" -- ".join(tool.log.get_messages()))
 
         return zip_stream
 
