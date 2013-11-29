@@ -36,12 +36,8 @@ class UserMember(Member):
     label = attribute_alias('username')
     username = terminal_attribute(str, 'username')
     user_preferenceses = collection_attribute(IUserPreferences,
-                                              'user_preferenceses',
-                                              is_nested=True)
+                                              'user_preferenceses')
     directory_user_id = terminal_attribute(str, 'directory_user_id')
-
-    def update_from_data(self, data_element):
-        Member.update_from_data(self, data_element)
 
 
 class UserCollection(Collection):

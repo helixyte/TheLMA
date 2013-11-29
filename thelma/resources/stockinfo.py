@@ -15,6 +15,7 @@ from thelma.resources.base import RELATION_BASE_URL
 from thelma.interfaces import IGene
 from thelma.interfaces import IMoleculeType
 from thelma.interfaces import IMoleculeDesignPool
+from everest.constants import CARDINALITIES
 
 
 __docformat__ = 'reStructuredText en'
@@ -32,7 +33,7 @@ __all__ = ['StockInfoCollection',
 class StockInfoMember(Member):
     relation = "%s/stock-info" % RELATION_BASE_URL
     title = attribute_alias('id')
-    id = terminal_attribute(str, 'id')  # stock info IDs are *strings*.
+    id = terminal_attribute(str, 'id') # stock info IDs are *strings*.
     # FIXME: This should be called molecule_design_pool_id in the entity
     molecule_design_pool_id = terminal_attribute(int,
                                                 'molecule_design_set_id')
@@ -43,9 +44,9 @@ class StockInfoMember(Member):
     concentration = terminal_attribute(float, 'concentration')
     molecule_type = member_attribute(IMoleculeType, 'molecule_type')
     molecule_design_pool = member_attribute(IMoleculeDesignPool,
-                                            'molecule_design_pool',
-                                            is_nested=True)
-    genes = collection_attribute(IGene, 'genes', is_nested=False)
+                                            'molecule_design_pool')
+    genes = collection_attribute(IGene, 'genes',
+                                 cardinality=CARDINALITIES.MANYTOMANY)
 
 
 class StockInfoCollection(Collection):

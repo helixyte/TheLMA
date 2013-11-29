@@ -50,9 +50,9 @@ class PutExperimentMetadataMemberView(PutMemberView):
 
     def _process_request_data(self, data):
         initial_name = self.context.__name__
+        self.context.update(data)
         if isinstance(data, ExperimentMetadata):
             # This is a new entity extracted from XLS.
-            self.context.update_from_entity(data)
             # Now that we have all new information, generate links and upload
             # to Trac.
             url = self.request.application_url + '/public//LOUICe.html#' \
@@ -71,8 +71,6 @@ class PutExperimentMetadataMemberView(PutMemberView):
             if not trac_tool.transaction_completed():
                 errors = trac_tool.get_messages(logging_level=logging.ERROR)
                 raise HTTPBadRequest(" -- ".join(errors)).exception
-        else:
-            self.context.update_from_data(data)
         current_name = self.context.__name__
         self.request.response_status = self._status(HTTPOk)
         # FIXME: add conflict detection # pylint: disable=W0511

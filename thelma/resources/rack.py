@@ -19,6 +19,7 @@ from thelma.interfaces import IRackSpecs
 from thelma.interfaces import ITube
 from thelma.interfaces import IWell
 from thelma.resources.base import RELATION_BASE_URL
+from everest.constants import CARDINALITIES
 
 
 __docformat__ = 'reStructuredText en'
@@ -138,8 +139,9 @@ class RackPositionMember(Member):
 
 class RackPositionSetMember(Member):
     relation = "%s/rack-position-set" % RELATION_BASE_URL
-    rack_positions = collection_attribute(IRackPosition, 'positions',
-                                          is_nested=False)
+    rack_positions = \
+        collection_attribute(IRackPosition, 'positions',
+                             cardinality=CARDINALITIES.MANYTOMANY)
 
 
 class RackPositionSetCollection(Collection):

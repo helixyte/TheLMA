@@ -128,7 +128,7 @@
             </attribute>
             <attribute name="structure_type_id">
                 <option
-                    name="ignore_on_write"
+                    name="ignore"
                     value="true" />
             </attribute>
         </representer>

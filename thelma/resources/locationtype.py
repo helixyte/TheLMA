@@ -26,8 +26,7 @@ class LocationTypeMember(Member):
     title = attribute_alias('name')
     name = terminal_attribute(str, 'name')
 #    locations = collection_attribute('locations', ILocation,
-#                                     backref_attr='type',
-#                                     is_nested=False)
+#                                     backref_attr='type')
 
 
 class LocationTypeCollection(Collection):
