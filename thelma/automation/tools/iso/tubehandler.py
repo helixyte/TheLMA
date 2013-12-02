@@ -236,7 +236,8 @@ class IsoXL20WorklistGenerator(BaseAutomationTool):
         if not self.has_errors(): self._create_transfer_worklists()
         if not self.has_errors(): self.__write_streams()
         if not self.has_errors() and not self.FOR_JOB and \
-                    not self._experiment_type_id == EXPERIMENT_SCENARIOS.MANUAL:
+              not self._experiment_type_id == EXPERIMENT_SCENARIOS.MANUAL and \
+              not self._experiment_type_id == EXPERIMENT_SCENARIOS.ORDER_ONLY:
             if len(aliquot_plates) == 0: self.__create_aliquot_plates()
         if not self.has_errors(): self._create_stock_racks()
         if not self.has_errors() and self.include_dummy_output:
