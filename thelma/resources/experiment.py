@@ -9,6 +9,7 @@ from everest.entities.interfaces import IEntity
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.querying.specifications import DescendingOrderSpecification
 from everest.representers.dataelements import DataElementAttributeProxy
+from everest.representers.interfaces import IDataElement
 from everest.resources.base import Collection
 from everest.resources.base import Member
 from everest.resources.descriptors import attribute_alias
@@ -17,7 +18,6 @@ from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from everest.resources.staging import create_staging_collection
 from pyramid.httpexceptions import HTTPBadRequest
-from everest.representers.interfaces import IDataElement
 from thelma.automation.tools.metadata.ticket \
     import IsoRequestTicketDescriptionUpdater
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketActivator
@@ -31,7 +31,7 @@ from thelma.interfaces import IExperimentJob
 from thelma.interfaces import IExperimentMetadata
 from thelma.interfaces import IExperimentMetadataType
 from thelma.interfaces import IExperimentRack
-from thelma.interfaces import IIsoRequest
+from thelma.interfaces import ILabIsoRequest
 from thelma.interfaces import IMoleculeDesignPoolSet
 from thelma.interfaces import IPlate
 from thelma.interfaces import IRack
@@ -179,7 +179,7 @@ class ExperimentMetadataMember(Member):
     experiment_design_racks = \
             collection_attribute(IExperimentDesignRack,
                                  'experiment_design.design_racks')
-    iso_request = member_attribute(IIsoRequest, 'lab_iso_request')
+    iso_request = member_attribute(ILabIsoRequest, 'lab_iso_request')
     creation_date = terminal_attribute(datetime, 'creation_date')
     experiment_metadata_type = member_attribute(IExperimentMetadataType,
                                                 'experiment_metadata_type')

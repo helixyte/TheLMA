@@ -3,7 +3,7 @@ Tests for library creation base classes
 
 AAB
 """
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import check_attributes
 from thelma.automation.tools.libcreation.base \
     import get_source_plate_transfer_volume
 from thelma.automation.tools.libcreation.base \

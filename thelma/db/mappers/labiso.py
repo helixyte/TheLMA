@@ -1,7 +1,6 @@
 """
 Lab ISO mapper
 """
-
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
 from thelma.models.iso import ISO_TYPES

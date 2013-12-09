@@ -3,8 +3,9 @@ Tests the classes involved in stock condense worklist generation.
 
 AAB
 """
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
+from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.semiconstants import get_positions_for_shape
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
@@ -16,12 +17,11 @@ from thelma.automation.tools.stock.condense import StockCondenseRack
 from thelma.automation.tools.stock.condense import StockCondenseReportWriter
 from thelma.automation.tools.stock.condense import StockCondenser
 from thelma.automation.tools.worklists.tubehandler import XL20WorklistWriter
+from thelma.models.rack import RACK_TYPES
 from thelma.testing import ThelmaModelTestCase
 from thelma.tests.tools.tooltestingutils import FileComparisonUtils
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
 from thelma.tests.tools.tooltestingutils import TestingLog
-from thelma.models.rack import RACK_TYPES
-from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 
 
 class StockCondenseRackTestCase(ThelmaModelTestCase):

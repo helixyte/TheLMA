@@ -1,22 +1,20 @@
 """
 TheLMA response renderers.
 """
-from StringIO import StringIO
-from everest.interfaces import IUserMessageNotifier
-from everest.messaging import UserMessageHandlingContextManager
 from everest.mime import ZipMime
 from everest.renderers import ResourceRenderer
 from everest.resources.interfaces import IResource
-from everest.views.base import ViewUserMessageChecker
+from everest.views.base import WarnAndResubmitExecutor
 from pyramid.httpexceptions import HTTPBadRequest
-from pyramid.threadlocal import get_current_registry
 from thelma.automation.tools import experiment
 from thelma.automation.tools.experiment.batch import \
     ExperimentBatchWorklistWriter
 from thelma.automation.tools.iso import lab
+from thelma.mime import ExperimentZippedWorklistMime
+from thelma.mime import IsoJobZippedWorklistMime
+from thelma.mime import IsoZippedWorklistMime
+from thelma.utils import run_tool
 from zope.interface import providedBy as provided_by # pylint: disable=E0611,F0401
-import logging
-import transaction
 
 __docformat__ = "reStructuredText en"
 __all__ = ['ThelmaRendererFactory',
@@ -26,24 +24,24 @@ __all__ = ['ThelmaRendererFactory',
            'IsoJobWorklistRenderer',
            'IsoWorklistRenderer']
 
+
 class ThelmaRendererFactory(object):
     def __init__(self, info):
         self.__name = info.name
 
     def __call__(self, value, system):
-        if self.__name == 'thelma+zip;type=ExperimentMember':
+        if self.__name == ExperimentZippedWorklistMime.mime_type_string:
             rnd = ExperimentWorklistRenderer()
-        elif self.__name == 'thelma+zip;type=IsoMember':
+        elif self.__name == IsoZippedWorklistMime.mime_type_string:
             rnd = IsoWorklistRenderer()
-        elif self.__name == 'thelma+zip;type=IsoJobMember':
+        elif self.__name == IsoJobZippedWorklistMime.mime_type_string:
             rnd = IsoJobWorklistRenderer()
         else:
-            raise ValueError('Unknown renderer for' + self.__name)
+            raise ValueError('No renderer available for ' + self.__name)
         return rnd(value, system)
 
 
 class CustomRenderer(ResourceRenderer):
-
     def __call__(self, value, system):
         context = value.get('context', system.get('context'))
         if not IResource in provided_by(context):
@@ -64,26 +62,21 @@ class CustomRenderer(ResourceRenderer):
 
 
 class ExperimentWorklistRenderer(CustomRenderer):
-
     def __init__(self):
         CustomRenderer.__init__(self, ZipMime)
 
     def __call__(self, value, system):
         CustomRenderer.__call__(self, value, system)
         resource = value.get('context', system.get('context'))
-
-        checker = ViewUserMessageChecker()
-        with UserMessageHandlingContextManager(checker):
-            request = system['request']
-            params = request.params
-            stream = self.__create_experiment_worklist(resource, params)
-        if not checker.vote is True:
-            request.response = checker.create_307_response()
-            result = None
-        else:
-            out_stream = StringIO()
-            out_stream.write(stream.getvalue())
-            result = out_stream.getvalue()
+        request = system['request']
+        params = request.params
+        creat_exec = \
+            WarnAndResubmitExecutor(self.__create_experiment_worklist)
+        # We always want to roll back all changes.
+        request.response.headers['x-tm'] = 'abort'
+        result = creat_exec(resource, params)
+        if creat_exec.do_continue:
+            result = result.getvalue()
         return result
 
     def __create_experiment_worklist(self, resource, params):
@@ -95,144 +88,36 @@ class ExperimentWorklistRenderer(CustomRenderer):
                 tool = experiment.get_writer(experiment=entity)
             except TypeError as te:
                 raise HTTPBadRequest(str(te)).exception
-        zip_stream = tool.get_result()
-        transaction.abort()
-        warnings = tool.get_messages(logging.WARNING)
-        if len(warnings) > 0:
-            reg = get_current_registry()
-            msg_notifier = reg.getUtility(IUserMessageNotifier)
-            msg_notifier.notify(" -- ".join(warnings))
-        if zip_stream == None:
-            raise HTTPBadRequest(" -- ".join(tool.log.get_messages()))
-
-        return zip_stream
+        return run_tool(tool)
 
 
 class ZippedWorklistRenderer(CustomRenderer):
     def __init__(self):
         CustomRenderer.__init__(self, ZipMime)
 
-    def _run_tool(self, tool, always_abort=True):
-        zip_stream = tool.get_result()
-        # FIXME: This is gross.
-        # All the worklist generators simulate transfers to perform
-        # consistency checks; we do not want any of these transfers to be
-        # persisted.
-        if always_abort or zip_stream is None:
-            transaction.abort()
-        warnings = tool.get_messages(logging.WARNING)
-        if len(warnings) > 0:
-            reg = get_current_registry()
-            msg_notifier = reg.getUtility(IUserMessageNotifier)
-            msg_notifier.notify(" -- ".join(warnings))
-        if zip_stream is None:
-            raise HTTPBadRequest(" --".join(tool.log.get_messages()))
-        return zip_stream
-
-
-class IsoJobWorklistRenderer(ZippedWorklistRenderer):
-
-    def __call__(self, value, system):
-        CustomRenderer.__call__(self, value, system)
-        resource = value.get('context', system.get('context'))
-
-        checker = ViewUserMessageChecker()
-        with UserMessageHandlingContextManager(checker):
-            request = system['request']
-            params = request.params
-            if params['type'] == 'XL20':
-                stream = self.__create_xl20_worklist(resource, params)
-            elif params['type'] == 'CONTROL_STOCK_TRANSFER':
-                stream = self.__create_transfer_worklist(resource)
-#            elif params['type'] == 'FILL_CONTROL_STOCK_RACKS':
-#                stream = self.__fill_racks_for_testing(resource, request)
-            else:
-                raise HTTPBadRequest("Unknown work list type!").exception
-        if not checker.vote is True:
-            if params['type'] == 'XL20':
-                transaction.abort()
-            request.response = checker.create_307_response()
-            result = None
-        else:
-            out_stream = StringIO()
-            out_stream.write(stream.getvalue())
-            result = out_stream.getvalue()
-        return result
-
-    def __create_xl20_worklist(self, resource, params):
-        entity = resource.get_entity()
-        barcode = params['rack']
-        optimizer_excluded_racks = params['optimizer_excluded_racks']
-        optimizer_required_racks = params['optimizer_required_racks']
-        if len(optimizer_excluded_racks) > 0:
-            optimizer_excluded_racks = optimizer_excluded_racks.split(',')
-        else:
-            optimizer_excluded_racks = None
-        if len(optimizer_required_racks) > 0:
-            optimizer_required_racks = optimizer_required_racks.split(',')
-        else:
-            optimizer_required_racks = None
-        include_dummy_output = \
-            params.get('include_dummy_output') == 'true'
-        try:
-            tool = lab.get_stock_rack_assembler(entity=entity,
-                                    rack_barcodes=[barcode],
-                                    excluded_racks=optimizer_excluded_racks,
-                                    requested_tubes=optimizer_required_racks,
-                                    include_dummy_output=include_dummy_output)
-        except TypeError as te:
-            raise HTTPBadRequest(str(te)).exception
-        return self._run_tool(tool, always_abort=False)
-
-    def __create_transfer_worklist(self, resource):
-        entity = resource.get_entity()
-        try:
-            tool = lab.get_worklist_writer(entity=entity)
-        except TypeError as te:
-            raise HTTPBadRequest(str(te)).exception
-        return self._run_tool(tool)
-
-
-class IsoWorklistRenderer(ZippedWorklistRenderer):
-
     def __call__(self, value, system):
         CustomRenderer.__call__(self, value, system)
         resource = value.get('context', system.get('context'))
         request = system['request']
         params = request.params
-        checker = ViewUserMessageChecker()
-        with UserMessageHandlingContextManager(checker):
-            if params['type'] == 'XL20':
-                stream = self.__create_xl20_worklist_stream(resource, request)
-            elif params['type'] == 'ISO_PROCESSING':
-                stream = \
-                    self.__create_iso_processing_worklist_stream(resource)
-            else:
-                raise HTTPBadRequest("Unknown work list type!").exception
-        if not checker.vote is True:
-            if params['type'] == 'XL20':
-                transaction.abort()
-            request.response = checker.create_307_response()
+        options = self._extract_from_params(params)
+        wl_type = params['type']
+        create_exec = WarnAndResubmitExecutor(self._create_worklist_stream)
+        result = create_exec(resource, options, wl_type)
+        if not create_exec.do_continue:
+            if wl_type == 'XL20':
+                request.response.headers['x-tm'] = 'abort'
+            request.response = result
             result = None
         else:
-            if not params['type'] == 'XL20':
-                transaction.abort()
-            out_stream = StringIO()
-            out_stream.write(stream.getvalue())
-            result = out_stream.getvalue()
+            if wl_type == 'XL20':
+                request.response.headers['x-tm'] = 'abort'
+            result = result.getvalue()
         return result
 
-    def __create_xl20_worklist_stream(self, resource, request):
-        entity = resource.get_entity()
-        params = request.params
-        barcode1 = params['rack1']
-        barcode2 = params['rack2']
-        barcode3 = params['rack3']
-        barcode4 = params['rack4']
-        barcodes = [barcode1, barcode2, barcode3, barcode4]
-        optimizer_excluded_racks = params['optimizer_excluded_racks']
-        optimizer_required_racks = params['optimizer_required_racks']
-        include_dummy_output = params.get('include_dummy_output') == 'true'
+    def _extract_from_params(self, params):
+        optimizer_excluded_racks = params.get('optimizer_excluded_racks', '')
+        optimizer_required_racks = params.get('optimizer_required_racks', '')
         if len(optimizer_excluded_racks) > 0:
             optimizer_excluded_racks = optimizer_excluded_racks.split(',')
         else:
@@ -241,23 +126,56 @@ class IsoWorklistRenderer(ZippedWorklistRenderer):
             optimizer_required_racks = optimizer_required_racks.split(',')
         else:
             optimizer_required_racks = None
+        include_dummy_output = params.get('include_dummy_output') == 'true'
+        return dict(rack_barcodes=self._extract_barcodes(params),
+                    excluded_racks=optimizer_excluded_racks,
+                    requested_tubes=optimizer_required_racks,
+                    include_dummy_output=include_dummy_output)
 
-        del entity.iso_sample_stock_racks[:]
-        del entity.iso_sector_stock_racks[:]
+    def _create_worklist_stream(self, resource, options, worklist_type):
+        if worklist_type == 'XL20':
+            stream = self.__create_xl20_worklist_stream(resource, options)
+        elif worklist_type == 'CONTROL_STOCK_TRANSFER':
+            stream = self.__create_transfer_worklist_stream(resource)
+        else:
+            raise HTTPBadRequest("Unknown work list type!")
+        return stream
+
+    def __create_xl20_worklist_stream(self, resource, options):
+        entity = resource.get_entity()
+        while len(entity.iso_stock_racks) > 0:
+            entity.iso_stock_racks.pop()
+        while len(entity.iso_sector_stock_racks) > 0:
+            entity.iso_sector_stock_racks.pop()
         try:
             tool = lab.get_stock_rack_assembler(entity=entity,
-                        rack_barcodes=barcodes,
-                        excluded_racks=optimizer_excluded_racks,
-                        requested_tubes=optimizer_required_racks,
-                        include_dummy_output=include_dummy_output)
+                                                **options)
         except TypeError as te:
-            raise HTTPBadRequest(str(te)).exception
-        return self._run_tool(tool, always_abort=False)
+            raise HTTPBadRequest(str(te))
+        return run_tool(tool)
 
-    def __create_iso_processing_worklist_stream(self, resource):
+    def __create_transfer_worklist_stream(self, resource):
         entity = resource.get_entity()
         try:
             tool = lab.get_worklist_writer(entity=entity)
         except TypeError as te:
-            raise HTTPBadRequest(str(te)).exception
-        return self._run_tool(tool)
+            raise HTTPBadRequest(str(te))
+        return run_tool(tool)
+
+    def _extract_barcodes(self, params):
+        raise NotImplementedError('Abstract method.')
+
+
+class IsoJobWorklistRenderer(ZippedWorklistRenderer):
+    def _extract_barcodes(self, params):
+        rack = params['rack']
+        return [rack]
+
+
+class IsoWorklistRenderer(ZippedWorklistRenderer):
+    def _extract_barcodes(self, params):
+        barcode1 = params['rack1']
+        barcode2 = params['rack2']
+        barcode3 = params['rack3']
+        barcode4 = params['rack4']
+        return [barcode1, barcode2, barcode3, barcode4]

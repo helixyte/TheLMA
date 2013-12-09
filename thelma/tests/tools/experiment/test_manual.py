@@ -1,7 +1,7 @@
 """
 Test case for manual experiment updating (experiment rack filler classes)
 """
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import check_attributes
 from thelma.automation.tools.experiment.manual \
     import ExperimentRackFillerIsoLess
 from thelma.automation.tools.experiment.manual \

@@ -9,7 +9,7 @@ test setup would be rather complicated and basically redundant.
 
 AAB
 """
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import check_attributes
 from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.semiconstants import RACK_SPECS_NAMES
@@ -29,6 +29,7 @@ from thelma.automation.tools.iso.lab.planner import SectorContainer
 from thelma.automation.tools.iso.lab.planner import SectorPlateContainer
 from thelma.automation.tools.iso.lab.planner import _LocationContainer
 from thelma.automation.tools.iso.lab.planner import _PlateContainer
+from thelma.automation.tools.iso.lab.planner import _PoolContainer
 from thelma.automation.tools.iso.lab.planner import get_transfer_volume
 from thelma.automation.tools.stock.tubepicking import TubeCandidate
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
@@ -41,7 +42,6 @@ from thelma.interfaces import IPlannedSampleDilution
 from thelma.models.liquidtransfer import PlannedRackSampleTransfer
 from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
-from thelma.automation.tools.iso.lab.planner import _PoolContainer
 
 
 class LabIsoPlanningFunctionsTestCase(ToolsAndUtilsTestCase):

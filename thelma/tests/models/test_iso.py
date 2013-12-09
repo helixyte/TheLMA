@@ -5,9 +5,9 @@ Created on Jun 28, 2011
 """
 
 from datetime import datetime
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
-from everest.testing import persist
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
+from everest.repositories.rdb.testing import persist
 from thelma.interfaces import IIso
 from thelma.interfaces import IPlate
 from thelma.interfaces import IReservoirSpecs
@@ -16,6 +16,7 @@ from thelma.interfaces import IUser
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import Iso
 from thelma.models.iso import IsoAliquotPlate
+from thelma.models.iso import IsoJobPreparationPlate
 from thelma.models.iso import IsoJobStockRack
 from thelma.models.iso import IsoPreparationPlate
 from thelma.models.iso import IsoRequest
@@ -27,9 +28,8 @@ from thelma.models.iso import LabIsoRequest
 from thelma.models.iso import StockRack
 from thelma.models.iso import StockSampleCreationIso
 from thelma.models.iso import StockSampleCreationIsoRequest
-from thelma.testing import ThelmaEntityTestCase
 from thelma.models.rack import Plate
-from thelma.models.iso import IsoJobPreparationPlate
+from thelma.testing import ThelmaEntityTestCase
 
 
 class IsoRequestModelTestCase(ThelmaEntityTestCase):
@@ -488,8 +488,8 @@ class IsoPreparationPlateModelTest(IsoPlateModelTestCase):
     def test_equality(self):
         iso1 = self._create_lab_iso(label='iso1')
         iso2 = self._create_lab_iso(label='iso2')
-        plate1 = self._create_plate(id= -1)
-        plate2 = self._create_plate(id= -2)
+        plate1 = self._create_plate(id=-1)
+        plate2 = self._create_plate(id=-2)
         ipp1 = self._create_iso_preparation_plate(iso=iso1, rack=plate1)
         ipp2 = self._create_iso_preparation_plate(iso=iso1, rack=plate1)
         ipp3 = self._create_iso_preparation_plate(iso=iso2, rack=plate1)
@@ -525,8 +525,8 @@ class IsoSectorPreparationPlateModelTestCase(IsoPlateModelTestCase):
     def test_equality(self):
         iso1 = self._create_stock_sample_creation_iso(label='iso1')
         iso2 = self._create_stock_sample_creation_iso(label='iso2')
-        plate1 = self._create_plate(id= -1)
-        plate2 = self._create_plate(id= -2)
+        plate1 = self._create_plate(id=-1)
+        plate2 = self._create_plate(id=-2)
         sector1 = 1
         sector2 = 2
         ispp1 = self._create_iso_sector_preparation_plate(iso=iso1, rack=plate1,
@@ -569,8 +569,8 @@ class IsoAliquotPlateModelTest(IsoPlateModelTestCase):
     def test_equality(self):
         iso1 = self._create_lab_iso(label='iso1')
         iso2 = self._create_lab_iso(label='iso2')
-        plate1 = self._create_plate(id= -1)
-        plate2 = self._create_plate(id= -2)
+        plate1 = self._create_plate(id=-1)
+        plate2 = self._create_plate(id=-2)
         iap1 = self._create_iso_aliquot_plate(iso=iso1, rack=plate1)
         iap2 = self._create_iso_aliquot_plate(iso=iso1, rack=plate1)
         iap3 = self._create_iso_aliquot_plate(iso=iso2, rack=plate1)
@@ -601,10 +601,10 @@ class IsoJobPreparationPlateModelTest(ThelmaEntityTestCase):
         self._test_init()
 
     def test_equality(self):
-        ij1 = self._create_iso_job(id= -1)
-        ij2 = self._create_iso_job(id= -2)
-        plate1 = self._create_plate(id= -3)
-        plate2 = self._create_plate(id= -4)
+        ij1 = self._create_iso_job(id=-1)
+        ij2 = self._create_iso_job(id=-2)
+        plate1 = self._create_plate(id=-3)
+        plate2 = self._create_plate(id=-4)
         ijpp1 = self._create_iso_job_preparation_plate(iso_job=ij1, rack=plate1)
         ijpp2 = self._create_iso_job_preparation_plate(iso_job=ij1, rack=plate1)
         ijpp3 = self._create_iso_job_preparation_plate(iso_job=ij2, rack=plate1)

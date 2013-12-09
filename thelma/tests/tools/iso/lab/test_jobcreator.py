@@ -3,7 +3,7 @@ Tests job creation of lab ISO requests.
 
 AAB
 """
-from everest.testing import RdbContextManager
+from everest.repositories.rdb.testing import RdbContextManager
 from thelma.automation.tools.iso.lab.base import LABELS
 from thelma.automation.tools.iso.lab.jobcreator import LabIsoJobCreator
 from thelma.automation.tools.iso.lab.planner import LabIsoPlanner

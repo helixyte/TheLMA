@@ -1,7 +1,7 @@
 """
 Tests for classes involved in the population of pool creation ISOs
 """
-from everest.testing import RdbContextManager
+from everest.repositories.rdb.testing import RdbContextManager
 from thelma.automation.tools.libcreation.base import LibraryBaseLayout
 from thelma.automation.tools.libcreation.base import LibraryBaseLayoutPosition
 from thelma.automation.tools.libcreation.base import LibraryLayoutConverter

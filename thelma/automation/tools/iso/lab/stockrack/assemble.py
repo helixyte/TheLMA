@@ -103,7 +103,9 @@ class _StockRackAssembler(_StockRackAssigner):
         :type include_dummy_output: :class:`bool`
         :default include_dummy_output: *False*
         """
-        _StockRackAssigner.__init__(self, entity=entity,
+        _StockRackAssigner.__init__(self,
+                                    entity=entity,
+                                    rack_barcodes=rack_barcodes,
                                     **kw)
 
         #: A list of barcodes from stock racks that shall not be used for

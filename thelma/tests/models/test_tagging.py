@@ -4,8 +4,9 @@ test position set run length decoding
 AAB, May 06, 2011
 """
 
-from everest.testing import RdbContextManager
-from everest.testing import persist
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import persist
+from thelma.interfaces import IRackPositionSet
 from thelma.interfaces import IUser
 from thelma.models.rack import RackPosition
 from thelma.models.rack import RackPositionSet
@@ -16,7 +17,6 @@ from thelma.models.tagging import Tagged
 from thelma.models.tagging import TaggedRackPositionSet
 from thelma.models.user import User
 from thelma.testing import ThelmaModelTestCase
-from thelma.interfaces import IRackPositionSet
 
 
 class TagModelTest(ThelmaModelTestCase):

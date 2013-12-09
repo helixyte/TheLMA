@@ -4,7 +4,7 @@ Tests functions and classes of the stock base module
 AAB
 """
 from everest.entities.utils import get_root_aggregate
-from everest.testing import RdbContextManager
+from everest.repositories.rdb.testing import RdbContextManager
 from thelma.automation.tools.stock.base import RackLocationQuery
 from thelma.automation.tools.stock.base import get_default_stock_concentration
 from thelma.automation.tools.stock.base import get_stock_tube_specs_db_term

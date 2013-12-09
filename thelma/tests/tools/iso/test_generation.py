@@ -4,7 +4,7 @@ AAB, Jan 2012
 """
 
 
-from everest.testing import RdbContextManager
+from everest.repositories.rdb.testing import RdbContextManager
 from thelma.automation.tools.iso.generation import IsoGenerator
 from thelma.automation.tools.iso.generation import IsoRescheduler
 from thelma.automation.tools.iso.optimizer import IsoOptimizer

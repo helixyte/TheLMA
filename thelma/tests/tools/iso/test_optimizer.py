@@ -3,16 +3,16 @@ Tests the ISO generator tool
 AAB Aug 10, 2011
 """
 
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import check_attributes
 from thelma.automation.tools.iso.optimizer import IsoCandidate
 from thelma.automation.tools.iso.optimizer import IsoOptimizer
 from thelma.automation.tools.iso.prep_utils import PrepIsoLayout
 from thelma.automation.tools.iso.prep_utils import PrepIsoPosition
 from thelma.automation.tools.semiconstants import get_384_rack_shape
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.utils.base import TransferTarget
 from thelma.automation.tools.utils.base \
     import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import TransferTarget
 from thelma.interfaces import IOrganization
 from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
@@ -174,7 +174,7 @@ class IsoOptimizerTestCase(ToolsAndUtilsTestCase):
                             'the given molecule design pools and suppliers!')
 
     def test_supplier(self):
-        supplier = self._create_organization(name='invalid', id= -1)
+        supplier = self._create_organization(name='invalid', id=-1)
         self.__continue_setup()
         for prep_pos in self.preparation_layout.working_positions():
             if prep_pos.is_mock or prep_pos.is_floating: continue

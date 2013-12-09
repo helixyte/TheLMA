@@ -4,7 +4,7 @@ Created on May 25, 2011
 @author: berger
 """
 
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import check_attributes
 from thelma.testing import ThelmaModelTestCase
 
 class DeviceModelTest(ThelmaModelTestCase):

@@ -89,29 +89,29 @@ class ThelmaRdbAggregate(Aggregate):
         self.__count = None
         self.__data = None
 
-    def count(self):
-        if self.__count is None:
-            self._session._query_cls = CountingQuery # pylint: disable=W0212
-            try:
-                query = self._get_data_query()
-                query.load()
-                self.__data = query.data
-                self.__count = query.count
-            finally:
-                self._session._query_cls = Query # pylint: disable=W0212
-        return self.__count
-
-    def iterator(self):
-        if self.__data is None:
-            self._session._query_cls = CountingQuery # pylint: disable=W0212
-            try:
-                query = self._get_data_query()
-                query.load()
-                self.__data = query.data
-                self.__count = query.count
-            finally:
-                self._session._query_cls = Query # pylint: disable=W0212
-        return iter(self.__data)
+#    def count(self):
+#        if self.__count is None:
+#            self._session._query_cls = CountingQuery # pylint: disable=W0212
+#            try:
+#                query = self._get_data_query()
+#                query.load()
+#                self.__data = query.data
+#                self.__count = query.count
+#            finally:
+#                self._session._query_cls = Query # pylint: disable=W0212
+#        return self.__count
+#
+#    def iterator(self):
+#        if self.__data is None:
+#            self._session._query_cls = CountingQuery # pylint: disable=W0212
+#            try:
+#                query = self._get_data_query()
+#                query.load()
+#                self.__data = query.data
+#                self.__count = query.count
+#            finally:
+#                self._session._query_cls = Query # pylint: disable=W0212
+#        return iter(self.__data)
 
 
 class _QueryGenerators(object):

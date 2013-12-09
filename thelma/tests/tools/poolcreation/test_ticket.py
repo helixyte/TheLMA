@@ -3,7 +3,7 @@ Tests for pool stock sample creation ticket tools.
 
 AAB
 """
-from everest.testing import RdbContextManager
+from everest.repositories.rdb.testing import RdbContextManager
 from thelma.automation.tools.poolcreation.execution import PoolCreationExecutor
 from thelma.automation.tools.poolcreation.ticket \
     import PoolCreationStockLogFileWriter

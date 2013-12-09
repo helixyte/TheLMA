@@ -3,7 +3,7 @@ Created on Jun 20, 2011
 
 @author: berger
 '''
-from everest.testing import RdbContextManager
+from everest.repositories.rdb.testing import RdbContextManager
 from thelma.interfaces import IContainer
 from thelma.models.sample import Molecule
 from thelma.models.sample import Sample

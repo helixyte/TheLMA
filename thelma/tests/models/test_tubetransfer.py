@@ -4,9 +4,9 @@ Tube transfer model tests
 AAB
 """
 from datetime import datetime
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
-from everest.testing import persist
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
+from everest.repositories.rdb.testing import persist
 from everest.utils import id_generator
 from thelma.interfaces import ITube
 from thelma.interfaces import IUser

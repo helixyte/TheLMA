@@ -3,7 +3,7 @@ Tests for worklist series tools.
 
 AAB
 """
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import check_attributes
 from thelma.automation.semiconstants import get_384_rack_shape
 from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_item_status_managed

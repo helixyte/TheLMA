@@ -3,8 +3,8 @@ Tests for classes involved in the library creation ISO optimisation.
 
 AAB
 """
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
 from thelma.automation.tools.iso.optimizer import IsoCandidate
 from thelma.automation.tools.libcreation.base import POOL_STOCK_RACK_CONCENTRATION
 from thelma.automation.tools.libcreation.optimizer \
@@ -12,9 +12,9 @@ from thelma.automation.tools.libcreation.optimizer \
 from thelma.automation.tools.libcreation.optimizer import LibraryCandidate
 from thelma.automation.tools.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.stock.base import get_default_stock_concentration
-from thelma.automation.tools.utils.base import create_in_term_for_db_queries
 from thelma.automation.tools.utils.base \
     import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.tools.utils.base import create_in_term_for_db_queries
 from thelma.interfaces import IMoleculeDesign
 from thelma.models.moleculedesign import MoleculeDesignPool
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS

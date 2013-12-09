@@ -3,8 +3,8 @@ Test cases for model classes related to molecule design libraries.
 
 """
 
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.library import LibraryPlate
 from thelma.models.library import MoleculeDesignLibrary

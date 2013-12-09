@@ -4,8 +4,8 @@ Created on May 25, 2011
 @author: berger
 '''
 
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
 from thelma.models.species import Species
 from thelma.testing import ThelmaModelTestCase
 

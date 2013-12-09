@@ -4,8 +4,8 @@ Created on May 26, 2011
 @author: berger
 """
 
-from everest.testing import RdbContextManager
-from everest.testing import persist
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import persist
 from thelma.interfaces import IExperimentMetadataType
 from thelma.interfaces import IPlate
 from thelma.interfaces import IPlateSpecs

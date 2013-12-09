@@ -164,12 +164,6 @@ class IExperimentDesignRack(Interface):
     resources.
     """
 
-class IExperimentJob(Interface):
-    """
-    Marker interface indicating participation in experiment job
-    resources.
-    """
-
 class IExperimentMetadata(Interface):
     """
     Marker interface indicating participation in experiment meta data
@@ -202,7 +196,7 @@ class IIso(Interface):
     """
 
 
-class ILabIso(Interface):
+class ILabIso(IIso):
     """
     Marker interface indicating participation in lab ISO resources.
     """
@@ -215,25 +209,19 @@ class IStockSampleCreationIso(IIso):
     """
 
 
-class IIsoJob(Interface):
-    """
-    Marker interface indicating participation in ISO job resources.
-    """
-
-
 class IIsoRequest(Interface):
     """
     Marker interface indicating participation in ISO request resources.
     """
 
 
-class ILabIsoRequest(Interface):
+class ILabIsoRequest(IIsoRequest):
     """
     Marker interface indicating participation in lab ISO request resources.
     """
 
 
-class IStockSampleCreationIsoRequest(Interface):
+class IStockSampleCreationIsoRequest(IIsoRequest):
     """
     Marker interface indicating participation in stock sample creation ISO
     request resources.
@@ -249,6 +237,19 @@ class IItemStatus(Interface):
 class IJob(Interface):
     """
     Marker interface indicating participation in job resources.
+    """
+
+
+class IExperimentJob(Interface):
+    """
+    Marker interface indicating participation in experiment job
+    resources.
+    """
+
+
+class IIsoJob(IJob):
+    """
+    Marker interface indicating participation in ISO job resources.
     """
 
 

@@ -2,12 +2,11 @@
 Tests the tube handler tools.
 """
 from everest.entities.utils import get_root_aggregate
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
 from thelma.automation.tools.iso.generation import IsoGenerator
 from thelma.automation.tools.iso.prep_utils import PrepIsoLayoutConverter
 from thelma.automation.tools.iso.prep_utils import RequestedStockSample
-import logging
 from thelma.automation.tools.iso.stockworklist \
     import StockTransferWorklistGenerator384Single
 from thelma.automation.tools.iso.tubehandler \
@@ -48,6 +47,7 @@ from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
 from thelma.tests.tools.tooltestingutils import SilentLog
 from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
+import logging
 
 
 class TubeCandidateTestCase(ToolsAndUtilsTestCase):

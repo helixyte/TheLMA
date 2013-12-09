@@ -7,15 +7,17 @@ NP
 from datetime import datetime
 from everest.mime import AtomMime
 from everest.repositories.rdb import Session
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
+from everest.repositories.rdb.testing import persist
 from everest.representers.atom import XML_NS_ATOM
 from everest.representers.atom import XML_PREFIX_ATOM
 from everest.representers.utils import get_mapping_registry
+from everest.testing import EntityCreatorMixin as EverestEntityCreatorMixin
 from everest.testing import EntityTestCase
 from everest.testing import FunctionalTestCase
-from everest.testing import RdbContextManager
+from everest.testing import ResourceCreatorMixin as EverestResourceCreatorMixin
 from everest.testing import ResourceTestCase
-from everest.testing import check_attributes
-from everest.testing import persist
 from iso8601 import iso8601
 from lxml import etree
 from thelma.interfaces import IContainer
@@ -147,6 +149,7 @@ from thelma.resources.subproject import SubprojectMember
 from tractor import make_api_from_config
 import pytz
 import transaction
+from thelma.models.sample import StockSample
 
 __docformat__ = 'reStructuredText en'
 
@@ -168,7 +171,7 @@ def create_extra_environ():
     return dict(REMOTE_USER=REMOTE_USER)
 
 
-class EntityCreatorMixin(object):
+class EntityCreatorMixin(EverestEntityCreatorMixin):
     def _create_barcode_print_job(self, **kw):
         if not 'barcodes' in kw:
             kw['barcodes'] = '02480532'
@@ -659,6 +662,23 @@ class EntityCreatorMixin(object):
             kw['container'] = self._get_entity(IContainer)
         return self._create_entity(Sample, kw)
 
+    def _create_stock_sample(self, **kw):
+        if not 'volume' in kw:
+            kw['volume'] = 1.0e-5
+        if not 'container' in kw:
+            kw['container'] = self._get_entity(IContainer)
+        if not 'molecule_design_pool' in kw:
+            kw['molecule_design_pool'] = self._get_entity(IMoleculeDesignPool)
+        if not 'supplier' in kw:
+            kw['supplier'] = self._get_entity(IOrganization, 'ambion')
+        if not 'molecule_type' in kw:
+            kw['molecule_type'] = \
+                self._get_entity(IMoleculeType,
+                                 key=MOLECULE_TYPE_IDS.SIRNA.lower())
+        if not 'concentration' in kw:
+            kw['concentration'] = 5.0e-5
+        return self._create_entity(StockSample, kw)
+
     def _create_sample_molecule(self, **kw):
         if not 'molecule' in kw:
             kw['molecule'] = self._get_entity(IMolecule)
@@ -877,6 +897,7 @@ class ThelmaModelTestCase(EntityTestCase, EntityCreatorMixin):
         Session.remove()
         EntityTestCase.tear_down(self)
 
+
 class ThelmaEntityTestCase(ThelmaModelTestCase):
 
     model_class = None
@@ -910,8 +931,8 @@ class ThelmaEntityTestCase(ThelmaModelTestCase):
             persist(session, self.model_class, attrs, True)
 
     def _test_id_based_equality(self, create_meth, alt_create_meth=None):
-        ent1 = create_meth(id= -1)
-        ent2 = create_meth(id= -2)
+        ent1 = create_meth(id=-1)
+        ent2 = create_meth(id=-2)
         ent3 = create_meth(**self._get_data())
         ent3.id = ent1.id
         self.assert_not_equal(ent1, ent2)
@@ -924,24 +945,7 @@ class ThelmaEntityTestCase(ThelmaModelTestCase):
             self.assert_not_equal(ent1, alt_ent)
 
 
-class ThelmaResourceTestCase(ResourceTestCase, EntityCreatorMixin):
-    """
-    Test class for resources classes.
-    """
-    package_name = 'thelma'
-    ini_section_name = 'app:thelma'
-
-    def set_up(self):
-        Session.remove()
-        ResourceTestCase.set_up(self)
-        #
-        self.config.testing_securitypolicy("it")
-        self._request.environ.update(create_extra_environ())
-
-    def tear_down(self):
-        Session.remove()
-        ResourceTestCase.tear_down(self)
-
+class ResourceCreatorMixin(EntityCreatorMixin, EverestResourceCreatorMixin):
     def _get_entity(self, ifc, key=None):
         # This is needed by the entity creator mixin.
         mb = self._get_member(ifc, key=key)
@@ -1044,13 +1048,39 @@ class ThelmaResourceTestCase(ResourceTestCase, EntityCreatorMixin):
         return self._create_member(TubeRackSpecsMember, tube_rack_specs)
 
 
-class ThelmaFunctionalTestCase(FunctionalTestCase):
+class ThelmaResourceTestCase(ResourceTestCase, ResourceCreatorMixin):
+    """
+    Test class for resources classes.
+    """
+    package_name = 'thelma'
+    ini_section_name = 'app:thelma'
+
+    def set_up(self):
+        Session.remove()
+        ResourceTestCase.set_up(self)
+        #
+        self.config.testing_securitypolicy("it")
+        self._request.environ.update(create_extra_environ())
+
+    def tear_down(self):
+        Session.remove()
+        ResourceTestCase.tear_down(self)
+
+
+class ThelmaFunctionalTestCase(FunctionalTestCase, ResourceCreatorMixin):
     """
     A basic test class for client side actions.
     """
-
     package_name = 'thelma'
     app_name = 'thelma'
+
+    def set_up(self):
+        FunctionalTestCase.set_up(self)
+
+    def tear_down(self):
+        transaction.abort()
+        Session.remove()
+        FunctionalTestCase.tear_down(self)
 
     @property
     def find_elements(self):
@@ -1067,19 +1097,11 @@ class ThelmaFunctionalTestCase(FunctionalTestCase):
         return etree.XPath('count(/atom:feed/atom:entry)',
                            namespaces=self.__get_ns_map())
 
-    def set_up(self):
-        FunctionalTestCase.set_up(self)
-
     def _custom_configure(self):
         self.config.testing_securitypolicy("it")
 
     def _create_extra_environment(self):
         return create_extra_environ()
-
-    def tear_down(self):
-        transaction.abort()
-        Session.remove()
-        FunctionalTestCase.tear_down(self)
 
     def _parse_body(self, body):
         if isinstance(body, unicode):

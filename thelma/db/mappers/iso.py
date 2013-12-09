@@ -3,7 +3,6 @@ ISO mapper.
 """
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
-from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship
 from thelma.models.iso import ISO_TYPES
 from thelma.models.iso import Iso
@@ -59,8 +58,4 @@ def create_mapper(iso_tbl, job_tbl, iso_job_member_tbl, iso_pool_set_tbl):
                polymorphic_on=iso_tbl.c.iso_type,
                polymorphic_identity=ISO_TYPES.BASE,
                )
-    if isinstance(Iso.slug, property):
-        Iso.slug = hybrid_property(
-                            Iso.slug.fget,
-                            expr=lambda cls: as_slug_expression(cls.label))
     return m

@@ -387,7 +387,9 @@ class EventRecording(object):
             error_types = {ValueError, TypeError, AttributeError}
         elif isinstance(error_types, StandardError):
             error_types = set([error_types])
-
+        elif isinstance(error_types, type) \
+             and issubclass(error_types, StandardError):
+            error_types = (error_types,)
         try:
             return_value = meth(**kw)
         except StandardError as e:

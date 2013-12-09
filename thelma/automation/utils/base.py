@@ -6,6 +6,7 @@ Utility methods and classes for tools.
 """
 from math import ceil
 from sqlalchemy.orm.exc import NoResultFound
+from sqlalchemy.orm.query import Query
 
 
 __docformat__ = "reStructuredText en"
@@ -349,9 +350,11 @@ class CustomQuery(object):
 
         self._results = self.RESULT_COLLECTION_CLS() #pylint: disable=E1102
         column_names = tuple(self.COLUMN_NAMES)
+        query_options = dict(query_class=Query)
         try:
-            results = session.query(*column_names).from_statement(
-                                                    self.sql_statement).all()
+            results = session.query(*column_names, **query_options) \
+                             .from_statement(self.sql_statement) \
+                             .all()
         except NoResultFound:
             raise ValueError('The tube picking query did not return any ' \
                              'result!')

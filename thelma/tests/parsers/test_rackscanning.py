@@ -4,7 +4,7 @@ Tests the rack scanning output file parser und handler.
 AAB
 """
 from datetime import datetime
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import check_attributes
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 from thelma.automation.handlers.rackscanning import RackScanningLayout
 from thelma.automation.handlers.rackscanning import \

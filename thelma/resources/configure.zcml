@@ -1318,7 +1318,7 @@
     <resource
         interface="thelma.interfaces.ILabIso"
         member=".iso.LabIsoMember"
-        collection_root_name="lab-collection-isos"
+        collection_root_name="lab-isos"
         entity="thelma.models.iso.LabIso"
     >
     </resource>
@@ -1328,7 +1328,7 @@
     <resource
         interface="thelma.interfaces.IStockSampleCreationIso"
         member=".iso.StockSampleCreationIsoMember"
-        collection_root_name="stock-sample-creation-collection-isos"
+        collection_root_name="stock-sample-creation-isos"
         entity="thelma.models.iso.StockSampleCreationIso"
     >
     </resource>
@@ -1383,7 +1383,7 @@
     <resource
         interface="thelma.interfaces.ILabIsoRequest"
         member=".iso.LabIsoRequestMember"
-        collection_root_name="lab-iso-requests"
+        collection=".iso.LabIsoRequestCollection"
         entity="thelma.models.iso.LabIsoRequest"
     >
         <representer content_type="everest.mime.XmlMime">
@@ -1434,6 +1434,9 @@
             kind="collection"
             content_type="everest.mime.XmlMime"
         >
+            <option
+                name="xml_tag"
+                value="lab_iso_requests" />
             <attribute name="rack_layout">
                 <option
                     name="write_as_link"
@@ -1445,7 +1448,7 @@
     <resource
         interface="thelma.interfaces.IStockSampleCreationIsoRequest"
         member=".iso.StockSampleCreationIsoRequestMember"
-        collection_root_name="stock-sample-creation-iso-requests"
+        collection=".iso.StockSampleIsoRequestCollection"
         entity="thelma.models.iso.StockSampleCreationIsoRequest"
     >
     </resource>

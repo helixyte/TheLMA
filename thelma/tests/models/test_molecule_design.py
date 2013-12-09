@@ -3,9 +3,9 @@ Created on Jun 20, 2011
 
 @author: berger
 '''
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
-from everest.testing import persist
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
+from everest.repositories.rdb.testing import persist
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import IMoleculeType
 from thelma.models.chemicalstructure import CompoundChemicalStructure
