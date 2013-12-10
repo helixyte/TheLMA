@@ -1,0 +1,34 @@
+Processing Instructions for ISO "123_iso_01"
+============================================
+
+
+The ISO job must be processed before you start processing the specific ISOs.
+
+
+Buffer Additions
+----------------
+
+STEP 1:
+Worklist "123_1_a_buffer": Adding buffer to plate final plate(s).
+
+
+Transfers from the Stock
+------------------------
+
+STEP 2:
+Worklist "123_2_s#2_to_a": Transfer of sample from stock rack 09999012 (123_iso_01_s#2) to plate final plate(s) (sector: 1, use CyBio).
+
+STEP 3:
+Worklist "123_3_s#3_to_a": Transfer of sample from stock rack 09999013 (123_iso_01_s#3) to plate final plate(s) (sector: 2, use CyBio).
+
+
+Processing Steps (Other Transfers)
+----------------------------------
+
+There are no further transfers required after the sample transfer from the stock (for the lab ISO).
+
+
+Final ISO Plates
+----------------
+
+09999210 (123_iso_01_a)

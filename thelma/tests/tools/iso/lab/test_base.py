@@ -4,6 +4,7 @@ Base classes, functions and constants involved in lab ISO processing tasks.
 AAB
 """
 from thelma.automation.semiconstants import get_rack_position_from_label
+from thelma.automation.tools.iso.base import IsoRackContainer
 from thelma.automation.tools.iso.lab.base import FinalLabIsoLayout
 from thelma.automation.tools.iso.lab.base import FinalLabIsoLayoutConverter
 from thelma.automation.tools.iso.lab.base import FinalLabIsoParameters
@@ -17,6 +18,7 @@ from thelma.automation.tools.iso.lab.base import LabIsoPrepLayout
 from thelma.automation.tools.iso.lab.base import LabIsoPrepLayoutConverter
 from thelma.automation.tools.iso.lab.base import LabIsoPrepParameters
 from thelma.automation.tools.iso.lab.base import LabIsoPrepPosition
+from thelma.automation.tools.iso.lab.base import create_instructions_writer
 from thelma.automation.tools.iso.lab.base import get_stock_takeout_volume
 from thelma.automation.tools.stock.tubepicking import TubeCandidate
 from thelma.automation.utils.layouts import EMPTY_POSITION_TYPE
@@ -26,6 +28,10 @@ from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
 from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
 from thelma.automation.utils.layouts import TransferTarget
 from thelma.models.tagging import Tag
+from thelma.tests.tools.iso.lab.utils import LAB_ISO_TEST_CASES
+from thelma.tests.tools.iso.lab.utils import LabIsoTestCase2
+from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
+from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 from thelma.tests.tools.utils.utils import ConverterTestCase
 from thelma.tests.tools.utils.utils import MoleculeDesignPoolBaseTestCase
@@ -210,13 +216,12 @@ class _LabIsoClassesBaseTestCase(MoleculeDesignPoolBaseTestCase):
                           self.POS_CLS.MISSING_FLOATING)
         self.assert_true(copy1.is_missing_floating)
         equal_attrs = ['volume', 'concentration', 'sector_index',
-                       'rack_position']
+                       'rack_position', 'stock_rack_marker']
         if not add_equal_attrs is None:
             equal_attrs += add_equal_attrs
         for attr_name in equal_attrs:
             self.assert_equal(getattr(lip, attr_name),
                               getattr(copy1, attr_name))
-        self.assert_is_none(copy1.stock_rack_marker)
         self.assert_equal(len(copy1.transfer_targets), 0)
 
     def _test_create_completed_copy(self, add_equal_attrs=None):
@@ -1061,5 +1066,197 @@ class LabIsoPrepLayoutConverterTestCase(_LabIsoLayoutBaseConverterTestCase,
         self._test_invalid_rack_layout('There are duplicate target ' \
                         'positions: parameter "external targets": "int-A7"!')
 
-#: TODO:
-#class InstructionWriterTestCase():
+class _InstructionWriterTestCase(LabIsoTestCase2, FileCreatorTestCase):
+
+    def set_up(self):
+        LabIsoTestCase2.set_up(self)
+        self.log = TestingLog()
+        self.rack_containers = []
+        self.WL_PATH = LAB_ISO_TEST_CASES.INSTRUCTIONS_FILE_PATH
+
+    def tear_down(self):
+        LabIsoTestCase2.tear_down(self)
+        del self.rack_containers
+
+    def _create_tool(self):
+        self.tool = create_instructions_writer(log=self.log, entity=self.entity,
+                        iso_request=self.iso_request,
+                        rack_containers=self.rack_containers)
+
+    def _continue_setup(self, file_name=None):
+        LabIsoTestCase2._continue_setup(self, file_name=file_name)
+        self._generate_stock_racks(self.entity)
+        self.__create_rack_containers()
+        self._create_tool()
+
+    def __create_rack_containers(self):
+        for label, rack in self.rack_generator.label_map.iteritems():
+            value_parts = LABELS.parse_rack_label(label)
+            role = value_parts[LABELS.MARKER_RACK_ROLE]
+            if not self.FOR_JOB and not self.entity.label in label:
+                continue
+            elif role == LABELS.ROLE_PREPARATION_JOB and not self.FOR_JOB:
+                continue
+            rack_marker = value_parts[LABELS.MARKER_RACK_MARKER]
+            rack_container = IsoRackContainer(rack=rack, role=role,
+                                rack_marker=rack_marker, label=label)
+            self.rack_containers.append(rack_container)
+        for iso_label, iso in self.isos.iteritems():
+            plate_labels = LAB_ISO_TEST_CASES.get_final_plate_labels(self.case)\
+                                                                    [iso_label]
+            is_single_plate = (len(plate_labels) == 1)
+            for lib_plate in iso.library_plates:
+                rack = lib_plate.rack
+                if is_single_plate:
+                    rack_marker = LABELS.ROLE_FINAL
+                else:
+                    ind = plate_labels.index(rack.label)
+                    rack_marker = LABELS.create_rack_marker(LABELS.ROLE_FINAL,
+                                                        rack_number=(ind + 1))
+                rack_container = IsoRackContainer(rack=rack,
+                                rack_marker=rack_marker, label=rack.label,
+                                role=LABELS.ROLE_FINAL)
+                self.rack_containers.append(rack_container)
+
+    def _test_and_expect_success(self, case_name):
+        self._load_iso_request(case_name)
+
+    def __check_result(self):
+        tool_stream = self.tool.get_result()
+        self.assert_is_not_none(tool_stream)
+        fn = LAB_ISO_TEST_CASES.get_instruction_file(self.case, self.FOR_JOB)
+        self._compare_txt_file_stream(tool_stream, fn)
+
+    def _test_invalid_input_values(self):
+        self._load_iso_request(LAB_ISO_TEST_CASES.CASE_ORDER_ONLY)
+        if self.FOR_JOB:
+            alt_entity = self.isos[self._USED_ISO_LABEL]
+            exp_msg = 'The entity must be a IsoJob object (obtained: LabIso)'
+        else:
+            alt_entity = self.iso_job
+            exp_msg = 'The entity must be a LabIso object (obtained: IsoJob)'
+        self._create_tool()
+        self.tool.entity = alt_entity
+        res = self.tool.get_result()
+        self.assert_is_none(res)
+        self._check_error_messages(exp_msg)
+        ori_ir = self.iso_request
+        self.iso_request = self.iso_request.label
+        self._test_and_expect_errors('The ISO request must be a ' \
+                                     'LabIsoRequest object (obtained: str)')
+        self.iso_request = ori_ir
+        ori_containers = self.rack_containers
+        self.rack_containers = dict()
+        self._test_and_expect_errors('The rack container list must be a ' \
+                                     'list object (obtained: dict)')
+        self.rack_containers = [1, ori_containers[0]]
+        self._test_and_expect_errors('The rack container must be a ' \
+                                     'IsoRackContainer object (obtained: int)')
+
+
+class LabIsoInstructionsWriterTestCase(_InstructionWriterTestCase):
+
+    FOR_JOB = False
+
+    def test_case_order_only(self):
+        self._test_and_expect_success(LAB_ISO_TEST_CASES.CASE_ORDER_ONLY)
+
+    def test_case_no_job_direct(self):
+        self._test_and_expect_success(LAB_ISO_TEST_CASES.CASE_NO_JOB_DIRECT)
+
+    def test_case_no_job_1_prep(self):
+        self._test_and_expect_success(LAB_ISO_TEST_CASES.CASE_NO_JOB_1_PREP)
+
+    def test_case_no_job_complex(self):
+        self._test_and_expect_success(LAB_ISO_TEST_CASES.CASE_NO_JOB_COMPLEX)
+
+    def test_case_association_direct(self):
+        self._test_and_expect_success(
+                            LAB_ISO_TEST_CASES.CASE_ASSOCIATION_DIRECT)
+
+    def test_case_association_96(self):
+        self._test_and_expect_success(LAB_ISO_TEST_CASES.CASE_ASSOCIATION_96)
+
+    def test_case_association_simple(self):
+        self._test_and_expect_success(
+                            LAB_ISO_TEST_CASES.CASE_ASSOCIATION_SIMPLE)
+
+    def test_case_association_no_cybio(self):
+        self._test_and_expect_success(
+                            LAB_ISO_TEST_CASES.CASE_ASSOCIATION_NO_CYBIO)
+
+    def test_case_association_2_aliquots(self):
+        self._test_and_expect_success(
+                            LAB_ISO_TEST_CASES.CASE_ASSOCIATION_2_ALIQUOTS)
+
+    def test_case_assocation_job_last(self):
+        self._test_and_expect_success(
+                            LAB_ISO_TEST_CASES.CASE_ASSOCIATION_JOB_LAST)
+
+    def test_case_association_several_conc(self):
+        self._test_and_expect_success(
+                            LAB_ISO_TEST_CASES.CASE_ASSOCIATION_SEVERAL_CONC)
+
+    def test_case_library_simple(self):
+        self._test_and_expect_success(LAB_ISO_TEST_CASES.CASE_LIBRARY_SIMPLE)
+
+    def test_case_library_2_aliquots(self):
+        self._test_and_expect_success(
+                            LAB_ISO_TEST_CASES.CASE_LIBRARY_2_ALIQUOTS)
+
+    def test_invalid_input_values(self):
+        self._test_invalid_input_values()
+
+
+class LabIsoJobInstructionsWriterTestCase(_InstructionWriterTestCase):
+
+    FOR_JOB = True
+
+    def test_case_order_only(self):
+        self._test_and_expect_success(LAB_ISO_TEST_CASES.CASE_ORDER_ONLY)
+
+    def test_case_no_job_direct(self):
+        self._test_and_expect_success(LAB_ISO_TEST_CASES.CASE_NO_JOB_DIRECT)
+
+    def test_case_no_job_1_prep(self):
+        self._test_and_expect_success(LAB_ISO_TEST_CASES.CASE_NO_JOB_1_PREP)
+
+    def test_case_no_job_complex(self):
+        self._test_and_expect_success(LAB_ISO_TEST_CASES.CASE_NO_JOB_COMPLEX)
+
+    def test_case_association_direct(self):
+        self._test_and_expect_success(
+                            LAB_ISO_TEST_CASES.CASE_ASSOCIATION_DIRECT)
+
+    def test_case_association_96(self):
+        self._test_and_expect_success(LAB_ISO_TEST_CASES.CASE_ASSOCIATION_96)
+
+    def test_case_association_simple(self):
+        self._test_and_expect_success(
+                            LAB_ISO_TEST_CASES.CASE_ASSOCIATION_SIMPLE)
+
+    def test_case_association_no_cybio(self):
+        self._test_and_expect_success(
+                            LAB_ISO_TEST_CASES.CASE_ASSOCIATION_NO_CYBIO)
+
+    def test_case_association_2_aliquots(self):
+        self._test_and_expect_success(
+                            LAB_ISO_TEST_CASES.CASE_ASSOCIATION_2_ALIQUOTS)
+
+    def test_case_assocation_job_last(self):
+        self._test_and_expect_success(
+                            LAB_ISO_TEST_CASES.CASE_ASSOCIATION_JOB_LAST)
+
+    def test_case_association_several_conc(self):
+        self._test_and_expect_success(
+                            LAB_ISO_TEST_CASES.CASE_ASSOCIATION_SEVERAL_CONC)
+
+    def test_case_library_simple(self):
+        self._test_and_expect_success(LAB_ISO_TEST_CASES.CASE_LIBRARY_SIMPLE)
+
+    def test_case_library_2_aliquots(self):
+        self._test_and_expect_success(
+                            LAB_ISO_TEST_CASES.CASE_LIBRARY_2_ALIQUOTS)
+
+    def test_invalid_input_values(self):
+        self._test_invalid_input_values()

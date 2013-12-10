@@ -7,6 +7,7 @@ from thelma.automation.utils.base import CustomQuery
 from thelma.automation.utils.base import create_in_term_for_db_queries
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 from thelma.models.moleculetype import MoleculeType
+from thelma.automation.semiconstants import RACK_SHAPE_NAMES
 
 
 __docformat__ = 'reStructuredText en'
@@ -16,7 +17,8 @@ __all__ = ['STOCK_DEAD_VOLUME',
            'STOCK_ITEM_STATUS',
            'STOCK_TUBE_SPECS',
            'STOCK_CONCENTRATIONS',
-           'STOCK_RACK_SIZE',
+           'STOCK_RACK_SHAPE_NAME'
+           'get_stock_rack_shape',
            'STOCKMANAGEMENT_USER',
            'get_default_stock_concentration',
            'RackLocationQuery']
@@ -30,12 +32,24 @@ STOCK_MIN_TRANSFER_VOLUME = 1
 STOCK_ITEM_STATUS = 'MANAGED'
 #: The tube specs a stock tube can have.
 STOCK_TUBE_SPECS = ('MATRIX0500', 'MATRIX1400')
-#: The number of positions in a stock rack.
-STOCK_RACK_SIZE = 96
+#: The name of the :class:`RackShape` for stock racks.
+STOCK_RACK_SHAPE_NAME = RACK_SHAPE_NAMES.SHAPE_96
 
 #: The trac name for the stock management user.
 STOCKMANAGEMENT_USER = 'stockmanagement'
 
+
+def get_stock_rack_shape():
+    """
+    Returns the :class:`thelma.models.rack.RackShape` for stock racks.
+    """
+    return RACK_SHAPE_NAMES.from_name(STOCK_RACK_SHAPE_NAME)
+
+def get_stock_rack_size():
+    """
+    Returns the number of available positions in a stock rack.
+    """
+    return get_stock_rack_shape().size
 
 def get_stock_tube_specs_db_term():
     """

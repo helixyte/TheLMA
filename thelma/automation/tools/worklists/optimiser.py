@@ -116,8 +116,6 @@ class BiomekLayoutOptimizer(BaseAutomationTool):
 
         #: The rack shape of the source layout.
         self.__source_rack_shape = None
-        #: Do source plate and cell plate have the same rack shape?
-        self.__have_equal_shape = None
 
         #: The minimum distance in rows two well of a column must have for
         #: the Biomek to pipet them together. The value is 1 for 384-well
@@ -143,7 +141,6 @@ class BiomekLayoutOptimizer(BaseAutomationTool):
         self._hash_values = set()
         self._column_maps = dict()
         self.__source_rack_shape = None
-        self.__have_equal_shape = None
         self.__trg_min_row_distance = None
         self.__src_min_row_distance = None
         self.__subcolumn_tids = dict()
@@ -159,10 +156,11 @@ class BiomekLayoutOptimizer(BaseAutomationTool):
 
         self._check_input()
         if not self.has_errors(): self._find_hash_values()
-        if not self.has_errors(): self.__init_source_layout()
+        if not self.has_errors(): self.__set_source_values()
         if not self.has_errors():
-            if self.__have_equal_shape:
-                self.__sort_one_to_one()
+            have_equal_shape = self.__source_rack_shape \
+                               == self._get_target_layout_shape()
+            if have_equal_shape: self.__sort_one_to_one()
             if len(self._source_layout) < 1:
                 # one to one not possible (incl. trial and failure)
                 self.__split_into_subcolumns()
@@ -184,10 +182,11 @@ class BiomekLayoutOptimizer(BaseAutomationTool):
         """
         raise NotImplementedError('Abstract method.')
 
-    def __init_source_layout(self):
+    def __set_source_values(self):
         """
-        If there is less than 97 distinct hash values, we can us a 96-well
-        plate.
+        There are two sizes available: 96 positions and 384 positions. If
+        possible (less than 97 distinct hash values), we use the smaller one.
+        Also sets the source rack shape and minimum row distances.
         """
         self.add_debug('Determine rack shape ...')
 
@@ -200,25 +199,29 @@ class BiomekLayoutOptimizer(BaseAutomationTool):
                   % (len(self._hash_values), large_shape.size)
             self.add_error(msg)
         elif len(self._hash_values) > small_shape.size:
-            self.__source_rack_shape = large_shape
+            source_rack_shape = large_shape
         else:
-            self.__source_rack_shape = small_shape
+            source_rack_shape = small_shape
 
         if not self.has_errors():
-            # all design rack layouts have the same rack shape
+            self._source_layout = self._init_source_layout(source_rack_shape)
+            self.__source_rack_shape = self._source_layout.shape
+            if self.__source_rack_shape.name == RACK_SHAPE_NAMES.SHAPE_384:
+                self.__src_min_row_distance = 1
+            else:
+                self.__src_min_row_distance = 0
             target_layout_shape = self._get_target_layout_shape()
             if target_layout_shape.name == RACK_SHAPE_NAMES.SHAPE_384:
                 self.__trg_min_row_distance = 1
             else:
                 self.__trg_min_row_distance = 0
-            if self.__source_rack_shape.name == RACK_SHAPE_NAMES.SHAPE_384:
-                self.__src_min_row_distance = 1
-            else:
-                self.__src_min_row_distance = 0
-            self.__have_equal_shape = self.__source_rack_shape \
-                                      == target_layout_shape
-            self._source_layout = self.SOURCE_LAYOUT_CLS(
-                                            shape=self.__source_rack_shape)
+
+    def _init_source_layout(self, source_layout_shape):
+        """
+        By default, we initialize a layout of the :attr:`SOURCE_LAYOUT_CLS`
+        with the :attr:`__source_rack_shape`.
+        """
+        return self.SOURCE_LAYOUT_CLS(shape=source_layout_shape)
 
     def _get_target_layout_shape(self):
         """

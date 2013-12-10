@@ -1,0 +1,38 @@
+Processing Instructions for ISO job "123_job_01"
+================================================
+
+
+There is no ISO processing required for this ISO preparation. All required steps are performed via the job.
+
+
+Buffer Additions
+----------------
+
+STEP 1:
+Worklist "123_1_jp_buffer": Adding buffer to plate 09999900 (123_job_01_jp).
+
+STEP 2:
+Worklist "123_2_a_buffer": Adding buffer to plate final plate(s).
+
+
+Transfers from the Stock
+------------------------
+
+STEP 3:
+Worklist "123_1_s#1_to_jp": Transfer of sample from stock rack 09999001 (123_job_01_s#1) to plate 09999900 (123_job_01_jp).
+
+
+Processing Steps (Other Transfers)
+----------------------------------
+
+STEP 4:
+Worklist "123_3_jp_to_a": Transferring samples from 09999900 (123_job_01_jp) to final plate(s)
+
+
+Final ISO Plates
+----------------
+
+08888812 (testlib_l1_r2)
+08888813 (testlib_l1_r3)
+08888822 (testlib_l2_r2)
+08888823 (testlib_l2_r3)

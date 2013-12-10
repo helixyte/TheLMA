@@ -14,8 +14,8 @@ from thelma.automation.semiconstants import get_rack_position_from_indices
 from thelma.automation.tools.base import SessionTool
 from thelma.automation.tools.stock.base import RackLocationQuery
 from thelma.automation.tools.stock.base import STOCK_ITEM_STATUS
-from thelma.automation.tools.stock.base import STOCK_RACK_SIZE
 from thelma.automation.tools.stock.base import STOCK_TUBE_SPECS
+from thelma.automation.tools.stock.base import get_stock_rack_size
 from thelma.automation.tools.stock.base import get_stock_tube_specs_db_term
 from thelma.automation.tools.worklists.tubehandler import TubeTransferData
 from thelma.automation.tools.worklists.tubehandler import XL20WorklistWriter
@@ -91,6 +91,9 @@ class StockCondenser(SessionTool):
         self.excluded_racks = excluded_racks
         if excluded_racks is None: self.excluded_racks = []
 
+        #: The number of positions in a stock rack.
+        self.__stock_rack_size = None
+
         #: Maps :class:`StockCondenseRack` objects onto tube counts.
         self.__tube_count_map = None
 
@@ -122,6 +125,7 @@ class StockCondenser(SessionTool):
         Resets all values except for initialisation values.
         """
         SessionTool.reset(self)
+        self.__stock_rack_size = get_stock_rack_size()
         self.__tube_count_map = None
         self.__donor_racks = dict()
         self.__receiver_racks = dict()
@@ -235,7 +239,7 @@ class StockCondenser(SessionTool):
             tube_counts = self.__tube_count_map.keys()
             tube_counts.sort()
             tube_count = tube_counts[0]
-            if tube_count > (STOCK_RACK_SIZE / 2): break
+            if tube_count > (self.__stock_rack_size / 2): break
 
             condense_racks = self.__tube_count_map[tube_count]
             potential_donor = condense_racks.pop()
@@ -272,7 +276,7 @@ class StockCondenser(SessionTool):
                 occupied_positions = receiver.tube_count
             else:
                 occupied_positions = receiver.resulting_tube_count
-            free_positions = STOCK_RACK_SIZE - occupied_positions
+            free_positions = self.__stock_rack_size - occupied_positions
             transferred_tubes = min(free_positions, remaining_tubes)
             associations[receiver.rack_barcode] = transferred_tubes
             remaining_tubes -= transferred_tubes
@@ -290,7 +294,7 @@ class StockCondenser(SessionTool):
                                     rack_barcode=donor_rack.rack_barcode)
             self.__receiver_racks[receiver_barcode] = receiver
             resulting_receiver_tubes = receiver.resulting_tube_count
-            if resulting_receiver_tubes < STOCK_RACK_SIZE:
+            if resulting_receiver_tubes < self.__stock_rack_size:
                 add_list_map_element(self.__tube_count_map,
                                      resulting_receiver_tubes, receiver)
 
@@ -302,7 +306,7 @@ class StockCondenser(SessionTool):
         Finds a rack to take up tubes of a donor rack.
         """
         # try to find an excat match
-        receiver_tube_count = STOCK_RACK_SIZE - donor_tube_count
+        receiver_tube_count = self.__stock_rack_size - donor_tube_count
         receiver = self.__get_rack_for_tube_count(receiver_tube_count)
         if not receiver is None: return receiver
         if self.__look_for_exact_matches: return None
@@ -318,16 +322,16 @@ class StockCondenser(SessionTool):
             return None
 
         # try to find a rack with less free positions
-        while receiver_tube_count < STOCK_RACK_SIZE:
+        while receiver_tube_count < self.__stock_rack_size:
             receiver_tube_count += 1
-            if receiver_tube_count == STOCK_RACK_SIZE: # no rack
+            if receiver_tube_count == self.__stock_rack_size: # no rack
                 break
             receiver = self.__get_rack_for_tube_count(receiver_tube_count)
             if not receiver is None: return receiver
 
         # take a rack with more free positions
         # There is at least one rack left ...
-        receiver_tube_count = STOCK_RACK_SIZE - donor_tube_count
+        receiver_tube_count = self.__stock_rack_size - donor_tube_count
         while receiver_tube_count > 0:
             receiver_tube_count -= 1
             receiver = self.__get_rack_for_tube_count(receiver_tube_count)
@@ -678,7 +682,7 @@ class CondenseRackQuery(CustomQuery):
     def _get_params_for_sql_statement(self):
         tube_specs = get_stock_tube_specs_db_term()
         return (tube_specs, STOCK_ITEM_STATUS, tube_specs, STOCK_ITEM_STATUS,
-                STOCK_RACK_SIZE)
+                get_stock_rack_size())
 
     def _store_result(self, result_record):
         rack_barcode = result_record[self.RACK_BARCODE_INDEX]

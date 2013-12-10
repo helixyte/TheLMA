@@ -3,9 +3,9 @@ Base classes, functions and constants for ISO processing (type-independent).
 
 AAB
 """
-from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
+from thelma.automation.tools.stock.base import get_stock_rack_shape
 from thelma.automation.tools.worklists.series import SerialWriterExecutorTool
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.converters import TransferLayoutConverter
@@ -169,6 +169,9 @@ class IsoRackContainer(object):
     def __eq__(self, other):
         return isinstance(other, self.__class__) and other.rack == self.rack
 
+    def __cmp__(self, other):
+        return cmp(self.label, other.label)
+
     def __str__(self):
         return self.label
 
@@ -299,7 +302,7 @@ class StockRackLayout(TransferLayout):
         """
         Constructor
         """
-        TransferLayout.__init__(self, shape=get_96_rack_shape())
+        TransferLayout.__init__(self, shape=get_stock_rack_shape())
 
     def get_duplicate_molecule_design_pools(self):
         """

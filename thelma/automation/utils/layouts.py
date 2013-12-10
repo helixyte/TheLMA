@@ -1265,8 +1265,9 @@ class TransferTarget(object):
             return '"%s-%s"' % (self.target_rack_marker, self.position_label)
 
     def __repr__(self):
-        str_format = '<TransferTarget %s (volume: %s)>'
-        params = (self.position_label, self.transfer_volume)
+        str_format = '<TransferTarget %s-%s (volume: %s)>'
+        params = (self.target_rack_marker, self.position_label,
+                  self.transfer_volume)
         return str_format % params
 
 

@@ -23,6 +23,7 @@ from thelma.models.job import IsoJob
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.liquidtransfer import WorklistSeries
+from thelma.automation.tools.iso.lab.base import FinalLabIsoPosition
 
 __docformat__ = 'reStructuredText en'
 
@@ -592,17 +593,26 @@ class StockTubeContainer(object):
         return self.__exp_rack_barcode
 
     @classmethod
-    def from_plate_position(cls, plate_pos, final_position_copy_number):
+    def from_plate_position(cls, plate_pos, final_position_copy_number,
+                            plate_label=None):
         """
         Factory method creating a stock tube container from an
         :class:`IsoPlatePosition`.
+
+        The plate label must not be None, if the position is a preparation
+        position.
         """
         kw = dict(pool=plate_pos.molecule_design_pool,
                   position_type=plate_pos.position_type,
                   requested_tube_barcode=plate_pos.stock_tube_barcode,
                   expected_rack_barcode=plate_pos.stock_rack_barcode,
                   final_position_copy_number=final_position_copy_number)
-        return cls(**kw)
+        stc = cls(**kw)
+        if isinstance(plate_pos, FinalLabIsoPosition):
+            stc.add_final_position(plate_pos)
+        else:
+            stc.add_preparation_position(plate_label, plate_pos)
+        return stc
 
     @property
     def plate_target_positions(self):
@@ -610,7 +620,10 @@ class StockTubeContainer(object):
         Returns the target positions mapped onto plate labels. The plate
         label for the final layout is :attr:`LAEBLS.ROLE_FINAL`.
         """
-        target_positions = {LABELS.ROLE_FINAL : self.__final_positions}
+        if len(self.__final_positions) > 0:
+            target_positions = {LABELS.ROLE_FINAL : self.__final_positions}
+        else:
+            target_positions = dict()
         target_positions.update(self.__prep_positions)
         return target_positions
 
@@ -631,10 +644,9 @@ class StockTubeContainer(object):
         for plate_positions in self.__prep_positions.values():
             for plate_pos in plate_positions:
                 volume += plate_pos.get_stock_takeout_volume()
-        for plate_positions in self.__final_positions:
-            for plate_pos in plate_positions:
-                volume += (plate_pos.get_stock_takeout_volume() \
-                           * self.__final_position_copy_number)
+        for plate_pos in self.__final_positions:
+            volume += (plate_pos.get_stock_takeout_volume() \
+                       * self.__final_position_copy_number)
         return volume
 
     def get_first_plate(self):

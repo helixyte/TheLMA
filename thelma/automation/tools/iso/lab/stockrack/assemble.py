@@ -13,6 +13,8 @@ from thelma.automation.tools.iso.base import StockRackLayout
 from thelma.automation.tools.iso.base import StockRackPosition
 from thelma.automation.tools.iso.lab.base import LABELS
 from thelma.automation.tools.iso.lab.base import create_instructions_writer
+from thelma.automation.tools.stock.base import get_stock_rack_size
+from thelma.automation.tools.stock.base import get_stock_rack_shape
 from thelma.automation.tools.iso.lab.stockrack.base \
     import _StockRackAssignerIsoJob
 from thelma.automation.tools.iso.lab.stockrack.base \
@@ -28,6 +30,7 @@ from thelma.automation.tools.writers import LINEBREAK_CHAR
 from thelma.automation.tools.writers import TxtWriter
 from thelma.automation.tools.writers import create_zip_archive
 from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
 from thelma.automation.utils.racksector import RackSectorTranslator
 from thelma.models.iso import IsoSectorStockRack
@@ -104,7 +107,7 @@ class _StockRackAssembler(_StockRackAssigner):
         :default include_dummy_output: *False*
         """
         _StockRackAssigner.__init__(self, entity=entity,
-                                    **kw)
+                                    rack_barcodes=rack_barcodes, **kw)
 
         #: A list of barcodes from stock racks that shall not be used for
         #: molecule design picking.
@@ -821,7 +824,7 @@ class LabIsoXL20SummaryWriter(TxtWriter):
     #: This is title for the volumes section (part of the \'general\' section).
     VOLUME_TITLE = 'Volumes'
     #: The volume part of the general section body.
-    VOLUME_BASE_LINE = '%.1f ul: %s'
+    VOLUME_BASE_LINE = '%s ul: %s'
 
     #: The header text for the destination racks section.
     DESTINATION_RACKS_HEADER = 'Destination Racks'
@@ -862,7 +865,7 @@ class LabIsoXL20SummaryWriter(TxtWriter):
         :type entity: :class:`LabIso` or :class:`IsoJob`
 
         :param stock_tube_containers: Contain the tube candidates (= tube
-            transfer source) data mapped onto stock rack markers.
+            transfer source) data mapped onto pools.
         :type stock_tube_containers: map
 
         :param stock_rack_layouts: Contain the target positions for each pool
@@ -969,7 +972,8 @@ class LabIsoXL20SummaryWriter(TxtWriter):
         volume_lines = []
         for volume, pool_ids in vol_map.iteritems():
             pool_list_string = self._get_joined_str(pool_ids, is_strs=False)
-            volume_line = self.VOLUME_BASE_LINE % (volume, pool_list_string)
+            volume_line = self.VOLUME_BASE_LINE % (get_trimmed_string(volume),
+                                                   pool_list_string)
             volume_lines.append(volume_line)
 
         return LINEBREAK_CHAR.join(volume_lines)
@@ -988,6 +992,8 @@ class LabIsoXL20SummaryWriter(TxtWriter):
             stock_racks = self.entity.iso_stock_racks \
                           + self.entity.iso_sector_stock_racks
 
+        stock_racks.sort(cmp=lambda sr1, sr2: cmp(sr1.rack.barcode,
+                                                  sr2.rack.barcode))
         for stock_rack in stock_racks:
             barcode = stock_rack.rack.barcode
             label = stock_rack.label
@@ -1046,7 +1052,7 @@ class LabIsoXL20SummaryWriter(TxtWriter):
             tube_candidate = container.tube_candidate
             rack_barcode = tube_candidate.rack_barcode
             if location_map.has_key(rack_barcode): continue
-            location = tube_candidate.location
+            location = container.location
             if location is None: location = 'unknown location'
             location_map[rack_barcode] = location
 
@@ -1098,10 +1104,11 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
         :param target_rack_shape: The shape of the target plates.
         :type target_rack_shape: :class:`thelma.models.rack.RackShape`
 
-        :param stock_rack_marker: The stock rack marker for his
+        :param stock_rack_marker: The rack marker for each rack label that
+            can occur in the :attr:`stock_tube_containers`.
         :type stock_rack_marker: :class:`str`
 
-        :param rack_marker_map: The rack marker for each rack label that can
+        :param rack_marker_map: The rack marker for each plate label that can
             occur in the stock tube containers.
         :type rack_marker_map: :class:`dict`
         """
@@ -1110,8 +1117,8 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
         self.stock_tube_containers = stock_tube_containers
         #: The shape of the target plates.
         self.target_rack_shape = target_rack_shape
-        #: The rack marker for each rack label that can occur in the
-        #: :class:`stock_tube_containers`.
+        #: The rack marker for each plate label that can occur in the
+        #: :attr:`stock_tube_containers`.
         self.rack_marker_map = rack_marker_map
 
         #: Stores the transfer targets for each pool.
@@ -1148,19 +1155,23 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
                 continue
             self._hash_values.add(pool.id)
             tts = []
-            for plate, positions in container.plate_target_positions.iteritems():
-                rack_marker = self.rack_marker_map[plate]
-                if column_maps.has_key(plate):
-                    column_map = column_maps[plate]
+            for plate_label, positions in container.plate_target_positions.\
+                                                                iteritems():
+                if plate_label == LABELS.ROLE_FINAL:
+                    rack_marker = plate_label
+                else:
+                    rack_marker = self.rack_marker_map[plate_label]
+                if column_maps.has_key(plate_label):
+                    column_map = column_maps[plate_label]
                 else:
                     column_map = dict()
-                    column_maps[plate] = column_map
-                    pos_counts[plate] = 0
+                    column_maps[plate_label] = column_map
+                    pos_counts[plate_label] = 0
                 for plate_pos in positions:
                     trg_pos = plate_pos.rack_position
                     col_index = trg_pos.column_index
                     add_list_map_element(column_map, col_index, plate_pos)
-                    pos_counts[plate] += 1
+                    pos_counts[plate_label] += 1
                     tts.append(plate_pos.as_transfer_target(rack_marker))
             self.__transfer_targets[pool] = tts
 
@@ -1173,12 +1184,24 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
             plates_by_count = dict()
             for plate, pos_count in pos_counts.iteritems():
                 add_list_map_element(plates_by_count, pos_count, plate)
-            for pos_count in sorted(plates_by_count.keys()):
+            for pos_count in sorted(plates_by_count.keys(), reverse=True):
                 plates = plates_by_count[pos_count]
                 for plate in plates:
                     i = len(self._column_maps)
                     column_map = column_maps[plate]
                     self._column_maps[i] = column_map
+
+    def _init_source_layout(self, source_layout_shape):
+        """
+        Stock rack layouts can only be 96-well layouts.
+        """
+        if not source_layout_shape == get_stock_rack_shape():
+            msg = 'The number of source positions (%i) exceeds the number ' \
+                  'of available positions in a stock rack (%i). This is a ' \
+                  'programming error. Talk to the IT department, please.' \
+                   % (len(self._hash_values), get_stock_rack_size())
+            self.add_error(msg)
+        return self.SOURCE_LAYOUT_CLS()
 
     def _get_target_layout_shape(self):
         return self.target_rack_shape
@@ -1188,7 +1211,6 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
         The target positions for all plates in a container must be equal,
         otherwise one-to-one sorting is aborted.
         """
-
         sr_map = dict() # stock rack position onto rack position
         for pool, container in self.stock_tube_containers.iteritems():
             rack_pos = None
@@ -1196,7 +1218,7 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
             for plate_pos in container.get_all_target_positions():
                 trg_pos = plate_pos.rack_position
                 if rack_pos is None:
-                    trg_pos = rack_pos
+                    rack_pos = trg_pos
                 elif not trg_pos == rack_pos:
                     return None
             if sr_map.has_key(rack_pos): return None
@@ -1219,4 +1241,5 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
                        tube_barcode
         sr_pos = StockRackPosition(rack_position=rack_pos, transfer_targets=tts,
                         molecule_design_pool=pool, tube_barcode=tube_barcode)
+        self._source_layout.add_position(sr_pos)
         return sr_pos

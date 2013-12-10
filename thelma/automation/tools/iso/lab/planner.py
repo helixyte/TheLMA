@@ -2797,7 +2797,6 @@ class _LocationAssigner(object):
                         is_smaller_than(new_transfer_vol, min_transfer_vol):
                     # in this case we prepare a new preparation position
                     # with exactly the same concentration as the target aliquot
-                    create_grandparent = True
                     parent_conc = target_conc
                 else:
                     parent_conc = new_parent_conc

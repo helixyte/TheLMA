@@ -14,6 +14,7 @@ from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
 from thelma.automation.utils.layouts import FLOATING_POSITION_TYPE
 from thelma.automation.utils.layouts import LIBRARY_POSITION_TYPE
 from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
+from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
 from thelma.automation.utils.layouts import TransferLayout
 from thelma.automation.utils.layouts import TransferParameters
 from thelma.automation.utils.layouts import TransferPosition
@@ -21,12 +22,12 @@ from thelma.automation.utils.layouts import TransferTarget
 from thelma.automation.utils.layouts import get_converted_number
 from thelma.automation.utils.layouts import get_trimmed_string
 from thelma.automation.utils.layouts import is_valid_number
+from thelma.models.iso import IsoSectorStockRack
 from thelma.models.iso import LabIso
 from thelma.models.iso import LabIsoRequest
 from thelma.models.job import IsoJob
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.moleculedesign import MoleculeDesignPool
-from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
 
 __all__ = ['get_stock_takeout_volume',
            'LABELS',
@@ -42,6 +43,7 @@ __all__ = ['get_stock_takeout_volume',
            'LabIsoPrepPosition',
            'LabIsoPrepLayout',
            'LabIsoPrepLayoutConverter',
+           'LAB_ISO_ORDERS',
            '_InstructionsWriter',
            '_LabIsoJobInstructionsWriter',
            '_LabIsoInstructionsWriter',
@@ -1375,6 +1377,65 @@ class LabIsoPrepLayoutConverter(LabIsoLayoutConverter):
         return kw
 
 
+class LAB_ISO_ORDERS(object):
+    """
+    Defines the order in which lab ISO processing worklists have to be
+    conducted.
+    """
+    #: There is no special ISO job processing.
+    NO_JOB = 'no_job'
+    #: There is no lab ISO processing, but all pools originate from the job.
+    NO_ISO = 'no_iso'
+    #: The job is processed before ISO-specific part.
+    JOB_FIRST = 'job_first'
+    #: The job is processed after the ISO-specific part.
+    ISO_FIRST = 'iso_first'
+
+    #: All possible orders.
+    ALL = [NO_JOB, NO_ISO, JOB_FIRST, ISO_FIRST]
+
+    @classmethod
+    def get_order(cls, iso_or_iso_job):
+        """
+        Returns the order for the given ISO request (see class variable for
+        possible cases).
+
+        :param iso_or_iso_job: The lab ISO or a lab ISO job whose order you
+            want to know.
+        :type iso_or_iso_job: :class:`thelma.models.iso.LabIso` or
+            :class:`thelma.models.job.IsoJob`
+        :return: The order constant (see class variables).
+        """
+        iso_request = iso_or_iso_job.iso_request
+
+        if iso_request.molecule_design_library is not None:
+            return cls.NO_ISO
+        elif not cls.has_job_processing(iso_or_iso_job):
+            return cls.NO_JOB
+        elif iso_request.process_job_first:
+            return cls.JOB_FIRST
+        else:
+            return cls.ISO_FIRST
+
+    @classmethod
+    def has_job_processing(cls, iso_or_iso_job):
+        """
+        Are there pools to be processed in he course of the ISO job (as
+        oppossed to the specific ISO)? This is defined by the number of
+        stock racks in the ISO job.
+
+        :param iso_or_iso_job: The lab ISO or a lab ISO job whose order you
+            want to know.
+        :type iso_or_iso_job: :class:`thelma.models.iso.LabIso` or
+            :class:`thelma.models.job.IsoJob`
+        :rtype: :class:`bool`.
+        """
+        iso_job = iso_or_iso_job
+        if isinstance(iso_or_iso_job, LabIso):
+            iso_job = iso_or_iso_job.iso_job
+        return not (iso_job.number_stock_racks == 0)
+
+
 class _InstructionsWriter(TxtWriter):
     """
     Writes a file with instructions about how to prepare the ISO or ISO job.
@@ -1383,54 +1444,68 @@ class _InstructionsWriter(TxtWriter):
     """
     #: The entity class supported by this summary writer.
     _ENTITY_CLS = None
+    #: The display name for the entity classes.
+    _ENTITY_CLS_DISPLAY_NAMES = {LabIso : 'lab ISO',
+                                 IsoJob : 'lab ISO job'}
 
-    #: The main headline of the file.
-    BASE_MAIN_HEADER = 'Processing Instructions for %s "%s"'
+    #: The display name for the preparation plate types.
+    __ROLE_DISPLAY_NAMES = {
+                LABELS.ROLE_PREPARATION_ISO : 'ISO preparation plate(s)',
+                LABELS.ROLE_PREPARATION_JOB : 'job preparation plate(s)'}
+
+    #: The main headline of the file (contains the entity type and label).
+    __BASE_MAIN_HEADER = 'Processing Instructions for %s "%s"'
     #: To be filled into the :attr:`BASE_MAIN_HEADER` (ISO or ISO job).
     __ENTITY_CLS_NAME = {LabIso : 'ISO', IsoJob : 'ISO job'}
 
     #: Is used if :attr:`process_job_first` value of the ISO request is *True*.
-    ORDER_JOB_FIRST = '''
-    The ISO job must be processed before you start processing ISOs the
-    specific ISOs.'''
+    __ORDER_JOB_FIRST = 'The ISO job must be processed before you start ' \
+        'processing the specific ISOs.'
     #: Is used if :attr:`process_job_first` value of the ISO request is *False*.
-    ORDER_ISO_FIRST = '''
-    ATTENTION! A part of ISOs has to processed before you can add the
-    fixed samples (controls). Look at the steps for further instructions.'''
+    __ORDER_ISO_FIRST = 'ATTENTION! A part of ISOs has to processed before ' \
+        'you can add the fixed samples (controls). Look at the steps for ' \
+        'further instructions.'
     #: Is used if there are no samples added via the ISO job.
-    ORDER_NO_JOB = '''
-    There is no job processing required for this ISO preparation.'''
+    __ORDER_NO_JOB = 'There is no job processing required for this ISO ' \
+        'preparation.'
     #: Is used if the final plate is a library plate to be completed.
-    ORDER_NO_ISO = '''
-    There is no ISO processing required for this ISO preparation.
-    All required steps are performed via the job.'''
+    __ORDER_NO_ISO = 'There is no ISO processing required for this ISO ' \
+        'preparation. All required steps are performed via the job.'
+    #: The order line for the detected order.
+    __ORDER_LINES = {LAB_ISO_ORDERS.NO_JOB : __ORDER_NO_JOB,
+                     LAB_ISO_ORDERS.NO_ISO : __ORDER_NO_ISO,
+                     LAB_ISO_ORDERS.JOB_FIRST : __ORDER_JOB_FIRST,
+                     LAB_ISO_ORDERS.ISO_FIRST : __ORDER_ISO_FIRST}
 
     #: The header marking the next step.
-    STEPS_HEADER = 'Step %i:'
+    __STEPS_HEADER = 'STEP %i:'
     #: Comprises the worklist name and some isntructions.
-    STEPS_DETAILS = 'Worklist %s: %s'
+    __STEPS_DETAILS = 'Worklist "%s": %s'
 
     #: The header for the buffer dilution section.
-    BUFFER_DILUTION_HEADER = 'Buffer Additions'
+    __BUFFER_DILUTION_HEADER = 'Buffer Additions'
     #: Is used if there are not dilution worklists for the entity in the ISO
     #: request worklist series.
-    BUFFER_NO_WORKLISTS = '''
-    There are no buffer dilutions for this %s.'''
+    __BUFFER_NO_WORKLISTS = 'There are no buffer dilutions for this %s.'
 
     #: The header for the stock transfer section.
-    STOCK_TRANSFER_HEADER = 'Transfers from the Stock'
+    __STOCK_TRANSFER_HEADER = 'Transfers from the Stock'
     #: The header for the processing section.
-    PROCESSING_HEADER = 'Processing Steps (Other Transfers)'
+    __PROCESSING_HEADER = 'Processing Steps (Other Transfers)'
     #: Is used if there are no further processing transfers for the entity
     #: in the ISO request worklist.
-    PROCESSING_NO_WORKLIST = '''
-    There are no further transfers required after the sample transfer from the
-    stock (for the %s).'''
+    __PROCESSING_NO_WORKLIST = 'There are no further transfers required after ' \
+        'the sample transfer from the stock (for the %s).'
+    #:
+    __PROCESSING_PROCEED = 'Proceed with the %s preparation(s).'
 
     #: The placeholder for final plates.
-    FINAL_PLATE_PLACEHOLDER = 'final plate(s)'
+    __FINAL_PLATE_PLACEHOLDER = 'final plate(s)'
     #: The header for the final plates section.
-    FINAL_PLATES_HEADER = 'Final ISO Plates'
+    __FINAL_PLATES_HEADER = 'Final ISO Plates'
+
+    #: The header for the prepration plate section.
+    __PREP_PLATE_HEADER = 'Preparation Plates'
 
     def __init__(self, log, entity, iso_request, rack_containers):
         """
@@ -1460,6 +1535,9 @@ class _InstructionsWriter(TxtWriter):
         #: involved in the processing of the entity.
         self.rack_containers = rack_containers
 
+        #: The order of the ISO and job processing (see also:
+        #: :class:`LAB_ISO_ORDERS`).
+        self.__processing_order = None
         #: The worklists in the ISO request worklist series ordered by index.
         self.__sorted_worklists = None
 
@@ -1471,6 +1549,7 @@ class _InstructionsWriter(TxtWriter):
 
     def reset(self):
         TxtWriter.reset(self)
+        self.__processing_order = None
         self.__sorted_worklists = None
         self.__step_counter = 0
         self.__racks_by_markers = dict()
@@ -1479,7 +1558,7 @@ class _InstructionsWriter(TxtWriter):
         self._check_input_class('entity', self.entity, self._ENTITY_CLS)
         self._check_input_class('ISO request', self.iso_request, LabIsoRequest)
         self._check_input_list_classes('rack container', self.rack_containers,
-                                       IsoRackContainer)
+                                       IsoRackContainer, may_be_empty=True)
 
     def _write_stream_content(self):
         """
@@ -1493,10 +1572,16 @@ class _InstructionsWriter(TxtWriter):
 
         self.__write_main_headline()
         self.__write_order()
-        self.__write_dilution_section()
-        self.__write_stock_rack_section()
-        self.__write_processing_section()
-        self.__write_final_plates_section()
+        dont_proceed = (self.__processing_order == LAB_ISO_ORDERS.NO_ISO \
+                        and self._ENTITY_CLS == LabIso) or \
+                       (self.__processing_order == LAB_ISO_ORDERS.NO_JOB \
+                        and self._ENTITY_CLS == IsoJob)
+        if not dont_proceed:
+            self.__write_dilution_section()
+            self.__write_stock_rack_section()
+            self.__write_processing_section()
+            self.__write_final_plates_section()
+            self.__write_prep_plates_section()
 
     def __sort_racks_by_markers(self):
         """
@@ -1506,14 +1591,18 @@ class _InstructionsWriter(TxtWriter):
         """
         for rack_container in self.rack_containers:
             if rack_container.role == LABELS.ROLE_FINAL: continue
-            self.__racks_by_markers[rack_container.rack_marker] = rack_container
+            if self._ENTITY_CLS == LabIso and \
+                        not self.entity.label in rack_container.label:
+                continue
+            add_list_map_element(self.__racks_by_markers,
+                                 rack_container.rack_marker, rack_container)
 
     def __write_main_headline(self):
         """
         Writes the main head line.
         """
         cls_name = self.__ENTITY_CLS_NAME[self._ENTITY_CLS]
-        main_headline = self.BASE_MAIN_HEADER % (cls_name, self.entity.label)
+        main_headline = self.__BASE_MAIN_HEADER % (cls_name, self.entity.label)
         self._write_headline(main_headline, underline_char='=',
                              preceding_blank_lines=0, trailing_blank_lines=1)
 
@@ -1521,35 +1610,19 @@ class _InstructionsWriter(TxtWriter):
         """
         Explain whether to start with the ISO or the ISO job.
         """
-        if self.iso_request.molecule_design_library is not None:
-            order_line = self.ORDER_NO_ISO
-        elif not self._has_job_processing():
-            order_line = self.ORDER_NO_JOB
-        elif self.iso_request.process_job_first:
-            order_line = self.ORDER_JOB_FIRST
-        else:
-            order_line = self.ORDER_ISO_FIRST
+        self.__processing_order = LAB_ISO_ORDERS.get_order(self.entity)
+        order_line = self.__ORDER_LINES[self.__processing_order]
         self._write_body_lines(['', order_line])
-
-    def _has_job_processing(self):
-        """
-        Are there sample added via the ISO job?
-        """
-        raise NotImplementedError('Abstract method.')
 
     def __write_dilution_section(self):
         """
         Lists the buffer dilution steps.
         """
-        self._write_headline(self.BUFFER_DILUTION_HEADER)
+        self._write_headline(self.__BUFFER_DILUTION_HEADER,
+                             trailing_blank_lines=0)
+        self.__sort_worklists()
 
-        worklist_series = self.iso_request.worklist_series
-        if worklist_series is None:
-            self.__sorted_worklists = []
-        else:
-            self.__sorted_worklists = worklist_series.get_sorted_worklists()
-
-        base_desc = 'Adding to buffer to plate %s.'
+        base_desc = 'Adding buffer to plate %s.'
         worklist_labels = []
         descriptions = []
         for worklist in self.__sorted_worklists:
@@ -1562,7 +1635,29 @@ class _InstructionsWriter(TxtWriter):
             worklist_labels.append(worklist.label)
 
         self.__write_optional_section(descriptions, worklist_labels,
-                                      self.BUFFER_NO_WORKLISTS)
+                                      self.__BUFFER_NO_WORKLISTS)
+
+    def __sort_worklists(self):
+        """
+        Buffer worklists come first. The order of the remaining worklists
+        depends on whether the job is processed first.
+        """
+        job_worklists = []
+        if self._ENTITY_CLS == IsoJob:
+            job_series = self.entity.worklist_series
+        else:
+            job_series = self.entity.iso_job.worklist_series
+        if job_series is not None:
+            job_worklists = job_series.get_sorted_worklists()
+        ir_worklists = []
+        if self.iso_request.worklist_series is not None:
+            ir_worklists = self.iso_request.worklist_series.\
+                           get_sorted_worklists()
+
+        if self.__processing_order == LAB_ISO_ORDERS.ISO_FIRST:
+            self.__sorted_worklists = ir_worklists + job_worklists
+        else:
+            self.__sorted_worklists = job_worklists + ir_worklists
 
     def __write_stock_rack_section(self):
         """
@@ -1571,14 +1666,18 @@ class _InstructionsWriter(TxtWriter):
         """
         stock_racks = dict()
         for stock_rack in self._get_stock_racks():
-            stock_racks[stock_rack.label] = stock_racks
+            stock_racks[stock_rack.label] = stock_rack
 
-        self._write_headline(self.STOCK_TRANSFER_HEADER)
+        self._write_headline(self.__STOCK_TRANSFER_HEADER,
+                             trailing_blank_lines=0)
         base_desc = 'Transfer of sample from stock rack %s to plate %s.'
+        sector_desc = 'Transfer of sample from stock rack %s to plate %s ' \
+                      '(sector: %i, use CyBio).'
 
         empty_worklist_series = []
         for label in sorted(stock_racks):
             stock_rack = stock_racks[label]
+            is_sector_rack = isinstance(stock_rack, IsoSectorStockRack)
             worklist_series = stock_rack.worklist_series
             if len(worklist_series) < 1:
                 empty_worklist_series.append(label)
@@ -1586,8 +1685,12 @@ class _InstructionsWriter(TxtWriter):
             for worklist in worklist_series.get_sorted_worklists():
                 worklist_label = worklist.label
                 racks = self.__get_rack_strings_for_worklist(worklist_label)
-                desc = base_desc % (racks[TRANSFER_ROLES.SOURCE],
-                                    racks[TRANSFER_ROLES.TARGET])
+                if is_sector_rack:
+                    desc = sector_desc % (racks[TRANSFER_ROLES.SOURCE],
+                    racks[TRANSFER_ROLES.TARGET], (stock_rack.sector_index + 1))
+                else:
+                    desc = base_desc % (racks[TRANSFER_ROLES.SOURCE],
+                                        racks[TRANSFER_ROLES.TARGET])
                 self.__write_step_section(worklist_label, desc)
 
     def _get_stock_racks(self):
@@ -1602,7 +1705,8 @@ class _InstructionsWriter(TxtWriter):
         """
         Describes the remaining processing steps (if there are any).
         """
-        base_desc = 'Transferring samples from %s to %s%s'
+        self._write_headline(self.__PROCESSING_HEADER, trailing_blank_lines=0)
+        base_desc = 'Transferring samples from %s to %s'
         rack_sector_addition = ' (use CyBio).'
         sector_info = ' (sector: %i)'
 
@@ -1632,7 +1736,20 @@ class _InstructionsWriter(TxtWriter):
                 worklist_labels.append(worklist.label)
 
         self.__write_optional_section(descriptions, worklist_labels,
-                                      self.PROCESSING_NO_WORKLIST)
+                                      self.__PROCESSING_NO_WORKLIST)
+
+        alt_cls = None
+        if (self.__processing_order == LAB_ISO_ORDERS.JOB_FIRST and \
+                                    self._ENTITY_CLS == IsoJob):
+            alt_cls = LabIso
+        elif (self.__processing_order == LAB_ISO_ORDERS.ISO_FIRST and \
+                                    self._ENTITY_CLS == LabIso):
+            alt_cls = IsoJob
+        if alt_cls is not None:
+            proceed_line = self.__PROCESSING_PROCEED \
+                           % (self._ENTITY_CLS_DISPLAY_NAMES[alt_cls])
+            lines = ['', proceed_line]
+            self._write_body_lines(lines)
 
     def _get_processing_worklist_plates(self, worklist):
         """
@@ -1646,20 +1763,46 @@ class _InstructionsWriter(TxtWriter):
         """
         Lists all involved final plates
         """
-        self._write_headline(self.FINAL_PLATES_HEADER)
+        self._write_headline(self.__FINAL_PLATES_HEADER)
 
         plate_map = dict()
         for rack_container in self.rack_containers:
             if not rack_container.role == LABELS.ROLE_FINAL: continue
             plate_map[rack_container.label] = rack_container
 
-        plate_lines = ['']
+        plate_lines = []
         for label in sorted(plate_map.keys()):
             rack_container = plate_map[label]
             plate_line = self.__get_rack_string(rack_container=rack_container)
             plate_lines.append(plate_line)
 
         self._write_body_lines(plate_lines)
+
+    def __write_prep_plates_section(self):
+        """
+        Lists all other plates that are marked by placeholder (e.g. if
+        job samples need to be transferred to preparation plates of several
+        ISOs).
+        """
+        role_containers = dict()
+        for rack_containers in self.__racks_by_markers.values():
+            if len(rack_containers) == 1: continue
+            role = rack_containers[0].role
+            role_containers[role] = sorted(rack_containers)
+
+        if len(role_containers) > 0:
+            self._write_headline(self.__PREP_PLATE_HEADER,
+                                 trailing_blank_lines=0)
+            lines = []
+            for role, rack_containers in role_containers.iteritems():
+                lines.append('')
+                lines.append('%s: ' % (self.__ROLE_DISPLAY_NAMES[role]))
+                lines.append('')
+                for rack_container in rack_containers:
+                    plate_line = self.__get_rack_string(
+                                                rack_container=rack_container)
+                    lines.append(plate_line)
+            self._write_body_lines(lines)
 
     def __get_rack_strings_for_worklist(self, worklist_label):
         """
@@ -1678,7 +1821,7 @@ class _InstructionsWriter(TxtWriter):
                 rack_str = self.__get_rack_string(rack_marker)
                 if rack_str is None: return None
                 racks[transfer_role] = rack_str
-        raise racks
+        return racks
 
     def __get_rack_string(self, rack_marker=None, rack_container=None):
         """
@@ -1692,11 +1835,17 @@ class _InstructionsWriter(TxtWriter):
                 values = LABELS.parse_rack_marker(rack_marker)
                 role = values[LABELS.MARKER_RACK_ROLE]
                 if role == LABELS.ROLE_FINAL:
-                    return self.FINAL_PLATE_PLACEHOLDER
+                    return self.__FINAL_PLATE_PLACEHOLDER
                 else:
                     return None
             else:
-                rack_container = self.__racks_by_markers[rack_marker]
+                rack_containers = self.__racks_by_markers[rack_marker]
+                if len(rack_containers) == 1:
+                    rack_container = rack_containers[0]
+                else:
+                    role = rack_containers[0].role
+                    return self.__ROLE_DISPLAY_NAMES[role]
+
         return '%s (%s)' % (rack_container.rack.barcode, rack_container.label)
 
     def __write_step_section(self, worklist_label, description):
@@ -1705,8 +1854,8 @@ class _InstructionsWriter(TxtWriter):
         determine automatically.
         """
         self.__step_counter += 1
-        step_header = self.STEPS_HEADER % (self.__step_counter)
-        detail_line = self.STEPS_DETAILS % (worklist_label, description)
+        step_header = self.__STEPS_HEADER % (self.__step_counter)
+        detail_line = self.__STEPS_DETAILS % (worklist_label, description)
         step_lines = ['', step_header, detail_line]
         self._write_body_lines(step_lines)
 
@@ -1717,10 +1866,11 @@ class _InstructionsWriter(TxtWriter):
         worklist remark.
         """
         if len(descriptions) < 1:
-            lines = ['', no_worklists_template % self._ENTITY_CLS]
+            lines = ['', no_worklists_template \
+                         % (self._ENTITY_CLS_DISPLAY_NAMES[self._ENTITY_CLS])]
             self._write_body_lines(lines)
         else:
-            for i in range(descriptions):
+            for i in range(len(descriptions)):
                 self.__write_step_section(worklist_labels[i], descriptions[i])
 
 
@@ -1733,9 +1883,6 @@ class _LabIsoJobInstructionsWriter(_InstructionsWriter):
     NAME = 'Lab ISO Job Instructions Writer'
 
     _ENTITY_CLS = IsoJob
-
-    def _has_job_processing(self):
-        return (self.entity.number_stock_racks > 0)
 
     def _get_stock_racks(self):
         return self.entity.iso_job_stock_racks
@@ -1760,9 +1907,6 @@ class _LabIsoInstructionsWriter(_InstructionsWriter):
     NAME = 'Lab ISO Instructions Writer'
 
     _ENTITY_CLS = LabIso
-
-    def _has_job_processing(self):
-        return self.entity.iso_job.number_stock_racks
 
     def _get_stock_racks(self):
         return self.entity.iso_stock_racks + self.entity.iso_sector_stock_racks
