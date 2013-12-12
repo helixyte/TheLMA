@@ -7,7 +7,7 @@ from everest.messaging import UserMessageHandlingContextManager
 from everest.mime import ZipMime
 from everest.renderers import ResourceRenderer
 from everest.resources.interfaces import IResource
-from everest.views.base import WarnAndResubmitUserMessageChecker
+from everest.views.base import ViewUserMessageChecker
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.threadlocal import get_current_registry
 from thelma.automation.tools import experiment
@@ -72,7 +72,7 @@ class ExperimentWorklistRenderer(CustomRenderer):
         CustomRenderer.__call__(self, value, system)
         resource = value.get('context', system.get('context'))
 
-        checker = WarnAndResubmitUserMessageChecker()
+        checker = ViewUserMessageChecker()
         with UserMessageHandlingContextManager(checker):
             request = system['request']
             params = request.params
@@ -136,7 +136,7 @@ class IsoJobWorklistRenderer(ZippedWorklistRenderer):
         CustomRenderer.__call__(self, value, system)
         resource = value.get('context', system.get('context'))
 
-        checker = WarnAndResubmitUserMessageChecker()
+        checker = ViewUserMessageChecker()
         with UserMessageHandlingContextManager(checker):
             request = system['request']
             params = request.params
@@ -200,7 +200,7 @@ class IsoWorklistRenderer(ZippedWorklistRenderer):
         resource = value.get('context', system.get('context'))
         request = system['request']
         params = request.params
-        checker = WarnAndResubmitUserMessageChecker()
+        checker = ViewUserMessageChecker()
         with UserMessageHandlingContextManager(checker):
             if params['type'] == 'XL20':
                 stream = self.__create_xl20_worklist_stream(resource, request)
