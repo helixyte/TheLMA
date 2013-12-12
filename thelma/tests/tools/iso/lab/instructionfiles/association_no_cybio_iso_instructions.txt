@@ -1,0 +1,38 @@
+Processing Instructions for ISO "123_iso_01"
+============================================
+
+
+The ISO job must be processed before you start processing the specific ISOs.
+
+
+Buffer Additions
+----------------
+
+STEP 1: Worklist "123_2_p_buffer":
+Adding buffer to plate 09999911 (123_iso_01_p).
+
+STEP 2: Worklist "123_3_a_buffer":
+Adding buffer to plate final plate(s).
+
+
+Transfers from the Stock
+------------------------
+
+STEP 3: Worklist "123_1_s#2_to_p":
+Transfer of sample from stock rack 09999012 (123_iso_01_s#2) to plate 09999911 (123_iso_01_p).
+
+
+Processing Steps (Other Transfers)
+----------------------------------
+
+STEP 4: Worklist "123_5_p_to_a":
+Transferring samples from 09999911 (123_iso_01_p) to final plate(s)
+
+STEP 5: Worklist "123_6_a_to_a":
+Transferring samples from final plate(s) to final plate(s)
+
+
+Final ISO Plates
+----------------
+
+09999210 (123_iso_01_a)

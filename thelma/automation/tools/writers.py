@@ -413,7 +413,7 @@ class TxtWriter(BaseAutomationTool):
         raise NotImplementedError('Abstract method.')
 
     def _write_headline(self, header_text, underline_char='-',
-                        preceding_blank_lines=3, trailing_blank_lines=1):
+                        preceding_blank_lines=2, trailing_blank_lines=1):
         """
         Writes a header with the given features:
 
@@ -455,6 +455,7 @@ class TxtWriter(BaseAutomationTool):
         """
 
         content = LINEBREAK_CHAR.join(line_list)
+        content += LINEBREAK_CHAR
         self._stream.write(content)
 
 

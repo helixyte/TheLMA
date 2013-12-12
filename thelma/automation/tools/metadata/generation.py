@@ -52,7 +52,6 @@ from thelma.models.iso import LabIsoRequest
 from thelma.models.library import MoleculeDesignLibrary
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 from thelma.models.user import User
-import logging
 
 __docformat__ = 'reStructuredText en'
 
@@ -100,8 +99,7 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
     #: from the file (there still does not have to be one).
     HAS_POOL_SET = True
 
-    def __init__(self, stream, experiment_metadata, requester,
-                 logging_level=logging.WARNING, add_default_handlers=False):
+    def __init__(self, stream, experiment_metadata, requester, **kw):
         """
         Constructor:
 
@@ -113,19 +111,8 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
 
         :param requester: The user uploading the file.
         :type requester: :class:`thelma.models.user.User`
-
-        :param logging_level: the desired minimum log leve l
-        :type logging_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: logging.WARNING
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *False*
         """
-        BaseAutomationTool.__init__(self, None, logging_level,
-                                    add_default_handlers, depending=False)
+        BaseAutomationTool.__init__(self, **kw)
 
         #: the open excelerator file
         self.stream = stream
@@ -192,17 +179,16 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
         self._iso_plate_specs = None
 
     @classmethod
-    def create(cls, stream, experiment_metadata, requester,
-               logging_level=logging.WARNING, add_default_handlers=False):
+    def create(cls, stream, experiment_metadata, requester, **kw):
         """
         Factory method initialising a generator for the given experiment type.
 
         :raises KeyError: If an unsupported experiment type is requested.
         :raise ValueError: If the experiment metadata is 8None*
         """
-        kw = dict(stream=stream, experiment_metadata=experiment_metadata,
-                  requester=requester, logging_level=logging_level,
-                  add_default_handlers=add_default_handlers)
+        tool_kw = dict(stream=stream, experiment_metadata=experiment_metadata,
+                       requester=requester)
+        kw.update(tool_kw)
 
         if experiment_metadata is None:
             msg = 'The experiment metadata must not be None!'
@@ -774,8 +760,7 @@ class ExperimentMetadataGeneratorOpti(ExperimentMetadataGenerator):
     """
     SUPPORTED_EXPERIMENT_TYPE = EXPERIMENT_SCENARIOS.OPTIMISATION
 
-    def __init__(self, stream, experiment_metadata, requester,
-                 logging_level=logging.WARNING, add_default_handlers=False):
+    def __init__(self, stream, experiment_metadata, requester, **kw):
         """
         Constructor:
 
@@ -787,22 +772,10 @@ class ExperimentMetadataGeneratorOpti(ExperimentMetadataGenerator):
 
         :param requester: The user uploading the file.
         :type requester: :class:`thelma.models.user.User`
-
-        :param logging_level: the desired minimum log leve l
-        :type logging_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: logging.WARNING
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *False*
         """
         ExperimentMetadataGenerator.__init__(self, stream=stream,
                                     experiment_metadata=experiment_metadata,
-                                    requester=requester,
-                                    logging_level=logging_level,
-                                    add_default_handlers=add_default_handlers)
+                                    requester=requester, **kw)
 
         #: The converted layout of each experiment design rack.
         self.__design_rack_layouts = None
@@ -990,8 +963,7 @@ class ExperimentMetadataGeneratorScreen(ExperimentMetadataGenerator):
     """
     SUPPORTED_EXPERIMENT_TYPE = EXPERIMENT_SCENARIOS.SCREENING
 
-    def __init__(self, stream, experiment_metadata, requester,
-                 logging_level=logging.WARNING, add_default_handlers=False):
+    def __init__(self, stream, experiment_metadata, requester, **kw):
         """
         Constructor:
 
@@ -1003,22 +975,10 @@ class ExperimentMetadataGeneratorScreen(ExperimentMetadataGenerator):
 
         :param requester: The user uploading the file.
         :type requester: :class:`thelma.models.user.User`
-
-        :param logging_level: the desired minimum log leve l
-        :type logging_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: logging.WARNING
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *False*
         """
         ExperimentMetadataGenerator.__init__(self, stream=stream,
                                     experiment_metadata=experiment_metadata,
-                                    requester=requester,
-                                    logging_level=logging_level,
-                                    add_default_handlers=add_default_handlers)
+                                    requester=requester, **kw)
 
         #: The rack sector association data.
         self.__association_data = None
@@ -1151,8 +1111,7 @@ class ExperimentMetadataGeneratorLibrary(ExperimentMetadataGenerator):
     SUPPORTED_EXPERIMENT_TYPE = EXPERIMENT_SCENARIOS.LIBRARY
     HAS_POOL_SET = False
 
-    def __init__(self, stream, experiment_metadata, requester,
-                 logging_level=logging.WARNING, add_default_handlers=False):
+    def __init__(self, stream, experiment_metadata, requester, **kw):
         """
         Constructor:
 
@@ -1164,22 +1123,10 @@ class ExperimentMetadataGeneratorLibrary(ExperimentMetadataGenerator):
 
         :param requester: The user uploading the file.
         :type requester: :class:`thelma.models.user.User`
-
-        :param logging_level: the desired minimum log leve l
-        :type logging_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: logging.WARNING
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *False*
         """
         ExperimentMetadataGenerator.__init__(self, stream=stream,
                                     experiment_metadata=experiment_metadata,
-                                    requester=requester,
-                                    logging_level=logging_level,
-                                    add_default_handlers=add_default_handlers)
+                                    requester=requester, **kw)
 
         #: The molecule design library used
         #: (:class:`thelma.models.library.MoleculeDesignLibrary`)

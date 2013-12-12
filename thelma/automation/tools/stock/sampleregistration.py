@@ -607,6 +607,11 @@ class SampleRegistrar(RegistrationTool):
                   'a sample (tube barcode: %s)' % tube.barcode
             self.add_error(msg)
             valid = False
+        if tube.location is None:
+            msg = 'Tube with barcode %s does not have a location.' \
+                  % tube.barcode
+            self.add_error(msg)
+            valid = False
         return valid
 
     def __validate_locations(self):

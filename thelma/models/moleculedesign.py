@@ -595,6 +595,9 @@ class MoleculeDesignPool(MoleculeDesignSetBase):
         return isinstance(other, self.__class__) \
                and self.member_hash == other.member_hash
 
+    def __cmp__(self, other):
+        return cmp(self.id, other.id)
+
     def __repr__(self):
         str_format = '<%s id: %s, molecule type: %s, number designs: %i>'
         params = (self.__class__.__name__, self.id, self.molecule_type,
@@ -624,6 +627,12 @@ class MoleculeDesignPoolSet(Entity):
         if molecule_design_pools is None:
             molecule_design_pools = set()
         self.molecule_design_pools = molecule_design_pools
+
+    def contains(self, pool):
+        """
+        Returns *True* if the given molecule design pool is part of the set.
+        """
+        return (pool in self.molecule_design_pools)
 
     def remove_pool(self, pool):
         """

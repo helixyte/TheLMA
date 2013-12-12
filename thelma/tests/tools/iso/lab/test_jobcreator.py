@@ -20,7 +20,7 @@ from thelma.models.library import LibraryPlate
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from thelma.models.racklayout import RackLayout
 from thelma.tests.tools.iso.lab.utils import LAB_ISO_TEST_CASES
-from thelma.tests.tools.iso.lab.utils import LabIsoTestCase
+from thelma.tests.tools.iso.lab.utils import LabIsoTestCase1
 from thelma.tests.tools.iso.lab.utils import POOL_WITHOUT_STOCK_SAMPLE
 
 
@@ -53,10 +53,10 @@ class _LabIsoJobCreatorDummy(LabIsoJobCreator):
             return _LabIsoPlannerDummy
 
 
-class LabIsoJobCreatorTestCase(LabIsoTestCase):
+class LabIsoJobCreatorTestCase(LabIsoTestCase1):
 
     def set_up(self):
-        LabIsoTestCase.set_up(self)
+        LabIsoTestCase1.set_up(self)
         self.user = self._get_entity(IUser)
         self.excluded_racks = None
         self.requested_tubes = None
@@ -65,7 +65,7 @@ class LabIsoJobCreatorTestCase(LabIsoTestCase):
         self.case = LAB_ISO_TEST_CASES.CASE_ORDER_ONLY
 
     def tear_down(self):
-        LabIsoTestCase.tear_down(self)
+        LabIsoTestCase1.tear_down(self)
         del self.excluded_racks
         del self.requested_tubes
         del self.use_library_planner
@@ -76,11 +76,10 @@ class LabIsoJobCreatorTestCase(LabIsoTestCase):
                      number_isos=self.number_isos,
                      excluded_racks=self.excluded_racks,
                      requested_tubes=self.requested_tubes,
-                     use_library_planner=self.use_library_planner,
-                     add_default_handlers=True)
+                     use_library_planner=self.use_library_planner)
 
     def _continue_setup(self, file_name=None):
-        LabIsoTestCase._continue_setup(self, file_name=file_name)
+        LabIsoTestCase1._continue_setup(self, file_name=file_name)
         if LAB_ISO_TEST_CASES.is_library_case(self.case):
             self.use_library_planner = True
         self._create_tool()
@@ -208,7 +207,7 @@ class LabIsoJobCreatorTestCase(LabIsoTestCase):
         self.assert_equal(sorted(found_labels), sorted(exp_layout_data.keys()))
 
     def __check_pool_sets(self, iso_job):
-        exp_pool_sets = LAB_ISO_TEST_CASES.get_expected_pool_sets(self.case)
+        exp_pool_sets = LAB_ISO_TEST_CASES.get_pool_set_data(self.case)
         ir_pool_set = self.iso_request.molecule_design_pool_set
         found_pools = set()
         for iso in iso_job:

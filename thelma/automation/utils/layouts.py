@@ -1255,8 +1255,12 @@ class TransferTarget(object):
                self.transfer_volume == other.transfer_volume and \
                self.target_rack_marker == other.target_rack_marker
 
-    def __ne__(self, other):
-        return not (self.__eq__(other))
+    def __cmp__(self, other):
+        val = cmp(self.position_label, other.position_label) == 0
+        if val == 0:
+            return cmp(self.target_rack_marker, other.target_rack_marker)
+        else:
+            return val
 
     def __str__(self):
         if self.target_rack_marker is None:
@@ -1265,8 +1269,9 @@ class TransferTarget(object):
             return '"%s-%s"' % (self.target_rack_marker, self.position_label)
 
     def __repr__(self):
-        str_format = '<TransferTarget %s (volume: %s)>'
-        params = (self.position_label, self.transfer_volume)
+        str_format = '<TransferTarget %s-%s (volume: %s)>'
+        params = (self.target_rack_marker, self.position_label,
+                  self.transfer_volume)
         return str_format % params
 
 

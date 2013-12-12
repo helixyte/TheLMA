@@ -286,9 +286,9 @@ class Iso(Entity):
     #: samples that are only used in the processing of this ISO and not by
     #: other ISOs in the same :attr:`iso_job`.
     iso_stock_racks = None
-    #: The ISO stocks rack for this ISO (set of :class:`IsoStockRack`) provide
-    #: samples that are only used in the processing of a certain sector of
-    #: this ISO and not by other ISOs in the same :attr:`iso_job`.
+    #: The ISO stocks rack for this ISO (set of :class:`IsoSectorStockRack`)
+    #: provide samples that are only used in the processing of a certain sector
+    #: of this ISO and not by other ISOs in the same :attr:`iso_job`.
     iso_sector_stock_racks = None
     #: These plates are used to pre-dilute samples, they are not passed
     #: to the lab (list of :class:`IsoPreparationPlate`).

@@ -23,6 +23,9 @@ from thelma.models.job import IsoJob
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.liquidtransfer import WorklistSeries
+from thelma.automation.tools.iso.lab.base import FinalLabIsoPosition
+from thelma.automation.tools.iso.lab.base import LAB_ISO_ORDERS
+from thelma.automation.tools.iso.lab.base import get_entity_cls_displayname
 
 __docformat__ = 'reStructuredText en'
 
@@ -64,10 +67,14 @@ class _StockRackAssigner(BaseAutomationTool):
         #: Maps tube racks onto barcodes (required for stock racks).
         self._barcode_map = None
 
+        #: see :class:`LAB_ISO_ORDERS`.
+        self._processing_order = None
         #: The ISO plate layouts of the ISO (job) plates mapped onto plate
         #: labels. For the final plate layout there is only one layout
         #: (mapped onto the :attr:`LABELS.ROLE_FINAL` marker).
         self._plate_layouts = None
+        #: The total number of final plate over all involved ISOs.
+        self.__final_plate_count = None
         #: The :class:`StockTubeContainer` objects mapped onto pools.
         self._stock_tube_containers = None
 
@@ -85,7 +92,9 @@ class _StockRackAssigner(BaseAutomationTool):
         BaseAutomationTool.reset(self)
         self._iso_request = None
         self._barcode_map = dict()
+        self._processing_order = None
         self._plate_layouts = dict()
+        self.__final_plate_count = 0
         self._stock_tube_containers = dict()
         self._rack_containers = dict()
         self._stock_rack_layouts = dict()
@@ -96,8 +105,9 @@ class _StockRackAssigner(BaseAutomationTool):
         self.add_info('Start planning XL20 run ...')
 
         self._check_input()
+        if not self.has_errors(): self.__get_processing_order()
         if not self.has_errors():
-            self.__get_tube_racks()
+            self._get_tube_racks()
             self._get_layouts()
         if not self.has_errors(): self._find_starting_wells()
         if not self.has_errors(): self._find_stock_tubes()
@@ -115,13 +125,31 @@ class _StockRackAssigner(BaseAutomationTool):
         self._check_input_list_classes('barcode', self.rack_barcodes,
                                        basestring)
 
-    def __get_tube_racks(self):
+    def __get_processing_order(self):
+        """
+        Is there ISO and job processing or only one? Which goes first?
+        """
+        self._processing_order = LAB_ISO_ORDERS.get_order(self.entity)
+        alt_entity_cls = None
+        if (self._ENTITY_CLS == LabIso and \
+            self._processing_order == LAB_ISO_ORDERS.NO_ISO):
+            alt_entity_cls = IsoJob
+        elif (self._ENTITY_CLS == IsoJob and \
+             self._processing_order == LAB_ISO_ORDERS.NO_JOB):
+            alt_entity_cls = LabIso
+        if alt_entity_cls is not None:
+            msg = 'The %s does not need to be processed. Please proceed with ' \
+                  'the %s processing.' \
+                   % (get_entity_cls_displayname(self._ENTITY_CLS),
+                      get_entity_cls_displayname(alt_entity_cls))
+            self.add_error(msg)
+
+    def _get_tube_racks(self):
         """
         Fetches the tube racks for the passed barcodes from the DB.
         """
         self.add_debug('Fetch racks for barcodes ...')
 
-        non_empty = []
         tube_rack_agg = get_root_aggregate(ITubeRack)
 
         for barcode in self.rack_barcodes:
@@ -130,16 +158,8 @@ class _StockRackAssigner(BaseAutomationTool):
             if rack is None:
                 msg = 'Rack %s has not been found in the DB!' % (barcode)
                 self.add_error(msg)
-            elif len(rack.containers) > 0:
-                non_empty.append(barcode)
             else:
                 self._barcode_map[barcode] = rack
-
-        if len(non_empty) > 0:
-            non_empty.sort()
-            msg = 'The following racks you have chosen are not empty: %s.' \
-                  % (self._get_joined_str(non_empty))
-            self.add_error(msg)
 
         if not self.has_errors() and \
                     (len(self._barcode_map) < self.entity.number_stock_racks):
@@ -174,8 +194,21 @@ class _StockRackAssigner(BaseAutomationTool):
         plates of an ISO. The rack markers for aliquot and library plates
         need to be distinguished.
         """
-        for fp in iso.final_plates:
+        for fp in iso.iso_aliquot_plates:
+            self.__final_plate_count += 1
             self._store_rack_container(fp.rack, role=LABELS.ROLE_FINAL)
+
+        counter = 0
+        one_aliquot = (self._iso_request.number_aliquots == 1)
+        for fp in iso.library_plates:
+            counter += 1
+            if one_aliquot:
+                rack_marker = LABELS.ROLE_FINAL
+            else:
+                rack_marker = LABELS.create_rack_marker(LABELS.ROLE_FINAL,
+                                                        counter)
+            self._store_rack_container(rack=fp.rack, role=LABELS.ROLE_FINAL,
+                                       rack_marker=rack_marker)
 
     def _store_rack_container(self, rack, role, label=None, rack_marker=None):
         """
@@ -197,25 +230,46 @@ class _StockRackAssigner(BaseAutomationTool):
         """
         self.add_debug('Search for starting wells ...')
 
-        final_layout_copy_number = len(self._rack_containers[LABELS.ROLE_FINAL])
+        regard_iso_prep_fixed = self.__regard_iso_prep_fixed_positions()
+        regard_floatings = not (self._ENTITY_CLS == IsoJob)
+
         for plate_label, layout in self._plate_layouts.iteritems():
             is_final_plate = isinstance(layout, FinalLabIsoLayout)
             for_job = isinstance(self.entity, IsoJob)
             for plate_pos in layout.get_sorted_working_positions():
                 if not plate_pos.is_starting_well: continue
-                if is_final_plate and not (plate_pos.for_job == for_job):
+                if is_final_plate and not (plate_pos.from_job == for_job):
+                    continue
+                elif plate_pos.is_fixed and not regard_iso_prep_fixed:
+                    continue
+                elif plate_pos.is_floating and not regard_floatings:
                     continue
                 pool = plate_pos.molecule_design_pool
                 if self._stock_tube_containers.has_key(pool):
                     container = self._stock_tube_containers[pool]
+                    if is_final_plate:
+                        container.add_final_position(plate_pos)
+                    else:
+                        container.add_preparation_position(plate_label,
+                                                           plate_pos)
                 else:
                     container = StockTubeContainer.from_plate_position(
-                                            plate_pos, final_layout_copy_number)
+                            plate_pos, self.__final_plate_count, plate_label)
                     self._stock_tube_containers[pool] = container
-                if is_final_plate:
-                    container.add_final_position(plate_pos)
-                else:
-                    container.add_preparation_position(plate_label, plate_pos)
+
+    def __regard_iso_prep_fixed_positions(self):
+        """
+        If there is job processing we either have a library case or floating
+        positions (without a complete one-to-one CyBio transfer).
+        In both cases, fixed positions (controls) are added via the job.
+        """
+        if self._processing_order == LAB_ISO_ORDERS.NO_JOB:
+            return True
+        elif self._processing_order == LAB_ISO_ORDERS.NO_ISO:
+            # in this case we should not have ISO preparation plates
+            return True
+        else:
+            return (self._ENTITY_CLS == IsoJob)
 
     def _find_stock_tubes(self):
         """
@@ -247,17 +301,18 @@ class _StockRackAssigner(BaseAutomationTool):
         """
         ticket_number = self._iso_request.experiment_metadata.ticket_number
         robot_specs = self._get_stock_transfer_pipetting_specs()
-        for sr_marker, sr_layout in self._stock_rack_layouts.iteritems():
+        for sr_marker in sorted(self._stock_rack_layouts.keys()):
+            sr_layout = self._stock_rack_layouts[sr_marker]
             worklist_series = WorklistSeries()
             for rack_marker in self.__get_sorted_plate_markers():
                 transfers = []
-                for sr_pos in sr_layout.get_working_positions():
+                for sr_pos in sr_layout.working_positions():
                     psts = sr_pos.get_planned_sample_transfers(rack_marker)
                     transfers.extend(psts)
                 if len(transfers) < 1: continue
                 wl_index = len(worklist_series)
                 wl_label = LABELS.create_worklist_label(ticket_number,
-                                 worklist_number=wl_index,
+                                 worklist_number=(wl_index + 1),
                                  target_rack_marker=rack_marker,
                                  source_rack_marker=sr_marker)
                 worklist = PlannedWorklist(label=wl_label,
@@ -304,7 +359,8 @@ class _StockRackAssigner(BaseAutomationTool):
             kw = self.__get_stock_rack_base_kw(stock_rack_marker, barcode)
             stock_rack = self._create_stock_rack_entity(stock_rack_marker, kw)
             self._store_rack_container(stock_rack.rack, LABELS.ROLE_STOCK,
-                                       stock_rack.label)
+                                       label=stock_rack.label,
+                                       rack_marker=stock_rack_marker)
 
     def _clear_entity_stock_racks(self):
         """
@@ -327,7 +383,8 @@ class _StockRackAssigner(BaseAutomationTool):
         tube_rack = self._barcode_map[rack_barcode]
         rack_layout = self._stock_rack_layouts[stock_rack_marker].\
                       create_rack_layout()
-        return dict(rack=tube_rack, rack_layout=rack_layout,
+        label = LABELS.create_rack_label(stock_rack_marker, self.entity.label)
+        return dict(rack=tube_rack, rack_layout=rack_layout, label=label,
                worklist_series=self.__stock_transfer_series[stock_rack_marker])
 
     def _create_stock_rack_entity(self, stock_rack_marker, base_kw):
@@ -344,6 +401,15 @@ class _StockRackAssigner(BaseAutomationTool):
         """
         raise NotImplementedError('Abstract method.')
 
+    def _sort_stock_tube_containers_by_pool(self, containers):
+        """
+        Helper method creating a map with pools as keys.
+        """
+        container_map = dict()
+        for container in containers:
+            container_map[container.pool] = container
+        return container_map
+
 
 class _StockRackAssignerIsoJob(_StockRackAssigner): #pylint: disable=W0223
     """
@@ -358,11 +424,9 @@ class _StockRackAssignerIsoJob(_StockRackAssigner): #pylint: disable=W0223
 
     def _get_layouts(self):
         """
-        The final layouts for all ISOs are compared and then a reference
-        layout is picked.
-        For job preparation plates, both layout and racks are stored. For
-        the included ISOs only the racks are registered.
-
+        The final layouts and ISO preparation layouts for all ISOs are
+        compared and then a reference layout for each rack marker is picked.
+        For job preparation plates, we store layout and rack.
         """
         for prep_plate in self.entity.iso_job_preparation_plates:
             converter = LabIsoPrepLayoutConverter(log=self.log,
@@ -379,13 +443,12 @@ class _StockRackAssignerIsoJob(_StockRackAssigner): #pylint: disable=W0223
                                             rack_layout=iso.rack_layout)
             error_label = 'final plate layout for ISO "%s"' % (iso.label)
             self._store_plate_layout(iso.label, converter, error_label)
+            if self.has_errors(): continue
             self._store_final_plate_data(iso)
             final_layouts[iso.label] = self._plate_layouts[iso.label]
-            for ipp in iso.iso_preparation_plates:
-                self._store_rack_container(ipp.rack,
-                                           role=LABELS.ROLE_PREPARATION_ISO)
 
         self.__compare_final_layouts(final_layouts)
+        self.__compare_iso_preparation_layouts()
 
     def __compare_final_layouts(self, final_layouts):
         """
@@ -415,11 +478,58 @@ class _StockRackAssignerIsoJob(_StockRackAssigner): #pylint: disable=W0223
                   'Reference ISO: %s. Differing ISOs: %s.' \
                   % (reference_iso, self._get_joined_str(differing_isos))
             self.add_error(msg)
-        else:
-            final_role = LABELS.ROLE_FINAL
-            self._plate_layouts[final_role] = final_layout[reference_iso]
+        elif not reference_iso is None:
+            self._plate_layouts[LABELS.ROLE_FINAL] = \
+                                                final_layouts[reference_iso]
             for iso_label in final_layouts.keys():
                 del self._plate_layouts[iso_label]
+
+    def __compare_iso_preparation_layouts(self):
+        """
+        If we have starting wells for the job in ISO preparation plates and
+        more than one ISO in the job, we need to remove duplicates (to avoid
+        generation of duplicate transfers in stock worklists).
+        We store the layout of a reference plate (using the label of this
+        plate as key). Plate containers are stored for all plates.
+        """
+        position_map = dict()
+        reference_plates = dict()
+        reference_layouts = dict()
+
+        for iso in self.entity.isos:
+            if self.has_errors(): break
+            for ipp in iso.iso_preparation_plates:
+                plate = ipp.rack
+                plate_label = plate.label
+                value_parts = LABELS.parse_rack_label(plate_label)
+                rack_marker = value_parts[LABELS.MARKER_RACK_MARKER]
+                self._store_rack_container(rack=plate, label=plate_label,
+                      rack_marker=rack_marker, role=LABELS.ROLE_PREPARATION_ISO)
+                converter = LabIsoPrepLayoutConverter(log=self.log,
+                                        rack_layout=ipp.rack_layout)
+                layout = converter.get_result()
+                if layout is None:
+                    msg = 'Error when trying to convert ISO preparation ' \
+                          'plate layout for plate "%s".' % (plate_label)
+                    self.add_error(msg)
+                    break
+                positions = []
+                for prep_pos in layout.get_sorted_working_positions():
+                    if prep_pos.is_fixed and prep_pos.is_starting_well:
+                        positions.append(prep_pos)
+                if not position_map.has_key(rack_marker):
+                    position_map[rack_marker] = positions
+                    reference_plates[rack_marker] = plate
+                    reference_layouts[rack_marker] = layout
+                elif not position_map[rack_marker] == positions:
+                    msg = 'The ISO preparation plates for rack type "%s" are ' \
+                          'inconsistent!' % (rack_marker)
+                    self.add_error(msg)
+                    break
+
+        for rack_marker, plate in reference_plates.iteritems():
+            layout = reference_layouts[rack_marker]
+            self._plate_layouts[plate.label] = layout
 
     def _find_starting_wells(self):
         _StockRackAssigner._find_starting_wells(self)
@@ -428,6 +538,10 @@ class _StockRackAssignerIsoJob(_StockRackAssigner): #pylint: disable=W0223
             msg = 'You do not need an XL20 worklist for this ISO job because ' \
                   'all pools are prepared directly via the ISO processing.'
             self.add_error(msg)
+        else:
+            iso_count = len(self.entity.isos)
+            for stc in self._stock_tube_containers.values():
+                stc.set_iso_count(iso_count)
 
     def _get_stock_transfer_pipetting_specs(self):
         """
@@ -440,9 +554,9 @@ class _StockRackAssignerIsoJob(_StockRackAssigner): #pylint: disable=W0223
 
     def _create_stock_rack_entity(self, stock_rack_marker, base_kw):
         """
-        All stock racks are :class:`IsoJobStockRack` entities
+        All stock racks are :class:`IsoJobStockRack` entities.
         """
-        base_kw['iso_job'] = base_kw
+        base_kw['iso_job'] = self.entity
         return IsoJobStockRack(**base_kw)
 
 
@@ -563,6 +677,13 @@ class StockTubeContainer(object):
         #: The number of copies for the final positions (default: 1).
         self.__final_position_copy_number = final_position_copy_number
 
+        #: The number of ISOs (= ISO preparation plate copies). Is 1 for
+        #: ISOs cases and 1 or more for ISO job cases.
+        self.__iso_count = 1
+        #: Contains the labels for the job preparation plates (these are not
+        #: multiplied by the ISO count when calculating volumes).
+        self.__job_plate_labels = set()
+
         #: The picked tube candidate for this pool.
         self.tube_candidate = None
         #: The name of the barcoded location the rack is stored at (name and
@@ -592,17 +713,26 @@ class StockTubeContainer(object):
         return self.__exp_rack_barcode
 
     @classmethod
-    def from_plate_position(cls, plate_pos, final_position_copy_number):
+    def from_plate_position(cls, plate_pos, final_position_copy_number,
+                            plate_label=None):
         """
         Factory method creating a stock tube container from an
         :class:`IsoPlatePosition`.
+
+        The plate label must not be None, if the position is a preparation
+        position.
         """
         kw = dict(pool=plate_pos.molecule_design_pool,
                   position_type=plate_pos.position_type,
                   requested_tube_barcode=plate_pos.stock_tube_barcode,
                   expected_rack_barcode=plate_pos.stock_rack_barcode,
                   final_position_copy_number=final_position_copy_number)
-        return cls(**kw)
+        stc = cls(**kw)
+        if isinstance(plate_pos, FinalLabIsoPosition):
+            stc.add_final_position(plate_pos)
+        else:
+            stc.add_preparation_position(plate_label, plate_pos)
+        return stc
 
     @property
     def plate_target_positions(self):
@@ -610,7 +740,11 @@ class StockTubeContainer(object):
         Returns the target positions mapped onto plate labels. The plate
         label for the final layout is :attr:`LAEBLS.ROLE_FINAL`.
         """
-        target_positions = {LABELS.ROLE_FINAL : self.__final_positions}
+        target_positions = dict()
+        if len(self.__final_positions) > 0:
+            for final_pos in self.__final_positions:
+                add_list_map_element(target_positions, LABELS.ROLE_FINAL,
+                                     final_pos)
         target_positions.update(self.__prep_positions)
         return target_positions
 
@@ -618,7 +752,8 @@ class StockTubeContainer(object):
         """
         Returns all target positions for all plates.
         """
-        all_positions = self.__final_positions
+        all_positions = []
+        all_positions.extend(self.__final_positions)
         for positions in self.__prep_positions.values():
             all_positions.extend(positions)
         return all_positions
@@ -628,13 +763,15 @@ class StockTubeContainer(object):
         Returns the total volume that needs to be taken from the stock *in ul*.
         """
         volume = 0
-        for plate_positions in self.__prep_positions.values():
+        for plate_label, plate_positions in self.__prep_positions.iteritems():
+            multiplier = self.__iso_count
+            if plate_label in self.__job_plate_labels:
+                multiplier = 1
             for plate_pos in plate_positions:
-                volume += plate_pos.get_stock_takeout_volume()
-        for plate_positions in self.__final_positions:
-            for plate_pos in plate_positions:
-                volume += (plate_pos.get_stock_takeout_volume() \
-                           * self.__final_position_copy_number)
+                volume += (plate_pos.get_stock_takeout_volume() * multiplier)
+        for plate_pos in self.__final_positions:
+            volume += (plate_pos.get_stock_takeout_volume() \
+                       * self.__final_position_copy_number)
         return volume
 
     def get_first_plate(self):
@@ -669,6 +806,25 @@ class StockTubeContainer(object):
         to generated planned worklists).
         """
         self.__final_positions.append(plate_pos)
+
+    def set_iso_count(self, iso_count):
+        """
+        In order to avoid duplicate transfers ISO preparation plate for job
+        are only recorded once regardless of the number of ISOs in the job.
+        When calculating the volumes the take out volume of the remaining
+        positions are multiplied by the ISO count).
+        """
+        self.__iso_count = iso_count
+
+        for plate_label in sorted(self.__prep_positions.keys()):
+            try:
+                value_parts = LABELS.parse_rack_label(plate_label)
+            except ValueError: # the label is an ISO preparation plate marker
+                role = LABELS.ROLE_PREPARATION_ISO
+            else:
+                role = value_parts[LABELS.MARKER_RACK_ROLE]
+            if role == LABELS.ROLE_PREPARATION_JOB:
+                self.__job_plate_labels.add(plate_label)
 
     def __hash__(self):
         return hash(self.__pool)

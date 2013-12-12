@@ -13,6 +13,9 @@ from thelma.automation.tools.iso.base import StockRackLayout
 from thelma.automation.tools.iso.base import StockRackPosition
 from thelma.automation.tools.iso.lab.base import LABELS
 from thelma.automation.tools.iso.lab.base import create_instructions_writer
+from thelma.automation.tools.stock.base import get_stock_rack_size
+from thelma.automation.tools.stock.base import get_stock_rack_shape
+from thelma.automation.tools.writers import merge_csv_streams
 from thelma.automation.tools.iso.lab.stockrack.base \
     import _StockRackAssignerIsoJob
 from thelma.automation.tools.iso.lab.stockrack.base \
@@ -28,6 +31,7 @@ from thelma.automation.tools.writers import LINEBREAK_CHAR
 from thelma.automation.tools.writers import TxtWriter
 from thelma.automation.tools.writers import create_zip_archive
 from thelma.automation.utils.base import add_list_map_element
+from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
 from thelma.automation.utils.racksector import RackSectorTranslator
 from thelma.models.iso import IsoSectorStockRack
@@ -62,16 +66,14 @@ class _StockRackAssembler(_StockRackAssigner):
     **Return Value:** A zip archive with two files (worklist and reports)
     """
 
-    #: The file name of the XL20 worklist file contains the barcode and rack
-    #: marker for the stock rack it deals with.
-    FILE_NAME_XL20_WORKLIST = '%s_%s_xl20_worklist.csv'
+    #: The file name of the XL20 worklist file contains the entity label.
+    FILE_NAME_XL20_WORKLIST = '%s_xl20_worklist.csv'
     #: The file name for the XL20 summary file contains the entity label.
     FILE_NAME_XL20_SUMMARY = '%s_xl20_summary.txt'
     #: The file name for the instructions contains the entity label.
     FILE_NAME_INSTRUCTIONS = '%s_instructions.txt'
-    #: The dummy output file names contain the barcode and rack marker for
-    #: the stock racks they deal with.
-    FILE_NAME_DUMMY = '%s_%s_dummy_xl20_output.tpo'
+    #: The dummy output file names contains the entity label.
+    FILE_NAME_DUMMY = '%s_dummy_xl20_output.tpo'
 
     def __init__(self, entity, rack_barcodes,
                  excluded_racks=None, requested_tubes=None,
@@ -103,10 +105,8 @@ class _StockRackAssembler(_StockRackAssigner):
         :type include_dummy_output: :class:`bool`
         :default include_dummy_output: *False*
         """
-        _StockRackAssigner.__init__(self,
-                                    entity=entity,
-                                    rack_barcodes=rack_barcodes,
-                                    **kw)
+        _StockRackAssigner.__init__(self, entity=entity,
+                                    rack_barcodes=rack_barcodes, **kw)
 
         #: A list of barcodes from stock racks that shall not be used for
         #: molecule design picking.
@@ -143,6 +143,23 @@ class _StockRackAssembler(_StockRackAssigner):
         self._check_input_list_classes('requested tube', self.requested_tubes,
                                        basestring, may_be_empty=True)
 
+    def _get_tube_racks(self):
+        """
+        The tube destination racks must be empty.
+        """
+        _StockRackAssigner._get_tube_racks(self)
+
+        non_empty = []
+        for barcode, rack in self._barcode_map.iteritems():
+            if len(rack.containers) > 0:
+                non_empty.append(str(barcode))
+
+        if len(non_empty) > 0:
+            non_empty.sort()
+            msg = 'The following racks you have chosen are not empty: %s.' \
+                  % (self._get_joined_str(non_empty))
+            self.add_error(msg)
+
     def _find_stock_tubes(self):
         """
         Checks whether the schedule tubes are still sufficient. If not, the
@@ -160,10 +177,7 @@ class _StockRackAssembler(_StockRackAssigner):
             msg = 'Error when trying to pick stock tubes.'
             self.add_error(msg)
         else:
-            missing_pools = []
-            for container in self._stock_tube_containers:
-                if container.tube_candidate is None:
-                    missing_pools.append(container.pool)
+            missing_pools = picker.get_missing_pools()
             if len(missing_pools) > 0:
                 self._react_on_missing_pools(missing_pools)
 
@@ -191,7 +205,7 @@ class _StockRackAssembler(_StockRackAssigner):
         """
         for container in self._stock_tube_containers.values():
             if container.tube_candidate is None: continue
-            plate_pos = container.get_all_plate_positions()[0]
+            plate_pos = container.get_all_target_positions()[0]
             add_list_map_element(self._tubes_by_rack,
                                  plate_pos.stock_rack_marker, container)
 
@@ -230,8 +244,15 @@ class _StockRackAssembler(_StockRackAssigner):
         marker_map = dict()
         for plate_label, rack_container in self._rack_containers.iteritems():
             marker_map[plate_label] = rack_container.rack_marker
+#            if rack_container.role == LABELS.ROLE_PREPARATION_ISO:
+#                marker_map[]
+#            else:
+#                marker_map[plate_label] = rack_container.rack_marker
+
+
+        container_map = self._sort_stock_tube_containers_by_pool(containers)
         optimizer = LabIsoStockRackOptimizer(log=self.log,
-                                    stock_tube_containers=containers,
+                                    stock_tube_containers=container_map,
                                     target_rack_shape=rack_shape,
                                     rack_marker_map=marker_map)
         stock_rack_layout = optimizer.get_result()
@@ -372,25 +393,36 @@ class _StockRackAssembler(_StockRackAssigner):
         self.add_debug('Write streams ...')
 
         # XL20 worklists and dummy output
-        for rack_label, rack_container in self._rack_containers.iteritems():
+        xl20_worklists = dict()
+        for rack_container in self._rack_containers.values():
             if not rack_container.role == LABELS.ROLE_STOCK: continue
             rack_marker = rack_container.rack_marker
             barcode = rack_container.rack.barcode
-            fn = self.FILE_NAME_XL20_WORKLIST % (barcode, rack_label)
+            container_map = self._sort_stock_tube_containers_by_pool(
+                                            self._tubes_by_rack[rack_marker])
             xl20_writer = LabIsoXL20WorklistWriter(log=self.log,
                       rack_barcode=barcode,
                       stock_rack_layout=self._stock_rack_layouts[rack_marker],
-                      stock_tube_containers=self._tubes_by_rack[rack_marker])
+                      stock_tube_containers=container_map)
             msg = 'Error when trying to write XL20 worklist stream for ' \
                   'rack "%s"!' % (rack_marker)
-            xl20_stream = self.__generate_stream(xl20_writer, fn, error_msg=msg)
-            if (not self.include_dummy_output or xl20_stream is None): continue
-            dummy_writer = XL20Dummy(xl20_worklist_stream=xl20_stream,
+            xl20_stream = self.__generate_stream(xl20_writer, None,
+                                                 error_msg=msg)
+            if xl20_stream is None: continue
+            xl20_worklists[rack_marker] = xl20_stream
+        merged_stream = merge_csv_streams(xl20_worklists)
+        wl_fn = self.FILE_NAME_XL20_WORKLIST % (self.entity.label)
+        self.__stream_map[wl_fn] = merged_stream
+
+        # dummy output
+        if self.include_dummy_output:
+            dummy_writer = XL20Dummy(xl20_worklist_stream=merged_stream,
                                      log=self.log)
-            dummy_fn = self.FILE_NAME_DUMMY % (barcode, rack_label)
             dummy_msg = 'Error when trying to write dummy output stream for ' \
                         'rack "%s"!' % (rack_marker)
-            self.__generate_stream(dummy_writer, dummy_fn, dummy_msg)
+            self.__generate_stream(dummy_writer, self.FILE_NAME_DUMMY,
+                                   dummy_msg)
+
 
         # XL20 summary
         summary_writer = LabIsoXL20SummaryWriter(log=self.log,
@@ -399,21 +431,20 @@ class _StockRackAssembler(_StockRackAssigner):
                     stock_rack_layouts=self._stock_rack_layouts,
                     excluded_racks=self.excluded_racks,
                     requested_tubes=self.requested_tubes)
-        summary_fn = self.FILE_NAME_XL20_SUMMARY % (self.entity.label)
         summary_msg = 'Error when trying to write summary stream!'
-        self.__generate_stream(summary_writer, summary_fn, summary_msg)
+        self.__generate_stream(summary_writer, self.FILE_NAME_XL20_SUMMARY,
+                               summary_msg)
 
         # Instructions
         kw = dict(log=self.log, entity=self.entity,
                    iso_request=self._iso_request,
                    rack_containers=self._rack_containers.values())
         instructions_writer = create_instructions_writer(**kw)
-        instruction_fn = self.FILE_NAME_INSTRUCTIONS % (self.entity.label)
         instruction_msg = 'Error when trying to write instruction stream!'
-        self.__generate_stream(instructions_writer, instruction_fn,
-                               instruction_msg)
+        self.__generate_stream(instructions_writer,
+                               self.FILE_NAME_INSTRUCTIONS, instruction_msg)
 
-    def __generate_stream(self, writer, file_name, error_msg):
+    def __generate_stream(self, writer, name_suffix, error_msg):
         """
         Helper method running the passed writer and recording an error message
         if the run fails.
@@ -422,9 +453,10 @@ class _StockRackAssembler(_StockRackAssigner):
         if file_stream is None:
             self.add_error(error_msg)
             return None
-        else:
+        elif not name_suffix is None:
+            file_name = name_suffix % (self.entity.label)
             self.__stream_map[file_name] = file_stream
-            return file_stream
+        return file_stream
 
     def __create_zip_archive(self):
         """
@@ -500,7 +532,8 @@ class StockRackAssemblerIsoJob(_StockRackAssembler, _StockRackAssignerIsoJob):
         All pools are controls. Thus, pools without stock tube are not allowed.
         """
         msg = 'For some control molecule design pools there are no valid ' \
-              'stock tubes available: %s.' % (sorted(missing_pools))
+              'stock tubes available: %s.' \
+               % (self._get_joined_str(missing_pools, is_strs=False))
         self.add_error(msg)
 
     def _create_stock_rack_layouts(self):
@@ -513,14 +546,15 @@ class StockRackAssemblerIsoJob(_StockRackAssembler, _StockRackAssignerIsoJob):
         self._create_stock_rack_layouts_with_biomek()
 
     def _get_stock_transfer_pipetting_specs(self):
-        _StockRackAssignerIsoJob._get_stock_transfer_pipetting_specs(self)
+        return _StockRackAssignerIsoJob._get_stock_transfer_pipetting_specs(
+                                                                        self)
 
     def _clear_entity_stock_racks(self):
         _StockRackAssignerIsoJob._clear_entity_stock_racks(self)
 
     def _create_stock_rack_entity(self, stock_rack_marker, base_kw):
-        _StockRackAssignerIsoJob._create_stock_rack_entity(self,
-                                    stock_rack_marker, base_kw)
+        return _StockRackAssignerIsoJob._create_stock_rack_entity(self,
+                                        stock_rack_marker, base_kw)
 
     def _create_output(self):
         _StockRackAssembler._create_output(self)
@@ -616,10 +650,10 @@ class StockRackAssemblerLabIso(_StockRackAssembler, _StockRackAssignerLabIso):
                    % (self._get_joined_str(fixed_pools, is_strs=False))
             self.add_error(msg)
         elif len(floating_pools) > 0:
-            msg = 'Unable to stock tubes for the following floating ' \
+            msg = 'Unable to find stock tubes for the following floating ' \
                   'positions: %s. The positions are put back into the queue.' \
                   % (self._get_joined_str(floating_pools, is_strs=False))
-            self.add_error(msg)
+            self.add_warning(msg)
             # Store adjusted layouts.
             if LABELS.ROLE_FINAL in adj_plates:
                 layout = self._plate_layouts[LABELS.ROLE_FINAL]
@@ -652,10 +686,7 @@ class StockRackAssemblerLabIso(_StockRackAssembler, _StockRackAssignerLabIso):
                     msg = 'There is more than one rack sector although ' \
                           'the final ISO plate is only a 96-well plate!'
                     self.add_error(msg)
-                number_sectors = 1
-            else:
-                number_sectors = 4
-            self.__create_sector_stock_rack_layouts(number_sectors)
+            self.__create_sector_stock_rack_layouts()
 
     def __get_sectors_for_stock_racks(self):
         """
@@ -686,13 +717,13 @@ class StockRackAssemblerLabIso(_StockRackAssembler, _StockRackAssignerLabIso):
 
         if len(inconsistent) > 0:
             msg = 'The planned sector indices for the following stock racks ' \
-                  'are inconsistent!' % (self._get_joined_str(inconsistent))
+                  'are inconsistent: %s!' % (self._get_joined_str(inconsistent))
             self.add_error(msg)
 
-    def __create_sector_stock_rack_layouts(self, number_sectors):
+    def __create_sector_stock_rack_layouts(self):
         """
-        If the final ISO plate is a 96-well final ISO plate, we use the
-        rack position, otherwise we translate the position.
+        For an 384-well target plate, we need to translate the target
+        position. In 96-well layouts, translation is not required.
         """
         for rack_marker, sectors in self._stock_rack_sectors.iteritems():
             layout = StockRackLayout()
@@ -706,31 +737,42 @@ class StockRackAssemblerLabIso(_StockRackAssembler, _StockRackAssignerLabIso):
                 stock_pos = None
                 for plate_label, positions in container.plate_target_positions.\
                                           iteritems():
-                    trg_marker = self._rack_containers[plate_label].rack_marker
+                    shape = self._plate_layouts[plate_label].shape
+                    translate = True
+                    if shape.name == RACK_SHAPE_NAMES.SHAPE_96:
+                        translate = False
+                    if self._rack_containers.has_key(plate_label):
+                        trg_marker = self._rack_containers[plate_label].\
+                                     rack_marker
+                    else:
+                        trg_marker = LABELS.ROLE_FINAL
                     for plate_pos in positions:
                         tts.append(plate_pos.as_transfer_target(trg_marker))
-                        if stock_pos is None: continue
-                        if number_sectors == 1:
-                            stock_pos = plate_pos.rack_position
-                        else:
+                        if not stock_pos is None: continue
+                        if translate:
                             stock_pos = translator.translate(
                                                       plate_pos.rack_position)
+                        else:
+                            stock_pos = plate_pos.rack_position
                     tube_barcode = container.tube_candidate.tube_barcode
                     sr_pos = StockRackPosition(rack_position=stock_pos,
                                    molecule_design_pool=container.pool,
                                    tube_barcode=tube_barcode,
                                    transfer_targets=tts)
                     layout.add_position(sr_pos)
+            if len(layout) > 0:
+                self._stock_rack_layouts[rack_marker] = layout
 
     def _get_stock_transfer_pipetting_specs(self):
-        _StockRackAssignerLabIso._get_stock_transfer_pipetting_specs(self)
+        return _StockRackAssignerLabIso._get_stock_transfer_pipetting_specs(
+                                                                        self)
 
     def _clear_entity_stock_racks(self):
         _StockRackAssignerLabIso._clear_entity_stock_racks(self)
 
     def _create_stock_rack_entity(self, stock_rack_marker, base_kw):
-        _StockRackAssignerLabIso._create_stock_rack_entity(self,
-                                                stock_rack_marker, base_kw)
+        return _StockRackAssignerLabIso._create_stock_rack_entity(self,
+                                        stock_rack_marker, base_kw)
 
 
 class LabIsoXL20WorklistWriter(BaseXL20WorklistWriter):
@@ -823,7 +865,7 @@ class LabIsoXL20SummaryWriter(TxtWriter):
     #: This is title for the volumes section (part of the \'general\' section).
     VOLUME_TITLE = 'Volumes'
     #: The volume part of the general section body.
-    VOLUME_BASE_LINE = '%.1f ul: %s'
+    VOLUME_BASE_LINE = '%s ul: %s'
 
     #: The header text for the destination racks section.
     DESTINATION_RACKS_HEADER = 'Destination Racks'
@@ -864,7 +906,7 @@ class LabIsoXL20SummaryWriter(TxtWriter):
         :type entity: :class:`LabIso` or :class:`IsoJob`
 
         :param stock_tube_containers: Contain the tube candidates (= tube
-            transfer source) data mapped onto stock rack markers.
+            transfer source) data mapped onto pools.
         :type stock_tube_containers: map
 
         :param stock_rack_layouts: Contain the target positions for each pool
@@ -971,7 +1013,8 @@ class LabIsoXL20SummaryWriter(TxtWriter):
         volume_lines = []
         for volume, pool_ids in vol_map.iteritems():
             pool_list_string = self._get_joined_str(pool_ids, is_strs=False)
-            volume_line = self.VOLUME_BASE_LINE % (volume, pool_list_string)
+            volume_line = self.VOLUME_BASE_LINE % (get_trimmed_string(volume),
+                                                   pool_list_string)
             volume_lines.append(volume_line)
 
         return LINEBREAK_CHAR.join(volume_lines)
@@ -990,6 +1033,8 @@ class LabIsoXL20SummaryWriter(TxtWriter):
             stock_racks = self.entity.iso_stock_racks \
                           + self.entity.iso_sector_stock_racks
 
+        stock_racks.sort(cmp=lambda sr1, sr2: cmp(sr1.rack.barcode,
+                                                  sr2.rack.barcode))
         for stock_rack in stock_racks:
             barcode = stock_rack.rack.barcode
             label = stock_rack.label
@@ -1048,7 +1093,7 @@ class LabIsoXL20SummaryWriter(TxtWriter):
             tube_candidate = container.tube_candidate
             rack_barcode = tube_candidate.rack_barcode
             if location_map.has_key(rack_barcode): continue
-            location = tube_candidate.location
+            location = container.location
             if location is None: location = 'unknown location'
             location_map[rack_barcode] = location
 
@@ -1100,10 +1145,11 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
         :param target_rack_shape: The shape of the target plates.
         :type target_rack_shape: :class:`thelma.models.rack.RackShape`
 
-        :param stock_rack_marker: The stock rack marker for his
+        :param stock_rack_marker: The rack marker for each rack label that
+            can occur in the :attr:`stock_tube_containers`.
         :type stock_rack_marker: :class:`str`
 
-        :param rack_marker_map: The rack marker for each rack label that can
+        :param rack_marker_map: The rack marker for each plate label that can
             occur in the stock tube containers.
         :type rack_marker_map: :class:`dict`
         """
@@ -1112,8 +1158,8 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
         self.stock_tube_containers = stock_tube_containers
         #: The shape of the target plates.
         self.target_rack_shape = target_rack_shape
-        #: The rack marker for each rack label that can occur in the
-        #: :class:`stock_tube_containers`.
+        #: The rack marker for each plate label that can occur in the
+        #: :attr:`stock_tube_containers`.
         self.rack_marker_map = rack_marker_map
 
         #: Stores the transfer targets for each pool.
@@ -1150,19 +1196,23 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
                 continue
             self._hash_values.add(pool.id)
             tts = []
-            for plate, positions in container.plate_target_positions.iteritems():
-                rack_marker = self.rack_marker_map[plate]
-                if column_maps.has_key(plate):
-                    column_map = column_maps[plate]
+            for plate_label, positions in container.plate_target_positions.\
+                                                                iteritems():
+                if plate_label == LABELS.ROLE_FINAL:
+                    rack_marker = plate_label
+                else:
+                    rack_marker = self.rack_marker_map[plate_label]
+                if column_maps.has_key(plate_label):
+                    column_map = column_maps[plate_label]
                 else:
                     column_map = dict()
-                    column_maps[plate] = column_map
-                    pos_counts[plate] = 0
+                    column_maps[plate_label] = column_map
+                    pos_counts[plate_label] = 0
                 for plate_pos in positions:
                     trg_pos = plate_pos.rack_position
                     col_index = trg_pos.column_index
                     add_list_map_element(column_map, col_index, plate_pos)
-                    pos_counts[plate] += 1
+                    pos_counts[plate_label] += 1
                     tts.append(plate_pos.as_transfer_target(rack_marker))
             self.__transfer_targets[pool] = tts
 
@@ -1175,12 +1225,24 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
             plates_by_count = dict()
             for plate, pos_count in pos_counts.iteritems():
                 add_list_map_element(plates_by_count, pos_count, plate)
-            for pos_count in sorted(plates_by_count.keys()):
+            for pos_count in sorted(plates_by_count.keys(), reverse=True):
                 plates = plates_by_count[pos_count]
                 for plate in plates:
                     i = len(self._column_maps)
                     column_map = column_maps[plate]
                     self._column_maps[i] = column_map
+
+    def _init_source_layout(self, source_layout_shape):
+        """
+        Stock rack layouts can only be 96-well layouts.
+        """
+        if not source_layout_shape == get_stock_rack_shape():
+            msg = 'The number of source positions (%i) exceeds the number ' \
+                  'of available positions in a stock rack (%i). This is a ' \
+                  'programming error. Talk to the IT department, please.' \
+                   % (len(self._hash_values), get_stock_rack_size())
+            self.add_error(msg)
+        return self.SOURCE_LAYOUT_CLS()
 
     def _get_target_layout_shape(self):
         return self.target_rack_shape
@@ -1190,7 +1252,6 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
         The target positions for all plates in a container must be equal,
         otherwise one-to-one sorting is aborted.
         """
-
         sr_map = dict() # stock rack position onto rack position
         for pool, container in self.stock_tube_containers.iteritems():
             rack_pos = None
@@ -1198,7 +1259,7 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
             for plate_pos in container.get_all_target_positions():
                 trg_pos = plate_pos.rack_position
                 if rack_pos is None:
-                    trg_pos = rack_pos
+                    rack_pos = trg_pos
                 elif not trg_pos == rack_pos:
                     return None
             if sr_map.has_key(rack_pos): return None
@@ -1221,4 +1282,5 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
                        tube_barcode
         sr_pos = StockRackPosition(rack_position=rack_pos, transfer_targets=tts,
                         molecule_design_pool=pool, tube_barcode=tube_barcode)
+        self._source_layout.add_position(sr_pos)
         return sr_pos
