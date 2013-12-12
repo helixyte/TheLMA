@@ -3,25 +3,27 @@ Deals with the final tube picking for lab ISOs.
 
 AAB
 """
+from everest.entities.utils import get_root_aggregate
+from everest.querying.specifications import cntd
+from thelma.automation.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.base import SessionTool
 from thelma.automation.tools.iso.lab.stockrack.base import StockTubeContainer
 from thelma.automation.tools.stock.base import RackLocationQuery
 from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
 from thelma.automation.tools.stock.tubepicking import SinglePoolQuery
-from thelma.automation.tools.stock.tubepicking import TubePickingQuery
-from thelma.automation.tools.stock.tubepicking import TubePoolQuery
+from thelma.automation.tools.stock.tubepicking import TubeCandidate
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.base import are_equal_values
-from thelma.automation.utils.base import create_in_term_for_db_queries
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import is_smaller_than
+from thelma.interfaces import ITube
 from thelma.models.moleculedesign import MoleculeDesignPool
+from thelma.models.sample import StockSample
 
 
 __docformat__ = 'reStructuredText en'
 
-__all__ = ['LabIsoXL20TubePicker',
-           '_LabIsoTubeConfirmationQuery']
+__all__ = ['LabIsoXL20TubePicker']
 
 
 class LabIsoXL20TubePicker(SessionTool):
@@ -69,8 +71,11 @@ class LabIsoXL20TubePicker(SessionTool):
         if requested_tubes is None: requested_tubes = []
         #: A list of barcodes from stock tubes that are supposed to be used
         #: (for fixed positions).
-        self.requested_tubes = set(requested_tubes)
+        self.requested_tubes = requested_tubes
 
+        #: The tube aggregate is used to check tubes for specified tube
+        #: barcodes.
+        self.__tube_agg = None
         #: Maps molecule design pools onto pool IDs.
         self.__pool_map = None
         #: The molecule design pools of the requested tubes.
@@ -78,30 +83,44 @@ class LabIsoXL20TubePicker(SessionTool):
         #: The required volume for each pool *in ul* without stock dead volume.
         self.__volume_map = None
 
-        #:Stores stock tube containers for tubes that need to be replaced.
+        #: Stores stock tube containers for tubes that need to be replaced.
         self.__replaced_tube_containers = None
 
-        #: Stores message infos for tubes that have been replaced due to
-        #: insufficient volume mapped onto pool IDs.
-        self.__insuffient_volume = None
         #: Stores message infos for tubes that have been replaced because the
         #: original rack has been excluded mapped onto pool IDs.
         self.__excluded_tubes = None
+        #: The tubes (that have not been replaced) mapped onto tube barcodes.
+        self.__tube_map = None
+        #: Contains pools for which no tube has been found.
+        self.__missing_pools = None
+
+        # Intermediate warning and error messages
+        self.__insuffient_volume_requested = None
+        self.__insuffient_volume_scheduled = None
+        self.__conc_mismatch_requested = None
+        self.__conc_mismatch_scheduled = None
 
     def reset(self):
         SessionTool.reset(self)
+        self.__tube_agg = get_root_aggregate(ITube)
         self.__pool_map = dict()
         self.__requested_tube_map = dict()
         self.__volume_map = dict()
         self.__replaced_tube_containers = []
-        self.__insuffient_volume = dict()
         self.__excluded_tubes = dict()
+        self.__tube_map = dict()
+        self.__insuffient_volume_requested = dict()
+        self.__insuffient_volume_scheduled = dict()
+        self.__conc_mismatch_requested = []
+        self.__conc_mismatch_scheduled = []
+        self.__missing_pools = []
 
     def run(self):
         self.reset()
         self.add_info('Start tube verification for lab ISO ...')
 
         self.__check_input()
+        if not self.has_errors(): self.__create_pool_and_volume_map()
         if not self.has_errors(): self.__check_requested_tubes()
         if not self.has_errors(): self.__check_scheduled_tubes()
         if not self.has_errors() and len(self.__replaced_tube_containers) > 0:
@@ -113,6 +132,12 @@ class LabIsoXL20TubePicker(SessionTool):
             self.add_info('Tube selection completed.')
             self.return_value = self.stock_tube_containers
 
+    def get_missing_pools(self):
+        """
+        Returns the pools for which there was no valid tube in the DB.
+        """
+        return self._get_additional_value(self.__missing_pools)
+
     def __check_input(self):
         """
         Checks the initialisation types.
@@ -123,8 +148,9 @@ class LabIsoXL20TubePicker(SessionTool):
 
         self._check_input_list_classes('excluded rack', self.excluded_racks,
                                        basestring, may_be_empty=True)
-        self._check_input_list_classes('requested tube', self.requested_tubes,
-                                       basestring, may_be_empty=True)
+        if self._check_input_list_classes('requested tube', self.requested_tubes,
+                                          basestring, may_be_empty=True):
+            self.requested_tubes = set(self.requested_tubes)
 
     def __create_pool_and_volume_map(self):
         """
@@ -155,53 +181,44 @@ class LabIsoXL20TubePicker(SessionTool):
         passed stock sample containers and creates a map containing the
         molecule design pools for all requested tubes.
         """
-        query = TubePoolQuery(tube_barcodes=self.requested_tubes)
-        self._run_query(query, 'Error when trying to find pools for ' \
-                               'requested tubes: ')
+        candidate_map = self.__get_tube_candidates_for_tubes(
+                                            self.requested_tubes, 'requested')
 
-        if not self.has_errors():
+        multiple_tubes = []
+        expec_pool_ids = set(self.__pool_map.keys())
+        unexpected_pools = []
 
-            not_found = []
-            tube_map = query.get_query_results()
-            pool_map = dict()
-            for tube_barcode in self.requested_tubes:
-                if not tube_map.has_key(tube_barcode):
-                    not_found.append(tube_barcode)
-                else:
-                    pool_id = tube_map[tube_barcode]
-                    add_list_map_element(pool_map, pool_id, tube_barcode)
+        for pool_id, candidates in candidate_map.iteritems():
+            tube_list = []
+            for candidate in candidates:
+                tube_list.append(candidate.tube_barcode)
+            if not self.__pool_map.has_key(pool_id):
+                info = '%i (tubes: %s)' % (pool_id,
+                                           self._get_joined_str(tube_list))
+                unexpected_pools.append(info)
+                continue
+            if len(candidates) > 1:
+                info = 'pool: %s (tubes: %s)' % (pool_id,
+                        self._get_joined_str(tube_list))
+                multiple_tubes.append(info)
+            for candidate in candidates:
+                if self.__accept_tube_candidate(candidate,
+                                    self.__conc_mismatch_requested,
+                                    self.__insuffient_volume_requested):
+                    break
 
-            if len(not_found) > 0:
-                msg = 'The following requested tubes could not be found in the ' \
-                      'DB: %s.' % (not_found)
-                self.add_error(msg)
-
-            expec_pool_ids = set(self.__pool_map.keys())
-            multiple_tubes = []
-            unexpec_pools = []
-            for pool_id, tube_list in pool_map.iteritems():
-                picked_tube = sorted(tube_list)[0]
-                if len(tube_list) > 1:
-                    info = 'pool: %s (tubes: %s, picked: %s)' % (pool_id,
-                                        ', '.join(tube_list), picked_tube)
-                    multiple_tubes.append(info)
-                if not pool_id in expec_pool_ids:
-                    unexpec_pools.append(pool_id)
-                self.__requested_tube_map[pool_id] = tube_list[0]
-
-            if len(multiple_tubes) > 0:
-                msg = 'You have requested multiple tubes for the same ' \
-                      'molecule design pool ID! Details: %s.' \
-                      % (', '.join(multiple_tubes))
-                self.add_warning(msg)
-            if len(unexpec_pools) > 0:
-                msg = 'The following tube you have requested have samples ' \
-                      'for pool that are processed in this step: %s. ' \
-                      'Processed pool IDs: %s.' \
-                      % (', '.join([str(pi) for pi in sorted(unexpec_pools)]),
-                         ', '.join([str(pi) for pi in \
-                                    sorted(self.__pool_map.keys())]))
-                self.add_warning(msg)
+        if len(multiple_tubes) > 0:
+            msg = 'You have requested multiple tubes for the same ' \
+                  'molecule design pool ID! Details: %s.' \
+                  % (self._get_joined_str(multiple_tubes))
+            self.add_warning(msg)
+        if len(unexpected_pools) > 0:
+            msg = 'The following tube you have requested have samples ' \
+                  'for pool that are not processed in this step: %s. ' \
+                  'Processed pool IDs: %s.' \
+                  % (self._get_joined_str(unexpected_pools),
+                     self._get_joined_str(expec_pool_ids, is_strs=False))
+            self.add_warning(msg)
 
     def __check_scheduled_tube_replacement(self):
         """
@@ -210,15 +227,15 @@ class LabIsoXL20TubePicker(SessionTool):
         """
         replaced_tubes = []
         for container in self.stock_tube_containers.values():
+            if container.tube_candidate is None: continue
             pool_id = container.pool.id
-            if not self.__requested_tube_map.has_key(pool_id): continue
-            req_tube = self.__requested_tube_map[pool_id]
-            if not req_tube == container.requested_tube_barcode:
+            requested_tube = container.tube_candidate.tube_barcode
+            if not requested_tube == container.requested_tube_barcode:
                 info = 'MD pool: %s, requested: %s, scheduled: %s' \
-                       % (pool_id, str(req_tube),
+                       % (pool_id, str(requested_tube),
                           str(container.requested_tube_barcode))
                 replaced_tubes.append(info)
-                container.requested_tube_barcode = req_tube
+                container.requested_tube_barcode = requested_tube
 
         if len(replaced_tubes) > 0:
             msg = 'Some requested tubes differ from the ones scheduled ' \
@@ -236,50 +253,27 @@ class LabIsoXL20TubePicker(SessionTool):
 
         barcodes = []
         for stock_tube_container in self.stock_tube_containers.values():
+            if stock_tube_container.tube_candidate is not None: continue
             barcodes.append(stock_tube_container.requested_tube_barcode)
-        query = _LabIsoTubeConfirmationQuery(tube_barcodes=barcodes)
-        self._run_query(query, base_error_msg='Error when trying to confirm ' \
-                              'scheduled tubes via DB query: ')
 
-        if not self.has_errors():
-            candidate_map = query.get_query_results()
-            conc_mismatch = []
-
-            for pool_id, candidate in candidate_map.iteritems():
-                pool = self.__pool_map[pool_id]
-                container = self.stock_tube_containers[pool]
-                tube_barcode = container.requested_tube_barcode
-                if not self.__stock_concentration_match(candidate, container,
-                                                        conc_mismatch): continue
-                required_volume = self.__volume_map[pool_id] + STOCK_DEAD_VOLUME
-                if is_smaller_than(candidate.volume, required_volume):
-                    params = [tube_barcode, get_trimmed_string(required_volume),
-                              get_trimmed_string(candidate.volume)]
-                    self.__insuffient_volume[pool_id] = params
-                    self.__replaced_tube_containers.append(container)
-                    continue
-                if candidate.rack_barcode in self.excluded_racks:
-                    self.__excluded_tubes[pool_id] = tube_barcode
-                    self.__replaced_tube_containers.append(container)
-                else:
-                    container.tube_candidate = candidate
-
-    def __stock_concentration_match(self, candidate, container, error_list):
-        """
-        Makes sure tube candidate and stock tube container expect the same
-        stock concentration.
-        """
-        container_conc = container.get_stock_concentration()
-        candidate_conc = candidate.concentration
-        if not are_equal_values(container_conc, candidate_conc):
-            info = '%s (pool: %i, expected: %s nM, found at tube: %s nM)' \
-                   % (candidate.tube_barcode, candidate.pool_id,
-                      get_trimmed_string(container_conc),
-                      get_trimmed_string(candidate_conc))
-            error_list.append(info)
-            return False
-        else:
-            return True
+        candidate_map = self.__get_tube_candidates_for_tubes(barcodes,
+                                                             'scheduled')
+        for pool, container in self.stock_tube_containers.iteritems():
+            if container.tube_candidate is not None: continue
+            pool_id = pool.id
+            if not candidate_map.has_key(pool_id):
+                self.__replaced_tube_containers.append(pool_id)
+                continue
+            candidates = candidate_map[pool_id]
+            picked_candidate = None
+            for candidate in candidates:
+                if self.__accept_tube_candidate(candidate,
+                            self.__conc_mismatch_scheduled,
+                            self.__insuffient_volume_scheduled):
+                    picked_candidate = candidate
+                    break
+            if picked_candidate is None:
+                self.__replaced_tube_containers.append(pool_id)
 
     def __find_new_tubes(self):
         """
@@ -287,12 +281,13 @@ class LabIsoXL20TubePicker(SessionTool):
         """
         self.add_debug('Find tubes for missing pools ...')
 
-        for container in self.__replaced_tube_containers:
-            pool_id = container.pool.id
+        for pool_id in self.__replaced_tube_containers:
+            pool = self.__pool_map[pool_id]
+            container = self.stock_tube_containers[pool]
             required_volume = self.__volume_map[pool_id]
             query = SinglePoolQuery(pool_id=pool_id,
-                                    concentration=container.get_stock_sample,
-                                    minimum_volume=required_volume)
+                            concentration=container.get_stock_concentration(),
+                            minimum_volume=required_volume)
             self._run_query(query, None)
             candidates = query.get_query_results()
             while len(candidates) > 0:
@@ -300,13 +295,13 @@ class LabIsoXL20TubePicker(SessionTool):
                 tube_barcode = candidate.tube_barcode
                 if candidate.rack_barcode in self.excluded_racks:
                     add_list_map_element(self.__excluded_tubes, pool_id,
-                                         tube_barcode)
-                    continue
-                elif self.__requested_tube_map[pool_id]:
+                                         tube_barcode, as_set=True)
+                else:
                     container.tube_candidate = candidate
+                    candidate.set_pool(container.pool)
                     break
-                elif container.tube_candidate is None:
-                    container.tube_candidate = candidate
+            if container.tube_candidate is None:
+                self.__missing_pools.append(container.pool)
 
     def __record_messages(self):
         """
@@ -329,9 +324,49 @@ class LabIsoXL20TubePicker(SessionTool):
                   'of the ISO: %s.' % (', '.join(sorted(moved_tubes)))
             self.add_warning(msg)
 
-        if len(self.__insuffient_volume) > 0:
+        self.__record_insufficient_volume_message(
+                            self.__insuffient_volume_requested, 'requested')
+        self.__record_insufficient_volume_message(
+                            self.__insuffient_volume_scheduled, 'scheduled')
+
+        conc_mismatch_base_msg = 'The following %s tubes have been ignored ' \
+            'because they concentration does not match the expected stock ' \
+            'concentration: %s.'
+        if len(self.__conc_mismatch_requested):
+            self.add_warning(conc_mismatch_base_msg % ('requested',
+                       self._get_joined_str(self.__conc_mismatch_requested)))
+        if len(self.__conc_mismatch_scheduled):
+            self.add_warning(conc_mismatch_base_msg % ('scheduled',
+                       self._get_joined_str(self.__conc_mismatch_scheduled)))
+
+        if len(self.__excluded_tubes) > 0:
             details = []
-            for pool_id, params in self.__insuffient_volume.iteritems():
+            for pool_id, old_tube_barcodes in self.__excluded_tubes.iteritems():
+                old_barcodes = self._get_joined_str(old_tube_barcodes,
+                                                    separator='-')
+                pool = self.__pool_map[pool_id]
+                container = self.stock_tube_containers[pool]
+                if container.tube_candidate is None:
+                    new_tube_barcode = 'could not be replaced'
+                else:
+                    new_tube_barcode = container.tube_candidate.tube_barcode
+                info = '%i (replaced by: %s, excluded tubes: %s)' \
+                        % (pool_id, new_tube_barcode, old_barcodes)
+                details.append(info)
+            msg = 'Some scheduled tubes had to be replaced or removed ' \
+                  'because their current racks have been excluded: %s. ' \
+                  'Excluded racks: %s.' % (self._get_joined_str(details),
+                   self._get_joined_str(self.excluded_racks))
+            self.add_warning(msg)
+
+    def __record_insufficient_volume_message(self, error_map, tube_type):
+        """
+        Helper method. Records a warning for tubes that were replaced because
+        they do not contain enough volume anymore.
+        """
+        if len(error_map) > 0:
+            details = []
+            for pool_id, params in error_map.iteritems():
                 pool = self.__pool_map[pool_id]
                 container = self.stock_tube_containers[pool]
                 if container.tube_candidate is None:
@@ -340,28 +375,11 @@ class LabIsoXL20TubePicker(SessionTool):
                     new_tube_barcode = container.tube_candidate.tube_barcode
                     params.append(new_tube_barcode)
                 info = '%s (required: %s ul, found: %s, replaced by: %s)' \
-                        % params
+                        % tuple(params)
                 details.append(info)
-            msg = 'Some scheduled tubes had to be replaced because their ' \
+            msg = 'Some %s tubes had to be replaced because their ' \
                   'volume was not sufficient anymore: %s.' \
-                   % (', '.join(sorted(details)))
-            self.add_warning(msg)
-
-        if len(self.__excluded_tubes) > 0:
-            details = []
-            for pool_id, old_tube_barcode in self.__excluded_tubes.iteritems():
-                pool = self.__pool_map[pool_id]
-                container = self.stock_tube_containers[pool]
-                if container.tube_candidate is None:
-                    new_tube_barcode = 'could not be replaced'
-                else:
-                    new_tube_barcode = container.tube_candidate.tube_barcode
-                info = '%s (replaced by: %s)' % (old_tube_barcode,
-                                                 new_tube_barcode)
-                details.append(info)
-            msg = 'Some scheduled tubes had to be replaced because their ' \
-                  'current racks have been excluded: %s. Excluded racks: %s.' \
-                  % (', '.join(sorted(details)), ', '.join(self.excluded_racks))
+                   % (tube_type, self._get_joined_str(details))
             self.add_warning(msg)
 
     def __fetch_rack_locations(self):
@@ -387,64 +405,107 @@ class LabIsoXL20TubePicker(SessionTool):
                 for container in rack_barcodes[rack_barcode]:
                     container.location = location
 
-
-class _LabIsoTubeConfirmationQuery(TubePickingQuery):
-    """
-    This query is used to check whether the volume of the tubes  scheduled by
-    the :class:`LabIsoBuilder` is still sufficient.
-
-    The results are converted into tube candidates (:class:`TubeCandidate`).
-    The candidates collection is dictionary (candidate are mapped onto pool ID).
-    """
-    QUERY_TEMPLATE = '''
-    SELECT s.volume AS stock_volume,
-        r.barcode AS rack_barcode,
-        rc.row AS row_index,
-        rc.col AS column_index,
-        cb.barcode AS tube_barcode,
-        ss.concentration AS stock_concentration
-    FROM container c, container_barcode cb, rack r, containment rc, sample s,
-        stock_sample ss
-    WHERE cb.barcode IN '%s'
-    AND s.container_id = cb.container_id
-    AND s.sample_id = ss.sample_id
-    AND c.container_id = cb.container_id
-    AND c.item_status = '%s'
-    AND rc.held_id = c.container_id
-    AND r.rack_id = rc.holder_id;
-    '''
-
-    COLUMN_NAMES = ['stock_volume', 'rack_barcode', 'row_index', 'column_index',
-                    'tube_barcode', 'stock_concentration']
-
-    def __init__(self, tube_barcodes):
+    def __get_tube_candidates_for_tubes(self, tube_barcodes, tube_type):
         """
-        Constructor:
-
-        :param tube_barcodes: The barcodes of the tubes picked by the
-            :class:`LabIsoBuilder`.
-        :type tube_barcodes: list of :class:`basestring`
+        As far as possible we use the tube aggregate to fetch tubes from the
+        DB. The tubes for the barcodes are converted into :class:`TubeCandidate`
+        objects and mapped onto pools.
+        Valid tubes must contain stock samples and be managed.
         """
-        TubePickingQuery.__init__(self)
+        self.__tube_agg.filter = cntd(barcode=tube_barcodes)
+        iterator = self.__tube_agg.iterator()
+        candidate_map = dict()
+        no_stock_sample = []
+        not_managed = []
+        while True:
+            try:
+                tube = iterator.next()
+            except StopIteration:
+                break
+            else:
+                if not tube.item_status == ITEM_STATUS_NAMES.MANAGED.upper():
+                    not_managed.append(tube.barcode)
+                    continue
+                sample = tube.sample
+                if not isinstance(sample, StockSample):
+                    no_stock_sample.append(tube.barcode)
+                    continue
+                pool = sample.molecule_design_pool
+                tc = TubeCandidate(pool_id=pool.id,
+                                   rack_barcode=tube.location.rack.barcode,
+                                   rack_position=tube.location.position,
+                                   tube_barcode=tube.barcode,
+                                   concentration=sample.concentration,
+                                   volume=sample.volume)
+                # we could store the pool itself to (instead of its ID), but
+                # for some reason the pool entities are not recognised as equal
+                add_list_map_element(candidate_map, pool.id, tc)
+                self.__tube_map[tube.barcode] = tube
 
-        #: The barcodes of the tubes picked by the :class:`LabIsoBuilder`.
-        self.tube_barcodes = tube_barcodes
+        if len(no_stock_sample) > 0:
+            msg = 'The following %s tubes do not contain stock ' \
+                  'samples: %s! The referring tubes are replaced, if ' \
+                  'possible.' % (tube_type,
+                                 self._get_joined_str(no_stock_sample))
+            self.add_warning(msg)
+        if len(not_managed) > 0:
+            msg = 'The following %s tubes are not managed: %s. They ' \
+                  'are replaced, if possible.' \
+                   % (tube_type, self._get_joined_str(not_managed))
+            self.add_warning(msg)
 
-    def _get_params_for_sql_statement(self):
-        return create_in_term_for_db_queries(self.tube_barcodes, as_string=True)
+        not_found = []
+        for tube_barcode in tube_barcodes:
+            if not self.__tube_map.has_key(tube_barcode):
+                not_found.append(tube_barcode)
+        if len(not_found) > 0:
+            msg = 'The following %s tubes have not been found in the DB: %s.' \
+                  % (tube_type, self._get_joined_str(not_found))
+            self.add_warning(msg)
 
-    def _store_result(self, result_record):
+        return candidate_map
+
+    def __accept_tube_candidate(self, tube_candidate, conc_mismatch_list,
+                                insufficent_vol_map):
         """
-        There should only be one candidate for each pool.
+        A valid tube container must have a matching concentration,
+        contain sufficent volume and must be excluded via the rack barcode.
+        Accepted candidates are assigned to the referring containers.
         """
-        candidate = self._create_candidate_from_query_result(result_record)
-        pool_id = candidate.pool_id
-        if self._results.has_key(pool_id): #pylint: disable=E1101
-            tube_barcodes = [candidate.tube_barcode,
-                             self._results[pool_id].tube_barcode]
-            msg = 'There are several candidates for pool %i: %s!' \
-                  % (pool_id, ', '.join(sorted(tube_barcodes)))
-            raise ValueError(msg)
+        pool_id = tube_candidate.pool_id
+        pool = self.__pool_map[pool_id]
+        container = self.stock_tube_containers[pool]
+        if not self.__stock_concentration_match(tube_candidate, container,
+                                    conc_mismatch_list): return False
+        required_vol = self.__volume_map[pool_id] + STOCK_DEAD_VOLUME
+        if is_smaller_than(tube_candidate.volume, required_vol):
+            params = [tube_candidate.tube_barcode,
+                      get_trimmed_string(required_vol),
+                      get_trimmed_string(tube_candidate.volume)]
+            insufficent_vol_map[pool_id] = params
+            return False
+        if tube_candidate.rack_barcode in self.excluded_racks:
+            add_list_map_element(self.__excluded_tubes, pool_id,
+                                 tube_candidate.tube_barcode, as_set=True)
+            return False
         else:
-            self._results[pool_id] = candidate
+            tube_candidate.set_pool(container.pool)
+            container.tube_candidate = tube_candidate
+            return True
 
+    def __stock_concentration_match(self, candidate, container, error_list):
+        """
+        Makes sure tube candidate and stock tube container expect the same
+        stock concentration.
+        """
+        container_conc = container.get_stock_concentration()
+        candidate_conc = candidate.concentration
+        if not are_equal_values(container_conc, candidate_conc):
+            info = '%s (pool: %i, expected: %s nM, found at tube: %s nM)' \
+                   % (candidate.tube_barcode, candidate.pool_id,
+                      get_trimmed_string(container_conc),
+                      get_trimmed_string(candidate_conc))
+            error_list.append(info)
+            return False
+        else:
+            return True

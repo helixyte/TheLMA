@@ -329,8 +329,9 @@ class ExperimentMetadataReadingTestCase(FileReadingTestCase):
 
     def __read_experiment_metadata_file(self):
         em_generator = ExperimentMetadataGenerator.create(stream=self.stream,
-                      experiment_metadata=self.experiment_metadata,
-                      requester=self.em_requester)
+                       experiment_metadata=self.experiment_metadata,
+                       requester=self.em_requester,
+                       log=SilentLog(), depending=True)
         self.experiment_metadata = em_generator.get_result()
         if self.raise_error: self.assert_is_not_none(self.experiment_metadata)
         return em_generator

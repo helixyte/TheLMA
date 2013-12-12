@@ -322,9 +322,10 @@ class _PoolQuery(TubePickingQuery):
     _POOL_OPERATOR = None
 
     QUERY_TEMPLATE = '''
-    SELECT cb.barcode AS tube_barcode, s.volume AS stock_volume,
+    SELECT cb.barcode AS tube_barcode, s.volume AS volume,
         rc.row AS row_index, rc.col AS column_index, r.barcode AS rack_barcode,
-        ss.concentration AS stock_concentration
+        ss.concentration AS concentration,
+        ss.molecule_design_set_id AS pool_id
     FROM stock_sample ss, sample s, container c, container_barcode cb,
         container_specs cs, containment rc, rack r
     WHERE ss.molecule_design_set_id %s %s
@@ -339,8 +340,8 @@ class _PoolQuery(TubePickingQuery):
     AND rc.held_id = c.container_id
     AND rc.holder_id = r.rack_id;'''
 
-    COLUMN_NAMES = ['tube_barcode', 'stock_volume', 'row_index',
-                    'column_index', 'rack_barcode', 'stock_concentration']
+    COLUMN_NAMES = ['tube_barcode', 'volume', 'row_index', 'column_index',
+                    'rack_barcode', 'concentration', 'pool_id']
 
     CANDIDATE_CLS = TubeCandidate
 

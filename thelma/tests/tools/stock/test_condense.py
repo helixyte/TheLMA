@@ -5,10 +5,11 @@ AAB
 """
 from everest.testing import RdbContextManager
 from everest.testing import check_attributes
-from thelma.automation.tools.semiconstants import get_96_rack_shape
-from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.stock.base import STOCK_RACK_SIZE
+from thelma.automation.semiconstants import ITEM_STATUS_NAMES
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_positions_for_shape
+from thelma.automation.semiconstants import get_rack_position_from_label
+from thelma.automation.tools.stock.base import get_stock_rack_size
 from thelma.automation.tools.stock.condense import CondenseRackQuery
 from thelma.automation.tools.stock.condense import RackContainerQuery
 from thelma.automation.tools.stock.condense import STOCK_CONDENSE_ROLES
@@ -16,12 +17,11 @@ from thelma.automation.tools.stock.condense import StockCondenseRack
 from thelma.automation.tools.stock.condense import StockCondenseReportWriter
 from thelma.automation.tools.stock.condense import StockCondenser
 from thelma.automation.tools.worklists.tubehandler import XL20WorklistWriter
+from thelma.models.rack import RACK_TYPES
 from thelma.testing import ThelmaModelTestCase
 from thelma.tests.tools.tooltestingutils import FileComparisonUtils
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
 from thelma.tests.tools.tooltestingutils import TestingLog
-from thelma.models.rack import RACK_TYPES
-from thelma.automation.tools.semiconstants import ITEM_STATUS_NAMES
 
 
 class StockCondenseRackTestCase(ThelmaModelTestCase):
@@ -110,7 +110,8 @@ class StockCondenseRackTestCase(ThelmaModelTestCase):
     def test_get_positions_without_tube(self):
         scr = self.__create_test_object(role=STOCK_CONDENSE_ROLES.RECEIVER)
         free_positions = scr.get_positions_without_tube()
-        self.assert_equal(len(free_positions), STOCK_RACK_SIZE)
+        stock_rack_size = get_stock_rack_size()
+        self.assert_equal(len(free_positions), stock_rack_size)
         positions_96 = get_positions_for_shape(get_96_rack_shape())
         for rack_pos in positions_96:
             self.assert_true(rack_pos in free_positions)
@@ -119,7 +120,7 @@ class StockCondenseRackTestCase(ThelmaModelTestCase):
             rack_pos = get_rack_position_from_label(pos_label)
             scr.add_tube(rack_position=rack_pos, tube_barcode=tube_barcode)
         free_positions = scr.get_positions_without_tube()
-        self.assert_equal(len(free_positions), STOCK_RACK_SIZE - len(tube_data))
+        self.assert_equal(len(free_positions), stock_rack_size - len(tube_data))
         for rack_pos in positions_96:
             if tube_data.has_key(rack_pos.label):
                 self.assert_false(rack_pos in free_positions)
@@ -144,9 +145,9 @@ class CondenseRackQueryTestCase(ThelmaModelTestCase):
     def test_run(self):
         with RdbContextManager() as session:
             query = CondenseRackQuery()
-            self.assert_equal(len(query.rack_map), 0)
+            self.assert_equal(len(query.get_query_results()), 0)
             query.run(session=session)
-            self.assert_not_equal(len(query.rack_map), 0)
+            self.assert_not_equal(len(query.get_query_results()), 0)
 
 
 class RackContainerQueryTestCase(ThelmaModelTestCase):

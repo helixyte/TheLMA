@@ -157,7 +157,7 @@ class StockSample(Sample):
     supplier = None
     #: The molecule type of all sample molecules.
     molecule_type = None
-    #: The concentration of all sample molecules.
+    #: The combined concentration of all sample molecules.
     concentration = None
     #: The registration event for this stock sample.
     registration = None

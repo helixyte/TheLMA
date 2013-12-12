@@ -7,13 +7,23 @@ from thelma.automation.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.semiconstants import RACK_SPECS_NAMES
 from thelma.automation.semiconstants import get_384_rack_shape
 from thelma.automation.semiconstants import get_experiment_metadata_type
+from thelma.automation.semiconstants import get_item_status_future
 from thelma.automation.semiconstants import get_item_status_managed
 from thelma.automation.semiconstants import get_pipetting_specs_biomek
+from thelma.automation.semiconstants import get_pipetting_specs_biomek_stock
 from thelma.automation.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.semiconstants import get_rack_position_from_label
+from thelma.automation.tools.iso.base import StockRackLayout
+from thelma.automation.tools.iso.base import StockRackLayoutConverter
+from thelma.automation.tools.iso.base import StockRackPosition
 from thelma.automation.tools.iso.lab.base import DILUENT_INFO
+from thelma.automation.tools.iso.lab.base import FinalLabIsoLayout
 from thelma.automation.tools.iso.lab.base import FinalLabIsoLayoutConverter
+from thelma.automation.tools.iso.lab.base import FinalLabIsoPosition
+from thelma.automation.tools.iso.lab.base import LabIsoPrepLayout
 from thelma.automation.tools.iso.lab.base import LabIsoPrepLayoutConverter
+from thelma.automation.tools.iso.lab.base import LabIsoPrepPosition
+from thelma.automation.tools.stock.tubepicking import TubeCandidate
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import are_equal_values
@@ -23,13 +33,19 @@ from thelma.automation.utils.iso import IsoRequestLayoutConverter
 from thelma.automation.utils.iso import IsoRequestPosition
 from thelma.automation.utils.layouts import LibraryLayout
 from thelma.automation.utils.layouts import LibraryLayoutPosition
+from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
 from thelma.automation.utils.layouts import TransferTarget
 from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import ISubproject
+from thelma.interfaces import IUser
 from thelma.models.experiment import ExperimentMetadata
+from thelma.models.job import IsoJob
 from thelma.models.library import LibraryPlate
 from thelma.models.library import MoleculeDesignLibrary
+from thelma.models.liquidtransfer import PlannedRackSampleTransfer
+from thelma.models.liquidtransfer import PlannedSampleDilution
+from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from thelma.tests.tools.tooltestingutils \
@@ -40,6 +56,9 @@ from thelma.tests.tools.tooltestingutils import TestingLog
 #: This pool ID is used for tests in which we do not want to find an
 #: appropriate stock sample.
 POOL_WITHOUT_STOCK_SAMPLE = 689600
+
+#: The name of the test ISO job.
+TEST_ISO_JOB_NAME = '123_job_01'
 
 class LAB_ISO_TEST_CASES(object):
 
@@ -142,6 +161,7 @@ class LAB_ISO_TEST_CASES(object):
             CASE_LIBRARY_2_ALIQUOTS : ['123_iso_01', '123_iso_02']}
 
     TEST_FILE_PATH = 'thelma:tests/tools/iso/lab/cases/'
+    INSTRUCTIONS_FILE_PATH = 'thelma:tests/tools/iso/lab/instructionfiles/'
 
     @classmethod
     def get_xls_file_name(cls, case_name):
@@ -151,6 +171,14 @@ class LAB_ISO_TEST_CASES(object):
     def get_experiment_scenario(cls, case_name):
         type_id = cls.__EXPERIMENT_SCENARIOS[case_name]
         return get_experiment_metadata_type(type_id)
+
+    @classmethod
+    def get_instruction_file(cls, case_name, for_job):
+        if for_job:
+            pat = '%s_job_instructions.txt'
+        else:
+            pat = '%s_iso_instructions.txt'
+        return pat % (case_name)
 
     @classmethod
     def is_library_case(cls, case_name):
@@ -340,6 +368,13 @@ class LAB_ISO_TEST_CASES(object):
         raise NotImplementedError('The value for this case is missing.')
 
     @classmethod
+    def get_process_job_first_value(cls, case_name):
+        if case_name in (cls.CASE_ASSOCIATION_JOB_LAST,
+                         cls.CASE_ASSOCIATION_SEVERAL_CONC):
+            return False
+        return True
+
+    @classmethod
     def get_aliquot_plate_shape(cls, case_name):
         return cls.__ALIQUOT_PLATE_SHAPE[case_name]
 
@@ -438,7 +473,7 @@ class LAB_ISO_TEST_CASES(object):
                 d3=[333803, 'fixed', 3, 1, False, [], None, None],
                 d4=[333803, 'fixed', 3, 1, False, [], None, None],
                 e2=[1056000, 'fixed', 3, 10000, False, [], None, 's#1'],
-                f2=[180005, 'fixed', 3, 50000, False, [], None, None],
+                f2=[180005, 'fixed', 3, 50000, False, [], None, 's#1'],
                 f3=[180005, 'fixed', 3, 48000, False, [], None, None])
             return {iso_labels[0] : f}
         elif case_name == cls.CASE_ASSOCIATION_DIRECT:
@@ -686,11 +721,8 @@ class LAB_ISO_TEST_CASES(object):
                 d4=[333803, 'fixed', 250, 1, [],
                     [TransferTarget('d3', 3, 'a'), TransferTarget('d4', 3, 'a')],
                     None, None],
-                f1=[180005, 'fixed', 61, 50000,
-                    [TransferTarget('f2', 48, 'p#1')],
-                    [TransferTarget('f2', 3, 'a')], None, 's#1'],
-                f2=[180005, 'fixed', 50, 48000, [],
-                    [TransferTarget('f3', 3, 'a')], None, None])
+                f1=[180005, 'fixed', 50, 48000, [],
+                    [TransferTarget('f3', 3, 'a')], None, 's#1'])
             return {'123_iso_01_p' : p1}
         elif case_name == cls.CASE_ASSOCIATION_DIRECT:
             return {}
@@ -1038,56 +1070,56 @@ class LAB_ISO_TEST_CASES(object):
         type_rack = TRANSFER_TYPES.RACK_SAMPLE_TRANSFER
         ps_biomek = get_pipetting_specs_biomek()
         ps_cybio = get_pipetting_specs_cybio()
-        #: worklist label - type, pipetting specs name
+        #: worklist label - type, pipetting specs, worklist index
         if case_name == cls.CASE_ORDER_ONLY:
             return {}
         elif case_name == cls.CASE_NO_JOB_DIRECT:
-            return {'123_1_a_buffer' : [type_dil, ps_biomek]}
+            return {'123_1_a_buffer' : [type_dil, ps_biomek, 1]}
         elif case_name == cls.CASE_NO_JOB_1_PREP:
-            return {'123_1_p_buffer' : [type_dil, ps_biomek],
-                    '123_2_a_buffer' : [type_dil, ps_biomek],
-                    '123_3_p_to_a' : [type_trans, ps_biomek]}
+            return {'123_1_p_buffer' : [type_dil, ps_biomek, 1],
+                    '123_2_a_buffer' : [type_dil, ps_biomek, 2],
+                    '123_3_p_to_a' : [type_trans, ps_biomek, 3]}
         elif case_name == cls.CASE_NO_JOB_COMPLEX:
-            return {'123_1_p_buffer' : [type_dil, ps_biomek],
-                    '123_2_a_buffer' : [type_dil, ps_biomek],
-                    '123_3_p_to_p' : [type_trans, ps_biomek],
-                    '123_4_p_to_p' : [type_trans, ps_biomek],
-                    '123_5_p_to_p' : [type_trans, ps_biomek],
-                    '123_6_p_to_a' : [type_trans, ps_biomek],
-                    '123_7_a_to_a' : [type_trans, ps_biomek]}
+            return {'123_1_p_buffer' : [type_dil, ps_biomek, 1],
+                    '123_2_a_buffer' : [type_dil, ps_biomek, 2],
+                    '123_3_p_to_p' : [type_trans, ps_biomek, 3],
+                    '123_4_p_to_p' : [type_trans, ps_biomek, 4],
+                    '123_5_p_to_p' : [type_trans, ps_biomek, 5],
+                    '123_6_p_to_a' : [type_trans, ps_biomek, 6],
+                    '123_7_a_to_a' : [type_trans, ps_biomek, 7]}
         elif case_name == cls.CASE_ASSOCIATION_DIRECT:
-            return {'123_1_a_buffer' : [type_dil, ps_biomek]}
+            return {'123_1_a_buffer' : [type_dil, ps_biomek, 1]}
         elif case_name == cls.CASE_ASSOCIATION_96:
-            return {'123_1_p_buffer' : [type_dil, ps_cybio],
-                    '123_2_a_buffer' : [type_dil, ps_biomek],
-                    '123_3_p_to_p' : [type_rack, ps_cybio],
-                    '123_4_p_to_a' : [type_rack, ps_cybio]}
+            return {'123_1_p_buffer' : [type_dil, ps_cybio, 1],
+                    '123_2_a_buffer' : [type_dil, ps_biomek, 2],
+                    '123_3_p_to_p' : [type_rack, ps_cybio, 3],
+                    '123_4_p_to_a' : [type_rack, ps_cybio, 4]}
         elif case_name == cls.CASE_ASSOCIATION_SIMPLE:
-            return {'123_1_p_buffer' : [type_dil, ps_cybio],
-                    '123_2_a_buffer' : [type_dil, ps_biomek],
-                    '123_3_p_to_a' : [type_rack, ps_cybio]}
+            return {'123_1_p_buffer' : [type_dil, ps_cybio, 1],
+                    '123_2_a_buffer' : [type_dil, ps_biomek, 2],
+                    '123_3_p_to_a' : [type_rack, ps_cybio, 3]}
         elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
-            return {'123_2_p_buffer' : [type_dil, ps_biomek],
-                    '123_3_a_buffer' : [type_dil, ps_biomek],
-                    '123_5_p_to_a' : [type_trans, ps_biomek],
-                    '123_6_a_to_a' : [type_trans, ps_biomek]}
+            return {'123_2_p_buffer' : [type_dil, ps_biomek, 2],
+                    '123_3_a_buffer' : [type_dil, ps_biomek, 3],
+                    '123_5_p_to_a' : [type_trans, ps_biomek, 5],
+                    '123_6_a_to_a' : [type_trans, ps_biomek, 6]}
         elif case_name == cls.CASE_ASSOCIATION_2_ALIQUOTS:
-            return {'123_1_p_buffer' : [type_dil, ps_cybio],
-                    '123_2_a_buffer' : [type_dil, ps_biomek],
-                    '123_3_p_to_a' : [type_rack, ps_cybio]}
+            return {'123_1_p_buffer' : [type_dil, ps_cybio, 1],
+                    '123_2_a_buffer' : [type_dil, ps_biomek, 2],
+                    '123_3_p_to_a' : [type_rack, ps_cybio, 3]}
         elif case_name == cls.CASE_ASSOCIATION_JOB_LAST:
-            return {'123_1_p_buffer' : [type_dil, ps_cybio],
-                    '123_2_a_buffer' : [type_dil, ps_biomek],
-                    '123_4_p_to_a' : [type_rack, ps_cybio]}
+            return {'123_1_p_buffer' : [type_dil, ps_cybio, 1],
+                    '123_2_a_buffer' : [type_dil, ps_biomek, 2],
+                    '123_4_p_to_a' : [type_rack, ps_cybio, 4]}
         elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
-            return {'123_1_p_buffer' : [type_dil, ps_cybio],
-                    '123_2_a_buffer' : [type_dil, ps_biomek],
-                    '123_4_p_to_a' : [type_rack, ps_cybio],
-                    '123_5_a_to_a' : [type_rack, ps_cybio]}
+            return {'123_1_p_buffer' : [type_dil, ps_cybio, 1],
+                    '123_2_a_buffer' : [type_dil, ps_biomek, 2],
+                    '123_4_p_to_a' : [type_rack, ps_cybio, 4],
+                    '123_5_a_to_a' : [type_rack, ps_cybio, 5]}
         elif case_name == cls.CASE_LIBRARY_SIMPLE:
-            return {'123_2_a_buffer' : [type_dil, ps_biomek]}
+            return {'123_2_a_buffer' : [type_dil, ps_biomek, 2]}
         elif case_name == cls.CASE_LIBRARY_2_ALIQUOTS:
-            return {'123_2_a_buffer' : [type_dil, ps_biomek]}
+            return {'123_2_a_buffer' : [type_dil, ps_biomek, 2]}
         raise NotImplementedError('The value for this case is missing.')
 
     @classmethod
@@ -1095,7 +1127,7 @@ class LAB_ISO_TEST_CASES(object):
         type_dil = TRANSFER_TYPES.SAMPLE_DILUTION
         type_trans = TRANSFER_TYPES.SAMPLE_TRANSFER
         ps_biomek = get_pipetting_specs_biomek()
-        #: worklist label - type, pipetting specs name
+        #: worklist label - type, pipetting specs, worklist index
         if case_name == cls.CASE_ORDER_ONLY:
             return dict()
         elif case_name == cls.CASE_NO_JOB_DIRECT:
@@ -1111,24 +1143,24 @@ class LAB_ISO_TEST_CASES(object):
         elif case_name == cls.CASE_ASSOCIATION_SIMPLE:
             return dict()
         elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
-            return {'123_1_jp_buffer' : [type_dil, ps_biomek],
-                    '123_4_jp_to_a' : [type_trans, ps_biomek]}
+            return {'123_1_jp_buffer' : [type_dil, ps_biomek, 1],
+                    '123_4_jp_to_a' : [type_trans, ps_biomek, 4]}
         elif case_name == cls.CASE_ASSOCIATION_2_ALIQUOTS:
             return dict()
         elif case_name == cls.CASE_ASSOCIATION_JOB_LAST:
-            return {'123_3_jp_buffer' : [type_dil, ps_biomek],
-                    '123_5_jp_to_a' : [type_trans, ps_biomek],
-                    '123_6_a_to_a' : [type_trans, ps_biomek]}
+            return {'123_3_jp_buffer' : [type_dil, ps_biomek, 3],
+                    '123_5_jp_to_a' : [type_trans, ps_biomek, 5],
+                    '123_6_a_to_a' : [type_trans, ps_biomek, 6]}
         elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
-            return {'123_3_jp_buffer' : [type_dil, ps_biomek],
-                    '123_6_jp_to_a' : [type_trans, ps_biomek],
-                    '123_7_a_to_a' : [type_trans, ps_biomek]}
+            return {'123_3_jp_buffer' : [type_dil, ps_biomek, 3],
+                    '123_6_jp_to_a' : [type_trans, ps_biomek, 6],
+                    '123_7_a_to_a' : [type_trans, ps_biomek, 7]}
         elif case_name == cls.CASE_LIBRARY_SIMPLE:
-            return {'123_1_jp_buffer' : [type_dil, ps_biomek],
-                    '123_3_jp_to_a' : [type_trans, ps_biomek]}
+            return {'123_1_jp_buffer' : [type_dil, ps_biomek, 1],
+                    '123_3_jp_to_a' : [type_trans, ps_biomek, 3]}
         elif case_name == cls.CASE_LIBRARY_2_ALIQUOTS:
-            return {'123_1_jp_buffer' : [type_dil, ps_biomek],
-                    '123_3_jp_to_a' : [type_trans, ps_biomek]}
+            return {'123_1_jp_buffer' : [type_dil, ps_biomek, 1],
+                    '123_3_jp_to_a' : [type_trans, ps_biomek, 3]}
         raise NotImplementedError('The value for this case is missing.')
 
     @classmethod
@@ -1151,18 +1183,18 @@ class LAB_ISO_TEST_CASES(object):
                             d8=[2, 'd4'], d10=[2, 'd5'])
         elif case_name == cls.CASE_NO_JOB_COMPLEX:
             if worklist_label == '123_1_p_buffer':
-                return dict(d1=7.3, d2=248, d3=248, d4=248, f2=2)
+                return dict(d1=7.3, d2=248, d3=248, d4=248, f1=2)
             elif worklist_label == '123_2_a_buffer':
                 return dict(b3=10, b4=16)
             elif worklist_label == '123_3_p_to_p':
-                return  dict(d2=[2, 'd1'], f2=[48, 'f1'])
+                return  dict(d2=[2, 'd1'])
             elif worklist_label == '123_4_p_to_p':
                 return  dict(d3=[2, 'd2'])
             elif worklist_label == '123_5_p_to_p':
                 return dict(d4=[2, 'd3'])
             elif worklist_label == '123_6_p_to_a':
                 return dict(d3=[3, 'd4'], d4=[3, 'd4'],
-                            f2=[3, 'f1'], f3=[3, 'f2'])
+                            f3=[3, 'f1'])
             elif worklist_label == '123_7_a_to_a':
                 return dict(b3=[10, 'b2'], b4=[4, 'b2'])
         elif case_name == cls.CASE_ASSOCIATION_DIRECT:
@@ -1272,7 +1304,7 @@ class LAB_ISO_TEST_CASES(object):
                                   'is missing.' % (worklist_label))
 
     @classmethod
-    def get_expected_pool_sets(cls, case_name):
+    def get_pool_set_data(cls, case_name):
         if case_name == cls.CASE_ORDER_ONLY:
             return None
         elif case_name == cls.CASE_NO_JOB_DIRECT:
@@ -1312,8 +1344,548 @@ class LAB_ISO_TEST_CASES(object):
             return None
         raise NotImplementedError('The value for this case is missing.')
 
+    @classmethod
+    def get_stock_takeout_volumes(cls, case_name):
+        # pool_id - stock take out volume in ul
+        if case_name == cls.CASE_ORDER_ONLY:
+            return {205201 : 2, 330001 : 2, 333803 : 2, 1056000 : 2, 180005 : 2}
+        elif case_name == cls.CASE_NO_JOB_DIRECT:
+            return {205201 : (2 + 2), 330001 : (2 + 2), 333803 : (2 + 2),
+                    1056000 : (2 + 2), 180005 : (2 + 2)}
+        elif case_name == cls.CASE_NO_JOB_1_PREP:
+            return {205201 : (2 + 2.4), 330001 : (2 + 2.4), 333803 : (2 + 1.2),
+                    1056000 : (4 + 4.8), 180005 : (2 + 4.8)}
+        elif case_name == cls.CASE_NO_JOB_COMPLEX:
+            return {205201 : 34, 330001 : 2, 333803 : (2 + 4.7), 1056000 : 4,
+                    180005 : (4 + 48)}
+        elif case_name == cls.CASE_ASSOCIATION_DIRECT:
+            return {205201 : (4 * 2), 205202 : (4 * 2), 180005 : (4 * 2),
+                    205205 : 2, 205206 : 2, 205207 : 2,
+                    205208 : 2, 205209 : 2, 205210 : 2}
+        elif case_name == cls.CASE_ASSOCIATION_96:
+            return {205201 : (5.5 * 2), 205202 : (5.5 * 2), 205203 : (5.5 * 2),
+                    180005 : (5.5 * 2), 205205 : 5.5, 205206: 5.5,
+                    205207 : 5.5, 205208 : 5.5}
+        elif case_name == cls.CASE_ASSOCIATION_SIMPLE:
+            return {205201 : 2, 205202 : 2, 180005  : 2,
+                    205205 : 1, 205206 : 1, 205207 : 1,
+                    205208 : 1, 205209 : 1, 205210 : 1}
+        elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
+            return {205201 : 1, 180005 : 1,
+                    205202 : 1, 205203 : 1, 205204 : 1, 205205 : 1}
+        elif case_name == cls.CASE_ASSOCIATION_2_ALIQUOTS:
+            return {205201 : 2, 205202 : 2, 180005 : 2,
+                    205205 : 1, 205206 : 1, 205207 : 1,
+                    205208 : 1, 205209 : 1, 205210 : 1}
+        elif case_name == cls.CASE_ASSOCIATION_JOB_LAST:
+            return {205201 : 1, 330001 : 1.1, 180005 : 1,
+                    205202 : 1, 205203 : 1, 205204 : 1, 205205 : 1, 205206 : 1,
+                    205207 : 1,
+                    205208 : 1, 205209 : 1, 205210 : 1, 205212 : 1, 205214 : 1,
+                    205215 : 1}
+        elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
+            return {205201 : 1, 330001 : 1, 180005 : 1,
+                    205202 : 1, 205203 : 1, 205204 : 1, 205205 : 1,
+                    205206 : 1, 205207 : 1,
+                    205208 : 1, 205209 : 1, 205210 : 1, 205212 : 1,
+                    205214 : 1, 205215 : 1}
+        elif case_name == cls.CASE_LIBRARY_SIMPLE:
+            return {205201 : 1, 330001 : 4.6, 1056000 : 4.6}
+        elif case_name == cls.CASE_LIBRARY_2_ALIQUOTS:
+            return {205201 : 1.4, 330001 : 6.7, 1056000 : 6.7}
+        raise NotImplementedError('The value for this case is missing.')
 
-class LabIsoTestCase(ExperimentMetadataReadingTestCase):
+    @classmethod
+    def get_stock_rack_layout_data(cls, case_name):
+        # pos_label - pool, tube barcode, transfer_targets
+        if case_name == cls.CASE_ORDER_ONLY:
+            s1 = dict(
+                b2=[205201, '1000205201', [TransferTarget('b2', 2, 'a')]],
+                b4=[330001, '1000330001', [TransferTarget('b4', 2, 'a')]],
+                b6=[333803, '1000333803', [TransferTarget('b6', 2, 'a')]],
+                b8=[1056000, '1001056000', [TransferTarget('b8', 2, 'a')]],
+                b10=[180005, '1000180005', [TransferTarget('b10', 2, 'a')]])
+            return {'123_iso_01_s#1' : s1}
+        elif case_name == cls.CASE_NO_JOB_DIRECT:
+            s1 = dict(
+                a1=[205201, '1000205201', [TransferTarget('b2', 2, 'a'),
+                                           TransferTarget('d2', 2, 'a')]],
+                b1=[330001, '1000330001', [TransferTarget('b4', 2, 'a'),
+                                           TransferTarget('d4', 2, 'a')]],
+                c1=[333803, '1000333803', [TransferTarget('b6', 2, 'a'),
+                                           TransferTarget('d6', 2, 'a')]],
+                d1=[1056000, '1001056000', [TransferTarget('b8', 2, 'a'),
+                                           TransferTarget('d8', 2, 'a')]],
+                e1=[180005, '1000180005', [TransferTarget('b10', 2, 'a'),
+                                            TransferTarget('d10', 2, 'a')]])
+            return {'123_iso_01_s#1' : s1}
+        elif case_name == cls.CASE_NO_JOB_1_PREP:
+            s1 = dict(
+                a1=[205201, '1000205201', [TransferTarget('b2', 2, 'a'),
+                                           TransferTarget('d1', 2.4, 'p')]],
+                b1=[330001, '1000330001', [TransferTarget('b4', 2, 'a'),
+                                           TransferTarget('d2', 2.4, 'p')]],
+                c1=[333803, '1000333803', [TransferTarget('b6', 2, 'a'),
+                                           TransferTarget('d3', 1.2, 'p')]],
+                d1=[1056000, '1001056000', [TransferTarget('b8', 4, 'a'),
+                                           TransferTarget('d4', 4.8, 'p')]],
+                e1=[180005, '1000180005', [TransferTarget('b10', 4, 'a'),
+                                           TransferTarget('d5', 4.8, 'p')]])
+            return {'123_iso_01_s#1' : s1}
+        elif case_name == cls.CASE_NO_JOB_COMPLEX:
+            s1 = dict(
+                a1=[205201, '1000205201', [TransferTarget('b2', 34, 'a')]],
+                b1=[330001, '1000330001', [TransferTarget('c2', 3, 'a')]],
+                c1=[333803, '1000333803', [TransferTarget('d2', 3, 'a'),
+                                           TransferTarget('d1', 4.7, 'p')]],
+                d1=[1056000, '1001056000', [TransferTarget('e2', 3, 'a')]],
+                e1=[180005, '1000180005', [TransferTarget('f2', 3, 'a'),
+                                           TransferTarget('f1', 48, 'p')]])
+            return {'123_iso_01_s#1' : s1}
+        elif case_name == cls.CASE_ASSOCIATION_DIRECT:
+            s1 = dict(
+                a1=[205201, '1000205201', [TransferTarget('b2', 2, 'a'),
+                                           TransferTarget('d2', 2, 'a')]],
+                b1=[205202, '1000205202', [TransferTarget('b3', 2, 'a'),
+                                           TransferTarget('d3', 2, 'a')]],
+                c1=[180005, '1000180005', [TransferTarget('b4', 2, 'a'),
+                                           TransferTarget('d4', 2, 'a')]])
+            s21 = dict(
+                b2=[205206, '1000205206', [TransferTarget('c3', 2, 'a')]])
+            s22 = dict(
+                b2=[205209, '1000205206', [TransferTarget('c3', 2, 'a')]])
+            s31 = dict(
+                b1=[205205, '1000205205', [TransferTarget('c2', 2, 'a')]],
+                b2=[205207, '1000205027', [TransferTarget('c4', 2, 'a')]])
+            s32 = dict(
+                b1=[205208, '1000205208', [TransferTarget('c2', 2, 'a')]],
+                b2=[205210, '1000205010', [TransferTarget('c4', 2, 'a')]])
+            return {'123_job_01_s#1' : s1,
+                    '123_iso_01_s#2' : s21, '123_iso_02_s#2' : s22,
+                    '123_iso_01_s#3' : s31, '123_iso_02_s#3' : s32}
+        elif case_name == cls.CASE_ASSOCIATION_96:
+            s11 = dict(
+                b2=[205201, '1000205201', [TransferTarget('c3', 5.5, 'p')]],
+                c2=[205202, '1000205202', [TransferTarget('e3', 5.5, 'p')]],
+                b4=[205203, '1000205203', [TransferTarget('c7', 5.5, 'p')]],
+                c4=[180005, '1000180005', [TransferTarget('e7', 5.5, 'p')]],
+                b6=[205205, '1000205205', [TransferTarget('c11', 5.5, 'p')]],
+                c6=[205206, '1000205206', [TransferTarget('e11', 5.5, 'p')]])
+            s12 = dict(
+                b2=[205201, '1000205201', [TransferTarget('c3', 5.5, 'p')]],
+                c2=[205202, '1000205202', [TransferTarget('e3', 5.5, 'p')]],
+                b4=[205203, '1000205203', [TransferTarget('c7', 5.5, 'p')]],
+                c4=[180005, '1000180005', [TransferTarget('e7', 5.5, 'p')]],
+                b6=[205207, '1000205207', [TransferTarget('c11', 5.5, 'p')]],
+                c6=[205208, '1000205208', [TransferTarget('e11', 5.5, 'p')]])
+            return {'123_iso_01_s#1' : s11, '123_iso_02_s#1' : s12}
+        elif case_name == cls.CASE_ASSOCIATION_SIMPLE:
+            s1 = dict(
+                a1=[205201, '1000205201', [TransferTarget('b2', 1, 'p'),
+                                           TransferTarget('d2', 1, 'p')]],
+                b1=[205202, '1000205202', [TransferTarget('b3', 1, 'p'),
+                                           TransferTarget('d3', 1, 'p')]],
+                c1=[180005, '1000180005', [TransferTarget('b4', 1, 'p'),
+                                           TransferTarget('d4', 1, 'p')]])
+            s21 = dict(
+                b2=[205206, '1000205206', [TransferTarget('c3', 1, 'p')]])
+            s22 = dict(
+                b2=[205209, '1000205209', [TransferTarget('c3', 1, 'p')]])
+            s31 = dict(
+                b1=[205205, '1000205205', [TransferTarget('c2', 1, 'p')]],
+                b2=[205207, '1000205207', [TransferTarget('c4', 1, 'p')]])
+            s32 = dict(
+                b1=[205208, '1000205208', [TransferTarget('c2', 1, 'p')]],
+                b2=[205210, '1000205210', [TransferTarget('c4', 1, 'p')]])
+            return {'123_job_01_s#1' : s1,
+                    '123_iso_01_s#2' : s21, '123_iso_02_s#2' : s22,
+                    '123_iso_01_s#3' : s31, '123_iso_02_s#3' : s32}
+        elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
+            s1 = dict(
+                c1=[205201, '1000205201', [TransferTarget('c1', 1, 'jp')]],
+                c2=[180005, '1000180005', [TransferTarget('c2', 1, 'jp')]])
+            s21 = dict(
+                d1=[205202, '1000205202', [TransferTarget('d1', 1, 'p')]],
+                d2=[205203, '1000205203', [TransferTarget('d2', 1, 'p')]])
+            s22 = dict(
+                d1=[205204, '1000205204', [TransferTarget('d1', 1, 'p')]],
+                d2=[205205, '1000205205', [TransferTarget('d2', 1, 'p')]])
+            return {'123_job_01_s#1' : s1,
+                    '123_iso_01_s#2' : s21, '123_iso_02_s#2' : s22}
+        elif case_name == cls.CASE_ASSOCIATION_2_ALIQUOTS:
+            s1 = dict(
+                a1=[205201, '1000205201', [TransferTarget('b2', 1, 'p'),
+                                           TransferTarget('d2', 1, 'p')]],
+                b1=[205202, '1000205202', [TransferTarget('b3', 1, 'p'),
+                                           TransferTarget('d3', 1, 'p')]],
+                c1=[180005, '1000180005', [TransferTarget('b4', 1, 'p'),
+                                           TransferTarget('d4', 1, 'p')]])
+            s21 = dict(
+                b2=[205206, '1000205206', [TransferTarget('c3', 1, 'p')]])
+            s22 = dict(
+                b2=[205209, '1000205209', [TransferTarget('c3', 1, 'p')]])
+            s31 = dict(
+                b1=[205205, '1000205205', [TransferTarget('c2', 1, 'p')]],
+                b2=[205207, '1000205207', [TransferTarget('c4', 1, 'p')]])
+            s32 = dict(
+                b1=[205208, '1000205208', [TransferTarget('c2', 1, 'p')]],
+                b2=[205210, '1000205210', [TransferTarget('c4', 1, 'p')]])
+            return {'123_job_01_s#1' : s1,
+                    '123_iso_01_s#2' : s21, '123_iso_02_s#2' : s22,
+                    '123_iso_01_s#3' : s31, '123_iso_02_s#3' : s32}
+        elif case_name == cls.CASE_ASSOCIATION_JOB_LAST:
+            s1 = dict(
+                e1=[205201, '1000205201', [TransferTarget('e1', 1, 'jp')]],
+                e2=[330001, '1000330001', [TransferTarget('e2', 1.1, 'jp')]],
+                e3=[180005, '1000180005', [TransferTarget('e3', 1, 'jp')]])
+            s21 = dict(
+                b2=[205203, '1000205203', [TransferTarget('c3', 1, 'p')]])
+            s22 = dict(
+                b2=[205209, '1000205203', [TransferTarget('c3', 1, 'p')]])
+            s31 = dict(
+                b1=[205202, '1000205202', [TransferTarget('c2', 1, 'p')]],
+                b2=[205204, '1000205204', [TransferTarget('c4', 1, 'p')]])
+            s32 = dict(
+                b1=[205208, '1000205208', [TransferTarget('c2', 1, 'p')]],
+                b2=[205210, '1000205210', [TransferTarget('c4', 1, 'p')]])
+            s41 = dict(
+                b2=[205206, '1000205206', [TransferTarget('d3', 1, 'p')]])
+            s42 = dict(
+                b2=[205214, '1000205206', [TransferTarget('d3', 1, 'p')]])
+            s51 = dict(
+                b1=[205205, '1000205205', [TransferTarget('d2', 1, 'p')]],
+                b2=[205207, '1000205207', [TransferTarget('d4', 1, 'p')]])
+            s52 = dict(
+                b1=[205212, '1000205205', [TransferTarget('d2', 1, 'p')]],
+                b2=[205215, '1000205215', [TransferTarget('d4', 1, 'p')]])
+            return {'123_job_01_s#1' : s1,
+                    '123_iso_01_s#2' : s21, '123_iso_02_s#2' : s22,
+                    '123_iso_01_s#3' : s31, '123_iso_02_s#3' : s32,
+                    '123_iso_01_s#4' : s41, '123_iso_02_s#4' : s42,
+                    '123_iso_01_s#5' : s51, '123_iso_02_s#5' : s52}
+        elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
+            s1 = dict(
+                f1=[205201, '1000205201', [TransferTarget('f1', 1, 'jp')]],
+                f2=[330001, '1000330001', [TransferTarget('f2', 1.1, 'jp')]],
+                f3=[180005, '1000180005', [TransferTarget('f3', 1, 'jp')]])
+            s21 = dict(
+                b2=[205202, '1000205202', [TransferTarget('b2', 1, 'p')]],
+                b3=[205203, '1000205203', [TransferTarget('b3', 1, 'p')]],
+                b4=[205204, '1000205204', [TransferTarget('b4', 1, 'p')]],
+                d2=[205205, '1000205205', [TransferTarget('d2', 1, 'p')]],
+                d3=[205206, '1000205206', [TransferTarget('d3', 1, 'p')]],
+                d4=[205207, '1000205207', [TransferTarget('d4', 1, 'p')]])
+            s22 = dict(
+                b2=[205208, '1000205208', [TransferTarget('b2', 1, 'p')]],
+                b3=[205209, '1000205209', [TransferTarget('b3', 1, 'p')]],
+                b4=[205210, '1000205210', [TransferTarget('b4', 1, 'p')]],
+                d2=[205212, '1000205212', [TransferTarget('d2', 1, 'p')]],
+                d3=[205214, '1000205214', [TransferTarget('d3', 1, 'p')]],
+                d4=[205215, '1000205215', [TransferTarget('d4', 1, 'p')]])
+            return {'123_job_01_s#1' : s1,
+                    '123_iso_01_s#2' : s21, '123_iso_02_s#2' : s22}
+        elif case_name == cls.CASE_LIBRARY_SIMPLE:
+            s1 = dict(
+                b1=[205201, '1000205201', [TransferTarget('b1', 1, 'jp')]],
+                d1=[330001, '1000330001', [TransferTarget('d1', 4.6, 'jp')]],
+                f1=[1056000, '1001056000', [TransferTarget('f1', 4.6, 'jp')]])
+            return {'123_job_01_s#1' : s1}
+        elif case_name == cls.CASE_LIBRARY_2_ALIQUOTS:
+            s1 = dict(
+                b1=[205201, '1000205201', [TransferTarget('b1', 1.4, 'jp')]],
+                d1=[330001, '1000330001', [TransferTarget('d1', 6.7, 'jp')]],
+                f1=[1056000, '1001056000', [TransferTarget('f1', 6.7, 'jp')]])
+            return {'123_job_01_s#1' : s1}
+        raise NotImplementedError('The value for this case is missing.')
+
+    @classmethod
+    def get_stock_rack_labels(cls, case_name):
+        if case_name == cls.CASE_ORDER_ONLY:
+            return {'s#1' : ['123_iso_01_s#1']}
+        elif case_name == cls.CASE_NO_JOB_DIRECT:
+            return {'s#1' : ['123_iso_01_s#1']}
+        elif case_name == cls.CASE_NO_JOB_1_PREP:
+            return {'s#1' : ['123_iso_01_s#1']}
+        elif case_name == cls.CASE_NO_JOB_COMPLEX:
+            return {'s#1' : ['123_iso_01_s#1']}
+        elif case_name == cls.CASE_ASSOCIATION_DIRECT:
+            return {'s#1' : ['123_job_01_s#1'],
+                    's#2' : ['123_iso_01_s#2', '123_iso_02_s#2'],
+                    's#3' : ['123_iso_01_s#3', '123_iso_02_s#3']}
+        elif case_name == cls.CASE_ASSOCIATION_96:
+            return {'s#1' : ['123_iso_01_s#1', '123_iso_02_s#1']}
+        elif case_name == cls.CASE_ASSOCIATION_SIMPLE:
+            return {'s#1' : ['123_job_01_s#1'],
+                    's#2' : ['123_iso_01_s#2', '123_iso_02_s#2'],
+                    's#3' : ['123_iso_01_s#3', '123_iso_02_s#3']}
+        elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
+            return {'s#1' : ['123_job_01_s#1'],
+                    's#2' : ['123_iso_01_s#2', '123_iso_01_s#2']}
+        elif case_name == cls.CASE_ASSOCIATION_2_ALIQUOTS:
+            return {'s#1' : ['123_job_01_s#1'],
+                    's#2' : ['123_iso_01_s#2', '123_iso_02_s#2'],
+                    's#3' : ['123_iso_01_s#3', '123_iso_02_s#3']}
+        elif case_name == cls.CASE_ASSOCIATION_JOB_LAST:
+            return {'s#1' : ['123_job_01_s#1'],
+                    's#2' : ['123_iso_01_s#2', '123_iso_02_s#2'],
+                    's#3' : ['123_iso_01_s#3', '123_iso_02_s#3'],
+                    's#4' : ['123_iso_01_s#4', '123_iso_02_s#4'],
+                    's#5' : ['123_iso_01_s#5', '123_iso_02_s#5']}
+        elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
+            return {'s#1' : ['123_job_01_s#1'],
+                    's#2' : ['123_iso_01_s#2', '123_iso_02_s#2']}
+        elif case_name == cls.CASE_LIBRARY_SIMPLE:
+            return {'s#1' : ['123_job_01_s#1']}
+        elif case_name == cls.CASE_LIBRARY_2_ALIQUOTS:
+            return {'s#1' : ['123_job_01_s#1']}
+        raise NotImplementedError('The value for this case is missing.')
+
+    @classmethod
+    def get_sectors_for_iso_stock_racks(cls, case_name):
+        if case_name == cls.CASE_ORDER_ONLY:
+            return {'s#1' : None}
+        elif case_name == cls.CASE_NO_JOB_DIRECT:
+            return {'s#1' : None}
+        elif case_name == cls.CASE_NO_JOB_1_PREP:
+            return {'s#1' : None}
+        elif case_name == cls.CASE_NO_JOB_COMPLEX:
+            return {'s#1' : None}
+        elif case_name == cls.CASE_ASSOCIATION_DIRECT:
+            return {'s#2' : 0, 's#3' : 1}
+        elif case_name == cls.CASE_ASSOCIATION_96:
+            return {'s#1' : 0}
+        elif case_name == cls.CASE_ASSOCIATION_SIMPLE:
+            return {'s#2' : 0, 's#3' : 1}
+        elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
+            return {'s#2' : None}
+        elif case_name == cls.CASE_ASSOCIATION_2_ALIQUOTS:
+            return {'s#2' : 0, 's#3' : 1}
+        elif case_name == cls.CASE_ASSOCIATION_JOB_LAST:
+            return {'s#2' : 0, 's#3' : 1, 's#4' : 2, 's#5' : 3}
+        elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
+            return {'s#2' : 0}
+        raise NotImplementedError('The value for this case is missing.')
+
+    @classmethod
+    def get_stock_rack_worklist_series_for_job(cls, case_name):
+        ps_biomek_stock = get_pipetting_specs_biomek_stock()
+        #: worklist label - worklist index
+        # all stock rack worklists have SAMPLE_TRANSFER as transfer type
+        if case_name == cls.CASE_ASSOCIATION_DIRECT:
+            return {'123_1_s#1_to_a' : [0, ps_biomek_stock]}
+        elif case_name == cls.CASE_ASSOCIATION_SIMPLE:
+            return {'123_1_s#1_to_p' : [0, ps_biomek_stock]}
+        elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
+            return {'123_1_s#1_to_jp' : [0, ps_biomek_stock]}
+        elif case_name == cls.CASE_ASSOCIATION_2_ALIQUOTS:
+            return {'123_1_s#1_to_p' : [0, ps_biomek_stock]}
+        elif case_name == cls.CASE_ASSOCIATION_JOB_LAST:
+            return {'123_1_s#1_to_jp' : [0, ps_biomek_stock]}
+        elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
+            return {'123_1_s#1_to_jp' : [0, ps_biomek_stock]}
+        elif case_name == cls.CASE_LIBRARY_SIMPLE:
+            return {'123_1_s#1_to_jp' : [0, ps_biomek_stock]}
+        elif case_name == cls.CASE_LIBRARY_2_ALIQUOTS:
+            return {'123_1_s#1_to_jp' : [0, ps_biomek_stock]}
+        raise NotImplementedError('The value for this case is missing.')
+
+    @classmethod
+    def get_stock_rack_worklist_series_for_iso(cls, case_name):
+        ps_biomek_stock = get_pipetting_specs_biomek_stock()
+        ps_cybio = get_pipetting_specs_cybio()
+        #: worklist label - worklist index, pipetting specs
+        # all stock rack worklists have SAMPLE_TRANSFER as transfer type
+        if case_name == cls.CASE_ORDER_ONLY:
+            return {'123_1_s#1_to_a' : [0, ps_biomek_stock]}
+        elif case_name == cls.CASE_NO_JOB_DIRECT:
+            return {'123_1_s#1_to_a' : [0, ps_biomek_stock]}
+        elif case_name == cls.CASE_NO_JOB_1_PREP:
+            return {'123_1_s#1_to_p' : [0, ps_biomek_stock],
+                    '123_2_s#1_to_a' : [1, ps_biomek_stock]}
+        elif case_name == cls.CASE_NO_JOB_COMPLEX:
+            return {'123_1_s#1_to_p' : [0, ps_biomek_stock],
+                    '123_2_s#1_to_a' : [1, ps_biomek_stock]}
+        elif case_name == cls.CASE_ASSOCIATION_DIRECT:
+            return {'123_1_s#2_to_a' : [0, ps_cybio],
+                    '123_1_s#3_to_a' : [0, ps_cybio]}
+        elif case_name == cls.CASE_ASSOCIATION_96:
+            return {'123_1_s#1_to_p' : [0, ps_cybio]}
+        elif case_name == cls.CASE_ASSOCIATION_SIMPLE:
+            return {'123_1_s#2_to_p' : [0, ps_cybio],
+                    '123_1_s#3_to_p' : [0, ps_cybio]}
+        elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
+            return {'123_1_s#2_to_p' : [0, ps_biomek_stock]}
+        elif case_name == cls.CASE_ASSOCIATION_2_ALIQUOTS:
+            return {'123_1_s#2_to_p' : [0, ps_cybio],
+                    '123_1_s#3_to_p' : [0, ps_cybio]}
+        elif case_name == cls.CASE_ASSOCIATION_JOB_LAST:
+            return {'123_1_s#2_to_p' : [0, ps_cybio],
+                    '123_1_s#3_to_p' : [0, ps_cybio],
+                    '123_1_s#4_to_p' : [0, ps_cybio],
+                    '123_1_s#5_to_p' : [0, ps_cybio]}
+        elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
+            return {'123_1_s#2_to_p' : [0, ps_cybio]}
+        elif case_name == cls.CASE_LIBRARY_SIMPLE:
+            return dict()
+        elif case_name == cls.CASE_LIBRARY_2_ALIQUOTS:
+            return dict()
+        raise NotImplementedError('The value for this case is missing.')
+
+    @classmethod
+    def get_stock_rack_worklist_details(cls, case_name, worklist_label):
+        # trg_pos - vol, target_pos
+        if case_name == cls.CASE_ORDER_ONLY:
+            if worklist_label == '123_1_s#1_to_a':
+                return dict(b2=[2, 'b2'], b4=[2, 'b4'], b6=[2, 'b6'],
+                            b8=[2, 'b8'], b10=[2, 'b10'])
+        elif case_name == cls.CASE_NO_JOB_DIRECT:
+            if worklist_label == '123_1_s#1_to_a':
+                return dict(b2=[2, 'a1'], d2=[2, 'a1'],
+                    b4=[2, 'b1'], d4=[2, 'b1'], b6=[2, 'c1'], d6=[2, 'c1'],
+                    b8=[2, 'd1'], d8=[2, 'd1'], b10=[2, 'e1'], d10=[2, 'e1'])
+        elif case_name == cls.CASE_NO_JOB_1_PREP:
+            if worklist_label == '123_1_s#1_to_p':
+                return dict(d1=[2.4, 'a1'], d2=[2.4, 'b1'], d3=[1.2, 'c1'],
+                            d4=[4.8, 'd1'], d5=[4.8, 'e1'])
+            elif worklist_label == '123_2_s#1_to_a':
+                return  dict(b2=[2, 'a1'], b4=[2, 'b1'], b6=[2, 'c1'],
+                             b8=[4, 'd1'], b10=[4, 'e1'])
+        elif case_name == cls.CASE_NO_JOB_COMPLEX:
+            if worklist_label == '123_1_s#1_to_p':
+                return dict(d1=[4.7, 'c1'], f1=[48, 'e1'])
+            elif worklist_label == '123_2_s#1_to_a':
+                return  dict(b2=[34, 'a1'], c2=[3, 'b1'], d2=[3, 'c1'],
+                             e2=[3, 'd1'], f2=[3, 'e1'])
+        elif case_name == cls.CASE_ASSOCIATION_DIRECT:
+            if worklist_label == '123_1_s#1_to_a':
+                return dict(b2=[2, 'a1'], d2=[2, 'a1'],
+                    b3=[2, 'b1'], d3=[2, 'b1'], b4=[2, 'c1'], d4=[2, 'c1'])
+            elif worklist_label == '123_1_s#2_to_a':
+                return dict(c3=[2, 'b2'])
+            elif worklist_label == '123_1_s#3_to_a':
+                return dict(c2=[2, 'b1'], c4=[2, 'b2'])
+        elif case_name == cls.CASE_ASSOCIATION_96:
+            if worklist_label == '123_1_s#1_to_p':
+                return dict(c3=[5.5, 'b2'], e3=[5.5, 'c2'], c7=[5.5, 'b4'],
+                    e7=[5.5, 'c4'], c11=[5.5, 'b6'], e11=[5.5, 'c6'])
+        elif case_name == cls.CASE_ASSOCIATION_SIMPLE:
+            if worklist_label == '123_1_s#1_to_p':
+                return dict(b2=[1, 'a1'], d2=[1, 'a1'],
+                    b3=[1, 'b1'], d3=[1, 'b1'], b4=[1, 'c1'], d4=[1, 'c1'])
+            elif worklist_label == '123_1_s#2_to_p':
+                return dict(c3=[1, 'b2'])
+            elif worklist_label == '123_1_s#3_to_p':
+                return dict(c2=[1, 'b1'], c4=[1, 'b2'])
+        elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
+            if worklist_label == '123_1_s#1_to_jp':
+                return dict(c1=[1, 'c1'], c2=[1, 'c2'])
+            elif worklist_label == '123_1_s#2_to_p':
+                return dict(d1=[1, 'd1'], d2=[1, 'd2'])
+        elif case_name == cls.CASE_ASSOCIATION_2_ALIQUOTS:
+            if worklist_label == '123_1_s#1_to_p':
+                return dict(b2=[1, 'a1'], d2=[1, 'a1'],
+                    b3=[1, 'b1'], d3=[1, 'b1'], b4=[1, 'c1'], d4=[1, 'c1'])
+            elif worklist_label == '123_1_s#2_to_p':
+                return dict(c3=[1, 'b2'])
+            elif worklist_label == '123_1_s#3_to_p':
+                return dict(c2=[1, 'b1'], c4=[1, 'b2'])
+        elif case_name == cls.CASE_ASSOCIATION_JOB_LAST:
+            if worklist_label == '123_1_s#2_to_p':
+                return dict(c3=[1, 'b2'])
+            elif worklist_label == '123_1_s#3_to_p':
+                return dict(c2=[1, 'b1'], c4=[1, 'b2'])
+            elif worklist_label == '123_1_s#4_to_p':
+                return dict(d3=[1, 'b2'])
+            elif worklist_label == '123_1_s#5_to_p':
+                return dict(d2=[1, 'b1'], d4=[1, 'b2'])
+            elif worklist_label == '123_1_s#1_to_jp':
+                return dict(e1=[1, 'e1'], e2=[1.1, 'e2'], e3=[1, 'e3'])
+        elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
+            if worklist_label == '123_1_s#2_to_p':
+                return dict(b2=[1, 'b2'], b3=[1, 'b3'], b4=[1, 'b4'],
+                            d2=[1, 'd2'], d3=[1, 'd3'], d4=[1, 'd4'])
+            elif worklist_label == '123_1_s#1_to_jp':
+                return dict(f1=[1, 'f1'], f2=[1.1, 'f2'], f3=[1, 'f3'])
+        elif case_name == cls.CASE_LIBRARY_SIMPLE:
+            if worklist_label == '123_1_s#1_to_jp':
+                return dict(b1=[1, 'b1'], d1=[4.6, 'd1'], f1=[4.6, 'f1'])
+        elif case_name == cls.CASE_LIBRARY_2_ALIQUOTS:
+            if worklist_label == '123_1_s#1_to_jp':
+                return dict(b1=[1.4, 'b1'], d1=[6.7, 'd1'], f1=[6.7, 'f1'])
+        raise NotImplementedError('The value for this case or worklist (%s) ' \
+                                  'is missing.' % (worklist_label))
+
+    @classmethod
+    def get_stock_tube_number(cls, case_name, for_job):
+        if case_name == cls.CASE_ORDER_ONLY:
+            if for_job:
+                return 0
+            else:
+                return 5
+        elif case_name == cls.CASE_NO_JOB_DIRECT:
+            if for_job:
+                return 0
+            else:
+                return 5
+        elif case_name == cls.CASE_NO_JOB_1_PREP:
+            if for_job:
+                return 0
+            else:
+                return 5
+        elif case_name == cls.CASE_NO_JOB_COMPLEX:
+            if for_job:
+                return 0
+            else:
+                return 5
+        elif case_name == cls.CASE_ASSOCIATION_DIRECT:
+            if for_job:
+                return 3
+            else:
+                return 3
+        elif case_name == cls.CASE_ASSOCIATION_96:
+            if for_job:
+                return 0
+            else:
+                return 6
+        elif case_name == cls.CASE_ASSOCIATION_SIMPLE:
+            if for_job:
+                return 3
+            else:
+                return 3
+        elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
+            if for_job:
+                return 2
+            else:
+                return 2
+        elif case_name == cls.CASE_ASSOCIATION_2_ALIQUOTS:
+            if for_job:
+                return 3
+            else:
+                return 3
+        elif case_name == cls.CASE_ASSOCIATION_JOB_LAST:
+            if for_job:
+                return 3
+            else:
+                return 6
+        elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
+            if for_job:
+                return 3
+            else:
+                return 6
+        elif case_name == cls.CASE_LIBRARY_SIMPLE:
+            if for_job:
+                return 3
+            else:
+                return 0
+        elif case_name == cls.CASE_LIBRARY_2_ALIQUOTS:
+            if for_job:
+                return 3
+            else:
+                return 0
+        raise NotImplementedError('The value for this case is missing.')
+
+
+class LabIsoTestCase1(ExperimentMetadataReadingTestCase):
 
     def set_up(self):
         ExperimentMetadataReadingTestCase.set_up(self)
@@ -1471,6 +2043,9 @@ class LabIsoTestCase(ExperimentMetadataReadingTestCase):
         pos_label = pool_pos.rack_position.label
         if attr_name == 'molecule_design_pool':
             exp_value = self._get_pool(exp_value)
+        elif attr_name == 'transfer_targets':
+            exp_value.sort()
+            found_value.sort()
         if not exp_value == found_value:
             msg = 'The values for the %s attribute of position %s in ' \
                   'layout %s are not equal.\nExpected: %s.\nFound: %s.' \
@@ -1508,9 +2083,11 @@ class LabIsoTestCase(ExperimentMetadataReadingTestCase):
                 self._compare_worklist_details(worklist)
             self.assert_equal(sorted(found_labels), sorted(exp_data.keys()))
 
-    def _compare_worklist_details(self, worklist):
+    def _compare_worklist_details(self, worklist, wl_data=None):
         wl_label = worklist.label
-        wl_data = LAB_ISO_TEST_CASES.get_worklist_details(self.case, wl_label)
+        if wl_data is None:
+            wl_data = LAB_ISO_TEST_CASES.get_worklist_details(self.case,
+                                                              wl_label)
         plts = worklist.planned_liquid_transfers
         if not len(wl_data) == len(plts):
             msg = 'Worklist "%s" has an unexpected number of transfers.\n' \
@@ -1667,3 +2244,526 @@ class _TestLibraryGenerator(object):
 
     def get_library(self):
         return self.library
+
+
+class _TestRackGenerator(object):
+
+    # The barcodes for the racks mapped onto rack markers.
+    STOCK_RACK_BARCODES = {
+            '123_job_01_s#1' : '09999001',
+            '123_iso_01_s#1' : '09999011', '123_iso_02_s#1' : '09999021',
+            '123_iso_01_s#2' : '09999012', '123_iso_02_s#2' : '09999022',
+            '123_iso_01_s#3' : '09999013', '123_iso_02_s#3' : '09999023',
+            '123_iso_01_s#4' : '09999014', '123_iso_02_s#4' : '09999024',
+            '123_iso_01_s#5' : '09999015', '123_iso_02_s#5' : '09999025'}
+
+    #: The barcodes for the preparation plate mapped onto rack label.
+    PREP_PLATE_BARCODES = {
+            '123_iso_01_p' : '09999911', '123_iso_02_p' : '09999912',
+            '123_job_01_jp' : '09999900'}
+    #: The barcodes for the aliquot plates mapped onto rack label.
+    ALIQUOT_PLATE_BARCODES = {
+            '123_iso_01_a' : '09999210', '123_iso_02_a' : '09999220',
+            '123_iso_01_a#1' : '09999211', '123_iso_01_a#2' : '09999212',
+            '123_iso_02_a#1' : '09999221', '123_iso_02_a#2' : '09999210'}
+
+    def __init__(self):
+        self.barcode_map = dict()
+        self.label_map = dict()
+        self.__status_future = get_item_status_future()
+        self.__status_managed = get_item_status_managed()
+
+    def reset_session(self):
+        self.__status_future = get_item_status_future()
+        self.__status_managed = get_item_status_managed()
+
+    def get_tube_rack(self, rack_label):
+        if not self.label_map.has_key(rack_label):
+            self.__create_tube_rack(rack_label)
+        return self.label_map[rack_label]
+
+    def __create_tube_rack(self, rack_label):
+        specs = RACK_SPECS_NAMES.from_name(RACK_SPECS_NAMES.STOCK_RACK)
+        barcode = self.STOCK_RACK_BARCODES[rack_label]
+        rack = self.__create_rack(specs, None, barcode, self.__status_managed)
+        self.label_map[rack_label] = rack
+        return rack
+
+    def get_plate(self, specs, label):
+        if not self.label_map.has_key(label):
+            self.__create_plate(specs, label)
+        return self.label_map[label]
+
+    def __create_plate(self, specs, label):
+        if isinstance(specs, str):
+            specs = RACK_SPECS_NAMES.from_name(specs)
+        if self.PREP_PLATE_BARCODES.has_key(label):
+            barcode = self.PREP_PLATE_BARCODES[label]
+        else:
+            barcode = self.ALIQUOT_PLATE_BARCODES[label]
+        rack = self.__create_rack(specs, label, barcode)
+        self.label_map[rack.label] = rack
+        return rack
+
+    def __create_rack(self, specs, label, barcode, status=None):
+        if status is None: status = self.__status_future
+        rack = specs.create_rack(status=status, label=label, barcode=barcode)
+        self.barcode_map[rack.barcode] = rack
+        return rack
+
+
+class TestTubeGenerator(object):
+    """
+    This class contains the data for the stock tubes before tube handling.
+    """
+    #: pool_id = pos label, tube barcode, rack barcode
+    CANDIDATE_DATA = {205201 : ['g1', '1000205201', '07777777'],
+                      205202 : ['c1', '1000205202', '07777777'],
+                      205203 : ['c2', '1000205203', '07777777'],
+                      205204 : ['c3', '1000205204', '07777777'],
+                      205205 : ['c4', '1000205205', '07777777'],
+                      205206 : ['c5', '1000205206', '07777777'],
+                      205207 : ['c6', '1000205207', '07777777'],
+                      205208 : ['c7', '1000205208', '07777777'],
+                      205209 : ['c8', '1000205209', '07777777'],
+                      205210 : ['d1', '1000205210', '07777777'],
+                      205212 : ['d2', '1000205212', '07777777'],
+                      205214 : ['d3', '1000205214', '07777777'],
+                      205215 : ['d4', '1000205215', '07777777'],
+                      330001 : ['c1', '1000330001', '07777778'],
+                      333803 : ['a3', '1000333803', '07777773'],
+                      1056000 : ['g2', '1001056000', '07777778'],
+                      180005 : ['g6', '1000180005', '07777778']}
+
+    #: rack_barcode = location string
+    RACK_LOCATIONS = {'07777777' : 'freezer 1 (index 2)',
+                      '07777773' : 'freezer 2',
+                      '07777778' : 'unknown location'}
+
+    @classmethod
+    def create_tube_candidate(cls, pool):
+        tc_data = cls.CANDIDATE_DATA[pool.id]
+        rack_pos = get_rack_position_from_label(tc_data[0])
+        tc = TubeCandidate(pool_id=pool.id, rack_barcode=tc_data[2],
+                rack_position=rack_pos, tube_barcode=tc_data[1],
+                concentration=pool.default_stock_concentration,
+                volume=100 / VOLUME_CONVERSION_FACTOR)
+        return tc
+
+
+class LabIsoTestCase2(LabIsoTestCase1):
+    """
+    This class generates test ISOs from the data in :class:`LAB_ISO_TEST_CASES`
+    """
+    FOR_JOB = None
+    _USED_ISO_LABEL = '123_iso_01'
+
+    def set_up(self):
+        LabIsoTestCase1.set_up(self)
+        self.user = self._get_entity(IUser, 'it')
+        self.rack_generator = _TestRackGenerator()
+        self.entity = None # ISO or ISO job
+        self.isos = dict()
+        self.iso_job = None
+        self.iso_layouts = dict()
+        self.prep_layouts = dict()
+        self.job_layouts = dict()
+        self.stock_racks = dict() # mapped onto stock rack labels
+        self.compare_stock_tube_barcode = True
+
+    def tear_down(self):
+        LabIsoTestCase1.tear_down(self)
+        del self.entity
+        del self.isos
+        del self.iso_job
+        del self.rack_generator
+        del self.iso_layouts
+        del self.prep_layouts
+        del self.job_layouts
+        del self.stock_racks
+        del self.compare_stock_tube_barcode
+
+    def _continue_setup(self, file_name=None):
+        LabIsoTestCase1._continue_setup(self, file_name=file_name)
+        self.__adjust_process_job_first_flag()
+        self.__generate_layouts()
+        self.__generate_isos()
+        self.__generate_iso_plates()
+        self.__generate_iso_request_worklist_series()
+        self.__generate_iso_job()
+        self.__set_entity()
+
+    def __set_entity(self):
+        if self.FOR_JOB:
+            self.entity = self.iso_job
+        else:
+            self.entity = self.isos[self._USED_ISO_LABEL]
+
+    def __adjust_process_job_first_flag(self):
+        """
+        This is a fix, since the recognition during metadata upload is not
+        error-proof yet. Recognition during ISO planning is working, but the
+        ISO-planning step is not done by a tool byut manually here to save
+        processing time.
+        """
+        self.iso_request.process_job_first = LAB_ISO_TEST_CASES.\
+                                        get_process_job_first_value(self.case)
+
+    def __generate_layouts(self):
+        iso_labels = LAB_ISO_TEST_CASES.ISO_LABELS[self.case]
+        for iso_label in iso_labels:
+            final_layout = self.__create_iso_layout(iso_label)
+            self.iso_layouts[iso_label] = final_layout
+        prep_layouts = LAB_ISO_TEST_CASES.get_prep_plate_layout_data(self.case)
+        for plate_label in prep_layouts.keys():
+            layout = self.__create_prep_layout(plate_label, for_job=False)
+            self.prep_layouts[plate_label] = layout
+        job_layouts = LAB_ISO_TEST_CASES.get_job_plate_layout_data(self.case)
+        for plate_label in job_layouts.keys():
+            layout = self.__create_prep_layout(plate_label, for_job=True)
+            self.job_layouts[plate_label] = layout
+
+    def __create_iso_layout(self, iso_label):
+        layout_map = LAB_ISO_TEST_CASES.get_final_plate_layout_data(self.case)
+        layout_data = layout_map[iso_label]
+        shape_name = LAB_ISO_TEST_CASES.get_final_iso_layout_shape(self.case)
+        shape = RACK_SHAPE_NAMES.from_name(shape_name)
+        layout = FinalLabIsoLayout(shape)
+        # pos_label - pool_id, pos_type, vol, concentration, from_job,
+        # transfer_targets, sector_index, stock_rack_marker
+        for pos_label, pos_data in layout_data.iteritems():
+            rack_pos = get_rack_position_from_label(pos_label)
+            pos_type = pos_data[1]
+            stock_rack_marker = pos_data[7]
+            if pos_type == MOCK_POSITION_TYPE:
+                pool = MOCK_POSITION_TYPE
+            else:
+                pool = self._get_pool(pos_data[0])
+            stock_tube_barcode, stock_rack_barcode = \
+                self._get_original_stock_data(pos_data[0], stock_rack_marker)
+            fp = FinalLabIsoPosition(rack_position=rack_pos,
+                    molecule_design_pool=pool, position_type=pos_type,
+                    volume=pos_data[2], concentration=pos_data[3],
+                    from_job=pos_data[4],
+                    transfer_targets=pos_data[5],
+                    sector_index=pos_data[6],
+                    stock_rack_marker=stock_rack_marker,
+                    stock_tube_barcode=stock_tube_barcode,
+                    stock_rack_barcode=stock_rack_barcode)
+            layout.add_position(fp)
+        return layout
+
+    def __create_prep_layout(self, rack_label, for_job):
+        if for_job:
+            layout_map = LAB_ISO_TEST_CASES.get_job_plate_layout_data(self.case)
+            shape_name = LAB_ISO_TEST_CASES.get_job_plate_layout_shape(self.case)
+        else:
+            layout_map = LAB_ISO_TEST_CASES.get_prep_plate_layout_data(self.case)
+            shape_name = LAB_ISO_TEST_CASES.get_preparation_plate_layout_shape(
+                                                                    self.case)
+        shape = RACK_SHAPE_NAMES.from_name(shape_name)
+        layout = LabIsoPrepLayout(shape)
+        layout_data = layout_map[rack_label]
+        # pos_label - pool_id, pos_type, vol, concentration, transfer_targets,
+        # external_targets, sector_index, stock_rack_marker
+        for pos_label, pos_data in layout_data.iteritems():
+            rack_pos = get_rack_position_from_label(pos_label)
+            pos_type = pos_data[1]
+            stock_rack_marker = pos_data[7]
+            if pos_type == MOCK_POSITION_TYPE:
+                pool = MOCK_POSITION_TYPE
+            else:
+                pool = self._get_pool(pos_data[0])
+            stock_tube_barcode, stock_rack_barcode = \
+                self._get_original_stock_data(pos_data[0], stock_rack_marker)
+            pp = LabIsoPrepPosition(rack_position=rack_pos,
+                    molecule_design_pool=pool, position_type=pos_type,
+                    volume=pos_data[2], concentration=pos_data[3],
+                    transfer_targets=pos_data[4], external_targets=pos_data[5],
+                    sector_index=pos_data[6],
+                    stock_rack_marker=stock_rack_marker,
+                    stock_tube_barcode=stock_tube_barcode,
+                    stock_rack_barcode=stock_rack_barcode)
+            layout.add_position(pp)
+        return layout
+
+    def _get_original_stock_data(self, pool_id, stock_rack_marker):
+        if pool_id == MOCK_POSITION_TYPE or stock_rack_marker is None:
+            return (None, None)
+        tube_data = TestTubeGenerator.CANDIDATE_DATA[pool_id]
+        tube_barcode = tube_data[1]
+        rack_barcode = tube_data[2]
+        return (tube_barcode, rack_barcode)
+
+    def _get_plate_specs_name_for_shape(self, shape):
+        if shape.name == RACK_SHAPE_NAMES.SHAPE_96:
+            return RACK_SPECS_NAMES.STANDARD_96
+        else:
+            return RACK_SPECS_NAMES.STANDARD_384
+
+    def __generate_isos(self):
+        for iso_label, iso_layout in self.iso_layouts.iteritems():
+            num_stock_racks = LAB_ISO_TEST_CASES.get_number_iso_stock_racks(
+                                                        self.case)[iso_label]
+            pool_set = self.__generate_pool_set(iso_label)
+            iso = self._create_lab_iso(
+                        label=iso_label, iso_request=self.iso_request,
+                        number_stock_racks=num_stock_racks,
+                        rack_layout=iso_layout.create_rack_layout(),
+                        molecule_design_pool_set=pool_set)
+            self.isos[iso_label] = iso
+
+    def __generate_iso_plates(self):
+        rs = self.iso_request.iso_plate_reservoir_specs
+        ps = RACK_SPECS_NAMES.from_reservoir_specs(rs)
+        for iso_label, iso in self.isos.iteritems():
+            final_plate_labels = LAB_ISO_TEST_CASES.get_final_plate_labels(
+                                                        self.case)[iso_label]
+            if LAB_ISO_TEST_CASES.is_library_case(self.case):
+                for lib_plates in self.library_generator.library_plates.values():
+                    for lib_plate in lib_plates:
+                        if lib_plate.rack.label in final_plate_labels:
+                            lib_plate.lab_iso = iso
+            else:
+                for label in final_plate_labels:
+                    plate = self.rack_generator.get_plate(ps, label)
+                    iso.add_aliquot_plate(plate)
+            for plate_label, layout in self.prep_layouts.iteritems():
+                if not iso_label in plate_label: continue
+                specs_name = self._get_plate_specs_name_for_shape(layout.shape)
+                plate = self.rack_generator.get_plate(specs_name, plate_label)
+                iso.add_preparation_plate(plate,
+                                          layout.create_rack_layout())
+
+    def __generate_pool_set(self, iso_label):
+        set_data = LAB_ISO_TEST_CASES.get_pool_set_data(self.case)
+        if set_data is None: return None
+        pool_ids = set_data[iso_label]
+        pools = []
+        for pool_id in pool_ids:
+            pools.append(self._get_pool(pool_id))
+        mt = pools[0].molecule_type
+        return self._create_molecule_design_pool_set(molecule_type=mt,
+                                     molecule_design_pools=set(pools))
+
+    def __generate_iso_request_worklist_series(self):
+        worklist_data = LAB_ISO_TEST_CASES.get_iso_worklist_data(self.case)
+        ws = self.__generate_worklist_series(worklist_data)
+        self.iso_request.worklist_series = ws
+
+    def __generate_iso_job(self):
+        num_stock_racks = LAB_ISO_TEST_CASES.get_number_job_stock_racks(
+                                                                    self.case)
+        worklist_data = LAB_ISO_TEST_CASES.get_job_worklist_data(self.case)
+        worklist_series = self.__generate_worklist_series(worklist_data)
+        self.iso_job = self._create_iso_job(number_stock_racks=num_stock_racks,
+                       isos=self.isos.values(), label=TEST_ISO_JOB_NAME,
+                       worklist_series=worklist_series, user=self.user)
+        for plate_label, layout in self.job_layouts.iteritems():
+            specs = self._get_plate_specs_name_for_shape(layout.shape)
+            plate = self.rack_generator.get_plate(specs, plate_label)
+            self.iso_job.add_preparation_plate(plate,
+                                               layout.create_rack_layout())
+
+    def __generate_worklist_series(self, worklist_data):
+        if len(worklist_data) < 1: return None
+        worklist_series = self._create_worklist_series()
+        for wl_label, wl_info in worklist_data.iteritems():
+            transfer_type = wl_info[0]
+            pipetting_specs = wl_info[1]
+            wl_index = wl_info[2]
+            plts = []
+            plt_data = LAB_ISO_TEST_CASES.get_worklist_details(self.case,
+                                                               wl_label)
+            # for dilutions: target_pos - vol
+            # for transfers: trg_pos - vol, target_pos
+            # for rack_transfers: target index - vol, source, num sectors
+            for trg, plt_info in plt_data.iteritems():
+                if transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
+                    trg_pos = get_rack_position_from_label(trg)
+                    vol = plt_info / VOLUME_CONVERSION_FACTOR
+                    plt = PlannedSampleDilution.get_entity(volume=vol,
+                          diluent_info=DILUENT_INFO, target_position=trg_pos)
+                elif transfer_type == TRANSFER_TYPES.SAMPLE_TRANSFER:
+                    trg_pos = get_rack_position_from_label(trg)
+                    vol = plt_info[0] / VOLUME_CONVERSION_FACTOR
+                    src_pos = get_rack_position_from_label(plt_info[1])
+                    plt = PlannedSampleTransfer.get_entity(volume=vol,
+                          source_position=src_pos, target_position=trg_pos)
+                else:
+                    vol = plt_info[0] / VOLUME_CONVERSION_FACTOR
+                    plt = PlannedRackSampleTransfer.get_entity(volume=vol,
+                          number_sectors=plt_info[2], target_sector_index=trg,
+                          source_sector_index=plt_info[1])
+                plts.append(plt)
+            wl = self._create_planned_worklist(label=wl_label,
+                transfer_type=transfer_type, pipetting_specs=pipetting_specs,
+                planned_liquid_transfers=plts)
+            worklist_series.add_worklist(index=wl_index, worklist=wl)
+        return worklist_series
+
+    def _generate_stock_rack_layout(self, stock_rack_label):
+        layout_map = LAB_ISO_TEST_CASES.get_stock_rack_layout_data(self.case)
+        layout_data = layout_map[stock_rack_label]
+        layout = StockRackLayout()
+        for pos_label, pos_data in layout_data.iteritems():
+            rack_pos = get_rack_position_from_label(pos_label)
+            pool = self._get_pool(pos_data[0])
+            sr_pos = StockRackPosition(rack_position=rack_pos,
+                    molecule_design_pool=pool, tube_barcode=pos_data[1],
+                    transfer_targets=pos_data[2])
+            layout.add_position(sr_pos)
+        return layout
+
+    def __generate_stock_rack_worklist_series(self, stock_rack_marker,
+                                              iso_label):
+        if iso_label is None: # for job
+            num_stock_racks = LAB_ISO_TEST_CASES.get_number_job_stock_racks(
+                                                                    self.case)
+        else:
+            num_stock_racks = LAB_ISO_TEST_CASES.get_number_iso_stock_racks(
+                                                        self.case)[iso_label]
+        if num_stock_racks == 0: return None
+        if iso_label is None: # for job
+            worklist_data = LAB_ISO_TEST_CASES.\
+                            get_stock_rack_worklist_series_for_job(self.case)
+        else:
+            worklist_data = LAB_ISO_TEST_CASES.\
+                            get_stock_rack_worklist_series_for_iso(self.case)
+        worklist_series = self._create_worklist_series()
+        for wl_label, wl_index in worklist_data.iteritems():
+            if not stock_rack_marker in wl_label: continue
+            pipetting_specs = get_pipetting_specs_biomek_stock()
+            plts = []
+            plt_data = LAB_ISO_TEST_CASES.get_stock_rack_worklist_details(
+                                                        self.case, wl_label)
+            for trg, plt_info in plt_data.iteritems():
+                trg_pos = get_rack_position_from_label(trg)
+                vol = plt_info[0] / VOLUME_CONVERSION_FACTOR
+                src_pos = get_rack_position_from_label(plt_info[1])
+                plt = PlannedSampleTransfer.get_entity(volume=vol,
+                      source_position=src_pos, target_position=trg_pos)
+                plts.append(plt)
+            wl = self._create_planned_worklist(label=wl_label,
+                transfer_type=TRANSFER_TYPES.SAMPLE_TRANSFER,
+                pipetting_specs=pipetting_specs, planned_liquid_transfers=plts)
+            worklist_series.add_worklist(index=wl_index, worklist=wl)
+        return worklist_series
+
+    def _generate_stock_racks(self, entity):
+        if isinstance(entity, IsoJob):
+            iso_label = None
+        else:
+            iso_label = entity.label
+        sr_map = LAB_ISO_TEST_CASES.get_stock_rack_labels(self.case)
+        for rack_marker, rack_labels in sr_map.iteritems():
+            for rack_label in rack_labels:
+                if not entity.label in rack_label: continue
+                worklist_series = self.__generate_stock_rack_worklist_series(
+                                                        rack_marker, iso_label)
+                layout = self._generate_stock_rack_layout(rack_label)
+                rack = self.rack_generator.get_tube_rack(rack_label)
+                if iso_label is None: # for job
+                    stock_rack = self._create_iso_job_stock_rack(iso_job=entity,
+                                 label=rack_label, rack=rack,
+                                 rack_layout=layout.create_rack_layout(),
+                                 worklist_series=worklist_series)
+                else:
+                    sector_index = LAB_ISO_TEST_CASES.\
+                        get_sectors_for_iso_stock_racks(self.case)[rack_marker]
+                    kw = dict(iso=entity, label=rack_label, rack=rack,
+                              rack_layout=layout.create_rack_layout(),
+                              worklist_series=worklist_series)
+                    if sector_index is None:
+                        meth = self._create_iso_stock_rack
+                    else:
+                        meth = self._create_iso_sector_stock_rack
+                        kw['sector_index'] = sector_index
+                    stock_rack = meth(**kw)
+                self.stock_racks[rack_label] = stock_rack
+
+    def _compare_stock_rack_layout(self, layout_data, rack_layout, rack_label):
+        converter = StockRackLayoutConverter(rack_layout=rack_layout,
+                                             log=SilentLog())
+        layout = converter.get_result()
+        if layout is None:
+            raise AssertionError('Unable to convert rack layout for stock ' \
+                                 'rack "%s".' % (rack_label))
+        self.assert_equal(layout.shape.name, RACK_SHAPE_NAMES.SHAPE_96)
+        layout_name = 'rack layout for stock rack "%s"' % (rack_label)
+        tested_labels = []
+        # pos_label - pool, tube barcode, transfer_targets
+        for rack_pos, plate_pos in layout.iterpositions():
+            pos_label = rack_pos.label.lower()
+            tested_labels.append(pos_label)
+            if not layout_data.has_key(pos_label):
+                msg = 'Unexpected position %s in layout for stock rack "%s"!' \
+                      % (pos_label, rack_label)
+                raise AssertionError(msg)
+            pos_data = layout_data[pos_label]
+            self._compare_layout_value(pos_data[0], 'molecule_design_pool',
+                                       plate_pos, layout_name)
+            if self.compare_stock_tube_barcode:
+                self._compare_layout_value(pos_data[1], 'tube_barcode',
+                                           plate_pos, layout_name)
+            else:
+                self.assert_is_not_none(plate_pos.tube_barcode)
+            self._compare_layout_value(pos_data[2], 'transfer_targets',
+                                        plate_pos, layout_name)
+        self.assert_equal(sorted(tested_labels), sorted(layout_data.keys()))
+
+    def _compare_stock_rack_worklist_series(self, stock_rack):
+        worklist_series = stock_rack.worklist_series
+        self.assert_true(len(worklist_series) > 0)
+        if self.FOR_JOB:
+            sr_data = LAB_ISO_TEST_CASES.\
+                       get_stock_rack_worklist_series_for_job(self.case)
+        else:
+            sr_data = LAB_ISO_TEST_CASES.\
+                       get_stock_rack_worklist_series_for_iso(self.case)
+        rack_marker = None
+        stock_rack_labels = LAB_ISO_TEST_CASES.get_stock_rack_labels(self.case)
+        for marker, labels in stock_rack_labels.iteritems():
+            if stock_rack.label in labels:
+                rack_marker = marker
+                break
+        exp_data = dict()
+        for sr_label, wl_data in sr_data.iteritems():
+            if rack_marker in sr_label: exp_data[sr_label] = wl_data
+        self.assert_is_not_none(worklist_series)
+        self.assert_equal(len(worklist_series), len(exp_data))
+        found_labels = []
+        for worklist in worklist_series:
+            label = worklist.label
+            found_labels.append(label)
+            #: worklist label - type, pipetting specs name, num transfers
+            wl_data = exp_data[label]
+            wl_index = wl_data[0]
+            ps = wl_data[1]
+            self.assert_equal(worklist.index, wl_index)
+            if not worklist.transfer_type == TRANSFER_TYPES.SAMPLE_TRANSFER:
+                msg = 'The transfer types for worklist %s differ.\n' \
+                      'Expected: %s\nFound: %s' % (worklist.label,
+                       TRANSFER_TYPES.SAMPLE_TRANSFER, worklist.transfer_type)
+                raise AssertionError(msg)
+            if not worklist.pipetting_specs == ps:
+                msg = 'The pipetting specs for worklist %s differ.\n' \
+                      'Expected: %s\nFound: %s' % (worklist.label, ps.name,
+                       worklist.pipetting_specs.name)
+                raise AssertionError(msg)
+            details = LAB_ISO_TEST_CASES.get_stock_rack_worklist_details(
+                                                            self.case, label)
+            self._compare_worklist_details(worklist, details)
+        self.assert_equal(sorted(found_labels), sorted(exp_data.keys()))
+
+    def _get_layout_from_iso(self, iso=None):
+        if iso is None:
+            iso = self.isos[self._USED_ISO_LABEL]
+        converter = FinalLabIsoLayoutConverter(rack_layout=iso.rack_layout,
+                                               log=SilentLog())
+        return converter.get_result()
+
+    def _get_layout_from_preparation_plate(self, prep_plate):
+        converter = LabIsoPrepLayoutConverter(log=SilentLog(),
+                                          rack_layout=prep_plate.rack_layout)
+        return converter.get_result()

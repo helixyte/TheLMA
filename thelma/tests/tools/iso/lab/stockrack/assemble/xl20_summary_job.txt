@@ -1,0 +1,40 @@
+XL20 Worklist Generation Report / 02.12.2013 / 11:45
+====================================================
+
+
+General Settings
+----------------
+
+ISO job: 123_job_01
+Total number of tubes: 3
+
+Volumes
+1 ul: 180005, 205201
+1.1 ul: 330001
+
+
+Destination Racks
+-----------------
+
+123_job_01_s#1: 09999001 (number of tubes: 3)
+
+
+Excluded Racks
+--------------
+
+033333333
+03333334
+
+
+Requested Tubes
+---------------
+
+100005203
+100005204
+
+
+Source Racks
+------------
+
+07777777 (freezer 1 (index 2))
+07777778 (unknown location)

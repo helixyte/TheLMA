@@ -385,7 +385,7 @@ class EventRecording(object):
             base_msg += filler
         if error_types is None:
             error_types = {ValueError, TypeError, AttributeError}
-        elif isinstance(error_types, StandardError):
+        elif isinstance(error_types, type):
             error_types = set([error_types])
 
         try:
@@ -393,8 +393,10 @@ class EventRecording(object):
         except StandardError as e:
             if e.__class__ in error_types and not base_msg is None:
                 self.add_error(base_msg + str(e))
-            else:
+            elif base_msg is None:
                 return None
+            else:
+                raise e
         else:
             return return_value
 
