@@ -7,7 +7,7 @@ from StringIO import StringIO
 from datetime import datetime
 from datetime import timedelta
 from everest.entities.utils import get_root_aggregate
-from everest.repositories.rdb.testing import RdbContextManager
+from everest.testing import RdbContextManager
 from thelma.automation.parsers.rackscanning import RackScanningParser
 from thelma.automation.tools.semiconstants import get_96_rack_shape
 from thelma.automation.tools.semiconstants import get_item_status_managed
