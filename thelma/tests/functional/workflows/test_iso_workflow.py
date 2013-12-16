@@ -8,6 +8,7 @@ from everest.entities.utils import get_root_aggregate
 from everest.mime import XlsMime
 from everest.mime import XmlMime
 from everest.mime import ZipMime
+from everest.querying.specifications import eq
 from everest.repositories.rdb.testing import RdbContextManager
 from everest.representers.config import IGNORE_OPTION
 from everest.representers.config import WRITE_AS_LINK_OPTION
@@ -19,6 +20,7 @@ from everest.resources.staging import create_staging_collection
 from everest.resources.utils import resource_to_url
 from everest.resources.utils import url_to_resource
 from pkg_resources import resource_filename # pylint: disable=E0611
+from pyramid.compat import NativeIO
 from pyramid.compat import string_types
 from pyramid.httpexceptions import HTTPCreated
 from pyramid.httpexceptions import HTTPOk
@@ -27,6 +29,8 @@ from pyramid.testing import DummyRequest
 from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_item_status_managed
 from thelma.automation.semiconstants import get_rack_position_from_indices
+from thelma.automation.tools.worklists.tubehandler import XL20Executor
+from thelma.automation.tools.writers import read_zip_archive
 from thelma.interfaces import IExperimentMetadata
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import IOrganization
@@ -34,14 +38,14 @@ from thelma.interfaces import IRack
 from thelma.interfaces import IRackSpecs
 from thelma.interfaces import IStockSample
 from thelma.interfaces import ISubproject
+from thelma.interfaces import ITubeRack
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.iso import LabIso
 from thelma.models.racklayout import RackLayout
+from thelma.models.utils import get_current_user
 from thelma.testing import ThelmaFunctionalTestCase
 from thelma.tests.tools.iso.lab.utils import LAB_ISO_TEST_CASES
 import os
-from thelma.interfaces import ITubeRack
-from everest.querying.specifications import eq
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['IsoWorkflowTestCase',
@@ -86,12 +90,40 @@ class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
             # Step 4: Generate XL20 worklist.
             iso = next(iter(emd.iso_request.isos))
             if emd.iso_request.process_job_first:
-                self._create_xl20_worklist_for_iso_job(iso.iso_job)
-            self._create_xl20_worklist_for_iso(iso)
+                self._process_iso_job(iso.iso_job)
+                session.commit()
+            # Step 5: Process ISO.
+            self._process_iso(emd.iso_request, iso)
+
+    def _run_xl20_executor(self, worklist):
+        user = get_current_user()
+        tool = XL20Executor(worklist, user)
+        tool.run()
+        self.assert_false(tool.has_errors())
+
+    def _process_iso_job(self, iso_job):
+        self._create_xl20_worklist_for_iso_job(iso_job)
 
     def _create_xl20_worklist_for_iso_job(self, iso_job):
         if iso_job.number_stock_racks > 0:
-            pass
+            raise NotImplementedError('ToDo.')
+
+    def _process_iso(self, iso_request, iso):
+        # Create XL20 worklist.
+        dummy_wl = self._create_xl20_worklist_for_iso(iso)
+        self.assert_is_not_none(dummy_wl)
+        # Intermediate step: Run XL20 worklist output.
+        self._run_xl20_executor(dummy_wl)
+        # Get processing worklist.
+        patch_rpr = \
+          self.__get_representation_from_file('transfer_to_iso.xml') % iso.id
+#          self.__make_transfer_to_iso_patch_representation(iso_request, iso)
+        res = self.app.patch(resource_to_url(iso_request),
+                             params=patch_rpr,
+                             content_type=XmlMime.mime_type_string,
+#                           status=HTTPOk.code
+                             )
+        self.assert_is_not_none(res)
 
     def _create_xl20_worklist_for_iso(self, iso):
         params = self.__get_empty_rack_barcode_params(4)
@@ -103,6 +135,9 @@ class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
                            status=HTTPOk.code
                            )
         self.assert_is_not_none(res)
+        # Extract the dummy output worklist from the returned ZIP file.
+        zip_map = read_zip_archive(NativeIO(res.body))
+        return zip_map['%s_dummy_xl20_output.tpo' % iso.label]
 
     def _create_iso_candidates(self):
         ss_agg = get_root_aggregate(IStockSample)
@@ -211,7 +246,7 @@ class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
 
     def __make_generate_isos_patch_representation(self, iso_request):
         isor = iso_request.get_entity()
-        # FIXME: This status should be part of the ISO_STATUS const group.
+        # FIXME: The status should be part of the ISO_STATUS const group.
         iso = LabIso('NEW ISO', 0,
                      rack_layout=RackLayout(shape=get_96_rack_shape()),
                      iso_request=isor,
@@ -220,6 +255,23 @@ class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
         rpr = as_representer(iso_request, XmlMime)
         patch_ctxt = self.__get_patch_context(iso_request,
                                               ('isos', ('isos', 'status')))
+        with patch_ctxt:
+            rpr_str = rpr.to_string(iso_request)
+        return rpr_str
+
+    def __make_transfer_to_iso_patch_representation(self, iso_request, iso):
+        iso_ent = iso.get_entity()
+        # FIXME: The status should be part of the ISO_STATUS const group.
+        iso_ent.status = 'TRANSFER_TO_ISO'
+        isor_ent = iso_request.get_entity()
+        isor_ent.isos = [iso_ent]
+        rpr = as_representer(iso_request, XmlMime)
+        patch_ctxt = self.__get_patch_context(iso_request,
+                                              ('isos',
+                                               ('isos', 'status'),
+                                               ('isos', 'id')
+                                               )
+                                              )
         with patch_ctxt:
             rpr_str = rpr.to_string(iso_request)
         return rpr_str

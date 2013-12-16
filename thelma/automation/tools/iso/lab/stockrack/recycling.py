@@ -7,6 +7,7 @@ from thelma.automation.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.iso.base import StockRackLayout
 from thelma.automation.tools.iso.base import StockRackPosition
 from thelma.automation.tools.iso.lab.base import LABELS
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.tools.iso.lab.stockrack.base \
     import _StockRackAssignerIsoJob
 from thelma.automation.tools.iso.lab.stockrack.base \
@@ -55,12 +56,12 @@ class _StockRackRecycler(_StockRackAssigner):
         self.__tube_candidates = None
 
         #: Stores the barcode for each stock rack marker.
-        self.__stock_rack_map = None
+        self._stock_rack_map = None
 
     def reset(self):
         _StockRackAssigner.reset(self)
         self.__tube_candidates = dict()
-        self.__stock_rack_map = dict()
+        self._stock_rack_map = dict()
 
     def _find_stock_tubes(self):
         """
@@ -93,8 +94,11 @@ class _StockRackRecycler(_StockRackAssigner):
                 rack_pos = tube.rack_position
                 num_tubes += 1
                 tube_info = '%s (%s)' % (tube.barcode, rack_pos.label)
-                if tube.stock_sample is None or \
-                                        are_equal_values(stock_sample.volume, 0):
+                if stock_sample is None:
+                    add_list_map_element(no_sample, barcode, tube_info)
+                    continue
+                sample_vol = stock_sample.volume * VOLUME_CONVERSION_FACTOR
+                if are_equal_values(sample_vol, 0):
                     add_list_map_element(no_sample, barcode, tube_info)
                     continue
                 if not isinstance(stock_sample, StockSample):
@@ -119,14 +123,10 @@ class _StockRackRecycler(_StockRackAssigner):
                   'them and try again.' % (' -- '.join(rack_strs))
             self.add_error(msg)
         if len(no_stock_sample) > 0:
-            rack_strs = []
-            for barcode in sorted(no_stock_sample.keys()):
-                info_str = '%s (%s)' % (barcode, self._get_joined_str(
-                                                 no_stock_sample[barcode]))
             msg = 'The tubes in some of the racks you have specified contain ' \
-                  'normal samples instead of stock samples. Talk to the  ' \
+                  'normal samples instead of stock samples. Talk to the ' \
                   'IT department, please. Details: %s.' \
-                   % (' -- '.join(rack_strs))
+                  % (self._get_joined_map_str(no_stock_sample))
             self.add_error(msg)
 
         exp_tube_num = len(self._stock_tube_containers)
@@ -163,8 +163,8 @@ class _StockRackRecycler(_StockRackAssigner):
                 continue
             required_vol = STOCK_DEAD_VOLUME \
                            + container.get_total_required_volume()
-            if is_smaller_than(required_vol, candidate.volume):
-                info = '%s (pool: %s, required: %s nM, found: %s nM)' % (
+            if is_smaller_than(candidate.volume, required_vol):
+                info = '%s (pool: %s, required: %s ul, found: %s ul)' % (
                         candidate.tube_barcode, pool,
                         get_trimmed_string(required_vol),
                         get_trimmed_string(candidate.volume))
@@ -187,9 +187,9 @@ class _StockRackRecycler(_StockRackAssigner):
 
     def _check_position_contraints(self):
         """
-        Checks potential position contraints for the tube candidates
+        Checks potential position constraints for the tube candidates
         (e.g. rack sector matching).
-        Might allocated rack barcodes and rack markers.
+        Might allocate rack barcodes and rack markers.
         """
         raise NotImplementedError('Abstract method.')
 
@@ -202,48 +202,59 @@ class _StockRackRecycler(_StockRackAssigner):
         layout rack markers anymore.
         """
         marker_map = dict()
-        if len(self.__stock_rack_map) < 1:
-            for marker, rack_barcode in self.__stock_rack_map.iteritems():
-                marker_map[rack_barcode] = marker
+        for marker, rack_barcode in self._stock_rack_map.iteritems():
+            marker_map[rack_barcode] = marker
 
         layouts = dict()
 
+        used_rack_markers = set()
         for pool, container in self._stock_tube_containers.iteritems():
             tc = container.tube_candidate
             rack_barcode = tc.rack_barcode
             if marker_map.has_key(rack_barcode):
                 rack_marker = marker_map[rack_barcode]
-                layout = layouts[rack_barcode]
+                if layouts.has_key(rack_barcode):
+                    layout = layouts[rack_barcode]
+                else:
+                    layout = StockRackLayout()
+                    layouts[rack_barcode] = layout
             else:
-                rack_num = None
-                if len(self.rack_barcodes) > 1:
-                    rack_num = len(marker_map) + 1
-                rack_marker = LABELS.create_rack_marker(LABELS.ROLE_STOCK,
-                                                        rack_num)
+                rack_marker = container.stock_rack_marker
+                if rack_marker in used_rack_markers:
+                    nums = []
+                    for marker in used_rack_markers:
+                        value_parts = LABELS.parse_rack_marker(marker)
+                        nums.append(value_parts[LABELS.MARKER_RACK_NUM])
+                    new_num = max(nums) + 1
+                    rack_marker = LABELS.create_rack_marker(LABELS.ROLE_STOCK,
+                                                            new_num)
                 marker_map[rack_barcode] = rack_marker
                 layout = StockRackLayout()
-                layouts[rack_barcode] = layouts
+                layouts[rack_barcode] = layout
 
             tts = []
             for plate_label, positions in container.plate_target_positions.\
                                           iteritems():
-                trg_marker = self._rack_containers[plate_label].rack_marker
+                if plate_label == LABELS.ROLE_FINAL:
+                    trg_marker = plate_label
+                else:
+                    trg_marker = self._rack_containers[plate_label].rack_marker
                 for plate_pos in positions:
                     tts.append(plate_pos.as_transfer_target(trg_marker))
 
-                sr_pos = StockRackPosition(rack_position=tc.rack_position,
-                                           molecule_design_pool=pool,
-                                           tube_barcode=tc.tube_barcode,
-                                           transfer_targets=tts)
-                layout.add_position(sr_pos)
+            sr_pos = StockRackPosition(rack_position=tc.rack_position,
+                                       molecule_design_pool=pool,
+                                       tube_barcode=tc.tube_barcode,
+                                       transfer_targets=tts)
+            layout.add_position(sr_pos)
 
-        if len(self.__stock_rack_map) < 1:
-            for rack_barcode, marker in marker_map.iteritems():
-                self._stock_rack_layouts[marker] = layouts[rack_barcode]
-                self.__stock_rack_map[marker] = rack_barcode
+        for rack_barcode, marker in marker_map.iteritems():
+            self._stock_rack_layouts[marker] = layouts[rack_barcode]
+            if not self._stock_rack_map.has_key(marker):
+                self._stock_rack_map[marker] = rack_barcode
 
     def _get_stock_rack_map(self):
-        return self.__stock_rack_map
+        return self._stock_rack_map
 
     def _create_output(self):
         """
@@ -304,13 +315,13 @@ class StockRackRecyclerIsoJob(_StockRackRecycler, _StockRackAssignerIsoJob):
         _StockRackRecycler._create_stock_rack_layouts(self)
 
     def _get_stock_transfer_pipetting_specs(self):
-        _StockRackAssignerIsoJob._get_stock_transfer_pipetting_specs(self)
+        return _StockRackAssignerIsoJob._get_stock_transfer_pipetting_specs(self)
 
     def _clear_entity_stock_racks(self):
         _StockRackAssignerIsoJob._clear_entity_stock_racks(self)
 
     def _create_stock_rack_entity(self, stock_rack_marker, base_kw):
-        _StockRackAssignerIsoJob._create_stock_rack_entity(self,
+        return _StockRackAssignerIsoJob._create_stock_rack_entity(self,
                                     stock_rack_marker, base_kw)
 
     def _create_output(self):
@@ -341,10 +352,16 @@ class StockRackRecyclerLabIso(_StockRackRecycler, _StockRackAssignerLabIso):
         _StockRackRecycler.__init__(self, entity=entity,
                                     rack_barcodes=rack_barcodes, **kw)
         self._complete_init()
+
+        #: The :class:`RackSectorTranslator`s translating 384-well target
+        #: plate positins into stock rack positions mapped onto source
+        #: sector indices (for sector data only).
+        self.__translators = None
     #pylint: enable=W0231
 
     def reset(self):
         _StockRackRecycler.reset(self)
+        self.__translators = dict()
 
     def _check_input(self):
         _StockRackRecycler._check_input(self)
@@ -364,14 +381,20 @@ class StockRackRecyclerLabIso(_StockRackRecycler, _StockRackAssignerLabIso):
         """
         inconsistent_sectors = []
         inconsistent_positions = []
+        self._stock_rack_sectors = dict()
 
         expected_positions = self.__get_expected_sector_positions()
         if not expected_positions is None:
             for sector_index, sector_pools in expected_positions.iteritems():
                 rack_barcode = None
+                stock_rack_marker = None
+                sector_positions = []
                 for pool, exp_pos in sector_pools.iteritems():
                     container = self._stock_tube_containers[pool]
                     tc = container.tube_candidate
+                    sector_positions.append(exp_pos)
+                    if stock_rack_marker is None:
+                        stock_rack_marker = container.stock_rack_marker
                     if rack_barcode is None:
                         rack_barcode = tc.rack_barcode
                     elif not rack_barcode == tc.rack_barcode:
@@ -383,15 +406,15 @@ class StockRackRecyclerLabIso(_StockRackRecycler, _StockRackAssignerLabIso):
                                   tc.rack_position)
                         inconsistent_positions.append(info)
                         continue
-                rack_marker = self._stock_rack_sectors[sector_index]
-                self.__stock_rack_map[rack_marker] = rack_barcode
+                self._stock_rack_map[stock_rack_marker] = rack_barcode
+                self._stock_rack_sectors[sector_index] = sector_positions
 
         if len(inconsistent_sectors) > 0:
-            msg = 'The pools for the following are spread over several ' \
-                  'racks: %s!' % (self._get_joined_str(inconsistent_sectors,
-                                                       is_strs=False))
+            msg = 'The pools for the following sectors are spread over ' \
+                  'several racks: %s!' % (self._get_joined_str(
+                                          inconsistent_sectors, is_strs=False))
             self.add_error(msg)
-        if len(inconsistent_sectors) > 0:
+        if len(inconsistent_positions) > 0:
             msg = 'The following tubes scheduled for the CyBio are located ' \
                   'in wrong positions: %s.' \
                    % (self._get_joined_str(inconsistent_positions))
@@ -402,19 +425,23 @@ class StockRackRecyclerLabIso(_StockRackRecycler, _StockRackAssignerLabIso):
         Returns the expected position for each pool sorted by sector index.
         """
         inconsistent = []
+        contains_non_sectors = False
+        has_sectors = False
         expected_positions = dict()
 
         for pool, container in self._stock_tube_containers.iteritems():
+            stock_rack_marker = container.stock_rack_marker
             for plate_label, positions in container.plate_target_positions.\
                                           iteritems():
                 plate_layout = self._plate_layouts[plate_label]
-                stock_rack_marker = None
                 sector_positions = dict()
                 for plate_pos in positions:
                     sector_index = plate_pos.sector_index
-                    if sector_index is None: continue
-                    if stock_rack_marker is None:
-                        stock_rack_marker = plate_pos.stock_rack_marker
+                    if sector_index is None:
+                        contains_non_sectors = True
+                        continue
+                    elif not has_sectors:
+                        has_sectors = True
                     add_list_map_element(sector_positions, sector_index,
                                          plate_pos)
                 if len(sector_positions) < 1: continue
@@ -430,6 +457,11 @@ class StockRackRecyclerLabIso(_StockRackRecycler, _StockRackAssignerLabIso):
                     exp_pos = exp_data[0]
                     sector_pools[pool] = exp_pos
 
+        if contains_non_sectors and has_sectors:
+            msg = 'The sector data for the layouts are inconsistent - some ' \
+                  'sector indices for samples are None!'
+            self.add_error(msg)
+            return None
         if inconsistent:
             msg = 'The sector for the following pools are inconsistent ' \
                   'in the layouts: %s.' % (self._get_joined_str(inconsistent,
@@ -455,29 +487,40 @@ class StockRackRecyclerLabIso(_StockRackRecycler, _StockRackAssignerLabIso):
                     stock_rack_positions.add(plate_pos.rack_position)
 
             else:
-                translator = RackSectorTranslator(number_sectors=4,
+                if self.__translators.has_key(sector_index):
+                    translator = self.__translators[sector_index]
+                else:
+                    translator = RackSectorTranslator(number_sectors=4,
                                     source_sector_index=sector_index,
                                     target_sector_index=0,
                                     behaviour=RackSectorTranslator.ONE_TO_MANY)
+                    self.__translators[sector_index] = translator
                 for plate_pos in positions:
-                    trans_pos = translator.translate(plate_pos.rack_position)
+                    base_msg = 'Error when trying to determine stock rack ' \
+                               'position for position %s:' \
+                               % (plate_pos.rack_position.label)
+                    trans_pos = self._run_and_record_error(translator.translate,
+                               base_msg, ValueError,
+                               **dict(rack_position=plate_pos.rack_position))
+                    if trans_pos is None: return None
                     stock_rack_positions.add(trans_pos)
 
         if len(stock_rack_positions) > 1: return None
-        return (stock_rack_positions, min(ref_sectors))
+        return (list(stock_rack_positions)[0], min(ref_sectors))
 
     def _create_stock_rack_layouts(self):
         _StockRackRecycler._create_stock_rack_layouts(self)
 
     def _get_stock_transfer_pipetting_specs(self):
-        _StockRackAssignerLabIso._get_stock_transfer_pipetting_specs(self)
+        return _StockRackAssignerLabIso._get_stock_transfer_pipetting_specs(
+                                                                        self)
 
     def _clear_entity_stock_racks(self):
         _StockRackAssignerLabIso._clear_entity_stock_racks(self)
 
     def _create_stock_rack_entity(self, stock_rack_marker, base_kw):
-        _StockRackAssignerLabIso._create_stock_rack_entity(self,
-                                    stock_rack_marker, base_kw)
+        return _StockRackAssignerLabIso._create_stock_rack_entity(self,
+                                            stock_rack_marker, base_kw)
 
     def _create_output(self):
         _StockRackRecycler._create_output(self)
