@@ -79,6 +79,7 @@ class XL20Dummy(TxtWriter):
 
         self.xl20_worklist_stream.seek(0)
         lines = self.xl20_worklist_stream.readlines()
+        self.xl20_worklist_stream.seek(0)
         for i in range(len(lines)):
             if i == 0: continue # headers
             line = lines[i]

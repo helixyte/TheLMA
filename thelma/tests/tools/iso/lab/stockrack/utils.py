@@ -138,6 +138,7 @@ class LabIsoStockRackTestCase(LabIsoTestCase2):
                                      'type "p" are inconsistent!')
 
     def _test_job_no_starting_wells(self):
+        self.filter_destination_racks = False
         self._load_iso_request(LAB_ISO_TEST_CASES.CASE_ORDER_ONLY)
         self.iso_job.number_stock_racks = 1
         self._test_and_expect_errors('You do not need an XL20 worklist for ' \

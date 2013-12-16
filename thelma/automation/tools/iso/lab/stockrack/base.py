@@ -578,10 +578,7 @@ class _StockRackAssignerLabIso(_StockRackAssigner): #pylint: disable=W0223
         """
         #: Stores the sector index for each stock rack marker. Stock racks
         #: without particular sector are not included.
-        self._stock_rack_sectors = None
-
-    def _check_input(self):
-        self._stock_rack_sectors = dict() #pylint: disable=W0201
+        self._stock_rack_sectors = None #pylint: disable=W0201
 
     def _get_layouts(self):
         """
@@ -625,7 +622,11 @@ class _StockRackAssignerLabIso(_StockRackAssigner): #pylint: disable=W0223
         base_kw['iso'] = self.entity
         if self._stock_rack_sectors.has_key(stock_rack_marker):
             sectors = self._stock_rack_sectors[stock_rack_marker]
-            base_kw['sector_index'] = min(sectors)
+            if isinstance(sectors, int):
+                sector_index = sectors
+            else:
+                sector_index = min(sectors)
+            base_kw['sector_index'] = sector_index
             stock_rack_cls = IsoSectorStockRack
         else:
             stock_rack_cls = IsoStockRack
@@ -689,6 +690,9 @@ class StockTubeContainer(object):
         #: The name of the barcoded location the rack is stored at (name and
         #: index).
         self.location = None
+
+        #: The stock rack marker scheduled during ISO generation.
+        self.stock_rack_marker = None
 
     @property
     def pool(self):
@@ -799,6 +803,7 @@ class StockTubeContainer(object):
         to generated planned worklists).
         """
         add_list_map_element(self.__prep_positions, plate_label, plate_pos)
+        self.__set_stock_rack_marker(plate_pos)
 
     def add_final_position(self, plate_pos):
         """
@@ -806,6 +811,16 @@ class StockTubeContainer(object):
         to generated planned worklists).
         """
         self.__final_positions.append(plate_pos)
+        self.__set_stock_rack_marker(plate_pos)
+
+    def __set_stock_rack_marker(self, plate_pos):
+        """
+        All positions are starting wells and hence, must have a stock rack
+        marker. We do check whether the stock rack markers for all positions
+        are equal, because so far no worklist depends on it.
+        """
+        if self.stock_rack_marker is None:
+            self.stock_rack_marker = plate_pos.stock_rack_marker
 
     def set_iso_count(self, iso_count):
         """

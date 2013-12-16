@@ -569,7 +569,7 @@ class StockRackAssemblerLabIso(_StockRackAssembler, _StockRackAssignerLabIso):
     """
     NAME = 'Lab ISO Stock Rack Assembler'
 
-    #pylint: disable=W0231
+    #pylint: disable=W0231, W0201
     def __init__(self, lab_iso, rack_barcodes,
                  excluded_racks=None, requested_tubes=None,
                  include_dummy_output=False, **kw):
@@ -605,7 +605,7 @@ class StockRackAssemblerLabIso(_StockRackAssembler, _StockRackAssignerLabIso):
                                      include_dummy_output=include_dummy_output,
                                      **kw)
         self._complete_init()
-        #pylint: disable=W0231
+        #pylint: disable=W0231, W0201
 
     def reset(self):
         _StockRackAssembler.reset(self)
@@ -694,6 +694,7 @@ class StockRackAssemblerLabIso(_StockRackAssembler, _StockRackAssignerLabIso):
         stock tube containers for this rack. *None* is a valid sector index.
         Controls with a
         """
+        self._stock_rack_sectors = dict()
         inconsistent = []
         for rack_marker, containers in self._tubes_by_rack.iteritems():
             ref_sectors = None

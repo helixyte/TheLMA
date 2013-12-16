@@ -39,6 +39,7 @@ from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import ISubproject
 from thelma.interfaces import IUser
+from thelma.models.container import Tube
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.job import IsoJob
 from thelma.models.library import LibraryPlate
@@ -48,6 +49,9 @@ from thelma.models.liquidtransfer import PlannedSampleDilution
 from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
+from thelma.models.organization import Organization
+from thelma.models.sample import Molecule
+from thelma.models.sample import StockSample
 from thelma.tests.tools.tooltestingutils \
     import ExperimentMetadataReadingTestCase
 from thelma.tests.tools.tooltestingutils import SilentLog
@@ -1620,7 +1624,7 @@ class LAB_ISO_TEST_CASES(object):
                     's#3' : ['123_iso_01_s#3', '123_iso_02_s#3']}
         elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
             return {'s#1' : ['123_job_01_s#1'],
-                    's#2' : ['123_iso_01_s#2', '123_iso_01_s#2']}
+                    's#2' : ['123_iso_01_s#2', '123_iso_02_s#2']}
         elif case_name == cls.CASE_ASSOCIATION_2_ALIQUOTS:
             return {'s#1' : ['123_job_01_s#1'],
                     's#2' : ['123_iso_01_s#2', '123_iso_02_s#2'],
@@ -2340,6 +2344,11 @@ class TestTubeGenerator(object):
                       '07777773' : 'freezer 2',
                       '07777778' : 'unknown location'}
 
+    def __init__(self, tube_specs):
+        self.__tube_specs = tube_specs
+        self.__status_managed = get_item_status_managed()
+        self.__supplier = Organization('testvendor')
+
     @classmethod
     def create_tube_candidate(cls, pool):
         tc_data = cls.CANDIDATE_DATA[pool.id]
@@ -2349,6 +2358,29 @@ class TestTubeGenerator(object):
                 concentration=pool.default_stock_concentration,
                 volume=100 / VOLUME_CONVERSION_FACTOR)
         return tc
+
+    def create_tube(self, rack, rack_pos, pool, tube_barcode, volume):
+        tube = Tube(specs=self.__tube_specs, status=self.__status_managed,
+                    barcode=tube_barcode, location=None)
+        rack.add_tube(tube, rack_pos)
+        rack.containers.append(tube)
+        if pool is not None:
+            self.create_sample(tube, pool, volume)
+        return tube
+
+    def create_sample(self, tube, pool, volume):
+        conc = pool.default_stock_concentration
+        sample = StockSample(volume=volume, container=tube,
+                             molecule_design_pool=pool,
+                             supplier=self.__supplier,
+                             molecule_type=pool.molecule_type,
+                             concentration=conc)
+        tube.sample = sample
+        md_conc = conc / pool.number_designs
+        for md in pool:
+            mol = Molecule(molecule_design=md, supplier=self.__supplier)
+            sample.make_sample_molecule(molecule=mol, concentration=md_conc)
+        return sample
 
 
 class LabIsoTestCase2(LabIsoTestCase1):

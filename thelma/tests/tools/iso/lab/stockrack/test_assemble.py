@@ -674,6 +674,22 @@ class _StockRackAssemblerTestCase(LabIsoStockRackTestCase, FileCreatorTestCase):
                 self._test_and_expect_errors('Unable to find stock tubes ' \
                         'for the following fixed (control) positions: 205201.')
 
+    def _test_include_dummy_input(self):
+        self.include_dummy_output = True
+        self._test_and_expect_success(
+                                LAB_ISO_TEST_CASES.CASE_ASSOCIATION_DIRECT)
+        zip_stream = self.tool.return_value
+        zip_stream.seek(0)
+        archive = self._get_zip_archive(zip_stream)
+        fns = archive.namelist()
+        self.assert_equal(len(fns), 4)
+        has_dummy_file = False
+        for fn in fns:
+            if self.tool.FILE_NAME_DUMMY[2:] in fn:
+                has_dummy_file = True
+                break
+        self.assert_true(has_dummy_file)
+
 
 class StockRackAssemblerLabIsoTestCase(_StockRackAssemblerTestCase):
 
@@ -870,6 +886,9 @@ class StockRackAssemblerLabIsoTestCase(_StockRackAssemblerTestCase):
     def test_excluded_racks(self):
         self._test_excluded_racks(LAB_ISO_TEST_CASES.CASE_ORDER_ONLY)
 
+    def test_include_dummy_input(self):
+        self._test_include_dummy_input()
+
 
 class StockRackAssemblerIsoJobTestCase(_StockRackAssemblerTestCase):
 
@@ -1007,7 +1026,6 @@ class StockRackAssemblerIsoJobTestCase(_StockRackAssemblerTestCase):
 
     def test_job_no_starting_wells(self):
         with RdbContextManager() as session:
-            self.filter_destination_racks = False
             self._set_session(session)
             self._test_job_no_starting_wells()
 
@@ -1026,3 +1044,6 @@ class StockRackAssemblerIsoJobTestCase(_StockRackAssemblerTestCase):
 
     def test_excluded_racks(self):
         self._test_excluded_racks(LAB_ISO_TEST_CASES.CASE_ASSOCIATION_DIRECT)
+
+    def test_include_dummy_input(self):
+        self._test_include_dummy_input()
