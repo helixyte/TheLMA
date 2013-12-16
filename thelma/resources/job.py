@@ -113,7 +113,8 @@ class IsoJobMember(JobMember):
     relation = "%s/iso_job" % RELATION_BASE_URL
 
     isos = collection_attribute(IIso, 'isos')
-    iso_job_stock_rack = member_attribute(IRack, 'iso_job_stock_rack.rack')
+    iso_job_stock_racks = collection_attribute(IRack, 'iso_job_stock_racks')
+    number_stock_racks = terminal_attribute(int, 'number_stock_racks')
 
     def __getitem__(self, name):
         if name == 'isos':

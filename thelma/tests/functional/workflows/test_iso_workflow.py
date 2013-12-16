@@ -90,7 +90,8 @@ class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
             self._create_xl20_worklist_for_iso(iso)
 
     def _create_xl20_worklist_for_iso_job(self, iso_job):
-        pass
+        if iso_job.number_stock_racks > 0:
+            pass
 
     def _create_xl20_worklist_for_iso(self, iso):
         params = self.__get_empty_rack_barcode_params(4)
@@ -99,7 +100,7 @@ class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
         res = self.app.get("%sworklists.zip" % resource_to_url(iso),
                            params=params,
                            headers=dict(accept=ZipMime.mime_type_string),
-#                           status=HTTPOk.code
+                           status=HTTPOk.code
                            )
         self.assert_is_not_none(res)
 
@@ -256,8 +257,8 @@ class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
                              specs=self._get_entity(IRackSpecs, 'matrix0500'))
         rack_agg.slice = slice(0, count)
         if count == 1:
-            params = dict(rack=next(rack_agg.iterator()).barcode)
+            params = dict(rack=str(next(rack_agg.iterator()).barcode))
         else:
-            params = dict([('rack%d' % (cnt + 1,), rack.barcode)
+            params = dict([('rack%d' % (cnt + 1,), str(rack.barcode))
                            for (cnt, rack) in enumerate(rack_agg.iterator())])
         return params
