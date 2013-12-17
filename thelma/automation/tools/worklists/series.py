@@ -980,7 +980,7 @@ class SerialWriterExecutorTool(BaseAutomationTool):
 
     def reset(self):
         BaseAutomationTool.reset(self)
-        self._transfer_jobs = None
+        self._transfer_jobs = dict()
         self._rack_transfer_worklists = dict()
         self.__rack_transfer_indices = set()
 

@@ -438,7 +438,6 @@ class StockRackVerifier(BaseRackVerifier):
         return pool_pos.get_required_stock_volume()
 
 
-
 class StockTransferWriterExecutor(SerialWriterExecutorTool):
     """
     An abstract series writer/executor for series that include stock transfers

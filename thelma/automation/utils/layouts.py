@@ -1978,6 +1978,8 @@ class BaseRackVerifier(BaseAutomationTool):
         """
         Returns a list containing the IDs of the molecule designs in a pool.
         """
+        if md_pool is None:
+            return None
         ids = []
         for md in md_pool:
             ids.append(md.id)

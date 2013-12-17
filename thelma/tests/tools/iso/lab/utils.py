@@ -52,6 +52,7 @@ from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from thelma.models.organization import Organization
 from thelma.models.sample import Molecule
 from thelma.models.sample import StockSample
+from thelma.automation.tools.iso.lab.base import LAB_ISO_ORDERS
 from thelma.tests.tools.tooltestingutils \
     import ExperimentMetadataReadingTestCase
 from thelma.tests.tools.tooltestingutils import SilentLog
@@ -166,6 +167,7 @@ class LAB_ISO_TEST_CASES(object):
 
     TEST_FILE_PATH = 'thelma:tests/tools/iso/lab/cases/'
     INSTRUCTIONS_FILE_PATH = 'thelma:tests/tools/iso/lab/instructionfiles/'
+    WORKLIST_FILE_PATH_PATTERN = 'thelma:tests/tools/iso/lab/processing/%s/'
 
     @classmethod
     def get_xls_file_name(cls, case_name):
@@ -183,6 +185,10 @@ class LAB_ISO_TEST_CASES(object):
         else:
             pat = '%s_iso_instructions.txt'
         return pat % (case_name)
+
+    @classmethod
+    def get_worklist_file_dir(cls, case_name):
+        return cls.WORKLIST_FILE_PATH_PATTERN % (case_name)
 
     @classmethod
     def is_library_case(cls, case_name):
@@ -370,13 +376,6 @@ class LAB_ISO_TEST_CASES(object):
                 m10=[1056000, 'fixed', 4, 1270],
                 o10=['mock', 'mock', 4, 'mock'])
         raise NotImplementedError('The value for this case is missing.')
-
-    @classmethod
-    def get_process_job_first_value(cls, case_name):
-        if case_name in (cls.CASE_ASSOCIATION_JOB_LAST,
-                         cls.CASE_ASSOCIATION_SEVERAL_CONC):
-            return False
-        return True
 
     @classmethod
     def get_aliquot_plate_shape(cls, case_name):
@@ -1349,6 +1348,36 @@ class LAB_ISO_TEST_CASES(object):
         raise NotImplementedError('The value for this case is missing.')
 
     @classmethod
+    def get_iso_order(cls, case_name):
+        if case_name == cls.CASE_ORDER_ONLY:
+            return LAB_ISO_ORDERS.NO_JOB
+        elif case_name == cls.CASE_NO_JOB_DIRECT:
+            return LAB_ISO_ORDERS.NO_JOB
+        elif case_name == cls.CASE_NO_JOB_1_PREP:
+            return LAB_ISO_ORDERS.NO_JOB
+        elif case_name == cls.CASE_NO_JOB_COMPLEX:
+            return LAB_ISO_ORDERS.NO_JOB
+        elif case_name == cls.CASE_ASSOCIATION_DIRECT:
+            return LAB_ISO_ORDERS.JOB_FIRST
+        elif case_name == cls.CASE_ASSOCIATION_96:
+            return LAB_ISO_ORDERS.NO_JOB
+        elif case_name == cls.CASE_ASSOCIATION_SIMPLE:
+            return LAB_ISO_ORDERS.JOB_FIRST
+        elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
+            return LAB_ISO_ORDERS.JOB_FIRST
+        elif case_name == cls.CASE_ASSOCIATION_2_ALIQUOTS:
+            return LAB_ISO_ORDERS.JOB_FIRST
+        elif case_name == cls.CASE_ASSOCIATION_JOB_LAST:
+            return LAB_ISO_ORDERS.ISO_FIRST
+        elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
+            return LAB_ISO_ORDERS.ISO_FIRST
+        elif case_name == cls.CASE_LIBRARY_SIMPLE:
+            return LAB_ISO_ORDERS.NO_ISO
+        elif case_name == cls.CASE_LIBRARY_2_ALIQUOTS:
+            return LAB_ISO_ORDERS.NO_ISO
+        raise NotImplementedError('The value for this case is missing.')
+
+    @classmethod
     def get_stock_takeout_volumes(cls, case_name):
         # pool_id - stock take out volume in ul
         if case_name == cls.CASE_ORDER_ONLY:
@@ -1888,6 +1917,22 @@ class LAB_ISO_TEST_CASES(object):
                 return 0
         raise NotImplementedError('The value for this case is missing.')
 
+    @classmethod
+    def get_plate_intermediate_data(cls, case_name):
+        # plate label - pos_label: pool (or None for buffer only), volume, conc
+        if case_name == cls.CASE_ASSOCIATION_DIRECT:
+            f = dict(b2=[205201, 2, 50000],
+                     b3=[205202, 2, 50000],
+                     b4=[180005, 2, 50000],
+                     d2=[205201, 2, 50000],
+                     d3=[205202, 2, 50000],
+                     d4=[180005, 2, 50000],
+                     e2=[None, 2, None],
+                     e3=[None, 2, None])
+            return {'123_iso_01_a' : f, '123_iso_02_a' : f}
+        raise NotImplementedError('The value for this case is missing.')
+
+
 
 class LabIsoTestCase1(ExperimentMetadataReadingTestCase):
 
@@ -1915,7 +1960,7 @@ class LabIsoTestCase1(ExperimentMetadataReadingTestCase):
 
     def _continue_setup(self, file_name=None):
         if LAB_ISO_TEST_CASES.is_library_case(self.case):
-            self.library_generator = _TestLibraryGenerator()
+            self.library_generator = TestLibraryGenerator()
         if file_name is None:
             file_name = LAB_ISO_TEST_CASES.get_xls_file_name(self.case)
         ExperimentMetadataReadingTestCase._continue_setup(self, file_name)
@@ -2155,7 +2200,7 @@ class LabIsoTestCase1(ExperimentMetadataReadingTestCase):
         return converter.get_result()
 
 
-class _TestLibraryGenerator(object):
+class TestLibraryGenerator(object):
     """
     A smaller version of the poollib library that is faster to load
     and easier to handle during testing.
@@ -2276,6 +2321,7 @@ class _TestRackGenerator(object):
         self.label_map = dict()
         self.__status_future = get_item_status_future()
         self.__status_managed = get_item_status_managed()
+        self.tube_rack_specs = None
 
     def reset_session(self):
         self.__status_future = get_item_status_future()
@@ -2287,9 +2333,12 @@ class _TestRackGenerator(object):
         return self.label_map[rack_label]
 
     def __create_tube_rack(self, rack_label):
-        specs = RACK_SPECS_NAMES.from_name(RACK_SPECS_NAMES.STOCK_RACK)
+        if self.tube_rack_specs is None:
+            self.tube_rack_specs = RACK_SPECS_NAMES.from_name(
+                                                  RACK_SPECS_NAMES.STOCK_RACK)
         barcode = self.STOCK_RACK_BARCODES[rack_label]
-        rack = self.__create_rack(specs, None, barcode, self.__status_managed)
+        rack = self.__create_rack(self.tube_rack_specs, None, barcode,
+                                  self.__status_managed)
         self.label_map[rack_label] = rack
         return rack
 
@@ -2401,6 +2450,7 @@ class LabIsoTestCase2(LabIsoTestCase1):
         self.prep_layouts = dict()
         self.job_layouts = dict()
         self.stock_racks = dict() # mapped onto stock rack labels
+        self.stock_rack_layouts = dict()
         self.compare_stock_tube_barcode = True
 
     def tear_down(self):
@@ -2413,6 +2463,7 @@ class LabIsoTestCase2(LabIsoTestCase1):
         del self.prep_layouts
         del self.job_layouts
         del self.stock_racks
+        del self.stock_rack_layouts
         del self.compare_stock_tube_barcode
 
     def _continue_setup(self, file_name=None):
@@ -2438,8 +2489,11 @@ class LabIsoTestCase2(LabIsoTestCase1):
         ISO-planning step is not done by a tool byut manually here to save
         processing time.
         """
-        self.iso_request.process_job_first = LAB_ISO_TEST_CASES.\
-                                        get_process_job_first_value(self.case)
+        order = LAB_ISO_TEST_CASES.get_iso_order(self.case)
+        process_first = True
+        if order == LAB_ISO_ORDERS.ISO_FIRST:
+            process_first = False
+        self.iso_request.process_job_first = process_first
 
     def __generate_layouts(self):
         iso_labels = LAB_ISO_TEST_CASES.ISO_LABELS[self.case]
@@ -2663,9 +2717,10 @@ class LabIsoTestCase2(LabIsoTestCase1):
             worklist_data = LAB_ISO_TEST_CASES.\
                             get_stock_rack_worklist_series_for_iso(self.case)
         worklist_series = self._create_worklist_series()
-        for wl_label, wl_index in worklist_data.iteritems():
+        for wl_label, wl_details in worklist_data.iteritems():
             if not stock_rack_marker in wl_label: continue
-            pipetting_specs = get_pipetting_specs_biomek_stock()
+            pipetting_specs = wl_details[1]
+            wl_index = wl_details[0]
             plts = []
             plt_data = LAB_ISO_TEST_CASES.get_stock_rack_worklist_details(
                                                         self.case, wl_label)
@@ -2713,6 +2768,7 @@ class LabIsoTestCase2(LabIsoTestCase1):
                         kw['sector_index'] = sector_index
                     stock_rack = meth(**kw)
                 self.stock_racks[rack_label] = stock_rack
+                self.stock_rack_layouts[rack_label] = layout
 
     def _compare_stock_rack_layout(self, layout_data, rack_layout, rack_label):
         converter = StockRackLayoutConverter(rack_layout=rack_layout,

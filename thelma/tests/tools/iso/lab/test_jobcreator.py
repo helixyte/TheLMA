@@ -22,6 +22,7 @@ from thelma.models.racklayout import RackLayout
 from thelma.tests.tools.iso.lab.utils import LAB_ISO_TEST_CASES
 from thelma.tests.tools.iso.lab.utils import LabIsoTestCase1
 from thelma.tests.tools.iso.lab.utils import POOL_WITHOUT_STOCK_SAMPLE
+from thelma.automation.tools.iso.lab.base import LAB_ISO_ORDERS
 
 
 # TODO: in some cases the process job first flag is not set correctly during
@@ -87,6 +88,7 @@ class LabIsoJobCreatorTestCase(LabIsoTestCase1):
     def _check_result(self):
         iso_job = self.tool.get_result()
         self.assert_is_not_none(iso_job)
+        self.__check_order(iso_job)
         self.__check_iso_job_entity(iso_job)
         self.__check_general_iso_properties(iso_job)
         self.__check_job_preparation_plates(iso_job)
@@ -97,6 +99,11 @@ class LabIsoJobCreatorTestCase(LabIsoTestCase1):
         self._compare_worklist_series()
         self._compare_worklist_series(iso_job)
         self.__check_pool_sets(iso_job)
+
+    def __check_order(self, iso_job):
+        exp_order = LAB_ISO_TEST_CASES.get_iso_order(self.case)
+        found_order = LAB_ISO_ORDERS.get_order(iso_job)
+        self.assert_equal(exp_order, found_order)
 
     def __check_iso_job_entity(self, iso_job):
         self.assert_true(isinstance(iso_job, IsoJob))
