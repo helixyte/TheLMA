@@ -285,6 +285,18 @@ class LibraryCreationTubePicker(BaseAutomationTool):
         if len(self.__picked_candidates) < 1:
             msg = 'Did not find any library candidate!'
             self.add_error(msg)
+        else:
+            incompleted_candidates = []
+            for candidate in self.__library_candidates.values():
+                if not candidate.is_completed():
+                    incompleted_candidates.append(candidate.pool.id)
+            if len(incompleted_candidates) > 0:
+                msg = 'The following pools cannot be generate because ' \
+                      'there suitable tubes missing for the pool components: ' \
+                      '%s. Probabably some of the candidate tube do not have ' \
+                      'racks.' % (', '.join([str(pi) for pi \
+                                  in sorted(incompleted_candidates)]))
+                self.add_warning(msg)
 
     def __store_candidate_data(self, iso_candidate):
         """
