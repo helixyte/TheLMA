@@ -30,7 +30,6 @@ class Molecule(Entity):
             listed differently if they are provided by different suppliers
             (:class:`thelma.models.organization.Organization`).
     """
-
     #: The date at which the molecule has been inserted into the database.
     insert_date = None
     #: The molecule design
@@ -210,7 +209,6 @@ class SampleMolecule(Entity):
 
     **Equality condition**: equal :attr:`sample` and :attr:`molecule`
     """
-
     #: The samples (:class:`Sample`) containing this molecule.
     sample = None
     #: The molecule regarded by this object.
