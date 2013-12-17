@@ -5,38 +5,38 @@ the transfers from stock and the actual series processing.
 AAB
 """
 from thelma.automation.semiconstants import RACK_SPECS_NAMES
+from thelma.automation.semiconstants import get_384_rack_shape
 from thelma.automation.semiconstants import get_rack_position_from_label
+from thelma.automation.tools.iso.lab import get_worklist_executor
+from thelma.automation.tools.iso.lab import get_worklist_writer
 from thelma.automation.tools.iso.lab.base import FinalLabIsoLayout
 from thelma.automation.tools.iso.lab.base import FinalLabIsoPosition
+from thelma.automation.tools.iso.lab.base import LAB_ISO_ORDERS
 from thelma.automation.tools.iso.lab.base import LabIsoPrepLayout
 from thelma.automation.tools.iso.lab.base import LabIsoPrepPosition
 from thelma.automation.tools.iso.lab.processing import LabIsoPlateVerifier
+from thelma.automation.tools.iso.lab.processing import WriterExecutorIsoJob
+from thelma.automation.tools.iso.lab.processing import WriterExecutorLabIso
+from thelma.automation.tools.worklists.series import SerialWriterExecutorTool
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
 from thelma.automation.utils.layouts import FLOATING_POSITION_TYPE
+from thelma.automation.utils.layouts import TransferTarget
+from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import IsoAliquotPlate
 from thelma.models.iso import IsoPreparationPlate
+from thelma.models.iso import LabIso
+from thelma.models.job import IsoJob
 from thelma.models.rack import RACK_TYPES
+from thelma.models.racklayout import RackLayout
+from thelma.models.utils import get_user
 from thelma.tests.tools.iso.lab.utils import LAB_ISO_TEST_CASES
 from thelma.tests.tools.iso.lab.utils import LabIsoTestCase2
+from thelma.tests.tools.iso.lab.utils import TestLibraryGenerator
+from thelma.tests.tools.iso.lab.utils import TestTubeGenerator
+from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
 from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.utils.utils import VerifierTestCase
-from thelma.tests.tools.iso.lab.utils import TestLibraryGenerator
-from thelma.automation.utils.layouts import TransferTarget
-from thelma.models.racklayout import RackLayout
-from thelma.automation.semiconstants import get_384_rack_shape
-from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-from thelma.models.iso import ISO_STATUS
-from thelma.tests.tools.iso.lab.utils import TestTubeGenerator
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.tools.iso.lab.base import LAB_ISO_ORDERS
-from thelma.automation.tools.iso.lab.base import LABELS
-from thelma.models.utils import get_user
-from thelma.tests.tools.tooltestingutils import SilentLog
-from thelma.automation.tools.iso.lab.processing import WriterExecutorLabIso
-from thelma.automation.tools.iso.lab.processing import WriterExecutorIsoJob
-from thelma.automation.tools.worklists.series import SerialWriterExecutorTool
-from thelma.automation.tools.iso.lab import get_worklist_writer
-from thelma.automation.tools.iso.lab import get_worklist_executor
 
 class LabIsoPlateVerifierTestCase(VerifierTestCase):
 
@@ -238,6 +238,8 @@ class _LabIsoWriterExecutorToolTestCase(LabIsoTestCase2,
         self.prep_plates = dict()
         self.job_plates = dict()
         self.executor_user = get_user('tondera')
+        self.new_iso_status = None
+        self.expected_num_files = 0
 
     def tear_down(self):
         LabIsoTestCase2.tear_down(self)
@@ -249,6 +251,8 @@ class _LabIsoWriterExecutorToolTestCase(LabIsoTestCase2,
         del self.final_plates
         del self.prep_plates
         del self.job_plates
+        del self.new_iso_status
+        del self.expected_num_files
 
     def _continue_setup(self, file_name=None):
         LabIsoTestCase2._continue_setup(self, file_name=file_name)
@@ -263,11 +267,13 @@ class _LabIsoWriterExecutorToolTestCase(LabIsoTestCase2,
     def _create_tool(self):
         if self.mode == SerialWriterExecutorTool.MODE_PRINT_WORKLISTS:
             self.tool = get_worklist_writer(entity=self.entity,
-                                            add_default_handlers=True)
+#                                            add_default_handlers=True
+                                            )
         else:
             self.tool = get_worklist_executor(entity=self.entity,
                                               user=self.executor_user,
-                                              add_default_handlers=True)
+#                                              add_default_handlers=True
+                                              )
 
     def __fill_stock_racks(self):
         self.tube_generator = TestTubeGenerator(self.rack_generator.\
@@ -319,6 +325,10 @@ class _LabIsoWriterExecutorToolTestCase(LabIsoTestCase2,
                 if not starting_data.has_key(pos_label): continue
                 pos_data = starting_data[pos_label]
                 pool = self._get_pool(pos_data[0])
+                if not well.sample is None:
+                    msg = 'There is already a sample for position %s in ' \
+                          'plate %s.' % (pos_label, plate_label)
+                    raise ValueError(msg)
                 self._create_test_sample(well, pool, volume=pos_data[1],
                                          target_conc=pos_data[2])
 
@@ -341,17 +351,59 @@ class _LabIsoWriterExecutorToolTestCase(LabIsoTestCase2,
     def __check_zip_stream(self, zip_stream):
         archive = self._get_zip_archive(zip_stream)
         namelist = archive.namelist()
-        # TODO:
+        self.assert_equal(len(namelist), self.expected_num_files)
+        self.WL_PATH = LAB_ISO_TEST_CASES.get_worklist_file_dir(self.case)
+        for fn in namelist:
+            tool_content = archive.read(fn)
+            if self.tool.FILE_NAME_INSTRUCTIONS[2:] in fn:
+                self.__compare_instructions_file(tool_content)
+            elif '.csv' in fn:
+                self._compare_csv_file_content(tool_content, fn)
+            else:
+                self._compare_txt_file_content(tool_content, fn)
+                # TODO:
+#            o = open(fn, 'w')
+#            o.write(tool_content)
+#            o.close()
+
+    def __compare_instructions_file(self, tool_content):
+        ori_path = self.WL_PATH
+        self.WL_PATH = LAB_ISO_TEST_CASES.INSTRUCTIONS_FILE_PATH
+        fn = LAB_ISO_TEST_CASES.get_instruction_file(self.case, self.FOR_JOB)
+        self._compare_txt_file_content(tool_content, fn)
+        self.WL_PATH = ori_path
 
     def __check_writer_entities(self):
-        iso = self.isos.values()[self._USED_ISO_LABEL]
+        iso = self.isos[self._USED_ISO_LABEL]
         exp_status = self.__get_iso_status()
         self.assert_equal(iso.status, exp_status)
         # TODO:
 
 
     def __check_result_executor(self):
-        pass # TODO:
+        updated_entity = self.tool.get_result()
+        self.assert_is_not_none(updated_entity)
+        if self.FOR_JOB:
+            self.assert_true(isinstance(updated_entity, IsoJob))
+        else:
+            self.assert_true(isinstance(updated_entity, LabIso))
+        for iso_label, iso in self.isos.iteritems():
+            if not self.FOR_JOB and not iso_label == self._USED_ISO_LABEL:
+                continue
+            self.assert_equal(iso.status, self.new_iso_status)
+            if self.new_iso_status == ISO_STATUS.DONE:
+                self.__check_final_state(iso)
+            else:
+                self.__check_intermediate_state(iso)
+
+    def __check_final_state(self, iso):
+        # TODO:
+        pass
+
+    def __check_intermediate_state(self, iso):
+        # TODO:
+        pass
+
 
 
 class LabIsoWriterTestCase(_LabIsoWriterExecutorToolTestCase):
@@ -362,6 +414,48 @@ class LabIsoWriterTestCase(_LabIsoWriterExecutorToolTestCase):
         _LabIsoWriterExecutorToolTestCase.set_up(self)
         self.mode = WriterExecutorLabIso.MODE_PRINT_WORKLISTS
 
-    def xtest_case_association_direct(self):
+    def test_case_association_direct(self):
+        self.expected_num_files = 3
+        self._test_and_expect_success(
+                                    LAB_ISO_TEST_CASES.CASE_ASSOCIATION_DIRECT)
+
+class IsoJobWriterTestCase(_LabIsoWriterExecutorToolTestCase):
+
+    FOR_JOB = True
+
+    def set_up(self):
+        _LabIsoWriterExecutorToolTestCase.set_up(self)
+        self.mode = WriterExecutorIsoJob.MODE_PRINT_WORKLISTS
+
+    def test_case_association_direct(self):
+        self.expected_num_files = 3
+        self._test_and_expect_success(
+                                    LAB_ISO_TEST_CASES.CASE_ASSOCIATION_DIRECT)
+
+
+class LabIsoExecutorTestCase(_LabIsoWriterExecutorToolTestCase):
+
+    FOR_JOB = False
+
+    def set_up(self):
+        _LabIsoWriterExecutorToolTestCase.set_up(self)
+        self.mode = WriterExecutorLabIso.MODE_EXECUTE
+
+    def test_case_association_direct(self):
+        self.new_iso_status = ISO_STATUS.DONE
+        self._test_and_expect_success(
+                                    LAB_ISO_TEST_CASES.CASE_ASSOCIATION_DIRECT)
+
+
+class IsoJobExecutorTestCase(_LabIsoWriterExecutorToolTestCase):
+
+    FOR_JOB = True
+
+    def set_up(self):
+        _LabIsoWriterExecutorToolTestCase.set_up(self)
+        self.mode = WriterExecutorIsoJob.MODE_EXECUTE
+
+    def test_case_association_direct(self):
+        self.new_iso_status = ISO_STATUS.IN_PROGRESS
         self._test_and_expect_success(
                                     LAB_ISO_TEST_CASES.CASE_ASSOCIATION_DIRECT)

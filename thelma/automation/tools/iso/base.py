@@ -444,7 +444,8 @@ class StockTransferWriterExecutor(SerialWriterExecutorTool):
     in ISO generation processed. It comprises additional checks and provides
     additional access functions for reporters.
 
-    **Return Value:** Depending on the subclass.
+    **Return Value:** a zip stream for for printing mode or the entity
+        for execution mode (can be overwritten)
     """
 
     #: The entity treated by the subclass.

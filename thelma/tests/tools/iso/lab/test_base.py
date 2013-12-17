@@ -1066,6 +1066,7 @@ class LabIsoPrepLayoutConverterTestCase(_LabIsoLayoutBaseConverterTestCase,
         self._test_invalid_rack_layout('There are duplicate target ' \
                         'positions: parameter "external targets": "int-A7"!')
 
+
 class _InstructionWriterTestCase(LabIsoTestCase2, FileCreatorTestCase):
 
     def set_up(self):
@@ -1120,6 +1121,7 @@ class _InstructionWriterTestCase(LabIsoTestCase2, FileCreatorTestCase):
 
     def _test_and_expect_success(self, case_name):
         self._load_iso_request(case_name)
+        self.__check_result()
 
     def __check_result(self):
         tool_stream = self.tool.get_result()

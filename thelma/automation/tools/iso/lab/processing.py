@@ -49,14 +49,15 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
     A base class for tool dealing with the lab ISO Job and lab ISO processing
     (DB execution or generation of robot worklist files).
 
-    **Return Value:** Depending on the subclass.
+    **Return Value:** a zip stream for for printing mode or the entity
+        for execution mode
     """
 
     #: The entity class supported by this tool.
     ENTITY_CLS = None
 
     #: The barcode for the (temporary) annealing buffer plate or reservoir.
-    BUFFER_PLATE_BARCODE = 'buffer_reservoir'
+    BUFFER_PLATE_BARCODE = 'buffer'
     #: The name of the :class:`ReservoirSpecs` for the buffer dilutions.
     DILUTION_RESERVOIR_SPECS = RESERVOIR_SPECS_NAMES.QUARTER_MODULAR
 
@@ -369,7 +370,7 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         """
         for plate_label, layout in self.__plate_layouts.iteritems():
             ignored_positions = []
-            for plate_pos in layout.get_working_positions():
+            for plate_pos in layout.working_positions():
                 if plate_pos.is_missing_floating:
                     ignored_positions.append(plate_pos.rack_position)
             self.__ignored_positions[plate_label] = ignored_positions
@@ -425,9 +426,9 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         """
         target_plates = self.__rack_containers[trg_marker]
         if worklist.transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
-            for target_plate in target_plates:
+            for rack_container in target_plates:
                 self.__create_and_store_transfer_job(worklist=worklist,
-                                                     target_plate=target_plate)
+                                             target_plate=rack_container.rack)
 
         else:
             if src_marker == trg_marker:
@@ -579,7 +580,6 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         """
         All buffer streams are merged too.
         """
-
         dilution_streams = dict()
         for job_index in self.__buffer_dilution_indices:
             dilution_streams[job_index] = stream_map[job_index]
@@ -622,9 +622,20 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         Creates the instruction file for the :attr:`entity` (printer
         :attr:`mode` only).
         """
+        rack_containers = []
+        for containers in self.__rack_containers.values():
+            rack_containers.extend(containers)
+        for sr_label, stock_rack in self._stock_racks.iteritems():
+            values = LABELS.parse_rack_label(sr_label)
+            rack_marker = values[LABELS.MARKER_RACK_MARKER]
+            container = IsoRackContainer(rack=stock_rack.rack,
+                        rack_marker=rack_marker, label=sr_label,
+                        role=LABELS.ROLE_STOCK)
+            rack_containers.append(container)
+
         kw = dict(log=self.log, entity=self.entity,
                   iso_request=self._iso_request,
-                  rack_containers=self.__rack_containers.values())
+                  rack_containers=rack_containers)
         writer = create_instructions_writer(**kw)
         instructions_stream = writer.get_result()
 
@@ -640,9 +651,10 @@ class WriterExecutorIsoJob(_LabIsoWriterExecutorTool):
     A base class for tool dealing with the lab ISO Job processing
     (DB execution or generation of robot worklist files).
 
-    **Return Value:** Depending on the subclass.
+    **Return Value:** a zip stream for for printing mode or the updated ISO job
+        for execution mode
     """
-
+    NAME = 'Lab ISO Writer/Executor'
     ENTITY_CLS = IsoJob
 
     def __init__(self, iso_job, mode, user=None, **kw):
@@ -718,9 +730,10 @@ class WriterExecutorLabIso(_LabIsoWriterExecutorTool):
     A base class for tool dealing with the lab ISO processing
     (DB execution or generation of robot worklist files).
 
-    **Return Value:** Depending on the subclass.
+    **Return Value:** a zip stream for for printing mode or the updated ISO
+        for execution mode
     """
-
+    NAME = 'Lab ISO Job Writer/Executor'
     ENTITY_CLS = LabIso
 
     def __init__(self, iso, mode, user=None, **kw):

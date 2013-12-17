@@ -551,19 +551,12 @@ class _StockRackAssemblerTestCase(LabIsoStockRackTestCase, FileCreatorTestCase):
         for fn in archive.namelist():
             tool_content = archive.read(fn)
             if self.tool.FILE_NAME_INSTRUCTIONS[2:] in fn:
-                self.__compare_instructions_file(tool_content)
+                self._compare_instructions_file(tool_content)
             elif self.tool.FILE_NAME_XL20_WORKLIST[2:] in fn:
                 wl_content = tool_content
             elif self.tool.FILE_NAME_XL20_SUMMARY[2:] in fn:
                 report_content = tool_content
         self.__compare_xl20_contents(wl_content, report_content)
-
-    def __compare_instructions_file(self, tool_content):
-        ori_path = self.WL_PATH
-        self.WL_PATH = LAB_ISO_TEST_CASES.INSTRUCTIONS_FILE_PATH
-        fn = LAB_ISO_TEST_CASES.get_instruction_file(self.case, self.FOR_JOB)
-        self._compare_txt_file_content(tool_content, fn)
-        self.WL_PATH = ori_path
 
     def __compare_xl20_contents(self, wl_content, report_content):
         wl_lines = FileComparisonUtils.convert_content(wl_content)

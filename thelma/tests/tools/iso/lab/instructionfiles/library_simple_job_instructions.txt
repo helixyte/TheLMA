@@ -8,11 +8,11 @@ There is no ISO processing required for this ISO preparation. All required steps
 Buffer Additions
 ----------------
 
-STEP 1: Worklist "123_1_jp_buffer":
-Adding buffer to plate 09999900 (123_job_01_jp).
-
-STEP 2: Worklist "123_2_a_buffer":
+STEP 1: Worklist "123_2_a_buffer":
 Adding buffer to plate final plate(s).
+
+STEP 2: Worklist "123_1_jp_buffer":
+Adding buffer to plate 09999900 (123_job_01_jp).
 
 
 Transfers from the Stock

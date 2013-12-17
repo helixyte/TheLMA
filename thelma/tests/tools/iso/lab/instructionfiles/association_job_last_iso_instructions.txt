@@ -46,9 +46,6 @@ Transferring samples from 09999911 (123_iso_01_p) (sector: 3) to final plate(s) 
 STEP 10: Worklist "123_4_p_to_a":
 Transferring samples from 09999911 (123_iso_01_p) (sector: 4) to final plate(s) (sector: 4) (use CyBio).
 
-STEP 11: Worklist "123_6_a_to_a":
-Transferring samples from final plate(s) to final plate(s)
-
 Proceed with the lab ISO job preparation(s).
 
 

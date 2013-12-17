@@ -2425,10 +2425,6 @@ class TestTubeGenerator(object):
                              molecule_type=pool.molecule_type,
                              concentration=conc)
         tube.sample = sample
-        md_conc = conc / pool.number_designs
-        for md in pool:
-            mol = Molecule(molecule_design=md, supplier=self.__supplier)
-            sample.make_sample_molecule(molecule=mol, concentration=md_conc)
         return sample
 
 
@@ -2855,3 +2851,4 @@ class LabIsoTestCase2(LabIsoTestCase1):
         converter = LabIsoPrepLayoutConverter(log=SilentLog(),
                                           rack_layout=prep_plate.rack_layout)
         return converter.get_result()
+

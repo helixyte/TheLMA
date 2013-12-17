@@ -467,10 +467,10 @@ class LabIsoPosition(TransferPosition):
         #: that are transferred via the CyBio).
         self.sector_index = sector_index
 
-        #: The plate marker (see :class:`LABELS`) for the source stock rack
-        #: (only for starting wells).
         if not stock_rack_marker is None:
             stock_rack_marker = str(stock_rack_marker)
+        #: The plate marker (see :class:`LABELS`) for the source stock rack
+        #: (only for starting wells).
         self.stock_rack_marker = stock_rack_marker
 
         non_values = {'stock tube barcode' : stock_tube_barcode,
@@ -1469,12 +1469,17 @@ class LAB_ISO_ORDERS(object):
         """
         if processing_order == cls.NO_JOB:
             return []
-        worklists = iso_job.worklist_series.get_sorted_worklists()
+        worklist_series = iso_job.worklist_series
+        if worklist_series is None:
+            worklists = []
+        else:
+            worklists = worklist_series.get_sorted_worklists()
         if not processing_order == cls.ISO_FIRST:
-            ir_series = iso_job.worklist_series
-            for worklist in ir_series.get_sorted_worklists():
-                if worklist.transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
-                    worklists.insert(0, worklist)
+            ir_series = iso_job.iso_request.worklist_series
+            if not ir_series is None:
+                for worklist in ir_series.get_sorted_worklists():
+                    if worklist.transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
+                        worklists.insert(0, worklist)
         return worklists
 
     @classmethod
@@ -1496,7 +1501,9 @@ class LAB_ISO_ORDERS(object):
         """
         if processing_order == cls.NO_ISO:
             return []
-        worklists = iso.iso_request.worklist_series.get_sorted_worklists()
+        worklist_series = iso.iso_request.worklist_series
+        if worklist_series is None: return []
+        worklists = worklist_series.get_sorted_worklists()
         if processing_order == cls.JOB_FIRST:
             del_indices = []
             for i in range(len(worklists)):
@@ -1957,8 +1964,6 @@ class _LabIsoJobInstructionsWriter(_InstructionsWriter):
         return _InstructionsWriter._get_processing_worklist_plates(self,
                                                                    worklist)
 
-
-YYY
 
 class _LabIsoInstructionsWriter(_InstructionsWriter):
     """

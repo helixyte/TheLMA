@@ -8,14 +8,14 @@ The ISO job must be processed before you start processing the specific ISOs.
 Buffer Additions
 ----------------
 
-STEP 1: Worklist "123_1_jp_buffer":
-Adding buffer to plate 09999900 (123_job_01_jp).
+STEP 1: Worklist "123_3_a_buffer":
+Adding buffer to plate final plate(s).
 
 STEP 2: Worklist "123_2_p_buffer":
 Adding buffer to plate ISO preparation plate(s).
 
-STEP 3: Worklist "123_3_a_buffer":
-Adding buffer to plate final plate(s).
+STEP 3: Worklist "123_1_jp_buffer":
+Adding buffer to plate 09999900 (123_job_01_jp).
 
 
 Transfers from the Stock
@@ -30,12 +30,6 @@ Processing Steps (Other Transfers)
 
 STEP 5: Worklist "123_4_jp_to_a":
 Transferring samples from 09999900 (123_job_01_jp) to final plate(s)
-
-STEP 6: Worklist "123_5_p_to_a":
-Transferring samples from ISO preparation plate(s) to final plate(s)
-
-STEP 7: Worklist "123_6_a_to_a":
-Transferring samples from final plate(s) to final plate(s)
 
 Proceed with the lab ISO preparation(s).
 
