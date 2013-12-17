@@ -873,7 +873,15 @@ class SupplierSampleRegistrar(RegistrationTool):
                 # molecule design.
                 mdpri_smds = \
                     mdpri.molecule_design_pool.supplier_molecule_designs
-                if not smd in mdpri_smds:
+                found_mdpri_smd = False
+                for mdpri_smd in mdpri_smds:
+                    if mdpri_smd == smd:
+                        found_mdpri_smd = True
+                    # If this is the current supplier molecule design for
+                    # this molecule design pool, set it to "not current".
+                    if mdpri_smd.is_current:
+                        mdpri_smd.is_current = False
+                if not found_mdpri_smd:
                     mdpri_smds.append(smd)
                 # *Only* for the case of a pool containing a single design,
                 # also update the molecule design with the new supplier
@@ -881,7 +889,15 @@ class SupplierSampleRegistrar(RegistrationTool):
                 if len(mdpri.molecule_design_registration_items) == 1:
                     mdri = mdpri.molecule_design_registration_items[0]
                     mdri_smds = mdri.molecule_design.supplier_molecule_designs
-                    if not smd in mdri_smds:
+                    found_mdri_smd = False
+                    for mdri_smd in mdri_smds:
+                        if mdri_smd == smd:
+                            found_mdri_smd = True
+                        # If this is the current supplier molecule design for
+                        # this molecule design, set it to "not current".
+                        if mdri_smd.is_current:
+                            mdri_smd.is_current = False
+                    if not found_mdri_smd:
                         mdri_smds.append(smd)
                 # Update sample registration item.
                 sri.supplier_molecule_design = smd

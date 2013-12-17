@@ -469,6 +469,8 @@ class LabIsoPosition(TransferPosition):
 
         #: The plate marker (see :class:`LABELS`) for the source stock rack
         #: (only for starting wells).
+        if not stock_rack_marker is None:
+            stock_rack_marker = str(stock_rack_marker)
         self.stock_rack_marker = stock_rack_marker
 
         non_values = {'stock tube barcode' : stock_tube_barcode,

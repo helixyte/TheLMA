@@ -30,7 +30,6 @@ class Molecule(Entity):
             listed differently if they are provided by different suppliers
             (:class:`thelma.models.organization.Organization`).
     """
-
     #: The date at which the molecule has been inserted into the database.
     insert_date = None
     #: The molecule design
@@ -179,10 +178,14 @@ class StockSample(Sample):
         self.molecule_type = molecule_type
         self.concentration = concentration
         # Create the sample molecules for this stock sample. By definition,
-        # they all have the same supplier and same concentration.
+        # they all have the same supplier and same concentration (which is
+        # determined by dividing the total concentration by the number of
+        # sample molecules).
+        sm_mol_conc = \
+            concentration / len(molecule_design_pool.molecule_designs)
         for molecule_design in molecule_design_pool.molecule_designs:
             mol = Molecule(molecule_design, supplier)
-            self.make_sample_molecule(mol, concentration)
+            self.make_sample_molecule(mol, sm_mol_conc)
 
     def register(self):
         self.registration = SampleRegistration(self, self.volume)
@@ -206,7 +209,6 @@ class SampleMolecule(Entity):
 
     **Equality condition**: equal :attr:`sample` and :attr:`molecule`
     """
-
     #: The samples (:class:`Sample`) containing this molecule.
     sample = None
     #: The molecule regarded by this object.
