@@ -144,14 +144,16 @@ def __get_writer_executor(mode, entity, user=None, **kw):
     """
     if isinstance(entity, LabIso):
         tool_cls = WriterExecutorLabIso
+        kw['iso'] = entity
     elif isinstance(entity, IsoJob):
         tool_cls = WriterExecutorIsoJob
+        kw['iso_job'] = entity
     else:
         msg = 'Unexpected entity class (%s). The entity must be a %s or a %s!' \
               % (entity.__class__.__name__, LabIso.__name__, IsoJob.__name__)
         raise TypeError(msg)
 
-    kw.update(dict(mode=mode, entity=entity, user=user))
+    kw.update(dict(mode=mode, user=user))
     return tool_cls(**kw)
 
 

@@ -467,10 +467,10 @@ class LabIsoPosition(TransferPosition):
         #: that are transferred via the CyBio).
         self.sector_index = sector_index
 
-        #: The plate marker (see :class:`LABELS`) for the source stock rack
-        #: (only for starting wells).
         if not stock_rack_marker is None:
             stock_rack_marker = str(stock_rack_marker)
+        #: The plate marker (see :class:`LABELS`) for the source stock rack
+        #: (only for starting wells).
         self.stock_rack_marker = stock_rack_marker
 
         non_values = {'stock tube barcode' : stock_tube_barcode,
@@ -1322,8 +1322,7 @@ class LabIsoPrepPosition(LabIsoPosition):
                                   sector_index=sector_index,
                                   stock_rack_marker=stock_rack_marker)
 
-        #: The transfer targets on the final ISO plate. There must be at
-        #: least 1.
+        #: The transfer targets on the final ISO plate.
         self.external_targets = self._check_transfer_targets(
                                 self.PARAMETER_SET.EXTERNAL_TRANSFER_TARGETS,
                                 external_targets, 'external plate target')
@@ -1451,6 +1450,70 @@ class LAB_ISO_ORDERS(object):
             iso_job = iso_or_iso_job.iso_job
         return not (iso_job.number_stock_racks == 0)
 
+    @classmethod
+    def get_sorted_worklists_for_job(cls, iso_job, processing_order):
+        """
+        Returns the processing worklists for an ISO job in their order.
+        If the job is to be processed first, the buffer worklists for the
+        ISO request series (containing the buffer volume data for the
+        specific ISO plates) are added to.
+
+        :param iso_job: The ISO job whose processing worklists you want to get.
+        :type iso_job: :class:`thelma.models.job.IsoJob`
+
+        :param processing_order: Explain whether to process ISO job and
+            lab ISO plates and which has to be done first
+        :type processing_order: a constant of this class
+
+        :return: the sorted worklists as :class:`list`
+        """
+        if processing_order == cls.NO_JOB:
+            return []
+        worklist_series = iso_job.worklist_series
+        if worklist_series is None:
+            worklists = []
+        else:
+            worklists = worklist_series.get_sorted_worklists()
+        if not processing_order == cls.ISO_FIRST:
+            ir_series = iso_job.iso_request.worklist_series
+            if not ir_series is None:
+                for worklist in ir_series.get_sorted_worklists():
+                    if worklist.transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
+                        worklists.insert(0, worklist)
+        return worklists
+
+    @classmethod
+    def get_sorted_worklists_for_iso(cls, iso, processing_order):
+        """
+        Returns the processing worklists for an lab ISO in their order.
+        If the job is to be processed first, the buffer worklists for the
+        specific ISO plates are excluded (because they have already been
+        handled by the job).
+
+        :param iso: The lab ISO whose processing worklists you want to get.
+        :type iso: :class:`thelma.models.iso.LabIso`
+
+        :param processing_order: Explain whether to process ISO job and
+            lab ISO plates and which has to be done first
+        :type processing_order: a constant of this class
+
+        :return: the sorted worklists as :class:`list`
+        """
+        if processing_order == cls.NO_ISO:
+            return []
+        worklist_series = iso.iso_request.worklist_series
+        if worklist_series is None: return []
+        worklists = worklist_series.get_sorted_worklists()
+        if processing_order == cls.JOB_FIRST:
+            del_indices = []
+            for i in range(len(worklists)):
+                worklist = worklists[i]
+                if worklist.transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
+                    del_indices.append(i)
+            for i in sorted(del_indices, reverse=True):
+                del worklists[i]
+        return worklists
+
 
 class _InstructionsWriter(TxtWriter):
     """
@@ -1550,7 +1613,7 @@ class _InstructionsWriter(TxtWriter):
 
         #: The order of the ISO and job processing (see also:
         #: :class:`LAB_ISO_ORDERS`).
-        self.__processing_order = None
+        self._processing_order = None
         #: The worklists in the ISO request worklist series ordered by index.
         self.__sorted_worklists = None
 
@@ -1562,7 +1625,7 @@ class _InstructionsWriter(TxtWriter):
 
     def reset(self):
         TxtWriter.reset(self)
-        self.__processing_order = None
+        self._processing_order = None
         self.__sorted_worklists = None
         self.__step_counter = 0
         self.__racks_by_markers = dict()
@@ -1585,9 +1648,9 @@ class _InstructionsWriter(TxtWriter):
 
         self.__write_main_headline()
         self.__write_order()
-        dont_proceed = (self.__processing_order == LAB_ISO_ORDERS.NO_ISO \
+        dont_proceed = (self._processing_order == LAB_ISO_ORDERS.NO_ISO \
                         and self._ENTITY_CLS == LabIso) or \
-                       (self.__processing_order == LAB_ISO_ORDERS.NO_JOB \
+                       (self._processing_order == LAB_ISO_ORDERS.NO_JOB \
                         and self._ENTITY_CLS == IsoJob)
         if not dont_proceed:
             self.__write_dilution_section()
@@ -1623,8 +1686,8 @@ class _InstructionsWriter(TxtWriter):
         """
         Explain whether to start with the ISO or the ISO job.
         """
-        self.__processing_order = LAB_ISO_ORDERS.get_order(self.entity)
-        order_line = self.__ORDER_LINES[self.__processing_order]
+        self._processing_order = LAB_ISO_ORDERS.get_order(self.entity)
+        order_line = self.__ORDER_LINES[self._processing_order]
         self._write_body_lines(['', order_line])
 
     def __write_dilution_section(self):
@@ -1633,7 +1696,7 @@ class _InstructionsWriter(TxtWriter):
         """
         self._write_headline(self.__BUFFER_DILUTION_HEADER,
                              trailing_blank_lines=0)
-        self.__sort_worklists()
+        self.__sorted_worklists = self._get_sorted_processing_worklists()
 
         base_desc = 'Adding buffer to plate %s.'
         worklist_labels = []
@@ -1650,27 +1713,13 @@ class _InstructionsWriter(TxtWriter):
         self.__write_optional_section(descriptions, worklist_labels,
                                       self.__BUFFER_NO_WORKLISTS)
 
-    def __sort_worklists(self):
+    def _get_sorted_processing_worklists(self):
         """
-        Buffer worklists come first. The order of the remaining worklists
+        Buffer worklists (except for job plates) are always added to the
+        first entity to be processed. The order of the remaining worklists
         depends on whether the job is processed first.
         """
-        job_worklists = []
-        if self._ENTITY_CLS == IsoJob:
-            job_series = self.entity.worklist_series
-        else:
-            job_series = self.entity.iso_job.worklist_series
-        if job_series is not None:
-            job_worklists = job_series.get_sorted_worklists()
-        ir_worklists = []
-        if self.iso_request.worklist_series is not None:
-            ir_worklists = self.iso_request.worklist_series.\
-                           get_sorted_worklists()
-
-        if self.__processing_order == LAB_ISO_ORDERS.ISO_FIRST:
-            self.__sorted_worklists = ir_worklists + job_worklists
-        else:
-            self.__sorted_worklists = job_worklists + ir_worklists
+        raise NotImplementedError('Abstract method.')
 
     def __write_stock_rack_section(self):
         """
@@ -1752,10 +1801,10 @@ class _InstructionsWriter(TxtWriter):
                                       self.__PROCESSING_NO_WORKLIST)
 
         alt_cls = None
-        if (self.__processing_order == LAB_ISO_ORDERS.JOB_FIRST and \
+        if (self._processing_order == LAB_ISO_ORDERS.JOB_FIRST and \
                                     self._ENTITY_CLS == IsoJob):
             alt_cls = LabIso
-        elif (self.__processing_order == LAB_ISO_ORDERS.ISO_FIRST and \
+        elif (self._processing_order == LAB_ISO_ORDERS.ISO_FIRST and \
                                     self._ENTITY_CLS == LabIso):
             alt_cls = IsoJob
         if alt_cls is not None:
@@ -1901,6 +1950,10 @@ class _LabIsoJobInstructionsWriter(_InstructionsWriter):
     def _get_stock_racks(self):
         return self.entity.iso_job_stock_racks
 
+    def _get_sorted_processing_worklists(self):
+        return LAB_ISO_ORDERS.get_sorted_worklists_for_job(iso_job=self.entity,
+                                       processing_order=self._processing_order)
+
     def _get_processing_worklist_plates(self, worklist):
         """
         There are no rack sample transfers in the job processing. Apart from
@@ -1924,6 +1977,10 @@ class _LabIsoInstructionsWriter(_InstructionsWriter):
 
     def _get_stock_racks(self):
         return self.entity.iso_stock_racks + self.entity.iso_sector_stock_racks
+
+    def _get_sorted_processing_worklists(self):
+        return LAB_ISO_ORDERS.get_sorted_worklists_for_iso(iso=self.entity,
+                                       processing_order=self._processing_order)
 
 
 def create_instructions_writer(log, entity, iso_request, rack_containers):

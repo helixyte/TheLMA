@@ -31,6 +31,7 @@ from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 from thelma.tests.tools.utils.utils import ConverterTestCase
 from thelma.tests.tools.utils.utils import MoleculeDesignPoolBaseTestCase
 from thelma.tests.tools.utils.utils import VerifierTestCase
+from thelma.automation.semiconstants import RACK_SPECS_NAMES
 
 
 class _LABELS_DUMMY(_ISO_LABELS_BASE):
@@ -332,6 +333,8 @@ class StockRackVerifierTestCase(VerifierTestCase):
         # pos_label - pool ID, tube barcode
         self.position_data = dict(a1=[205200, '1001'],
                                   b1=[1056000, '1002'])
+        self.rack_specs = RACK_SPECS_NAMES.from_name(
+                                                RACK_SPECS_NAMES.STOCK_RACK)
 
     def tear_down(self):
         VerifierTestCase.tear_down(self)

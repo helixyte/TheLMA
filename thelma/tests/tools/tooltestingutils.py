@@ -8,6 +8,7 @@ from pyramid.threadlocal import get_current_registry
 from thelma import ThelmaLog
 from thelma.automation.semiconstants import clear_semiconstant_caches
 from thelma.automation.semiconstants import initialize_semiconstant_caches
+from thelma.models.sample import StockSample
 from thelma.automation.tools.metadata.generation \
     import ExperimentMetadataGenerator
 from thelma.automation.tools.writers import LINEBREAK_CHAR
@@ -108,6 +109,7 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
         self.user = None
         self.executor_user = None
         self.pool_map = dict()
+        self.supplier = self._create_organization(name='testsupplier')
 
     def tear_down(self):
         ThelmaModelTestCase.tear_down(self)
@@ -115,6 +117,7 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
         del self.user
         del self.executor_user
         del self.pool_map
+        del self.supplier
         clear_semiconstant_caches()
 
     def _create_tool(self):
@@ -129,6 +132,28 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
             raise ValueError('Unknown pool ID: %s' % (pool_id))
         self.pool_map[pool_id] = pool
         return pool
+
+    def _create_test_sample(self, container, pool, volume,
+                            target_conc, is_stock_sample=False):
+        vol = volume / VOLUME_CONVERSION_FACTOR
+        if is_stock_sample:
+            conc = target_conc / CONCENTRATION_CONVERSION_FACTOR
+            sample = StockSample(volume=volume, container=container,
+                             molecule_design_pool=pool,
+                             supplier=self.supplier,
+                             molecule_type=pool.molecule_type,
+                             concentration=conc)
+            container.sample = sample
+        else:
+            sample = container.make_sample(vol)
+        if not pool is None:
+            md_conc = target_conc / pool.number_designs \
+                      / CONCENTRATION_CONVERSION_FACTOR
+            for md in pool:
+                mol = self._create_molecule(molecule_design=md,
+                                            supplier=self.supplier)
+                sample.make_sample_molecule(molecule=mol, concentration=md_conc)
+        return sample
 
     def _compare_tag_sets(self, exp_tags, tag_set):
         self.assert_equal(len(exp_tags), len(tag_set))

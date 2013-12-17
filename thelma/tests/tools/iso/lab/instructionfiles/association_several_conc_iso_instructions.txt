@@ -31,9 +31,6 @@ Transferring samples from 09999911 (123_iso_01_p) (sector: 1) to final plate(s) 
 STEP 5: Worklist "123_5_a_to_a":
 Transferring samples from final plate(s) (sector: 3) to final plate(s) (sector: 1) (use CyBio).
 
-STEP 6: Worklist "123_7_a_to_a":
-Transferring samples from final plate(s) to final plate(s)
-
 Proceed with the lab ISO job preparation(s).
 
 

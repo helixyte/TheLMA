@@ -438,14 +438,14 @@ class StockRackVerifier(BaseRackVerifier):
         return pool_pos.get_required_stock_volume()
 
 
-
 class StockTransferWriterExecutor(SerialWriterExecutorTool):
     """
     An abstract series writer/executor for series that include stock transfers
     in ISO generation processed. It comprises additional checks and provides
     additional access functions for reporters.
 
-    **Return Value:** Depending on the subclass.
+    **Return Value:** a zip stream for for printing mode or the entity
+        for execution mode (can be overwritten)
     """
 
     #: The entity treated by the subclass.

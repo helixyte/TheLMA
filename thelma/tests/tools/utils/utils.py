@@ -624,6 +624,7 @@ class VerifierTestCase(ToolsAndUtilsTestCase):
         self.starting_sample_vol = 10 / VOLUME_CONVERSION_FACTOR
         self.starting_sample_conc = 10000 / CONCENTRATION_CONVERSION_FACTOR
         self.shape = get_96_rack_shape()
+        self.rack_specs = None
 
     def tear_down(self):
         ToolsAndUtilsTestCase.tear_down(self)
@@ -634,8 +635,9 @@ class VerifierTestCase(ToolsAndUtilsTestCase):
         del self.starting_sample_conc
         del self.add_pos_data
         del self.shape
+        del self.rack_specs
 
-    def _continue_setup(self, session):
+    def _continue_setup(self, session=None):
         self.__create_test_rack(session)
         self._init_layout()
         self.__fill_layout()
@@ -645,23 +647,24 @@ class VerifierTestCase(ToolsAndUtilsTestCase):
 
     def __create_test_rack(self, session):
         if self.plate_type == RACK_TYPES.PLATE:
-            self.rack = self._create_plate()
+            self.rack = self._create_plate(specs=self.rack_specs)
         else:
-            self.rack = self._create_tube_rack()
+            self.rack = self._create_tube_rack(specs=self.rack_specs)
         self.rack.barcode = '09999999'
-        session.add(self.rack)
+        if not session is None:
+            session.add(self.rack)
 
     def _init_layout(self):
         self.layout = self.LAYOUT_CLS(shape=self.shape)
 
     def __fill_layout(self):
         for pos_label, pos_data in self.position_data.iteritems():
-            self.__add_position(pos_label, pos_data)
+            self._add_position(pos_label, pos_data)
         if len(self.add_pos_data) > 0:
             for pos_label, pos_data in self.add_pos_data.iteritems():
-                self.__add_position(pos_label, pos_data)
+                self._add_position(pos_label, pos_data)
 
-    def __add_position(self, pos_label, pos_data):
+    def _add_position(self, pos_label, pos_data):
         kw = self._get_position_kw(pos_label, pos_data)
         pool_pos = self.POSITION_CLS(**kw)
         self.layout.add_position(pool_pos)

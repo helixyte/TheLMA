@@ -444,7 +444,7 @@ class EntityCreatorMixin(EverestEntityCreatorMixin):
 
     def _create_iso_sector_preparation_plate(self, **kw):
         if not 'iso' in kw:
-            kw['iso'] = self._get_entity(IIso)
+            kw['iso'] = self._create_stock_sample_creation_iso()
         if not 'rack' in kw:
             kw['rack'] = self._get_entity(IPlate)
         if not 'rack_layout' in kw:

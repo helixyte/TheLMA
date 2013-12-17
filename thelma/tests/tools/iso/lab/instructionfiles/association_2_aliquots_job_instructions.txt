@@ -8,11 +8,11 @@ The ISO job must be processed before you start processing the specific ISOs.
 Buffer Additions
 ----------------
 
-STEP 1: Worklist "123_1_p_buffer":
-Adding buffer to plate ISO preparation plate(s).
-
-STEP 2: Worklist "123_2_a_buffer":
+STEP 1: Worklist "123_2_a_buffer":
 Adding buffer to plate final plate(s).
+
+STEP 2: Worklist "123_1_p_buffer":
+Adding buffer to plate ISO preparation plate(s).
 
 
 Transfers from the Stock

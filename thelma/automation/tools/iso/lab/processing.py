@@ -33,6 +33,7 @@ from thelma.models.library import LibraryPlate
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.rack import Plate
 from thelma.models.status import ITEM_STATUSES
+from thelma.automation.tools.iso.lab.base import LAB_ISO_ORDERS
 
 
 __docformat__ = 'reStructuredText en'
@@ -48,14 +49,15 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
     A base class for tool dealing with the lab ISO Job and lab ISO processing
     (DB execution or generation of robot worklist files).
 
-    **Return Value:** Depending on the subclass.
+    **Return Value:** a zip stream for for printing mode or the entity
+        for execution mode
     """
 
     #: The entity class supported by this tool.
     ENTITY_CLS = None
 
     #: The barcode for the (temporary) annealing buffer plate or reservoir.
-    BUFFER_PLATE_BARCODE = 'buffer_reservoir'
+    BUFFER_PLATE_BARCODE = 'buffer'
     #: The name of the :class:`ReservoirSpecs` for the buffer dilutions.
     DILUTION_RESERVOIR_SPECS = RESERVOIR_SPECS_NAMES.QUARTER_MODULAR
 
@@ -85,14 +87,15 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         :type user: :class:`thelma.models.user.User`
         :default user: *None*
         """
-        StockTransferWriterExecutor.__init__(self, mode=mode, user=user, **kw)
+        StockTransferWriterExecutor.__init__(self, entity=entity, mode=mode,
+                                             user=user, **kw)
 
-        #: The ISO job or ISO to process.
-        self.entity = entity
         #: The lab ISO requests the entity belongs to.
         self._iso_request = None
         #: The final layout for each ISO in this entity mapped onto ISOs.
         self.__final_layouts = None
+        #: see :class:`LAB_ISO_ORDERS`.
+        self._processing_order = None
         #: The expected :class:`ISO_STATUS.
         self._expected_iso_status = None
 
@@ -124,7 +127,8 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
     def reset(self):
         StockTransferWriterExecutor.reset(self)
         self._iso_request = None
-        self.__final_layouts = None
+        self.__final_layouts = dict()
+        self._processing_order = None
         self._expected_iso_status = None
         self.__rack_containers = dict()
         self.__final_plates = dict()
@@ -191,6 +195,7 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         """
         self.add_debug('Check ISO status ...')
 
+        self._processing_order = LAB_ISO_ORDERS.get_order(self.entity)
         self._get_expected_iso_status()
         if not self._expected_iso_status is None:
             invalid_status = []
@@ -321,26 +326,25 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         #: Stock transfer worklists.
         for sr_label in sorted(self._stock_racks.keys()):
             stock_rack = self._stock_racks[sr_label]
-            self.__create_stock_transfer_job(stock_rack)
+            self.__create_stock_transfer_jobs(stock_rack)
 
         #: Processing series worklists.
-        worklist_series = self._iso_request.worklist_series
-        if worklist_series is not None:
+        worklists = self._get_sorted_processing_worklists()
+        if len(worklists) > 0:
             self.__find_ignored_positions()
-            series_worklists = worklist_series.get_sorted_worklists()
-            for worklist in series_worklists:
+            for worklist in worklists:
                 markers = self.__get_worklist_rack_markers(worklist)
                 if markers is None: continue
                 self.__create_processing_worklist_jobs(worklist, *markers)
 
-    def __create_stock_transfer_job(self, stock_rack):
+    def __create_stock_transfer_jobs(self, stock_rack):
         """
         Convenience method creating a :class:`SampleTransferJob` for a transfer
         from stock rack to a plate.
         """
         stock_worklists = stock_rack.worklist_series.get_sorted_worklists()
         for worklist in stock_worklists:
-            values = LABELS.parse_rack_label(stock_rack.label)
+            values = LABELS.parse_worklist_label(worklist.label)
             src_marker = values[LABELS.MARKER_WORKLIST_SOURCE]
             if not src_marker in stock_rack.label:
                 msg = 'Inconsistent stock rack for worklist "%s" '  \
@@ -352,13 +356,21 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
                                         target_plate=rack_container.rack,
                                         source_rack=stock_rack.rack)
 
+    def _get_sorted_processing_worklists(self):
+        """
+        The worklists are sorted by index. They are fetched from the entity.
+        Buffer worklists for final and ISO preparation plates are always
+        processed by the first entity, however.
+        """
+        raise NotImplementedError('Abstract method.')
+
     def __find_ignored_positions(self):
         """
         The ignored positions are missing floating positions in the layouts.
         """
         for plate_label, layout in self.__plate_layouts.iteritems():
             ignored_positions = []
-            for plate_pos in layout.get_working_positions():
+            for plate_pos in layout.working_positions():
                 if plate_pos.is_missing_floating:
                     ignored_positions.append(plate_pos.rack_position)
             self.__ignored_positions[plate_label] = ignored_positions
@@ -414,9 +426,9 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         """
         target_plates = self.__rack_containers[trg_marker]
         if worklist.transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
-            for target_plate in target_plates:
+            for rack_container in target_plates:
                 self.__create_and_store_transfer_job(worklist=worklist,
-                                                     target_plate=target_plate)
+                                             target_plate=rack_container.rack)
 
         else:
             if src_marker == trg_marker:
@@ -464,17 +476,17 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
                             planned_worklist=worklist,
                             target_rack=target_plate,
                             reservoir_specs=self.__dilution_rs,
-                            pipetting_specs=worklist.pipetting_specs,
                             source_rack_barcode=self.BUFFER_PLATE_BARCODE,
                             ignored_positions=ign_positions)
             self.__buffer_dilution_indices.add(job_index)
         elif worklist.transfer_type == TRANSFER_TYPES.SAMPLE_TRANSFER:
-            ign_positions = self.__ignored_positions[source_rack.label]
+            ign_positions = None
+            if self.__ignored_positions.has_key(source_rack.label):
+                ign_positions = self.__ignored_positions[source_rack.label]
             transfer_job = SampleTransferJob(index=job_index,
                             planned_worklist=worklist,
                             target_rack=target_plate,
                             source_rack=source_rack,
-                            pipetting_specs=worklist.pipetting_specs,
                             ignored_positions=ign_positions)
         else:
             transfer_job = RackSampleTransferJob(index=job_index,
@@ -516,7 +528,7 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         """
         self.add_debug('Update ISO status ...')
 
-        new_status = self._get_expected_iso_status()
+        new_status = self._get_new_iso_status()
         for iso in self.__final_layouts.keys():
             iso.status = new_status
 
@@ -568,7 +580,6 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         """
         All buffer streams are merged too.
         """
-
         dilution_streams = dict()
         for job_index in self.__buffer_dilution_indices:
             dilution_streams[job_index] = stream_map[job_index]
@@ -611,9 +622,20 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         Creates the instruction file for the :attr:`entity` (printer
         :attr:`mode` only).
         """
+        rack_containers = []
+        for containers in self.__rack_containers.values():
+            rack_containers.extend(containers)
+        for sr_label, stock_rack in self._stock_racks.iteritems():
+            values = LABELS.parse_rack_label(sr_label)
+            rack_marker = values[LABELS.MARKER_RACK_MARKER]
+            container = IsoRackContainer(rack=stock_rack.rack,
+                        rack_marker=rack_marker, label=sr_label,
+                        role=LABELS.ROLE_STOCK)
+            rack_containers.append(container)
+
         kw = dict(log=self.log, entity=self.entity,
                   iso_request=self._iso_request,
-                  rack_containers=self.__rack_containers.values())
+                  rack_containers=rack_containers)
         writer = create_instructions_writer(**kw)
         instructions_stream = writer.get_result()
 
@@ -629,9 +651,10 @@ class WriterExecutorIsoJob(_LabIsoWriterExecutorTool):
     A base class for tool dealing with the lab ISO Job processing
     (DB execution or generation of robot worklist files).
 
-    **Return Value:** Depending on the subclass.
+    **Return Value:** a zip stream for for printing mode or the updated ISO job
+        for execution mode
     """
-
+    NAME = 'Lab ISO Writer/Executor'
     ENTITY_CLS = IsoJob
 
     def __init__(self, iso_job, mode, user=None, **kw):
@@ -656,33 +679,34 @@ class WriterExecutorIsoJob(_LabIsoWriterExecutorTool):
         return self.entity.isos
 
     def _get_expected_iso_status(self):
-        if self._iso_request.molecule_design_library is not None:
-            self._expected_iso_status = ISO_STATUS.QUEUED
-        elif self.entity.number_stock_racks == 0:
+        if self._processing_order == LAB_ISO_ORDERS.NO_JOB:
             msg = 'There are no samples added via the ISO job, thus there ' \
                   'is not job processing required!'
             self.add_error(msg)
-        elif self._iso_request.process_job_first:
-            self._expected_iso_status = ISO_STATUS.QUEUED
-        else:
+        elif self._processing_order == LAB_ISO_ORDERS.ISO_FIRST:
             self._expected_iso_status = ISO_STATUS.IN_PROGRESS
+        else:
+            self._expected_iso_status = ISO_STATUS.QUEUED
 
     def _get_plates(self):
         """
-        We have to add job plates and the plates of the included ISOs.
-
-        For jobs we have to add the job plates, too.
+        We have to add job plates.
         """
         _LabIsoWriterExecutorTool._get_plates(self)
         for jpp in self.entity.iso_job_preparation_plates:
             self._store_and_verify_plate(jpp)
-        for iso in self.entity.isos:
-            for ipp in iso.iso_preparation_plates:
-                self._store_and_verify_plate(ipp, verify=False)
 
     def _get_stock_racks(self):
         for stock_rack in self.entity.iso_job_stock_racks:
             self._stock_racks[stock_rack.label] = stock_rack
+
+    def _get_sorted_processing_worklists(self):
+        """
+        If the job is processed first me must fetch potential buffer worklists
+        from the ISO request worklists as well.
+        """
+        return LAB_ISO_ORDERS.get_sorted_worklists_for_job(self.entity,
+                                                self._processing_order)
 
     def _accept_final_intraplate_transfer(self):
         if self._iso_request.molecule_design_library is not None:
@@ -695,11 +719,9 @@ class WriterExecutorIsoJob(_LabIsoWriterExecutorTool):
         are succeeded by an ISO preparation. Library and ISO-first-preparations
         are completed after job prepraration.
         """
-        if self._iso_request.molecule_design_library is not None:
-            return ISO_STATUS.DONE
-        elif self._iso_request.process_job_first:
+        if self._processing_order == LAB_ISO_ORDERS.JOB_FIRST:
             return ISO_STATUS.IN_PROGRESS
-        else:
+        else: # NO_ISO or ISO_FIRST
             return ISO_STATUS.DONE
 
 
@@ -708,9 +730,10 @@ class WriterExecutorLabIso(_LabIsoWriterExecutorTool):
     A base class for tool dealing with the lab ISO processing
     (DB execution or generation of robot worklist files).
 
-    **Return Value:** Depending on the subclass.
+    **Return Value:** a zip stream for for printing mode or the updated ISO
+        for execution mode
     """
-
+    NAME = 'Lab ISO Job Writer/Executor'
     ENTITY_CLS = LabIso
 
     def __init__(self, iso, mode, user=None, **kw):
@@ -738,22 +761,29 @@ class WriterExecutorLabIso(_LabIsoWriterExecutorTool):
         return [self.entity]
 
     def _get_expected_iso_status(self):
-        if self._iso_request.molecule_design_library is not None:
+        if self._processing_order == LAB_ISO_ORDERS.NO_ISO:
             msg = 'All samples for this ISO are handled by the ISO job, ' \
                   'thus, there is no specific ISO handling required!'
             self.add_error(msg)
-        elif not self._iso_request.process_job_first:
-            self._expected_iso_status = ISO_STATUS.QUEUED
-        elif self.entity.iso_job.number_stock_racks == 0:
-            self._expected_iso_status = ISO_STATUS.QUEUED
-        else:
+        elif self._processing_order == LAB_ISO_ORDERS.JOB_FIRST:
             self._expected_iso_status = ISO_STATUS.IN_PROGRESS
+        else:
+            self._expected_iso_status = ISO_STATUS.QUEUED
 
     def _get_stock_racks(self):
         stock_racks = self.entity.iso_stock_racks \
                       + self.entity.iso_sector_stock_racks
         for stock_rack in stock_racks:
             self._stock_racks[stock_rack.label] = stock_rack
+
+    def _get_sorted_processing_worklists(self):
+        """
+        If the job is processed first me must remove potential buffer worklists
+        from the ISO request worklists because these have already been handled
+        before by the job.
+        """
+        return LAB_ISO_ORDERS.get_sorted_worklists_for_iso(self.entity,
+                                                self._processing_order)
 
     def _accept_final_intraplate_transfer(self):
         if self.entity.iso_job.number_stock_racks == 0:
@@ -766,11 +796,10 @@ class WriterExecutorLabIso(_LabIsoWriterExecutorTool):
         are succeeded by a job preparation. For all other cases, the ISOs
         are completed after execution.
         """
-        if not self._iso_request.process_job_first:
+        if self._processing_order == LAB_ISO_ORDERS.ISO_FIRST:
             return ISO_STATUS.IN_PROGRESS
-        else:
+        else: # NO_JOB or JOB_FIRST
             return ISO_STATUS.DONE
-
 
 
 class LabIsoPlateVerifier(BaseRackVerifier):
@@ -815,10 +844,10 @@ class LabIsoPlateVerifier(BaseRackVerifier):
         BaseRackVerifier._check_input(self)
         if not isinstance(self.lab_iso_plate, (IsoPlate, LibraryPlate,
                                                IsoJobPreparationPlate)):
-            msg = 'The lab ISO plate must be an %s, %s or an %s (obtained: ' \
-                  '%s.)' % (IsoPlate.__name__, LibraryPlate.__name__,
-                            IsoJobPreparationPlate.__name__,
-                            self.lab_iso_plate.__class__.__name__)
+            msg = 'The lab ISO plate must be an %s, %s or an %s ' \
+                  '(obtained: %s).' % (IsoPlate.__name__, LibraryPlate.__name__,
+                    IsoJobPreparationPlate.__name__,
+                    self.lab_iso_plate.__class__.__name__)
             self.add_error(msg)
         self._check_input_class('"for job" flag', self.for_job, bool)
 
@@ -831,29 +860,33 @@ class LabIsoPlateVerifier(BaseRackVerifier):
         Final plate layouts must be delivered because they are stored at the
         ISO.
         """
-        if isinstance(self.lab_iso_plate, IsoAliquotPlate, LibraryPlate):
+        if isinstance(self.lab_iso_plate, (IsoAliquotPlate, LibraryPlate)):
             msg = 'The reference layout for a final ISO plate must not ' \
                   'be None!'
             self.add_error(msg)
-        elif isinstance(self.lab_iso_plate, isinstance(IsoPreparationPlate,
-                                                       IsoJobPreparationPlate)):
+        elif isinstance(self.lab_iso_plate, (IsoPreparationPlate,
+                                             IsoJobPreparationPlate)):
             converter = LabIsoPrepLayoutConverter(log=self.log,
                                     rack_layout=self.lab_iso_plate.rack_layout)
             self._expected_layout = converter.get_result()
-            if not self._expected_layout is None:
-                msg = 'Error when trying to convert rack layout!'
+            if self._expected_layout is None:
+                msg = 'Error when trying to convert preparation plate layout!'
                 self.add_error(msg)
         else:
             msg = 'Unexpected ISO plate type: %s.' \
                    % (self.lab_iso_plate.__class__.__name__)
             self.add_error(msg)
 
-    def _get_expected_pools(self, plate_pos):
+    def _get_expected_pool(self, plate_pos):
         """
         For final plate positions we must only regard positions for either
         jobs or ISOs (mismatching booleans are compared because this
         processing is assumed to happen first).
         """
         if isinstance(plate_pos, FinalLabIsoPosition):
-            if (plate_pos.for_job == self.for_job): return None
-        return self._get_ids_for_pool(plate_pos.molecule_design_pool)
+            if (plate_pos.from_job == self.for_job): return None
+        elif self.for_job and plate_pos.is_fixed:
+            return None
+        elif not self.for_job and plate_pos.is_floating:
+            return None
+        return plate_pos.molecule_design_pool
