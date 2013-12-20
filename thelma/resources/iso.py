@@ -119,6 +119,7 @@ class IsoRequestMember(Member):
     expected_number_isos = terminal_attribute(int, 'expected_number_isos')
     number_aliquots = terminal_attribute(int, 'number_aliquots')
     isos = collection_attribute(IIso, 'isos')
+    iso_jobs = collection_attribute(IIsoJob, 'iso_jobs')
 
     @property
     def title(self):
@@ -184,6 +185,8 @@ class LabIsoRequestMember(IsoRequestMember):
             new_delivery_date = prx.delivery_date
             if new_delivery_date:
                 self.delivery_date = new_delivery_date
+            if not prx.jobs is None:
+                self.__process_iso_jobs(prx.jobs)
             if not prx.isos is None:
                 self.__process_isos(prx.isos)
 
@@ -235,6 +238,20 @@ class LabIsoRequestMember(IsoRequestMember):
             run_trac_tool(trac_tool)
         self.owner = new_owner
 
+    def __process_iso_jobs(self, iso_jobs_prx):
+        for iso_job_prx in iso_jobs_prx:
+            status = iso_job_prx.status
+            iso_job_id = iso_job_prx.id
+            iso_job = self.__find_iso_job(iso_job_id)
+            if status.startswith('UPDATE_JOB_STOCK_RACK'):
+                barcodes = ','.split(status[len('UPDATE_JOB_STOCK_RACK'):])
+                self.__update_job_stock_racks(iso_job, barcodes)
+            elif status == 'TRANSFER_TO_ISO':
+                # Transfer from job stock racks.
+                self.__transfer_to_iso_or_iso_job(iso_job)
+            else:
+                raise ValueError('Unknown ISO job status "%s".' % status)
+
     def __process_isos(self, isos_prx):
         number_of_new_isos = 0
         optimizer_excluded_racks = None
@@ -249,13 +266,8 @@ class LabIsoRequestMember(IsoRequestMember):
             else:
                 # Retrieve the ISO entity and perform an operation on it.
                 iso = self.__find_iso(iso_id)
-#                if status == 'TRANSFER_JOB_STOCK':
-#                    self.__transfer_job_stock(iso)
-                if status.startswith('UPDATE_JOB_STOCK_RACK'):
-                    barcode = status[len('UPDATE_JOB_STOCK_RACK'):]
-                    self.__update_job_stock_rack(iso, barcode)
-                elif status == 'TRANSFER_TO_ISO':
-                    self.__transfer_to_iso(iso)
+                if status == 'TRANSFER_TO_ISO':
+                    self.__transfer_to_iso_or_iso_job(iso)
                 elif status == 'CLOSE_ISO':
                     self.__update_iso_status(iso, ISO_STATUS.DONE)
                 elif status == 'CANCEL_ISO':
@@ -265,7 +277,7 @@ class LabIsoRequestMember(IsoRequestMember):
                 elif status == 'COPY_ISO':
                     self.__copy_iso(iso)
                 else:
-                    raise ValueError('Unknwon ISO status "%s".' % status)
+                    raise ValueError('Unknown ISO status "%s".' % status)
         if number_of_new_isos > 0:
             self.__generate_isos(number_of_new_isos,
                                  optimizer_excluded_racks,
@@ -295,30 +307,19 @@ class LabIsoRequestMember(IsoRequestMember):
         IsoJob(label='ISO Job %d' % job_num, user=get_current_user(),
                isos=new_isos)
 
-    def __transfer_to_iso(self, iso):
+    def __transfer_to_iso_or_iso_job(self, iso_or_iso_job):
         user = get_current_user()
-        executor = get_worklist_executor(iso, user)
+        executor = get_worklist_executor(iso_or_iso_job, user)
         result = run_tool(executor,
                           error_prefix='Errors during transfer to ISO. --')
         trac_updater = LabIsoStockTransferReporter(executor=executor)
         run_trac_tool(trac_updater)
         return result
 
-    def __update_job_stock_rack(self, iso, stock_rack_barcode):
-        recycler = get_stock_rack_recyler(iso.iso_job,
-                                          [stock_rack_barcode])
+    def __update_job_stock_racks(self, iso_job, stock_rack_barcodes):
+        recycler = get_stock_rack_recyler(iso_job, stock_rack_barcodes)
         return run_tool(recycler,
                         error_prefix='Job stock rack is not valid! --')
-
-#    def __transfer_job_stock(self, iso):
-#        user = get_current_user()
-#        executor = IsoControlStockRackExecutor(iso_job=iso.iso_job,
-#                                               user=user)
-#        result = run_tool(executor,
-#                          error_prefix='Stock rack is not valid! --')
-#        trac_updater = StockTransferReportUploader(executor=executor)
-#        run_trac_tool(trac_updater)
-#        return result
 
     def __generate_isos(self, number_of_new_isos,
                         optimizer_excluded_racks, optimizer_requested_tubes):
@@ -342,6 +343,13 @@ class LabIsoRequestMember(IsoRequestMember):
     def __find_iso(self, iso_id):
         # Enforce exactly one matching ISO.
         result, = [iso for iso in self.get_entity().isos if iso.id == iso_id]
+        return result
+
+    def __find_iso_job(self, iso_job_id):
+        # Enforce exactly one matching ISO.
+        result, = [iso_job
+                   for iso_job in self.get_entity().iso_jobs
+                   if iso_job.id == iso_job_id]
         return result
 
 

@@ -1359,6 +1359,14 @@
                     name="write_as_link"
                     value="true" />
             </attribute>
+            <attribute name="iso_jobs">
+                <option
+                    name="repr_name"
+                    value="jobs" />
+            </attribute>
+
+            <!-- <attribute name="iso_jobs"> <option name="namespace" value="http://schemata.cenix-bioscience.com/isorequest" 
+                /> </attribute> -->
         </representer>
         <representer
             kind="member"

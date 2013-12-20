@@ -147,6 +147,7 @@ class IsoJob(Job):
         self.isos = isos
         self.number_stock_racks = number_stock_racks
         self.worklist_series = worklist_series
+        self.__status = None
 
     @property
     def iso_request(self):
@@ -177,6 +178,17 @@ class IsoJob(Job):
         """
         IsoJobPreparationPlate(iso_job=self, rack=plate,
                                rack_layout=rack_layout)
+
+    def __get_status(self):
+        return self.__status
+
+    def __set_status(self, status):
+        self.__status = status
+
+    #: Status flag merly used for job processing
+    # FIXME: Reconcile entity ISO status flags with ISO processing status
+    #        flags used by the client!
+    status = property(__get_status, __set_status)
 
     def __len__(self):
         return len(self.isos)

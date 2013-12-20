@@ -6,6 +6,7 @@
     xmlns:em="http://schemata.cenix-bioscience.com/experimentmetadata"
     xmlns:emt="http://schemata.cenix-bioscience.com/experimentmetadatatype"
     xmlns:iso="http://schemata.cenix-bioscience.com/iso"
+    xmlns:j="http://schemata.cenix-bioscience.com/job"
     xmlns:isor="http://schemata.cenix-bioscience.com/isorequest"
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
     xmlns:rl="http://schemata.cenix-bioscience.com/racklayout"
@@ -26,6 +27,12 @@
     <import
         schemaLocation="Iso.xsd"
         namespace="http://schemata.cenix-bioscience.com/iso"
+    >
+    </import>
+
+    <import
+        schemaLocation="Job.xsd"
+        namespace="http://schemata.cenix-bioscience.com/job"
     >
     </import>
 
@@ -77,6 +84,12 @@
             ></element>
             <element
                 ref="iso:isos"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element
+                ref="j:jobs"
                 minOccurs="0"
                 maxOccurs="1"
             >

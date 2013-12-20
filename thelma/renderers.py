@@ -15,6 +15,7 @@ from thelma.mime import IsoJobZippedWorklistMime
 from thelma.mime import IsoZippedWorklistMime
 from thelma.utils import run_tool
 from zope.interface import providedBy as provided_by # pylint: disable=E0611,F0401
+from thelma.models.iso import ISO_STATUS
 
 __docformat__ = "reStructuredText en"
 __all__ = ['ThelmaRendererFactory',
@@ -102,7 +103,10 @@ class ZippedWorklistRenderer(CustomRenderer):
         params = request.params
         options = self._extract_from_params(params)
         wl_type = params['type']
-        create_exec = WarnAndResubmitExecutor(self._create_worklist_stream)
+        if wl_type == 'XL20':
+            options['rack_barcodes'] = \
+                        self._extract_job_stock_rack_barcodes(params)
+        create_exec = WarnAndResubmitExecutor(self.__create_worklist_stream)
         result = create_exec(resource, options, wl_type)
         if not create_exec.do_continue:
             if wl_type == 'XL20':
@@ -127,12 +131,11 @@ class ZippedWorklistRenderer(CustomRenderer):
         else:
             optimizer_required_racks = None
         include_dummy_output = params.get('include_dummy_output') == 'true'
-        return dict(rack_barcodes=self._extract_barcodes(params),
-                    excluded_racks=optimizer_excluded_racks,
+        return dict(excluded_racks=optimizer_excluded_racks,
                     requested_tubes=optimizer_required_racks,
                     include_dummy_output=include_dummy_output)
 
-    def _create_worklist_stream(self, resource, options, worklist_type):
+    def __create_worklist_stream(self, resource, options, worklist_type):
         if worklist_type == 'XL20':
             stream = self.__create_xl20_worklist_stream(resource, options)
         elif worklist_type == 'CONTROL_STOCK_TRANSFER':
@@ -143,10 +146,7 @@ class ZippedWorklistRenderer(CustomRenderer):
 
     def __create_xl20_worklist_stream(self, resource, options):
         entity = resource.get_entity()
-        while len(entity.iso_stock_racks) > 0:
-            entity.iso_stock_racks.pop()
-        while len(entity.iso_sector_stock_racks) > 0:
-            entity.iso_sector_stock_racks.pop()
+        self._prepare_for_xl20_worklist_creation(entity)
         try:
             tool = lab.get_stock_rack_assembler(entity=entity,
                                                 **options)
@@ -156,26 +156,52 @@ class ZippedWorklistRenderer(CustomRenderer):
 
     def __create_transfer_worklist_stream(self, resource):
         entity = resource.get_entity()
+        self._prepare_for_transfer_worklist_creation(entity)
         try:
             tool = lab.get_worklist_writer(entity=entity)
         except TypeError as te:
             raise HTTPBadRequest(str(te))
         return run_tool(tool)
 
-    def _extract_barcodes(self, params):
+    def _extract_job_stock_rack_barcodes(self, params):
+        raise NotImplementedError('Abstract method.')
+
+    def _prepare_for_xl20_worklist_creation(self, entity):
+        raise NotImplementedError('Abstract method.')
+
+    def _prepare_for_transfer_worklist_creation(self, entity):
         raise NotImplementedError('Abstract method.')
 
 
 class IsoJobWorklistRenderer(ZippedWorklistRenderer):
-    def _extract_barcodes(self, params):
+    def _extract_job_stock_rack_barcodes(self, params):
         rack = params['rack']
         return [rack]
 
+    def _prepare_for_xl20_worklist_creation(self, entity):
+        while len(entity.iso_job_stock_racks) > 0:
+            entity.iso_job_stock_racks.pop()
+
+    def _prepare_for_transfer_worklist_creation(self, entity):
+        # We need to set the status for all ISOs to IN PROGRESS before
+        # we can start the transfer.
+        for iso in entity.isos:
+            iso.status = ISO_STATUS.IN_PROGRESS
+
 
 class IsoWorklistRenderer(ZippedWorklistRenderer):
-    def _extract_barcodes(self, params):
+    def _extract_job_stock_rack_barcodes(self, params):
         barcode1 = params['rack1']
         barcode2 = params['rack2']
         barcode3 = params['rack3']
         barcode4 = params['rack4']
         return [barcode1, barcode2, barcode3, barcode4]
+
+    def _prepare_for_xl20_worklist_creation(self, entity):
+        while len(entity.iso_stock_racks) > 0:
+            entity.iso_stock_racks.pop()
+        while len(entity.iso_sector_stock_racks) > 0:
+            entity.iso_sector_stock_racks.pop()
+
+    def _prepare_for_transfer_worklist_creation(self, entity):
+        pass
