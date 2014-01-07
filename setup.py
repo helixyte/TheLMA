@@ -24,7 +24,7 @@ tests_requirements = install_requirements + [
     ]
 
 setup(name='TheLMA',
-      version='1.6.5',
+      version='1.6.6',
       description='TheLMA',
       long_description=README + '\n\n' + CHANGES,
       classifiers=[
