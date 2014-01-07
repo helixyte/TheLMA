@@ -695,6 +695,7 @@ class IsoVolumeSpecificOptimizer(BaseAutomationTool):
         volume = volume_in_ul / VOLUME_CONVERSION_FACTOR
         query_sample_ids = []
         for pool_id in pool_ids:
+            if not self.__stock_samples.has_key(pool_id): continue
             query_sample_ids.extend(self.__stock_samples[pool_id])
         sample_string = create_in_term_for_db_queries(query_sample_ids)
 
