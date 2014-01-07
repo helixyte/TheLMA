@@ -968,6 +968,15 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
         """
         self.add_debug('Check rack transfer content ...')
 
+        accept_positions = []
+        if self.__translation_behaviour in (RackSectorTranslator.ONE_TO_MANY,
+                                            RackSectorTranslator.ONE_TO_ONE):
+            prst = self.planned_rack_sample_transfer
+            accept_positions = get_sector_positions(
+                        sector_index=prst.source_sector_index,
+                        rack_shape=self.source_rack.specs.shape,
+                        number_sectors=prst.number_sectors)
+
         for container in self.source_rack.containers:
             if container.sample is None: continue
             sample = container.sample
@@ -977,6 +986,8 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
             try:
                 target_pos = self._translator.translate(source_pos)
             except ValueError as e:
+                if not source_pos in accept_positions: continue
+                # the container does not belong to the source sector
                 if self.__is_intra_rack_transfer: continue
                 msg = 'Error when trying to find target position for ' \
                       'rack position: %s. Details: %s' \

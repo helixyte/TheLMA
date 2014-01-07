@@ -50,7 +50,6 @@ from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from thelma.models.organization import Organization
-from thelma.models.sample import Molecule
 from thelma.models.sample import StockSample
 from thelma.automation.tools.iso.lab.base import LAB_ISO_ORDERS
 from thelma.tests.tools.tooltestingutils \
@@ -213,7 +212,7 @@ class LAB_ISO_TEST_CASES(object):
                 b6=[333803, 'fixed', 2, 5000000], # compound
                 d6=[333803, 'fixed', 20, 500000], # compound
                 b8=[1056000, 'fixed', 2, 10000], # siRNA pool
-                d8=[1056000, 'fixed', 10, 20000], # siRNA pool
+                d8=[1056000, 'fixed', 10, 2000], # siRNA pool
                 b10=[180005, 'fixed', 2, 50000], # ssDNA (primer)
                 d10=[180005, 'fixed', 10, 10000]) # ssDNA (primer)
         elif case_name == cls.CASE_NO_JOB_1_PREP:
@@ -224,10 +223,10 @@ class LAB_ISO_TEST_CASES(object):
                 d4=[330001, 'fixed', 2, 2000], # miRNA
                 b6=[333803, 'fixed', 2, 5000000], # compound
                 d6=[333803, 'fixed', 2, 500000], # compound
-                b8=[1056000, 'fixed', 2, 10000], # siRNA pool
-                d8=[1056000, 'fixed', 2, 20000], # siRNA pool
-                b10=[180005, 'fixed', 2, 50000], # ssDNA (primer)
-                d10=[180005, 'fixed', 2, 10000]) # ssDNA (primer)
+                b8=[1056000, 'fixed', 4, 10000], # siRNA pool
+                d8=[1056000, 'fixed', 4, 2000], # siRNA pool
+                b10=[180005, 'fixed', 4, 50000], # ssDNA (primer)
+                d10=[180005, 'fixed', 4, 10000]) # ssDNA (primer)
         elif case_name == cls.CASE_NO_JOB_COMPLEX:
             return dict(
                 b2=[205201, 'fixed', 20, 50000],
@@ -239,7 +238,7 @@ class LAB_ISO_TEST_CASES(object):
                 d4=[333803, 'fixed', 3, 1],
                 e2=[1056000, 'fixed', 3, 10000],
                 f2=[180005, 'fixed', 3, 50000],
-                f3=[180005, 'fixed', 3, 49500])
+                f3=[180005, 'fixed', 3, 48000])
         elif case_name == cls.CASE_ASSOCIATION_DIRECT:
             return dict(
                 b2=[205201, 'fixed', 2, 50000],
@@ -993,13 +992,13 @@ class LAB_ISO_TEST_CASES(object):
 
     @classmethod
     def get_job_plate_layout_shape(cls, case_name):
-        if case_name == cls.CASE_ASSOCIATION_JOB_LAST:
+        if case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
+            return RACK_SHAPE_NAMES.SHAPE_96
+        elif case_name == cls.CASE_ASSOCIATION_JOB_LAST:
             return RACK_SHAPE_NAMES.SHAPE_96
         elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
             return RACK_SHAPE_NAMES.SHAPE_96
         elif case_name == cls.CASE_LIBRARY_SIMPLE:
-            return RACK_SHAPE_NAMES.SHAPE_96
-        elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
             return RACK_SHAPE_NAMES.SHAPE_96
         elif case_name == cls.CASE_LIBRARY_2_ALIQUOTS:
             return RACK_SHAPE_NAMES.SHAPE_96
@@ -1117,8 +1116,8 @@ class LAB_ISO_TEST_CASES(object):
         elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
             return {'123_1_p_buffer' : [type_dil, ps_cybio, 1],
                     '123_2_a_buffer' : [type_dil, ps_biomek, 2],
-                    '123_4_p_to_a' : [type_rack, ps_cybio, 4],
-                    '123_5_a_to_a' : [type_rack, ps_cybio, 5]}
+                    '123_5_p_to_a' : [type_rack, ps_cybio, 4],
+                    '123_6_a_to_a' : [type_rack, ps_cybio, 5]}
         elif case_name == cls.CASE_LIBRARY_SIMPLE:
             return {'123_2_a_buffer' : [type_dil, ps_biomek, 2]}
         elif case_name == cls.CASE_LIBRARY_2_ALIQUOTS:
@@ -1155,9 +1154,10 @@ class LAB_ISO_TEST_CASES(object):
                     '123_5_jp_to_a' : [type_trans, ps_biomek, 5],
                     '123_6_a_to_a' : [type_trans, ps_biomek, 6]}
         elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
-            return {'123_3_jp_buffer' : [type_dil, ps_biomek, 3],
-                    '123_6_jp_to_a' : [type_trans, ps_biomek, 6],
-                    '123_7_a_to_a' : [type_trans, ps_biomek, 7]}
+            return {'123_3_a_buffer' : [type_dil, ps_biomek, 3],
+                    '123_4_jp_buffer' : [type_dil, ps_biomek, 4],
+                    '123_7_jp_to_a' : [type_trans, ps_biomek, 6],
+                    '123_8_a_to_a' : [type_trans, ps_biomek, 7]}
         elif case_name == cls.CASE_LIBRARY_SIMPLE:
             return {'123_1_jp_buffer' : [type_dil, ps_biomek, 1],
                     '123_3_jp_to_a' : [type_trans, ps_biomek, 3]}
@@ -1271,19 +1271,20 @@ class LAB_ISO_TEST_CASES(object):
             if worklist_label == '123_1_p_buffer':
                 return dict(b2=32.3, b3=32.3, b4=32.3, d2=32.3, d3=32.3, d4=32.3)
             elif worklist_label == '123_2_a_buffer':
-                return dict(b3=5, b5=5, b7=5, c3=5, c5=5, c7=5,
-                            d3=14, d5=14, d7=14, f3=13, f5=13, f7=13,
-                            g3=5, g5=5, g7=5, h3=14, h5=14, h7=14,
+                return dict(c3=5, c5=5, c7=5, d3=14, d5=14, d7=14,
+                            g3=5, g5=5, g7=5, h3=14, h5=14, h7=14)
+            elif worklist_label == '123_3_a_buffer':
+                return dict(b3=5, b5=5, b7=5, f3=13, f5=13, f7=13,
                             e3=10, e5=10, e7=10)
-            elif worklist_label == '123_3_jp_buffer':
+            elif worklist_label == '123_4_jp_buffer':
                 return dict(f1=65.7, f2=13.6, f3=65.7)
-            elif worklist_label == '123_4_p_to_a':
+            elif worklist_label == '123_5_p_to_a':
                 return {2 : [1, 0, 4]}
-            elif worklist_label == '123_5_a_to_a':
+            elif worklist_label == '123_6_a_to_a':
                 return {0 : [5, 2, 4]}
-            elif worklist_label == '123_6_jp_to_a':
+            elif worklist_label == '123_7_jp_to_a':
                 return dict(f3=[2, 'f1'], f5=[2, 'f2'], f7=[2, 'f3'])
-            elif worklist_label == '123_7_a_to_a':
+            elif worklist_label == '123_8_a_to_a':
                 return dict(b3=[5, 'f3'], b5=[5, 'f5'], b7=[5, 'f7'])
         elif case_name == cls.CASE_LIBRARY_SIMPLE:
             if worklist_label == '123_1_jp_buffer':
@@ -1930,8 +1931,188 @@ class LAB_ISO_TEST_CASES(object):
                      e2=[None, 2, None],
                      e3=[None, 2, None])
             return {'123_iso_01_a' : f, '123_iso_02_a' : f}
+        elif case_name == cls.CASE_ASSOCIATION_SIMPLE:
+            f = dict(b2=[None, 9, None],
+                     b3=[None, 9, None],
+                     b4=[None, 9, None],
+                     c2=[None, 9, None],
+                     c3=[None, 9, None],
+                     c4=[None, 9, None],
+                     d2=[None, 9, None],
+                     d3=[None, 9, None],
+                     d4=[None, 9, None],
+                     e2=[None, 10, None],
+                     e3=[None, 10, None])
+            p = dict(b2=[205201, 100, 500],
+                     b3=[205202, 100, 500],
+                     b4=[180005, 100, 500],
+                     c2=[None, 99, None],
+                     c3=[None, 99, None],
+                     c4=[None, 99, None],
+                     d2=[205201, 100, 500],
+                     d3=[205202, 100, 500],
+                     d4=[180005, 100, 500])
+            return {'123_iso_01_a' : f, '123_iso_01_p' : p,
+                    '123_iso_02_a' : f, '123_iso_02_p' : p}
+        elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
+            jp = dict(c1=[205201, 88, 500],
+                      c2=[180005, 88, 500])
+            p = dict(d1=[None, 65.7, None],
+                     d2=[None, 65.7, None])
+            f = dict(c3=[205201, 20, 100],
+                     c4=[None, 5, None],
+                     c5=[180005, 20, 100],
+                     c6=[None, 5, None],
+                     d3=[None, 13, None],
+                     d4=[None, 5, None],
+                     d5=[None, 13, None],
+                     d6=[None, 5, None],
+                     e3=[205201, 10, 100],
+                     e4=[None, 5, None],
+                     e5=[180005, 10, 100],
+                     e6=[None, 5, None],
+                     f3=[None, 10, None])
+            return {'123_job_01_jp' : jp,
+                    '123_iso_01_a' : f, '123_iso_01_p' : p,
+                    '123_iso_02_a' : f, '123_iso_02_p' : p}
+        elif case_name == cls.CASE_ASSOCIATION_2_ALIQUOTS:
+            p = dict(b2=[205201, 100, 500],
+                     b3=[205202, 100, 500],
+                     b4=[180005, 100, 500],
+                     c2=[None, 99, None],
+                     c3=[None, 99, None],
+                     c4=[None, 99, None],
+                     d2=[205201, 100, 500],
+                     d3=[205202, 100, 500],
+                     d4=[180005, 100, 500])
+            f = dict(b2=[None, 9, None],
+                     b3=[None, 9, None],
+                     b4=[None, 9, None],
+                     c2=[None, 9, None],
+                     c3=[None, 9, None],
+                     c4=[None, 9, None],
+                     d2=[None, 9, None],
+                     d3=[None, 9, None],
+                     d4=[None, 9, None],
+                     e2=[None, 10, None],
+                     e3=[None, 10, None])
+            return {'123_iso_01_a#1' : f, '123_iso_01_a#2' : f,
+                    '123_iso_01_p' : p,
+                    '123_iso_02_a#1' : f, '123_iso_02_a#2' : f,
+                    '123_iso_02_p' : p}
+        elif case_name == cls.CASE_ASSOCIATION_JOB_LAST:
+            p1 = dict(c2=[205202, 99, 500],
+                      c3=[205203, 99, 500],
+                      c4=[205204, 99, 500],
+                      d2=[205205, 99, 500],
+                      d3=[205206, 99, 500],
+                      d4=[205207, 99, 500])
+            p2 = dict(c2=[205208, 99, 500],
+                      c3=[205209, 99, 500],
+                      c4=[205210, 99, 500],
+                      d2=[205212, 99, 500],
+                      d3=[205214, 99, 500],
+                      d4=[205215, 99, 500])
+            f = dict(b2=[None, 5, None],
+                     b3=[None, 5, None],
+                     b4=[None, 5, None],
+                     e2=[None, 13, None],
+                     e3=[None, 13, None],
+                     e4=[None, 13, None],
+                     f2=[None, 10, None],
+                     f3=[None, 10, None],)
+            f1 = dict(f, **dict(c2=[205202, 10, 50],
+                      c3=[205203, 10, 50],
+                      c4=[205204, 10, 50],
+                      d2=[205205, 10, 50],
+                      d3=[205206, 10, 50],
+                      d4=[205207, 10, 50]))
+            f2 = dict(f, **dict(c2=[205208, 10, 50],
+                      c3=[205209, 10, 50],
+                      c4=[205210, 10, 50],
+                      d2=[205212, 10, 50],
+                      d3=[205214, 10, 50],
+                      d4=[205215, 10, 50]))
+            return {'123_iso_01_p' : p1, '123_iso_02_p' : p2,
+                    '123_iso_01_a' : f1, '123_iso_02_a' : f2}
+        elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
+            p1 = dict(b2=[205202, 32.3, 1500],
+                      b3=[205203, 32.3, 1500],
+                      b4=[205204, 32.3, 1500],
+                      d2=[205205, 32.3, 1500],
+                      d3=[205206, 32.3, 1500],
+                      d4=[205207, 32.3, 1500])
+            p2 = dict(b2=[205208, 32.3, 1500],
+                      b3=[205209, 32.3, 1500],
+                      b4=[205210, 32.3, 1500],
+                      d2=[205212, 32.3, 1500],
+                      d3=[205214, 32.3, 1500],
+                      d4=[205215, 32.3, 1500])
+            f1 = dict(c3=[205202, 10, 50],
+                      c5=[205203, 10, 50],
+                      c7=[205204, 10, 50],
+                      d3=[205202, 10, 100],
+                      d5=[205203, 10, 100],
+                      d7=[205204, 10, 100],
+                      g3=[205205, 10, 50],
+                      g5=[205206, 10, 50],
+                      g7=[205207, 10, 50],
+                      h3=[205205, 10, 100],
+                      h5=[205206, 10, 100],
+                      h7=[205207, 10, 100])
+            f2 = dict(c3=[205208, 10, 50],
+                      c5=[205209, 10, 50],
+                      c7=[205210, 10, 50],
+                      d3=[205208, 10, 100],
+                      d5=[205209, 10, 100],
+                      d7=[205210, 10, 100],
+                      g3=[205212, 10, 50],
+                      g5=[205214, 10, 50],
+                      g7=[205215, 10, 50],
+                      h3=[205212, 10, 100],
+                      h5=[205214, 10, 100],
+                      h7=[205215, 10, 100])
+            return {'123_iso_01_p' : p1, '123_iso_02_p' : p2,
+                    '123_iso_01_a' : f1, '123_iso_02_a' : f2}
         raise NotImplementedError('The value for this case is missing.')
 
+    @classmethod
+    def get_final_plate_labels_after_completion(cls, case_name):
+        iso_labels = cls.ISO_LABELS[case_name]
+        if case_name == cls.CASE_ORDER_ONLY:
+            return {iso_labels[0] : ['order_only']}
+        elif case_name == cls.CASE_NO_JOB_DIRECT:
+            return {iso_labels[0] : ['no_job_direct']}
+        elif case_name == cls.CASE_NO_JOB_1_PREP:
+            return {iso_labels[0] : ['no_job_one_prep']}
+        elif case_name == cls.CASE_NO_JOB_COMPLEX:
+            return {iso_labels[0] : ['no_job_complex']}
+        elif case_name == cls.CASE_ASSOCIATION_DIRECT:
+            return {iso_labels[0] : ['ass_direct_1'],
+                    iso_labels[1] : ['ass_direct_2']}
+        elif case_name == cls.CASE_ASSOCIATION_96:
+            return {iso_labels[0] : ['asso96_1'],
+                    iso_labels[1] : ['asso96_2']}
+        elif case_name == cls.CASE_ASSOCIATION_SIMPLE:
+            return {iso_labels[0] : ['asso_simple_1'],
+                    iso_labels[1] : ['asso_simple_2']}
+        elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
+            return {iso_labels[0] : ['ass_biomek_1'],
+                    iso_labels[1] : ['ass_biomek_2']}
+        elif case_name == cls.CASE_ASSOCIATION_2_ALIQUOTS:
+            return {iso_labels[0] : ['ass_2ali_1_a#1', 'ass_2ali_1_a#2'],
+                    iso_labels[1] : ['ass_2ali_2_a#2', 'ass_2ali_2_a#2']}
+        elif case_name == cls.CASE_ASSOCIATION_JOB_LAST:
+            return {iso_labels[0] : ['ass_job_last_1'],
+                    iso_labels[1] : ['ass_job_last_2']}
+        elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
+            return {iso_labels[0] : ['ass_sev_conc_1'],
+                    iso_labels[1] : ['ass_sev_conc_2']}
+        elif case_name == cls.CASE_LIBRARY_SIMPLE:
+            return cls.get_final_plate_labels(case_name)
+        elif case_name == cls.CASE_LIBRARY_2_ALIQUOTS:
+            return cls.get_final_plate_labels(case_name)
+        raise NotImplementedError('The value for this case is missing.')
 
 
 class LabIsoTestCase1(ExperimentMetadataReadingTestCase):

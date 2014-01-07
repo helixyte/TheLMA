@@ -8,16 +8,17 @@ from pyramid.threadlocal import get_current_registry
 from thelma import ThelmaLog
 from thelma.automation.semiconstants import clear_semiconstant_caches
 from thelma.automation.semiconstants import initialize_semiconstant_caches
-from thelma.models.sample import StockSample
 from thelma.automation.tools.metadata.generation \
     import ExperimentMetadataGenerator
 from thelma.automation.tools.writers import LINEBREAK_CHAR
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import get_converted_number
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import ITractor
 from thelma.models.rack import RackPosition
 from thelma.models.racklayout import RackLayout
+from thelma.models.sample import StockSample
 from thelma.models.tagging import Tag
 from thelma.models.tagging import TaggedRackPositionSet
 from thelma.models.utils import get_user
@@ -179,15 +180,28 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
                       % (pos.label, exp_pos_labels)
                 raise AssertionError(msg)
 
-    def _compare_sample_volume(self, sample, exp_volume_in_ul):
+    def _compare_sample_volume(self, sample, exp_volume_in_ul,
+                               sample_info=None):
+        if sample is None and not sample_info is None:
+            msg = 'The sample for %s is missing!' % (sample_info)
+            raise AssertionError(msg)
         vol = sample.volume * VOLUME_CONVERSION_FACTOR
-        self.assert_equal(exp_volume_in_ul, vol)
+        diff = exp_volume_in_ul - vol
+        if diff < -0.1 or diff > 0.1:
+            if sample_info is None:
+                self.assert_equal(exp_volume_in_ul, vol)
+            else:
+                msg = 'Unexpected volume in %s!\nExpected: %s ul\nFound: %s ul' \
+                      % (sample_info, get_converted_number(exp_volume_in_ul),
+                         get_converted_number(vol))
+                raise AssertionError(msg)
 
     def _compare_transfer_volume(self, planned_transfer, exp_volume_in_ul):
         vol = planned_transfer.volume * VOLUME_CONVERSION_FACTOR
         self.assert_equal(exp_volume_in_ul, vol)
 
-    def _compare_sample_and_pool(self, sample, md_pool, conc=None):
+    def _compare_sample_and_pool(self, sample, md_pool, conc=None,
+                                 sample_info=None):
         pool_md_ids = []
         for md in md_pool.molecule_designs:
             pool_md_ids.append(md.id)
@@ -196,10 +210,26 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
             sample_ids.append(sm.molecule.molecule_design.id)
             if not conc is None:
                 sm_conc = sm.concentration * CONCENTRATION_CONVERSION_FACTOR
-                self.assert_true((sm_conc - conc) < 0.1)
-                self.assert_true((sm_conc - conc) > -0.1)
-        self.assert_equal(len(pool_md_ids), len(sample_ids))
-        self.assert_equal(sorted(pool_md_ids), sorted(sample_ids))
+                if sample_info is None:
+                    self.assert_true((sm_conc - conc) < 0.1)
+                    self.assert_true((sm_conc - conc) > -0.1)
+                else:
+                    diff = sm_conc - conc
+                    if diff < -0.1 or diff > 0.1:
+                        msg = 'The molecule design concentrations for ' \
+                              'pool %i (%s) differ.\nExpected: %s\n' \
+                              'Found: %s' % (md_pool.id, sample_info,
+                               conc, sm_conc)
+                        raise AssertionError(msg)
+        if sample_info is not None:
+            if not sorted(pool_md_ids) == sorted(sample_ids):
+                msg = 'The molecule designs for pool %i (%s) differ.\n' \
+                      'Expected: %s\nFound: %s' % (md_pool.id, sample_info,
+                       '-'.join([str(i) for i in pool_md_ids]),
+                       '-'.join([str(i) for i in sample_ids]))
+                raise AssertionError(msg)
+        else:
+            self.assert_equal(sorted(pool_md_ids), sorted(sample_ids))
 
     def _has_tag(self, trp_sets_or_rack_rack_layout, tag, expect_true=True):
         if isinstance(trp_sets_or_rack_rack_layout, TaggedRackPositionSet):

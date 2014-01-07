@@ -12,7 +12,7 @@ STEP 1: Worklist "123_1_p_buffer":
 Adding buffer to plate 09999911 (123_iso_01_p).
 
 STEP 2: Worklist "123_2_a_buffer":
-Adding buffer to plate final plate(s).
+Adding buffer to final plate(s).
 
 
 Transfers from the Stock

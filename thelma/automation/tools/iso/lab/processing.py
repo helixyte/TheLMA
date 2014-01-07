@@ -13,6 +13,7 @@ from thelma.automation.tools.iso.base import StockTransferWriterExecutor
 from thelma.automation.tools.iso.lab.base import FinalLabIsoLayoutConverter
 from thelma.automation.tools.iso.lab.base import FinalLabIsoPosition
 from thelma.automation.tools.iso.lab.base import LABELS
+from thelma.automation.tools.iso.lab.base import LAB_ISO_ORDERS
 from thelma.automation.tools.iso.lab.base import LabIsoLayout
 from thelma.automation.tools.iso.lab.base import LabIsoPrepLayoutConverter
 from thelma.automation.tools.iso.lab.base import create_instructions_writer
@@ -33,7 +34,6 @@ from thelma.models.library import LibraryPlate
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.rack import Plate
 from thelma.models.status import ITEM_STATUSES
-from thelma.automation.tools.iso.lab.base import LAB_ISO_ORDERS
 
 
 __docformat__ = 'reStructuredText en'
@@ -151,6 +151,7 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         if not self.has_errors():
             self._get_plates()
             self._get_stock_racks()
+            self._verify_stock_racks()
         if not self.has_errors(): self.__generate_jobs()
         if not self.has_errors() and self.mode == self.MODE_EXECUTE:
             self._update_iso_status()
@@ -160,7 +161,7 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         Checks the initialisation values.
         """
         StockTransferWriterExecutor._check_input(self)
-        if self._check_input_class('entity', self.entity, self.ENTITY_CLS):
+        if not self.has_errors():
             self._iso_request = self.entity.iso_request
 
     def __fetch_final_layouts(self):
@@ -230,7 +231,7 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
 
         for iso, final_layout in self.__final_layouts.iteritems():
             for ipp in iso.iso_preparation_plates:
-                self._store_and_verify_plate(ipp.label)
+                self._store_and_verify_plate(ipp)
             for fp in iso.final_plates:
                 self._store_and_verify_plate(fp, final_layout)
                 self.__plate_layouts[fp.rack.label] = final_layout
@@ -253,9 +254,20 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
             if len(sample_positions) > 0:
                 msg = 'Plate %s should be empty but there are samples in ' \
                       'the following positions: %s.' \
-                       % (', '.join(sample_positions))
+                       % (plate.label, self._get_joined_str(sample_positions))
                 self.add_error(msg)
                 return None
+            if not isinstance(iso_plate, (IsoAliquotPlate, LibraryPlate)):
+                converter = LabIsoPrepLayoutConverter(log=self.log,
+                                  rack_layout=iso_plate.rack_layout)
+                layout = converter.get_result()
+                if layout is None:
+                    msg = 'Error when trying to convert layout of plate "%s"!' \
+                          % (plate.label)
+                    self.add_error(msg)
+                    return None
+                else:
+                    self.__plate_layouts[plate.label] = layout
 
         elif verify:
             verifier = LabIsoPlateVerifier(log=self.log, lab_iso_layout=layout,
@@ -275,13 +287,20 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
                 self.__plate_layouts[plate.label] = \
                                                 verifier.get_expected_layout()
 
-        values = LABELS.parse_rack_label(plate.label)
-        rack_marker = values[LABELS.MARKER_RACK_MARKER]
+        iso = None
+        if self._processing_order == LAB_ISO_ORDERS.NO_ISO and \
+                                            isinstance(iso_plate, LibraryPlate):
+            rack_marker = LABELS.ROLE_FINAL
+            iso = iso_plate.lab_iso
+        else:
+            values = LABELS.parse_rack_label(plate.label)
+            rack_marker = values[LABELS.MARKER_RACK_MARKER]
         rack_container = IsoRackContainer(rack=plate, rack_marker=rack_marker)
+
         if rack_container.role == LABELS.ROLE_FINAL:
             rack_marker = LABELS.ROLE_FINAL
-            add_list_map_element(self.__final_plates, iso_plate.iso,
-                                 rack_container)
+            if iso is None: iso = iso_plate.iso
+            add_list_map_element(self.__final_plates, iso, rack_container)
         add_list_map_element(self.__rack_containers, rack_marker,
                              rack_container)
 
@@ -313,6 +332,9 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
                 layout = verifier.get_expected_layout()
                 barcode = stock_rack.rack.barcode
                 self.__stock_rack_layouts[barcode] = layout
+
+        if not self.has_errors():
+            self._check_for_previous_execution()
 
     def __generate_jobs(self):
         """
@@ -384,9 +406,6 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         case there are preparation plates involved that do not belong to the
         entity) or if the worklist might be part of both entity processings.
         The second is the case for some final plate worklists.
-        Buffer worklists need only be registered if the final plates are not
-        managed yet. Intraplate transfers in the final plate need to be done
-        at the very end of the processing.
         """
         values = LABELS.parse_worklist_label(worklist.label)
         trg_marker = values[LABELS.MARKER_WORKLIST_TARGET]
@@ -402,27 +421,15 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
                 for rack_container in self.__rack_containers[trg_marker]:
                     if rack_container.rack.status.name == ITEM_STATUSES.MANAGED:
                         return None
-        elif src_marker == LABELS.ROLE_FINAL and \
-                        trg_marker == LABELS.ROLE_FINAL and \
-                        not self._expected_iso_status == ISO_STATUS.IN_PROGRESS:
-            if not self._accept_final_intraplate_transfer(): return None
 
         return trg_marker, src_marker
-
-    def _accept_final_intraplate_transfer(self):
-        """
-        Intraplate transfers in the final plate need to be done at the very
-        end of the processing. This method assumes the
-        :attr:`_expected_iso_status` to be :attr:`ISO_STATUS.QUEUED`.
-        """
-        raise NotImplementedError('Abstract error.')
 
     def __create_processing_worklist_jobs(self, worklist, trg_marker,
                                           src_marker):
         """
         Convenience method creating a liquid transfer job for the ISO request
-        worklist series - worklists with unknown rack markers (job plates
-        for ISO processing and vice versa) are omitted.
+        worklist series - worklists with unknown rack markers (e.g. job plates
+        for ISO processing) are omitted.
         """
         target_plates = self.__rack_containers[trg_marker]
         if worklist.transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
@@ -437,9 +444,9 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
                     self.__create_transfer_worklist_jobs(target_plate,
                                                          target_plate, worklist)
             elif not len(self.__rack_containers[src_marker]) == 1:
-                msg = 'There are more than 1 plates for preparation marker ' \
-                      '"%s": %s!' % (src_marker,
-                                     self.__rack_containers[src_marker])
+                msg = 'There is more than 1 plates for preparation marker ' \
+                      '"%s": %s!' % (src_marker, self._get_joined_str(
+                       self.__rack_containers[src_marker], is_strs=False))
                 self.add_error(msg)
             else:
                 src_plate = self.__rack_containers[src_marker][0].rack
@@ -490,22 +497,22 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
                             ignored_positions=ign_positions)
         else:
             transfer_job = RackSampleTransferJob(index=job_index,
-                            planned_rack_transfer=planned_rack_sample_transfer,
-                            target_rack=target_plate, source_rack=source_rack)
+                    planned_rack_sample_transfer=planned_rack_sample_transfer,
+                    target_rack=target_plate, source_rack=source_rack)
             self._rack_transfer_worklists[job_index] = worklist
         self._transfer_jobs[job_index] = transfer_job
 
     def _check_for_previous_execution(self):
         """
-        Stock transfer worklists can be recognised by label (they contain
-        the :attr:`LABELS.ROLE_STOCK` marker.
+        There must not be executed worklist for any planned worklists belonging
+        to a stock rack.
         """
         worklists = set()
-        for transfer_job in self._transfer_jobs.values():
-            pw = transfer_job.planned_worklist
-            if not LABELS.ROLE_STOCK in pw.label: continue
-            if len(pw.executed_worklists) > 0:
-                worklists.add(pw.label)
+        for stock_rack in self._stock_racks.values():
+            worklist_series = stock_rack.worklist_series
+            for worklist in worklist_series:
+                if len(worklist.executed_worklists) > 0:
+                    worklists.add(worklist.label)
 
         if len(worklists) > 0:
             msg = 'The following stock transfers have already been executed ' \
@@ -681,7 +688,7 @@ class WriterExecutorIsoJob(_LabIsoWriterExecutorTool):
     def _get_expected_iso_status(self):
         if self._processing_order == LAB_ISO_ORDERS.NO_JOB:
             msg = 'There are no samples added via the ISO job, thus there ' \
-                  'is not job processing required!'
+                  'is no job processing required!'
             self.add_error(msg)
         elif self._processing_order == LAB_ISO_ORDERS.ISO_FIRST:
             self._expected_iso_status = ISO_STATUS.IN_PROGRESS
@@ -707,11 +714,6 @@ class WriterExecutorIsoJob(_LabIsoWriterExecutorTool):
         """
         return LAB_ISO_ORDERS.get_sorted_worklists_for_job(self.entity,
                                                 self._processing_order)
-
-    def _accept_final_intraplate_transfer(self):
-        if self._iso_request.molecule_design_library is not None:
-            return True
-        return not (self._iso_request.process_job_first)
 
     def _get_new_iso_status(self):
         """
@@ -785,11 +787,6 @@ class WriterExecutorLabIso(_LabIsoWriterExecutorTool):
         return LAB_ISO_ORDERS.get_sorted_worklists_for_iso(self.entity,
                                                 self._processing_order)
 
-    def _accept_final_intraplate_transfer(self):
-        if self.entity.iso_job.number_stock_racks == 0:
-            return True
-        return self._iso_request.process_job_first
-
     def _get_new_iso_status(self):
         """
         The new status is :attr:`ISO_STATUS.IN_PROGRESS` for ISOs that
@@ -840,6 +837,21 @@ class LabIsoPlateVerifier(BaseRackVerifier):
         #: Do we check the job processing (*True*) or the ISO (*False*)?
         self.for_job = for_job
 
+        #: In aliquot and (for controls positions) preparation plates,
+        #: we can ignore positions that are derived from another position
+        #: at the same plate because the intraplate transfers might be
+        #: part of the processing of the second entity.
+        self.__ignore_positions = None
+        #: This is kind of a hack. We cannot make safe statement about ignored
+        #: positions, for this reason, the comparison for ignored positions
+        #: is temporarily disabled (until the next position).
+        self.__disable_comparison = None
+
+    def reset(self):
+        BaseRackVerifier.reset(self)
+        self.__ignore_positions = None
+        self.__disable_comparison = False
+
     def _check_input(self):
         BaseRackVerifier._check_input(self)
         if not isinstance(self.lab_iso_plate, (IsoPlate, LibraryPlate,
@@ -879,14 +891,71 @@ class LabIsoPlateVerifier(BaseRackVerifier):
 
     def _get_expected_pool(self, plate_pos):
         """
+        If this method is entered for the first time, we look for ignored
+        positions (whose expected state we do not know). If a position is
+        an ignored position the comparison is disabled until we hit the next
+        position.
+        """
+        if self.__ignore_positions is None:
+            self.__find_ignored_positions()
+
+        if plate_pos.rack_position in self.__ignore_positions:
+            self.__disable_comparison = True
+            return None
+
+        if self.__accept_position(plate_pos):
+            return plate_pos.molecule_design_pool
+        else:
+            return None
+
+    def __accept_position(self, plate_pos):
+        """
+        Some positions are always ignored, no matter whether they have transfer
+        targets or not.
         For final plate positions we must only regard positions for either
         jobs or ISOs (mismatching booleans are compared because this
         processing is assumed to happen first).
         """
         if isinstance(plate_pos, FinalLabIsoPosition):
-            if (plate_pos.from_job == self.for_job): return None
+            if (plate_pos.from_job == self.for_job):
+                return False
         elif self.for_job and plate_pos.is_fixed:
-            return None
+            return False
         elif not self.for_job and plate_pos.is_floating:
-            return None
-        return plate_pos.molecule_design_pool
+            return False
+        return True
+
+    def __find_ignored_positions(self):
+        """
+        In aliquot and (for controls positions) preparation plates,
+        we can ignore positions that are derived from another position
+        at the same plate because the intraplate transfers might be
+        part of the processing of the second entity.
+        Remember the plate is always in an intermediate state.
+        """
+        self.__ignore_positions = set()
+        is_final_plate = isinstance(self.lab_iso_plate, IsoAliquotPlate)
+        for rack_pos, plate_pos in self._expected_layout.iterpositions():
+            if not self.__accept_position(plate_pos): continue
+            if not self.for_job and not is_final_plate and \
+                                        not plate_pos.is_fixed:
+                # we prepare in preparation plate for an ISO and
+                # floatings are always part of the ISO processing
+                continue
+            all_tts = plate_pos.transfer_targets
+            if not is_final_plate:
+                all_tts.extend(plate_pos.external_targets)
+            if len(all_tts) < 1:
+                self.__ignore_positions.add(rack_pos)
+
+    def _are_matching_molecule_designs(self, rack_mds, exp_mds):
+        """
+        If comparison is disabled (because the current position is ignored)
+        we always return *True*.
+        In any case, comparison is enabled again.
+        """
+        if self.__disable_comparison:
+            self.__disable_comparison = False
+            return True
+        return BaseRackVerifier._are_matching_molecule_designs(self, rack_mds,
+                                                               exp_mds)

@@ -1,0 +1,21 @@
+SourcePlateBarcode,SourcePlateWell,DestinationPlateBarcode,DestinationPlateWell,Volume,DiluentInformation
+buffer,A1,09999911,C2,99,annealing buffer
+buffer,A1,09999911,C3,99,annealing buffer
+buffer,A1,09999911,C4,99,annealing buffer
+buffer,A1,09999911,D2,99,annealing buffer
+buffer,A1,09999911,D3,99,annealing buffer
+buffer,A1,09999911,D4,99,annealing buffer
+buffer,A1,09999210,B2,5,annealing buffer
+buffer,A1,09999210,B3,5,annealing buffer
+buffer,A1,09999210,B4,5,annealing buffer
+buffer,A1,09999210,C2,9,annealing buffer
+buffer,A1,09999210,C3,9,annealing buffer
+buffer,A1,09999210,C4,9,annealing buffer
+buffer,A1,09999210,D2,9,annealing buffer
+buffer,A1,09999210,D3,9,annealing buffer
+buffer,A1,09999210,D4,9,annealing buffer
+buffer,A1,09999210,E2,13,annealing buffer
+buffer,A1,09999210,E3,13,annealing buffer
+buffer,A1,09999210,E4,13,annealing buffer
+buffer,A1,09999210,F2,10,annealing buffer
+buffer,A1,09999210,F3,10,annealing buffer

@@ -1,0 +1,4 @@
+SourcePlateBarcode,SourcePlateWell,DestinationPlateBarcode,DestinationPlateWell,Volume
+09999001,F1,09999900,F1,1
+09999001,F2,09999900,F2,1.1
+09999001,F3,09999900,F3,1

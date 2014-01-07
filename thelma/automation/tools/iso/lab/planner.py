@@ -54,6 +54,7 @@ from thelma.models.liquidtransfer import PlannedRackSampleTransfer
 from thelma.models.liquidtransfer import PlannedSampleDilution
 from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
+from thelma.automation.utils.base import get_nested_dict
 
 __docformat__ = 'reStructuredText en'
 
@@ -218,12 +219,7 @@ class LabIsoBuilder(object):
         located in the same plate. This number is important to maintain the
         order of the dilution series.
         """
-        if self.intraplate_transfers.has_key(plate_marker):
-            transfer_map = self.intraplate_transfers[plate_marker]
-        else:
-            transfer_map = dict()
-            self.intraplate_transfers[plate_marker] = transfer_map
-
+        transfer_map = get_nested_dict(self.intraplate_transfers, plate_marker)
         add_list_map_element(transfer_map, intraplate_ancestor_count,
                              planned_transfer)
 
@@ -232,12 +228,8 @@ class LabIsoBuilder(object):
         """
         Adds the :class:`PlannedTransfer` to the interplate map.
         """
-        if self.interplate_transfers.has_key(source_plate_marker):
-            transfer_map = self.interplate_transfers[source_plate_marker]
-        else:
-            transfer_map = dict()
-            self.interplate_transfers[source_plate_marker] = transfer_map
-
+        transfer_map = get_nested_dict(self.interplate_transfers,
+                                       source_plate_marker)
         add_list_map_element(transfer_map, target_plate_marker,
                              planned_transfer)
 
