@@ -139,7 +139,7 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         self.__buffer_dilution_indices = set()
         self.__buffer_stream = None
 
-    def get_stock_rack_layouts(self):
+    def get_stock_rack_data(self):
         """
         Returns the stock rack layouts mapped onto rack barcodes.
         """

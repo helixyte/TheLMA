@@ -167,6 +167,7 @@ class LAB_ISO_TEST_CASES(object):
     TEST_FILE_PATH = 'thelma:tests/tools/iso/lab/cases/'
     INSTRUCTIONS_FILE_PATH = 'thelma:tests/tools/iso/lab/instructionfiles/'
     WORKLIST_FILE_PATH_PATTERN = 'thelma:tests/tools/iso/lab/processing/%s/'
+    TRAC_FILE_PATH = 'thelma:tests/tools/iso/lab/tracreporting/'
 
     @classmethod
     def get_xls_file_name(cls, case_name):
@@ -188,6 +189,14 @@ class LAB_ISO_TEST_CASES(object):
     @classmethod
     def get_worklist_file_dir(cls, case_name):
         return cls.WORKLIST_FILE_PATH_PATTERN % (case_name)
+
+    @classmethod
+    def get_trac_log_file_name(cls, case_name, for_job):
+        if for_job:
+            pat = '%s_trac_log_job.txt'
+        else:
+            pat = '%s_trac_log_iso.txt'
+        return pat % (case_name)
 
     @classmethod
     def is_library_case(cls, case_name):

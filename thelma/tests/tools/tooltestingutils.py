@@ -8,6 +8,7 @@ from pyramid.threadlocal import get_current_registry
 from thelma import ThelmaLog
 from thelma.automation.semiconstants import clear_semiconstant_caches
 from thelma.automation.semiconstants import initialize_semiconstant_caches
+from tractor import create_wrapper_for_ticket_creation
 from thelma.automation.tools.metadata.generation \
     import ExperimentMetadataGenerator
 from thelma.automation.tools.writers import LINEBREAK_CHAR
@@ -418,8 +419,14 @@ class TracToolTestCase(ToolsAndUtilsTestCase):
     @classmethod
     def check_tractor_api(cls, tractor_api):
         if not isinstance(tractor_api, DummyTractor):
-            raise ValueError('The tractor API used for testing is not ' \
-                             'a dummy!')
+            raise TypeError('The tractor API used for testing is not ' \
+                            'a dummy!')
+
+    def _get_ticket(self):
+        ticket_wrapper = create_wrapper_for_ticket_creation(
+                            summary='test_ticket', description='test ticket')
+        return self.tractor_api.create_ticket(notify=True,
+                                 ticket_wrapper=ticket_wrapper)
 
     def _test_and_expect_errors(self, msg=None):
         self._create_tool()

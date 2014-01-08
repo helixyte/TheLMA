@@ -607,7 +607,7 @@ class ExperimentWorklistGeneratorTestCase(_ExperimentWorklistSeriesTestCase):
             self.experiment_type = EXPERIMENT_SCENARIOS.from_name(scenario)
             self._test_and_expect_errors('Unexpected scenario')
 
-    def xtest_invalid_input_values(self):
+    def test_invalid_input_values(self):
         self._continue_setup()
         ed = self.experiment_design
         self.experiment_design = None

@@ -286,12 +286,10 @@ class _LabIsoWriterExecutorToolTestCase(LabIsoTestCase2,
 
     def _create_tool(self):
         if self.mode == SerialWriterExecutorTool.MODE_PRINT_WORKLISTS:
-            self.tool = get_worklist_writer(entity=self.entity,
-                                            add_default_handlers=True)
+            self.tool = get_worklist_writer(entity=self.entity)
         else:
             self.tool = get_worklist_executor(entity=self.entity,
-                                              user=self.executor_user,
-                                              add_default_handlers=True)
+                                              user=self.executor_user)
 
     def __fill_stock_racks(self):
         try:
@@ -717,13 +715,27 @@ class _LabIsoWriterExecutorToolTestCase(LabIsoTestCase2,
                                                plate.label)
                 raise AssertionError(msg)
 
+    def _test_and_expect_errors(self, msg=None):
+        LabIsoTestCase2._test_and_expect_errors(self, msg=msg)
+        if isinstance(self.tool, _LabIsoWriterExecutorTool):
+            self.assert_is_none(self.tool.get_executed_stock_worklists())
+            self.assert_is_none(self.tool.get_stock_rack_data())
+
     def _test_position_inactivation(self):
+        self._set_inactivation_data()
+        self._load_iso_request()
+        self._inactivate_position()
+        self._check_result()
+
+    def _set_inactivation_data(self):
+        # inactivate pool 205207 (in stock rack 3) in all layouts and remove
+        # the data from the stock rack layout and worklists
         self.inactivated_pool_id = 205207
         self.inactivated_positions = {'123_iso_01_a:c4', 'asso_simple_1:c4',
                                       '123_iso_01_p:c4'}
-        self._load_iso_request(LAB_ISO_TEST_CASES.CASE_ASSOCIATION_SIMPLE)
-        # inactivate pool 205207 (in stock rack 3) in all layouts and remove
-        # the data from the stock rack layout and worklists
+        self.case = LAB_ISO_TEST_CASES.CASE_ASSOCIATION_SIMPLE
+
+    def _inactivate_position(self):
         for iso_label, iso in self.isos.iteritems():
             layout = self.iso_layouts[iso_label]
             for fp in layout.working_positions():
@@ -757,7 +769,6 @@ class _LabIsoWriterExecutorToolTestCase(LabIsoTestCase2,
                             del_plts.append(plt)
                     for plt in del_plts:
                         plts.remove(plt)
-        self._check_result()
 
     def _test_invalid_input_values(self):
         self._load_iso_request(LAB_ISO_TEST_CASES.CASE_ASSOCIATION_SIMPLE)
