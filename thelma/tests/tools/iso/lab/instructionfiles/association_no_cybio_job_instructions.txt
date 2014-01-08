@@ -9,10 +9,10 @@ Buffer Additions
 ----------------
 
 STEP 1: Worklist "123_3_a_buffer":
-Adding buffer to plate final plate(s).
+Adding buffer to final plate(s).
 
 STEP 2: Worklist "123_2_p_buffer":
-Adding buffer to plate ISO preparation plate(s).
+Adding buffer to ISO preparation plate(s).
 
 STEP 3: Worklist "123_1_jp_buffer":
 Adding buffer to plate 09999900 (123_job_01_jp).

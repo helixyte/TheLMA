@@ -7,7 +7,6 @@ from StringIO import StringIO
 from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.semiconstants import get_pipetting_specs
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.tools.worklists.biomek \
     import SampleDilutionWorklistWriter
 from thelma.automation.tools.worklists.biomek \
@@ -158,7 +157,9 @@ class SampleDilutionJob(_LiquidTransferJob):
     EXECUTOR_CLS = SampleDilutionWorklistExecutor
     WRITER_CLASSES = {
           PIPETTING_SPECS_NAMES.BIOMEK : SampleDilutionWorklistWriter,
-          PIPETTING_SPECS_NAMES.MANUAL : SampleDilutionWorklistWriter }
+          PIPETTING_SPECS_NAMES.MANUAL : SampleDilutionWorklistWriter,
+          PIPETTING_SPECS_NAMES.CYBIO : SampleDilutionWorklistWriter,
+          PIPETTING_SPECS_NAMES.BIOMEKSTOCK : SampleDilutionWorklistWriter}
 
     def __init__(self, index, planned_worklist, target_rack, reservoir_specs,
                  source_rack_barcode=None, ignored_positions=None):
@@ -1173,7 +1174,7 @@ class SerialWriterExecutorTool(BaseAutomationTool):
             worklist = self._rack_transfer_worklists[job_index]
             worklist_label = worklist.label
             if executed_worklists.has_key(worklist_label):
-                executed_worklist = executed_worklists[worklist]
+                executed_worklist = executed_worklists[worklist_label]
             else:
                 executed_worklist = ExecutedWorklist(worklist)
                 executed_worklists[worklist_label] = executed_worklist

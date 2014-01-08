@@ -1,0 +1,28 @@
+STEP 1:
+
+FROM: rack 09999911 sector 1
+TO: rack 09999210 sector 1
+volume: 1.0 ul
+
+
+STEP 2:
+
+FROM: rack 09999911 sector 2
+TO: rack 09999210 sector 2
+volume: 1.0 ul
+
+
+STEP 3:
+
+FROM: rack 09999911 sector 3
+TO: rack 09999210 sector 3
+volume: 1.0 ul
+
+
+STEP 4:
+
+FROM: rack 09999911 sector 4
+TO: rack 09999210 sector 4
+volume: 1.0 ul
+
+

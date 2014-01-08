@@ -9,7 +9,7 @@ Buffer Additions
 ----------------
 
 STEP 1: Worklist "123_1_a_buffer":
-Adding buffer to plate final plate(s).
+Adding buffer to final plate(s).
 
 
 Transfers from the Stock

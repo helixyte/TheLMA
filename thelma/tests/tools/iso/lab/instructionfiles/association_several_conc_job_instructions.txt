@@ -8,24 +8,27 @@ ATTENTION! A part of ISOs has to processed before you can add the fixed samples 
 Buffer Additions
 ----------------
 
-STEP 1: Worklist "123_3_jp_buffer":
+STEP 1: Worklist "123_3_a_buffer":
+Adding buffer to final plate(s).
+
+STEP 2: Worklist "123_4_jp_buffer":
 Adding buffer to plate 09999900 (123_job_01_jp).
 
 
 Transfers from the Stock
 ------------------------
 
-STEP 2: Worklist "123_1_s#1_to_jp":
+STEP 3: Worklist "123_1_s#1_to_jp":
 Transfer of sample from stock rack 09999001 (123_job_01_s#1) to plate 09999900 (123_job_01_jp).
 
 
 Processing Steps (Other Transfers)
 ----------------------------------
 
-STEP 3: Worklist "123_6_jp_to_a":
+STEP 4: Worklist "123_7_jp_to_a":
 Transferring samples from 09999900 (123_job_01_jp) to final plate(s)
 
-STEP 4: Worklist "123_7_a_to_a":
+STEP 5: Worklist "123_8_a_to_a":
 Transferring samples from final plate(s) to final plate(s)
 
 

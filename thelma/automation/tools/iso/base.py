@@ -18,6 +18,7 @@ from thelma.automation.utils.layouts import TransferPosition
 from thelma.models.iso import StockRack
 from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.rack import TubeRack
+from thelma.models.job import IsoJob
 
 __docformat__ = 'reStructuredText en'
 
@@ -486,7 +487,10 @@ class StockTransferWriterExecutor(SerialWriterExecutorTool):
         Checks the initialisation values.
         """
         SerialWriterExecutorTool._check_input(self)
-        self._check_input_class('entity', self.entity, self.ENTITY_CLS)
+        if self._check_input_class('entity', self.entity, self.ENTITY_CLS):
+            if self.ENTITY_CLS == IsoJob and len(self.entity.isos) < 1:
+                msg = 'There are no ISOs in this ISO job!'
+                self.add_error(msg)
 
     def get_executed_stock_worklists(self):
         """
@@ -494,7 +498,10 @@ class StockTransferWriterExecutor(SerialWriterExecutorTool):
         If the length of executed worklists is below 1 the submission to
         the trac is cancelled without error message.
         """
-        return self._get_additional_value(self._executed_stock_worklists)
+        if self.mode == self.MODE_EXECUTE:
+            return self._get_additional_value(self._executed_stock_worklists)
+        else:
+            return None
 
     def _verify_stock_racks(self):
         """

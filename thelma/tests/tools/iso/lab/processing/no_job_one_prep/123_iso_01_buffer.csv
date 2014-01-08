@@ -1,0 +1,8 @@
+SourcePlateBarcode,SourcePlateWell,DestinationPlateBarcode,DestinationPlateWell,Volume,DiluentInformation
+buffer,A1,09999911,D1,9.6,annealing buffer
+buffer,A1,09999911,D2,9.6,annealing buffer
+buffer,A1,09999911,D3,10.8,annealing buffer
+buffer,A1,09999911,D4,7.2,annealing buffer
+buffer,A1,09999911,D5,7.2,annealing buffer
+buffer,A1,09999210,D8,2,annealing buffer
+buffer,A1,09999210,D10,2,annealing buffer

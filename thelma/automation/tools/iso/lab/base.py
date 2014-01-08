@@ -563,6 +563,7 @@ class LabIsoPosition(TransferPosition):
         if self.is_floating:
             self.stock_tube_barcode = None
             self.stock_rack_barcode = None
+            self.molecule_design_pool = self.MISSING_FLOATING
         else:
             raise AttributeError('%s positions must not be inactivated!' \
                                  % (self.position_type))
@@ -1698,7 +1699,7 @@ class _InstructionsWriter(TxtWriter):
                              trailing_blank_lines=0)
         self.__sorted_worklists = self._get_sorted_processing_worklists()
 
-        base_desc = 'Adding buffer to plate %s.'
+        base_desc = 'Adding buffer to %s.'
         worklist_labels = []
         descriptions = []
         for worklist in self.__sorted_worklists:
@@ -1706,7 +1707,10 @@ class _InstructionsWriter(TxtWriter):
                 continue
             racks = self.__get_rack_strings_for_worklist(worklist.label)
             if racks is None: continue
-            desc = base_desc % (racks[TRANSFER_ROLES.TARGET])
+            rack_str = racks[TRANSFER_ROLES.TARGET]
+            if rack_str.startswith('0'): # barcode
+                rack_str = 'plate %s' % (rack_str)
+            desc = base_desc % (rack_str)
             descriptions.append(desc)
             worklist_labels.append(worklist.label)
 

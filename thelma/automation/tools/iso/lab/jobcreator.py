@@ -283,11 +283,63 @@ class _LabIsoWorklistSeriesGenerator(BaseAutomationTool):
 
         for plate_marker in self.__ordered_plate_markers:
             if not dilution_map.has_key(plate_marker): continue
-            worklist_label = self.__create_worklist_label(plate_marker)
             planned_dilutions = dilution_map[plate_marker]
+            if self.__sort_dilution_into_worklists(planned_dilutions,
+                                                   plate_marker):
+                # if True, the dilution have we sorted and stored
+                continue
+            worklist_label = self.__create_worklist_label(plate_marker)
             series_key = self.__get_default_series_key(plate_marker)
             self.__create_worklist(worklist_label, planned_dilutions,
                        TRANSFER_TYPES.SAMPLE_DILUTION, plate_marker, series_key)
+
+    def __sort_dilution_into_worklists(self, planned_dilutions, plate_marker):
+        """
+        If we have intraplate transfers for the final plates in the ISO and
+        the job preparation and the first step involves CyBio transfers
+        the buffer addition must be split because otherwise we might
+        spread fixed position buffers before we have added an molecule
+        design pool.
+        If sorting is not required, the method returns *False* and the
+        worklist is generated externally.
+        """
+        if self.__process_job_first or not plate_marker == LABELS.ROLE_FINAL:
+            return False
+        if not self.builder.intraplate_transfers.has_key(LABELS.ROLE_FINAL):
+            return False
+
+        transfer_map = self.builder.intraplate_transfers[LABELS.ROLE_FINAL]
+        transfers = []
+        for plt_list in transfer_map.values():
+            transfers.extend(plt_list)
+        has_sector_transfers = False
+        for plt in transfers:
+            if plt.transfer_type == TRANSFER_TYPES.RACK_SAMPLE_TRANSFER:
+                has_sector_transfers = True
+                break
+        if not has_sector_transfers: return False
+
+        final_layout = self.builder.final_iso_layout
+        iso_dilutions = []
+        job_dilutions = []
+        for plt in planned_dilutions:
+            target_pos = plt.target_position
+            fp = final_layout.get_working_position(target_pos)
+            if fp.is_floating:
+                dil_list = iso_dilutions
+            else:
+                dil_list = job_dilutions
+            dil_list.append(plt)
+
+        # generate ISO dilutions
+        worklist_label = self.__create_worklist_label(plate_marker)
+        self.__create_worklist(worklist_label, iso_dilutions,
+                   TRANSFER_TYPES.SAMPLE_DILUTION, plate_marker, self.ISO_KEY)
+        # generate job dilutions
+        worklist_label = self.__create_worklist_label(plate_marker)
+        self.__create_worklist(worklist_label, job_dilutions,
+                    TRANSFER_TYPES.SAMPLE_DILUTION, plate_marker, self.JOB_KEY)
+        return True
 
     def __create_transfer_worklists(self):
         """
