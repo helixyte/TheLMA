@@ -1,11 +1,12 @@
 """
 TheLMA response renderers.
 """
+from pyramid.httpexceptions import HTTPBadRequest
+
 from everest.mime import ZipMime
 from everest.renderers import ResourceRenderer
 from everest.resources.interfaces import IResource
 from everest.views.base import WarnAndResubmitExecutor
-from pyramid.httpexceptions import HTTPBadRequest
 from thelma.automation.tools import experiment
 from thelma.automation.tools.experiment.batch import \
     ExperimentBatchWorklistWriter
@@ -15,7 +16,7 @@ from thelma.mime import IsoJobZippedWorklistMime
 from thelma.mime import IsoZippedWorklistMime
 from thelma.utils import run_tool
 from zope.interface import providedBy as provided_by # pylint: disable=E0611,F0401
-from thelma.models.iso import ISO_STATUS
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['ThelmaRendererFactory',
@@ -109,14 +110,12 @@ class ZippedWorklistRenderer(CustomRenderer):
         create_exec = WarnAndResubmitExecutor(self.__create_worklist_stream)
         result = create_exec(resource, options, wl_type)
         if not create_exec.do_continue:
-            if wl_type == 'XL20':
-                request.response.headers['x-tm'] = 'abort'
             request.response = result
             result = None
         else:
-            if wl_type == 'XL20':
-                request.response.headers['x-tm'] = 'abort'
             result = result.getvalue()
+        # We are just downloading work lists - do not commit anything.
+        request.response.headers['x-tm'] = 'abort'
         return result
 
     def _extract_from_params(self, params):
@@ -183,10 +182,7 @@ class IsoJobWorklistRenderer(ZippedWorklistRenderer):
             entity.iso_job_stock_racks.pop()
 
     def _prepare_for_transfer_worklist_creation(self, entity):
-        # We need to set the status for all ISOs to IN PROGRESS before
-        # we can start the transfer.
-        for iso in entity.isos:
-            iso.status = ISO_STATUS.IN_PROGRESS
+        pass
 
 
 class IsoWorklistRenderer(ZippedWorklistRenderer):

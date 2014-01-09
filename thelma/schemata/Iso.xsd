@@ -69,17 +69,42 @@
             >
             </element>
             <element
+                ref="rl:rack_layout"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element
+                ref="j:iso_job"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element
                 name="number_stock_racks"
                 type="nonNegativeInteger"
             >
             </element>
             <element
-                ref="isor:lab_iso_request"
+                name="iso_stock_racks"
+                type="r:RackCollectionType"
                 minOccurs="0"
                 maxOccurs="1"
             >
             </element>
-            <element ref="rl:rack_layout">
+            <element
+                name="iso_preparation_plates"
+                type="r:RackCollectionType"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element
+                name="iso_aliquot_plates"
+                type="r:RackCollectionType"
+                minOccurs="0"
+                maxOccurs="1"
+            >
             </element>
             <element
                 ref="mdps:molecule_design_pool_set"
@@ -101,19 +126,7 @@
                 maxOccurs="1"
             >
             </element>
-<!--             <element
-                ref="j:iso_job"
-                minOccurs="0"
-                maxOccurs="1"
-            >
-            </element>
-            <element
-                ref="iss:iso_sector_stock_racks"
-                minOccurs="0"
-                maxOccurs="1"
-            >
-            </element>
- -->        </sequence>
+        </sequence>
     </group>
 
     <complexType
@@ -137,21 +150,7 @@
                     </element>
                     <sequence>
                         <element
-                            ref="rl:rack_layout"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
-                            name="iso_preparation_plate"
-                            type="r:PlateType"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
-                            name="iso_aliquot_plates"
-                            type="r:RackCollectionType"
+                            ref="isor:lab_iso_request"
                             minOccurs="0"
                             maxOccurs="1"
                         >

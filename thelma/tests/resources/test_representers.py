@@ -3,6 +3,7 @@ Unit tests for representers.
 
 FOG
 """
+from pkg_resources import resource_stream # pylint: disable=E0611
 
 from everest.mime import XmlMime
 from everest.representers.atom import AtomResourceRepresenter
@@ -10,7 +11,6 @@ from everest.representers.utils import as_representer
 from everest.resources.attributes import get_resource_class_attribute_names
 from everest.resources.staging import create_staging_collection
 from everest.resources.utils import get_root_collection
-from pkg_resources import resource_stream # pylint: disable=E0611
 from thelma.interfaces import IGene
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import IProject
@@ -20,6 +20,7 @@ from thelma.interfaces import IStockInfo
 from thelma.interfaces import ITube
 from thelma.resources.organization import OrganizationMember
 from thelma.testing import ThelmaResourceTestCase
+
 
 __docformat__ = 'reStructuredText en'
 
@@ -100,11 +101,6 @@ class RepresentersTestCase(ThelmaResourceTestCase):
 #        j_in = self._create_job_member()
 #        attrs = ('label', 'user')
 #        self.__test_rpr_for_member(j_in, (XmlMime,), attrs)
-#
-#    def test_job_type_representer(self):
-#        jt_in = self._create_job_type_member()
-#        attrs = ('label', 'name')
-#        self.__test_rpr_for_member(jt_in, (XmlMime,), attrs)
 
     def test_location_representer(self):
         loc_in = self._create_location_member()
@@ -176,13 +172,13 @@ class RepresentersTestCase(ThelmaResourceTestCase):
 
     def test_atom_project_member_representer(self):
         prj_mb = self._create_project_member()
-        rpr_out = AtomResourceRepresenter.create_from_resource(prj_mb)
+        rpr_out = AtomResourceRepresenter.create_from_resource_class(prj_mb)
         str_rpr = rpr_out.to_string(prj_mb)
         self.assert_true(str_rpr.find('<title>TestProject</title>') != -1)
 
     def test_atom_project_collection_representer(self):
         prj_coll = self._get_collection(IProject)
-        rpr_out = AtomResourceRepresenter.create_from_resource(prj_coll)
+        rpr_out = AtomResourceRepresenter.create_from_resource_class(prj_coll)
         str_rpr = rpr_out.to_string(prj_coll)
         self.assert_true(str_rpr.find('<title>Projects</title>') != -1)
 

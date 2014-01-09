@@ -5,6 +5,7 @@ Created on Nov 26, 2013.
 """
 import os
 
+from mock import patch
 from pkg_resources import resource_filename # pylint: disable=E0611
 from pyramid.compat import NativeIO
 from pyramid.compat import string_types
@@ -32,6 +33,7 @@ from everest.resources.utils import url_to_resource
 from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_item_status_managed
 from thelma.automation.semiconstants import get_rack_position_from_indices
+from thelma.automation.tools.iso.lab.planner import LabIsoPlanner
 from thelma.automation.tools.worklists.tubehandler import XL20Executor
 from thelma.automation.tools.writers import read_zip_archive
 from thelma.interfaces import IExperimentMetadata
@@ -85,9 +87,12 @@ class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
             emd = url_to_resource(emd_url)
             self._accept_iso_request(emd.iso_request)
             # Step 3: Generate ISOs.
-            self._generate_isos(emd.iso_request)
+            #
+            with patch("%s.LabIsoPlanner._MIN_CYBIO_TRANSFER_NUMBER" %
+                       LabIsoPlanner.__module__, 6):
+                self._generate_isos(emd.iso_request)
             # Step 4: Process ISO jobs (if needed).
-            if True: # emd.iso_request.process_job_first:
+            if emd.iso_request.process_job_first:
                 for iso_job in emd.iso_request.iso_jobs:
                     if iso_job.number_stock_racks == 0:
                         continue
@@ -221,14 +226,18 @@ class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
         # Intermediate step: Run XL20 worklist output to move tubes.
         self._run_xl20_executor(dummy_wl)
         # Get processing worklist.
-        res = self._create_processing_worklist(iso_or_iso_job, dict())
+        self.__session.begin_nested()
+        zip_map = self._create_processing_worklist(iso_or_iso_job, dict())
+        self.assert_is_not_none(zip_map)
+        self.__session.rollback()
         # Execute worklist.
         res = self.app.patch(resource_to_url(iso_request),
                              params=patch_body,
                              content_type=XmlMime.mime_type_string,
-#                           status=HTTPOk.code
+                             status=HTTPOk.code
                              )
         self.assert_is_not_none(res)
+        self.__session.commit()
 
     def _create_xl20_worklist(self, rc, params):
         params['type'] = 'XL20'
@@ -248,6 +257,7 @@ class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
         tool = XL20Executor(worklist, user)
         tool.run()
         self.assert_false(tool.has_errors())
+        self.__session.commit()
 
     def _create_processing_worklist(self, rc, params):
         params['type'] = 'CONTROL_STOCK_TRANSFER'

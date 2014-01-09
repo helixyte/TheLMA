@@ -36,13 +36,7 @@
     xsi:schemaLocation="http://schemata.cenix-bioscience.com/job Job.xsd"
 >
     <j:label>UnitTestJob_1</j:label>
-    <jt:job_type xmlns:jt="http://schemata.cenix-bioscience.com/jobtype">
-        <jt:link
-            href="http://localhost:6543/job-types/rnai-experiment/"
-            kind="MEMBER"
-            title="RNAi Experiment"
-            rel="http://relations.cenix-bioscience.com/job-type" />
-    </jt:job_type>
+    <j:job_type>EXPERIMENT</j:job_type>
     <u:user xmlns:u="http://schemata.cenix-bioscience.com/user">
         <u:link
             href="http://raven.cenix-bioscience.com:7654/users/rothe/"

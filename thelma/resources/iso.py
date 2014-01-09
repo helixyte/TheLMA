@@ -5,6 +5,7 @@ AAB, Jun 2011
 """
 
 from datetime import datetime
+
 from everest.entities.interfaces import IEntity
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.querying.specifications import DescendingOrderSpecification
@@ -36,6 +37,7 @@ from thelma.interfaces import IMoleculeDesignPoolSet
 from thelma.interfaces import IPlate
 from thelma.interfaces import IRack
 from thelma.interfaces import IRackLayout
+from thelma.interfaces import ITubeRack
 from thelma.interfaces import IUser
 from thelma.models.experiment import EXPERIMENT_METADATA_TYPES
 from thelma.models.iso import ISO_STATUS
@@ -47,9 +49,9 @@ from thelma.models.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
 from thelma.utils import run_tool
 from thelma.utils import run_trac_tool
+
+
 #from thelma.automation.tools.libcreation.iso import LibraryCreationIsoPopulator
-
-
 __docformat__ = 'reStructuredText en'
 
 __all__ = ['IsoCollection',
@@ -67,25 +69,24 @@ __all__ = ['IsoCollection',
 class IsoMember(Member):
     relation = "%s/iso" % RELATION_BASE_URL
     title = attribute_alias('label')
+    iso_type = terminal_attribute(str, 'label')
     label = terminal_attribute(str, 'label')
     status = terminal_attribute(str, 'status')
-    number_stock_racks = terminal_attribute(int, 'number_stock_racks')
     iso_request = member_attribute(IIsoRequest, 'iso_request')
     rack_layout = member_attribute(IRackLayout, 'rack_layout')
+    iso_job = member_attribute(IIsoJob, 'iso_job')
+    number_stock_racks = terminal_attribute(int, 'number_stock_racks')
+    iso_stock_racks = collection_attribute(ITubeRack, 'iso_stock_racks')
+    iso_preparation_plates = collection_attribute(IPlate,
+                                                  'iso_preparation_plates')
+    iso_aliquot_plates = collection_attribute(IPlate,
+                                              'iso_aliquot_plates')
     molecule_design_pool_set = member_attribute(IMoleculeDesignPoolSet,
                                                 'molecule_design_pool_set')
     optimizer_excluded_racks = terminal_attribute(str,
                                                   'optimizer_excluded_racks')
     optimizer_required_racks = terminal_attribute(str,
                                                   'optimizer_required_racks')
-    # TODO: attach racks
-#    iso_sample_stock_racks = collection_attribute(IIsoStockRack,
-#                                                  'iso_stock_racks')
-#    iso_preparation_plate = member_attribute(IRack,
-#                                             'iso_preparation_plate.plate')
-#    iso_aliquot_plates = collection_attribute(IRack,
-#                                              'iso_aliquot_plates_plates')
-    iso_job = member_attribute(IIsoJob, 'iso_job')
 
     def update(self, data):
         if IDataElement.providedBy(data): # pylint: disable=E1101
@@ -368,15 +369,15 @@ class StockSampleCreationIsoRequestMember(IsoRequestMember):
 
 class IsoRequestCollection(Collection):
     title = 'ISO Requests'
-    root_name = 'iso-requests'
+#    root_name = 'iso-requests'
     description = 'Manage ISO Requests'
-    default_order = DescendingOrderSpecification('delivery_date')
 
 
 class LabIsoRequestCollection(IsoRequestCollection):
     title = 'Lab ISO Requests'
     root_name = 'lab-iso-requests'
     description = 'Manage Lab ISO Requests'
+    default_order = DescendingOrderSpecification('delivery_date')
 
 
 class StockSampleIsoRequestCollection(IsoRequestCollection):
