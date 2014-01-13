@@ -21,7 +21,6 @@ from thelma.automation.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.experiment import get_executor
 from thelma.automation.tools.experiment import get_manual_executor
 from thelma.interfaces import IExperiment
-from thelma.interfaces import IIso
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import IRack
 from thelma.interfaces import IUser
@@ -108,10 +107,10 @@ class ExperimentJobMember(JobMember):
 class IsoJobMember(JobMember):
     relation = "%s/iso_job" % RELATION_BASE_URL
 
-    isos = collection_attribute(IIso, 'isos')
-    iso_job_stock_racks = collection_attribute(IRack, 'iso_job_stock_racks')
+#    isos = collection_attribute(IIso, 'isos')
     number_stock_racks = terminal_attribute(int, 'number_stock_racks')
-    status = terminal_attribute(str, 'status')
+    stock_racks = collection_attribute(IRack, 'iso_job_stock_racks')
+#    status = terminal_attribute(str, 'status')
 
 
 class JobCollection(Collection):

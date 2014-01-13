@@ -6,6 +6,7 @@ Created on Nov 26, 2013.
 import os
 
 from mock import patch
+from nose.plugins.attrib import attr
 from pkg_resources import resource_filename # pylint: disable=E0611
 from pyramid.compat import NativeIO
 from pyramid.compat import string_types
@@ -57,6 +58,7 @@ __all__ = ['IsoWorkflowTestCase',
            ]
 
 
+@attr('slow')
 class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
     def set_up(self):
         ThelmaFunctionalTestCase.set_up(self)
@@ -206,7 +208,7 @@ class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
         res = self.app.patch(resource_to_url(iso_request),
                              params=patch_rpr,
                              content_type=XmlMime.mime_type_string)
-        # If the file had warnings, we have to repeat the PUT.
+        # If the request triggered warnings, we have to repeat the PUT.
         if res.status.endswith(HTTPTemporaryRedirect.title):
             self.__session.rollback()
             # 307 Redirect: Repeat with warnings disabled.
@@ -260,7 +262,7 @@ class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
         self.__session.commit()
 
     def _create_processing_worklist(self, rc, params):
-        params['type'] = 'CONTROL_STOCK_TRANSFER'
+        params['type'] = 'PIPETTING'
         res = self.app.get("%sworklists.zip" % resource_to_url(rc),
                            params=params,
                            headers=dict(accept=ZipMime.mime_type_string),
@@ -308,7 +310,7 @@ class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
         isor_ent = iso_request.get_entity()
         # FIXME: The status should be part of the ISO_STATUS const group.
         for ent in getattr(isor_ent, attribute):
-            ent.status = 'TRANSFER_TO_ISO'
+            ent.status = 'PIPETTING'
         rpr = as_representer(iso_request, XmlMime)
         patch_ctxt = self.__get_patch_context(iso_request,
                                               (attribute,
@@ -330,13 +332,13 @@ class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
             attr_cfg_opts = {IGNORE_OPTION:False}
             if isinstance(attr_key, string_types):
                 key = (attr_key,)
-                attr = attr_map[attr_key]
-                if not attr.kind == RESOURCE_ATTRIBUTE_KINDS.TERMINAL:
+                rc_attr = attr_map[attr_key]
+                if not rc_attr.kind == RESOURCE_ATTRIBUTE_KINDS.TERMINAL:
                     attr_cfg_opts[WRITE_AS_LINK_OPTION] = False
                     # Disable nested attributes.
                     # FIXME: This should be recursive.
                     for attr_attr_name in \
-                            get_resource_class_attributes(attr.attr_type):
+                            get_resource_class_attributes(rc_attr.attr_type):
                         cfg_opts[(attr_key, attr_attr_name)] = \
                                                     {IGNORE_OPTION:True}
             else:

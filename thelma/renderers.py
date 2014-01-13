@@ -106,16 +106,19 @@ class ZippedWorklistRenderer(CustomRenderer):
         wl_type = params['type']
         if wl_type == 'XL20':
             options['rack_barcodes'] = \
-                        self._extract_job_stock_rack_barcodes(params)
+                        self._extract_stock_rack_barcodes(params)
         create_exec = WarnAndResubmitExecutor(self.__create_worklist_stream)
         result = create_exec(resource, options, wl_type)
         if not create_exec.do_continue:
             request.response = result
             result = None
+            request.response.headers['x-tm'] = 'abort'
         else:
             result = result.getvalue()
-        # We are just downloading work lists - do not commit anything.
-        request.response.headers['x-tm'] = 'abort'
+            if not wl_type == 'XL20':
+                # The transfer worklist writers simulate the transfers; we
+                # do not want to commit them just yet.
+                request.response.headers['x-tm'] = 'abort'
         return result
 
     def _extract_from_params(self, params):
@@ -137,8 +140,8 @@ class ZippedWorklistRenderer(CustomRenderer):
     def __create_worklist_stream(self, resource, options, worklist_type):
         if worklist_type == 'XL20':
             stream = self.__create_xl20_worklist_stream(resource, options)
-        elif worklist_type == 'CONTROL_STOCK_TRANSFER':
-            stream = self.__create_transfer_worklist_stream(resource)
+        elif worklist_type == 'PIPETTING':
+            stream = self.__create_pipetting_worklist_stream(resource)
         else:
             raise HTTPBadRequest("Unknown work list type!")
         return stream
@@ -153,51 +156,38 @@ class ZippedWorklistRenderer(CustomRenderer):
             raise HTTPBadRequest(str(te))
         return run_tool(tool)
 
-    def __create_transfer_worklist_stream(self, resource):
+    def __create_pipetting_worklist_stream(self, resource):
         entity = resource.get_entity()
-        self._prepare_for_transfer_worklist_creation(entity)
         try:
             tool = lab.get_worklist_writer(entity=entity)
         except TypeError as te:
             raise HTTPBadRequest(str(te))
         return run_tool(tool)
 
-    def _extract_job_stock_rack_barcodes(self, params):
-        raise NotImplementedError('Abstract method.')
+    def _extract_stock_rack_barcodes(self, params):
+        if params.has_key('rack'):
+            bcs = [params['rack']]
+        else:
+            barcode1 = params['rack1']
+            barcode2 = params['rack2']
+            barcode3 = params['rack3']
+            barcode4 = params['rack4']
+            bcs = [barcode1, barcode2, barcode3, barcode4]
+        return bcs
 
     def _prepare_for_xl20_worklist_creation(self, entity):
-        raise NotImplementedError('Abstract method.')
-
-    def _prepare_for_transfer_worklist_creation(self, entity):
         raise NotImplementedError('Abstract method.')
 
 
 class IsoJobWorklistRenderer(ZippedWorklistRenderer):
-    def _extract_job_stock_rack_barcodes(self, params):
-        rack = params['rack']
-        return [rack]
-
     def _prepare_for_xl20_worklist_creation(self, entity):
         while len(entity.iso_job_stock_racks) > 0:
             entity.iso_job_stock_racks.pop()
 
-    def _prepare_for_transfer_worklist_creation(self, entity):
-        pass
-
 
 class IsoWorklistRenderer(ZippedWorklistRenderer):
-    def _extract_job_stock_rack_barcodes(self, params):
-        barcode1 = params['rack1']
-        barcode2 = params['rack2']
-        barcode3 = params['rack3']
-        barcode4 = params['rack4']
-        return [barcode1, barcode2, barcode3, barcode4]
-
     def _prepare_for_xl20_worklist_creation(self, entity):
         while len(entity.iso_stock_racks) > 0:
             entity.iso_stock_racks.pop()
         while len(entity.iso_sector_stock_racks) > 0:
             entity.iso_sector_stock_racks.pop()
-
-    def _prepare_for_transfer_worklist_creation(self, entity):
-        pass

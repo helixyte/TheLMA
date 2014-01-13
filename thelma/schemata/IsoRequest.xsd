@@ -161,7 +161,7 @@
         </complexContent>
     </complexType>
 
-    <complexType name="LabIsoRequestCollectionType">
+    <complexType name="IsoRequestCollectionType">
         <choice>
             <element
                 ref="isor:lab_iso_request"
@@ -171,12 +171,24 @@
             </element>
             <element
                 name="link"
-                type="isor:LabIsoRequestCollectionLinkType"
+                type="isor:IsoRequestCollectionLinkType"
                 maxOccurs="1"
                 minOccurs="0"
             >
             </element>
         </choice>
+    </complexType>
+
+    <complexType name="IsoRequestLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/iso-request"
+                ></attribute>
+            </restriction>
+        </complexContent>
     </complexType>
 
     <complexType name="LabIsoRequestLinkType">
@@ -191,17 +203,24 @@
         </complexContent>
     </complexType>
 
-    <complexType name="LabIsoRequestCollectionLinkType">
+    <complexType name="IsoRequestCollectionLinkType">
         <complexContent>
             <restriction base="sh:LinkType">
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/lab-iso-request-collection"
+                    fixed="http://relations.cenix-bioscience.com/iso-request-collection"
                 ></attribute>
             </restriction>
         </complexContent>
     </complexType>
+
+    <element
+        name="iso_request"
+        type="iso:LabIsoType"
+    >
+    </element>
+
     <element
         name="lab_iso_request"
         type="isor:LabIsoRequestType"
@@ -209,8 +228,8 @@
     </element>
 
     <element
-        name="lab_iso_requests"
-        type="isor:LabIsoRequestCollectionType"
+        name="iso_requests"
+        type="isor:IsoRequestCollectionType"
     ></element>
 
 </schema>

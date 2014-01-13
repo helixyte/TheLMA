@@ -54,8 +54,8 @@ class ThelmaRdbAggregate(Aggregate):
     This specializes the everest RDB aggregate implementation to use
     TheLMA-specific query, filter, and order information.
     """
-    __count = None
-    __data = None
+#    __count = None
+#    __data = None
 
     def _query_generator(self, query, key):
         gen_query = _QueryGenerators.get(self.entity_class, query, key)
@@ -78,17 +78,17 @@ class ThelmaRdbAggregate(Aggregate):
                         self)._order_visitor_factory()
         return fac
 
-    def _apply_filter(self):
-        self.__count = None
-        self.__data = None
-
-    def _apply_order(self):
-        self.__data = None
-
-    def _apply_slice(self):
-        self.__count = None
-        self.__data = None
-
+#    def _apply_filter(self):
+#        self.__count = None
+#        self.__data = None
+#
+#    def _apply_order(self):
+#        self.__data = None
+#
+#    def _apply_slice(self):
+#        self.__count = None
+#        self.__data = None
+#
 #    def count(self):
 #        if self.__count is None:
 #            self._session._query_cls = CountingQuery # pylint: disable=W0212

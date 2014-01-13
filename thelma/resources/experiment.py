@@ -151,12 +151,6 @@ class ExperimentMember(Member):
         member_attribute(IExperimentMetadataType,
             'experiment_design.experiment_metadata.experiment_metadata_type')
 
-    def __getitem__(self, name):
-        if name == 'experiment-racks':
-            return self.experiment_racks
-        else:
-            raise KeyError(name)
-
 
 class ExperimentCollection(Collection):
     title = 'Experiments'
@@ -196,6 +190,7 @@ class ExperimentMetadataMember(Member):
                     for tag in tp.tags:
                         tags_dict[tag.get_entity().slug] = tag
             tag_coll = create_staging_collection(ITag)
+            tag_coll.__parent__ = self
             for tag in tags_dict.values():
                 tag_coll.add(tag)
             result = tag_coll

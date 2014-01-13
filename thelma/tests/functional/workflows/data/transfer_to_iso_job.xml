@@ -1,7 +1,7 @@
 <isor:lab_iso_request xmlns:j="http://schemata.cenix-bioscience.com/job" xmlns:isor="http://schemata.cenix-bioscience.com/isorequest">
   <j:jobs>
     <j:iso_job id="%d">
-      <j:status>TRANSFER_TO_ISO</j:status>
+      <j:status>PIPETTING</j:status>
     </j:iso_job>
   </j:jobs>
 </isor:lab_iso_request>

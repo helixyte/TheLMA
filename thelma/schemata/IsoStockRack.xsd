@@ -3,7 +3,7 @@
     targetNamespace="http://schemata.cenix-bioscience.com/isostockrack"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:iss="http://schemata.cenix-bioscience.com/isostockrack"
+    xmlns:isr="http://schemata.cenix-bioscience.com/isostockrack"
     xmlns:r="http://schemata.cenix-bioscience.com/rack"
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
     xmlns:sc="http://schemata.cenix-bioscience.com/species"
@@ -20,8 +20,13 @@
     >
     </import>
 
-    <group name="IsoStockRackBase">
+    <group name="StockRackBase">
         <sequence>
+            <element
+                name="label"
+                type="string"
+            >
+            </element>
             <element
                 ref="r:rack"
                 minOccurs="0"
@@ -31,17 +36,27 @@
         </sequence>
     </group>
 
-    <complexType name="IsoStockRackType">
+    <complexType
+        name="StockRackType"
+        abstract="true"
+    >
         <complexContent>
             <extension base="sh:ResourceType">
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="IsoStockRackType">
+        <complexContent>
+            <extension base="isr:StockRackType">
                 <choice>
                     <element
                         name="link"
-                        type="iss:IsoStockRackLinkType"
+                        type="isr:StockRackLinkType"
                     >
                     </element>
                     <sequence>
-                        <group ref="iss:IsoStockRackBase">
+                        <group ref="isr:StockRackBase">
                         </group>
                     </sequence>
                 </choice>
@@ -49,59 +64,17 @@
         </complexContent>
     </complexType>
 
-    <complexType name="IsoStockRackCollectionType">
-        <choice>
-            <element
-                ref="iss:iso_stock_rack"
-                maxOccurs="unbounded"
-                minOccurs="0"
-            >
-            </element>
-            <element
-                name="link"
-                type="iss:IsoStockRackCollectionLinkType"
-                maxOccurs="1"
-                minOccurs="0"
-            >
-            </element>
-        </choice>
-    </complexType>
-
-    <complexType name="IsoStockRackLinkType">
-        <complexContent>
-            <restriction base="sh:LinkType">
-                <attribute
-                    name="rel"
-                    type="string"
-                    fixed="http://schemata.cenix-bioscience.com/isostockrack"
-                ></attribute>
-            </restriction>
-        </complexContent>
-    </complexType>
-
-    <complexType name="IsoStockRackCollectionLinkType">
-        <complexContent>
-            <restriction base="sh:LinkType">
-                <attribute
-                    name="rel"
-                    type="string"
-                    fixed="http://relations.cenix-bioscience.com/isostockrack-collection"
-                ></attribute>
-            </restriction>
-        </complexContent>
-    </complexType>
-
     <complexType name="IsoSectorStockRackType">
         <complexContent>
-            <extension base="sh:ResourceType">
+            <extension base="isr:StockRackType">
                 <choice>
                     <element
                         name="link"
-                        type="iss:IsoStockRackLinkType"
+                        type="isr:StockRackLinkType"
                     >
                     </element>
                     <sequence>
-                        <group ref="iss:IsoStockRackBase">
+                        <group ref="isr:StockRackBase">
                         </group>
                         <element
                             name="index"
@@ -114,22 +87,53 @@
         </complexContent>
     </complexType>
 
-    <complexType name="IsoSectorStockRackCollectionType">
+    <complexType name="StockRackCollectionType">
         <choice>
-            <element
-                ref="iss:iso_sector_stock_rack"
-                maxOccurs="unbounded"
+            <choice
                 minOccurs="0"
+                maxOccurs="unbounded"
             >
-            </element>
+                <element
+                    ref="isr:iso_stock_rack"
+                >
+                </element>
+                <element
+                    ref="isr:iso_sector_stock_rack"
+                >
+                </element>
+            </choice>
             <element
                 name="link"
-                type="iss:IsoSectorStockRackCollectionLinkType"
+                type="isr:StockRackCollectionLinkType"
                 maxOccurs="1"
                 minOccurs="0"
             >
             </element>
         </choice>
+    </complexType>
+
+    <complexType name="StockRackLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/stock-rack"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType name="IsoStockRackLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/iso-stock-rack"
+                ></attribute>
+            </restriction>
+        </complexContent>
     </complexType>
 
     <complexType name="IsoSectorStockRackLinkType">
@@ -138,19 +142,19 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://schemata.cenix-bioscience.com/isosectorstockrack"
+                    fixed="http://relations.cenix-bioscience.com/iso-sector-stock-rack"
                 ></attribute>
             </restriction>
         </complexContent>
     </complexType>
 
-    <complexType name="IsoSectorStockRackCollectionLinkType">
+    <complexType name="StockRackCollectionLinkType">
         <complexContent>
             <restriction base="sh:LinkType">
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/isosectorstockrack-collection"
+                    fixed="http://relations.cenix-bioscience.com/stock-rack-collection"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -158,24 +162,20 @@
 
     <element
         name="iso_stock_rack"
-        type="iss:IsoStockRackType"
+        type="isr:IsoStockRackType"
     >
     </element>
-
-    <element
-        name="iso_stock_racks"
-        type="iss:IsoStockRackCollectionType"
-    ></element>
 
     <element
         name="iso_sector_stock_rack"
-        type="iss:IsoSectorStockRackType"
+        type="isr:IsoSectorStockRackType"
     >
     </element>
 
     <element
-        name="iso_sector_stock_racks"
-        type="iss:IsoSectorStockRackCollectionType"
-    ></element>
+        name="stock_racks"
+        type="isr:StockRackCollectionType"
+    >
+    </element>
 
 </schema>

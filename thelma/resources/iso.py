@@ -3,7 +3,6 @@ ISO resources.
 
 AAB, Jun 2011
 """
-
 from datetime import datetime
 
 from everest.entities.interfaces import IEntity
@@ -29,15 +28,15 @@ from thelma.automation.tools.metadata.ticket import IsoRequestTicketReassigner
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketReopener
 from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.interfaces import IExperimentMetadata
-from thelma.interfaces import IIso
 from thelma.interfaces import IIsoJob
-from thelma.interfaces import IIsoRequest
+from thelma.interfaces import ILabIso
+from thelma.interfaces import ILabIsoRequest
 from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeDesignPoolSet
 from thelma.interfaces import IPlate
 from thelma.interfaces import IRack
 from thelma.interfaces import IRackLayout
-from thelma.interfaces import ITubeRack
+from thelma.interfaces import IStockRack
 from thelma.interfaces import IUser
 from thelma.models.experiment import EXPERIMENT_METADATA_TYPES
 from thelma.models.iso import ISO_STATUS
@@ -72,21 +71,20 @@ class IsoMember(Member):
     iso_type = terminal_attribute(str, 'label')
     label = terminal_attribute(str, 'label')
     status = terminal_attribute(str, 'status')
-    iso_request = member_attribute(IIsoRequest, 'iso_request')
     rack_layout = member_attribute(IRackLayout, 'rack_layout')
     iso_job = member_attribute(IIsoJob, 'iso_job')
     number_stock_racks = terminal_attribute(int, 'number_stock_racks')
-    iso_stock_racks = collection_attribute(ITubeRack, 'iso_stock_racks')
-    iso_preparation_plates = collection_attribute(IPlate,
-                                                  'iso_preparation_plates')
-    iso_aliquot_plates = collection_attribute(IPlate,
-                                              'iso_aliquot_plates')
     molecule_design_pool_set = member_attribute(IMoleculeDesignPoolSet,
                                                 'molecule_design_pool_set')
     optimizer_excluded_racks = terminal_attribute(str,
                                                   'optimizer_excluded_racks')
     optimizer_required_racks = terminal_attribute(str,
                                                   'optimizer_required_racks')
+    preparation_plates = collection_attribute(IPlate,
+                                              'preparation_plates')
+    aliquot_plates = collection_attribute(IPlate,
+                                          'aliquot_plates')
+    stock_racks = collection_attribute(IStockRack, 'stock_racks')
 
     def update(self, data):
         if IDataElement.providedBy(data): # pylint: disable=E1101
@@ -97,6 +95,8 @@ class IsoMember(Member):
 
 class LabIsoMember(IsoMember):
     relation = "%s/lab-iso" % RELATION_BASE_URL
+
+    iso_request = member_attribute(ILabIsoRequest, 'iso_request')
 
 
 class StockSampleCreationIsoMember(IsoMember):
@@ -112,6 +112,12 @@ class IsoCollection(Collection):
     default_order = AscendingOrderSpecification('label')
 
 
+class LabIsoCollection(IsoCollection):
+    title = 'Lab ISOs'
+    root_name = 'lab-isos'
+    description = 'Manage Lab ISOs'
+
+
 class IsoRequestMember(Member):
     relation = "%s/iso-request" % RELATION_BASE_URL
     iso_type = terminal_attribute(str, 'iso_type')
@@ -119,7 +125,6 @@ class IsoRequestMember(Member):
     owner = terminal_attribute(str, 'owner')
     expected_number_isos = terminal_attribute(int, 'expected_number_isos')
     number_aliquots = terminal_attribute(int, 'number_aliquots')
-    isos = collection_attribute(IIso, 'isos')
     iso_jobs = collection_attribute(IIsoJob, 'iso_jobs')
 
     @property
@@ -129,6 +134,7 @@ class IsoRequestMember(Member):
 
 class LabIsoRequestMember(IsoRequestMember):
     relation = "%s/lab-iso-request" % RELATION_BASE_URL
+    isos = collection_attribute(ILabIso, 'isos')
     delivery_date = terminal_attribute(datetime, 'delivery_date')
     requester = member_attribute(IUser, 'requester')
     experiment_metadata = member_attribute(IExperimentMetadata,
@@ -203,7 +209,7 @@ class LabIsoRequestMember(IsoRequestMember):
                                 include_dummy_output=include_dummy_output)
         return run_tool(assembler)
 
-    def create_iso_processing_worklist(self):
+    def create_pipetting_worklist(self):
         writer = lab.get_worklist_writer(self.get_entity())
         return run_tool(writer)
 
@@ -244,12 +250,12 @@ class LabIsoRequestMember(IsoRequestMember):
             status = iso_job_prx.status
             iso_job_id = iso_job_prx.id
             iso_job = self.__find_iso_job(iso_job_id)
-            if status.startswith('UPDATE_JOB_STOCK_RACK'):
-                barcodes = ','.split(status[len('UPDATE_JOB_STOCK_RACK'):])
+            if status.startswith('UPDATE_STOCK_RACKS'):
+                barcodes = ','.split(status[len('UPDATE_STOCK_RACKS'):])
                 self.__update_job_stock_racks(iso_job, barcodes)
-            elif status == 'TRANSFER_TO_ISO':
+            elif status == 'PIPETTING':
                 # Transfer from job stock racks.
-                self.__transfer_to_iso_or_iso_job(iso_job)
+                self.__pipetting_iso_or_iso_job(iso_job)
             else:
                 raise ValueError('Unknown ISO job status "%s".' % status)
 
@@ -267,8 +273,8 @@ class LabIsoRequestMember(IsoRequestMember):
             else:
                 # Retrieve the ISO entity and perform an operation on it.
                 iso = self.__find_iso(iso_id)
-                if status == 'TRANSFER_TO_ISO':
-                    self.__transfer_to_iso_or_iso_job(iso)
+                if status == 'PIPETTING':
+                    self.__pipetting_iso_or_iso_job(iso)
                 elif status == 'CLOSE_ISO':
                     self.__update_iso_status(iso, ISO_STATUS.DONE)
                 elif status == 'CANCEL_ISO':
@@ -308,7 +314,7 @@ class LabIsoRequestMember(IsoRequestMember):
         IsoJob(label='ISO Job %d' % job_num, user=get_current_user(),
                isos=new_isos)
 
-    def __transfer_to_iso_or_iso_job(self, iso_or_iso_job):
+    def __pipetting_iso_or_iso_job(self, iso_or_iso_job):
         user = get_current_user()
         executor = get_worklist_executor(iso_or_iso_job, user)
         result = run_tool(executor,
@@ -369,7 +375,7 @@ class StockSampleCreationIsoRequestMember(IsoRequestMember):
 
 class IsoRequestCollection(Collection):
     title = 'ISO Requests'
-#    root_name = 'iso-requests'
+    root_name = 'iso-requests'
     description = 'Manage ISO Requests'
 
 
@@ -386,24 +392,40 @@ class StockSampleIsoRequestCollection(IsoRequestCollection):
     description = 'Manage Stock Sample ISO Requests'
 
 
-class IsoStockRackMember(Member):
-    relation = "%s/iso_stock_rack" % RELATION_BASE_URL
+class StockRackMember(Member):
+    relation = "%s/stock-rack" % RELATION_BASE_URL
 
     @property
     def title(self):
         entity = self.get_entity()
         return '%s: %s' % (entity.__class__, entity.id)
 
+    label = terminal_attribute(int, 'label')
     rack = member_attribute(IRack, 'rack')
 
 
-class IsoSectorStockRackMember(Member):
-    relation = "%s/iso_sector_stock_rack" % RELATION_BASE_URL
+class IsoStockRackMember(StockRackMember):
+    relation = "%s/iso-stock-rack" % RELATION_BASE_URL
 
-    @property
-    def title(self):
-        entity = self.get_entity()
-        return '%s: %s' % (entity.__class__, entity.id)
+
+class IsoSectorStockRackMember(StockRackMember):
+    relation = "%s/iso-sector-stock-rack" % RELATION_BASE_URL
 
     index = terminal_attribute(int, 'sector_index')
-    rack = member_attribute(IRack, 'rack')
+
+
+class StockRackCollection(Collection):
+    title = 'Stock Racks'
+    root_name = 'stock-racks'
+
+
+class IsoStockRackCollection(StockRackCollection):
+    title = 'ISO Stock Racks'
+    root_name = 'iso-stock-racks'
+    description = 'Manage ISO stock racks.'
+
+
+class IsoSectorStockRackCollection(StockRackCollection):
+    title = 'ISO Sector Stock Racks'
+    root_name = 'iso-sector-stock-racks'
+    description = 'Manage ISO sector stock racks.'

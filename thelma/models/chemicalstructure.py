@@ -40,11 +40,15 @@ class ChemicalStructureType(Entity):
     def slug(self):
         return slug_from_string(self.name)
 
-    @property
-    def molecule_types(self):
+    def __get_molecule_types(self):
         agg = get_root_aggregate(IMoleculeType)
         agg.filter = cntd(id=self.molecule_type_ids)
         return list(agg.iterator())
+
+    def __set_molecule_types(self, molecule_types):
+        self.molecule_type_ids = [mt.id for mt in molecule_types]
+
+    molecule_types = property(__get_molecule_types, __set_molecule_types)
 
     def __eq__(self, other):
         return isinstance(other, ChemicalStructureType) \

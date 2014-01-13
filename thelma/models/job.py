@@ -185,7 +185,7 @@ class IsoJob(Job):
     def __set_status(self, status):
         self.__status = status
 
-    #: Status flag merly used for job processing
+    #: Status flag merely used for job processing
     # FIXME: Reconcile entity ISO status flags with ISO processing status
     #        flags used by the client!
     status = property(__get_status, __set_status)

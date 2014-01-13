@@ -4,7 +4,7 @@
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
     xmlns:iso="http://schemata.cenix-bioscience.com/iso"
-    xmlns:iss="http://schemata.cenix-bioscience.com/isostockrack"
+    xmlns:isr="http://schemata.cenix-bioscience.com/isostockrack"
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
     xmlns:isor="http://schemata.cenix-bioscience.com/isorequest"
     xmlns:mdps="http://schemata.cenix-bioscience.com/moleculedesignpoolset"
@@ -86,27 +86,6 @@
             >
             </element>
             <element
-                name="iso_stock_racks"
-                type="r:RackCollectionType"
-                minOccurs="0"
-                maxOccurs="1"
-            >
-            </element>
-            <element
-                name="iso_preparation_plates"
-                type="r:RackCollectionType"
-                minOccurs="0"
-                maxOccurs="1"
-            >
-            </element>
-            <element
-                name="iso_aliquot_plates"
-                type="r:RackCollectionType"
-                minOccurs="0"
-                maxOccurs="1"
-            >
-            </element>
-            <element
                 ref="mdps:molecule_design_pool_set"
                 minOccurs="0"
                 maxOccurs="1"
@@ -122,6 +101,26 @@
             <element
                 name="optimizer_required_racks"
                 type="string"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element
+                name="preparation_plates"
+                type="r:RackCollectionType"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element
+                name="aliquot_plates"
+                type="r:RackCollectionType"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element
+                ref="isr:stock_racks"
                 minOccurs="0"
                 maxOccurs="1"
             >
@@ -149,6 +148,8 @@
                     >
                     </element>
                     <sequence>
+                        <group ref="iso:IsoBase">
+                        </group>
                         <element
                             ref="isor:lab_iso_request"
                             minOccurs="0"
@@ -163,13 +164,12 @@
 
     <complexType name="IsoCollectionType">
         <choice>
-            <choice
+            <element
+                ref="iso:lab_iso"
                 maxOccurs="unbounded"
                 minOccurs="0"
             >
-                <element ref="iso:lab_iso">
-                </element>
-            </choice>
+            </element>
             <element
                 name="link"
                 type="iso:IsoCollectionLinkType"

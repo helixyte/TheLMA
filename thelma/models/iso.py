@@ -3,10 +3,10 @@ ISO request model classes
 
 Jun 2011, AAB
 """
-
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_integer
 from everest.entities.utils import slug_from_string
+
 
 __docformat__ = 'reStructuredText en'
 
@@ -364,6 +364,28 @@ class Iso(Entity):
         """
         if self.iso_job is None: return None
         return self.iso_job.iso_job_stock_rack
+
+    @property
+    def stock_racks(self):
+        """
+        Read only access to the stock racks of this ISO. Returns a list
+        of IsoStockRack or IsoSectorStockRack instances.
+        """
+        return self.iso_stock_racks + self.iso_sector_stock_racks
+
+    @property
+    def preparation_plates(self):
+        """
+        Read only access to the racks of the preparation plates in this ISO.
+        """
+        return [ipp.rack for ipp in self.iso_preparation_plates]
+
+    @property
+    def aliquot_plates(self):
+        """
+        Read only access to the racks of the aliquot plates in this ISO.
+        """
+        return [iaq.rack for iaq in self.iso_aliquot_plates]
 
     def __eq__(self, other):
         return (isinstance(other, Iso) \

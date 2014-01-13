@@ -244,6 +244,7 @@
             "
         renderer="atom"
         request_method="PATCH
+                        FAKE_PATCH
                        "
         permission="update" />
 
