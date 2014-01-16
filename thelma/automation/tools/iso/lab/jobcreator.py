@@ -136,6 +136,12 @@ class LabIsoJobCreator(IsoJobCreator):
             if len(job_series) > 0:
                 self.__job_worklist_series = job_series
 
+    def _get_job_label(self):
+        job_num = LABELS.get_new_job_number(iso_request=self.iso_request)
+        ticket_number = self.iso_request.experiment_metadata.ticket_number
+        return LABELS.create_job_label(ticket_number=ticket_number,
+                                       job_number=job_num)
+
     def _get_number_stock_racks(self):
         """
         The number of stock racks is determined by counting the number of

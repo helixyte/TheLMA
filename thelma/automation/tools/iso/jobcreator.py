@@ -5,7 +5,6 @@ ISO types.
 AAB
 """
 from thelma.automation.tools.base import BaseAutomationTool
-from thelma.automation.tools.iso.lab.base import LABELS
 from thelma.automation.utils.base import is_valid_number
 from thelma.models.iso import ISO_TYPES
 from thelma.models.iso import IsoRequest
@@ -144,10 +143,7 @@ class IsoJobCreator(BaseAutomationTool):
         """
         self.add_debug('Create ISO job ...')
 
-        job_num = LABELS.get_new_job_number(iso_request=self.iso_request)
-        ticket_number = self.iso_request.experiment_metadata.ticket_number
-        job_label = LABELS.create_job_label(ticket_number=ticket_number,
-                                            job_number=job_num)
+        job_label = self._get_job_label()
         number_stock_racks = self._get_number_stock_racks()
         worklist_series = self._create_iso_job_worklist_series()
         self._iso_job = IsoJob(label=job_label, user=self.job_owner,
@@ -155,6 +151,12 @@ class IsoJobCreator(BaseAutomationTool):
                                number_stock_racks=number_stock_racks,
                                worklist_series=worklist_series)
         self._create_iso_job_racks()
+
+    def _get_job_label(self):
+        """
+        Returns the label for the new job.
+        """
+        raise NotImplementedError('Abstract method.')
 
     def _get_number_stock_racks(self):
         """
@@ -254,7 +256,7 @@ class IsoProvider(BaseAutomationTool):
                 msg = 'Unsupported ISO type "%s"!' % (iso_type)
                 self.add_error(msg)
             else:
-                ir_cls = self.__ISO_REQUEST_CLS[iso_type]
+                ir_cls = self.__ISO_REQUEST_CLS[self._ISO_TYPE]
                 self._check_input_class('ISO request', self.iso_request, ir_cls)
 
         if not is_valid_number(self.number_isos, is_integer=True):

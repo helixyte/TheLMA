@@ -23,8 +23,7 @@ def create_mapper(stock_rack_tbl):
                properties=dict(
                     rack=relationship(Rack, uselist=False),
                     worklist_series=relationship(WorklistSeries,
-                                      uselist=False, single_parent=True,
-                                      cascade='all,delete,delete-orphan'),
+                                      uselist=False, cascade='all,delete'),
                     rack_layout=relationship(RackLayout, uselist=False,
                                       cascade='all,delete,delete-orphan',
                                       single_parent=True),

@@ -2276,21 +2276,6 @@ class LabIsoTestCase1(ExperimentMetadataReadingTestCase):
                 self.assert_is_not_none(plate_pos.stock_rack_barcode)
         self.assert_equal(sorted(tested_labels), sorted(layout_data.keys()))
 
-    def _compare_layout_value(self, exp_value, attr_name, pool_pos,
-                               layout_name):
-        found_value = getattr(pool_pos, attr_name)
-        pos_label = pool_pos.rack_position.label
-        if attr_name == 'molecule_design_pool':
-            exp_value = self._get_pool(exp_value)
-        elif attr_name == 'transfer_targets':
-            exp_value.sort()
-            found_value.sort()
-        if not exp_value == found_value:
-            msg = 'The values for the %s attribute of position %s in ' \
-                  'layout %s are not equal.\nExpected: %s.\nFound: %s.' \
-                  % (attr_name, pos_label, layout_name, exp_value, found_value)
-            raise AssertionError(msg)
-
     def _compare_worklist_series(self, iso_job=None):
         if iso_job is None: # check ISO request series
             exp_data = LAB_ISO_TEST_CASES.get_iso_worklist_data(self.case)

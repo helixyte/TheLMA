@@ -23,10 +23,12 @@ from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
 from thelma.automation.utils.layouts import MoleculeDesignPoolPosition
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from thelma.models.tagging import Tag
+from thelma.automation.tools.iso.base import StockRackLayout
 
 __docformat__ = 'reStructuredText en'
 
 __all__ = ['LABELS',
+           'DILUENT_INFO',
            'VolumeCalculator',
            'StockSampleCreationParameters',
            'StockSampleCreationPosition',
@@ -34,7 +36,9 @@ __all__ = ['LABELS',
            'StockSampleCreationLayoutConverter',
            'PoolCreationParameters',
            'PoolCreationStockRackPosition',
-           'PoolCreationStockRackLayoutConverter']
+           'PoolCreationStockRackLayoutConverter',
+           'SingleDesignStockRackLayout',
+           'SingleDesignStockRackLayoutConverter']
 
 
 class LABELS(_ISO_LABELS_BASE):
@@ -70,6 +74,17 @@ class LABELS(_ISO_LABELS_BASE):
         return cls._create_label(value_parts)
 
     @classmethod
+    def create_job_label(cls, iso_request_label, job_number):
+        """
+        The job label contains the ISO request label and a running number
+        as job number (you can get a new ISO number with
+        :func:`get_new_job_number`).
+        """
+        job_num_str = '%02i' % (job_number)
+        value_parts = [iso_request_label, cls._FILL_ISO_JOB, job_num_str]
+        return cls._create_label(value_parts)
+
+    @classmethod
     def create_stock_transfer_worklist_label(cls, iso_label):
         """
         The stock transfer worklist label contains the ISO label and a
@@ -84,7 +99,7 @@ class LABELS(_ISO_LABELS_BASE):
         The buffer dilution worklist contains the ISO request label and a
         filler.
         """
-        value_parts = [cls._FILL_WORKLIST_DILUTION, iso_request_label]
+        value_parts = [iso_request_label, cls._FILL_WORKLIST_DILUTION]
         return cls._create_label(value_parts)
 
     @classmethod
@@ -101,18 +116,27 @@ class LABELS(_ISO_LABELS_BASE):
         """
         The stock rack label contains the ISO label and the rack marker
         (rack role and (optionally) rack_number).
+
+        e.g. ssgen_test_01_sds#3 --> rack marker: sds#3
+                                 --> layout number: 1
+                                 --> ISO request label = ssgen_test
+                                 --> ISO label = ssgen_test_01
         """
         value_parts = cls._get_value_parts(stock_rack_label)
-        rack_marker = value_parts[2]
+        rack_marker = value_parts[-1]
         values = cls.parse_rack_marker(rack_marker)
         values[cls.MARKER_RACK_MARKER] = rack_marker
-        ir_label = value_parts[0]
-        layout_num = cls._parse_int_str(value_parts[1])
+        ir_label = cls.SEPARATING_CHAR.join(value_parts[:-2])
+        layout_num = cls._parse_int_str(value_parts[-2])
         values[cls.MARKER_ISO_REQUEST_LABEL] = ir_label
         values[cls.MARKER_LAYOUT_NUMBER] = layout_num
         iso_label = cls.create_iso_label(ir_label, layout_num)
         values[cls.MARKER_ISO_LABEL] = iso_label
         return values
+
+
+#: The diluent info for the planned container dilutions (always buffer).
+DILUENT_INFO = 'annealing buffer'
 
 
 class VolumeCalculator(object):
@@ -627,10 +651,33 @@ class PoolCreationStockRackPosition(StockRackPosition):
     """
     PARAMETER_SET = PoolCreationParameters
 
+    def __init__(self, rack_position, molecule_design_pool, tube_barcode,
+                 transfer_targets=None):
+        """
+        Constructor:
+
+        :param rack_position: The position within the rack.
+        :type rack_position: :class:`thelma.models.rack.RackPosition`
+
+        :param molecule_design_pool: The molecule design pool for this position.
+        :type molecule_design_pool:  placeholder or
+            :class:`thelma.models.moleculedesign.MoleculeDesignPool`
+
+        :param tube_barcode: The tube expected at the given position.
+        :type tube_barcode: :class:`basestring`
+
+        :param transfer_targets: The volume required to supply all child wells
+            and the volume for the transfer to the ISO plate.
+        :type transfer_targets: :class:`list` of :class:`TransferTarget` objects
+        """
+        StockRackPosition.__init__(self, rack_position=rack_position,
+                                   tube_barcode=tube_barcode,
+                                   molecule_design_pool=molecule_design_pool,
+                                   transfer_targets=transfer_targets)
 
 class PoolCreationStockRackLayoutConverter(StockRackLayoutConverter):
     """
-    Converts a rack layout into a :class:`IsoSectorStockRackLayout`.
+    Converts a rack layout into a :class:`StockRackLayout`.
     Unlike normal with normal stock racks these positions do not need to have
     transfer targets.
     """
@@ -638,3 +685,25 @@ class PoolCreationStockRackLayoutConverter(StockRackLayoutConverter):
     POSITION_CLS = PoolCreationStockRackPosition
 
     NAME = 'Pool Creation Stock Rack Layout Converter'
+
+
+class SingleDesignStockRackLayout(StockRackLayout):
+    """
+    Represent an ISO single design stock rack for stock sample creation.
+    Unlike normal :class:`StockRackPosition` objects the positions within
+    the layout might have the same transfer targets.
+    """
+
+    ALLOW_DUPLICATE_TARGET_WELLS = {StockRackLayout.POSITION_CLS.\
+                                    PARAMETER_SET.TRANSFER_TARGETS : True}
+
+
+class SingleDesignStockRackLayoutConverter(StockRackLayoutConverter):
+    """
+    Converts a rack layout into a :class:`SingleDesignStockRackLayout`.
+    Unlike normal with normal stock racks there might be several transfers
+    targets with the same target.
+    """
+    LAYOUT_CLS = SingleDesignStockRackLayout
+
+    NAME = 'Single Design Stock Rack Layout Converter'

@@ -616,9 +616,11 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter):
             else:
                 return True
 
+        allow_duplicates = self.LAYOUT_CLS.ALLOW_DUPLICATE_TARGET_WELLS[
+                                                            parameter_name]
         for transfer_target in transfer_targets:
-            if transfer_target.hash_value in self._transfer_targets[
-                                                            parameter_name]:
+            if not allow_duplicates and transfer_target.hash_value \
+                                in self._transfer_targets[parameter_name]:
                 error_msg = '%s' % (transfer_target)
                 add_list_map_element(self.__duplicate_targets, parameter_name,
                                      error_msg)

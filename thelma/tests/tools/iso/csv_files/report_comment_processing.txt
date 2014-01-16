@@ -1,4 +1,0 @@
-A stock transfer has been executed by Michael Brehm (see file: attachment:stock_transfer_213_iso1.csv).
-
-Type: samples
-Involved ISOs (preparation plates): 213_iso1 (09999922).

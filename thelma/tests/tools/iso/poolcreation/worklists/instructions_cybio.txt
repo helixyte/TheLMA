@@ -1,0 +1,8 @@
+Pool Creation Instructions for ISO "ssgen_test_01"
+--------------------------------------------------
+
+Volume: 2.0 ul each
+Assumed buffer volume: 24.0 ul
+Source rack(s): 09999981, 09999982, 09999983
+Target rack: 09999999
+Use CyBio robot for stock transfers.

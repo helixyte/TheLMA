@@ -3,16 +3,18 @@ Tools involved the execution of pool stock sample creation worklists.
 
 AAB
 """
-from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
-from thelma.automation.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.semiconstants import get_reservoir_spec
 from thelma.automation.tools.iso.base import IsoRackContainer
+from thelma.automation.tools.iso.base import StockRackLayoutConverter
 from thelma.automation.tools.iso.base import StockRackVerifier
 from thelma.automation.tools.iso.base import StockTransferWriterExecutor
+from thelma.automation.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.tools.iso.poolcreation.base \
     import PoolCreationStockRackLayoutConverter
+from thelma.automation.tools.iso.poolcreation.base \
+    import SingleDesignStockRackLayoutConverter
 from thelma.automation.tools.iso.poolcreation.base \
     import StockSampleCreationLayoutConverter
 from thelma.automation.tools.iso.poolcreation.base import LABELS
@@ -40,7 +42,7 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
     ENTITY_CLS = StockSampleCreationIso
 
     #: The barcode for the buffer source reservoir.
-    BUFFER_RESERVOIR_BARCODE = 'buffer_reservoir'
+    BUFFER_RESERVOIR_BARCODE = 'buffer'
 
     _MODES = [StockTransferWriterExecutor.MODE_EXECUTE]
 
@@ -55,8 +57,8 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
         :param user: The user conducting the execution.
         :type user: :class:`thelma.models.user.User`
         """
-        StockTransferWriterExecutor.__init__(self, depending=False, user=user,
-                      entity=iso, mode=StockTransferWriterExecutor.MODE_EXECUTE)
+        StockTransferWriterExecutor.__init__(self, user=user, entity=iso,
+                            mode=StockTransferWriterExecutor.MODE_EXECUTE)
 
         #: The stock sample creation layout for this ISO.
         self.__ssc_layout = None
@@ -71,12 +73,10 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
         #: series.
         self.__stock_transfer_worklist = None
 
-        #: The transfer jobs for the series executor.
-        self.__transfer_jobs = None
         #: The indices for the rack transfer jobs mapped onto the worklist
         #: they belong to.
         self.__rack_transfer_indices = None
-        #: Positions without library positions (i.e. without transfer).
+#        #: Positions without ISO positions (i.e. without transfer).
         self.__ignore_positions = None
 
     def reset(self):
@@ -85,7 +85,6 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
         self.__rack_containers = dict()
         self.__pool_stock_rack = None
         self.__stock_transfer_worklist = None
-        self.__transfer_jobs = dict()
         self.__rack_transfer_indices = dict()
         self.__ignore_positions = []
 
@@ -97,11 +96,6 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
         if not self.has_errors(): self.__get_racks()
         if not self.has_errors(): self.__create_buffer_transfer_job()
         if not self.has_errors(): self.__create_stock_transfer_jobs()
-        if not self.has_errors(): self._execute_worklists()
-        if not self.has_errors(): self.__create_stock_samples()
-        if not self.has_errors():
-            self.return_value = self.entity
-            self.add_info('Transfer execution completed.')
 
     def get_stock_sample_creation_layout(self):
         """
@@ -114,7 +108,7 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
         """
         Checks the initialisation values.
         """
-        StockTransferWriterExecutor._check_input()
+        StockTransferWriterExecutor._check_input(self)
         if not self.has_errors() and \
                                 not self.entity.status == ISO_STATUS.QUEUED:
             msg = 'Unexpected ISO status: "%s"' % (self.entity.status)
@@ -156,18 +150,18 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
                     msg = 'There are several pool stock racks for this ISO!'
                     self.add_error(msg)
                     break
-                self.__pool_stock_rack = rack_marker
+                self.__pool_stock_rack = isr
             else:
                 rack_container = IsoRackContainer(rack=isr.rack,
                                  rack_marker=rack_marker, label=label)
                 self.__rack_containers[rack_marker] = rack_container
 
         number_designs = self.entity.iso_request.number_designs
-        exp_lengths = (number_designs, 1)
+        exp_lengths = ((number_designs + 1), 2)
         if not len(isrs) in exp_lengths:
-            msg = 'There is an unexpected number of destination stock racks ' \
+            msg = 'There is an unexpected number of stock racks ' \
                   'attached to this ISO (%i). There should be %s! ' \
-                  % (self._get_joined_str(exp_lengths, is_strs=False,
+                  % (len(isrs), self._get_joined_str(exp_lengths, is_strs=False,
                                           sort_items=False, separator=' or '))
             self.add_error(msg)
             return None
@@ -193,16 +187,15 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
         buffer_worklist = worklist_series.get_worklist_for_index(
                   StockSampleCreationWorklistGenerator.BUFFER_WORKLIST_INDEX)
 
-        rs_quarter = get_reservoir_spec(RESERVOIR_SPECS_NAMES.QUARTER_MODULAR)
-        job_index = len(self.__transfer_jobs)
+        rs = get_reservoir_spec(RESERVOIR_SPECS_NAMES.FALCON_MANUAL)
+        job_index = len(self._transfer_jobs)
         cdj = SampleDilutionJob(index=job_index,
                              planned_worklist=buffer_worklist,
                              target_rack=self.__pool_stock_rack.rack,
-                             reservoir_specs=rs_quarter,
+                             reservoir_specs=rs,
                              source_rack_barcode=self.BUFFER_RESERVOIR_BARCODE,
-                             ignored_positions=self.__ignore_positions,
-                             pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
-        self.__transfer_jobs[job_index] = cdj
+                             ignored_positions=self.__ignore_positions)
+        self._transfer_jobs[job_index] = cdj
 
     def __create_stock_transfer_jobs(self):
         """
@@ -213,35 +206,98 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
         self.add_debug('Create pool creation transfer jobs ...')
 
         for rack_container in self.__rack_containers.values():
-            job_index = len(self.__transfer_jobs)
+            job_index = len(self._transfer_jobs)
             stj = SampleTransferJob(index=job_index,
                     planned_worklist=self.__stock_transfer_worklist,
                     target_rack=self.__pool_stock_rack.rack,
-                    source_rack=rack_container.rack,
-                    pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
-            self.__transfer_jobs[job_index] = stj
+                    source_rack=rack_container.rack)
+            self._transfer_jobs[job_index] = stj
 
     def _verify_stock_racks(self):
+        """
+        We convert the layouts separately because the layout have different
+        types. Also the pool stock rack is checked separately because the
+        referring tubes must all be empty.
+        """
+        self.__verify_pool_stock_rack()
+        num_stock_racks = len(self.entity.iso_stock_racks)
         for isr in self.entity.iso_stock_racks:
             layout = None
-            if isr.rack == self.__pool_stock_rack:
-                converter = PoolCreationStockRackLayoutConverter(log=self.log,
-                                                    rack_layout=isr.rack_layout)
-                layout = converter.get_result()
-                if layout is None:
-                    msg = 'Error when trying to convert pool stock rack layout!'
-                    self.add_error(msg)
-                    break
-            verifier = StockRackVerifier(log=self.log, stock_rack=isr,
-                                         stock_rack_layout=layout)
-            compatible = verifier.get_result()
+            kw = dict(log=self.log, rack_layout=isr.rack_layout)
             rack_name = '%s (%s)' % (isr.rack.barcode, isr.label)
-            if compatible is None:
-                msg = 'Error when trying to verify stock rack %s.' % (rack_name)
+            if isr == self.__pool_stock_rack:
+                continue # has been checked separately
+            elif num_stock_racks == 2:
+                converter_cls = SingleDesignStockRackLayoutConverter
+            else:
+                converter_cls = StockRackLayoutConverter
+            converter = converter_cls(**kw)
+            layout = converter.get_result()
+            if layout is None:
+                msg = 'Error when trying to convert stock rack layout for ' \
+                      'rack %s!' % (rack_name)
                 self.add_error(msg)
-            elif not compatible:
-                msg = 'Stock rack %s does not match the expected layout.' \
-                       % (rack_name)
+            else:
+                verifier = StockRackVerifier(log=self.log, stock_rack=isr,
+                                             stock_rack_layout=layout)
+                compatible = verifier.get_result()
+                if compatible is None:
+                    msg = 'Error when trying to verify stock rack %s.' \
+                           % (rack_name)
+                    self.add_error(msg)
+                elif not compatible:
+                    msg = 'Stock rack %s does not match the expected layout.' \
+                           % (rack_name)
+                    self.add_error(msg)
+
+    def __verify_pool_stock_rack(self):
+        """
+        Makes sure there are empty tubes in all required positions and none
+        in positions that must be empty.
+        """
+        converter = PoolCreationStockRackLayoutConverter(log=self.log,
+                             rack_layout=self.__pool_stock_rack.rack_layout)
+        layout = converter.get_result()
+        if layout is None:
+            msg = 'Error when trying to convert pool stock rack layout!'
+            self.add_error(msg)
+        else:
+            additional_tubes = []
+            non_empty_tube = []
+            positions = layout.get_positions()
+            tube_positions = set()
+            rack = self.__pool_stock_rack.rack
+            for tube in rack.containers:
+                rack_pos = tube.location.position
+                tube_positions.add(rack_pos)
+                info = '%s (%s)' % (tube.barcode, rack_pos.label)
+                if not rack_pos in positions:
+                    additional_tubes.append(info)
+                elif not tube.sample is None:
+                    non_empty_tube.append(info)
+            missing_tube = []
+            for rack_pos in get_positions_for_shape(layout.shape):
+                sr_pos = layout.get_working_position(rack_pos)
+                if sr_pos is None:
+                    continue
+                elif rack_pos not in tube_positions:
+                    missing_tube.append(rack_pos.label)
+
+            if len(additional_tubes) > 0:
+                msg = 'There unexpected tubes in the pool stock rack (%s): ' \
+                      '%s. Please remove them and try again.' % (rack.barcode,
+                      self._get_joined_str(additional_tubes))
+                self.add_error(msg)
+            if len(non_empty_tube) > 0:
+                msg = 'The following tubes in the pool stock rack (%s) are ' \
+                      'not empty: %s. Please replace them by empty tubes and ' \
+                      'try again.' % (rack.barcode,
+                                      self._get_joined_str(non_empty_tube))
+                self.add_error(msg)
+            if len(missing_tube) > 0:
+                msg = 'There are tubes missing in the following positions ' \
+                      'of the pool stock rack (%s): %s.' % (rack.barcode,
+                       self._get_joined_str(missing_tube))
                 self.add_error(msg)
 
     def _check_for_previous_execution(self):
@@ -257,6 +313,10 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
         for ew in executed_worklists:
             if ew.planned_worklist.label == exp_label:
                 self._executed_stock_worklists.append(ew)
+
+    def _update_iso_status(self):
+        self.entity.status = ISO_STATUS.DONE
+        self.__create_stock_samples()
 
     def __create_stock_samples(self):
         """
@@ -318,12 +378,11 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
                    % (', '.join(sorted(diff_supplier)))
             self.add_error(msg)
 
-    def _update_iso_status(self):
-        self.entity.status = ISO_STATUS.DONE
-
+    #pylint: disable=W0613
     def _get_file_map(self, merged_stream_map, rack_transfer_stream):
         """
         We do not need to implement this method because printing mode is not
         not allowed anyway.
         """
         self.add_error('Printing mode is not allowed for this tool!')
+    #pylint: disable=W0613
