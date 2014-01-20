@@ -7,14 +7,14 @@ from everest.testing import RdbContextManager
 from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.iso.lab.base import FinalLabIsoPosition
 from thelma.automation.tools.iso.lab.stockrack.base import StockTubeContainer
-from thelma.automation.tools.stock.tubepicking import MultiPoolQuery
-from thelma.interfaces import ITube
 from thelma.automation.tools.iso.lab.stockrack.tubepicking \
     import LabIsoXL20TubePicker
 from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
+from thelma.automation.tools.stock.tubepicking import MultiPoolQuery
 from thelma.automation.tools.stock.tubepicking import SinglePoolQuery
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
+from thelma.interfaces import ITube
 from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
@@ -97,7 +97,6 @@ class LabIsoXL20TubePickerTestCase(ToolsAndUtilsTestCase):
 
     def _test_and_expect_errors(self, msg=None):
         ToolsAndUtilsTestCase._test_and_expect_errors(self, msg=msg)
-        self.assert_is_none(self.tool.get_tube_map())
         self.assert_is_none(self.tool.get_missing_pools())
 
     def __check_result(self):
@@ -236,6 +235,10 @@ class LabIsoXL20TubePickerTestCase(ToolsAndUtilsTestCase):
             self.assert_is_not_none(containers)
             self._check_warning_messages('Some scheduled tubes had to be ' \
                     'replaced because their volume was not sufficient anymore')
+            self._check_warning_messages('replaced by: could not be replaced')
+            missing_pool = self.tool.get_missing_pools()
+            self.assert_equal(len(missing_pool), 1)
+            self.assert_equal(missing_pool[0].id, container.pool.id)
 
     def test_concentration_mismatch(self):
         with RdbContextManager() as session:

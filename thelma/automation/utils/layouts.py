@@ -1558,6 +1558,11 @@ class TransferLayout(MoleculeDesignPoolLayout):
     _TRANSFER_TARGET_PARAMETERS = POSITION_CLS.PARAMETER_SET.\
                                   TRANSFER_TARGET_PARAMETERS
 
+    #: By default, each transfer targets within a layout must be unique.
+    #: This is only compared within the parameter.
+    ALLOW_DUPLICATE_TARGET_WELLS = {POSITION_CLS.PARAMETER_SET.\
+                                    TRANSFER_TARGETS : False}
+
     def __init__(self, shape):
         """
         Constructor:
@@ -1585,6 +1590,8 @@ class TransferLayout(MoleculeDesignPoolLayout):
         for parameter in self._TRANSFER_TARGET_PARAMETERS:
             target_list = working_position.get_transfer_target_list(parameter)
             tt_map = self._transfer_target_map[parameter]
+            allow_duplicates = self.ALLOW_DUPLICATE_TARGET_WELLS[parameter]
+            if allow_duplicates: continue
             if not len(target_list) < 1:
                 for tt in target_list:
                     if tt_map.has_key(tt.hash_value):

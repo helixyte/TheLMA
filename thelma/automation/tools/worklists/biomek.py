@@ -40,7 +40,7 @@ class BiomekWorklistWriter(WorklistWriter):
     #: The header for the target position column.
     TARGET_POS_HEADER = 'DestinationPlateWell'
     #: The header for the transfer volume.
-    TRANSFER_VOLUME_COLUMN = 'Volume'
+    TRANSFER_VOLUME_HEADER = 'Volume'
 
     #: The index for the source rack column.
     SOURCE_RACK_INDEX = 0
@@ -124,7 +124,7 @@ class BiomekWorklistWriter(WorklistWriter):
                     self.TARGET_POS_INDEX, self.TARGET_POS_HEADER,
                     self._target_pos_values)
         volume_column = CsvColumnParameters.create_csv_parameter_map(
-                    self.TRANSFER_VOLUME_INDEX, self.TRANSFER_VOLUME_COLUMN,
+                    self.TRANSFER_VOLUME_INDEX, self.TRANSFER_VOLUME_HEADER,
                     self._volume_values)
         self._column_map_list = [source_rack_column, source_pos_column,
                                  target_rack_column, target_pos_column,

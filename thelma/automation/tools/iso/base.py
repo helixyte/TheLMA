@@ -45,6 +45,9 @@ class _ISO_LABELS_BASE(object):
     #: Marker for worklist target racks in keyword dictionaries.
     MARKER_WORKLIST_TARGET = 'target_rack_marker'
 
+
+    #: Marker for ISO or ISO job number.
+    MARKER_ENTITY_NUM = 'entity_num'
     #: Marks the roles of a rack (e.g. stock rack, final plate). Is part
     #: of rack labels.
     MARKER_RACK_ROLE = 'rack_role'
@@ -56,6 +59,8 @@ class _ISO_LABELS_BASE(object):
     #: For dilution worklists. Located after the target rack. In ISOs
     #: the diluent is always buffer.
     _FILL_WORKLIST_DILUTION = 'buffer'
+    #: Is part of the ISO job label.
+    _FILL_ISO_JOB = 'job'
 
     @classmethod
     def _create_label(cls, value_parts, for_numbering=False):
@@ -97,6 +102,24 @@ class _ISO_LABELS_BASE(object):
             rack_num = cls._parse_int_str(value_parts[1])
             values[cls.MARKER_RACK_NUM] = rack_num
         return values
+
+    @classmethod
+    def get_new_job_number(cls, iso_request):
+        """
+        Returns the number for a new ISO job. The number is one larger than the
+        largest ISO Job number existing for this ISO request.
+        """
+        highest_number = 0
+        for iso_job in iso_request.iso_jobs:
+            number = cls.__get_job_number(iso_job)
+            highest_number = max(highest_number, number)
+
+        return highest_number + 1
+
+    @classmethod
+    def __get_job_number(cls, iso_job):
+        value_parts = cls._get_value_parts(iso_job.label)
+        return cls._parse_int_str(value_parts[2])
 
     @classmethod
     def _get_value_parts(cls, label, for_numbering=False):
@@ -166,9 +189,6 @@ class IsoRackContainer(object):
         #: Final, preparation or stock preparation plate or stock rack
         #: (see :class:`LABELS`).
         self.role = role
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and other.rack == self.rack
 
     def __cmp__(self, other):
         return cmp(self.label, other.label)

@@ -634,6 +634,8 @@ class TubePicker(SessionTool):
         if not self.has_errors(): self._get_stock_samples()
         if not self.has_errors() and len(self._stock_samples) > 0:
             self._run_optimizer()
+        if not self.has_errors():
+            self._look_for_missing_candidates()
 
         if not self.has_errors():
             self.return_value = self._picked_candidates
@@ -750,18 +752,30 @@ class TubePicker(SessionTool):
         By default, requested tubes come first. All other tubes are sorted
         by volume.
         """
-        for pool, candidates in self._picked_candidates.iteritems():
-            requested = []
-            not_requested = []
-            for candidate in candidates:
-                if candidate.tube_barcode in self.requested_tubes:
-                    clist = requested
-                else:
-                    clist = not_requested
-                clist.append(candidate)
-            sorted_candidates = self.__sort_by_volume(requested) \
-                                + self.__sort_by_volume(not_requested)
-            self._picked_candidates[pool] = sorted_candidates
+        if isinstance(self._picked_candidates, dict):
+            for pool, candidates in self._picked_candidates.iteritems():
+                sorted_candidates = self.__sort_candidate_list(candidates)
+                self._picked_candidates[pool] = sorted_candidates
+        else:
+            self._picked_candidates = self.__sort_candidate_list(
+                                                    self._picked_candidates)
+
+    def __sort_candidate_list(self, candidates):
+        """
+        Helper method sorting the given list of candidates.
+        Requested tubes come first. The remaining tubes are sorted by volume.
+        """
+        requested = []
+        not_requested = []
+        for candidate in candidates:
+            if candidate.tube_barcode in self.requested_tubes:
+                clist = requested
+            else:
+                clist = not_requested
+            clist.append(candidate)
+        sorted_candidates = self.__sort_by_volume(requested) \
+                            + self.__sort_by_volume(not_requested)
+        return sorted_candidates
 
     def __sort_by_volume(self, candidate_list):
         """
@@ -775,3 +789,24 @@ class TubePicker(SessionTool):
             sorted_candidates.extend(volume_map[volume])
         return sorted_candidates
 
+    def _look_for_missing_candidates(self):
+        """
+        By default we check whether there is a candidate for each requested
+        molecule design pool.
+        """
+        found_pools = set()
+        if isinstance(self._picked_candidates, dict):
+            for pool, candidates in self._picked_candidates.iteritems():
+                if len(candidates) > 0:
+                    found_pools.add(pool)
+        else:
+            for candidate in self._picked_candidates:
+                found_pools.add(candidate.pool)
+
+        if not len(found_pools) == len(self.molecule_design_pools):
+            diff = []
+            for pool in self.molecule_design_pools:
+                if not pool in found_pools: diff.append(pool)
+            msg = 'Unable to find valid tubes for the following pools: ' \
+                  '%s.' % (self._get_joined_str(diff, is_strs=False))
+            self.add_warning(msg)

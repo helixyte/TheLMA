@@ -103,17 +103,12 @@ class LABELS(_ISO_LABELS_BASE):
     #: Marker for ticket number in keyword dictionaries.
     MARKER_TICKET_NUMBER = 'ticket_number'
 
-    #: Marker for ISO or ISO job number.
-    MARKER_ENTITY_NUM = 'entity_num'
-
     #: For transfer worklists. Located between source and target rack.
     __FILL_WORKLIST_TRANSFER = 'to'
     #: For ISOs. Located between ticket and ISO number.
     __FILL_ISO = 'iso'
     #: Is attached to ISOs that are copies of other ISOs.
     __ISO_COPY_MARKER = 'copy'
-    #: For ISOs. Located between ticket and job number.
-    __FILL_ISO_JOB = 'job'
 
     @classmethod
     def create_iso_label(cls, ticket_number, iso_number, create_copy=False):
@@ -169,26 +164,8 @@ class LABELS(_ISO_LABELS_BASE):
         (you can get a new ISO number with :func:`get_new_job_number`).
         """
         job_num_str = '%02i' % (job_number)
-        value_parts = [ticket_number, cls.__FILL_ISO_JOB, job_num_str]
+        value_parts = [ticket_number, cls._FILL_ISO_JOB, job_num_str]
         return cls._create_label(value_parts)
-
-    @classmethod
-    def get_new_job_number(cls, iso_request):
-        """
-        Returns the number for a new ISO job. The number is one larger than the
-        largest ISO Job number existing for this ISO request.
-        """
-        highest_number = 0
-        for iso_job in iso_request.iso_jobs:
-            number = cls.__get_job_number(iso_job)
-            highest_number = max(highest_number, number)
-
-        return highest_number + 1
-
-    @classmethod
-    def __get_job_number(cls, iso_job):
-        value_parts = cls._get_value_parts(iso_job.label)
-        return cls._parse_int_str(value_parts[2])
 
     @classmethod
     def create_rack_label(cls, rack_marker, entity_label):
@@ -637,7 +614,7 @@ class LabIsoPosition(TransferPosition):
                 msg = 'The tube candidate for a fixed position must not be ' \
                       'None!'
                 raise ValueError(msg)
-            elif not tube_candidate.pool_id == pool.id:
+            elif not tube_candidate.pool_id == pool.id: #pylint: disable=E1103
                 msg = 'The pools of the position (%s) and the tube candidate ' \
                       '(%i) do not match!' % (pool, tube_candidate.pool_id)
                 raise ValueError(msg)
@@ -1354,6 +1331,9 @@ class LabIsoPrepLayout(LabIsoLayout):
     Represents a lab ISO preparation plate.
     """
     POSITION_CLS = LabIsoPrepPosition
+    ALLOW_DUPLICATE_TARGET_WELLS = dict(
+            LabIsoLayout.ALLOW_DUPLICATE_TARGET_WELLS,
+            **{POSITION_CLS.PARAMETER_SET.EXTERNAL_TRANSFER_TARGETS : False})
 
 
 class LabIsoPrepLayoutConverter(LabIsoLayoutConverter):

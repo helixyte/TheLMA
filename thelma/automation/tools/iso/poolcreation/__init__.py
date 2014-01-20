@@ -1,12 +1,18 @@
 """
 Short cuts for tools involved in lab ISO processing.
 """
-from thelma.automation.tools.iso.poolcreation.generation import StockSampleCreationIsoRequestGenerator
-from thelma.automation.tools.iso.poolcreation.ticket import StockSampleCreationIsoCreator
-from thelma.automation.tools.iso.poolcreation.writer import StockSampleCreationWorklistWriter
-from thelma.automation.tools.iso.poolcreation.ticket import StockSampleCreationTicketWorklistUploader
-from thelma.automation.tools.iso.poolcreation.execution import StockSampleCreationExecutor
-from thelma.automation.tools.iso.poolcreation.ticket import StockSampleCreationStockTransferReporter
+from thelma.automation.tools.iso.poolcreation.execution \
+    import StockSampleCreationExecutor
+from thelma.automation.tools.iso.poolcreation.generation \
+    import StockSampleCreationIsoCreator
+from thelma.automation.tools.iso.poolcreation.generation \
+    import StockSampleCreationIsoRequestGenerator
+from thelma.automation.tools.iso.poolcreation.execution \
+    import StockSampleCreationStockTransferReporter
+from thelma.automation.tools.iso.poolcreation.writer \
+    import StockSampleCreationTicketWorklistUploader
+from thelma.automation.tools.iso.poolcreation.writer \
+    import StockSampleCreationWorklistWriter
 
 
 __docformat__ = 'reStructuredText en'
@@ -49,16 +55,35 @@ def get_iso_request_generator(iso_request_label, stream, requester,
     return StockSampleCreationIsoRequestGenerator(**kw)
 
 
-def get_iso_generator(iso_request, **kw):
+def get_iso_generator(iso_request, ticket_numbers=None, reporter=None, **kw):
     """
     Factory method creating a :class:`StockSampleCreationIsoCreator` that
     generates ISOs for the passed ISO request.
 
+    IMPORTANT: This tool must not launch warnings or be interrupted, otherwise
+        some or all tickets will be created multiple times.
+
     :param iso_request: The ISO request for which to generate the ISOs.
     :type iso_request:
         :class:`thelma.models.iso.StockSampleGenerationIsoRequest`
+
+    :param ticket_numbers: The user might specify ticket numbers for the
+        ISO tickets. The number of ticket number must either be 1 (in
+        which case all ISOs get the same ticket number) or equal to the
+        number of ISOs. If there is no ticket number specified, the
+        tool will generate new tickets for each ISO.
+        Attention: It is not checked whether these given tickets exist!
+    :type ticket_numbers: :class:`list` of `int`
+    :default ticket_numbers: *None*
+
+    :param reporter: This user will become reporter of the tickets (if
+        new tickets are created). If you do not want to create tickets,
+        the user might be *None*.
+    :type reporter: :class:`thelma.models.user.User`
+    :default reporter: *None*
     """
-    kw.update(dict(iso_request=iso_request))
+    kw.update(dict(iso_request=iso_request, ticket_numbers=ticket_numbers,
+                   reporter=reporter))
     return StockSampleCreationIsoCreator(**kw)
 
 def get_worklist_writer(iso, tube_destination_racks, pool_stock_rack_barcode,

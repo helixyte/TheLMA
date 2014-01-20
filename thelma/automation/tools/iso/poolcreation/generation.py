@@ -19,25 +19,36 @@ from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.iso.poolcreation.base import DILUENT_INFO
 from thelma.automation.tools.iso.poolcreation.base import LABELS
 from thelma.automation.tools.iso.poolcreation.base import VolumeCalculator
 from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.automation.tools.stock.base import get_default_stock_concentration
+from thelma.automation.tracbase import BaseTracTool
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import is_valid_number
+from thelma.models.iso import StockSampleCreationIso
 from thelma.models.iso import StockSampleCreationIsoRequest
 from thelma.models.liquidtransfer import PlannedSampleDilution
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.liquidtransfer import WorklistSeries
+from thelma.models.racklayout import RackLayout
 from thelma.models.user import User
+from tractor import create_wrapper_for_ticket_creation
+from tractor.ticket import SEVERITY_ATTRIBUTE_VALUES
+from tractor.ticket import TYPE_ATTRIBUTE_VALUES
+from xmlrpclib import Fault
+from xmlrpclib import ProtocolError
 
 __docformat__ = 'reStructuredText en'
 
 __all__ = ['StockSampleCreationIsoRequestGenerator',
-           'StockSampleCreationWorklistGenerator']
+           'StockSampleCreationWorklistGenerator',
+           '_StockSampleCreationTicketGenerator',
+           'StockSampleCreationIsoCreator']
 
 
 class StockSampleCreationIsoRequestGenerator(BaseAutomationTool):
@@ -54,7 +65,7 @@ class StockSampleCreationIsoRequestGenerator(BaseAutomationTool):
     """
     NAME = 'Stock Sample Creation ISO Request Generator'
 
-    def __init__(self, iso_request_label, stream, requester, target_volume,
+    def __init__(self, iso_request_label, stream, target_volume,
                  target_concentration, **kw):
         """
         Constructor:
@@ -65,11 +76,6 @@ class StockSampleCreationIsoRequestGenerator(BaseAutomationTool):
 
         :param stream: Excel file stream containing a sheet with the
             molecule design data.
-
-        :param requester: This user will be the reporter and owner of the ISO
-            trac tickets and requester for the ISO request. The owner of the
-            request however, will be the stock management.
-        :type requester: :class:`thelma.models.user.User`
 
         :param target_volume: The final volume for the new pool stock tubes
             in ul.
@@ -85,8 +91,6 @@ class StockSampleCreationIsoRequestGenerator(BaseAutomationTool):
         self.iso_request_label = iso_request_label
         #: Excel file stream containing one sheet with the molecule design data.
         self.stream = stream
-        #: This user will be owner and reporter of the ISO trac tickets.
-        self.requester = requester
         #: The final volume for the new pool stock tubes in ul.
         self.target_volume = target_volume
         #: The final pool concentration for the new pool stock tubes in nM.
@@ -137,7 +141,6 @@ class StockSampleCreationIsoRequestGenerator(BaseAutomationTool):
         """
         self._check_input_class('ISO request label', self.iso_request_label,
                                 basestring)
-        self._check_input_class('requester', self.requester, User)
         numbers = {self.target_volume : 'target volume for the pool tubes',
                    self.target_concentration :
                         'target concentration for the pool tubes'}
@@ -186,7 +189,6 @@ class StockSampleCreationIsoRequestGenerator(BaseAutomationTool):
                              number_designs=self.__number_designs,
                              stock_concentration=self.__stock_concentration)
 
-
         generator = StockSampleCreationWorklistGenerator(log=self.log,
                           volume_calculator=volume_calculator,
                           iso_request_label=self.iso_request_label)
@@ -204,14 +206,13 @@ class StockSampleCreationIsoRequestGenerator(BaseAutomationTool):
                       'increased slightly because of the constraints of the ' \
                       'pipetting robot (%s, min. transfer volume: %s ul, ' \
                       'step size: 0.1 ul). The target volume will be increased ' \
-                      'from %s ul to %s ul. Do you want to proceed?' \
+                      'from %s ul to %s ul.' \
                       % (robot_specs.name,
                          get_trimmed_string(robot_specs.min_transfer_volume \
                                             * VOLUME_CONVERSION_FACTOR),
                          get_trimmed_string(self.target_volume),
                          get_trimmed_string(self.__adj_target_volume))
                 self.add_warning(msg)
-
 
     def __determine_number_of_isos(self):
         """
@@ -236,7 +237,10 @@ class StockSampleCreationIsoRequestGenerator(BaseAutomationTool):
         """
         self.add_debug('Create ISO request ...')
 
-        stock_vol = self.target_volume / VOLUME_CONVERSION_FACTOR
+        vol = self.target_volume
+        if self.__adj_target_volume is not None:
+            vol = self.__adj_target_volume
+        stock_vol = vol / VOLUME_CONVERSION_FACTOR
         stock_conc = self.target_concentration / CONCENTRATION_CONVERSION_FACTOR
 
         iso_request = StockSampleCreationIsoRequest(
@@ -244,7 +248,6 @@ class StockSampleCreationIsoRequestGenerator(BaseAutomationTool):
                     stock_volume=stock_vol,
                     stock_concentration=stock_conc,
                     number_designs=self.__number_designs,
-                    requester=self.requester,
                     owner=STOCKMANAGEMENT_USER,
                     expected_number_isos=self.__expected_number_isos,
                     number_aliquots=0,
@@ -269,9 +272,6 @@ class StockSampleCreationWorklistGenerator(BaseAutomationTool):
 
     #: The index for the buffer worklist within the series.
     BUFFER_WORKLIST_INDEX = 0
-
-    #: The dilution info for the buffer worklists.
-    DILUENT_INFO = 'annealing buffer'
 
     def __init__(self, log, volume_calculator, iso_request_label):
         """
@@ -356,7 +356,301 @@ class StockSampleCreationWorklistGenerator(BaseAutomationTool):
                                  transfer_type=TRANSFER_TYPES.SAMPLE_DILUTION,
                                  pipetting_specs=get_pipetting_specs_cybio())
             for rack_pos in get_positions_for_shape(RACK_SHAPE_NAMES.SHAPE_96):
-                psd = PlannedSampleDilution(volume=volume,
-                      target_position=rack_pos, diluent_info=self.DILUENT_INFO)
+                psd = PlannedSampleDilution.get_entity(volume=volume,
+                      target_position=rack_pos, diluent_info=DILUENT_INFO)
                 wl.planned_liquid_transfers.append(psd)
             self.__worklist_series.add_worklist(self.BUFFER_WORKLIST_INDEX, wl)
+
+
+class StockSampleCreationIsoCreator(BaseAutomationTool):
+    """
+    Creates ticket and ISOs for a pool stock sample creation ISO request.
+    This step is not involved in ISO request generation because ISO generation
+    might involve the generation of Trac tickets.
+
+    Before running the tool will check whether there are already ISOs for
+    this ISO request. The tool will create the remaining ISOs (using the
+    number of plates in the ISO request as target number).
+
+    IMPORTANT: This tool must not launch warnings or be interrupted, otherwise
+        some or all tickets will be created multiple times.
+
+    **Return Value:** The updated ISO request (incl. ISOs).
+    """
+    NAME = 'Stock Sample Generation ISO Creator'
+
+    def __init__(self, iso_request, ticket_numbers=None, reporter=None, **kw):
+        """
+        Constructor:
+
+        :param iso_request: The ISO request for which to generate the ISOs.
+        :type iso_request:
+            :class:`thelma.models.iso.StockSampleGenerationIsoRequest`
+
+        :param ticket_numbers: The user might specify ticket numbers for the
+            ISO tickets. The number of ticket number must either be 1 (in
+            which case all ISOs get the same ticket number) or equal to the
+            number of ISOs. If there is no ticket number specified, the
+            tool will generate new tickets for each ISO.
+            Attention: It is not checked whether these given tickets exist!
+        :type ticket_numbers: :class:`list` of `int`
+        :default ticket_numbers: *None*
+
+        :param reporter: This user will become reporter of the tickets (if
+            new tickets are created). If you do not want to create tickets,
+            the user might be *None*.
+        :type reporter: :class:`thelma.models.user.User`
+        :default reporter: *None*
+        """
+        BaseAutomationTool.__init__(self, depending=False, **kw)
+
+        #: The ISO request for which to generate the ISOs.
+        self.iso_request = iso_request
+        #: The user might specify ticket numbers for the ISO tickets.
+        #: The number of ticket number must either be 1 (in which case all
+        #: ISOs get the same ticket number) or equal to the number of ISOs.
+        #: If there is no ticket number specified, the tool will generate
+        #: new tickets for each ISO.
+        self.ticket_numbers = ticket_numbers
+        # See also :func:`__check_counts_and_numbers`.
+
+        #: This user will become reporter of the tickets (if new tickets are
+        #: created). If you do not want to create tickets, the user might
+        #: be *None*.
+        self.reporter = reporter
+
+        #: The number of ISOs created (for checking reasons).
+        self.__new_iso_counter = None
+
+    def reset(self):
+        BaseAutomationTool.reset(self)
+        self.__new_iso_counter = 0
+
+    def run(self):
+        """
+        Creates tickets and ISOs.
+        """
+        self.reset()
+        self.add_info('Start ISO generation ...')
+
+        self.__check_input()
+        if not self.has_errors(): self.__check_counts_and_numbers()
+        if not self.has_errors(): self.__create_isos()
+        if not self.has_errors():
+            self.return_value = self.iso_request
+            self.add_info('%i ISOs have been created.' \
+                           % (self.__new_iso_counter))
+
+    def __check_input(self):
+        self._check_input_class('ISO request', self.iso_request,
+                                StockSampleCreationIsoRequest)
+        if self.ticket_numbers is None:
+            if not isinstance(self.reporter, User):
+                msg = 'If you do not specify ticket numbers, you have to ' \
+                      'provide a reporter for the ISO tickets! The reporter ' \
+                      'must be %s object!' % (User.__name__)
+                self.add_error(msg)
+        else:
+            if self._check_input_list_classes('ticket number',
+                               self.ticket_numbers, int, may_be_empty=True):
+                if len(self.ticket_numbers) == 0:
+                    self.ticket_numbers = None
+
+    def __check_counts_and_numbers(self):
+        """
+        The number of specified ticket IDs (if there are any) must either be
+        one or equal to the number of remaining ISOs. Usually the number
+        of remaining ISOs should be equal to the number of ISOs in total.
+        It only differs if for some reason, ISOs have been created before
+        externally.
+        """
+        exp_num_isos = self.iso_request.expected_number_isos
+        iso_count = len(self.iso_request.isos)
+        if iso_count >= exp_num_isos:
+            msg = 'The ISOs have already been created.'
+            self.add_error(msg)
+        remaining_isos = exp_num_isos - iso_count
+
+        if not self.has_errors() and not self.ticket_numbers is None:
+            if not len(self.ticket_numbers) in (1, remaining_isos):
+                msg = 'You must specify either 1 ticket number (in which ' \
+                      'case all ISOs will get the same ticket number) or ' \
+                      'one for each ISO to generate (%i). You specified ' \
+                      '%i numbers: %s.' \
+                       % (remaining_isos, len(self.ticket_numbers),
+                       self._get_joined_str(self.ticket_numbers, is_strs=False))
+                self.add_error(msg)
+
+    def __create_isos(self):
+        """
+        Creates the ISOs. At this the tool checks whether there are already
+        ISOs at the ISO request. The tool add ISOs until the number of plates
+        (ISO request attribute) is reached.
+        """
+        self.add_debug('Create ISOs ...')
+
+        iso_count = len(self.iso_request.isos)
+        for i in range(iso_count, self.iso_request.expected_number_isos):
+            layout_number = i + 1
+            iso_label = LABELS.create_iso_label(self.iso_request.label,
+                                                layout_number)
+            ticket_number = self.__get_ticket_number(iso_label, layout_number)
+            if ticket_number is None: break
+            StockSampleCreationIso(label=iso_label,
+                     ticket_number=ticket_number,
+                     layout_number=layout_number,
+                     iso_request=self.iso_request,
+                     number_stock_racks=self.iso_request.number_designs,
+                     rack_layout=RackLayout(shape=get_96_rack_shape()))
+            self.__new_iso_counter += 1
+
+    def __get_ticket_number(self, iso_label, layout_number):
+        """
+        If there are ticket numbers specified by the user, one of these numbers
+        is returned. Otherwise a new ticket will be created.
+        """
+        if self.ticket_numbers is None:
+            ticket_creator = _StockSampleCreationTicketGenerator(
+                                requester=self.reporter,
+                                iso_label=iso_label,
+                                layout_number=layout_number,
+                                log=self.log)
+            ticket_number = ticket_creator.get_ticket_id()
+            if ticket_number is None:
+                msg = 'Error when trying to generate ISO "%s".' % (iso_label)
+                self.add_error(msg)
+                return None
+            return ticket_number
+        elif len(self.ticket_numbers) == 1:
+            return self.ticket_numbers[0]
+        else:
+            return self.ticket_numbers.pop(0)
+
+
+class _StockSampleCreationTicketGenerator(BaseTracTool):
+    """
+    Creates an pool stock sample creation trac ticket for a new ISO.
+
+    **Return Value:** ticket ID
+    """
+
+    NAME = 'Pool Creation Ticket Creator'
+
+    #: The value for the ticket summary (title). The placeholder will contain
+    #: the ISO label.
+    SUMMARY = 'Pool Stock Sample Creation ISO (%s)'
+
+    #: The description for the empty ticket.
+    DESCRIPTION_TEMPLATE = "Autogenerated ticket for pool creation ISO " \
+                           "'''%s'''.\n\nLayout number: %i\n\n"
+
+    #: The value for ticket type.
+    TYPE = TYPE_ATTRIBUTE_VALUES.TASK
+    #: The value for the ticket's severity.
+    SEVERITY = SEVERITY_ATTRIBUTE_VALUES.NORMAL
+    #: The value for the ticket cc.
+    CC = '%s, it' % (STOCKMANAGEMENT_USER)
+
+    #: The value for the ticket's component.
+    COMPONENT = 'Logistics'
+
+    def __init__(self, requester, iso_label, layout_number, log):
+        """
+        Constructor:
+
+        :param requester: The user who will be owner and reporter of the ticket.
+        :type requester: :class:`thelma.models.user.User`
+
+        :param iso_label: The label of the ISO this ticket belongs to.
+        :type iso_label: :class:`basestring`
+
+        :param layout_number: References the serial number ID of the ISO
+            (within the ISO request space).
+        :type layout_number: :class:`int`
+
+        :param log: The log to record events.
+        :type log: :class:`thelma.ThelmaLog`
+        """
+        BaseTracTool.__init__(self, log=log)
+
+        #: The user who will be owner and reporter of the ticket (corresponds
+        #: the requester of the ISO request).
+        self.requester = requester
+        #: The label of the ISO this ticket belongs to.
+        self.iso_label = iso_label
+        #: References the library layout the ISO is created for.
+        self.layout_number = layout_number
+
+        #: The ticket wrapper storing the value applied to the ticket.
+        self._ticket = None
+
+    def reset(self):
+        BaseTracTool.reset(self)
+        self._ticket = None
+
+    def get_ticket_id(self):
+        """
+        Sends a request and returns the ticket ID generated by the trac.
+        """
+        self.send_request()
+        return self.return_value
+
+    def send_request(self):
+        """
+        Prepares and sends the Trac ticket creation request.
+        """
+        self.reset()
+        self.add_info('Create ISO request ticket ...')
+
+        self.__check_input()
+        if not self.has_errors(): self.__create_ticket_wrapper()
+        if not self.has_errors(): self.__submit_request()
+
+    def __check_input(self):
+        """
+        Checks the initialisation values.
+        """
+        self.add_debug('Check input ...')
+
+        self._check_input_class('requester', self.requester, User)
+        self._check_input_class('ISO label', self.iso_label, basestring)
+        self._check_input_class('layout number', self.layout_number, int)
+
+    def __create_ticket_wrapper(self):
+        """
+        Creates the ticket wrapper to be sent.
+        """
+        self.add_debug('Create ticket wrapper ...')
+
+        description = self.DESCRIPTION_TEMPLATE % (self.iso_label,
+                                                   self.layout_number)
+        summary = self.SUMMARY % (self.iso_label)
+
+        self._ticket = create_wrapper_for_ticket_creation(
+                                summary=summary,
+                                description=description,
+                                reporter=self.requester.directory_user_id,
+                                owner=self.requester.directory_user_id,
+                                component=self.COMPONENT,
+                                cc=self.CC,
+                                type=self.TYPE,
+                                severity=self.SEVERITY)
+
+    def __submit_request(self):
+        """
+        Submits the request to the trac.
+        """
+        self.add_debug('Send request ...')
+
+        try:
+            ticket_id = self.tractor_api.create_ticket(notify=self.NOTIFY,
+                                                ticket_wrapper=self._ticket)
+        except ProtocolError, err:
+            self.add_error(err.errmsg)
+        except Fault, fault:
+            msg = 'Fault %s: %s' % (fault.faultCode, fault.faultString)
+            self.add_error(msg)
+        else:
+            self.return_value = ticket_id
+            self.add_info('Ticket created (ID: %i).' % (ticket_id))
+            self.was_successful = True

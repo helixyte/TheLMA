@@ -33,6 +33,7 @@ from thelma.models.rack import Rack
 from thelma.models.rack import RackPosition
 from thelma.models.user import User
 from thelma.utils import get_utc_time
+from thelma.automation.utils.base import add_list_map_element
 
 __docformat__ = 'reStructuredText en'
 
@@ -1324,16 +1325,19 @@ class TargetSample(SampleData):
         """
         SampleData.__init__(self, volume=volume)
 
-        #: The transfer (singular!) using this sample as target.
-        self.__transfer = None
+        #: The transfer using this sample as target.
+        self.__transfers = []
 
     @property
     def final_volume(self):
         """
         The volume of the sample after the transfer.
         """
-        if self.__transfer is None: return self.volume
-        return self.volume + self.__transfer.volume
+        if len(self.__transfers) < 1: return self.volume
+        vol = self.volume
+        for transfer in self.__transfers:
+            vol += transfer.volume
+        return vol
 
     def create_and_add_transfer(self, planned_sample_dilution):
         """
@@ -1363,13 +1367,8 @@ class TargetSample(SampleData):
     def add_transfer(self, transfer_sample):
         """
         Registers pass transfer sample.
-
-        :raises AttributeError: If there is already a transfer present.
         """
-        if not self.__transfer is None:
-            raise AttributeError('There is already a transfer registered!')
-
-        self.__transfer = transfer_sample
+        self.__transfers.append(transfer_sample)
 
     def update_container_sample(self, container):
         """
@@ -1388,8 +1387,11 @@ class TargetSample(SampleData):
 
         updated_mds = set()
         transfer_components = dict()
-        if not self.__transfer is None:
-            transfer_components = self.__transfer.sample_components
+        md_transfers = dict()
+        for transfer in self.__transfers:
+            for md_id, comp in transfer.sample_components.iteritems():
+                transfer_components[md_id] = comp
+                add_list_map_element(md_transfers, md_id, transfer)
 
         # update existing sample molecules
         for sm in container.sample.sample_molecules:
@@ -1408,14 +1410,17 @@ class TargetSample(SampleData):
         # add new sample molecules
         for md_id, comp in transfer_components.iteritems():
             if md_id in updated_mds: continue
-            final_conc = self.__get_final_concentration(0, comp.concentration)
+            transfers = md_transfers[md_id]
+            final_conc = self.__get_final_concentration(0, comp.concentration,
+                                                        transfers)
             conv_final_conc = final_conc / CONCENTRATION_CONVERSION_FACTOR
             container.sample.make_sample_molecule(comp.molecule,
                                                   conv_final_conc)
 
         return container.sample
 
-    def __get_final_concentration(self, target_conc, transfer_conc):
+    def __get_final_concentration(self, target_conc, transfer_conc,
+                                  transfers=None):
         """
         Calculates the final concentration of a sample component using the
         following formula:
@@ -1425,7 +1430,10 @@ class TargetSample(SampleData):
                                         finalVol
         """
         transfer_volume = 0
-        if not self.__transfer is None: transfer_volume = self.__transfer.volume
+        if transfers is None:
+            transfers = self.__transfers
+        for transfer in transfers:
+            transfer_volume += transfer.volume
 
         target_product = target_conc * self.volume
         transfer_product = transfer_conc * transfer_volume
@@ -1435,8 +1443,8 @@ class TargetSample(SampleData):
         return final_conc
 
     def __repr__(self):
-        str_format = '<%s volume: %.1f ul, components: %s, transfer: %s>'
+        str_format = '<%s volume: %.1f ul, components: %s, transfers: %s>'
         params = (self.__class__.__name__, self.volume, self._sample_components,
-                  self.__transfer)
+                  len(self.__transfers))
         return str_format % params
 

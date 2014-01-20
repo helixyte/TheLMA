@@ -1,0 +1,23 @@
+====================================================
+
+
+General Settings
+----------------
+
+ISO: ssgen_test_01
+Layout number: 3
+Total number of tubes: 33
+Volume: 2 ul
+
+
+Destination Racks
+-----------------
+
+09999981
+09999982
+09999983
+
+
+Source Racks
+------------
+
