@@ -16,10 +16,10 @@ from thelma.automation.tools.iso.poolcreation.base \
 from thelma.automation.tools.iso.poolcreation.base \
     import SingleDesignStockRackLayoutConverter
 from thelma.automation.tools.iso.poolcreation.base \
+    import StockSampleCreationLayout
+from thelma.automation.tools.iso.poolcreation.base \
     import StockSampleCreationLayoutConverter
 from thelma.automation.tools.iso.poolcreation.base import LABELS
-from thelma.automation.tools.iso.poolcreation.base \
-    import StockSampleCreationLayout
 from thelma.automation.tools.iso.poolcreation.generation \
     import StockSampleCreationWorklistGenerator
 from thelma.automation.tools.iso.tracreporting import IsoStockTransferReporter

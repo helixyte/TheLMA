@@ -563,5 +563,3 @@ class StockSampleCreationStockTransferReporterTestCase(FileCreatorTestCase,
         self._continue_setup()
         self.iso.ticket_number += 1
         self._test_and_expect_errors()
-
-

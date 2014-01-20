@@ -207,13 +207,6 @@ class SSC_TEST_DATA(object):
 
     FILE_NAME_LOG = 'log_file.csv'
 
-    @classmethod
-    def get_log_file_name(cls, use_single_source_rack):
-        if use_single_source_rack:
-            return 'log_file_biomek.csv'
-        else:
-            return 'log_file_cybio.csv'
-
 
 class StockSampleCreationTestCase1(FileReadingTestCase):
     """
