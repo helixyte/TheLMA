@@ -635,6 +635,7 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter):
         MoleculeDesignPoolLayoutConverter._record_errors(self)
 
         if len(self.__invalid_target_string) > 0:
+            self.__correct_parameter_names(self.__invalid_target_string)
             msg = 'The following rack positions have invalid target position ' \
                   'descriptions: %s.' \
                    % (self._get_joined_map_str(self.__invalid_target_string,
@@ -642,12 +643,14 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter):
             self.add_error(msg)
 
         if len(self.__duplicate_targets) > 0:
+            self.__correct_parameter_names(self.__duplicate_targets)
             msg = 'There are duplicate target positions: %s!' \
                   % (self._get_joined_map_str(self.__duplicate_targets,
                                               'parameter "%s": %s'))
             self.add_error(msg)
 
         if len(self.__missing_transfer_target) > 0:
+            self.__correct_parameter_names(self.__missing_transfer_target)
             msg = 'Position of this type (%s) must have certain transfer ' \
                   'targets. The transfer targets are missing for the ' \
                   'following positions: %s.' \
@@ -655,6 +658,20 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter):
                      self._get_joined_map_str(self.__missing_transfer_target,
                                               'parameter "%s": %s'))
             self.add_error(msg)
+
+    def __correct_parameter_names(self, error_dict):
+        """
+        Replaces underscores in parameter names with white spaces.
+        """
+        del_parameters = []
+        new_params = dict()
+        for parameter, info_list in error_dict.iteritems():
+            new_param = parameter.replace('_', ' ')
+            new_params[new_param] = info_list
+            del_parameters.append(parameter)
+        for parameter in del_parameters:
+            del error_dict[parameter]
+        error_dict.update(new_params)
 
 
 class LibraryLayoutConverter(BaseLayoutConverter):

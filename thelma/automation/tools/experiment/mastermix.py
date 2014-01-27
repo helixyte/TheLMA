@@ -115,8 +115,7 @@ class ExperimentOptimisationWriterExecutor(ExperimentTool):
                     planned_worklist=transfer_worklist,
                     target_rack=plate,
                     source_rack=self._source_plate,
-                    ignored_positions=self._ignored_positions,
-                    pipetting_specs=transfer_worklist.pipetting_specs)
+                    ignored_positions=self._ignored_positions)
             self._transfer_jobs[counter] = transfer_job
             counter += 1
 
@@ -130,7 +129,7 @@ class ExperimentOptimisationWriterExecutor(ExperimentTool):
         worklist.
         """
         cell_ignored_positions = []
-        for pct in transfer_worklist.planned_transfers:
+        for pct in transfer_worklist.planned_liquid_transfers:
             source_pos = pct.source_position
             if source_pos in self._ignored_positions:
                 cell_ignored_positions.append(pct.target_position)
@@ -168,7 +167,7 @@ class ExperimentScreeningWriterExecutor(ExperimentTool):
 
     SUPPORTED_SCENARIOS = [EXPERIMENT_SCENARIOS.SCREENING,
                            EXPERIMENT_SCENARIOS.LIBRARY]
-    FILE_SUFFIX_TRANSFER = '_cybio_transfers.csv'
+    FILE_SUFFIX_TRANSFER = '_cybio_transfers.txt'
 
     def _check_mastermix_compatibility(self):
         """
@@ -193,7 +192,7 @@ class ExperimentScreeningWriterExecutor(ExperimentTool):
                   'experiment plate.'
             self.add_error(msg)
             return None
-        elif len(transfer_worklist.planned_transfers) > 1:
+        elif len(transfer_worklist.planned_liquid_transfers) > 1:
             msg = 'There is more than rack transfer in the transfer worklist!'
             self.add_error(msg)
             return None
@@ -217,7 +216,7 @@ class ExperimentScreeningWriterExecutor(ExperimentTool):
         """
         self.add_debug('Create cell plate transfer jobs ...')
 
-        rack_transfer = transfer_worklist.planned_transfers[0]
+        rack_transfer = transfer_worklist.planned_liquid_transfers[0]
         cell_worklist = self._get_cell_suspension_worklist(self._design_series)
         if cell_worklist is None:
             msg = 'Could not get worklist for transfer for the addition ' \
@@ -235,11 +234,10 @@ class ExperimentScreeningWriterExecutor(ExperimentTool):
                 plate = experiment_plate.rack
 
                 transfer_job = RackSampleTransferJob(index=counter,
-                                planned_rack_transfer=rack_transfer,
-                                target_rack=plate,
-                                source_rack=self._source_plate)
+                            planned_rack_sample_transfer=rack_transfer,
+                            target_rack=plate, source_rack=self._source_plate)
                 self._transfer_jobs[counter] = transfer_job
-                self._rack_transfer_worklists[counter] = cell_worklist
+                self._rack_transfer_worklists[counter] = transfer_worklist
                 counter += 1
 
                 if add_cell_jobs and not self.has_errors():
@@ -307,6 +305,7 @@ def __get_writer_executor(mode, experiment, user=None, log=None, **kw):
             raise TypeError(msg)
         else:
             log.add_error(msg)
+            return None
 
     kw.update(dict(mode=mode, experiment=experiment, user=user, log=log))
     return tool_cls(**kw)

@@ -726,6 +726,16 @@ class WriterExecutorIsoJob(_LabIsoWriterExecutorTool):
         else: # NO_ISO or ISO_FIRST
             return ISO_STATUS.DONE
 
+    def _update_iso_status(self):
+        """
+        If we use library plates, the state of the used library plates must
+        be set to "has been used".
+        """
+        _LabIsoWriterExecutorTool._update_iso_status(self)
+        for iso in self.entity.isos:
+            for lib_plate in iso.library_plates:
+                lib_plate.has_been_used = True
+
 
 class WriterExecutorLabIso(_LabIsoWriterExecutorTool):
     """

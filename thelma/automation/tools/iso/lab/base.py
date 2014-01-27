@@ -729,8 +729,8 @@ class LabIsoLayout(TransferLayout):
         floating_map = dict()
         for plate_pos in self.get_sorted_working_positions():
             if not plate_pos.is_floating: continue
-            add_list_map_element(floating_map, plate_pos.molecule_design_pool,
-                                 plate_pos)
+            add_list_map_element(floating_map,
+                                 str(plate_pos.molecule_design_pool), plate_pos)
 
         floating_positions = []
         for pool in sorted(floating_map.keys()):

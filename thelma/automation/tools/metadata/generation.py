@@ -112,6 +112,8 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
         :param requester: The user uploading the file.
         :type requester: :class:`thelma.models.user.User`
         """
+        if not kw.has_key('depending'):
+            kw['depending'] = False
         BaseAutomationTool.__init__(self, **kw)
 
         #: the open excelerator file
@@ -2187,7 +2189,7 @@ class RobotSupportDeterminatorLibrary(_RobotSupportDeterminator):
         if is_smaller_than(required_df, self.MIN_OPTIMEM_DILUTION_FACTOR):
             msg = 'The final concentration you have ordered is too large. ' \
                   'It requires an OptiMem dilution by the factor %.2f. The ' \
-                  'allowed minimum dilution factor is %i. Please increase ' \
+                  'allowed minimum dilution factor is %i. Please decrease ' \
                   'the final concentration.' \
                   % (required_df, self.MIN_OPTIMEM_DILUTION_FACTOR)
             self.add_error(msg)
@@ -2237,17 +2239,19 @@ class RobotSupportDeterminatorLibrary(_RobotSupportDeterminator):
             msg = 'Currently, the mastermix in the source plate would not ' \
                   'provide enough volume for all experiment cell plates ' \
                   '(required volume: %.1f ul, available (excl. dead volume): ' \
-                  '%.2f ul). Reduce the number of replicates, the number of ' \
+                  '%.2f ul). Robot support ist disabled now. To activate it ' \
+                  'reduce the number of replicates, the number of ' \
                   'design racks or the final concentration, please.' \
                   % (required_vol, available_vol)
-            self.add_error(msg)
-        else:
-            # The ISO volume is defined by the library and needs to be added
-            # in any case.
-            iso_vol = int(self.__iso_volume)
-            for tf_pos in self.source_layout.working_positions():
-                if tf_pos.is_untreated_type: continue
-                tf_pos.iso_volume = iso_vol
+            self.add_warning(msg)
+            self._has_compatible_volumes = False
+
+        # The ISO volume is defined by the library and needs to be added
+        # in any case.
+        iso_vol = int(self.__iso_volume)
+        for tf_pos in self.source_layout.working_positions():
+            if tf_pos.is_untreated_type: continue
+            tf_pos.iso_volume = iso_vol
 
     def _compare_iso_volumes(self, has_iso_volumes):
         """

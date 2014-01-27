@@ -469,9 +469,6 @@ class TransfectionPositionTestCase(_TransfectionClassesBaseTestCase):
                 *(tp1, 'optimem_dil_factor', 2))
         tp1.store_optimem_dilution_factor()
         self.assert_equal(tp1.optimem_dil_factor, 4)
-        self._expect_error(AttributeError, tp1.set_optimem_dilution_factor,
-                'The OptiMem dilution factor has already been set!',
-                **dict(optimem_df=2))
         attrs = self._get_init_data('b1')
         del attrs['optimem_dil_factor']
         tp2 = self._get_position('b1', attrs)
@@ -482,6 +479,9 @@ class TransfectionPositionTestCase(_TransfectionClassesBaseTestCase):
                 'The OptiMem dilution factor must be a positive number ' \
                 '(obtained: a)', **dict(optimem_df='a'))
         tp2.set_optimem_dilution_factor(9)
+        self._expect_error(AttributeError, tp2.set_optimem_dilution_factor,
+                'The OptiMem dilution factor has already been set!',
+                **dict(optimem_df=2))
         self.assert_equal(tp2.optimem_dil_factor, 9)
 
     def test_get_total_dilution_factor(self):

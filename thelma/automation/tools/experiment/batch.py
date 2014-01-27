@@ -11,7 +11,7 @@ from thelma.automation.tools.experiment.mastermix import get_experiment_executor
 from thelma.automation.tools.experiment.mastermix import get_experiment_writer
 from thelma.automation.tools.writers import create_zip_archive
 from thelma.automation.tools.writers import read_zip_archive
-from thelma.models.job import ExperimentJob
+from thelma.models.experiment import Experiment
 from thelma.models.user import User
 
 __docformat__ = 'reStructuredText en'
@@ -29,29 +29,24 @@ class ExperimentBatchTool(BaseAutomationTool):
     **Return Value:** None (depending on the subclass).
     """
 
-    def __init__(self, experiment_jobs, **kw):
+    def __init__(self, experiments, **kw):
         """
         Constructor:
 
-        :param experiment_jobs: A list of experiment jobs that all belong
+        :param experiment_jobs: A list of experiments that all belong
             to the same experiment design.
         :type experiment_jobs: :class:`list` of
-            :class:`thelma.models.job.ExperimentJob`
+            :class:`thelma.models.job.Experiment`
         """
         BaseAutomationTool.__init__(self, log=None, depending=False, **kw)
 
-        #: A list of experiment jobs.
-        self.experiment_jobs = experiment_jobs
-
-        #: The experiment for which to conduct the operations (only one
-        #: that have not been updated so far).
-        self._experiments = None
+        #: A list of experiments that all belong to the same experiment design.
+        self.experiments = experiments
         #: The experiment type of the experiment metadata.
         self._experiment_type = None
 
     def reset(self):
         BaseAutomationTool.reset(self)
-        self._experiments = []
         self._experiment_type = None
 
     def run(self):
@@ -70,8 +65,8 @@ class ExperimentBatchTool(BaseAutomationTool):
         Checks whether all initialisation values are valid.
         """
         self.add_debug('Check input ...')
-        self._check_input_list_classes('experiment job', self.experiment_jobs,
-                                       ExperimentJob)
+        self._check_input_list_classes('experiment', self.experiments,
+                                       Experiment)
 
     def __fetch_experiments(self):
         """
@@ -83,36 +78,27 @@ class ExperimentBatchTool(BaseAutomationTool):
         already_updated = []
         experiment_design = None
 
-        for ej in self.experiment_jobs:
-            for experiment in ej.experiments:
+        for experiment in self.experiments:
 
-                if experiment_design is None:
-                    experiment_design = experiment.experiment_design
-                elif not experiment.experiment_design == experiment_design:
-                    msg = 'The experiments belong to different experiment ' \
-                          'designs!' # there is no technical reason against
-                    self.add_error(msg)
+            if experiment_design is None:
+                experiment_design = experiment.experiment_design
+            elif not experiment.experiment_design == experiment_design:
+                msg = 'The experiments belong to different experiment ' \
+                      'designs!' # there is no technical reason against
+                self.add_error(msg)
+                break
+
+            has_been_updated = False
+            for exp_rack in experiment.experiment_racks:
+                if exp_rack.rack.status.name == ITEM_STATUS_NAMES.MANAGED:
+                    has_been_updated = True
                     break
-
-                has_been_updated = False
-                for exp_rack in experiment.experiment_racks:
-                    if exp_rack.rack.status.name == ITEM_STATUS_NAMES.MANAGED:
-                        has_been_updated = True
-                        break
-                if has_been_updated:
-                    already_updated.append(experiment.label)
-                else:
-                    self._experiments.append(experiment)
+            if has_been_updated:
+                already_updated.append(experiment.label)
 
         if not self.has_errors():
-
-            if len(self._experiments) < 1:
-                msg = 'There are no experiments awaiting update in your ' \
-                      'selection!'
-                self.add_error(msg)
-            else:
-                self._experiment_type = experiment_design.\
-                                        experiment_metadata_type
+            self._experiment_type = experiment_design.experiment_metadata.\
+                                    experiment_metadata_type
 
             if len(already_updated) > 0:
                 already_updated.sort()
@@ -138,20 +124,18 @@ class ExperimentBatchManualExecutor(ExperimentBatchTool):
 
     NAME = 'Experiment Batch Manual Updater'
 
-    def __init__(self, experiment_jobs, user, **kw):
+    def __init__(self, experiments, user, **kw):
         """
         Constructor:
 
-        :param experiment_jobs: A list of experiment jobs that all belong
+        :param experiment_jobs: A list of experiments that all belong
             to the same experiment design.
-        :type experiment_jobs: :class:`list` of
-            :class:`thelma.models.job.ExperimentJob`
+        :type experiment_jobs: :class:`list` of :class:`thelma.models.job.Experiment`
 
         :param user: The user who has committed the update.
         :type user: :class:`thelma.models.user.User`
         """
-        ExperimentBatchTool.__init__(self, experiment_jobs=experiment_jobs,
-                                     **kw)
+        ExperimentBatchTool.__init__(self, experiments=experiments, **kw)
 
         #: The user who has committed the update.
         self.user = user
@@ -162,12 +146,12 @@ class ExperimentBatchManualExecutor(ExperimentBatchTool):
 
     def _execute_experiment_task(self):
         """
-        Runs the :class:`ExperimentManualExecutor` for :attr:`_experiments`.
+        Runs the :class:`ExperimentManualExecutor` for :attr:`experiments`.
         """
         self.add_debug('Run manual updaters ...')
 
         updated_experiments = []
-        for experiment in self._experiments:
+        for experiment in self.experiments:
             executor = ExperimentManualExecutor(experiment=experiment,
                                                 user=self.user, log=self.log)
             updated_experiment = executor.get_result()
@@ -193,17 +177,15 @@ class ExperimentBatchWorklistWriter(ExperimentBatchTool):
     """
     NAME = 'Experiment Batch Worklist Writer'
 
-    def __init__(self, experiment_jobs, **kw):
+    def __init__(self, experiments, **kw):
         """
         Constructor:
 
-        :param experiment_jobs: A list of experiment jobs that all belong
+        :param experiments: A list of experiments that all belong
             to the same experiment design.
-        :type experiment_jobs: :class:`list` of
-            :class:`thelma.models.job.ExperimentJob`
+        :type experiments: :class:`list` of :class:`thelma.models.job.Experiment`
         """
-        ExperimentBatchTool.__init__(self, experiment_jobs=experiment_jobs,
-                                     **kw)
+        ExperimentBatchTool.__init__(self, experiments=experiments, **kw)
 
         #: Collects the zip streams for the experiments.
         self.__zip_streams = None
@@ -226,16 +208,18 @@ class ExperimentBatchWorklistWriter(ExperimentBatchTool):
 
     def __write_streams(self):
         """
-        Writes the zip streams for the :attr:`_experiments`.
+        Writes the zip streams for the :attr:`experiments`.
         """
         self.add_debug('Write streams ...')
 
-        for experiment in self._experiments:
-            kw = dict(experiment=experiment, log=self.log)
+        for experiment in self.experiments:
+            kw = dict(experiment=experiment)
             writer = self._run_and_record_error(get_experiment_writer,
-                    base_msg='Error when trying to fetch writer: ',
+                    base_msg='Error when trying to fetch writer for ' \
+                             'experiment "%s": ' % (experiment.label),
                     error_types=TypeError, **kw)
             if writer is None: continue
+            writer.log = self.log
             zip_stream = writer.get_result()
             if zip_stream is None:
                 msg = 'Error when trying to generate worklists for ' \
@@ -250,7 +234,6 @@ class ExperimentBatchWorklistWriter(ExperimentBatchTool):
         Reads the zip streams and generates a new common archive.
         """
         self.add_debug('Summarize zip archives ...')
-
 
         zip_map = dict()
         for zip_stream in self.__zip_streams:
@@ -271,20 +254,18 @@ class ExperimentBatchExecutor(ExperimentBatchTool):
 
     NAME = 'Experiment Batch Executor'
 
-    def __init__(self, experiment_jobs, user, **kw):
+    def __init__(self, experiments, user, **kw):
         """
         Constructor:
 
-        :param experiment_jobs: A list of experiment jobs that all belong
+        :param experiments: A list of experiments that all belong
             to the same experiment design.
-        :type experiment_jobs: :class:`list` of
-            :class:`thelma.models.job.ExperimentJob`
+        :type experiments: :class:`list` of :class:`thelma.models.job.Experiment`
 
         :param user: The user who has committed the update.
         :type user: :class:`thelma.models.user.User`
         """
-        ExperimentBatchTool.__init__(self, experiment_jobs=experiment_jobs,
-                                     **kw)
+        ExperimentBatchTool.__init__(self, experiments=experiments, **kw)
 
         #: The user who has committed the update.
         self.user = user
@@ -295,7 +276,7 @@ class ExperimentBatchExecutor(ExperimentBatchTool):
 
     def _execute_experiment_task(self):
         """
-        Runs the executors for the :attr:`_experiments`.
+        Runs the executors for the :attr:`experiments`.
         """
         self.add_debug('Run executors ...')
 
@@ -303,12 +284,14 @@ class ExperimentBatchExecutor(ExperimentBatchTool):
 
         if not self.has_errors():
 
-            for experiment in self._experiments:
-                kw = dict(experiment=experiment, user=self.user, log=self.log)
+            for experiment in self.experiments:
+                kw = dict(experiment=experiment, user=self.user)
                 executor = self._run_and_record_error(get_experiment_executor,
-                        base_msg='Error when trying to fetch executor: ',
+                        base_msg='Error when trying to fetch executor for ' \
+                        'experiment "%s": ' % (experiment.label),
                         error_types=TypeError, **kw)
                 if executor is None: continue
+                executor.log = self.log
                 updated_experiment = executor.get_result()
                 if updated_experiment is None:
                     msg = 'Error when trying to update experiment "%s".' \

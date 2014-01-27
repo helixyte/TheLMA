@@ -455,6 +455,12 @@ class _LabIsoWriterExecutorToolTestCase(LabIsoTestCase2,
         # preparation plates
         for ipp in iso.iso_preparation_plates:
             self.__check_final_prep_plate_state(ipp.rack, False, 1)
+        # library plates status
+        if LAB_ISO_TEST_CASES.is_library_case(self.case) and self.FOR_JOB:
+            for iso in self.isos.values():
+                exp_value = (self.mode == self.tool.MODE_EXECUTE)
+                for lib_plate in iso.library_plates:
+                    self.assert_equal(lib_plate.has_been_used, exp_value)
 
     def __check_final_iso_plate(self, plate, iso_label):
         ir_data = LAB_ISO_TEST_CASES.get_iso_request_layout_data(self.case)
@@ -1405,7 +1411,6 @@ class IsoJobExecutorTestCase(_LabIsoWriterExecutorToolTestCase):
             '123_job_01_jp:f1' : 847.14}
         self._test_and_expect_success(
                                 LAB_ISO_TEST_CASES.CASE_LIBRARY_SIMPLE)
-
 
     def test_case_library_2_aliquots(self):
         self.new_iso_status = ISO_STATUS.DONE
