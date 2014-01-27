@@ -12,21 +12,24 @@ The following tasks need to be performed:
 
 AAB
 """
+from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.tools.base import BaseAutomationTool
 from thelma.automation.tools.iso.jobcreator import IsoJobCreator
 from thelma.automation.tools.iso.jobcreator import IsoProvider
+from thelma.automation.tools.iso.poolcreation.base import LABELS
 from thelma.automation.tools.iso.poolcreation.base \
     import StockSampleCreationLayout
 from thelma.automation.tools.iso.poolcreation.base \
     import StockSampleCreationPosition
 from thelma.automation.tools.iso.poolcreation.base import VolumeCalculator
-from thelma.automation.tools.iso.poolcreation.optimizer \
+from thelma.automation.tools.iso.poolcreation.tubepicking \
     import StockSampleCreationTubePicker
 from thelma.automation.tools.stock.base import get_default_stock_concentration
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import ISO_TYPES
 from thelma.models.iso import StockSampleCreationIso
+from thelma.models.racklayout import RackLayout
 
 __docformat__ = 'reStructuredText en'
 
@@ -55,6 +58,16 @@ class StockSampleCreationIsoJobCreator(IsoJobCreator):
         if self._isos is None:
             msg = 'Error when trying to fetch ISOs!'
             self.add_error(msg)
+
+    def _get_number_stock_racks(self):
+        """
+        The ISOs in stock sample generations are always treated separately.
+        """
+        return 0
+
+    def _get_job_label(self):
+        job_num = LABELS.get_new_job_number(self.iso_request)
+        return LABELS.create_job_label(self.iso_request.label, job_num)
 
 
 class StockSampleCreationIsoPopulator(IsoProvider):
@@ -182,7 +195,7 @@ class StockSampleCreationIsoPopulator(IsoProvider):
         volume_calculator = VolumeCalculator.from_iso_request(self.iso_request)
         self._run_and_record_error(volume_calculator.calculate,
                    base_msg='Unable to determine stock transfer volume: ',
-                   error_type=ValueError)
+                   error_types=ValueError)
         if not self.has_errors():
             take_out_volume = volume_calculator.\
                               get_single_design_stock_transfer_volume()
@@ -216,8 +229,8 @@ class StockSampleCreationIsoPopulator(IsoProvider):
                     not_enough_candidates = True
                     break
                 pool_cand = self._pool_candidates.pop(0)
-                ssc_pos = StockSampleCreationPosition(pool=pool_cand.pool,
-                              rack_position=rack_pos,
+                ssc_pos = StockSampleCreationPosition(rack_position=rack_pos,
+                              molecule_design_pool=pool_cand.pool,
                               stock_tube_barcodes=pool_cand.get_tube_barcodes())
                 ssc_layout.add_position(ssc_pos)
 
@@ -226,7 +239,8 @@ class StockSampleCreationIsoPopulator(IsoProvider):
             else:
                 self._ssc_layouts.append(ssc_layout)
 
-        if not_enough_candidates:
+        if not_enough_candidates and self.number_isos > 1 or \
+                                        len(self.iso_request.isos) > 1:
             msg = 'There is not enough candidates left to populate all ' \
                   'positions for the requested number of ISOs. Number ' \
                   'of generated ISOs: %i.' % (len(self._ssc_layouts))
@@ -278,12 +292,11 @@ class StockSampleCreationIsoResetter(BaseAutomationTool):
     Technically, we empty the rack layout and remove the molecule design pool
     set for the ISO.
 
-    **Return Value:** The update ISOs.
+    **Return Value:** The updated ISOs.
     """
     NAME = 'Stock Sample Creation ISO Resetter'
 
-    def __init__(self, isos,
-                 logging_level=None, add_default_handlers=False):
+    def __init__(self, isos, **kw):
         """
         Constructor:
 
@@ -300,8 +313,7 @@ class StockSampleCreationIsoResetter(BaseAutomationTool):
         :type add_default_handlers: :class:`boolean`
         :default add_default_handlers: *None*
         """
-        BaseAutomationTool.__init__(self, logging_level=logging_level,
-                                    add_default_handlers=add_default_handlers)
+        BaseAutomationTool.__init__(self, depending=False, **kw)
 
         #: The ISOs to be reset.
         self.isos = isos
@@ -314,7 +326,7 @@ class StockSampleCreationIsoResetter(BaseAutomationTool):
         if not self.has_errors():
             for iso in self.isos:
                 iso.molecule_design_pool_set = None
-                iso.rack_layout.tagged_rack_position_sets = []
+                iso.rack_layout = RackLayout(get_96_rack_shape())
             self.return_value = self.isos
             self.add_info('ISO reset completed.')
 
@@ -325,10 +337,9 @@ class StockSampleCreationIsoResetter(BaseAutomationTool):
         invalid_status = (ISO_STATUS.CANCELLED, ISO_STATUS.DONE)
         invalid_isos = []
 
-        if self._check_input_class('ISO list', self.isos, list):
+        if self._check_input_list_classes('ISO', self.isos,
+                                          StockSampleCreationIso):
             for iso in self.isos:
-                if not self._check_input_class('ISO', iso,
-                                               StockSampleCreationIso): break
                 if iso.status in invalid_status:
                     invalid_isos.append(iso.label)
 

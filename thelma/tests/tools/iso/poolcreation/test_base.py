@@ -42,12 +42,15 @@ class PoolCreationIsoLabelsTestCase(ToolsAndUtilsTestCase):
     def test_create_iso_label(self):
         self.assert_equal(LABELS.create_iso_label('silB', 4), 'silB_04')
 
+    def test_create_job_label(self):
+        self.assert_equal(LABELS.create_job_label('silB', 2), 'silB_job_02')
+
     def test_create_stock_transfer_worklist_label(self):
         self.assert_equal('stock_transfer_silB_04',
                 LABELS.create_stock_transfer_worklist_label('silB_04'))
 
     def test_create_buffer_worklist_label(self):
-        self.assert_equal('buffer_silB',
+        self.assert_equal('silB_buffer',
                           LABELS.create_buffer_worklist_label('silB'))
 
     def test_create_stock_rack_label(self):

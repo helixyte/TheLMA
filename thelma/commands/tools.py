@@ -20,7 +20,7 @@ from sqlalchemy import event
 from sqlalchemy.orm.session import Session
 from thelma.automation.tools.iso.poolcreation.ticket \
     import StockSampleCreationStockTransferReporter
-from thelma.automation.tools.iso.poolcreation.ticket \
+from thelma.automation.tools.iso.poolcreation.writer \
     import StockSampleCreationTicketWorklistUploader
 from thelma.automation.tools.stock.sampleregistration import \
     IMoleculeDesignPoolRegistrationItem

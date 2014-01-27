@@ -137,10 +137,11 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
 
     def _create_test_sample(self, container, pool, volume,
                             target_conc, is_stock_sample=False):
+        # vol in ul, conc in nM
         vol = volume / VOLUME_CONVERSION_FACTOR
         if is_stock_sample:
             conc = target_conc / CONCENTRATION_CONVERSION_FACTOR
-            sample = StockSample(volume=volume, container=container,
+            sample = StockSample(volume=vol, container=container,
                              molecule_design_pool=pool,
                              supplier=self.supplier,
                              molecule_type=pool.molecule_type,
@@ -148,7 +149,7 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
             container.sample = sample
         else:
             sample = container.make_sample(vol)
-        if not pool is None:
+        if not pool is None and len(sample.sample_molecules) < 1:
             md_conc = target_conc / pool.number_designs \
                       / CONCENTRATION_CONVERSION_FACTOR
             for md in pool:
@@ -292,6 +293,21 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
         self.assert_equal(et.transfer_type, expected_type)
         self.assert_equal(et.user, self.executor_user)
         self.assert_is_not_none(et.timestamp)
+
+    def _compare_layout_value(self, exp_value, attr_name, pool_pos,
+                               layout_name):
+        found_value = getattr(pool_pos, attr_name)
+        pos_label = pool_pos.rack_position.label
+        if attr_name == 'molecule_design_pool':
+            exp_value = self._get_pool(exp_value)
+        elif attr_name == 'transfer_targets':
+            exp_value.sort()
+            found_value.sort()
+        if not exp_value == found_value:
+            msg = 'The values for the %s attribute of position %s in ' \
+                  'layout %s are not equal.\nExpected: %s.\nFound: %s.' \
+                  % (attr_name, pos_label, layout_name, exp_value, found_value)
+            raise AssertionError(msg)
 
 
 class FileReadingTestCase(ToolsAndUtilsTestCase):
@@ -445,25 +461,30 @@ class FileCreatorTestCase(ToolsAndUtilsTestCase):
         ToolsAndUtilsTestCase.tear_down(self)
         del self.WL_PATH
 
-    def _get_expected_worklist_stream(self, csv_file_name):
+    def _get_expected_file_stream(self, csv_file_name):
         wl_file = self.WL_PATH + csv_file_name
         file_name = wl_file.split(':')
         f = resource_filename(*file_name) # pylint: disable=W0142
         stream = open(f, 'rb')
         return stream
 
-    def _compare_csv_file_stream(self, tool_stream, csv_file_name):
-        exp_stream = self._get_expected_worklist_stream(csv_file_name)
+    def _compare_csv_file_stream(self, tool_stream, csv_file_name,
+                                 ignore_columns=None):
+        exp_stream = self._get_expected_file_stream(csv_file_name)
         tool_lines = FileComparisonUtils.convert_stream(tool_stream)
         exp_lines = FileComparisonUtils.convert_stream(exp_stream)
         self.assert_equal(len(tool_lines), len(exp_lines))
         for i in range(len(tool_lines)):
             t_lin = FileComparisonUtils.convert_to_list(tool_lines[i])
             e_lin = FileComparisonUtils.convert_to_list(exp_lines[i])
+            if not ignore_columns is None:
+                for column_index in ignore_columns:
+                    del t_lin[column_index]
+                    del e_lin[column_index]
             self.assert_equal(t_lin, e_lin)
 
     def _compare_csv_file_content(self, tool_content, csv_file_name):
-        exp_stream = self._get_expected_worklist_stream(csv_file_name)
+        exp_stream = self._get_expected_file_stream(csv_file_name)
         tool_lines = FileComparisonUtils.convert_content(tool_content)
         exp_lines = FileComparisonUtils.convert_stream(exp_stream)
         self.assert_equal(len(tool_lines), len(exp_lines))
@@ -474,10 +495,11 @@ class FileCreatorTestCase(ToolsAndUtilsTestCase):
 
     def _compare_txt_file_content(self, tool_content, txt_file_name,
                                   ignore_lines=None):
-        exp_stream = self._get_expected_worklist_stream(txt_file_name)
+        exp_stream = self._get_expected_file_stream(txt_file_name)
         tool_lines = FileComparisonUtils.convert_content(tool_content)
         exp_lines = FileComparisonUtils.convert_stream(exp_stream)
-        self.assert_equal(len(tool_lines), len(exp_lines))
+        if ignore_lines is None:
+            self.assert_equal(len(tool_lines), len(exp_lines))
         for i in range(len(tool_lines)):
             if not ignore_lines is None and i in ignore_lines: continue
             t_lin = tool_lines[i].strip()
@@ -486,7 +508,7 @@ class FileCreatorTestCase(ToolsAndUtilsTestCase):
 
     def _compare_txt_file_content_without_order(self, tool_content,
                                                 txt_file_name):
-        exp_stream = self._get_expected_worklist_stream(txt_file_name)
+        exp_stream = self._get_expected_file_stream(txt_file_name)
         tool_lines = FileComparisonUtils.convert_content(tool_content)
         exp_lines = FileComparisonUtils.convert_stream(exp_stream)
         self.assert_equal(len(tool_lines), len(exp_lines))

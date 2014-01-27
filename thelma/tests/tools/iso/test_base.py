@@ -54,6 +54,16 @@ class IsoLabelTestCase(ToolsAndUtilsTestCase):
         exp_values2 = {'rack_role' : 'starter', 'rack_num' : 4}
         self.assert_equal(_LABELS_DUMMY.parse_rack_marker(marker2), exp_values2)
 
+    def test_get_new_job_number(self):
+        ir = self._create_lab_iso_request()
+        num1 = _LABELS_DUMMY.get_new_job_number(ir)
+        self.assert_equal(num1, 1)
+        label = 'stuff_job_01'
+        iso = self._create_lab_iso(iso_request=ir)
+        self._create_iso_job(label=label, isos=[iso])
+        num2 = _LABELS_DUMMY.get_new_job_number(ir)
+        self.assert_equal(num2, 2)
+
 
 class IsoRackContainerTestCase(ToolsAndUtilsTestCase):
 
@@ -93,9 +103,9 @@ class IsoRackContainerTestCase(ToolsAndUtilsTestCase):
         irc6 = IsoRackContainer(rack=rack1, rack_marker=marker, label=label,
                                 role='other')
         self.assert_equal(irc1, irc2)
-        self.assert_not_equal(irc1, irc3)
+        self.assert_equal(irc1, irc3)
         self.assert_equal(irc1, irc4)
-        self.assert_equal(irc1, irc5)
+        self.assert_not_equal(irc1, irc5)
         self.assert_equal(irc1, irc6)
         self.assert_not_equal(irc1, rack1)
 

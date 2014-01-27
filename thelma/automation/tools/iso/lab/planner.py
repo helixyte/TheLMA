@@ -993,6 +993,14 @@ class LabIsoPlanner(IsoProvider):
                   'sectors! In the current layout samples would be ' \
                   'treated differently!'
             self.add_error(msg)
+        elif (self.__cybio_use_aborted and \
+                                    not self.iso_request.process_job_first):
+            new_process_job_first = True
+            msg = 'The order of job and ISO processing has been ' \
+                  'changed (from %s to %s - "True" means job first).' \
+                  % (self.iso_request.process_job_first, new_process_job_first)
+            self.add_warning(msg)
+            self.iso_request.process_job_first = new_process_job_first
         elif not self.__controls_in_quadrants is None and \
                  (not self.iso_request.process_job_first == \
                                             self.__controls_in_quadrants):

@@ -357,7 +357,8 @@ class RACK_SHAPE_NAMES(SemiconstantCache):
         if cls.__shape_positions.has_key(shape_name):
             lookup = cls.__shape_positions[shape_name]
             if lookup.has_key(vertical_sorting):
-                return lookup[vertical_sorting]
+                new_list = [p for p in lookup[vertical_sorting]]
+                return new_list
 
         positions = []
 
@@ -385,7 +386,7 @@ class RACK_SHAPE_NAMES(SemiconstantCache):
             lookup[vertical_sorting] = positions
         cls.__shape_positions[shape_name] = lookup
 
-        return positions
+        return [p for p in positions]
 
 
 #: A shortcut to get the 96-well rack shape.

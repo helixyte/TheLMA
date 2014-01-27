@@ -590,7 +590,7 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter):
         else:
             try:
                 transfer_targets = TransferPosition.parse_target_tag_value(
-                                                                target_tag_value)
+                                                        target_tag_value)
             except ValueError:
                 error_msg = '"%s" (%s)' % (target_tag_value, rack_position.label)
                 add_list_map_element(self.__invalid_target_string, parameter_name,
@@ -616,9 +616,11 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter):
             else:
                 return True
 
+        allow_duplicates = self.LAYOUT_CLS.ALLOW_DUPLICATE_TARGET_WELLS[
+                                                            parameter_name]
         for transfer_target in transfer_targets:
-            if transfer_target.hash_value in self._transfer_targets[
-                                                            parameter_name]:
+            if not allow_duplicates and transfer_target.hash_value \
+                                in self._transfer_targets[parameter_name]:
                 error_msg = '%s' % (transfer_target)
                 add_list_map_element(self.__duplicate_targets, parameter_name,
                                      error_msg)
@@ -635,13 +637,14 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter):
         if len(self.__invalid_target_string) > 0:
             msg = 'The following rack positions have invalid target position ' \
                   'descriptions: %s.' \
-                   % (self.__get_error_record_string(
-                                                self.__invalid_target_string))
+                   % (self._get_joined_map_str(self.__invalid_target_string,
+                                               'parameter "%s": %s'))
             self.add_error(msg)
 
         if len(self.__duplicate_targets) > 0:
             msg = 'There are duplicate target positions: %s!' \
-                  % (self.__get_error_record_string(self.__duplicate_targets))
+                  % (self._get_joined_map_str(self.__duplicate_targets,
+                                              'parameter "%s": %s'))
             self.add_error(msg)
 
         if len(self.__missing_transfer_target) > 0:
@@ -649,24 +652,9 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter):
                   'targets. The transfer targets are missing for the ' \
                   'following positions: %s.' \
                   % (self.POSITION_CLS.__name__,
-                     self.__get_error_record_string(
-                                            self.__missing_transfer_target))
+                     self._get_joined_map_str(self.__missing_transfer_target,
+                                              'parameter "%s": %s'))
             self.add_error(msg)
-
-    def __get_error_record_string(self, recorded_events):
-        """
-        Generates a pretty detail string for error messages.
-        """
-        if len(self.PARAMETER_SET.TRANSFER_TARGET_PARAMETERS) == 1:
-            infos = recorded_events.keys()[0]
-            return ', '.join(infos)
-        else:
-            records = []
-            for parameter, infos in recorded_events.iteritems():
-                record = 'parameter "%s": %s' % (parameter.replace('_', ' '),
-                                                 ', '.join(infos))
-                records.append(record)
-            return ' -- '.join(records)
 
 
 class LibraryLayoutConverter(BaseLayoutConverter):

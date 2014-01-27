@@ -509,3 +509,9 @@ class LabIsoXL20TubePicker(SessionTool):
             return False
         else:
             return True
+
+    def _look_for_missing_candidates(self):
+        """
+        We have already done that in :func:`__find_new_tubes`.
+        """
+        pass
