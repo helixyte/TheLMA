@@ -15,7 +15,7 @@ from thelma.automation.semiconstants import get_rack_position_from_indices
 from thelma.automation.tools.base import SessionTool
 from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
 from thelma.automation.tools.stock.base import STOCK_ITEM_STATUS
-from thelma.automation.tools.stock.base import STOCK_TUBE_SPECS
+from thelma.automation.tools.stock.base import get_stock_tube_specs_db_term
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import CustomQuery
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
@@ -26,8 +26,7 @@ from thelma.models.moleculedesign import MoleculeDesignPool
 
 __docformat__ = 'reStructuredText en'
 
-__all__ = ['get_stock_tube_specs_db_term',
-           'StockSampleQuery',
+__all__ = ['StockSampleQuery',
            'TubePoolQuery',
            'TubeCandidate',
            'TubePickingQuery',
@@ -35,14 +34,6 @@ __all__ = ['get_stock_tube_specs_db_term',
            'MultiPoolQuery',
            'OptimizingQuery',
            'TubePicker']
-
-
-def get_stock_tube_specs_db_term():
-    """
-    Returns a term that can be inserted into IN-clauses of DB queries
-    (containing all valid specs for stock tubes).
-    """
-    return create_in_term_for_db_queries(STOCK_TUBE_SPECS, as_string=True)
 
 
 class StockSampleQuery(CustomQuery):
@@ -129,14 +120,14 @@ class TubePoolQuery(CustomQuery):
                      'AND cb.barcode IN %s;'
 
     __POOL_COL_NAME = 'pool_id'
-    __TUBE_BARCODE_COL_NAME = 'stock_sample_id'
+    __TUBE_BARCODE_COL_NAME = 'tube_barcode'
 
     COLUMN_NAMES = [__POOL_COL_NAME, __TUBE_BARCODE_COL_NAME]
 
     __POOL_INDEX = COLUMN_NAMES.index(__POOL_COL_NAME)
     __TUBE_BARCODE_INDEX = COLUMN_NAMES.index(__TUBE_BARCODE_COL_NAME)
 
-    RESULT_COLLECTION_CLS = map
+    RESULT_COLLECTION_CLS = dict
 
     def __init__(self, tube_barcodes):
         """

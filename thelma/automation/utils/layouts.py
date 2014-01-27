@@ -1611,6 +1611,8 @@ class TransferLayout(MoleculeDesignPoolLayout):
 
         if tp is not None:
             for parameter in self._TRANSFER_TARGET_PARAMETERS:
+                allow_duplicates = self.ALLOW_DUPLICATE_TARGET_WELLS[parameter]
+                if allow_duplicates: continue
                 target_list = tp.get_transfer_target_list(parameter)
                 tt_map = self._transfer_target_map[parameter]
                 for tt in target_list:
