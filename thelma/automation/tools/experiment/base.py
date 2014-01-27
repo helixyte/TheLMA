@@ -12,10 +12,10 @@ AAB
 """
 from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.semiconstants import ITEM_STATUS_NAMES
-from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.semiconstants import get_reservoir_spec
 from thelma.automation.tools.iso.lab.base import LabIsoLayoutConverter
+from thelma.automation.tools.metadata.base import TransfectionLayout
 from thelma.automation.tools.metadata.base import TransfectionLayoutConverter
 from thelma.automation.tools.metadata.base import TransfectionParameters
 from thelma.automation.tools.metadata.worklist \
@@ -30,12 +30,10 @@ from thelma.automation.tools.worklists.series import SerialWriterExecutorTool
 from thelma.automation.tools.writers import CsvColumnParameters
 from thelma.automation.tools.writers import CsvWriter
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import round_up
-from thelma.automation.utils.iso import IsoRequestLayout
-from thelma.automation.utils.iso import IsoRequestLayoutConverter
 from thelma.automation.utils.layouts import BaseRackVerifier
 from thelma.models.experiment import Experiment
-from thelma.models.experiment import ExperimentMetadataType
 from thelma.models.iso import LabIsoRequest
 from thelma.models.rack import Plate
 
@@ -63,9 +61,6 @@ class ExperimentTool(SerialWriterExecutorTool):
 
     #: The experiment types supported by this tool.
     SUPPORTED_SCENARIOS = []
-
-    #: May mock positions be empty in the ISO rack? (default: *True*)
-    MOCKS_MAY_BE_EMPTY = True
 
     #: The index of the optimem worklist in the experiment design series.
     OPTIMEM_WORKLIST_INDEX = ExperimentWorklistGenerator.OPTIMEM_WORKLIST_INDEX
@@ -144,9 +139,13 @@ class ExperimentTool(SerialWriterExecutorTool):
         #: The ISO layout for this experiment.
         self._source_layout = None
         #: A list of rack position to be ignore during execution or worklist
-        #: generation. The rack position are floating position for which
-        #: there were no molecule design pools left anymore.
+        #: generation. The rack position are floating or library position for
+        #: which there were no molecule design pools left anymore.
         self._ignored_positions = None
+        #: A list of floating placeholders to be ignored during execution
+        #: or worklist generation. The rack position are floating position
+        #: for which there were no molecule design pools left anymore.
+        self._ignored_floatings = None
 
         #: The final stream mapped onto file suffixes (print mode only).
         self._final_streams = None
@@ -165,6 +164,7 @@ class ExperimentTool(SerialWriterExecutorTool):
         self._source_plate = None
         self._source_layout = None
         self._ignored_positions = []
+        self._ignored_floatings = set()
         self._final_streams = dict()
 
     def _create_transfer_jobs(self):
@@ -175,8 +175,7 @@ class ExperimentTool(SerialWriterExecutorTool):
         if not self.has_errors() and \
                     not self._scenario.id == EXPERIMENT_SCENARIOS.ISO_LESS:
             if not self.has_errors(): self.__verify_source_plate()
-            if not self.has_errors() and self._source_layout.has_floatings():
-                self.__find_ignored_positions()
+            if not self.has_errors(): self.__find_ignored_positions()
         if not self.has_errors(): self._check_mastermix_compatibility()
         if not self.has_errors(): self._generate_transfer_jobs()
 
@@ -184,7 +183,7 @@ class ExperimentTool(SerialWriterExecutorTool):
         """
         Checks whether all initialisation values are valid.
         """
-        self.add_debug('Check input ...')
+        SerialWriterExecutorTool._check_input(self)
         self._check_input_class('experiment', self.experiment, Experiment)
 
     def _check_experiment_type(self):
@@ -230,7 +229,7 @@ class ExperimentTool(SerialWriterExecutorTool):
         self._source_plate = self.experiment.source_rack
         self._design_series = experiment_design.worklist_series
 
-        design_racks = self.experiment.experiment_design.design_racks
+        design_racks = self.experiment.experiment_design.experiment_design_racks
         for design_rack in design_racks:
             self._experiment_racks[design_rack.label] = []
             worklist_series = design_rack.worklist_series
@@ -243,6 +242,7 @@ class ExperimentTool(SerialWriterExecutorTool):
                 msg = 'Unknown design rack "%s" for experiment rack "%s"!' \
                       % (design_rack_label, experiment_rack.rack.barcode)
                 self.add_error(msg)
+                break
             self._experiment_racks[design_rack_label].append(experiment_rack)
 
         for experiment_racks in self._experiment_racks.values():
@@ -272,7 +272,6 @@ class ExperimentTool(SerialWriterExecutorTool):
                   % (exp_detail)
             self.add_error(msg)
 
-
     def __verify_source_plate(self):
         """
         Verifies the source plate (if there is one). In any case the layout
@@ -283,53 +282,25 @@ class ExperimentTool(SerialWriterExecutorTool):
         iso_request = self.experiment.experiment_design.experiment_metadata.\
                       lab_iso_request
 
-        if self._source_plate is None:
-            self.__fetch_iso_layout(iso_request)
-        else:
-            verifier = SourceRackVerifier(log=self.log,
-                            source_plate=self._source_plate,
-                            iso_request=iso_request,
-                            experiment_type=self._scenario)
-            compatible = verifier.get_result()
-            if compatible is None:
-                msg = 'Error when trying to verify source rack!'
-                self.add_error(msg)
-            elif not compatible:
-                msg = 'The source rack does not match the ISO request layout!'
-                self.add_error(msg)
-            else:
-                self._source_layout = verifier.get_expected_layout()
-
-    def __fetch_iso_layout(self, iso_request):
-        """
-        Fetches the ISO request layout if there is no source rack (for
-        seeding experiments).
-        """
-        self.add_debug('Fetch ISO request layout ...')
-
-        converter = TransfectionLayoutConverter(log=self.log,
-                                        rack_layout=iso_request.iso_layout,
-                                        is_iso_layout=False)
-        self._source_layout = converter.get_result()
-
-        if self._source_layout is None:
-            msg = 'Could not convert ISO transfection layout!'
+        verifier = SourceRackVerifier(log=self.log, iso_request=iso_request,
+                        source_plate=self._source_plate)
+        compatible = verifier.get_result()
+        if compatible is None:
+            msg = 'Error when trying to verify source rack!'
+            self.add_error(msg)
+        elif not compatible:
+            msg = 'The source rack does not match the ISO request layout!'
             self.add_error(msg)
         else:
-            layout_shape = self._source_layout.shape
-            rack_shape = self._source_plate.specs.shape
-            if not layout_shape == rack_shape:
-                msg = 'The rack shape of ISO layout (%s) and ISO rack (%s) ' \
-                      'do not match!' % (layout_shape, rack_shape)
-                self.add_error(msg)
+            self._source_layout = verifier.get_expected_layout()
 
     def __find_ignored_positions(self):
         """
         Determines positions that can be ignored (caused by floating positions
         for which there was no molecule design pool left anymore).
+        Fixed and other position cannot be missing because this would have
+        been checked by the verifier.
         """
-        missing_fixed_positions = []
-
         for container in self._source_plate.containers:
             rack_pos = container.location.position
             sample = container.sample
@@ -338,15 +309,10 @@ class ExperimentTool(SerialWriterExecutorTool):
                 continue
             iso_pos = self._source_layout.get_working_position(rack_pos)
             if iso_pos is None or iso_pos.is_empty or iso_pos.is_mock: continue
-            if iso_pos.is_floating:
+            if iso_pos.is_floating or iso_pos.is_library:
                 self._ignored_positions.append(rack_pos)
-            else:
-                missing_fixed_positions.append(rack_pos.label)
-
-        if len(missing_fixed_positions) > 0:
-            msg = 'Some wells of the ISO rack which should contain controls ' \
-                  'are empty: %s!' % (missing_fixed_positions)
-            self.add_error(msg)
+            if iso_pos.is_floating:
+                self._ignored_floatings.add(iso_pos.molecule_design_pool)
 
     def _check_mastermix_compatibility(self):
         """
@@ -435,14 +401,12 @@ class ExperimentTool(SerialWriterExecutorTool):
         Helper function creating an optimem dilution job.
         """
         quarter_rs = get_reservoir_spec(RESERVOIR_SPECS_NAMES.QUARTER_MODULAR)
-
         optimem_job = SampleDilutionJob(index=0,
                        planned_worklist=optimem_worklist,
                        target_rack=self._source_plate,
                        reservoir_specs=quarter_rs,
                        source_rack_barcode=self.OPTIMEM_PLATE_BARCODE,
-                       ignored_positions=self._ignored_positions,
-                       pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
+                       ignored_positions=self._ignored_positions)
         return optimem_job
 
     def _create_reagent_job(self, reagent_worklist):
@@ -450,15 +414,13 @@ class ExperimentTool(SerialWriterExecutorTool):
         Helper function creating an transfection reagent dilution job.
         """
         tube_24_rs = get_reservoir_spec(RESERVOIR_SPECS_NAMES.TUBE_24)
-
-        optimem_job = SampleDilutionJob(index=1,
+        reagent_job = SampleDilutionJob(index=1,
                        planned_worklist=reagent_worklist,
                        target_rack=self._source_plate,
                        reservoir_specs=tube_24_rs,
                        source_rack_barcode=self.REAGENT_PLATE_BARCODE,
-                       ignored_positions=self._ignored_positions,
-                       pipetting_specs=PIPETTING_SPECS_NAMES.BIOMEK)
-        return optimem_job
+                       ignored_positions=self._ignored_positions)
+        return reagent_job
 
     def __get_worklist_by_index(self, worklist_series, worklist_index):
         """
@@ -484,8 +446,7 @@ class ExperimentTool(SerialWriterExecutorTool):
                     planned_worklist=cell_worklist,
                     target_rack=plate,
                     reservoir_specs=falcon_reservoir,
-                    ignored_positions=cell_ignored_positions,
-                    pipetting_specs=PIPETTING_SPECS_NAMES.MANUAL)
+                    ignored_positions=cell_ignored_positions)
         self._transfer_jobs[job_index] = cell_job
         job_index += 1
         return job_index
@@ -508,6 +469,7 @@ class ExperimentTool(SerialWriterExecutorTool):
         del stream_map[self.OPTIMEM_WORKLIST_INDEX]
         del stream_map[self.REAGENT_WORKLIST_INDEX]
 
+    # pylint: disable=W0613
     def _get_file_map(self, merged_stream_map, rack_transfer_stream):
         """
         The common part of the zip map for the zip archive contains optimem,
@@ -522,6 +484,7 @@ class ExperimentTool(SerialWriterExecutorTool):
             fn = '%s%s' % (experiment_label, suffix)
             file_map[fn] = stream
         return file_map
+    # pylint: enable=W0613
 
     def __add_file(self, suffix, stream, file_map):
         """
@@ -560,9 +523,9 @@ class SourceRackVerifier(BaseRackVerifier):
     NAME = 'Source Rack Verifier'
 
     _RACK_CLS = Plate
-    _LAYOUT_CLS = IsoRequestLayout
+    _LAYOUT_CLS = TransfectionLayout
 
-    def __init__(self, log, source_plate, iso_request, experiment_type):
+    def __init__(self, log, source_plate, iso_request):
         """
         Constructor:
 
@@ -574,10 +537,6 @@ class SourceRackVerifier(BaseRackVerifier):
 
         :param source_plate: The plate to be checked.
         :type source_plate: :class:`thelma.models.rack.Plate`
-
-        :param experiment_type: The experiment type defines the source layout
-            type (:class:`IsoRequestLayout` or :class:`TransfectionLayout`)
-        :type experiment_type: :class:`thelma.models.experiment.ExperimentType`
         """
         BaseRackVerifier.__init__(self, log=log)
 
@@ -585,8 +544,6 @@ class SourceRackVerifier(BaseRackVerifier):
         self.iso_request = iso_request
         #: The plate to be checked.
         self.source_plate = source_plate
-        #: The experiment type defines the source layout.
-        self.experiment_type = experiment_type
 
         #: Maps floating maps (molecule design pools for placeholders) onto ISO
         #: label - is only used when there are floating positions in the ISO
@@ -603,8 +560,6 @@ class SourceRackVerifier(BaseRackVerifier):
     def _check_input(self):
         BaseRackVerifier._check_input(self)
         self._check_input_class('ISO request', self.iso_request, LabIsoRequest)
-        self._check_input_class('experiment type', self.experiment_type,
-                                ExperimentMetadataType)
 
     def _set_rack(self):
         self._rack = self.source_plate
@@ -615,15 +570,11 @@ class SourceRackVerifier(BaseRackVerifier):
         """
         self.add_debug('Get ISO layout ...')
 
-        if self.experiment_type.id == EXPERIMENT_SCENARIOS.MANUAL:
-            converter_cls = IsoRequestLayoutConverter
-        else:
-            converter_cls = TransfectionLayoutConverter
-        kw = dict(log=self.log, rack_layout=self.iso_request.iso_layout)
-        converter = converter_cls(**kw)
+        converter = TransfectionLayoutConverter(log=self.log,
+                                rack_layout=self.iso_request.rack_layout)
         self._expected_layout = converter.get_result()
         if self._expected_layout is None:
-            msg = 'Error when trying to convert ISO layout.'
+            msg = 'Error when trying to convert transfection layout.'
             self.add_error(msg)
         else:
             self._expected_layout.close()
@@ -644,7 +595,7 @@ class SourceRackVerifier(BaseRackVerifier):
             iso_layout = converter.get_result()
 
             if iso_layout is None:
-                msg = 'Error when trying to convert layout for ISO %s.' \
+                msg = 'Error when trying to convert layout for ISO "%s".' \
                       % (iso.label)
                 self.add_error(msg)
                 continue
@@ -666,33 +617,40 @@ class SourceRackVerifier(BaseRackVerifier):
             msg = 'There are no ISOs for this ISO request!'
             self.add_error(msg)
 
-    def _get_expected_pools(self, ir_pos):
+    def _get_expected_pool(self, ir_pos):
         """
         Gets the molecule design pool IDs for expected for a ISO position
         (replacing floating placeholder with the pools of the preparation
         layout position molecule designs of all ISOs).
         """
         if ir_pos.is_fixed:
-            pool = ir_pos.molecule_design_pool
+            return ir_pos.molecule_design_pool
 
-        else: # floating
-            placeholder = ir_pos.molecule_design_pool
+        # is floating
+        placeholder = ir_pos.molecule_design_pool
 
-            if self._used_iso is None:
-                possible_pools = dict()
-                for iso_label, floating_map in self._iso_map.iteritems():
-                    pool = floating_map[placeholder]
-                    if pool is None:
-                        ids = None
-                    else:
-                        ids = self._get_ids_for_pool(pool)
-                    possible_pools[iso_label] = ids
-                return possible_pools
-            else:
-                floating_map = self._iso_map[self._used_iso]
-                pool = floating_map[placeholder]
+        if self._used_iso is None:
+            possible_pools = dict()
+            for iso_label, floating_map in self._iso_map.iteritems():
+                possible_pools[iso_label] = floating_map[placeholder]
+            return possible_pools
+        else:
+            floating_map = self._iso_map[self._used_iso]
+            return floating_map[placeholder]
 
-        return self._get_ids_for_pool(pool)
+    def _get_ids_for_pool(self, md_pool):
+        """
+        If a floating placeholder occurs for the first time we have dictionary
+        instead of a pool.
+        """
+        if isinstance(md_pool, dict):
+            id_map = dict()
+            for iso_label, pool in md_pool.iteritems():
+                ids = BaseRackVerifier._get_ids_for_pool(self, pool)
+                id_map[iso_label] = ids
+            return id_map
+        else:
+            return BaseRackVerifier._get_ids_for_pool(self, md_pool)
 
     def _are_matching_molecule_designs(self, rack_mds, exp_mds):
         """
@@ -861,14 +819,12 @@ class ReagentPreparationWriter(CsvWriter):
         self.add_debug('Generate column value lists ...')
 
         dil_data_map = self.__get_distinct_reagent_infos()
-        line_numbers = self.__worklist_data.keys()
-        line_numbers.sort()
-        used_dil_infos = []
-        for line_number in line_numbers:
+        used_dil_infos = set()
+        for line_number in sorted(self.__worklist_data.keys()):
             data_tuple = self.__worklist_data[line_number]
             dil_info = data_tuple[2]
             if dil_info in used_dil_infos: continue
-            used_dil_infos.append(dil_info)
+            used_dil_infos.add(dil_info)
             pos_label = data_tuple[0]
             total_vol = dil_data_map[dil_info]
             self.__store_line_value(dil_info, total_vol, pos_label)
@@ -894,7 +850,7 @@ class ReagentPreparationWriter(CsvWriter):
         """
 
         dil_info = dil_info.strip()
-        info_tokens = dil_info.split('(')
+        info_tokens = dil_info.split(' (')
         final_dil_factor = float(info_tokens[1][:-1])
         initial_dil_factor = TransfectionParameters.\
                             calculate_initial_reagent_dilution(final_dil_factor)
@@ -907,11 +863,13 @@ class ReagentPreparationWriter(CsvWriter):
 
         self.__position_values.append(pos_label)
         self.__name_values.append(info_tokens[0])
-        self.__final_dil_factor_values.append(final_dil_factor)
-        self.__ini_dil_factor_values.append(initial_dil_factor)
-        self.__total_volume_values.append(total_vol)
-        self.__reagent_volume_values.append(reagent_vol)
-        self.__diluent_volume_values.append(diluent_vol)
+        self.__final_dil_factor_values.append(
+                                        get_trimmed_string(final_dil_factor))
+        self.__ini_dil_factor_values.append(
+                                        get_trimmed_string(initial_dil_factor))
+        self.__total_volume_values.append(get_trimmed_string(total_vol))
+        self.__reagent_volume_values.append(get_trimmed_string(reagent_vol))
+        self.__diluent_volume_values.append(get_trimmed_string(diluent_vol))
 
     def __generate_columns(self):
         """

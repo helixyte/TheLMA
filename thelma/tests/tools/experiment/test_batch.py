@@ -1,496 +1,411 @@
-#"""
-#Tests for the experiment batch tools.
-#
-#AAB
-#"""
-#from thelma.automation.tools.experiment.batch \
-#    import ExperimentBatchWorklistWriter
-#from thelma.automation.tools.experiment.batch import ExperimentBatchExecutor
-#from thelma.automation.tools.experiment.batch import ExperimentBatchRackFiller
-#from thelma.automation.tools.experiment.writer import ExperimentWorklistWriters
-#from thelma.automation.tools.semiconstants \
-#    import get_experiment_type_manual_optimisation
-#from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
-#from thelma.automation.semiconstants import get_experiment_type_screening
-#from thelma.automation.semiconstants import get_item_status_future
-#from thelma.automation.semiconstants import get_item_status_managed
-#from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
-#from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
-#from thelma.models.experiment import Experiment
-#from thelma.models.experiment import ExperimentRack
-#from thelma.models.job import ExperimentJob
-#from thelma.models.sample import Sample
-#from thelma.tests.tools.experiment.test_manual \
-#    import RackFillerTestCase
-#from thelma.tests.tools.experiment.test_robotsupport \
-#    import ExperimentOptimisationToolTestCase
-#from thelma.tests.tools.experiment.test_robotsupport \
-#import ExperimentScreeningToolTestCase
-#from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-#from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
-#
-#
-#
-#class ExperimentBatchTestCase(ToolsAndUtilsTestCase):
-#    """
-#    Add-on test case (not be used as solo super class).
-#    """
-#
-#    def set_up(self):
-#        self.experiment_jobs = None
-#        self.experiment1 = None
-#        self.experiment2 = None
-#        self.iso_plate2 = None
-#        self.experiment_racks2 = None
-#        self.iso_plate2_barcode = '09999995'
-#        self.experiment2_rack_barcodes = ['09999996', '09999997', '09999998',
-#                                          '09999999']
-#
-#    def tear_down(self):
-#        del self.experiment_jobs
-#        del self.experiment1
-#        del self.experiment2
-#        del self.iso_plate2
-#        del self.experiment_racks2
-#        del self.iso_plate2_barcode
-#        del self.experiment2_rack_barcodes
-#
-#    def _continue_setup(self, experiment, iso_layout, mol_map, floating_map,
-#                        pool_map):
-#        self.experiment1 = experiment
-#        self.__create_iso_plate2(iso_layout, mol_map, floating_map, pool_map)
-#        self.__create_experiment2()
-#        self.__create_racks_for_experiment2()
-#        self.__create_experiment_job()
-#        self._create_tool()
-#
-#    def __create_iso_plate2(self, iso_layout, mol_map, floating_map, pool_map):
-#        plate_specs = self.experiment1.source_rack.specs
-#        self.iso_plate2 = plate_specs.create_rack(label='test_iso_plate2',
-#                                          status=get_item_status_managed())
-#        self.iso_plate2.barcode = self.iso_plate2_barcode
-#        for well in self.iso_plate2.containers:
-#            rack_pos = well.location.position
-#            iso_pos = iso_layout.get_working_position(rack_pos)
-#            if iso_pos is None: continue
-#            sample = Sample(iso_pos.iso_volume / VOLUME_CONVERSION_FACTOR,
-#                            well)
-#            if iso_pos.is_mock:
-#                continue
-#            elif iso_pos.is_floating:
-#                placeholder = iso_pos.molecule_design_pool
-#                pool_id = floating_map[placeholder]
-#            else:
-#                pool_id = iso_pos.molecule_design_pool_id
-#            md_pool = pool_map[pool_id]
-#            conc = iso_pos.iso_concentration / \
-#                                (len(md_pool) * CONCENTRATION_CONVERSION_FACTOR)
-#            for md in md_pool:
-#                mol = mol_map[md.id]
-#                sample.make_sample_molecule(mol, conc)
-#
-#    def __create_experiment2(self):
-#        self.experiment2 = Experiment(label='second_experiment',
-#                destination_rack_specs=self.experiment1.destination_rack_specs,
-#                source_rack=self.iso_plate2,
-#                experiment_design=self.experiment1.experiment_design,
-#                experiment_racks=self.experiment_racks2)
-#
-#    def __create_racks_for_experiment2(self):
-#        counter = 0
-#        number_replicates = self.experiment1.experiment_design.\
-#                            experiment_metadata.number_replicates
-#        status = get_item_status_future()
-#        plate_specs = None
-#        for exp_rack in self.experiment1.experiment_racks:
-#            plate_specs = exp_rack.rack.specs
-#            break
-#        for design_rack in self.experiment1.experiment_design.design_racks:
-#            i = 0
-#            while i < number_replicates:
-#                barcode = self.experiment2_rack_barcodes[counter]
-#                plate = plate_specs.create_rack(label=barcode, status=status)
-#                plate.barcode = barcode
-#                ExperimentRack(design_rack=design_rack, rack=plate,
-#                               experiment=self.experiment2)
-#                i += 1
-#                counter += 1
-#
-#    def __create_experiment_job(self):
-#        experiment_job = ExperimentJob(label='batch_test_experiment_job',
-#                            experiments=[self.experiment1, self.experiment2])
-#        self.experiment_jobs = [experiment_job]
-#
-#    def _test_one_updated_experiment(self, expect_experiments=True):
-#        ej = self.experiment_jobs[0]
-#        ej.experiments = [self.experiment1]
-#        self._create_tool()
-#        updated_experiments1 = self.tool.get_result()
-#        self.assert_is_not_none(updated_experiments1)
-#        if expect_experiments:
-#            self.assert_equal(len(updated_experiments1), 1)
-#        ej.experiments = [self.experiment1, self.experiment2]
-#        self._create_tool()
-#        updated_experiments2 = self.tool.get_result()
-#        self.assert_is_not_none(updated_experiments2)
-#        if expect_experiments:
-#            self.assert_equal(len(updated_experiments2), 1)
-#        self._check_warning_messages('Some experiments in your selection ' \
-#                                     'have already been updated in the DB')
-#
-#    def _test_invalid_experiment_jobs(self):
-#        self.experiment_jobs = dict()
-#        self._test_and_expect_errors('The experiment job list must be a list')
-#        self.experiment_jobs = [self.experiment1]
-#        self._test_and_expect_errors('The experiment job must be a ' \
-#                                     'ExperimentJob object')
-#
-#    def _test_invalid_user(self):
-#        self.executor_user = None
-#        self._test_and_expect_errors('The user must be a User object')
-#
-#    def _test_different_experiment_designs(self):
-#        em = self._create_experiment_metadata()
-#        ed = em.experiment_design
-#        ed.id = -1
-#        self.experiment2.experiment_design = ed
-#        self._test_and_expect_errors('The experiments belong to ' \
-#                                     'different experiment designs!')
-#
-#    def _test_no_valid_experiment(self):
-#        status = get_item_status_managed()
-#        for experiment in self.experiment_jobs[0].experiments:
-#            for exp_rack in experiment.experiment_racks:
-#                exp_rack.rack.status = status
-#        self._test_and_expect_errors('There are no experiments awaiting ' \
-#                                     'update in your selection!')
-#        self._check_warning_messages('Some experiments in your selection ' \
-#                                     'have already been updated in the DB')
-#
-#
-#class ExperimentBatchRackFillerTestCase(RackFillerTestCase,
-#                                        ExperimentBatchTestCase):
-#
-#    def set_up(self):
-#        RackFillerTestCase.set_up(self)
-#        ExperimentBatchTestCase.set_up(self)
-#        self.number_experiments = 2
-#
-#    def tear_down(self):
-#        ExperimentBatchTestCase.tear_down(self)
-#        RackFillerTestCase.tear_down(self)
-#
-#    def _create_tool(self):
-#        self.tool = ExperimentBatchRackFiller(user=self.executor_user,
-#                                        experiment_jobs=self.experiment_jobs)
-#
-#    def _check_design_racks(self):
-#        if self.experiment_type.id == EXPERIMENT_SCENARIOS.SCREENING:
-#            for drack in self.experiment_metadata.experiment_design.\
-#                            design_racks:
-#                self.assert_is_none(drack.worklist_series)
-#        else:
-#            RackFillerTestCase._check_design_racks(self)
-#
-#    def __continue_setup(self):
-#        RackFillerTestCase._continue_setup(self)
-#        ExperimentBatchTestCase._continue_setup(self,
-#                        experiment=self.experiment, iso_layout=self.iso_layout,
-#                        mol_map=self.mol_map, pool_map=self.pool_map,
-#                        floating_map=self.floating_map)
-#
-#    def __check_result(self):
-#        self.__continue_setup()
-#        updated_experiments = self.tool.get_result()
-#        self.assert_is_not_none(updated_experiments)
-#        for experiment in updated_experiments:
-#            self._check_result(experiment)
-#
-#    def test_result_optimisation(self):
-#        self.__check_result()
-#
-#    def test_result_screening(self):
-#        self.experiment_type = get_experiment_type_screening()
-#        self.__check_result()
-#
-#    def test_result_manual(self):
-#        self.experiment_type = get_experiment_type_manual_optimisation()
-#        self.__check_result()
-#
-#    def test_result_one_updated_experiment(self):
-#        self.__continue_setup()
-#        self._test_one_updated_experiment()
-#        self._check_result(self.experiment1)
-#        self._check_result(self.experiment2)
-#
-#    def test_invalid_experiment_jobs(self):
-#        self.__continue_setup()
-#        self._test_invalid_experiment_jobs()
-#
-#    def test_invalid_user(self):
-#        self.__continue_setup()
-#        self._test_invalid_user()
-#
-#    def test_different_experiment_designs(self):
-#        self.__continue_setup()
-#        self._test_different_experiment_designs()
-#
-#    def test_no_valid_experiment(self):
-#        self.__continue_setup()
-#        self._test_no_valid_experiment()
-#
-#    def test_filler_failure(self):
-#        self.__continue_setup()
-#        for container in self.iso_rack.containers:
-#            container.make_sample(10 / VOLUME_CONVERSION_FACTOR)
-#        self._test_and_expect_errors('Error when trying to update experiment')
-#
-#
-#class ExperimentBatchExecutorTestCase(ExperimentBatchTestCase,
-#                                ExperimentScreeningToolTestCase,
-#                                ExperimentOptimisationToolTestCase):
-#
-#    def set_up(self):
-#        ExperimentOptimisationToolTestCase.set_up(self)
-#        # the screening tool has the same setup method
-#        ExperimentBatchTestCase.set_up(self)
-#        self.number_experiments = 2
-#
-#    def tear_down(self):
-#        ExperimentBatchTestCase.tear_down(self)
-#        # the optimisation tool has the same tear down method
-#        ExperimentOptimisationToolTestCase.tear_down(self)
-#
-#    def _create_tool(self):
-#        self.tool = ExperimentBatchExecutor(user=self.executor_user,
-#                                    experiment_jobs=self.experiment_jobs)
-#
-#    def __continue_setup(self):
-#        if self.experiment_type.id == EXPERIMENT_SCENARIOS.SCREENING:
-#            ExperimentScreeningToolTestCase._continue_setup(self)
-#        else:
-#            ExperimentOptimisationToolTestCase._continue_setup(self)
-#        ExperimentBatchTestCase._continue_setup(self,
-#                        experiment=self.experiment, iso_layout=self.iso_layout,
-#                        mol_map=self.mol_map, pool_map=self.pool_map,
-#                        floating_map=self.floating_map)
-#
-#    def __check_result(self):
-#        self.__continue_setup()
-#        updated_experiments = self.tool.get_result()
-#        self.assert_is_not_none(updated_experiments)
-#        if self.experiment_type.id == EXPERIMENT_SCENARIOS.OPTIMISATION:
-#            meth = ExperimentOptimisationToolTestCase._check_execution_results
-#        else:
-#            meth = ExperimentScreeningToolTestCase._check_execution_results
-#        meth(self, self.experiment1)
-#        self.iso_plate_barcode = self.iso_plate2_barcode
-#        self.experiment_rack_barcodes = self.experiment2_rack_barcodes
-#        meth(self, self.experiment2)
-#
-#    def test_result_optimisation(self):
-#        self.__check_result()
-#
-#    def test_result_screening(self):
-#        self.experiment_type = get_experiment_type_screening()
-#        self.__check_result()
-#
-#    def test_unsupported_experiment_type(self):
-#        self.experiment_type = get_experiment_type_manual_optimisation()
-#        self.__continue_setup()
-#        self._test_and_expect_errors('This experiment type (manual ' \
-#                    'optimisation) does not support robot database updates')
-#
-#    def test_result_one_updated_experiment_optimisation(self):
-#        self.__continue_setup()
-#        self._test_one_updated_experiment()
-#        ExperimentOptimisationToolTestCase._check_execution_results(
-#                                                    self, self.experiment1)
-#        ExperimentOptimisationToolTestCase._check_execution_results(
-#                                                    self, self.experiment2)
-#
-#    def test_result_one_updated_experiment_screening(self):
-#        self.experiment_type = get_experiment_type_screening()
-#        self.__continue_setup()
-#        self._test_one_updated_experiment()
-#        ExperimentScreeningToolTestCase._check_execution_results(
-#                                                    self, self.experiment1)
-#        self.iso_plate_barcode = self.iso_plate2_barcode
-#        self.experiment_rack_barcodes = self.experiment2_rack_barcodes
-#        ExperimentScreeningToolTestCase._check_execution_results(
-#                                                    self, self.experiment2)
-#
-#    def test_invalid_experiment_jobs(self):
-#        self.__continue_setup()
-#        self._test_invalid_experiment_jobs()
-#
-#    def test_invalid_user(self):
-#        self.__continue_setup()
-#        self._test_invalid_user()
-#
-#    def test_different_experiment_designs(self):
-#        self.__continue_setup()
-#        self._test_different_experiment_designs()
-#
-#    def test_no_valid_experiment(self):
-#        self.__continue_setup()
-#        self._test_no_valid_experiment()
-#
-#    def test_executor_failure(self):
-#        self.max_vol = (self.max_vol / 10)
-#        self.__continue_setup()
-#        self._test_and_expect_errors('Error when trying to update experiment')
-#
-#
-#class ExperimentBatchWorklistWriterTestCase(ExperimentBatchTestCase,
-#                                ExperimentScreeningToolTestCase,
-#                                ExperimentOptimisationToolTestCase,
-#                                FileCreatorTestCase):
-#
-#    def set_up(self):
-#        ExperimentOptimisationToolTestCase.set_up(self)
-#        # the screening tool has the same setup method
-#        ExperimentBatchTestCase.set_up(self)
-#        self.number_experiments = 2
-#        self.WL_PATH = 'thelma:tests/tools/experiment/csv_files/'
-#
-#    def tear_down(self):
-#        del self.WL_PATH
-#        ExperimentBatchTestCase.tear_down(self)
-#        # the optimisation tool has the same tear down method
-#        ExperimentOptimisationToolTestCase.tear_down(self)
-#
-#    def _create_tool(self):
-#        self.tool = ExperimentBatchWorklistWriter(
-#                                        experiment_jobs=self.experiment_jobs)
-#
-#    def __continue_setup(self):
-#        if self.experiment_type.id == EXPERIMENT_SCENARIOS.SCREENING:
-#            ExperimentScreeningToolTestCase._continue_setup(self)
-#        else:
-#            ExperimentOptimisationToolTestCase._continue_setup(self)
-#        ExperimentBatchTestCase._continue_setup(self,
-#                        experiment=self.experiment, iso_layout=self.iso_layout,
-#                        mol_map=self.mol_map, pool_map=self.pool_map,
-#                        floating_map=self.floating_map)
-#
-#    def test_result_optimisation(self):
-#        self.__continue_setup()
-#        zip_stream = self.tool.get_result()
-#        archive = self._get_zip_archive(zip_stream)
-#        self.assert_equal(len(archive.namelist()), 8)
-#        for fn in archive.namelist():
-#            tool_content = archive.read(fn)
-#            if ExperimentWorklistWriters.OPTI_FILE_SUFFIX in fn:
-#                exp_fn = 'optimem_opti.csv'
-#                if self.experiment2.label in fn:
-#                    exp_fn = 'optimem_opti2.csv'
-#                self._compare_csv_file_content(tool_content, exp_fn)
-#            elif ExperimentWorklistWriters.REAGENT_FILE_SUFFIX in fn:
-#                exp_fn = 'reagent_opti.csv'
-#                if self.experiment2.label in fn:
-#                    exp_fn = 'reagent_opti2.csv'
-#                self._compare_csv_file_content(tool_content, exp_fn)
-#            elif ExperimentWorklistWriters.PREPARATION_FILE_SUFFIX in fn:
-#                self._compare_csv_file_content(tool_content,
-#                                                    'reagent_prep_opti.csv')
-#            else:
-#                exp_fn = 'transfer_opti.csv'
-#                if self.experiment2.label in fn:
-#                    exp_fn = 'transfer_opti2.csv'
-#                self._compare_csv_file_content(tool_content, exp_fn)
-#
-#    def test_result_screen(self):
-#        self.experiment_type = get_experiment_type_screening()
-#        self.__continue_setup()
-#        zip_stream = self.tool.get_result()
-#        archive = self._get_zip_archive(zip_stream)
-#        self.assert_equal(len(archive.namelist()), 8)
-#        for fn in archive.namelist():
-#            tool_content = archive.read(fn)
-#            if ExperimentWorklistWriters.OPTI_FILE_SUFFIX in fn:
-#                exp_fn = 'optimem_screen.csv'
-#                if self.experiment2.label in fn:
-#                    exp_fn = 'optimem_screen2.csv'
-#                self._compare_csv_file_content(tool_content, exp_fn)
-#            elif ExperimentWorklistWriters.REAGENT_FILE_SUFFIX in fn:
-#                exp_fn = 'reagent_screen.csv'
-#                if self.experiment2.label in fn:
-#                    exp_fn = 'reagent_screen2.csv'
-#                self._compare_csv_file_content(tool_content, exp_fn)
-#            elif ExperimentWorklistWriters.PREPARATION_FILE_SUFFIX in fn:
-#                self._compare_csv_file_content(tool_content,
-#                                                    'reagent_prep_screen.csv')
-#            else:
-#                exp_fn = 'cybio_transfer.txt'
-#                if self.experiment2.label in fn:
-#                    exp_fn = 'cybio_transfer2.txt'
-#                self._compare_csv_file_content(tool_content, exp_fn)
-#
-#    def test_unsupported_experiment_type(self):
-#        self.experiment_type = get_experiment_type_manual_optimisation()
-#        self.__continue_setup()
-#        self._test_and_expect_errors('This experiment type (manual ' \
-#                        'optimisation) does not support robot worklists')
-#
-#    def test_result_one_updated_experiment_optimisation(self):
-#        self.__continue_setup()
-#        self._test_one_updated_experiment(expect_experiments=False)
-#        zip_stream = self.tool.return_value
-#        zip_archive = self._get_zip_archive(zip_stream)
-#        self.assert_equal(len(zip_archive.namelist()), 4)
-#        for fn in zip_archive.namelist():
-#            tool_content = zip_archive.read(fn)
-#            if ExperimentWorklistWriters.OPTI_FILE_SUFFIX in fn:
-#                self._compare_csv_file_content(tool_content,
-#                                                    'optimem_opti2.csv')
-#            elif ExperimentWorklistWriters.REAGENT_FILE_SUFFIX in fn:
-#                self._compare_csv_file_content(tool_content,
-#                                                    'reagent_opti2.csv')
-#            elif ExperimentWorklistWriters.PREPARATION_FILE_SUFFIX \
-#                            in fn:
-#                self._compare_csv_file_content(tool_content,
-#                                                    'reagent_prep_opti.csv')
-#            else:
-#                self._compare_csv_file_content(tool_content,
-#                                                    'transfer_opti2.csv')
-#
-#    def test_result_one_updated_experiment_screening(self):
-#        self.experiment_type = get_experiment_type_screening()
-#        self.__continue_setup()
-#        self._test_one_updated_experiment(expect_experiments=False)
-#        zip_stream = self.tool.return_value
-#        zip_archive = self._get_zip_archive(zip_stream)
-#        self.assert_equal(len(zip_archive.namelist()), 4)
-#        for fn in zip_archive.namelist():
-#            tool_content = zip_archive.read(fn)
-#            if ExperimentWorklistWriters.OPTI_FILE_SUFFIX in fn:
-#                self._compare_csv_file_content(tool_content,
-#                                                    'optimem_screen2.csv')
-#            elif ExperimentWorklistWriters.REAGENT_FILE_SUFFIX in fn:
-#                self._compare_csv_file_content(tool_content,
-#                                                    'reagent_screen2.csv')
-#            elif ExperimentWorklistWriters.PREPARATION_FILE_SUFFIX \
-#                            in fn:
-#                self._compare_csv_file_content(tool_content,
-#                                                    'reagent_prep_screen.csv')
-#            else:
-#                self._compare_txt_file_content(tool_content,
-#                                                    'cybio_transfer2.txt')
-#
-#    def test_invalid_experiment_jobs(self):
-#        self.__continue_setup()
-#        self._test_invalid_experiment_jobs()
-#
-#    def test_different_experiment_designs(self):
-#        self.__continue_setup()
-#        self._test_different_experiment_designs()
-#
-#    def test_no_valid_experiment(self):
-#        self.__continue_setup()
-#        self._test_no_valid_experiment()
-#
-#    def test_executor_failure(self):
-#        self.max_vol = (self.max_vol / 10)
-#        self.__continue_setup()
-#        self._test_and_expect_errors()
+"""
+Test for batch experiment tools.
+
+AAB
+"""
+from thelma.automation.semiconstants import ITEM_STATUS_NAMES
+from thelma.automation.semiconstants import RACK_SPECS_NAMES
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_experiment_type_order
+from thelma.automation.tools.experiment import get_batch_executor
+from thelma.automation.tools.experiment import get_batch_manual_executor
+from thelma.automation.tools.experiment import get_batch_writer
+from thelma.models.racklayout import RackLayout
+from thelma.models.utils import get_user
+from thelma.tests.tools.experiment.utils import EXPERIMENT_TEST_DATA
+from thelma.tests.tools.experiment.utils import ExperimentTestCase
+
+class _EXPERIMENT_BATCH_TEST_DATA(EXPERIMENT_TEST_DATA):
+
+    @classmethod
+    def get_experiment_label2(cls, case_name):
+        return '%s_exp2' % (case_name)
+
+    EXPERIMENT_PLATES_2 = {
+                '1' : {'08880211' : 'exp2_ds1_c1', '08880212' : 'exp2_ds1_c2'},
+                '2' : {'08880221' : 'exp2_ds2_c1', '08880222' : 'exp2_ds1_c2'}}
+
+
+    FLOATING_MAP2 = {'md_001' : 205209, 'md_002' : 205210,
+                     'md_003' : 205212, 'md_004' : 205214}
+
+    ISO_LABEL_2 = 'testiso2'
+    ISO_PLATE_BARCODE_2 = '09999990'
+    ISO_PLATE_BARCODE_LIBRARY_2 = '07777712'
+    ISO_PLATE_LABEL_2 = ISO_LABEL_2 + '_plate'
+
+    @classmethod
+    def get_experiment_plate_final_state_data2(cls, case_name):
+        if case_name == cls.CASE_SCREEN_MM:
+            fd = dict(b3=[205200, 10], b4=[205200, 20],
+                      c3=[205201, 10], c4=[205201, 20],
+                      d3=[205200, 10], d4=[205200, 20],
+                      e3=[205201, 10], e4=[205201, 20],
+                      f3=[None, None], f4=[None, None],
+                      b5=[205209, 10], b6=[205209, 20],
+                      c5=[205210, 10], c6=[205210, 20],
+                      d5=[205212, 10], d6=[205212, 20],
+                      e5=[205214, 10], e6=[205214, 20])
+            return {'1' : fd, '2' : fd}
+        elif case_name == cls.CASE_SCREEN_NO:
+            fd = dict(b3=[205200, 10], b4=[205200, 20],
+                      c3=[205201, 10], c4=[205201, 20],
+                      d3=[205200, 10], d4=[205200, 20],
+                      e3=[205201, 10], e4=[205201, 20],
+                      f3=[None, None], f4=[None, None],
+                      b5=[205209, 10], b6=[205209, 20],
+                      c5=[205210, 10], c6=[205210, 20],
+                      d5=[205212, 10], d6=[205212, 20],
+                      e5=[205214, 10], e6=[205214, 20])
+            return {'1' : fd, '2' : fd}
+        elif case_name == cls.CASE_LIBRARY_MM:
+            fd = dict(b2=[205201, 10], i10=[205201, 10],
+                      d2=[330001, 10], k10=[330001, 10],
+                      f2=[1056000, 10], m10=[1056000, 10],
+                      h2=[None, None], o10=[None, None],
+                      b3=[1068480, 10], b4=[1068481, 10],
+                      c3=[1068482, 10])
+            return {'1' : fd, '2' : fd}
+        elif case_name == cls.CASE_LIBRARY_NO:
+            fd = dict(b2=[205201, 30], i10=[205201, 30],
+                      d2=[330001, 30], k10=[330001, 30],
+                      f2=[1056000, 30], m10=[1056000, 30],
+                      h2=[None, None], o10=[None, None],
+                      b3=[1068480, 30], b4=[1068481, 30],
+                      c3=[1068482, 30])
+            return {'1' : fd, '2' : fd}
+        return EXPERIMENT_TEST_DATA.get_experiment_plate_final_state_data(
+                                                                    case_name)
+
+    # case name - list with file names
+    WORKLIST_FILES = {
+            EXPERIMENT_TEST_DATA.CASE_OPTI_MM : [
+                            'opti_mm_exp_biomek_optimem.csv',
+                            'opti_mm_exp_biomek_reagent.csv',
+                            'opti_mm_exp_biomek_transfer.csv',
+                            'opti_mm_exp_reagent_instructions.csv',
+                            'opti_mm_exp2_biomek_optimem.csv',
+                            'opti_mm_exp2_biomek_reagent.csv',
+                            'opti_mm_exp2_biomek_transfer.csv',
+                            'opti_mm_exp2_reagent_instructions.csv'],
+            EXPERIMENT_TEST_DATA.CASE_SCREEN_MM : [
+                              'screen_mm_exp_biomek_optimem.csv',
+                              'screen_mm_exp_biomek_reagent.csv',
+                              'screen_mm_exp_cybio_transfers.txt',
+                              'screen_mm_exp_reagent_instructions.csv',
+                              'screen_mm_exp2_biomek_optimem.csv',
+                              'screen_mm_exp2_biomek_reagent.csv',
+                              'screen_mm_exp2_cybio_transfers.txt',
+                              'screen_mm_exp2_reagent_instructions.csv'],
+            EXPERIMENT_TEST_DATA.CASE_LIBRARY_MM : [
+                               'lib_mm_exp_biomek_optimem.csv',
+                               'lib_mm_exp_biomek_reagent.csv',
+                               'lib_mm_exp_cybio_transfers.txt',
+                               'lib_mm_exp_reagent_instructions.csv',
+                               'lib_mm_exp2_biomek_optimem.csv',
+                               'lib_mm_exp2_biomek_reagent.csv',
+                               'lib_mm_exp2_cybio_transfers.txt',
+                               'lib_mm_exp2_reagent_instructions.csv']}
+
+    @classmethod
+    def get_source_plate_final_plate_data_2(cls, case_name):
+        if case_name == cls.CASE_OPTI_MM:
+            return EXPERIMENT_TEST_DATA.get_source_plate_final_plate_data(
+                                                                    case_name)
+        elif case_name == cls.CASE_SCREEN_MM: # ISO volume is always 3.8
+            return dict(b3=[205200, 70, 10.4], # ISO conc 560
+                        b4=[205200, 140, 10.4], # ISO conc 1120
+                        c3=[205201, 70, 10.4], # ISO conc 560
+                        c4=[205201, 140, 10.4], # ISO conc 1120
+                        d3=[205200, 70, 10.4], # ISO conc 560
+                        d4=[205200, 140, 10.4], # ISO conc 1120
+                        e3=[205201, 70, 10.4], # ISO conc 560
+                        e4=[205201, 140, 10.4], # ISO conc 1120
+                        f3=[None, None, 10.4],
+                        f4=[None, None, 10.4],
+                        b5=[205209, 70, 10.4], # ISO conc 560
+                        b6=[205209, 140, 10.4], # ISO conc 1120
+                        c5=[205210, 70, 10.4], # ISO conc 560
+                        c6=[205210, 140, 10.4], # ISO conc 1120
+                        d5=[205212, 70, 10.4], # ISO conc 560
+                        d6=[205212, 140, 10.4], # ISO conc 1120
+                        e5=[205214, 70, 10.4], # ISO conc 560
+                        e6=[205214, 140, 10.4]) # ISO conc 1120
+        elif case_name == cls.CASE_LIBRARY_MM:
+            # ISO volume is always 4, ISO conc is always 1270 (1269) nM
+            return dict(b2=[205201, 69.8, 52.8],
+                        d2=[330001, 69.8, 52.8],
+                        f2=[1056000, 69.8, 52.8],
+                        h2=[None, None, 52.8],
+                        i10=[205201, 69.8, 52.8],
+                        k10=[330001, 69.8, 52.8],
+                        m10=[1056000, 69.8, 52.8],
+                        o10=[None, None, 52.8],
+                        b3=[1068480, 69.8, 52.8],
+                        b4=[1068481, 69.8, 52.8],
+                        c3=[1068482, 69.8, 52.8])
+        raise NotImplementedError('The values for this case are missing!')
+
+class _ExperimentBatchTestCase(ExperimentTestCase):
+
+    def set_up(self):
+        ExperimentTestCase.set_up(self)
+        self.case = _EXPERIMENT_BATCH_TEST_DATA.CASE_SCREEN_MM
+        self.experiment2 = None
+        self.iso_plate2 = None
+        self.experiments = []
+
+    def tear_down(self):
+        ExperimentTestCase.tear_down(self)
+        del self.experiment2
+        del self.iso_plate2
+        del self.experiments
+
+    def _continue_setup(self, file_name=None):
+        ExperimentTestCase._continue_setup(self, file_name=file_name)
+        if _EXPERIMENT_BATCH_TEST_DATA.has_source_plate(self.case):
+            self.__generate_second_iso_and_plate()
+        if _EXPERIMENT_BATCH_TEST_DATA.has_experiments(self.case):
+            self.__generate_second_experiment_and_plates()
+        self.experiments = [self.experiment, self.experiment2]
+        self._create_tool()
+
+    def __generate_second_iso_and_plate(self):
+        layout2 = self._generate_iso_layout(
+                                    _EXPERIMENT_BATCH_TEST_DATA.FLOATING_MAP2)
+        pool_set2 = self._generate_pool_set_from_iso_layout(layout2)
+        iso2 = self._create_lab_iso(rack_layout=layout2.create_rack_layout(),
+                       label=_EXPERIMENT_BATCH_TEST_DATA.ISO_LABEL_2,
+                       molecule_design_pool_set=pool_set2,
+                       iso_request=self.experiment_metadata.lab_iso_request)
+        if self.library_generator is not None:
+            # all plates have been filled an generated before
+            lib_plate2 = self.library_generator.library_plates[2]
+            self.iso_plate2 = lib_plate2.rack
+            lib_plate2.iso = iso2
+        else:
+            self.iso_plate2 = self._generate_iso_plate(layout2, iso2)
+            self.iso_plate2.barcode = \
+                        _EXPERIMENT_BATCH_TEST_DATA.ISO_PLATE_BARCODE_2
+
+    def __generate_second_experiment_and_plates(self):
+        ps_name = _EXPERIMENT_BATCH_TEST_DATA.EXPERIMENT_PLATE_SPECS[self.case]
+        plate_specs = RACK_SPECS_NAMES.from_name(ps_name)
+        exp_label2 = _EXPERIMENT_BATCH_TEST_DATA.\
+                     get_experiment_label2(self.case)
+        self.experiment2 = self._create_experiment(label=exp_label2,
+                destination_rack_specs=plate_specs, source_rack=self.iso_plate2,
+                experiment_design=self.experiment_metadata.experiment_design)
+        self._generate_experiment_plates(plate_specs,
+                             _EXPERIMENT_BATCH_TEST_DATA.EXPERIMENT_PLATES_2,
+                             self.experiment2)
+
+    def _test_invalid_input_values(self):
+        self._load_scenario(_EXPERIMENT_BATCH_TEST_DATA.CASE_OPTI_MM)
+        ori_e = self.experiments
+        self.experiments = dict()
+        self._test_and_expect_errors('The experiment list must be a list ' \
+                                     'object (obtained: dict).')
+        self.experiments = []
+        self._test_and_expect_errors('The experiment list is empty!')
+        self.experiments = [1]
+        self._test_and_expect_errors('The experiment must be a Experiment ' \
+                                     'object (obtained: int).')
+        self.experiments = ori_e
+
+
+class ExperimentBatchManualExecutorTestCase(_ExperimentBatchTestCase):
+
+    def set_up(self):
+        _ExperimentBatchTestCase.set_up(self)
+        self.executor_user = get_user('tondera')
+
+    def _create_tool(self):
+        self.tool = get_batch_manual_executor(experiments=self.experiments,
+                                              user=self.executor_user)
+
+    def __check_result(self, case_name):
+        self._load_scenario(case_name)
+        experiments = self.tool.get_result()
+        self.assert_is_not_none(experiments)
+        self.assert_equal(len(experiments), 2)
+        self._check_no_worklist_executions()
+        warnings = ' '.join(self.tool.get_messages())
+        warn = 'This experiment is robot-compatible. Would you still like to ' \
+               'use the manual update?'
+        if EXPERIMENT_TEST_DATA.supports_mastermixes(self.case):
+            self.assert_true(warn in warnings)
+        else:
+            self.assert_false(warn in warnings)
+        # experiment 1
+        self._check_final_plates_final_state()
+        self._check_source_plate_unaltered()
+        # experiment 2
+        self._check_source_plate_unaltered(self.iso_plate2,
+                                _EXPERIMENT_BATCH_TEST_DATA.FLOATING_MAP2)
+        self._check_final_plates_final_state(
+                    _EXPERIMENT_BATCH_TEST_DATA.\
+                    get_experiment_plate_final_state_data2(self.case),
+                    self.experiment2.experiment_racks)
+        for edr in self.experiment2.experiment_racks:
+            self.assert_equal(edr.rack.status.name, ITEM_STATUS_NAMES.MANAGED)
+
+    def test_case_order(self):
+        self._load_scenario(_EXPERIMENT_BATCH_TEST_DATA.CASE_ORDER)
+        self._test_and_expect_errors('The experiment must be a Experiment ' \
+                                     'object (obtained: NoneType).')
+        ed = self._create_experiment_design(rack_shape=get_96_rack_shape(),
+                            experiment_metadata=self.experiment_metadata)
+        self.experiment = self._create_experiment(experiment_design=ed)
+        self.experiment2 = self._create_experiment(experiment_design=ed)
+        self.experiments = [self.experiment, self.experiment2]
+        self._test_and_expect_errors('The type of this experiment is not ' \
+                                     'supported by this tool')
+
+    def test_case_manual(self):
+        self.__check_result(_EXPERIMENT_BATCH_TEST_DATA.CASE_MANUAL)
+
+    def test_case_opti_with_mastermix(self):
+        self.__check_result(EXPERIMENT_TEST_DATA.CASE_OPTI_MM)
+
+    def test_case_opti_without_mastermix(self):
+        self.__check_result(EXPERIMENT_TEST_DATA.CASE_OPTI_NO)
+
+    def test_case_screen_with_mastermix(self):
+        self.__check_result(EXPERIMENT_TEST_DATA.CASE_SCREEN_MM)
+
+    def test_case_screen_no_mastermix(self):
+        self.__check_result(EXPERIMENT_TEST_DATA.CASE_SCREEN_NO)
+
+    def test_case_library_with_mastermix(self):
+        self.__check_result(EXPERIMENT_TEST_DATA.CASE_LIBRARY_MM)
+
+    def test_case_library_no_mastermix(self):
+        self.__check_result(EXPERIMENT_TEST_DATA.CASE_LIBRARY_NO)
+
+    def test_case_isoless(self):
+        self.__check_result(EXPERIMENT_TEST_DATA.CASE_ISOLESS)
+
+    def test_invalid_input_values(self):
+        self._test_invalid_input_values()
+
+    def test_invalid_experiment_type(self):
+        self._test_invalid_experiment_type()
+
+    def test_update_error(self):
+        self._load_scenario(_EXPERIMENT_BATCH_TEST_DATA.CASE_MANUAL)
+        self.experiment_metadata.lab_iso_request.rack_layout = RackLayout()
+        self._test_and_expect_errors('Error when trying to update experiment')
+
+
+class ExperimentBatchWorklistWriterTestCase(_ExperimentBatchTestCase):
+
+    def _create_tool(self):
+        self.tool = get_batch_writer(experiments=self.experiments)
+
+    def __check_result(self, case_name):
+        self._load_scenario(case_name)
+        self._check_worklist_files(
+                        _EXPERIMENT_BATCH_TEST_DATA.WORKLIST_FILES[self.case])
+
+    def test_case_opti_with_mastermix(self):
+        self.__check_result(_EXPERIMENT_BATCH_TEST_DATA.CASE_OPTI_MM)
+
+    def test_case_screen_with_mastermix(self):
+        self.__check_result(_EXPERIMENT_BATCH_TEST_DATA.CASE_SCREEN_MM)
+
+    def test_case_library_with_mastermix(self):
+        self.__check_result(_EXPERIMENT_BATCH_TEST_DATA.CASE_LIBRARY_MM)
+
+    def test_no_mastermix_support(self):
+        self._load_scenario(_EXPERIMENT_BATCH_TEST_DATA.CASE_OPTI_NO)
+        self._test_and_expect_errors('This experiment is not ' \
+                                     'Biomek-compatible.')
+        self._check_error_messages('Error when trying to generate ' \
+                                   'worklists for experiment')
+
+    def test_invalid_input_values(self):
+        self._test_invalid_input_values()
+
+    def test_invalid_experiment_type_and_writer_init_failure(self):
+        self._load_scenario(_EXPERIMENT_BATCH_TEST_DATA.CASE_OPTI_MM)
+        self.experiment_metadata.experiment_metadata_type = \
+                                                get_experiment_type_order()
+        self._test_and_expect_errors('Error when trying to fetch writer for ' \
+                'experiment "opti_mm_exp": This experiment type (ISO without ' \
+                'experiment) does not support robot worklists!')
+
+    def test_worklist_generation_failure(self):
+        self._load_scenario(_EXPERIMENT_BATCH_TEST_DATA.CASE_OPTI_MM)
+        self.experiment_metadata.lab_iso_request.rack_layout = RackLayout()
+        self._test_and_expect_errors('Error when trying to generate ' \
+                                     'worklists for experiment')
+
+
+class ExperimentBatchExecutorTestCase(_ExperimentBatchTestCase):
+
+    def set_up(self):
+        _ExperimentBatchTestCase.set_up(self)
+        self.executor_user = get_user('tondera')
+
+    def _create_tool(self):
+        self.tool = get_batch_executor(experiments=self.experiments,
+                                       user=self.executor_user)
+
+
+    def __check_result(self, case_name):
+        self._load_scenario(case_name)
+        experiments = self.tool.get_result()
+        self.assert_is_not_none(experiments)
+        self.assert_equal(len(experiments), 2)
+         # experiment 1
+        self._check_final_plates_final_state()
+        self._check_source_plate_final_state()
+        # experiment 2
+        self._check_final_plates_final_state(
+                    _EXPERIMENT_BATCH_TEST_DATA.\
+                    get_experiment_plate_final_state_data2(self.case),
+                    self.experiment2.experiment_racks)
+        self._check_source_plate_final_state(
+            _EXPERIMENT_BATCH_TEST_DATA.get_source_plate_final_plate_data_2(
+                                                self.case), self.iso_plate2)
+        for experiment in experiments:
+            for edr in experiment.experiment_racks:
+                self.assert_equal(edr.rack.status.name,
+                                  ITEM_STATUS_NAMES.MANAGED)
+
+
+    def test_case_opti_with_mastermix(self):
+        self.__check_result(_EXPERIMENT_BATCH_TEST_DATA.CASE_OPTI_MM)
+
+    def test_case_screen_with_mastermix(self):
+        self.__check_result(_EXPERIMENT_BATCH_TEST_DATA.CASE_SCREEN_MM)
+
+    def test_case_library_with_mastermix(self):
+        self.__check_result(_EXPERIMENT_BATCH_TEST_DATA.CASE_LIBRARY_MM)
+
+    def test_no_mastermix_support(self):
+        self._load_scenario(_EXPERIMENT_BATCH_TEST_DATA.CASE_OPTI_NO)
+        self._test_and_expect_errors('This experiment is not ' \
+                                     'Biomek-compatible.')
+        self._check_error_messages('Error when trying to update experiment ' \
+                                    '"opti_no_exp"')
+
+    def test_invalid_input_values(self):
+        self._test_invalid_input_values()
+        self.executor_user = None
+        self._test_and_expect_errors('The user must be a User object ' \
+                                     '(obtained: NoneType).')
+
+    def test_invalid_experiment_type_and_writer_init_failure(self):
+        self._load_scenario(_EXPERIMENT_BATCH_TEST_DATA.CASE_OPTI_MM)
+        self.experiment_metadata.experiment_metadata_type = \
+                                                get_experiment_type_order()
+        self._test_and_expect_errors('Error when trying to fetch executor for ' \
+                'experiment "opti_mm_exp": This experiment type (ISO without ' \
+                'experiment) does not support robot worklists!')
+
+    def test_worklist_generation_failure(self):
+        self._load_scenario(_EXPERIMENT_BATCH_TEST_DATA.CASE_OPTI_MM)
+        self.experiment_metadata.lab_iso_request.rack_layout = RackLayout()
+        self._test_and_expect_errors('Error when trying to update experiment')

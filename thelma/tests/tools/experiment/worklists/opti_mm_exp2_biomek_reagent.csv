@@ -1,0 +1,9 @@
+SourcePlateBarcode,SourcePlateWell,DestinationPlateBarcode,DestinationPlateWell,Volume,DiluentInformation
+complexes,A1,09999990,B2,15.6,mix1 (1400)
+complexes,A1,09999990,B3,15.6,mix1 (1400)
+complexes,A2,09999990,B4,27.6,mix1 (2800)
+complexes,A1,09999990,C2,15.6,mix1 (1400)
+complexes,A1,09999990,C3,15.6,mix1 (1400)
+complexes,A2,09999990,C4,27.6,mix1 (2800)
+complexes,A1,09999990,D2,27.6,mix1 (1400)
+complexes,A2,09999990,D4,27.6,mix1 (2800)

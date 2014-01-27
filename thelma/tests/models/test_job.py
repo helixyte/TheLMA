@@ -13,6 +13,7 @@ from thelma.models.job import IsoJob
 from thelma.models.job import JOB_TYPES
 from thelma.models.job import Job
 from thelma.testing import ThelmaEntityTestCase
+from thelma.interfaces import IPlate
 
 
 class JobModelTestCase(ThelmaEntityTestCase):
@@ -113,6 +114,8 @@ class IsoJobTestCase(JobModelTestCase):
             ij = self._create_iso_job(**attrs)
             rack = self._get_entity(ITubeRack)
             self._create_iso_job_stock_rack(rack=rack, iso_job=ij)
+            plate = self._get_entity(IPlate)
+            self._create_iso_job_preparation_plate(rack=plate, iso_job=ij)
             self.assert_not_equal(len(ij.iso_job_stock_racks), 0)
             session.add(ij)
             session.commit()
@@ -123,5 +126,8 @@ class IsoJobTestCase(JobModelTestCase):
             query = session.query(self.model_class)
             fetched_ij = query.filter_by(id=ij_id).one()
             check_attributes(fetched_ij, attrs)
-            self.assert_not_equal(len(fetched_ij.iso_job_stock_racks), 0)
+            self.assert_equal(len(fetched_ij.iso_job_stock_racks), 1)
             self.assert_equal(fetched_ij.iso_job_stock_racks[0].rack, rack)
+            self.assert_equal(len(fetched_ij.iso_job_preparation_plates), 1)
+            self.assert_equal(fetched_ij.iso_job_preparation_plates[0].rack,
+                              plate)

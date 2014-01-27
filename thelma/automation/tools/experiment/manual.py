@@ -32,14 +32,15 @@ class ExperimentManualExecutor(ExperimentTool):
 
     **Return Value:** updated experiment
     """
-    NAME = 'Experiment Rack Filler'
+    NAME = 'Experiment Manual Executor'
 
     SUPPORTED_SCENARIOS = [EXPERIMENT_SCENARIOS.OPTIMISATION,
                            EXPERIMENT_SCENARIOS.SCREENING,
                            EXPERIMENT_SCENARIOS.LIBRARY,
-                           EXPERIMENT_SCENARIOS.MANUAL]
+                           EXPERIMENT_SCENARIOS.MANUAL,
+                           EXPERIMENT_SCENARIOS.ISO_LESS]
 
-    _MODES = [ExperimentTool.MODE_PRINT_WORKLISTS]
+    _MODES = [ExperimentTool.MODE_EXECUTE]
 
     #: The default volume of a sample in an experiment plate (in ul).
     FINAL_SAMPLE_VOLUME = TransfectionParameters.TRANSFER_VOLUME * \
@@ -63,7 +64,7 @@ class ExperimentManualExecutor(ExperimentTool):
                                 log=log, mode=ExperimentTool.MODE_EXECUTE,
                                 user=user, **kw)
 
-        #: Maps molecules onto pool.
+        #: Maps molecules onto pools (or pool placeholders).
         self.__pool_molecule_map = None
         #: The final volume for the samples *in l*.
         self.__final_vol = self.FINAL_SAMPLE_VOLUME / VOLUME_CONVERSION_FACTOR
@@ -112,16 +113,20 @@ class ExperimentManualExecutor(ExperimentTool):
         """
         self.add_debug('Store molecules for pools ...')
 
-        for well in self._source_plate.containers:
-            if well.sample is None: continue
-            rack_pos = well.location.position
-            ir_pos = self._source_layout.get_working_position(rack_pos)
-            pool = ir_pos.molecule_design_pool
-            if self.__pool_molecule_map.has_key(pool): continue
-            mols = []
-            for sm in well.sample.sample_molecules:
-                mols.append(sm.molecule)
-            self.__pool_molecule_map[pool] = mols
+        if not self._scenario.id == EXPERIMENT_SCENARIOS.ISO_LESS:
+            for well in self._source_plate.containers:
+                if well.sample is None: continue
+                rack_pos = well.location.position
+                ir_pos = self._source_layout.get_working_position(rack_pos)
+                if ir_pos.is_library:
+                    pool = rack_pos.label
+                else:
+                    pool = ir_pos.molecule_design_pool
+                if self.__pool_molecule_map.has_key(pool): continue
+                mols = []
+                for sm in well.sample.sample_molecules:
+                    mols.append(sm.molecule)
+                self.__pool_molecule_map[pool] = mols
 
     def __update_racks(self):
         """
@@ -149,7 +154,7 @@ class ExperimentManualExecutor(ExperimentTool):
         """
         converter = TransfectionLayoutConverter(log=self.log,
                                         rack_layout=design_rack.rack_layout,
-                                        is_iso_layout=False)
+                                        is_iso_request_layout=False)
         tf_layout = converter.get_result()
         if tf_layout is None:
             msg = 'Could not get layout for design rack "%s"!' \
@@ -167,7 +172,6 @@ class ExperimentManualExecutor(ExperimentTool):
         :attr:`_pool_molecule_map` and positions and concentrations are
         derived from the layout.
         """
-
         without_pool_data = isinstance(layout, RackLayout)
         design_rack_label = design_rack.label
         for exp_rack in self._experiment_racks[design_rack_label]:
@@ -201,12 +205,17 @@ class ExperimentManualExecutor(ExperimentTool):
             tf_pos = layout.get_working_position(rack_pos)
             if tf_pos is None: continue
             if tf_pos.is_empty: continue
+            pool = tf_pos.molecule_design_pool
+            if tf_pos.is_library:
+                pool = rack_pos.label
+            if not self.__pool_molecule_map.has_key(pool):
+                if not ((tf_pos.is_library and \
+                            rack_pos in self._ignored_positions) \
+                        or pool in self._ignored_floatings):
+                    missing_pools.add(pool)
+                continue
             sample = well.make_sample(self.__final_vol)
             if tf_pos.is_mock: continue
-            pool = tf_pos.molecule_design_pool
-            if not self.__pool_molecule_map.has_key(pool):
-                missing_pools.add(pool)
-                continue
             mols = self.__pool_molecule_map[pool]
             conc = (tf_pos.final_concentration / len(mols)) \
                     / CONCENTRATION_CONVERSION_FACTOR

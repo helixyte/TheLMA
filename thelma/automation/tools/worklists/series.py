@@ -968,7 +968,9 @@ class SerialWriterExecutorTool(BaseAutomationTool):
         :type user: :class:`thelma.models.user.User`
         :default user: *None*
         """
-        BaseAutomationTool.__init__(self, depending=False, **kw)
+        if not kw.has_key('depending'):
+            kw['depending'] = False
+        BaseAutomationTool.__init__(self, **kw)
 
         #: Print or execute?
         self.mode = mode

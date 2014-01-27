@@ -60,50 +60,47 @@ def get_executor(experiment, user, **kw):
     """
     return get_experiment_executor(experiment=experiment, user=user, **kw)
 
-def get_batch_manual_executor(experiment_jobs, user, **kw):
+def get_batch_manual_executor(experiments, user, **kw):
     """
     Factory function creating a batch tool that performs DB executions for
     experiments without mastermix support
     (:class:`ExperimentBatchManualExecutor`).
 
-    :param experiment_jobs: A list of experiment jobs that all belong to the
+    :param experiments: A list of experiments that all belong to the
         same experiment design.
-    :type experiment_jobs: :class:`list` of
-        :class:`thelma.models.job.ExperimentJob`
+    :type experiments: :class:`list` of :class:`thelma.models.job.Experiment`
 
     :param user: The user who has committed the update.
     :type user: :class:`thelma.models.user.User`
     """
-    kw.update(dict(experiment_jobs=experiment_jobs, user=user))
+    kw.update(dict(experiments=experiments, user=user))
     return ExperimentBatchManualExecutor(**kw)
 
-def get_batch_writer(experiment_jobs, **kw):
+def get_batch_writer(experiments, **kw):
     """
     Factory function creating a batch tool that prints worklist for all
     experiments of the passed experiment jobs
     (:class:`ExperimentBatchWorklistWriter`).
 
-    :param experiment_jobs: A list of experiment jobs that all belong to the
+    :param experiments: A list of experiments that all belong to the
         same experiment design.
-    :type experiment_jobs: :class:`list` of
-        :class:`thelma.models.job.ExperimentJob`
+    :type experiments: :class:`list` of :class:`thelma.models.job.Experiment`
     """
-    kw.update(dict(experiment_jobs=experiment_jobs))
+    kw.update(dict(experiments=experiments))
     return ExperimentBatchWorklistWriter(**kw)
 
-def get_batch_executor(experiment_jobs, user, **kw):
+def get_batch_executor(experiments, user, **kw):
     """
     Factory function creating a batch tool that performs DB for all
     experiments of the passed experiment jobs
     (:class:`ExperimentBatchExecutor`).
 
-    :param experiment_jobs: A list of experiment jobs that all belong to the
+    :param experiments: A list of experiments that all belong to the
         same experiment design.
-    :type experiment_jobs: :class:`list` of
-        :class:`thelma.models.job.ExperimentJob`
+    :type experiments: :class:`list` of :class:`thelma.models.job.Experiment`
 
     :param user: The user who has committed the update.
     :type user: :class:`thelma.models.user.User`
     """
-    kw.update(dict(experiment_jobs=experiment_jobs, user=user))
+    kw.update(dict(experiments=experiments, user=user))
     return ExperimentBatchExecutor(**kw)

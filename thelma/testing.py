@@ -262,12 +262,8 @@ class EntityCreatorMixin(EverestEntityCreatorMixin):
         if not 'destination_rack_specs' in kw:
             kw['destination_rack_specs'] = \
                self._get_entity(IPlateSpecs)
-        if not 'source_rack' in kw:
-            kw['source_rack'] = self._get_entity(ITubeRack)
         if not 'experiment_design' in kw:
             kw['experiment_design'] = self._get_entity(IExperimentDesign)
-        if not 'experiment_racks' in kw:
-            kw['experiment_racks'] = [self._create_experiment_rack()]
         exp = self._create_entity(Experiment, kw)
         self._create_experiment_job(experiments=[exp])
         return exp
