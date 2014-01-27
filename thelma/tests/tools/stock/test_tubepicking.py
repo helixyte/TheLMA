@@ -16,6 +16,7 @@ from thelma.automation.tools.stock.tubepicking import SinglePoolQuery
 from thelma.automation.tools.stock.tubepicking import MultiPoolQuery
 from thelma.automation.tools.stock.tubepicking import OptimizingQuery
 from thelma.tests.tools.tooltestingutils import TestingLog
+from thelma.automation.tools.stock.tubepicking import TubePicker
 
 class StockSampleQueryTestCase(ToolsAndUtilsTestCase):
 
@@ -130,3 +131,108 @@ class TubePickerTestCase(ToolsAndUtilsTestCase):
         ToolsAndUtilsTestCase.set_up(self)
         self.log = TestingLog()
         self.pools = [self._get_pool(1056000), self._get_pool(330001)]
+        self.stock_concentration = 10000
+        self.takeoutvol = 5
+        self.excluded_racks = None
+        self.requested_tubes = None
+
+    def tear_down(self):
+        ToolsAndUtilsTestCase.tear_down(self)
+        del self.log
+        del self.pools
+        del self.stock_concentration
+        del self.takeoutvol
+        del self.excluded_racks
+        del self.requested_tubes
+
+    def _create_tool(self):
+        self.tool = TubePicker(log=self.log, molecule_design_pools=self.pools,
+                               stock_concentration=self.stock_concentration,
+                               take_out_volume=self.takeoutvol,
+                               excluded_racks=self.excluded_racks,
+                               requested_tubes=self.requested_tubes)
+
+    def _test_and_expect_errors(self, msg=None):
+        ToolsAndUtilsTestCase._test_and_expect_errors(self, msg=msg)
+        self.assert_is_none(self.tool.get_unsorted_candidates())
+
+    def __check_result(self):
+        self._create_tool()
+        candidates = self.tool.get_result()
+        self.assert_is_not_none(candidates)
+        self.assert_equal(len(candidates), 2)
+        unsorted = self.tool.get_unsorted_candidates()
+        self.assert_is_not_none(unsorted)
+        self.assert_equal(len(unsorted), 3)
+        tubes = dict()
+        pool_ids = set()
+        for pool, tcs in candidates.iteritems():
+            pool_ids.add(pool.id)
+            for tc in tcs:
+                tubes[tc.tube_barcode] = tc.rack_barcode
+        self.assert_equal(sorted(list(pool_ids)), [330001, 1056000])
+        if self.excluded_racks is not None:
+            for er in self.excluded_racks:
+                self.assert_false(er in tubes.values())
+        if self.requested_tubes is not None:
+            tc1 = candidates[self._get_pool(330001)][0]
+            self.assert_true([tc1.tube_barcode], self.requested_tubes)
+
+    def test_result(self):
+        self.__check_result()
+
+    def test_result_excluded_racks(self):
+        with RdbContextManager() as session:
+            query = SinglePoolQuery(pool_id=330001,
+                                    concentration=self.stock_concentration,
+                                    minimum_volume=self.takeoutvol)
+            query.run(session)
+            tubes = query.get_query_results()
+            self.excluded_racks = []
+            for tc in tubes:
+                self.excluded_racks.append(tc.rack_barcode)
+                break
+            self.assert_not_equal(len(self.excluded_racks), 0)
+            self.__check_result()
+
+    def test_requested_tubes(self):
+        # you need to use a pool with at least 2 valid tubes
+        with RdbContextManager() as session:
+            query = SinglePoolQuery(pool_id=330001,
+                                    concentration=self.stock_concentration,
+                                    minimum_volume=self.takeoutvol)
+            query.run(session)
+            tubes = query.get_query_results()
+            self.requested_tubes = []
+            for tc in tubes:
+                self.requested_tubes.append(tc.tube_barcode)
+                if len(self.requested_tubes) == 2: break
+            self.assert_equal(len(self.requested_tubes), 2)
+
+            # use 2 tubes for pool 330001
+            tube1 = self.requested_tubes[1]
+            tube2 = self.requested_tubes[0]
+            self.requested_tubes = [tube1]
+            self.__check_result()
+            self.requested_tubes = [tube2]
+            self.__check_result()
+
+    def test_missing_sample(self):
+        with RdbContextManager() as session:
+            query = SinglePoolQuery(pool_id=330001,
+                                    concentration=self.stock_concentration,
+                                    minimum_volume=self.takeoutvol)
+            query.run(session)
+            tubes = query.get_query_results()
+            self.excluded_racks = []
+            for tc in tubes:
+                self.excluded_racks.append(tc.rack_barcode)
+            self.assert_not_equal(len(self.excluded_racks), 0)
+            self._create_tool()
+            candidates = self.tool.get_result()
+            self.assert_is_not_none(candidates)
+            self.assert_equal(len(candidates), 1)
+            pool = candidates.keys()[0]
+            self.assert_equal(pool.id, 1056000)
+            self._check_warning_messages('Unable to find valid tubes for the ' \
+                                         'following pools: 330001.')

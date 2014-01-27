@@ -81,12 +81,12 @@ class StockSampleCreationIsoRequestGeneratorTestCase(
 
     def test_volume_adjustment(self):
         self.target_volume -= 1
-        self.__check_result(exp_vol=90)
+        self.__check_result(exp_vol=30)
         self._check_warning_messages('The target volume you have requested ' \
                 'needs to be increased slightly because of the constraints ' \
                 'of the pipetting robot (CyBio, min. transfer volume: 1 ul, ' \
                 'step size: 0.1 ul). The target volume will be increased ' \
-                'from 89 ul to 90 ul.')
+                'from 29 ul to 30 ul.')
 
     def test_invalid_input_values(self):
         self._continue_setup()

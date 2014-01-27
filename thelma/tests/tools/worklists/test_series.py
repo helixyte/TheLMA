@@ -73,14 +73,14 @@ class _TransferJobTestCase(ToolsAndUtilsTestCase):
                     index=self.index,
                     target_rack=self.target_rack)
 
-    def _test_get_writer(self, unreg_pipetting_specs=None):
+    def _test_get_writer(self):
         test_data = self.__prepare_get_tool_test()
         tj1, kw = test_data[0], test_data[1]
         writer = tj1.get_worklist_writer(self.log)
         self.assert_is_not_none(writer)
         check_attributes(writer, kw)
         # test unregistered pipetting technique
-        self.pipetting_specs = unreg_pipetting_specs #pylint: disable=E1102
+        self.pipetting_specs = self._create_pipetting_specs()
         test_data_no_writer = self.__prepare_get_tool_test()
         tj_no_writer = test_data_no_writer[0]
         self.assert_is_none(tj_no_writer.get_worklist_writer(self.log))
@@ -131,7 +131,7 @@ class SampleDilutionJobTestCase(_TransferJobTestCase):
         return kw
 
     def test_get_writer(self):
-        self._test_get_writer(unreg_pipetting_specs=get_pipetting_specs_cybio())
+        self._test_get_writer()
 
     def test_get_executor(self):
         self._test_get_executor(['source_rack_barcode'])
@@ -158,7 +158,7 @@ class SampleTransferJobTestCase(_TransferJobTestCase):
         return kw
 
     def test_get_writer(self):
-        self._test_get_writer(unreg_pipetting_specs=get_pipetting_specs_cybio())
+        self._test_get_writer()
 
     def test_get_executor(self):
         self._test_get_executor()
@@ -316,7 +316,6 @@ class _SeriesToolTestCase(FileCreatorTestCase):
         del self.status
         del self.molecule_design
         del self.reservoir_specs
-        del self.supplier
         del self.test_plate
         del self.plate_barcode
         del self.dilution_worklist
@@ -860,7 +859,7 @@ class RackSampleTransferWriterTestCase(FileCreatorTestCase):
         tool_stream = self.tool.get_result()
         self.assert_is_not_none(tool_stream)
         tool_lines = FileComparisonUtils.convert_stream(tool_stream)
-        exp_stream = self._get_expected_worklist_stream(self.TEST_FILE)
+        exp_stream = self._get_expected_file_stream(self.TEST_FILE)
         exp_lines = FileComparisonUtils.convert_stream(exp_stream)
         self.assert_equal(len(tool_lines), len(exp_lines))
         for i in range(len(tool_lines)):

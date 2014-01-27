@@ -9,10 +9,10 @@ from datetime import timedelta
 from everest.entities.utils import get_root_aggregate
 from everest.testing import RdbContextManager
 from thelma.automation.parsers.rackscanning import RackScanningParser
-from thelma.automation.tools.semiconstants import get_96_rack_shape
-from thelma.automation.tools.semiconstants import get_item_status_managed
-from thelma.automation.tools.semiconstants import get_positions_for_shape
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_item_status_managed
+from thelma.automation.semiconstants import get_positions_for_shape
+from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.stock.rackscanning import RackScanningAdjuster
 from thelma.automation.tools.stock.rackscanning import RackScanningReportWriter
 from thelma.automation.tools.worklists.tubehandler import TubeTransferData
@@ -335,7 +335,7 @@ class RackScanningAdjusterTestCase(FileCreatorTestCase):
     def test_parser_handler_failure_one_rack(self):
         with RdbContextManager() as session:
             self.__continue_setup(session)
-            self.rack_scanning_stream = self._get_expected_worklist_stream(
+            self.rack_scanning_stream = self._get_expected_file_stream(
                                                     self.report_comparison_file)
             self._test_and_expect_errors('Error when trying to parse rack ' \
                                          'scanning file')
@@ -346,7 +346,7 @@ class RackScanningAdjusterTestCase(FileCreatorTestCase):
             self.__continue_setup(session)
             old_stream = self.rack_scanning_stream
             file_map = read_zip_archive(self.rack_scanning_stream)
-            invalid_stream = self._get_expected_worklist_stream(
+            invalid_stream = self._get_expected_file_stream(
                                                     self.report_comparison_file)
             file_map['invalid_file'] = invalid_stream
             old_stream.close()

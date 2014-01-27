@@ -54,7 +54,7 @@ class _StockSampleCreationIsoTestCase(StockSampleCreationTestCase2):
         self.assert_equal(sorted(layout_nums), exp_layout_nums)
         exp_labels = []
         for layout_num in exp_layout_nums:
-            exp_labels.append(SSC_TEST_DATA.LABELS[layout_num])
+            exp_labels.append(SSC_TEST_DATA.ISO_LABELS[layout_num])
         self.assert_equal(sorted(labels), sorted(exp_labels))
         warn = 'There is not enough candidates left to populate all ' \
                 'positions for the requested number of ISOs.'
