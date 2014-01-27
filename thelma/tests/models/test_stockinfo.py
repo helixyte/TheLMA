@@ -4,8 +4,8 @@ Created on Jun 20, 2011
 @author: berger
 '''
 
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 from thelma.models.moleculetype import MoleculeType
 from thelma.models.stockinfo import StockInfo

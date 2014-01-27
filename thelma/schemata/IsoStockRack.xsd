@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/isostockrack"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:isr="http://schemata.cenix-bioscience.com/isostockrack"
+    xmlns:r="http://schemata.cenix-bioscience.com/rack"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:sc="http://schemata.cenix-bioscience.com/species"
+    xmlns:md="http://schemata.cenix-bioscience.com/moleculedesign"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+    <import
+        schemaLocation="Rack.xsd"
+        namespace="http://schemata.cenix-bioscience.com/rack"
+    >
+    </import>
+
+    <group name="StockRackBase">
+        <sequence>
+            <element
+                name="label"
+                type="string"
+            >
+            </element>
+            <element
+                ref="r:rack"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+        </sequence>
+    </group>
+
+    <complexType
+        name="StockRackType"
+        abstract="true"
+    >
+        <complexContent>
+            <extension base="sh:ResourceType">
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="IsoStockRackType">
+        <complexContent>
+            <extension base="isr:StockRackType">
+                <choice>
+                    <element
+                        name="link"
+                        type="isr:StockRackLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <group ref="isr:StockRackBase">
+                        </group>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="IsoSectorStockRackType">
+        <complexContent>
+            <extension base="isr:StockRackType">
+                <choice>
+                    <element
+                        name="link"
+                        type="isr:StockRackLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <group ref="isr:StockRackBase">
+                        </group>
+                        <element
+                            name="index"
+                            type="int"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="StockRackCollectionType">
+        <choice>
+            <choice
+                minOccurs="0"
+                maxOccurs="unbounded"
+            >
+                <element
+                    ref="isr:iso_stock_rack"
+                >
+                </element>
+                <element
+                    ref="isr:iso_sector_stock_rack"
+                >
+                </element>
+            </choice>
+            <element
+                name="link"
+                type="isr:StockRackCollectionLinkType"
+                maxOccurs="1"
+                minOccurs="0"
+            >
+            </element>
+        </choice>
+    </complexType>
+
+    <complexType name="StockRackLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/stock-rack"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType name="IsoStockRackLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/iso-stock-rack"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType name="IsoSectorStockRackLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/iso-sector-stock-rack"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType name="StockRackCollectionLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/stock-rack-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="iso_stock_rack"
+        type="isr:IsoStockRackType"
+    >
+    </element>
+
+    <element
+        name="iso_sector_stock_rack"
+        type="isr:IsoSectorStockRackType"
+    >
+    </element>
+
+    <element
+        name="stock_racks"
+        type="isr:StockRackCollectionType"
+    >
+    </element>
+
+</schema>

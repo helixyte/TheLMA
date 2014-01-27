@@ -2,7 +2,7 @@
 Tests for classes involved in layout handling
 """
 from everest.entities.utils import get_root_aggregate
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import check_attributes
 from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
@@ -579,7 +579,7 @@ class MoleculeDesignPoolLayoutTestCase(_MoleculeDesignPoolClassesTestCase):
         self.assert_equal(pl.floating_stock_concentration, 50000)
         self._expect_error(ValueError, pl.set_floating_stock_concentration,
                    'The stock concentration must be a positive number ' \
-                   '(obtained: -4)', **dict(stock_concentration= -4))
+                   '(obtained: -4)', **dict(stock_concentration=-4))
 
     def test_close(self):
         pl = self._create_test_layout()

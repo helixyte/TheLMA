@@ -4,9 +4,9 @@ Tube transfer model tests
 AAB
 """
 from datetime import datetime
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
-from everest.testing import persist
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
+from everest.repositories.rdb.testing import persist
 from everest.utils import id_generator
 from thelma.interfaces import ITube
 from thelma.interfaces import IUser
@@ -91,7 +91,7 @@ class TubeTransferWorklistModelTest(ThelmaModelTestCase):
             attrs['tube_transfers'] = [tt]
             ttw = self._create_tube_transfer_worklist(**attrs)
             self.assert_equal(len(ttw), 1)
-            session.add(ttw)
+            session.add(type(ttw), ttw)
             session.commit()
             session.refresh(ttw)
             ttw_id = ttw.id

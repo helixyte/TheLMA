@@ -997,7 +997,7 @@ class PoolCreationWorklistWriterToolCommand(ToolCommand): # no __init__ pylint: 
                     'use_single_source_rack',
                     dict(help='If there are only few pools to be created the ' \
                               'user might want to use a single stock rack.',
-                         type='bool')
+                         type='string')
                    )]
 
     @classmethod

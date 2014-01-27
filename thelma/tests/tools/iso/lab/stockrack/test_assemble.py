@@ -4,7 +4,7 @@ involved in ISO processing.
 
 AAB
 """
-from everest.testing import RdbContextManager
+from everest.repositories.rdb.testing import RdbContextManager
 from thelma.automation.semiconstants import clear_semiconstant_caches
 from thelma.automation.semiconstants import get_384_rack_shape
 from thelma.automation.semiconstants import get_96_rack_shape

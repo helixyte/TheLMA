@@ -2,8 +2,8 @@
 Test for tubehandler (XL20) related base classes.
 """
 from datetime import datetime
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 from thelma.automation.semiconstants import get_item_status_managed
 from thelma.automation.semiconstants import get_rack_position_from_label

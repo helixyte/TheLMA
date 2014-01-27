@@ -62,9 +62,9 @@ def get_stock_rack_assembler(entity, rack_barcodes, excluded_racks=None,
 
     :raises TypeError: if the entity has an unexpected class.
     """
-    kw.update(dict(entity=entity, include_dummy_output=include_dummy_output,
-              rack_barcodes=rack_barcodes, excluded_racks=excluded_racks,
-              requested_tubes=requested_tubes))
+    kw.update(dict(include_dummy_output=include_dummy_output,
+                   excluded_racks=excluded_racks,
+                   requested_tubes=requested_tubes))
     if isinstance(entity, LabIso):
         generator_cls = StockRackAssemblerLabIso
     elif isinstance(entity, IsoJob):
@@ -73,8 +73,8 @@ def get_stock_rack_assembler(entity, rack_barcodes, excluded_racks=None,
         msg = 'Unexpected entity class (%s). The entity must be a %s or a %s!' \
               % (entity.__class__.__name__, LabIso.__name__, IsoJob.__name__)
         raise TypeError(msg)
+    return generator_cls(entity, rack_barcodes, **kw)
 
-    return generator_cls(**kw)
 
 def get_stock_rack_recyler(entity, rack_barcodes, **kw):
     """

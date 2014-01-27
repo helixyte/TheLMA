@@ -6,6 +6,7 @@
     xmlns:em="http://schemata.cenix-bioscience.com/experimentmetadata"
     xmlns:emt="http://schemata.cenix-bioscience.com/experimentmetadatatype"
     xmlns:iso="http://schemata.cenix-bioscience.com/iso"
+    xmlns:j="http://schemata.cenix-bioscience.com/job"
     xmlns:isor="http://schemata.cenix-bioscience.com/isorequest"
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
     xmlns:rl="http://schemata.cenix-bioscience.com/racklayout"
@@ -30,6 +31,12 @@
     </import>
 
     <import
+        schemaLocation="Job.xsd"
+        namespace="http://schemata.cenix-bioscience.com/job"
+    >
+    </import>
+
+    <import
         schemaLocation="RackLayout.xsd"
         namespace="http://schemata.cenix-bioscience.com/racklayout"
     >
@@ -47,32 +54,71 @@
     >
     </import>
 
-    <complexType name="IsoRequestType">
+    <group name="IsoRequestBase">
+        <sequence>
+            <element
+                name="iso_type"
+                type="string"
+            >
+            </element>
+            <element
+                name="label"
+                type="string"
+            >
+            </element>
+            <element
+                name="owner"
+                type="string"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element
+                name="expected_number_isos"
+                type="nonNegativeInteger"
+            >
+            </element>
+            <element
+                name="number_aliquots"
+                type="nonNegativeInteger"
+            ></element>
+            <element
+                ref="iso:isos"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+            <element
+                ref="j:jobs"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
+        </sequence>
+    </group>
+
+    <complexType
+        name="IsoRequestType"
+        abstract="true"
+    >
         <complexContent>
             <extension base="sh:ResourceType">
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="LabIsoRequestType">
+        <complexContent>
+            <extension base="isor:IsoRequestType">
                 <choice>
                     <element
                         name="link"
-                        type="isor:IsoRequestLinkType"
+                        type="isor:LabIsoRequestLinkType"
                     >
                     </element>
                     <sequence>
-                        <element
-                            name="iso_type"
-                            type="string"
-                        >
-                        </element>
-                        <element
-                            name="plate_set_label"
-                            type="string"
-                        >
-                        </element>
-                        <element
-                            ref="rl:rack_layout"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
+                        <group ref="isor:IsoRequestBase">
+                        </group>
                         <element
                             name="delivery_date"
                             type="dateTime"
@@ -81,37 +127,8 @@
                         >
                         </element>
                         <element
-                            ref="iso:isos"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
                             name="requester"
                             type="u:UserType"
-                        ></element>
-                        <element
-                            name="owner"
-                            type="string"
-                            minOccurs="0"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
-                            name="number_plates"
-                            type="int"
-                        >
-                        </element>
-                        <element
-                            name="number_aliquots"
-                            type="int"
-                        >
-                        </element>
-                        <element
-                            name="ticket_number"
-                            type="positiveInteger"
-                            minOccurs="0"
-                            maxOccurs="1"
                         >
                         </element>
                         <element
@@ -121,7 +138,19 @@
                         >
                         </element>
                         <element
-							ref="emt:experiment_metadata_type"
+                            ref="rl:rack_layout"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="process_job_first"
+                            type="boolean"
+                        >
+                        </element>
+                        <element
+                            name="ticket_number"
+                            type="positiveInteger"
                             minOccurs="0"
                             maxOccurs="1"
                         >
@@ -135,7 +164,7 @@
     <complexType name="IsoRequestCollectionType">
         <choice>
             <element
-                ref="isor:iso_request"
+                ref="isor:lab_iso_request"
                 maxOccurs="unbounded"
                 minOccurs="0"
             >
@@ -162,6 +191,18 @@
         </complexContent>
     </complexType>
 
+    <complexType name="LabIsoRequestLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/lab-iso-request"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
     <complexType name="IsoRequestCollectionLinkType">
         <complexContent>
             <restriction base="sh:LinkType">
@@ -173,9 +214,16 @@
             </restriction>
         </complexContent>
     </complexType>
+
     <element
         name="iso_request"
-        type="isor:IsoRequestType"
+        type="iso:LabIsoType"
+    >
+    </element>
+
+    <element
+        name="lab_iso_request"
+        type="isor:LabIsoRequestType"
     >
     </element>
 

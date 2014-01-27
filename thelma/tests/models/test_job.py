@@ -4,8 +4,8 @@ Created on Jun 22, 2011
 @author: berger
 '''
 
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
 from thelma.interfaces import ITubeRack
 from thelma.interfaces import IUser
 from thelma.models.job import ExperimentJob
@@ -94,7 +94,7 @@ class IsoJobTestCase(JobModelTestCase):
         iso_request.id = -1
         job = self._create_iso_job(**attrs)
         self.assert_equal(job.iso_request, iso_request)
-        iso_request2 = self._create_lab_iso_request(id= -2)
+        iso_request2 = self._create_lab_iso_request(id=-2)
         iso2 = self._create_lab_iso(iso_request=iso_request2)
         job.isos.append(iso2)
         self.assert_raises(ValueError, getattr, *(job, 'iso_request'))
@@ -117,7 +117,7 @@ class IsoJobTestCase(JobModelTestCase):
             plate = self._get_entity(IPlate)
             self._create_iso_job_preparation_plate(rack=plate, iso_job=ij)
             self.assert_not_equal(len(ij.iso_job_stock_racks), 0)
-            session.add(ij)
+            session.add(type(ij), ij)
             session.commit()
             session.refresh(ij)
             ij_id = ij.id

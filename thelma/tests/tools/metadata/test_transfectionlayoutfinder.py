@@ -4,10 +4,16 @@ tests the ISO layout finder tool
 AAB Aug 03, 2011
 """
 
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import check_attributes
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 from thelma.automation.handlers.experimentdesign import \
         ExperimentDesignParserHandler
+from thelma.automation.semiconstants \
+    import get_experiment_type_robot_optimisation
+from thelma.automation.semiconstants import get_384_rack_shape
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.semiconstants import get_positions_for_shape
+from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.metadata.base import TransfectionLayoutConverter
 from thelma.automation.tools.metadata.base import TransfectionParameters
 from thelma.automation.tools.metadata.base import TransfectionPosition
@@ -17,12 +23,6 @@ from thelma.automation.tools.metadata.transfectionlayoutfinder \
     import _TransfectionLayoutOptimizer
 from thelma.automation.tools.metadata.transfectionlayoutfinder \
     import _TransfectionTransferItem
-from thelma.automation.semiconstants import get_384_rack_shape
-from thelma.automation.semiconstants import get_96_rack_shape
-from thelma.automation.semiconstants \
-    import get_experiment_type_robot_optimisation
-from thelma.automation.semiconstants import get_positions_for_shape
-from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.utils import get_user
 from thelma.tests.tools.tooltestingutils import SilentLog

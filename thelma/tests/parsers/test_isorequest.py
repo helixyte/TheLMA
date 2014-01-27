@@ -5,7 +5,7 @@ AAB July 1a, 2011
 """
 
 from datetime import date
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import check_attributes
 from thelma.automation.handlers.isorequest import IsoRequestParserHandler
 from thelma.automation.parsers.isorequest import IsoRequestParser
 from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS

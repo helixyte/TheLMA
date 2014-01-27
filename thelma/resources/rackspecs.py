@@ -16,6 +16,7 @@ from thelma.interfaces import IRackShape
 from thelma.interfaces import ITubeSpecs
 from thelma.interfaces import IWellSpecs
 from thelma.resources.base import RELATION_BASE_URL
+from everest.constants import CARDINALITIES
 
 
 __docformat__ = 'reStructuredText en'
@@ -46,7 +47,7 @@ class RackSpecsMember(Member):
 class TubeRackSpecsMember(RackSpecsMember):
     relation = "%s/tube-rack-specs" % RELATION_BASE_URL
     tube_specs = collection_attribute(ITubeSpecs, 'tube_specs',
-                                      is_nested=False)
+                                      cardinality=CARDINALITIES.MANYTOMANY)
 
 
 class PlateSpecsMember(RackSpecsMember):

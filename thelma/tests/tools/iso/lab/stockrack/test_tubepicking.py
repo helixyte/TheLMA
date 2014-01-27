@@ -3,7 +3,7 @@ Tests for classes that deal with the final tube picking for lab ISOs.
 
 AAB
 """
-from everest.testing import RdbContextManager
+from everest.repositories.rdb.testing import RdbContextManager
 from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.iso.lab.base import FinalLabIsoPosition
 from thelma.automation.tools.iso.lab.stockrack.base import StockTubeContainer

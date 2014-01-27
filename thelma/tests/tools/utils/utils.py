@@ -4,7 +4,7 @@ Base classes for layout testing.
 AAB
 """
 from everest.entities.utils import get_root_aggregate
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import check_attributes
 from thelma.automation.semiconstants import get_384_rack_shape
 from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_rack_position_from_label

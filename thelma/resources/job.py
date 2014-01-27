@@ -3,28 +3,30 @@ Job resource.
 
 AAB, Jun 2011
 """
-
 from datetime import datetime
+import logging
+
+from pyramid.httpexceptions import HTTPBadRequest
+
 from everest.entities.utils import get_root_aggregate
 from everest.querying.specifications import DescendingOrderSpecification
 from everest.representers.dataelements import DataElementAttributeProxy
+from everest.representers.interfaces import IDataElement
 from everest.resources.base import Collection
 from everest.resources.base import Member
 from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
-from pyramid.httpexceptions import HTTPBadRequest
 from thelma.automation.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.experiment import get_executor
 from thelma.automation.tools.experiment import get_manual_executor
 from thelma.interfaces import IExperiment
-from thelma.interfaces import IIso
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import IRack
 from thelma.interfaces import IUser
 from thelma.models.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
-import logging
+
 
 __docformat__ = 'reStructuredText en'
 
@@ -53,21 +55,18 @@ class JobMember(Member):
 class ExperimentJobMember(JobMember):
     experiments = collection_attribute(IExperiment, 'experiments')
 
-    def __getitem__(self, name):
-        if name == 'experiments':
-            return self.experiments
+    def update(self, data):
+        if IDataElement.providedBy(data): # pylint: disable=E1101
+            prx = DataElementAttributeProxy(data)
+            exp_nodes = prx.experiments
+            if exp_nodes is not None:
+                for exp_node in exp_nodes:
+                    exp_rack_nodes = exp_node.experiment_racks
+                    exp_id = exp_node.id
+                    if exp_rack_nodes is not None and len(exp_rack_nodes) > 0:
+                        self.__update_experiment_racks(exp_rack_nodes, exp_id)
         else:
-            raise KeyError(name)
-
-    def update_from_data(self, data_element):
-        prx = DataElementAttributeProxy(data_element)
-        exp_nodes = prx.experiments
-        if exp_nodes is not None:
-            for exp_node in exp_nodes:
-                exp_rack_nodes = exp_node.experiment_racks
-                exp_id = exp_node.id
-                if exp_rack_nodes is not None and len(exp_rack_nodes) > 0:
-                    self.__update_experiment_racks(exp_rack_nodes, exp_id)
+            JobMember.update(self, data)
 
     def __update_experiment_racks(self, exp_rack_nodes, exp_id):
         plate_node = exp_rack_nodes[0].plate
@@ -108,14 +107,10 @@ class ExperimentJobMember(JobMember):
 class IsoJobMember(JobMember):
     relation = "%s/iso_job" % RELATION_BASE_URL
 
-    isos = collection_attribute(IIso, 'isos')
-    iso_job_stock_rack = member_attribute(IRack, 'iso_job_stock_rack.rack')
-
-    def __getitem__(self, name):
-        if name == 'isos':
-            return self.isos
-        else:
-            raise KeyError(name)
+#    isos = collection_attribute(IIso, 'isos')
+    number_stock_racks = terminal_attribute(int, 'number_stock_racks')
+    stock_racks = collection_attribute(IRack, 'iso_job_stock_racks')
+#    status = terminal_attribute(str, 'status')
 
 
 class JobCollection(Collection):

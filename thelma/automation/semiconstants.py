@@ -890,7 +890,7 @@ get_rack_position_from_indices = RACK_POSITION_LABELS.from_indices
 __ALL_SEMICONSTANT_CLASSES = [ITEM_STATUS_NAMES,
                               EXPERIMENT_SCENARIOS,
                               RACK_SHAPE_NAMES,
-                              PIPETTING_SPECS_NAMES,
+#                              PIPETTING_SPECS_NAMES,
                               RESERVOIR_SPECS_NAMES,
                               RACK_SPECS_NAMES,
                               RACK_POSITION_LABELS,

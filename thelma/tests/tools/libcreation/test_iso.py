@@ -4,7 +4,7 @@
 #AAB
 #"""
 #from everest.entities.utils import get_root_aggregate
-#from everest.testing import RdbContextManager
+#from everest.repositories.rdb.testing import RdbContextManager
 #from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 #from thelma.automation.tools.libcreation.base import LibraryBaseLayout
 #from thelma.automation.tools.libcreation.base import LibraryBaseLayoutPosition

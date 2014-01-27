@@ -3,8 +3,8 @@ Created on May 26, 2011
 
 @author: berger
 """
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
 from thelma.interfaces import IContainerSpecs
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import IOrganization

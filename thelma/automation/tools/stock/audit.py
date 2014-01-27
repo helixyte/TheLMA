@@ -63,6 +63,7 @@ class StockAuditReporter(BaseAutomationTool):
             inner join container_specs cs on cs.container_specs_id = c.container_specs_id
             inner join sample s on s.container_id = c.container_id
             left join stock_sample ss on ss.sample_id = s.sample_id
+            left join molecule_design_pool mdp on mdp.molecule_desgin_set_id = ss.molecule_design_set_id
             left join sample_registration sr on sr.sample_id=s.sample_id
             inner join sample_molecule sm on sm.sample_id = s.sample_id
             inner join molecule m on m.molecule_id = sm.molecule_id
@@ -119,6 +120,7 @@ class StockAuditReporter(BaseAutomationTool):
          (
           """, case when (first(set.label) in ('ORD_103', 'ORD_106')) then 'old'
             when (first(set.label) in ('ORD_253')) then 'new'
+            when (mdp.number_designs == 3) then 'pool'
             else 'no'
             end as \"library\",
             case when (first(structs.representation) is null) then 'unmodified'
@@ -148,7 +150,7 @@ class StockAuditReporter(BaseAutomationTool):
          '',
          ''),
        'MIRNA_INHI' :
-         (""", case when (first(set.label) in ('ORD_357', 'ORD_361', 'ORD_364')) then 'Y'
+         (""", case when (first(set.label) in ('ORD_357', 'ORD_361', 'ORD_364', 'ORD_367', 'ORD_402')) then 'Y'
             else 'N'
             end as \"library\"
           """,

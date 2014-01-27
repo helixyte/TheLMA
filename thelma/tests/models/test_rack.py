@@ -4,8 +4,8 @@ Created on May 25, 2011
 @author: berger
 """
 
-from everest.testing import RdbContextManager
-from everest.testing import persist
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
 from thelma.interfaces import IItemStatus
 from thelma.models.container import WellSpecs
 from thelma.models.rack import Plate
@@ -20,7 +20,7 @@ from thelma.models.rack import TubeRackSpecs
 from thelma.models.rack import rack_shape_from_rows_columns
 from thelma.models.status import ItemStatus
 from thelma.testing import ThelmaModelTestCase
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import persist
 from thelma.interfaces import IRackPosition
 from thelma.interfaces import IRackPositionSet
 from thelma.models.status import ITEM_STATUSES

@@ -3,7 +3,7 @@ Created on Jun 20, 2011
 
 @author: berger
 '''
-from everest.testing import RdbContextManager
+from everest.repositories.rdb.testing import RdbContextManager
 from thelma.interfaces import IContainer
 from thelma.models.sample import Molecule
 from thelma.models.sample import Sample
@@ -144,7 +144,7 @@ class StockSampleTestCase(ThelmaModelTestCase):
             molecule = self._create_molecule()
             sm = sample.make_sample_molecule(molecule, 1e-5)
             self.assert_true(sm in sample.sample_molecules)
-            session.add(sample)
+            session.add(type(sample), sample)
             sample.convert_to_stock_sample()
             session.commit()
             s_id = sample.id

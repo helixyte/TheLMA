@@ -651,3 +651,4 @@
 #        self.tube_tag1.value = '1001'
 #        self.__test_and_expect_errors('For some positions the number of ' \
 #                        'tubes does not match the number of molecule designs')
+

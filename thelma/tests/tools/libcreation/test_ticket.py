@@ -3,7 +3,7 @@
 #
 #AAB
 #"""
-#from everest.testing import RdbContextManager
+#from everest.repositories.rdb.testing import RdbContextManager
 #from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 #from thelma.automation.tools.libcreation.execution \
 #    import LibraryCreationExecutor

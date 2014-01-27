@@ -15,6 +15,7 @@ from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import ISpecies
 from thelma.resources.base import RELATION_BASE_URL
+from everest.constants import CARDINALITIES
 
 
 __docformat__ = 'reStructuredText en'
@@ -37,12 +38,14 @@ class GeneMember(Member):
     locus_name = terminal_attribute(str, 'locus_name')
 #    nice_name = terminal_attribute('nice_name')
     species = member_attribute(ISpecies, 'species')
-    molecule_designs = collection_attribute(IMoleculeDesign,
-                                            'molecule_designs',
-                                            is_nested=False)
-    molecule_design_pools = collection_attribute(IMoleculeDesignPool,
-                                                 'molecule_design_pools',
-                                                 is_nested=False)
+    molecule_designs = \
+        collection_attribute(IMoleculeDesign,
+                             'molecule_designs',
+                             cardinality=CARDINALITIES.MANYTOMANY)
+    molecule_design_pools = \
+        collection_attribute(IMoleculeDesignPool,
+                             'molecule_design_pools',
+                             cardinality=CARDINALITIES.MANYTOMANY)
 
 
 class GeneCollection(Collection):

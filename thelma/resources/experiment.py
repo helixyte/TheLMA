@@ -5,9 +5,11 @@ FOG Mar 21, 2011
 """
 
 from datetime import datetime
+from everest.entities.interfaces import IEntity
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.querying.specifications import DescendingOrderSpecification
 from everest.representers.dataelements import DataElementAttributeProxy
+from everest.representers.interfaces import IDataElement
 from everest.resources.base import Collection
 from everest.resources.base import Member
 from everest.resources.descriptors import attribute_alias
@@ -16,11 +18,11 @@ from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from everest.resources.staging import create_staging_collection
 from pyramid.httpexceptions import HTTPBadRequest
-from thelma.automation.tools.metadata.ticket import IsoRequestTicketDescriptionRemover
 from thelma.automation.tools.metadata.ticket \
     import IsoRequestTicketDescriptionUpdater
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketActivator
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketCreator
+from thelma.automation.tools.metadata.ticket import IsoRequestTicketDescriptionRemover
 from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.interfaces import IExperiment
 from thelma.interfaces import IExperimentDesign
@@ -29,7 +31,7 @@ from thelma.interfaces import IExperimentJob
 from thelma.interfaces import IExperimentMetadata
 from thelma.interfaces import IExperimentMetadataType
 from thelma.interfaces import IExperimentRack
-from thelma.interfaces import IIsoRequest
+from thelma.interfaces import ILabIsoRequest
 from thelma.interfaces import IMoleculeDesignPoolSet
 from thelma.interfaces import IPlate
 from thelma.interfaces import IRack
@@ -105,22 +107,25 @@ class ExperimentDesignMember(Member):
         else:
             raise KeyError(name)
 
-    def update_from_entity(self, new_entity):
-        entity = self.get_entity()
-        while entity.design_racks:
-            entity.design_racks.pop()
-        while new_entity.design_racks:
-            new_rack = new_entity.design_racks.pop()
-            entity.design_racks.append(new_rack)
-#            ws = rack.worklist_series
-#            rack.worklist_series = None
-#            # remove the back reference to avoid conflicts
-#            new_rack = ExperimentDesignRack(rack.label,
-#                                            rack.layout,
-#                                            worklist_series=ws)
-#            entity.design_racks.append(new_rack)
-        entity.rack_shape = new_entity.rack_shape
-        entity.worklist_series = new_entity.worklist_series
+    def update(self, data):
+        if IEntity.providedBy(data): # pylint:disable=E1101
+            entity = self.get_entity()
+            while entity.design_racks:
+                entity.design_racks.pop()
+            while data.design_racks:
+                new_rack = data.design_racks.pop()
+                entity.design_racks.append(new_rack)
+#                ws = rack.worklist_series
+#                rack.worklist_series = None
+#                # remove the back reference to avoid conflicts
+#                new_rack = ExperimentDesignRack(rack.label,
+#                                                rack.layout,
+#                                                worklist_series=ws)
+#                entity.design_racks.append(new_rack)
+            entity.rack_shape = data.rack_shape
+            entity.worklist_series = data.worklist_series
+        else:
+            Member.update(self, data)
 
 
 class ExperimentDesignCollection(Collection):
@@ -146,12 +151,6 @@ class ExperimentMember(Member):
         member_attribute(IExperimentMetadataType,
             'experiment_design.experiment_metadata.experiment_metadata_type')
 
-    def __getitem__(self, name):
-        if name == 'experiment-racks':
-            return self.experiment_racks
-        else:
-            raise KeyError(name)
-
 
 class ExperimentCollection(Collection):
     title = 'Experiments'
@@ -168,15 +167,13 @@ class ExperimentMetadataMember(Member):
     subproject = member_attribute(ISubproject, 'subproject')
     number_replicates = terminal_attribute(int, 'number_replicates')
     molecule_design_pool_set = member_attribute(IMoleculeDesignPoolSet,
-                                                'molecule_design_pool_set',
-                                                is_nested=True)
+                                                'molecule_design_pool_set')
     experiment_design = member_attribute(IExperimentDesign,
-                                         'experiment_design',
-                                         is_nested=True)
+                                         'experiment_design')
     experiment_design_racks = \
             collection_attribute(IExperimentDesignRack,
                                  'experiment_design.design_racks')
-    iso_request = member_attribute(IIsoRequest, 'iso_request')
+    iso_request = member_attribute(ILabIsoRequest, 'lab_iso_request')
     creation_date = terminal_attribute(datetime, 'creation_date')
     experiment_metadata_type = member_attribute(IExperimentMetadataType,
                                                 'experiment_metadata_type')
@@ -193,6 +190,7 @@ class ExperimentMetadataMember(Member):
                     for tag in tp.tags:
                         tags_dict[tag.get_entity().slug] = tag
             tag_coll = create_staging_collection(ITag)
+            tag_coll.__parent__ = self
             for tag in tags_dict.values():
                 tag_coll.add(tag)
             result = tag_coll
@@ -213,47 +211,50 @@ class ExperimentMetadataMember(Member):
                                     'Could not update the ticket: %s.')
         return cls(entity)
 
-    def update_from_data(self, data_element):
-        prx = DataElementAttributeProxy(data_element)
-        self_entity = self.get_entity()
-        changed_num_reps = (prx.number_replicates != self.number_replicates)
-        changed_em_type = (prx.experiment_metadata_type.get('id') \
-                           != self.experiment_metadata_type.id)
-        if changed_em_type or changed_num_reps:
-            if not self_entity.experiment_design is None:
-                # invalidate data to force a fresh upload of the XLS file
-                self_entity.experiment_design.experiment_design_racks = []
-                self_entity.experiment_design.worklist_series = None
+    def update(self, data):
+        if IDataElement.providedBy(data): # pylint: disable=E1101
+            prx = DataElementAttributeProxy(data)
+            self_entity = self.get_entity()
+            changed_num_reps = (prx.number_replicates != self.number_replicates)
+            changed_em_type = (prx.experiment_metadata_type.get('id') \
+                               != self.experiment_metadata_type.id)
+            if changed_em_type or changed_num_reps:
+                if not self_entity.experiment_design is None:
+                    # invalidate data to force a fresh upload of the XLS file
+                    self_entity.experiment_design.experiment_design_racks = []
+                    self_entity.experiment_design.worklist_series = None
+                if not self_entity.iso_request is None:
+                    shape = self_entity.iso_request.iso_layout.shape
+                    new_layout = RackLayout(shape=shape)
+                    self_entity.iso_request.iso_layout = new_layout
+                    self_entity.iso_request.owner = ''
+            Member.update(self, data)
+            # Perform appropriate Trac updates.
             if not self_entity.iso_request is None:
-                shape = self_entity.iso_request.iso_layout.shape
-                new_layout = RackLayout(shape=shape)
-                self_entity.iso_request.iso_layout = new_layout
-                self_entity.iso_request.owner = ''
-        Member.update_from_data(self, data_element)
-        # Perform appropriate Trac updates.
-        if not self_entity.iso_request is None:
-            if self.iso_request.owner == STOCKMANAGEMENT_USER:
-                ticket_activator = IsoRequestTicketActivator(
-                                            experiment_metadata=self_entity)
-                self.__run_trac_tool(ticket_activator,
-                                     'Could not update the ticket: %s.')
-            else:
-                if changed_em_type or changed_num_reps:
-                    trac_updater = IsoRequestTicketDescriptionRemover(
-                                  experiment_metadata=self_entity,
-                                  changed_num_replicates=changed_num_reps,
-                                  changed_em_type=changed_em_type)
+                if self.iso_request.owner == STOCKMANAGEMENT_USER:
+                    ticket_activator = IsoRequestTicketActivator(
+                                                experiment_metadata=self_entity)
+                    self.__run_trac_tool(ticket_activator,
+                                         'Could not update the ticket: %s.')
                 else:
-                    url = 'http://thelma/public//LOUICe.html#' \
-                          + self.path
-                    iso_url = 'http://thelma/public//LOUICe.html#' \
-                              + self.iso_request.path
-                    trac_updater = IsoRequestTicketDescriptionUpdater(
-                                        experiment_metadata=self_entity,
-                                        experiment_metadata_link=url,
-                                        iso_request_link=iso_url)
-                self.__run_trac_tool(trac_updater,
-                                     'Could not update the ticket: %s.')
+                    if changed_em_type or changed_num_reps:
+                        trac_updater = IsoRequestTicketDescriptionRemover(
+                                      experiment_metadata=self_entity,
+                                      changed_num_replicates=changed_num_reps,
+                                      changed_em_type=changed_em_type)
+                    else:
+                        url = 'http://thelma/public//LOUICe.html#' \
+                              + self.path
+                        iso_url = 'http://thelma/public//LOUICe.html#' \
+                                  + self.iso_request.path
+                        trac_updater = IsoRequestTicketDescriptionUpdater(
+                                            experiment_metadata=self_entity,
+                                            experiment_metadata_link=url,
+                                            iso_request_link=iso_url)
+                    self.__run_trac_tool(trac_updater,
+                                         'Could not update the ticket: %s.')
+        else:
+            Member.update(self, data)
 
     @classmethod
     def __run_trac_tool(cls, tool, error_msg_text):

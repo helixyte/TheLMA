@@ -3,8 +3,8 @@ Test cases for model classes related to molecule design libraries.
 
 """
 
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.library import LibraryPlate
 from thelma.models.library import MoleculeDesignLibrary
@@ -73,7 +73,7 @@ class LibraryPlateModelTestCase(ThelmaEntityTestCase):
             lp.lab_iso = self._create_lab_iso(
                                 iso_request=self._create_lab_iso_request())
             self.assert_is_not_none(lp.lab_iso)
-            session.add(lp)
+            session.add(type(lp), lp)
             session.commit()
             session.refresh(lp)
             lp_id = lp.id

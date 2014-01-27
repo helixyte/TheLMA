@@ -3,8 +3,8 @@ Tests the classes involved in stock condense worklist generation.
 
 AAB
 """
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
 from thelma.automation.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_positions_for_shape

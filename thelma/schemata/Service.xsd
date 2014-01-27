@@ -1704,7 +1704,8 @@
                         >
                         </xs:element>
                         <xs:element
-                            ref="job_type"
+                            name="job_type"
+                            type="xs:string"
                             minOccurs="1"
                             maxOccurs="1"
                         >
@@ -1861,7 +1862,8 @@
                     minOccurs="0"
                 ></xs:element>
                 <xs:element
-                    ref="job_type"
+                    name="job_type"
+                    type="xs:string"
                     maxOccurs="unbounded"
                     minOccurs="0"
                 ></xs:element>

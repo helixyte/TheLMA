@@ -14,6 +14,7 @@ from everest.resources.descriptors import terminal_attribute
 from thelma.interfaces import IOrganization
 from thelma.interfaces import IRackSpecs
 from thelma.resources.base import RELATION_BASE_URL
+from everest.constants import CARDINALITIES
 
 __docformat__ = 'reStructuredText en'
 
@@ -42,7 +43,9 @@ class ContainerSpecsMember(Member):
 class TubeSpecsMember(ContainerSpecsMember):
     relation = "%s/tube-specs" % RELATION_BASE_URL
     tube_rack_specs = \
-        collection_attribute(IRackSpecs, 'tube_rack_specs', is_nested=False)
+            collection_attribute(IRackSpecs,
+                                 'tube_rack_specs',
+                                 cardinality=CARDINALITIES.MANYTOMANY)
 
 
 class WellSpecsMember(ContainerSpecsMember):

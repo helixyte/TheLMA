@@ -12,7 +12,6 @@ from thelma.models.tubetransfer import TubeTransfer
 from thelma.models.tubetransfer import TubeTransferWorklist
 from thelma.models.user import User
 from thelma.utils import get_utc_time
-import logging
 
 
 __docformat__ = 'reStructuredText en'
@@ -466,7 +465,7 @@ class XL20Executor(BaseAutomationTool):
     NAME = 'XL20 Executor'
 
     def __init__(self, output_file_stream, user,
-                 logging_level=logging.WARNING, add_default_handlers=False):
+                 logging_level=None, add_default_handlers=False):
         """
         Constructor:
 

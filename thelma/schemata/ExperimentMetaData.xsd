@@ -98,7 +98,7 @@
                         >
                         </element>
                         <element
-                            ref="isor:iso_request"
+                            ref="isor:lab_iso_request"
                             minOccurs="0"
                             maxOccurs="1"
                         >

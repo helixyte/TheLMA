@@ -27,6 +27,8 @@ class SupplierMoleculeDesign(Entity):
     molecule_design = None
     #: Molecule design pool associated with this supplier design.
     molecule_design_pool = None
+    #: Annotations to structures in this design.
+    supplier_structure_annotations = None
 
     def __init__(self, product_id, supplier,
                  time_stamp=None, is_current=False, is_deleted=False, **kw):

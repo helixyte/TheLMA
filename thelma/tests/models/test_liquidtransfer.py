@@ -4,9 +4,10 @@ Liquid transfer model tests.
 AAB
 """
 
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
 from md5 import md5
+from thelma.interfaces import IPipettingSpecs
 from thelma.interfaces import IPlate
 from thelma.interfaces import IRackPosition
 from thelma.interfaces import IRackShape
@@ -27,12 +28,11 @@ from thelma.models.liquidtransfer import PlannedSampleDilution
 from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import ReservoirSpecs
+from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.liquidtransfer import WorklistSeries
 from thelma.models.liquidtransfer import WorklistSeriesMember
 from thelma.models.rack import RackPosition
 from thelma.testing import ThelmaEntityTestCase
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.interfaces import IPipettingSpecs
 
 
 class PlannedLiquidTransferModelTestCase(ThelmaEntityTestCase):
@@ -167,7 +167,7 @@ class PlannedWorklistModelTest(ThelmaEntityTestCase):
             self.assert_is_not_none(pw.index)
             ew = self._create_executed_worklist(planned_worklist=pw)
             self.assert_equal(len(pw.executed_worklists), 1)
-            session.add(pw)
+            session.add(type(pw), pw)
             session.commit()
             session.refresh(pw)
             pw_id = pw.id
@@ -205,7 +205,7 @@ class WorklistSeriesModelTest(ThelmaEntityTestCase):
         with RdbContextManager() as session:
             ws = self._create_worklist_series()
             wsm = self._create_worklist_series_member(worklist_series=ws)
-            session.add(ws)
+            session.add(type(ws), ws)
             session.commit()
             session.refresh(ws)
             ws_id = ws.id
@@ -233,9 +233,9 @@ class WorklistSeriesMemberModelTest(ThelmaEntityTestCase):
         self._test_init()
 
     def test_equality(self):
-        planned_worklist1 = self._create_planned_worklist(id= -1)
-        planned_worklist2 = self._create_planned_worklist(id= -2)
-        ws = self._create_worklist_series(id= -3)
+        planned_worklist1 = self._create_planned_worklist(id=-1)
+        planned_worklist2 = self._create_planned_worklist(id=-2)
+        ws = self._create_worklist_series(id=-3)
         wsm1 = self._create_worklist_series_member(index=0,
                                     worklist_series=ws,
                                     planned_worklist=planned_worklist1)
@@ -253,7 +253,7 @@ class WorklistSeriesMemberModelTest(ThelmaEntityTestCase):
         with RdbContextManager() as session:
             attrs = self._get_data()
             wsm = self._create_worklist_series_member(**attrs)
-            session.add(wsm)
+            session.add(type(wsm), wsm)
             session.commit()
             session.refresh(wsm)
             planned_worklist_id = wsm.planned_worklist.id

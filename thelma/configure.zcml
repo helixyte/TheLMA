@@ -239,6 +239,15 @@
                        "
         permission="update" />
 
+    <member_view
+        for=".interfaces.IIsoRequest
+            "
+        renderer="atom"
+        request_method="PATCH
+                        FAKE_PATCH
+                       "
+        permission="update" />
+
     <!-- for experiment metadata xls upload we use a custom view for now -->
 
     <member_view
@@ -302,6 +311,7 @@
         view="everest.views.getmember.GetMemberView"
         renderer="thelma+zip;type=ExperimentMember"
         request_method="GET"
+        enable_messaging="true"
         permission="view" />
 
     <member_view
@@ -311,6 +321,7 @@
         view="everest.views.getmember.GetMemberView"
         renderer="thelma+zip;type=IsoMember"
         request_method="GET"
+        enable_messaging="true"
         permission="view" />
 
     <member_view
@@ -320,6 +331,7 @@
         view="everest.views.getmember.GetMemberView"
         renderer="thelma+zip;type=IsoJobMember"
         request_method="GET"
+        enable_messaging="true"
         permission="view" />
 
     <!-- STATIC -->

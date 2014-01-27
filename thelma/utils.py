@@ -1,7 +1,11 @@
 """
 Miscellaneous utilities.
 """
+from everest.interfaces import IUserMessageNotifier
+from pyramid.httpexceptions import HTTPBadRequest
+from pyramid.threadlocal import get_current_registry
 import datetime
+import logging
 import pytz
 import tzlocal
 
@@ -41,3 +45,57 @@ def localize_time(timestamp):
     :returns: :class:`datetime.datetime`
     """
     return timestamp.astimezone(tzlocal.get_localzone())
+
+
+class ToolRunnerBase(object):
+
+    def __init__(self, tool,
+                 error_message_prefix='', warning_message_prefix=''):
+        self._tool = tool
+        self.__error_message_prefix = error_message_prefix
+        self.__warning_message_prefix = warning_message_prefix
+
+    def run(self):
+        raise NotImplementedError('Abstract method.')
+
+    def _get_error_messages(self):
+        return self.__error_message_prefix \
+               + " -- ".join(self._tool.get_messages(logging.ERROR))
+
+    def _get_warning_messages(self):
+        return self.__warning_message_prefix \
+               + " -- ".join(self._tool.get_messages(logging.WARNING))
+
+
+class ToolRunner(ToolRunnerBase):
+    def run(self):
+        result = self._tool.get_result()
+        if result is None:
+            raise HTTPBadRequest(self._get_error_messages())
+        warnings = self._get_warning_messages()
+        if len(warnings) > 0:
+            reg = get_current_registry()
+            msg_notifier = reg.getUtility(IUserMessageNotifier)
+            msg_notifier.notify(warnings)
+        return result
+
+
+class TracToolRunner(ToolRunnerBase):
+    def run(self):
+        self._tool.send_request()
+        if not self._tool.transaction_completed():
+            raise HTTPBadRequest(self._get_error_messages())
+
+
+def run_tool(tool, error_prefix='', warning_prefix=''):
+    tool_runner = ToolRunner(tool,
+                             error_message_prefix=error_prefix,
+                             warning_message_prefix=warning_prefix)
+    return tool_runner.run()
+
+
+def run_trac_tool(trac_tool, error_prefix='', warning_prefix=''):
+    tool = TracToolRunner(trac_tool,
+                          error_message_prefix=error_prefix,
+                          warning_message_prefix=warning_prefix)
+    tool.run()

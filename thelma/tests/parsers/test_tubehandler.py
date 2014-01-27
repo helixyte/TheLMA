@@ -4,8 +4,8 @@ Tests for classes involved in tubehandler output file parsing.
 AAB
 """
 from datetime import datetime
-from everest.testing import RdbContextManager
-from everest.testing import check_attributes
+from everest.repositories.rdb.testing import RdbContextManager
+from everest.repositories.rdb.testing import check_attributes
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 from thelma.automation.handlers.tubehandler import XL20OutputParserHandler
 from thelma.automation.parsers.tubehandler import XL20OutputParser
