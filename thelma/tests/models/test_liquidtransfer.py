@@ -167,7 +167,7 @@ class PlannedWorklistModelTest(ThelmaEntityTestCase):
             self.assert_is_not_none(pw.index)
             ew = self._create_executed_worklist(planned_worklist=pw)
             self.assert_equal(len(pw.executed_worklists), 1)
-            session.add(pw)
+            session.add(type(pw), pw)
             session.commit()
             session.refresh(pw)
             pw_id = pw.id
@@ -205,7 +205,7 @@ class WorklistSeriesModelTest(ThelmaEntityTestCase):
         with RdbContextManager() as session:
             ws = self._create_worklist_series()
             wsm = self._create_worklist_series_member(worklist_series=ws)
-            session.add(ws)
+            session.add(type(ws), ws)
             session.commit()
             session.refresh(ws)
             ws_id = ws.id
@@ -253,7 +253,7 @@ class WorklistSeriesMemberModelTest(ThelmaEntityTestCase):
         with RdbContextManager() as session:
             attrs = self._get_data()
             wsm = self._create_worklist_series_member(**attrs)
-            session.add(wsm)
+            session.add(type(wsm), wsm)
             session.commit()
             session.refresh(wsm)
             planned_worklist_id = wsm.planned_worklist.id

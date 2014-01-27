@@ -144,7 +144,7 @@ class StockSampleTestCase(ThelmaModelTestCase):
             molecule = self._create_molecule()
             sm = sample.make_sample_molecule(molecule, 1e-5)
             self.assert_true(sm in sample.sample_molecules)
-            session.add(sample)
+            session.add(type(sample), sample)
             sample.convert_to_stock_sample()
             session.commit()
             s_id = sample.id

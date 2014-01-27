@@ -117,7 +117,7 @@ class IsoJobTestCase(JobModelTestCase):
             plate = self._get_entity(IPlate)
             self._create_iso_job_preparation_plate(rack=plate, iso_job=ij)
             self.assert_not_equal(len(ij.iso_job_stock_racks), 0)
-            session.add(ij)
+            session.add(type(ij), ij)
             session.commit()
             session.refresh(ij)
             ij_id = ij.id

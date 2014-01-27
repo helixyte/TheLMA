@@ -3,7 +3,7 @@ Tests for tools involved in the population of stock sample generation ISOs.
 
 AAB
 """
-from everest.testing import RdbContextManager
+from everest.repositories.rdb.testing import RdbContextManager
 from thelma.automation.tools.iso import get_job_creator
 from thelma.automation.tools.iso.poolcreation.jobcreator import StockSampleCreationIsoJobCreator
 from thelma.automation.tools.iso.poolcreation.jobcreator \

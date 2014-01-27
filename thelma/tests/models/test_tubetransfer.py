@@ -91,7 +91,7 @@ class TubeTransferWorklistModelTest(ThelmaModelTestCase):
             attrs['tube_transfers'] = [tt]
             ttw = self._create_tube_transfer_worklist(**attrs)
             self.assert_equal(len(ttw), 1)
-            session.add(ttw)
+            session.add(type(ttw), ttw)
             session.commit()
             session.refresh(ttw)
             ttw_id = ttw.id

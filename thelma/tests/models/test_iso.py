@@ -245,7 +245,7 @@ class LabIsoModelTestCase(IsoModelTestCase):
             iso_aliquot_plate = self._create_iso_aliquot_plate(iso=iso,
                                                         rack=plates[1])
             self.assert_equal(len(iso.iso_aliquot_plates), 1)
-            session.add(iso)
+            session.add(type(iso), iso)
             session.commit()
             session.refresh(iso)
             iso_id = iso.id
@@ -347,7 +347,7 @@ class StockSampleCreationIsoModelTestCase(IsoModelTestCase):
             iso_aliquot_plate = self._create_iso_aliquot_plate(iso=iso,
                                                         rack=plates[2])
             self.assert_equal(len(iso.iso_aliquot_plates), 1)
-            session.add(iso)
+            session.add(type(iso), iso)
             session.commit()
             session.refresh(iso)
             iso_id = iso.id

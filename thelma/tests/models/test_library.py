@@ -73,7 +73,7 @@ class LibraryPlateModelTestCase(ThelmaEntityTestCase):
             lp.lab_iso = self._create_lab_iso(
                                 iso_request=self._create_lab_iso_request())
             self.assert_is_not_none(lp.lab_iso)
-            session.add(lp)
+            session.add(type(lp), lp)
             session.commit()
             session.refresh(lp)
             lp_id = lp.id

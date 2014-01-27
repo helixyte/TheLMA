@@ -58,7 +58,7 @@ class TagModelTest(ThelmaModelTestCase):
                                          for label in ('A1', 'A2', 'B4', 'B5')])
             trps = TaggedRackPositionSet(tag, positions, user)
             rl.tagged_rack_position_sets.append(trps)
-            session.add(rl)
+            session.add(type(rl), rl)
             session.commit()
             session.refresh(rl)
             model_id = rl.id

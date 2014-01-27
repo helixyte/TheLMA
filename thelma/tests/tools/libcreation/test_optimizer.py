@@ -3,7 +3,7 @@
 #
 #AAB
 #"""
-#from everest.testing import RdbContextManager
+#from everest.repositories.rdb.testing import RdbContextManager
 #from everest.testing import check_attributes
 #from thelma.automation.tools.iso.optimizer import IsoCandidate
 #from thelma.automation.tools.libcreation.base import POOL_STOCK_RACK_CONCENTRATION

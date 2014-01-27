@@ -4,7 +4,7 @@ Deals with tube picking optimisation for pool stock sample creations.
 AAB
 """
 from thelma.automation.semiconstants import get_rack_position_from_label
-from everest.testing import RdbContextManager
+from everest.repositories.rdb.testing import RdbContextManager
 from thelma.automation.tools.iso.poolcreation.tubepicking \
     import StockSampleCreationTubePicker
 from thelma.automation.tools.iso.poolcreation.tubepicking import PoolCandidate
