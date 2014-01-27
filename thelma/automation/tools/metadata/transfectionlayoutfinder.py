@@ -268,7 +268,6 @@ class _TransfectionTransferItem(TransferItem):
         return self.working_pos.hash_full
 
 
-
 class _TransfectionLayoutOptimizer(BiomekLayoutOptimizer):
     """
     Tries to sort the source positions for the cell plate transfer (= positions

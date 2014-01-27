@@ -1349,7 +1349,6 @@ class TargetSample(SampleData):
         :param planned_sample_dilution: The planned container dilution.
         :type: :class:`thelma.models.liquidtransfer.PlannedSampleDilution`
         :raises TypeErrors: in case of invalid transfer type
-        :raises AttributeError: If there is already a transfer present.
 
         :return: The generated :class:`TransferredSample` object.
         """

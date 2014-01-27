@@ -52,8 +52,9 @@ class LabIsoPlanningFunctionsTestCase(ToolsAndUtilsTestCase):
         self.assert_equal(v1, 1.6)
         v2 = get_transfer_volume(50, 10, 8, dil_factor=8)
         self.assert_equal(v2, 1)
-        self._expect_error(error_cls, callable_obj, exp_msg)
-
+        kw = dict(source_conc=50, target_conc=100, target_vol=3)
+        self._expect_error(ValueError, get_transfer_volume,
+                        'A dilution factor must not be smaller than 1!', **kw)
 
 
 class PoolContainerTestCase(ToolsAndUtilsTestCase):
@@ -204,6 +205,7 @@ class _LocationContainerDummy(_LocationContainer):
     """
     LOCATION_ATTR_NAME = 'my_location'
     _PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
+    _STOCK_PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEKSTOCK
     _PLANNED_TRANSFER_CLS = PlannedRackSampleTransfer
 
     def __init__(self, **kw):
@@ -261,10 +263,10 @@ class LocationContainerUnspecificTestCase(_LocationContainerTestCase):
         lc1.my_location = 1
         lc2 = self._init_container(attrs)
         lc2.my_location = 2
-        attrs['parent_concentration'] = self.parent_concentration * 2
+        attrs['target_concentration'] = self.target_concentration * 2
         lc3 = self._init_container(attrs)
         lc3.my_location = 3
-        attrs['parent_concentration'] = self.parent_concentration / 2
+        attrs['target_concentration'] = self.target_concentration / 2
         lc4 = self._init_container(attrs)
         lc4.my_location = 4
         l = [lc1, lc2, lc3, lc4]
@@ -366,7 +368,7 @@ class LocationContainerUnspecificTestCase(_LocationContainerTestCase):
         self.assert_equal(lc1.get_descendants(), [])
         self.assert_equal(lc2.get_descendants(), [lc1])
         self.assert_equal(lc4.get_descendants(), [])
-        self.assert_equal(lc3.get_descendants(), [lc2, lc1, lc4])
+        self.assert_equal(lc3.get_descendants(), [lc4, lc2, lc1])
 
     def test_get_intraplate_ancestor_count(self):
         lc1 = self._init_container()
@@ -389,25 +391,6 @@ class LocationContainerUnspecificTestCase(_LocationContainerTestCase):
         self.assert_equal(lc2.get_intraplate_ancestor_count(), 0)
         self.assert_equal(lc3.get_intraplate_ancestor_count(), 0)
         self.assert_equal(lc4.get_intraplate_ancestor_count(), 0)
-
-    def test_increase_min_full_volume(self):
-        lc1 = self._init_container()
-        lc2 = self._init_parent_container()
-        lc1.set_parent_container(lc2)
-        transfer_vol = lc2.targets[lc1]
-        self.assert_true(transfer_vol > 2)
-        self.assert_equal(lc1.full_volume, self.volume)
-        self.assert_equal(lc2.full_volume, self.volume + transfer_vol)
-        lc1.increase_min_full_volume(self.volume * 2)
-        self.assert_equal(lc1.full_volume, self.volume * 2)
-        self.assert_equal(lc2.full_volume, self.volume + (transfer_vol * 2))
-        self._expect_error(ValueError, lc1.increase_min_full_volume,
-                'The new minimum volume (1 ul) must be larger than the ' \
-                'current one (40 ul)', **dict(new_volume=1))
-        lc1.disable_modification()
-        self._expect_error(AttributeError, lc1.increase_min_full_volume,
-               'Volume adjustments for this container are blocked!',
-               **dict(new_volume=100))
 
     def test_create_final_plate_container(self):
         lc = self.TEST_CLS.create_final_plate_container(location=1,
@@ -444,16 +427,14 @@ class LocationContainerUnspecificTestCase(_LocationContainerTestCase):
         self.assert_equal(len(clones), 3)
         for i in range(len(clones)):
             clone = clones[i]
+            self.assert_true(clone.is_final_container)
+            self.assert_equal(clone.plate_marker, 'p1')
             if i == 0:
                 self.assert_true(clone == lc)
-                self.assert_true(clone.is_final_container)
-                self.assert_equal(clone.plate_marker, 'p1')
                 for child in clone.targets.keys():
                     self.assert_true(child == lc_child)
             else:
                 self.assert_false(clone == lc)
-                self.assert_false(clone.is_final_container)
-                self.assert_is_none(clone.plate_marker)
                 for child in clone.targets.keys():
                     self.assert_false(child == lc_child)
             self.assert_equal(len(clone.targets), 1)
@@ -492,14 +473,10 @@ class SectorContainerTestCase(_LocationContainerTestCase):
         _LocationContainerTestCase.tear_down(self)
         del self.number_sectors
 
-    def _get_attrs(self):
-        kw = _LocationContainerTestCase._get_attrs(self)
-        kw['number_sectors'] = self.number_sectors
-        return kw
-
     def test_init(self):
         container = self._test_init()
         self.assert_is_none(container.sector_index)
+        self.assert_is_none(container.number_sectors)
 
     def test_location(self):
         self._test_location('sector_index', 3)
@@ -514,12 +491,12 @@ class SectorContainerTestCase(_LocationContainerTestCase):
                 position_type=FIXED_POSITION_TYPE)
         tt = TransferTarget(rack_position=get_rack_position_from_label('b2'),
                             transfer_volume=7, target_rack_marker='a1')
-        fpp = sc.create_aliquot_position(irp, [tt])
+        fpp = sc.create_aliquot_position(irp, [tt], True)
         exp_attrs = dict(rack_position=rack_pos,
                     molecule_design_pool=pool,
                     position_type=FIXED_POSITION_TYPE,
                     concentration=self.target_concentration,
-                    volume=self.volume, from_job=False,
+                    volume=self.volume, from_job=True,
                     transfer_targets=[tt],
                     stock_tube_barcode=FinalLabIsoPosition.TEMP_STOCK_DATA,
                     stock_rack_marker=FinalLabIsoPosition.TEMP_STOCK_DATA,
@@ -528,7 +505,32 @@ class SectorContainerTestCase(_LocationContainerTestCase):
         check_attributes(fpp, exp_attrs)
 
     def test_get_planned_liquid_transfers(self):
-        self._test_get_planned_liquid_transfers()
+        locations = [1, 2, 3]
+        attrs = self._get_attrs()
+        lc1 = self._init_container(attrs)
+        lc1.number_sectors = self.number_sectors
+        lc1.set_location(locations[0], 'p1')
+        lc2 = self._init_container(attrs)
+        lc2.number_sectors = self.number_sectors
+        lc2.set_location(locations[1], 'p1')
+        attrs['volume'] = self.volume * 2
+        lc3 = self._init_container(attrs)
+        lc3.set_location(locations[2], 'p1')
+        lc3.number_sectors = self.number_sectors
+        attrs['volume'] = self.volume * 3
+        lc4 = self._init_container(attrs)
+        lc4.number_sectors = self.number_sectors
+        lc4.set_location(locations[0], 'p2')
+        lc2.set_parent_container(lc1) # transfer vol = 20 ul
+        lc3.set_parent_container(lc1) # transfer vol = 40 ul
+        lc4.set_parent_container(lc1) # transfer vol = 60 ul
+        t1, t2, t3 = self._get_exp_liquid_transfers()
+        exp_transfers = dict(p1=[t1, t2], p2=[t3])
+        transfers = lc1.get_planned_liquid_transfers()
+        self.assert_equal(len(transfers), len(exp_transfers))
+        for plate_marker, transfer_list in exp_transfers.iteritems():
+            self.assert_equal(sorted(transfer_list),
+                              sorted(transfers[plate_marker]))
 
     def _get_exp_liquid_transfers(self):
         t1 = PlannedRackSampleTransfer.get_entity(
@@ -717,7 +719,11 @@ class _PlateContainerDummy(_PlateContainer):
     Allows to test subclass-independent properties.
     """
 
-    def _find_location(self, container):
+    def _find_location(self, container, preferred_locations):
+        if preferred_locations is None:
+            preferred_locations = []
+        for pc in preferred_locations:
+            return pc
         for location in sorted(self._location_map):
             if self._location_map[location] is None:
                 return location
@@ -750,7 +756,7 @@ class PlateContainerUnspecificTestCase(_PlateContainerTestCase):
         self.assert_equal(pc.get_containers(), [])
         c1 = self.__get_container()
         self.assert_is_none(c1.location)
-        pc.set_container(c1)
+        pc.set_container(c1, None)
         self.assert_true(pc.has_empty_locations())
         self.assert_equal(pc.get_containers(), [c1])
         self.__check_occupied_location(pc, 1, c1)
@@ -759,7 +765,7 @@ class PlateContainerUnspecificTestCase(_PlateContainerTestCase):
         c3 = self.__get_container()
         self.assert_is_none(c3.location)
         self.assert_is_none(c3.plate_marker)
-        pc.set_container(c3, 3)
+        pc.set_container(c3, [3])
         self.assert_true(pc.has_empty_locations())
         self.assert_equal(sorted(pc.get_containers()), [c1, c3])
         self.__check_occupied_location(pc, 1, c1)
@@ -771,10 +777,10 @@ class PlateContainerUnspecificTestCase(_PlateContainerTestCase):
         self.assert_is_none(c2.plate_marker)
         self._expect_error(ValueError, pc.set_container,
                 'Location "3" is already occupied!',
-                **dict(container=c2, location=3))
-        pc.set_container(c2)
+                **dict(container=c2, locations=[3]))
+        pc.set_container(c2, None)
         c4 = self.__get_container()
-        pc.set_container(c4)
+        pc.set_container(c4, None)
         self.assert_false(pc.has_empty_locations())
 
     def __check_empty_location(self, pc, loc):
@@ -802,25 +808,27 @@ class SectorPlateContainerTestCase(_PlateContainerTestCase):
         self._test_equality()
 
     def __get_sector_container(self):
-        return SectorContainer(volume=10, parent_concentration=20,
-                               target_concentration=10, number_sectors=2)
+        sc = SectorContainer(volume=10, parent_concentration=20,
+                               target_concentration=10)
+        sc.number_sectors = 2
+        return sc
 
     def test_location_assignment(self):
         spc = self._init_plate_container()
         self.assert_equal(spc.get_containers(), [])
         self.assert_is_none(spc.get_container_for_location(0))
         sc1 = self.__get_sector_container()
-        spc.set_container(sc1)
+        spc.set_container(sc1, [])
         self.assert_equal(spc.get_containers(), [sc1])
         self.assert_equal(spc.get_container_for_location(0), sc1)
         sc2 = self.__get_sector_container()
-        spc.set_container(sc2)
+        spc.set_container(sc2, [])
         self.assert_equal(sorted(spc.get_containers()), [sc1, sc2])
         self.assert_equal(spc.get_container_for_location(1), sc2)
         sc3 = self.__get_sector_container()
         self._expect_error(AttributeError, spc.set_container,
                            'There is no empty sector left!',
-                           **dict(container=sc3))
+                           **dict(container=sc3, locations=[]))
 
 
 class RackPositionPlateContainerTestCase(_PlateContainerTestCase):
@@ -863,13 +871,14 @@ class RackPositionPlateContainerTestCase(_PlateContainerTestCase):
         self.__check_position(rppc, 205202, (2, 2))
         self._expect_error(AttributeError, rppc.set_container,
                 'There are no empty positions left!',
-                **dict(container=self.__create_container(pool1)))
+                **dict(container=self.__create_container(pool1),
+                       locations=None))
 
     def __check_position(self, plate_container, pool_id, expected_pos_indices):
         container = self.__create_container(pool_id)
         pos = get_rack_position_from_indices(*expected_pos_indices)
         self.assert_is_none(plate_container.get_container_for_location(pos))
-        plate_container.set_container(container)
+        plate_container.set_container(container, None)
         self.assert_equal(plate_container.get_container_for_location(pos),
                           container)
 

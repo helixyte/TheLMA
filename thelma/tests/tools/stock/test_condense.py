@@ -145,7 +145,7 @@ class CondenseRackQueryTestCase(ThelmaModelTestCase):
     def test_run(self):
         with RdbContextManager() as session:
             query = CondenseRackQuery()
-            self.assert_equal(len(query.get_query_results()), 0)
+            self.assert_is_none(query.get_query_results())
             query.run(session=session)
             self.assert_not_equal(len(query.get_query_results()), 0)
 

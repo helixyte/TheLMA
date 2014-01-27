@@ -11,6 +11,9 @@ from thelma.automation.tools.stock.base import get_stock_tube_specs_db_term
 from thelma.interfaces import IMoleculeType
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
+from thelma.automation.tools.stock.base import get_stock_rack_shape
+from thelma.automation.semiconstants import get_96_rack_shape
+from thelma.automation.tools.stock.base import get_stock_rack_size
 
 class StockBaseFunctionsTestCase(ToolsAndUtilsTestCase):
 
@@ -57,6 +60,12 @@ class StockBaseFunctionsTestCase(ToolsAndUtilsTestCase):
         exp_term = '(\'MATRIX0500\', \'MATRIX1400\')'
         self.assert_equal(term, exp_term)
 
+    def test_get_stock_rack_shape(self):
+        self.assert_equal(get_stock_rack_shape(), get_96_rack_shape())
+
+    def test_get_stock_rack_size(self):
+        self.assert_equal(get_stock_rack_size(), 96)
+
 
 class RackLocationQueryTestCase(ToolsAndUtilsTestCase):
 
@@ -65,16 +74,10 @@ class RackLocationQueryTestCase(ToolsAndUtilsTestCase):
             rack_barcodes = ['02481623', '02486186']
             query = RackLocationQuery(rack_barcodes=rack_barcodes)
             self.assert_is_not_none(query)
-            empty_dict = dict()
-            for rack_barcode in rack_barcodes: empty_dict[rack_barcode] = None
-            self.assert_equal(query.location_names, empty_dict)
-            self.assert_equal(query.location_names, empty_dict)
+            self.assert_is_none(query.get_query_results())
             query.run(session=session)
-            for rack_barcode, location_name in query.location_names.iteritems():
+            results = query.get_query_results()
+            self.assert_equal(len(results), 2)
+            for rack_barcode, location_name in results.iteritems():
                 self.assert_true(rack_barcode in rack_barcodes)
                 self.assert_is_not_none(location_name)
-            self.assert_equal(len(query.location_names), 2)
-            self.assert_equal(len(query.location_indices), 2)
-
-
-

@@ -8,11 +8,16 @@ from thelma.automation.semiconstants import get_384_rack_shape
 from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.metadata.base import TransfectionPosition
-from thelma.automation.tools.metadata.isolayoutfinder \
-    import TransfectionTransferItem
 from thelma.automation.tools.worklists.optimiser import SourceSubcolumn
+from thelma.automation.tools.worklists.optimiser import TransferItem
 from thelma.automation.tools.worklists.optimiser import TransferSubcolumn
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
+
+
+class _TransferSubcolumnDummy(TransferItem):
+
+    def _get_hash_value(self):
+        return self.working_pos.hash_full
 
 
 class TransferSubcolumnTestCase(ToolsAndUtilsTestCase):
@@ -44,7 +49,7 @@ class TransferSubcolumnTestCase(ToolsAndUtilsTestCase):
                             reagent_name='mix',
                             reagent_dil_factor='140',
                             final_concentration='10')
-        return TransfectionTransferItem(working_pos=tf_pos)
+        return _TransferSubcolumnDummy(working_pos=tf_pos)
 
     def __create_test_subcolumn(self, number_tids):
         sc = TransferSubcolumn(**self.init_data)

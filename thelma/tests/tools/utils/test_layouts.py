@@ -883,6 +883,9 @@ class _TransferLayoutDummy(TransferLayout):
     POSITION_CLS = _TransferPositionDummy
     _TRANSFER_TARGET_PARAMETERS = _TransferParameterDummy.\
                                   TRANSFER_TARGET_PARAMETERS
+    ALLOW_DUPLICATE_TARGET_WELLS = {
+                    POSITION_CLS.PARAMETER_SET.TRANSFER_TARGETS : False,
+                    POSITION_CLS.PARAMETER_SET.MANDATORY_TARGETS: True}
 
 
 class _TransferClassesBaseTestCase(MoleculeDesignPoolBaseTestCase):
@@ -1102,6 +1105,20 @@ class TransferLayoutTestCase(_TransferClassesBaseTestCase):
         self.assert_equal(len(tl), 0)
         tl.add_position(tp2)
         self.assert_equal(len(tl), 1)
+
+    def test_duplicate_targets(self):
+        tl = self._init_layout()
+        tp1 = self._get_position('a1')
+        tl.add_position(tp1)
+        tp2 = self._get_position('b1')
+        tp2.transfer_targets = tp1.transfer_targets
+        self._expect_error(ValueError, tl.add_position,
+                           'Duplicate target well C2prep2!',
+                           **dict(working_position=tp2))
+        tp2.transfer_targets = []
+        tp2.mandatory_targets = tp1.mandatory_targets
+        tl.add_position(tp2)
+        self.assert_equal(len(tl), 2)
 
 
 class _TransferLayoutConverterDummy(TransferLayoutConverter):

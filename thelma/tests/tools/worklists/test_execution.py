@@ -3,7 +3,7 @@ Transfer execution test cases.
 
 AAB
 """
-from everest.repositories.rdb.testing import check_attributes
+from everest.testing import check_attributes
 from thelma.automation.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.semiconstants import get_384_rack_shape
 from thelma.automation.semiconstants import get_96_rack_shape
@@ -62,7 +62,6 @@ class _ExecutionHelperClassesTestCase(ToolsAndUtilsTestCase):
         ToolsAndUtilsTestCase.tear_down(self)
         del self.volume
         del self.concentration
-        del self.supplier
 
     def _get_sample(self, volume=None, container=None):
         if volume is None: volume = self.volume
@@ -265,13 +264,12 @@ class TargetSampleTestCase(_ExecutionHelperClassesTestCase):
         self.assert_equal(ts.volume, 5)
         self.assert_equal(ts.final_volume, 5)
 
-    def test_add_tramsfer(self):
+    def test_add_transfer(self):
         ts = self.__get_target_sample()
         self.assert_equal(ts.final_volume, 5)
         transfer = TransferredSample(volume=self.volume)
         ts.add_transfer(transfer)
         self.assert_equal(ts.final_volume, 10)
-        self.assert_raises(AttributeError, ts.add_transfer, transfer)
 
     def test_create_and_add_transfer(self):
         ts = self.__get_target_sample()
@@ -296,8 +294,6 @@ class TargetSampleTestCase(_ExecutionHelperClassesTestCase):
         self.assert_equal(transfer.volume, 5)
         self.assert_equal(len(transfer.sample_components), 0)
         self.assert_equal(ts.final_volume, 10)
-        # two transfers are not allowed
-        self.assert_raises(AttributeError, ts.create_and_add_transfer, psd)
 
     def test_update_container(self):
         # prepare sample
@@ -407,7 +403,6 @@ class _LiquidTransferExecutorTestCase(ToolsAndUtilsTestCase):
         del self.source_plate
         del self.source_tube_rack
         del self.shape
-        del self.supplier
         del self.plate_specs
         del self.well_specs
         del self.tube_rack_specs
@@ -495,7 +490,7 @@ class _LiquidTransferExecutorTestCase(ToolsAndUtilsTestCase):
 
         return rack
 
-    def _create_test_sample(self, volume, container, md, conc):
+    def _create_test_sample(self, volume, container, md, conc): # pylint:disable=W0221
         sample = Sample(volume, container)
         if not md is None:
             mol = Molecule(molecule_design=md, supplier=self.supplier)
@@ -1524,20 +1519,6 @@ class RackSampleTransferExecutorTestCase(_LiquidTransferExecutorTestCase):
         self._continue_setup()
         self._test_and_expect_errors('The target sector index for one to ' \
                                      'many translations must be 0')
-
-    def test_invalid_source_position(self):
-        self.target_sector_index = 0
-        self.source_sector_index = 3
-        self.rack_shape_src = get_384_rack_shape()
-        self.rack_shape_trg = get_96_rack_shape()
-        # source volume, source conc, source final volume
-        self.source_data = dict(B1=(40, 120, 30),
-                                B4=(35, 120, 25),
-                                D2=(40, 240, 30),
-                                D4=(35, 240, 25))
-        self._continue_setup()
-        self._test_and_expect_errors('Error when trying to find target ' \
-                                     'position for rack position')
 
     def test_missing_target_container(self):
         positions = ['A2', 'B2']
