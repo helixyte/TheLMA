@@ -29,7 +29,6 @@ from thelma.db.schema.tables import isojob
 from thelma.db.schema.tables import isojobmember
 from thelma.db.schema.tables import isojobpreparationplate
 from thelma.db.schema.tables import isojobstockrack
-from thelma.db.schema.tables import isolibraryplate
 from thelma.db.schema.tables import isoplate
 from thelma.db.schema.tables import isopoolset
 from thelma.db.schema.tables import isopreparationplate
@@ -40,6 +39,7 @@ from thelma.db.schema.tables import isosectorstockrack
 from thelma.db.schema.tables import isostockrack
 from thelma.db.schema.tables import itemstatus
 from thelma.db.schema.tables import job
+from thelma.db.schema.tables import labisolibraryplate
 from thelma.db.schema.tables import labisorequest
 from thelma.db.schema.tables import libraryplate
 from thelma.db.schema.tables import molecule
@@ -318,7 +318,7 @@ def initialize_tables(metadata):
             molecule_design_library_tbl, lab_iso_request_tbl)
     library_plate_tbl = libraryplate.create_table(metadata,
                                         molecule_design_library_tbl, rack_tbl)
-    iso_library_plate_tbl = isolibraryplate.create_table(metadata, iso_tbl,
-                                                         library_plate_tbl)
+    iso_library_plate_tbl = labisolibraryplate.create_table(metadata, iso_tbl,
+                                                            library_plate_tbl)
 
 #pylint: enable=W0612

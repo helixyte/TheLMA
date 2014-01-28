@@ -13,7 +13,7 @@ __all__ = ['create_table']
 
 def create_table(metadata, iso_tbl, library_plate_tbl):
     """Table factory"""
-    tbl = Table('iso_library_plate', metadata,
+    tbl = Table('lab_iso_library_plate', metadata,
                 Column('iso_id', Integer,
                        ForeignKey(iso_tbl.c.iso_id,
                                   onupdate='CASCADE', ondelete='CASCADE'),

@@ -10,6 +10,29 @@ SELECT assert('(select version from db_version) = 17.2');
 
 -- Remove unused worklists and worklist series
 
+
+CREATE TABLE tmp_empty_worklists (worklist_id INTEGER NOT NULL UNIQUE);
+INSERT INTO tmp_empty_worklists (worklist_id)
+  SELECT ew.executed_worklist_id
+  FROM executed_worklist_member ewm RIGHT JOIN executed_worklist ew
+  ON ewm.executed_worklist_id = ew.executed_worklist_id
+  GROUP BY ew.executed_worklist_id
+  HAVING COUNT(ewm.executed_transfer_id) < 1;
+DELETE FROM executed_worklist WHERE executed_worklist_id IN (
+  SELECT worklist_id FROM tmp_empty_worklists);
+DROP TABLE tmp_empty_worklists;
+
+CREATE TABLE tmp_empty_worklists (worklist_id INTEGER NOT NULL UNIQUE);
+INSERT INTO tmp_empty_worklists (worklist_id)
+  SELECT pw.planned_worklist_id
+  FROM planned_worklist_member pwm RIGHT JOIN planned_worklist pw
+  ON pwm.planned_worklist_id = pw.planned_worklist_id
+  GROUP BY pw.planned_worklist_id
+  HAVING COUNT(pwm.planned_transfer_id) < 1;
+DELETE FROM planned_worklist WHERE planned_worklist_id IN (
+  SELECT worklist_id FROM tmp_empty_worklists);
+DROP TABLE tmp_empty_worklists;
+
 ALTER TABLE worklist_series_member DROP CONSTRAINT
   worklist_series_member_planned_worklist_id_fkey;
 ALTER TABLE worklist_series_member

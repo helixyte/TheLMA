@@ -10,7 +10,7 @@
  In addition, make sure all ISO requests for libraries and pool creations
  are set to 'LIBRARY_CREATION'!
 
-SELECT assert('(select version from db_version) = 16.1');
+SELECT assert('(select version from db_version) = 16.2');
 
 
 -- ISO request: create 2 subtypes, rename available types and migrate data,
@@ -372,6 +372,98 @@ INSERT INTO iso_sector_stock_rack (stock_rack_id, iso_id, sector_index)
 DROP TABLE iso_sample_stock_rack;
 ALTER TABLE worklist_series DROP COLUMN planned_worklist_id;
 
+
+-- the iso requests for molecule design library need to be distinguished
+ALTER TABLE molecule_design_library_iso_request
+  RENAME TO molecule_design_library_creation_iso_request;
+ALTER TABLE molecule_design_library_creation_iso_request
+  DROP CONSTRAINT molecule_design_library_iso_request_iso_request_id_fkey;
+ALTER TABLE molecule_design_library_creation_iso_request
+  ADD CONSTRAINT molecule_design_library_iso_request_iso_request_id_fkey
+  FOREIGN KEY (iso_request_id)
+  REFERENCES stock_sample_creation_iso_request (iso_request_id)
+  ON UPDATE CASCADE ON DELETE CASCADE;
+
+CREATE TABLE molecule_design_library_lab_iso_request (
+  molecule_design_library_id INTEGER NOT NULL
+    REFERENCES molecule_design_library (molecule_design_library_id)
+    ON UPDATE CASCADE,
+  iso_request_id INTEGER NOT NULL
+    REFERENCES lab_iso_request (iso_request_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT molecule_design_library_lab_iso_request_pkey
+    PRIMARY KEY (iso_request_id)
+);
+
+INSERT INTO molecule_design_library_lab_iso_request
+    (molecule_design_library_id, iso_request_id)
+  SELECT mdl.molecule_design_library_id, emir.iso_request_id
+  FROM experiment_metadata_iso_request emir, experiment_metadata em,
+  	molecule_design_library mdl
+  WHERE mdl.label = 'poollib'
+  AND em.experiment_metadata_type_id = 'LIBRARY'
+  AND emir.experiment_metadata_id = em.experiment_metadata_id;
+
+-- Library plates - these contain the aliquot plates of the existing library
+
+CREATE TABLE library_plate (
+  library_plate_id SERIAL PRIMARY KEY,
+  molecule_design_library_id INTEGER NOT NULL
+    REFERENCES molecule_design_library (molecule_design_library_id)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  rack_id INTEGER NOT NULL
+    REFERENCES rack (rack_id)
+    ON UPDATE CASCADE ON DELETE RESTRICT,
+  layout_number INTEGER NOT NULL,
+  has_been_used BOOLEAN NOT NULL DEFAULT FALSE,
+  CONSTRAINT library_plate_layout_number_greater_zero CHECK (layout_number > 0)
+);
+
+-- we should only have the poollib library in the DB at this point
+INSERT INTO library_plate
+  (molecule_design_library_id, rack_id, layout_number)
+  SELECT mdl.molecule_design_library_id, iap.rack_id, ssci.layout_number
+  FROM molecule_design_library mdl,
+    molecule_design_library_creation_iso_request mdlcir,
+    iso i, stock_sample_creation_iso ssci, iso_aliquot_plate iap
+  WHERE mdl.label = 'poollib'
+  AND mdl.molecule_design_library_id = mdlcir.molecule_design_library_id
+  AND mdlcir.iso_request_id = i.iso_request_id
+  AND i.iso_id = ssci.iso_id
+  AND iap.iso_id = i.iso_id;
+
+
+-- linking library plates to ISOs (there is no data for this table yet)
+
+CREATE TABLE lab_iso_library_plate (
+  iso_id INTEGER NOT NULL REFERENCES iso (iso_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  library_plate_id INTEGER NOT NULL REFERENCES library_plate (library_plate_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  CONSTRAINT iso_library_plate_pkey PRIMARY KEY (library_plate_id)
+);
+
+INSERT INTO lab_iso_library_plate (iso_id, library_plate_id)
+  SELECT i.iso_id, lp.library_plate_id
+  FROM iso i, library_plate lp, molecule_design_library_lab_iso_request mdllir,
+    iso_aliquot_plate iap
+  WHERE mdllir.iso_request_id = i.iso_request_id
+  AND iap.iso_id = i.iso_id
+  AND lp.rack_id = iap.rack_id;
+
+UPDATE library_plate
+  SET has_been_used = true
+  WHERE library_plate.library_plate_id IN (
+    SELECT lilp.library_plate_id FROM lab_iso_library_plate lilp);
+
+DELETE FROM iso_aliquot_plate
+  WHERE rack_id IN (
+    SELECT lp.rack_id
+       FROM lab_iso_library_plate lilp, library_plate lp
+       WHERE lilp.library_plate_id = lp.library_plate_id)
+  AND iso_id IN (SELECT iso_id FROM lab_iso_library_plate);
+
+
 -- ISO plates: create base table and subtypes and migrate data
 
 CREATE TABLE iso_plate (
@@ -428,6 +520,46 @@ INSERT INTO iso_aliquot_plate (iso_plate_id, has_been_used)
 
 DROP TABLE old_iso_aliquot_plate;
 
+
+-- ISO job preparation plates are like preparation plates for a job
+-- we recognize them by the fact that they belong to several ISOs
+-- (that all belong the same ISO job)
+-- we have to migrate them before the ISO preparation plate because
+-- of the unique rack constraint in the iso_plates table
+
+CREATE TABLE iso_job_preparation_plate (
+  iso_job_preparation_plate_id SERIAL PRIMARY KEY,
+  rack_id INTEGER NOT NULL REFERENCES rack (rack_id),
+  rack_layout_id INTEGER
+    REFERENCES rack_layout (rack_layout_id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  job_id INTEGER
+    REFERENCES job (job_id)
+    ON UPDATE CASCADE ON DELETE CASCADE,
+  iso_id INTEGER UNIQUE NOT NULL,
+  CONSTRAINT iso_job_unique_preparation_plate UNIQUE (rack_id)
+);
+
+INSERT INTO iso_job_preparation_plate (rack_id, iso_id)
+  SELECT rack_id, min(iso_id)
+  FROM old_iso_preparation_plate
+  GROUP BY rack_id
+  HAVING count(iso_id) > 1;
+UPDATE iso_job_preparation_plate
+  SET job_id = (SELECT job_id FROM iso_job_member
+    WHERE iso_job_member.iso_id = iso_job_preparation_plate.iso_id);
+UPDATE iso_job_preparation_plate
+  SET rack_layout_id = (SELECT rack_layout_id FROM iso
+    WHERE iso.iso_id = iso_job_preparation_plate.iso_id);
+
+DELETE FROM old_iso_preparation_plate
+  WHERE rack_id IN (SELECT rack_id FROM iso_job_preparation_plate);
+ALTER TABLE iso_job_preparation_plate DROP COLUMN iso_id;
+ALTER TABLE iso_job_preparation_plate ALTER COLUMN rack_layout_id SET NOT NULL;
+ALTER TABLE iso_job_preparation_plate ALTER COLUMN job_id SET NOT NULL;
+
+-- now we can deal with ISO preparation plates
+
 INSERT INTO iso_plate (iso_id, rack_id, iso_plate_type)
   SELECT iso_id, rack_id, 'PREPARATION' AS iso_plate_type
   FROM old_iso_preparation_plate;
@@ -453,68 +585,5 @@ INSERT INTO iso_sector_preparation_plate
   AND ip.rack_id = lsp.rack_id;
 
 DROP TABLE library_source_plate;
-
--- Library plates - these contain the aliquot plates of the existing library
-
-CREATE TABLE library_plate (
-  library_plate_id SERIAL PRIMARY KEY,
-  molecule_design_library_id INTEGER NOT NULL
-    REFERENCES molecule_design_library (molecule_design_library_id)
-    ON UPDATE CASCADE ON DELETE RESTRICT,
-  rack_id INTEGER NOT NULL
-    REFERENCES rack (rack_id)
-    ON UPDATE CASCADE ON DELETE RESTRICT,
-  layout_number INTEGER NOT NULL,
-  has_been_used BOOLEAN NOT NULL DEFAULT FALSE,
-  CONSTRAINT library_plate_layout_number_greater_zero CHECK (layout_number > 0)
-);
-
--- we should only have the poollib library in the DB at this point
-INSERT INTO library_plate
-  (molecule_design_library_id, rack_id, layout_number)
-  SELECT mdl.molecule_design_library_id, ip.rack_id, ssci.layout_number
-  FROM molecule_design_library mdl, molecule_design_library_iso_request mdlir,
-       iso i, stock_sample_creation_iso ssci, iso_plate ip
-  WHERE mdl.label = 'poollib'
-  AND mdl.molecule_design_library_id = mdlir.molecule_design_library_id
-  AND mdlir.iso_request_id = i.iso_request_id
-  AND i.iso_id = ssci.iso_id
-  AND ip.iso_id = i.iso_id
-  AND ip.iso_plate_type = 'ALIQUOT';
-
--- the iso requests for molecule design library need to be distinguished
-ALTER TABLE molecule_design_library_iso_request
-  RENAME TO molecule_design_library_creation_iso_request;
-ALTER TABLE molecule_design_library_creation_iso_request
-  DROP CONSTRAINT molecule_design_library_iso_request_iso_request_id_fkey;
-ALTER TABLE molecule_design_library_creation_iso_request
-  ADD CONSTRAINT molecule_design_library_iso_request_iso_request_id_fkey
-  FOREIGN KEY (iso_request_id)
-  REFERENCES stock_sample_creation_iso_request (iso_request_id)
-  ON UPDATE CASCADE ON DELETE CASCADE;
-
-CREATE TABLE molecule_design_library_lab_iso_request (
-  molecule_design_library_id INTEGER NOT NULL
-    REFERENCES molecule_design_library (molecule_design_library_id)
-    ON UPDATE CASCADE,
-  iso_request_id INTEGER NOT NULL
-    REFERENCES lab_iso_request (iso_request_id)
-    ON UPDATE CASCADE ON DELETE CASCADE,
-  CONSTRAINT molecule_design_library_lab_iso_request_pkey
-    PRIMARY KEY (molecule_design_library_id)
-);
-
-
-
--- linking library plates to ISOs (there is no data for this table yet)
-
-CREATE TABLE iso_library_plate (
-  iso_id INTEGER NOT NULL REFERENCES iso (iso_id)
-    ON UPDATE CASCADE ON DELETE CASCADE,
-  library_plate_id INTEGER NOT NULL REFERENCES library_plate (library_plate_id)
-    ON UPDATE CASCADE ON DELETE CASCADE,
-  CONSTRAINT iso_library_plate_pkey PRIMARY KEY (library_plate_id)
-);
-
 
 CREATE OR REPLACE VIEW db_version AS SELECT 17.1 AS version;

@@ -37,6 +37,11 @@ ALTER TABLE iso_job_stock_rack ADD COLUMN job_id INTEGER
   REFERENCES new_job (job_id)
   ON UPDATE CASCADE ON DELETE CASCADE;
 
+ALTER TABLE iso_job_preparation_plate RENAME COLUMN job_id TO old_job_id;
+ALTER TABLE iso_job_preparation_plate ADD COLUMN job_id INTEGER
+  REFERENCES new_job (job_id)
+  ON UPDATE CASCADE ON DELETE CASCADE;
+
 UPDATE iso_job_member
   SET job_id =
     (SELECT nj.job_id FROM new_job nj
@@ -47,10 +52,17 @@ UPDATE iso_job_stock_rack
     (SELECT nj.job_id FROM new_job nj
      WHERE nj.old_job_id = iso_job_stock_rack.old_job_id);
 
+UPDATE iso_job_preparation_plate
+  SET job_id =
+    (SELECT nj.job_id FROM new_job nj
+     WHERE nj.old_job_id = iso_job_preparation_plate.old_job_id);
+
 ALTER TABLE iso_job_member DROP COLUMN old_job_id;
 ALTER TABLE iso_job_member ALTER COLUMN job_id SET NOT NULL;
 ALTER TABLE iso_job_stock_rack DROP COLUMN old_job_id;
 ALTER TABLE iso_job_stock_rack ALTER COLUMN job_id SET NOT NULL;
+ALTER TABLE iso_job_preparation_plate DROP COLUMN old_job_id;
+ALTER TABLE iso_job_preparation_plate ALTER COLUMN job_id SET NOT NULL;
 
 -- migrate experiment jobs
 
@@ -98,20 +110,6 @@ INSERT INTO iso_job (job_id, number_stock_racks)
   FROM new_job
   WHERE job_type = 'ISO';
 
-
--- ISO job plates are new, there is nothing to be migrated
-
-CREATE TABLE iso_job_preparation_plate (
-  iso_job_preparation_plate_id SERIAL PRIMARY KEY,
-  rack_id INTEGER NOT NULL REFERENCES rack (rack_id),
-  rack_layout_id INTEGER NOT NULL
-    REFERENCES rack_layout (rack_layout_id)
-    ON DELETE CASCADE ON UPDATE CASCADE,
-  job_id INTEGER NOT NULL
-    REFERENCES job (job_id)
-    ON UPDATE CASCADE ON DELETE CASCADE,
-  CONSTRAINT iso_job_unique_preparation_plate UNIQUE (rack_id)
-);
 
 -- add association table for ISO job worklist series
 

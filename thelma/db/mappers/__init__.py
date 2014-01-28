@@ -184,7 +184,7 @@ def initialize_mappers(tables, views):
                         tables['stock_sample_creation_iso_request'],
                         tables['molecule_design_library_creation_iso_request'])
     libraryplate.create_mapper(tables['library_plate'],
-                               tables['iso_library_plate'])
+                               tables['lab_iso_library_plate'])
     standardmoleculedesignset.create_mapper(
                                 molecule_design_set_mapper)
     moleculedesignpool.create_mapper(
@@ -274,7 +274,8 @@ def initialize_mappers(tables, views):
                         tables['molecule_design_library'])
     iso_mapper = iso.create_mapper(tables['iso'], tables['new_job'],
                       tables['iso_job_member'], tables['iso_pool_set'])
-    labiso.create_mapper(iso_mapper, tables['iso'], tables['iso_library_plate'])
+    labiso.create_mapper(iso_mapper, tables['iso'],
+                         tables['lab_iso_library_plate'])
     stocksamplecreationiso.create_mapper(iso_mapper,
                                          tables['stock_sample_creation_iso'])
     isojob.create_mapper(job_mapper, tables['iso_job'],
