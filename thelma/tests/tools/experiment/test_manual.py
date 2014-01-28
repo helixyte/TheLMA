@@ -42,6 +42,7 @@ class ExperimentManualExecutorTestCase(ExperimentTestCase):
             self.assert_true(warn in warnings)
         else:
             self.assert_false(warn in warnings)
+        self._check_iso_aliquot_plate_update()
 
     def test_case_order(self):
         self._test_case_order()

@@ -67,6 +67,7 @@ class _ExperimentWriterExecutorTestCase(ExperimentTestCase):
         self.__check_executed_worklists(ews)
         self._check_final_plates_final_state()
         self._check_source_plate_final_state()
+        self._check_iso_aliquot_plate_update()
 
     def __check_executed_worklists(self, ews):
         self.assert_equal(len(ews),

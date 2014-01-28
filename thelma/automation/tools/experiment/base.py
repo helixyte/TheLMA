@@ -511,6 +511,30 @@ class ExperimentTool(SerialWriterExecutorTool):
         else:
             self._final_streams[self.FILE_SUFFIX_PREPARATION] = prep_stream
 
+    def _update_iso_aliquot_plate(self):
+        """
+        If the source rack is an ISO aliquot plate, we might set the
+        "has been used" flag upon execution.
+        """
+        if not self._scenario.id == EXPERIMENT_SCENARIOS.ISO_LESS:
+            barcode = self._source_plate.barcode
+            for iso in self.experiment.experiment_design.experiment_metadata.\
+                                                        lab_iso_request.isos:
+                for iap in iso.iso_aliquot_plates:
+                    if iap.rack.barcode == barcode:
+                        iap.has_been_used = True
+                        break
+
+    def _get_executed_worklists(self):
+        """
+        In addition to the normal writers we have to set the "has been used"
+        flag of the potential ISO aliquot plate that has been used as
+        source plate.
+        """
+        ews = SerialWriterExecutorTool._get_executed_worklists(self)
+        if not ews is None: self._update_iso_aliquot_plate()
+        return ews
+
 
 class SourceRackVerifier(BaseRackVerifier):
     """

@@ -481,6 +481,18 @@ class ExperimentTestCase(ExperimentMetadataReadingTestCase,
             for worklist in worklist_series:
                 self.assert_equal(len(worklist.executed_worklists), 0)
 
+    def _check_iso_aliquot_plate_update(self, source_plate_barcodes=None):
+        if source_plate_barcodes is None:
+            source_plate_barcodes = {EXPERIMENT_TEST_DATA.ISO_PLATE_BARCODE}
+        ir = self.experiment_metadata.lab_iso_request
+        if ir is not None:
+            for iso in ir.isos:
+                for iap in iso.iso_aliquot_plates:
+                    if iap.rack.barcode in source_plate_barcodes:
+                        self.assert_true(iap.has_been_used)
+                    else:
+                        self.assert_false(iap.has_been_used)
+
     def _check_final_plates_final_state(self, final_plate_data=None,
                                         experiment_racks=None):
         if experiment_racks is None:

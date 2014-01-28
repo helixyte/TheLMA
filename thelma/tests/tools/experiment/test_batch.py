@@ -249,6 +249,9 @@ class ExperimentBatchManualExecutorTestCase(_ExperimentBatchTestCase):
                     self.experiment2.experiment_racks)
         for edr in self.experiment2.experiment_racks:
             self.assert_equal(edr.rack.status.name, ITEM_STATUS_NAMES.MANAGED)
+        self._check_iso_aliquot_plate_update(
+                        {_EXPERIMENT_BATCH_TEST_DATA.ISO_PLATE_BARCODE_2,
+                         _EXPERIMENT_BATCH_TEST_DATA.ISO_PLATE_BARCODE})
 
     def test_case_order(self):
         self._load_scenario(_EXPERIMENT_BATCH_TEST_DATA.CASE_ORDER)
@@ -352,7 +355,6 @@ class ExperimentBatchExecutorTestCase(_ExperimentBatchTestCase):
         self.tool = get_batch_executor(experiments=self.experiments,
                                        user=self.executor_user)
 
-
     def __check_result(self, case_name):
         self._load_scenario(case_name)
         experiments = self.tool.get_result()
@@ -373,7 +375,9 @@ class ExperimentBatchExecutorTestCase(_ExperimentBatchTestCase):
             for edr in experiment.experiment_racks:
                 self.assert_equal(edr.rack.status.name,
                                   ITEM_STATUS_NAMES.MANAGED)
-
+        self._check_iso_aliquot_plate_update(
+                        {_EXPERIMENT_BATCH_TEST_DATA.ISO_PLATE_BARCODE_2,
+                         _EXPERIMENT_BATCH_TEST_DATA.ISO_PLATE_BARCODE})
 
     def test_case_opti_with_mastermix(self):
         self.__check_result(_EXPERIMENT_BATCH_TEST_DATA.CASE_OPTI_MM)

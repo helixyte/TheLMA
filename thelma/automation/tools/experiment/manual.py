@@ -79,6 +79,7 @@ class ExperimentManualExecutor(ExperimentTool):
     def _execute_worklists(self):
         if not self.has_errors(): self._generate_pool_molecule_map()
         if not self.has_errors(): self.__update_racks()
+        if not self.has_errors(): self._update_iso_aliquot_plate()
         if not self.has_errors():
             self.return_value = self.experiment
             self.add_info('Experiment sample generation completed.')
@@ -227,4 +228,3 @@ class ExperimentManualExecutor(ExperimentTool):
                   'found on the source plate: %s.' % (design_rack_label,
                    self._get_joined_str(missing_pools, is_strs=False))
             self.add_error(msg)
-
