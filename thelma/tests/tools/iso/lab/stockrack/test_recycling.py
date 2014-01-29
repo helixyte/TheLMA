@@ -185,8 +185,8 @@ class _StockRackRecyclerTestCase(LabIsoStockRackTestCase):
                                      'not match the expected ones:')
 
     def _test_insufficient_volume(self, details_msg):
-        self.starting_vol = 6 / VOLUME_CONVERSION_FACTOR
-        self._load_iso_request(LAB_ISO_TEST_CASES.CASE_ASSOCIATION_DIRECT)
+        self.starting_vol = 5 / VOLUME_CONVERSION_FACTOR
+        self._load_iso_request(LAB_ISO_TEST_CASES.CASE_ASSOCIATION_SIMPLE)
         exp_msg = 'The volumes in some tubes (dead volume included) are ' \
                   'not sufficient: ' + details_msg
         self._test_and_expect_errors(exp_msg)
@@ -365,10 +365,10 @@ class StockRackRecyclerLabIsoTestCase(_StockRackRecyclerTestCase):
         self._test_invalid_concentration()
 
     def test_insufficient_volume(self):
-        self._test_insufficient_volume('1000205027 (pool: 205207, required: ' \
-            '7 ul, found: 6 ul), 1000205205 (pool: 205205, required: 7 ul, ' \
-            'found: 6 ul), 1000205206 (pool: 205206, required: 7 ul, ' \
-            'found: 6 ul)')
+        self._test_insufficient_volume('1000205205 (pool: 205205, required: ' \
+            '6 ul, found: 5 ul), 1000205206 (pool: 205206, required: 6 ul, ' \
+            'found: 5 ul), 1000205207 (pool: 205207, required: 6 ul, ' \
+            'found: 5 ul)')
 
     def test_layout_none_sectors(self):
         self._load_iso_request(LAB_ISO_TEST_CASES.CASE_ASSOCIATION_DIRECT)
@@ -508,12 +508,12 @@ class StockRackRecyclerIsoJobTestCase(_StockRackRecyclerTestCase):
         self._test_and_expect_success(
                             LAB_ISO_TEST_CASES.CASE_LIBRARY_2_ALIQUOTS)
 
-    def test_test_result_altered_tube_order(self):
-        case_name = LAB_ISO_TEST_CASES.CASE_ASSOCIATION_DIRECT
+    def test_result_altered_tube_order(self):
+        case_name = LAB_ISO_TEST_CASES.CASE_ASSOCIATION_SIMPLE
         self.alt_tube_position_map = {
                   '1000205201' : 'g1', # otherwise a1
                   '1000205202' : 'g2', # otherwise b1
-                  '1000180005' : 'g3'} # otherwise c1
+                  '1000205200' : 'g3'} # otherwise c1
         sr_label = '123_job_01_s#1'
         layout_data = LAB_ISO_TEST_CASES.get_stock_rack_layout_data(
                                                 case_name)[sr_label]
@@ -523,9 +523,9 @@ class StockRackRecyclerIsoJobTestCase(_StockRackRecyclerTestCase):
                     g3=layout_data['c1'])
         self.alt_layout_data = {sr_label : alt_layout_data}
         self.exp_pipetting_specs = get_pipetting_specs_biomek_stock()
-        alt_worklist = dict(b2=[2, 'g1'], d2=[2, 'g1'],
-                b3=[2, 'g2'], d3=[2, 'g2'], b4=[2, 'g3'], d4=[2, 'g3'])
-        self.alt_worklist_details = {'123_1_s#1_to_a' :  alt_worklist}
+        alt_worklist = dict(b2=[1, 'g1'], d2=[1, 'g1'],
+                b3=[1, 'g2'], d3=[1, 'g2'], b4=[1, 'g3'], d4=[1, 'g3'])
+        self.alt_worklist_details = {'123_1_s#1_to_p' :  alt_worklist}
         self._test_and_expect_success(case_name)
 
     def test_invalid_input_values(self):
@@ -566,7 +566,7 @@ class StockRackRecyclerIsoJobTestCase(_StockRackRecyclerTestCase):
         self._test_invalid_concentration()
 
     def test_insufficient_volume(self):
-        self._test_insufficient_volume('1000180005 (pool: 180005, required: ' \
-                '13 ul, found: 6 ul), 1000205201 (pool: 205201, required: ' \
-                '13 ul, found: 6 ul), 1000205202 (pool: 205202, required: ' \
-                '13 ul, found: 6 ul).')
+        self._test_insufficient_volume('1000205200 (pool: 205200, required: ' \
+                '9 ul, found: 5 ul), 1000205201 (pool: 205201, required: ' \
+                '9 ul, found: 5 ul), 1000205202 (pool: 205202, required: ' \
+                '9 ul, found: 5 ul).')

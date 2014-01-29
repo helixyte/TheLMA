@@ -2238,11 +2238,12 @@ class RobotSupportDeterminatorLibrary(_RobotSupportDeterminator):
         if is_larger_than(required_vol, available_vol):
             msg = 'Currently, the mastermix in the source plate would not ' \
                   'provide enough volume for all experiment cell plates ' \
-                  '(required volume: %.1f ul, available (excl. dead volume): ' \
-                  '%.2f ul). Robot support ist disabled now. To activate it ' \
+                  '(required volume: %s ul, available (excl. dead volume): ' \
+                  '%s ul). Robot support is disabled now. To activate it ' \
                   'reduce the number of replicates, the number of ' \
                   'design racks or the final concentration, please.' \
-                  % (required_vol, available_vol)
+                  % (get_trimmed_string(required_vol),
+                     get_trimmed_string(available_vol))
             self.add_warning(msg)
             self._has_compatible_volumes = False
 

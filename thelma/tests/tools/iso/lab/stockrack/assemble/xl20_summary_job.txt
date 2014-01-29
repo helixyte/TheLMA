@@ -9,7 +9,7 @@ ISO job: 123_job_01
 Total number of tubes: 3
 
 Volumes
-1 ul: 180005, 205201
+1 ul: 205200, 205201
 1.1 ul: 330001
 
 

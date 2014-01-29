@@ -1103,7 +1103,13 @@ class LabIsoPlanner(IsoProvider):
 
         regard_controls = True
         if self.__controls_in_quadrants: regard_controls = False
-        if self._has_floatings: regard_controls = False
+        if self._has_floatings:
+            shape_size = self._iso_request_layout.shape.size
+            if self.__association_data is None and shape_size == 96:
+                # Not enough floatings for cybio transfer
+                self.__cybio_use_aborted = True
+            else:
+                regard_controls = False
 
         if regard_controls or self.__cybio_use_aborted:
             containers = []
@@ -1237,7 +1243,7 @@ class LabIsoPlanner(IsoProvider):
         has already been covered.
         """
         layouts = self._builder.get_all_layouts()
-        for layout in layouts.values():
+        for plate_marker, layout in layouts.iteritems():
             for plate_pos in layout.working_positions():
                 if not plate_pos.is_fixed: continue
                 if plate_pos.stock_tube_barcode is None: continue
@@ -1251,7 +1257,8 @@ class LabIsoPlanner(IsoProvider):
                              position_type=plate_pos.position_type,
                              stock_concentration=plate_pos.stock_concentration)
                     self.__job_pool_containers[pool] = pool_container
-                pool_container.target_working_positions.append(plate_pos)
+                pool_container.store_target_position_with_origin(plate_pos,
+                                                                 plate_marker)
 
     def __get_copy_number_for_job_position(self):
         """
@@ -1387,11 +1394,27 @@ class _PoolContainer(object):
         self.target_working_positions = []
         self.stock_concentration = stock_concentration
 
+        self.__origins = dict()
+
     def add_target_working_position(self, pool_pos):
         """
         Adds a molecule design pool (layout) position to the list.
         """
         self.target_working_positions.append(pool_pos)
+
+    def store_target_position_with_origin(self, iso_pos, plate_marker):
+        """
+        Adds a lab ISO position to the list and also records the layout
+        the position has been taken from.
+        """
+        self.add_target_working_position(iso_pos)
+        self.__origins[iso_pos] = plate_marker
+
+    def get_origin_for_iso_position(self, iso_pos):
+        """
+        Returns the plate marker for an ISO position.
+        """
+        return self.__origins[iso_pos]
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and other.pool == self.pool
@@ -2155,7 +2178,7 @@ class RackPositionContainer(_LocationContainer):
         return container
 
     @classmethod
-    def from_lab_iso_position(cls, plate_pos, stock_concentration):
+    def from_lab_iso_position(cls, plate_pos, pool_container):
         """
         Factory method creating an rack position container with immutable
         volume from an :class:`LabIsoPosition`.
@@ -2166,10 +2189,11 @@ class RackPositionContainer(_LocationContainer):
         container = cls(pool=plate_pos.molecule_design_pool,
                 position_type=plate_pos.position_type,
                 target_concentration=plate_pos.concentration,
-                parent_concentration=stock_concentration,
+                parent_concentration=pool_container.stock_concentration,
                 volume=plate_pos.volume)
+        plate_marker = pool_container.get_origin_for_iso_position(plate_pos)
         container.set_location(location=plate_pos.rack_position,
-                               plate_marker=None)
+                               plate_marker=plate_marker)
         container.disable_modification()
         return container
 
@@ -3485,6 +3509,8 @@ class _LayoutPlanner(BaseAutomationTool):
                         self.builder.add_intraplate_transfer(pt, plate_marker,
                                                          intraplate_ancestors)
                 else:
+                    if child_plate_marker is None:
+                        child_plate_marker = LABELS.ROLE_FINAL
                     for pt in planned_transfers:
                         self.builder.add_interplate_transfer(pt,
                                 source_plate_marker=plate_marker,
@@ -4023,7 +4049,7 @@ class JobRackPositionPlanner(RackPositionPlanner):
 
         self.__set_record_requested_containers(False)
         return RackPositionContainer.from_lab_iso_position(pool_pos,
-                                     pool_container.stock_concentration)
+                                                           pool_container)
 
     def __set_record_requested_containers(self, record):
         """
@@ -4069,7 +4095,17 @@ class JobRackPositionPlanner(RackPositionPlanner):
         record the transfers for them.
         """
         if is_final_container and not self.__record_requested_containers:
-            pass
+            plate_marker = container.plate_marker
+            buffer_volume = container.get_buffer_volume()
+            if plate_marker == LABELS.ROLE_FINAL and \
+                                        not are_equal_values(buffer_volume, 0):
+                volume = round(buffer_volume / VOLUME_CONVERSION_FACTOR, 7)
+                rack_positions = self._get_rack_positions_for_container(
+                                                                    container)
+                for rack_pos in rack_positions:
+                    psd = PlannedSampleDilution.get_entity(volume=volume,
+                            target_position=rack_pos, diluent_info=DILUENT_INFO)
+                    self.builder.add_dilution(psd, plate_marker)
         else:
             RackPositionPlanner._record_transfers_for_container(self, container,
                                           is_final_container=is_final_container)

@@ -289,7 +289,7 @@ class LabIsoJobCreatorTestCase(LabIsoTestCase1):
     def test_excluded_racks(self):
         with RdbContextManager() as session:
             self._continue_setup()
-            pool_id = 180005
+            pool_id = 205201
             # get racks to be excluded
             query = 'SELECT r.barcode AS rack_barcode ' \
                     'FROM rack r, containment rc, sample s, stock_sample ss ' \
@@ -304,7 +304,7 @@ class LabIsoJobCreatorTestCase(LabIsoTestCase1):
                 rack_barcodes.append(record[0])
             self.excluded_racks = rack_barcodes
             self._test_and_expect_errors('Could not find stock tubes for ' \
-                        'the following fixed (control pools): 180005 (7 ul)')
+                        'the following fixed (control pools): 205201 (7 ul)')
 
     def test_invalid_input_values(self):
         self._continue_setup()

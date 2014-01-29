@@ -2,9 +2,8 @@
 Tests ISO request ticket tools.
 """
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
-from pyramid.threadlocal import get_current_registry
-from thelma.tests.tools.tooltestingutils import ExperimentMetadataReadingTestCase
-from thelma.automation.tools.metadata.ticket import IsoRequestTicketDescriptionRemover
+from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.automation.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.metadata.generation \
     import ExperimentMetadataGenerator
 from thelma.automation.tools.metadata.ticket \
@@ -16,30 +15,29 @@ from thelma.automation.tools.metadata.ticket \
 from thelma.automation.tools.metadata.ticket \
     import IsoRequestTicketDescriptionBuilder
 from thelma.automation.tools.metadata.ticket \
+    import IsoRequestTicketDescriptionRemover
+from thelma.automation.tools.metadata.ticket \
     import IsoRequestTicketDescriptionUpdater
 from thelma.automation.tools.metadata.ticket \
     import IsoRequestTicketReassigner
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketReopener
-from thelma.automation.tools.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.tools.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.interfaces import IProject
-from thelma.interfaces import ITractor
 from thelma.interfaces import IUser
 from thelma.models.experiment import ExperimentMetadata
 from thelma.models.iso import ISO_STATUS
-from thelma.models.iso import Iso
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
+from thelma.tests.tools.tooltestingutils \
+    import ExperimentMetadataReadingTestCase
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
 from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 from thelma.tests.tools.tooltestingutils import TracToolTestCase
-from tractor import create_wrapper_for_ticket_update
 from tractor.ticket import RESOLUTION_ATTRIBUTE_VALUES
 from tractor.ticket import STATUS_ATTRIBUTE_VALUES
 
 
-class IsoRequestTicketTestCase(ExperimentMetadataReadingTestCase,
+class _IsoRequestTicketTestCase(ExperimentMetadataReadingTestCase,
                                TracToolTestCase):
 
     def set_up(self):
@@ -75,7 +73,7 @@ class IsoRequestTicketTestCase(ExperimentMetadataReadingTestCase,
         self._create_tool()
 
 
-class IsoRequestTicketCreatorTestCase(IsoRequestTicketTestCase):
+class IsoRequestTicketCreatorTestCase(_IsoRequestTicketTestCase):
 
     def _create_tool(self):
         self.tool = IsoRequestTicketCreator(requester=self.em_requester,
@@ -107,7 +105,6 @@ class IsoTicketDescriptionBuilderTestCase(FileCreatorTestCase):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
         self.em_link = 'http://em_test_link.lnk'
         self.ir_link = 'http://iso_request_test_link.lnk'
-        self.use_deep_well = None
         self.WL_PATH = 'thelma:tests/tools/metadata/csv_files/'
         self.TEST_FILE_PATH = 'thelma:tests/tools/metadata/report/'
         self.support_mastermix = True
@@ -116,7 +113,8 @@ class IsoTicketDescriptionBuilderTestCase(FileCreatorTestCase):
                     EXPERIMENT_SCENARIOS.SCREENING : 'valid_screen.xls',
                     EXPERIMENT_SCENARIOS.MANUAL : 'valid_manual.xls',
                     EXPERIMENT_SCENARIOS.ISO_LESS : 'valid_isoless.xls',
-                    EXPERIMENT_SCENARIOS.ORDER_ONLY : 'valid_order.xls'}
+                    EXPERIMENT_SCENARIOS.ORDER_ONLY : 'valid_order.xls',
+                    EXPERIMENT_SCENARIOS.LIBRARY : 'valid_library.xls'}
         self.VALID_FILES_NO_MM_SUPPORT = {
                     EXPERIMENT_SCENARIOS.OPTIMISATION : \
                                         'valid_opti_no_mastermix_support.xls',
@@ -134,7 +132,6 @@ class IsoTicketDescriptionBuilderTestCase(FileCreatorTestCase):
         del self.experiment_type_id
         del self.em_link
         del self.ir_link
-        del self.use_deep_well
         del self.TEST_FILE_PATH
         del self.VALID_FILES
         del self.requester
@@ -145,8 +142,7 @@ class IsoTicketDescriptionBuilderTestCase(FileCreatorTestCase):
         self.tool = IsoRequestTicketDescriptionBuilder(log=self.log,
                             experiment_metadata=self.experiment_metadata,
                             experiment_metadata_link=self.em_link,
-                            iso_request_link=self.ir_link,
-                            use_deep_well=self.use_deep_well)
+                            iso_request_link=self.ir_link)
 
     def __continue_setup(self):
         self.__create_test_experiment_metadata()
@@ -182,12 +178,7 @@ class IsoTicketDescriptionBuilderTestCase(FileCreatorTestCase):
         self._compare_txt_file_content(desc, desc_file)
 
     def test_result_opti(self):
-        self.use_deep_well = False
         self.__check_result('ticket_description_opti.txt')
-
-    def test_result_opti_with_deepwell(self):
-        self.use_deep_well = True
-        self.__check_result('ticket_description_opti_deep.txt')
 
     def test_result_opti_no_robot_support(self):
         self.support_mastermix = False
@@ -214,71 +205,45 @@ class IsoTicketDescriptionBuilderTestCase(FileCreatorTestCase):
         self.experiment_type_id = EXPERIMENT_SCENARIOS.ORDER_ONLY
         self.__check_result('ticket_description_order_only.txt')
 
-    def test_get_use_deep_well(self):
-        self.use_deep_well = True
-        self.__continue_setup()
-        desc = self.tool.get_result()
-        self.assert_true(IsoRequestTicketDescriptionBuilder.\
-                                        get_use_deep_well_value(desc))
-        self.use_deep_well = False
-        self._create_tool()
-        desc2 = self.tool.get_result()
-        self.assert_false(IsoRequestTicketDescriptionBuilder.\
-                          get_use_deep_well_value(desc2))
-        self.use_deep_well = None
-        self._create_tool()
-        desc3 = self.tool.get_result()
-        self.assert_true(IsoRequestTicketDescriptionBuilder.UNKNOWN_MARKER \
-                         in desc3)
-        self.assert_is_none(
-                    IsoRequestTicketDescriptionBuilder.get_use_deep_well_value(
-                                                                        desc3))
-        desc4 = 'no table'
-        self.assert_is_none(IsoRequestTicketDescriptionBuilder.\
-                            get_use_deep_well_value(desc4))
+    def test_result_library(self):
+        self.experiment_type_id = EXPERIMENT_SCENARIOS.LIBRARY
+        self.__check_result('ticket_description_library.txt')
 
-    def test_invalid_experiment_metadata(self):
+    def test_invalid_input_values(self):
         self.__continue_setup()
+        ori_em = self.experiment_metadata
         self.experiment_metadata = self.experiment_metadata.experiment_design
         self._test_and_expect_errors('experiment metadata must be a ' \
                                      'ExperimentMetadata object')
-
-    def test_invalid_experiment_metadata_link(self):
+        self.experiment_metadata = ori_em
+        ori_em_link = self.em_link
         self.em_link = 123
-        self.__continue_setup()
         self._test_and_expect_errors('experiment metadata link must be a ' \
                                      'basestring')
-
-    def test_invalid_iso_request_link(self):
+        self.em_link = ori_em_link
         self.ir_link = 123
-        self.__continue_setup()
         self._test_and_expect_errors('ISO request link must be a basestring')
 
-    def test_invalid_use_deep_well_flag(self):
-        self.use_deep_well = 1
-        self.__continue_setup()
-        self._test_and_expect_errors('use deep well value must be a bool')
 
-
-class IsoRequestTicketUpdateToolTestCase(IsoRequestTicketTestCase):
+class _IsoRequestTicketUpdateToolTestCase(_IsoRequestTicketTestCase):
 
     def set_up(self):
-        IsoRequestTicketTestCase.set_up(self)
+        _IsoRequestTicketTestCase.set_up(self)
         self.iso_request = None
         self.ticket_id = None
         self.experiment_metadata_label = 'ticket_update_test'
         self.em_link = 'http://em_test_link.lnk'
 
     def tear_down(self):
-        IsoRequestTicketTestCase.tear_down(self)
+        _IsoRequestTicketTestCase.tear_down(self)
         del self.iso_request
         del self.ticket_id
         del self.em_link
 
     def _continue_setup(self): #pylint: disable=W0221
-        IsoRequestTicketTestCase._continue_setup(self,
+        _IsoRequestTicketTestCase._continue_setup(self,
                                                  file_name=self.VALID_FILE)
-        self.iso_request = self.experiment_metadata.iso_request
+        self.iso_request = self.experiment_metadata.lab_iso_request
         self._create_ticket()
         self._create_tool()
 
@@ -300,21 +265,25 @@ class IsoRequestTicketUpdateToolTestCase(IsoRequestTicketTestCase):
 
     def _test_invalid_id_providing_entity(self):
         self._continue_setup()
+        ori_ir = self.iso_request
         self.iso_request = self.experiment_metadata.experiment_design
+        ori_em = self.experiment_metadata
         self.experiment_metadata = self.experiment_metadata.experiment_design
         self._test_and_expect_errors('Unknown ID-providing entity')
+        self.iso_request = ori_ir
+        self.experiment_metadata = ori_em
 
 
 class IsoRequestTicketDescriptionRemoverTestCase(
-                                         IsoRequestTicketUpdateToolTestCase):
+                                         _IsoRequestTicketUpdateToolTestCase):
 
     def set_up(self):
-        IsoRequestTicketUpdateToolTestCase.set_up(self)
+        _IsoRequestTicketUpdateToolTestCase.set_up(self)
         self.changed_em_type = True
         self.changed_num_reps = True
 
     def tear_down(self):
-        IsoRequestTicketUpdateToolTestCase.tear_down(self)
+        _IsoRequestTicketUpdateToolTestCase.tear_down(self)
         del self.changed_em_type
         del self.changed_num_reps
 
@@ -367,14 +336,14 @@ class IsoRequestTicketDescriptionRemoverTestCase(
 
 
 class IsoRequestTicketDescriptionUpdaterTestCase(
-                                            IsoRequestTicketUpdateToolTestCase):
+                                        _IsoRequestTicketUpdateToolTestCase):
 
     def set_up(self):
-        IsoRequestTicketUpdateToolTestCase.set_up(self)
+        _IsoRequestTicketUpdateToolTestCase.set_up(self)
         self.ir_link = 'http://iso_request_test_link.lnk'
 
     def tear_down(self):
-        IsoRequestTicketUpdateToolTestCase.tear_down(self)
+        _IsoRequestTicketUpdateToolTestCase.tear_down(self)
         del self.ir_link
 
     def _create_tool(self):
@@ -390,8 +359,6 @@ class IsoRequestTicketDescriptionUpdaterTestCase(
         update_ticket = self.tool.return_value
         self.assert_equal(update_ticket.ticket_id, self.ticket_id)
         desc = update_ticket.description
-        self.assert_is_none(IsoRequestTicketDescriptionBuilder.\
-                            get_use_deep_well_value(desc))
         self.assert_true(self.experiment_metadata_label in desc)
         self.assert_true(self.project.label in desc)
         self.assert_true(self.subproject.label in desc)
@@ -410,18 +377,14 @@ class IsoRequestTicketDescriptionUpdaterTestCase(
         desc = self.tool.return_value.description
         self.assert_false('Requester' in desc)
 
-    def test_invalid_experiment_metadata(self):
+    def test_invalid_input_values(self):
         self._test_invalid_id_providing_entity()
-
-    def test_invalid_experiment_metadata_link(self):
+        ori_em_link = self.em_link
         self.em_link = 123
-        self._continue_setup()
         self._test_and_expect_errors('experiment metadata link must be a ' \
                                      'basestring')
-
-    def test_invalid_iso_request_link(self):
+        self.em_link = ori_em_link
         self.ir_link = 123
-        self._continue_setup()
         self._test_and_expect_errors('ISO request link must be a basestring')
 
     def test_missing_ticket(self):
@@ -430,37 +393,8 @@ class IsoRequestTicketDescriptionUpdaterTestCase(
     def test_invalid_ticket_id(self):
         self._test_invalid_ticket_id()
 
-    def test_fetching_use_deep_well_and_comment(self):
-        self._continue_setup()
-        desc_builder = IsoRequestTicketDescriptionBuilder(
-                    experiment_metadata=self.experiment_metadata,
-                    experiment_metadata_link=self.em_link,
-                    iso_request_link=self.ir_link,
-                    use_deep_well=True,
-                    log=TestingLog())
-        desc = desc_builder.get_result()
-        upd_ticket = create_wrapper_for_ticket_update(description=desc,
-                                            ticket_id=self.ticket_id)
-        reg = get_current_registry()
-        tractor_api = reg.getUtility(ITractor)
-        tractor_api.update_ticket(ticket_wrapper=upd_ticket, notify=True)
-        self._create_tool()
-        self.tool.send_request()
-        self.assert_true(self.tool.transaction_completed())
-        updated_ticket = self.tool.return_value
-        self.assert_equal(updated_ticket.ticket_id, self.ticket_id)
-        desc = updated_ticket.description
-        self.assert_true(IsoRequestTicketDescriptionBuilder.\
-                         get_use_deep_well_value(desc))
-        self.assert_true(self.experiment_metadata_label in desc)
-        self.assert_true(self.em_requester.username in desc)
-        self.assert_true(self.project.label in desc)
-        self.assert_true(self.subproject.label in desc)
-        self.assert_true(self.em_link in desc)
-        self.assert_true(self.ir_link in desc)
 
-
-class IsoRequestTicketActivatorTestCase(IsoRequestTicketUpdateToolTestCase):
+class IsoRequestTicketActivatorTestCase(_IsoRequestTicketUpdateToolTestCase):
 
     def _create_tool(self):
         self.tool = IsoRequestTicketActivator(
@@ -484,14 +418,14 @@ class IsoRequestTicketActivatorTestCase(IsoRequestTicketUpdateToolTestCase):
         self._test_invalid_ticket_id()
 
 
-class IsoRequestTicketAccepterTestCase(IsoRequestTicketUpdateToolTestCase):
+class IsoRequestTicketAccepterTestCase(_IsoRequestTicketUpdateToolTestCase):
 
     def set_up(self):
-        IsoRequestTicketUpdateToolTestCase.set_up(self)
+        _IsoRequestTicketUpdateToolTestCase.set_up(self)
         self.accepter = 'rothe'
 
     def tear_down(self):
-        IsoRequestTicketUpdateToolTestCase.tear_down(self)
+        _IsoRequestTicketUpdateToolTestCase.tear_down(self)
         del self.accepter
 
     def _create_tool(self):
@@ -517,18 +451,18 @@ class IsoRequestTicketAccepterTestCase(IsoRequestTicketUpdateToolTestCase):
         self._test_invalid_ticket_id()
 
 
-class IsoRequestTicketReassignerTestCase(IsoRequestTicketUpdateToolTestCase,
+class IsoRequestTicketReassignerTestCase(_IsoRequestTicketUpdateToolTestCase,
                                          FileCreatorTestCase):
 
     def set_up(self):
-        IsoRequestTicketUpdateToolTestCase.set_up(self)
+        _IsoRequestTicketUpdateToolTestCase.set_up(self)
         self.VALID_FILE = 'valid_screen.xls'
         self.experiment_type_id = EXPERIMENT_SCENARIOS.SCREENING
         self.completed = False
         self.WL_PATH = 'thelma:tests/tools/metadata/csv_files/'
 
     def tear_down(self):
-        IsoRequestTicketUpdateToolTestCase.tear_down(self)
+        _IsoRequestTicketUpdateToolTestCase.tear_down(self)
         del self.completed
         del self.WL_PATH
 
@@ -554,7 +488,7 @@ class IsoRequestTicketReassignerTestCase(IsoRequestTicketUpdateToolTestCase,
         self.completed = True
         self._continue_setup()
         md_set = self.experiment_metadata.molecule_design_pool_set
-        Iso(label='test_iso', iso_request=self.iso_request,
+        self._create_lab_iso(label='test_iso', iso_request=self.iso_request,
             molecule_design_pool_set=md_set, status=ISO_STATUS.DONE)
         self.tool.send_request()
         self.assert_true(self.tool.transaction_completed())
@@ -582,9 +516,9 @@ class IsoRequestTicketReassignerTestCase(IsoRequestTicketUpdateToolTestCase,
             iso_set.molecule_design_pools.add(pool)
             counter -= 1
             if counter == 0: break
-        Iso(label='done_iso', iso_request=self.iso_request,
+        self._create_lab_iso(label='done_iso', iso_request=self.iso_request,
             molecule_design_pool_set=iso_set, status=ISO_STATUS.DONE)
-        Iso(label='queued_iso', iso_request=self.iso_request,
+        self._create_lab_iso(label='queued_iso', iso_request=self.iso_request,
             molecule_design_pool_set=pool_set, status=ISO_STATUS.QUEUED)
         self.tool.send_request()
         self.assert_true(self.tool.transaction_completed())
@@ -601,13 +535,10 @@ class IsoRequestTicketReassignerTestCase(IsoRequestTicketUpdateToolTestCase,
         self.assert_is_not_none(tool_stream)
         self._compare_csv_file_stream(tool_stream, 'report_missing_mds.csv')
 
-    def test_invalid_completed_flag(self):
-        self.completed = None
-        self._continue_setup()
-        self._test_and_expect_errors('completed flag must be a bool')
-
-    def test_invalid_iso_request(self):
+    def test_invalid_input_values(self):
         self._test_invalid_id_providing_entity()
+        self.completed = None
+        self._test_and_expect_errors('completed flag must be a bool')
 
     def test_missing_ticket(self):
         self._test_missing_ticket()
@@ -616,14 +547,14 @@ class IsoRequestTicketReassignerTestCase(IsoRequestTicketUpdateToolTestCase,
         self._test_invalid_ticket_id()
 
 
-class IsoRequestTicketReopenerTestCase(IsoRequestTicketUpdateToolTestCase):
+class IsoRequestTicketReopenerTestCase(_IsoRequestTicketUpdateToolTestCase):
 
     def set_up(self):
-        IsoRequestTicketUpdateToolTestCase.set_up(self)
+        _IsoRequestTicketUpdateToolTestCase.set_up(self)
         self.reopener = 'rothe'
 
     def tear_down(self):
-        IsoRequestTicketUpdateToolTestCase.tear_down(self)
+        _IsoRequestTicketUpdateToolTestCase.tear_down(self)
         del self.reopener
 
     def _create_tool(self):
@@ -631,7 +562,7 @@ class IsoRequestTicketReopenerTestCase(IsoRequestTicketUpdateToolTestCase):
                                              username=self.reopener)
 
     def _continue_setup(self):
-        IsoRequestTicketUpdateToolTestCase._continue_setup(self)
+        _IsoRequestTicketUpdateToolTestCase._continue_setup(self)
         closer = IsoRequestTicketReassigner(iso_request=self.iso_request,
                                             completed=True)
         closer.send_request()
@@ -648,12 +579,10 @@ class IsoRequestTicketReopenerTestCase(IsoRequestTicketUpdateToolTestCase):
                           STATUS_ATTRIBUTE_VALUES.REOPENED)
         self.assert_equal(updated_ticket.owner, self.reopener)
 
-    def test_invalid_iso_request(self):
+    def test_invalid_input_values(self):
         self._test_invalid_id_providing_entity()
-
-    def test_invalid_username(self):
-        self._continue_setup()
         self.reopener = self._get_entity(IUser, 'rothe')
+        self._test_and_expect_errors()
 
     def test_missing_ticket(self):
         self._test_missing_ticket()

@@ -833,7 +833,7 @@ class _LabIsoWriterExecutorToolTestCase(LabIsoTestCase2,
         plate = self.rack_generator.label_map['123_iso_01_a']
         c = 0
         for well in plate.containers:
-            well.sample = self._create_sample(volume=1)
+            well.make_sample(volume=0.000001)
             c += 1
             if c == 2: break
         self._test_and_expect_errors('Plate 123_iso_01_a should be empty ' \
@@ -1373,8 +1373,7 @@ class IsoJobExecutorTestCase(_LabIsoWriterExecutorToolTestCase):
             'ass_job_last_2:e3' : 99.77, 'ass_job_last_1:e3' : 99.77,
             # instead of 750 nM
             '123_job_01_jp:e1' : 749.63, '123_job_01_jp:e2' : 748.3,
-            # instead of 375 nM
-            '123_job_01_jp:e3' : 374.81}
+            '123_job_01_jp:e3' : 749.63}
         self._test_and_expect_success(
                             LAB_ISO_TEST_CASES.CASE_ASSOCIATION_JOB_LAST)
 
@@ -1388,8 +1387,7 @@ class IsoJobExecutorTestCase(_LabIsoWriterExecutorToolTestCase):
             'ass_sev_conc_1:f5' : 99.77, 'ass_sev_conc_2:f5' : 99.77,
             # instead of 750
             '123_job_01_jp:f1' : 749.63, '123_job_01_jp:f2' : 748.3,
-            # instead of 375 nM
-            '123_job_01_jp:f3' : 374.81}
+            '123_job_01_jp:f3' : 749.63}
         self._test_and_expect_success(
                             LAB_ISO_TEST_CASES.CASE_ASSOCIATION_SEVERAL_CONC)
 

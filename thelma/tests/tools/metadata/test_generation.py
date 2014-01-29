@@ -1394,7 +1394,7 @@ class ExperimentMetadataGeneratorOrderTestCase(
                 B4=[330001, 'fixed', 1, 10000, None, None, None, None],
                 B6=[333803, 'fixed', 1, 5000000, None, None, None, None],
                 B8=[1056000, 'fixed', 1, 10000, None, None, None, None],
-                B10=[180202, 'fixed', 1, 50000, None, None, None, None])
+                B10=[180202, 'fixed', 1, 100000, None, None, None, None])
 
     def _check_experiment_design_tag(self, experiment_metadata):
         pass # no experiment design

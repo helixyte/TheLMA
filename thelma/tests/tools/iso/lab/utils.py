@@ -211,7 +211,7 @@ class LAB_ISO_TEST_CASES(object):
                 b4=[330001, 'fixed', 2, 10000], # miRNA
                 b6=[333803, 'fixed', 2, 5000000], # compound
                 b8=[1056000, 'fixed', 2, 10000], # siRNA pool
-                b10=[180005, 'fixed', 2, 50000]) # ssDNA (primer)
+                b10=[180005, 'fixed', 2, 100000]) # ssDNA (primer)
         elif case_name == cls.CASE_NO_JOB_DIRECT:
             return dict(
                 b2=[205201, 'fixed', 2, 50000], # siRNA
@@ -222,8 +222,8 @@ class LAB_ISO_TEST_CASES(object):
                 d6=[333803, 'fixed', 20, 500000], # compound
                 b8=[1056000, 'fixed', 2, 10000], # siRNA pool
                 d8=[1056000, 'fixed', 10, 2000], # siRNA pool
-                b10=[180005, 'fixed', 2, 50000], # ssDNA (primer)
-                d10=[180005, 'fixed', 10, 10000]) # ssDNA (primer)
+                b10=[180005, 'fixed', 2, 100000], # ssDNA (primer)
+                d10=[180005, 'fixed', 10, 20000]) # ssDNA (primer)
         elif case_name == cls.CASE_NO_JOB_1_PREP:
             return dict(
                 b2=[205201, 'fixed', 2, 50000], # siRNA
@@ -234,8 +234,8 @@ class LAB_ISO_TEST_CASES(object):
                 d6=[333803, 'fixed', 2, 500000], # compound
                 b8=[1056000, 'fixed', 4, 10000], # siRNA pool
                 d8=[1056000, 'fixed', 4, 2000], # siRNA pool
-                b10=[180005, 'fixed', 4, 50000], # ssDNA (primer)
-                d10=[180005, 'fixed', 4, 10000]) # ssDNA (primer)
+                b10=[180005, 'fixed', 4, 100000], # ssDNA (primer)
+                d10=[180005, 'fixed', 4, 20000]) # ssDNA (primer)
         elif case_name == cls.CASE_NO_JOB_COMPLEX:
             return dict(
                 b2=[205201, 'fixed', 20, 50000],
@@ -246,27 +246,27 @@ class LAB_ISO_TEST_CASES(object):
                 d3=[333803, 'fixed', 3, 1],
                 d4=[333803, 'fixed', 3, 1],
                 e2=[1056000, 'fixed', 3, 10000],
-                f2=[180005, 'fixed', 3, 50000],
-                f3=[180005, 'fixed', 3, 48000])
+                f2=[180005, 'fixed', 3, 100000],
+                f3=[180005, 'fixed', 3, 96000])
         elif case_name == cls.CASE_ASSOCIATION_DIRECT:
             return dict(
-                b2=[205201, 'fixed', 2, 50000],
-                b3=[205202, 'fixed', 2, 50000],
-                b4=[180005, 'fixed', 2, 50000],
-                c2=['md_001', 'floating', 2, 50000],
-                c3=['md_002', 'floating', 2, 50000],
-                c4=['md_003', 'floating', 2, 50000],
-                d2=[205201, 'fixed', 2, 50000],
-                d3=[205202, 'fixed', 2, 50000],
-                d4=[180005, 'fixed', 2, 50000],
-                e2=['mock', 'mock', 2, 'mock'],
-                e3=['mock', 'mock', 2, 'mock'])
+                b2=[205201, 'fixed', 4, 50000],
+                b3=[205202, 'fixed', 4, 50000],
+                b4=[180005, 'fixed', 4, 50000],
+                c2=['md_001', 'floating', 4, 50000],
+                c3=['md_002', 'floating', 4, 50000],
+                c4=['md_003', 'floating', 4, 50000],
+                d2=[205201, 'fixed', 4, 50000],
+                d3=[205202, 'fixed', 4, 50000],
+                d4=[180005, 'fixed', 4, 50000],
+                e2=['mock', 'mock', 4, 'mock'],
+                e3=['mock', 'mock', 4, 'mock'])
         elif case_name == cls.CASE_ASSOCIATION_96:
             return dict(
                 b2=[205201, 'fixed', 5, 50],
                 c2=[205202, 'fixed', 5, 50],
                 b4=[205203, 'fixed', 5, 50],
-                c4=[180005, 'fixed', 5, 50],
+                c4=[205200, 'fixed', 5, 50],
                 b6=['md_001', 'floating', 5, 50],
                 c6=['md_002', 'floating', 5, 50],
                 b8=['mock', 'mock', 5, 'mock'],
@@ -279,13 +279,13 @@ class LAB_ISO_TEST_CASES(object):
             return dict(
                 b2=[205201, 'fixed', 10, 50],
                 b3=[205202, 'fixed', 10, 50],
-                b4=[180005, 'fixed', 10, 50],
+                b4=[205200, 'fixed', 10, 50],
                 c2=['md_001', 'floating', 10, 50],
                 c3=['md_002', 'floating', 10, 50],
                 c4=['md_003', 'floating', 10, 50],
                 d2=[205201, 'fixed', 10, 50],
                 d3=[205202, 'fixed', 10, 50],
-                d4=[180005, 'fixed', 10, 50],
+                d4=[205200, 'fixed', 10, 50],
                 e2=['mock', 'mock', 10, 'mock'],
                 e3=['mock', 'mock', 10, 'mock'],
                 e4=['untransfected', 'untransfected', 'untransfected',
@@ -309,13 +309,13 @@ class LAB_ISO_TEST_CASES(object):
             return dict(
                 b2=[205201, 'fixed', 10, 50],
                 b3=[205202, 'fixed', 10, 50],
-                b4=[180005, 'fixed', 10, 50],
+                b4=[205200, 'fixed', 10, 50],
                 c2=['md_001', 'floating', 10, 50],
                 c3=['md_002', 'floating', 10, 50],
                 c4=['md_003', 'floating', 10, 50],
                 d2=[205201, 'fixed', 10, 50],
                 d3=[205202, 'fixed', 10, 50],
-                d4=[180005, 'fixed', 10, 50],
+                d4=[205200, 'fixed', 10, 50],
                 e2=['mock', 'mock', 10, 'mock'],
                 e3=['mock', 'mock', 10, 'mock'],
                 e4=['untransfected', 'untransfected', 'untransfected',
@@ -324,7 +324,7 @@ class LAB_ISO_TEST_CASES(object):
             return dict(
                 b2=[205201, 'fixed', 10, 50],
                 b3=[330001, 'fixed', 10, 50],
-                b4=[180005, 'fixed', 10, 50],
+                b4=[205200, 'fixed', 10, 50],
                 c2=['md_001', 'floating', 10, 50],
                 c3=['md_002', 'floating', 10, 50],
                 c4=['md_003', 'floating', 10, 50],
@@ -333,7 +333,7 @@ class LAB_ISO_TEST_CASES(object):
                 d4=['md_006', 'floating', 10, 50],
                 e2=[205201, 'fixed', 10, 100],
                 e3=[330001, 'fixed', 10, 100],
-                e4=[180005, 'fixed', 10, 100],
+                e4=[205200, 'fixed', 10, 100],
                 f2=['mock', 'mock', 10, 'mock'],
                 f3=['mock', 'mock', 10, 'mock'],
                 f4=['untransfected', 'untransfected', 'untransfected',
@@ -342,7 +342,7 @@ class LAB_ISO_TEST_CASES(object):
             return dict(
                 b3=[205201, 'fixed', 10, 50],
                 b5=[330001, 'fixed', 10, 50],
-                b7=[180005, 'fixed', 10, 50],
+                b7=[205200, 'fixed', 10, 50],
                 c3=['md_001', 'floating', 10, 50],
                 c5=['md_002', 'floating', 10, 50],
                 c7=['md_003', 'floating', 10, 50],
@@ -354,7 +354,7 @@ class LAB_ISO_TEST_CASES(object):
                 e7=['mock', 'mock', 10, 'mock'],
                 f3=[205201, 'fixed', 10, 100],
                 f5=[330001, 'fixed', 10, 100],
-                f7=[180005, 'fixed', 10, 100],
+                f7=[205200, 'fixed', 10, 100],
                 g3=['md_004', 'floating', 10, 50],
                 g5=['md_005', 'floating', 10, 50],
                 g7=['md_006', 'floating', 10, 50],
@@ -444,7 +444,7 @@ class LAB_ISO_TEST_CASES(object):
                 b4=[330001, 'fixed', 2, 10000, False, [], None, 's#1'], # miRNA
                 b6=[333803, 'fixed', 2, 5000000, False, [], None, 's#1'], # compound
                 b8=[1056000, 'fixed', 2, 10000, False, [], None, 's#1'], # siRNA pool
-                b10=[180005, 'fixed', 2, 50000, False, [], None, 's#1']) # ssDNA (primer)
+                b10=[180005, 'fixed', 2, 100000, False, [], None, 's#1']) # ssDNA (primer)
             return {iso_labels[0] : f}
         elif case_name == cls.CASE_NO_JOB_DIRECT:
             f = dict(
@@ -456,8 +456,8 @@ class LAB_ISO_TEST_CASES(object):
                 d6=[333803, 'fixed', 20, 500000, False, [], None, 's#1'], # compound
                 b8=[1056000, 'fixed', 2, 10000, False, [], None, 's#1'], # siRNA pool
                 d8=[1056000, 'fixed', 10, 2000, False, [], None, 's#1'], # siRNA pool
-                b10=[180005, 'fixed', 2, 50000, False, [], None, 's#1'], # ssDNA (primer)
-                d10=[180005, 'fixed', 10, 10000, False, [], None, 's#1']) # ssDNA (primer)
+                b10=[180005, 'fixed', 2, 100000, False, [], None, 's#1'], # ssDNA (primer)
+                d10=[180005, 'fixed', 10, 20000, False, [], None, 's#1']) # ssDNA (primer)
             return {iso_labels[0] : f}
         elif case_name == cls.CASE_NO_JOB_1_PREP:
             f = dict(
@@ -469,8 +469,8 @@ class LAB_ISO_TEST_CASES(object):
                 d6=[333803, 'fixed', 2, 500000, False, [], None, None], # compound
                 b8=[1056000, 'fixed', 4, 10000, False, [], None, 's#1'], # siRNA pool
                 d8=[1056000, 'fixed', 4, 2000, False, [], None, None], # siRNA pool
-                b10=[180005, 'fixed', 4, 50000, False, [], None, 's#1'], # ssDNA (primer)
-                d10=[180005, 'fixed', 4, 10000, False, [], None, None]) # ssDNA (primer)
+                b10=[180005, 'fixed', 4, 100000, False, [], None, 's#1'], # ssDNA (primer)
+                d10=[180005, 'fixed', 4, 20000, False, [], None, None]) # ssDNA (primer)
             return {iso_labels[0] : f}
         elif case_name == cls.CASE_NO_JOB_COMPLEX:
             f = dict(
@@ -484,34 +484,34 @@ class LAB_ISO_TEST_CASES(object):
                 d3=[333803, 'fixed', 3, 1, False, [], None, None],
                 d4=[333803, 'fixed', 3, 1, False, [], None, None],
                 e2=[1056000, 'fixed', 3, 10000, False, [], None, 's#1'],
-                f2=[180005, 'fixed', 3, 50000, False, [], None, 's#1'],
-                f3=[180005, 'fixed', 3, 48000, False, [], None, None])
+                f2=[180005, 'fixed', 3, 100000, False, [], None, 's#1'],
+                f3=[180005, 'fixed', 3, 96000, False, [], None, None])
             return {iso_labels[0] : f}
         elif case_name == cls.CASE_ASSOCIATION_DIRECT:
             f = dict(
-                b2=[205201, 'fixed', 2, 50000, True, [], 3, 's#1'],
-                b3=[205202, 'fixed', 2, 50000, True, [], 2, 's#1'],
-                b4=[180005, 'fixed', 2, 50000, True, [], 3, 's#1'],
-                d2=[205201, 'fixed', 2, 50000, True, [], 3, 's#1'],
-                d3=[205202, 'fixed', 2, 50000, True, [], 2, 's#1'],
-                d4=[180005, 'fixed', 2, 50000, True, [], 3, 's#1'],
-                e2=['mock', 'mock', 2, None, False, [], None, None],
-                e3=['mock', 'mock', 2, None, False, [], None, None])
+                b2=[205201, 'fixed', 4, 50000, True, [], 3, 's#1'],
+                b3=[205202, 'fixed', 4, 50000, True, [], 2, 's#1'],
+                b4=[180005, 'fixed', 4, 50000, True, [], 3, 's#1'],
+                d2=[205201, 'fixed', 4, 50000, True, [], 3, 's#1'],
+                d3=[205202, 'fixed', 4, 50000, True, [], 2, 's#1'],
+                d4=[180005, 'fixed', 4, 50000, True, [], 3, 's#1'],
+                e2=['mock', 'mock', 4, None, False, [], None, None],
+                e3=['mock', 'mock', 4, None, False, [], None, None])
             f1 = dict(f, **dict(
-                    c2=[205205, 'floating', 2, 50000, False, [], 1, 's#3'],
-                    c3=[205206, 'floating', 2, 50000, False, [], 0, 's#2'],
-                    c4=[205207, 'floating', 2, 50000, False, [], 1, 's#3']))
+                    c2=[205205, 'floating', 4, 50000, False, [], 1, 's#3'],
+                    c3=[205206, 'floating', 4, 50000, False, [], 0, 's#2'],
+                    c4=[205207, 'floating', 4, 50000, False, [], 1, 's#3']))
             f2 = dict(f, **dict(
-                    c2=[205208, 'floating', 2, 50000, False, [], 1, 's#3'],
-                    c3=[205209, 'floating', 2, 50000, False, [], 0, 's#2'],
-                    c4=[205210, 'floating', 2, 50000, False, [], 1, 's#3']))
+                    c2=[205208, 'floating', 4, 50000, False, [], 1, 's#3'],
+                    c3=[205209, 'floating', 4, 50000, False, [], 0, 's#2'],
+                    c4=[205210, 'floating', 4, 50000, False, [], 1, 's#3']))
             return {iso_labels[0] : f1, iso_labels[1] : f2}
         elif case_name == cls.CASE_ASSOCIATION_96:
             f = dict(
                 b2=[205201, 'fixed', 5, 50, False, [], 0, None],
                 c2=[205202, 'fixed', 5, 50, False, [], 0, None],
                 b4=[205203, 'fixed', 5, 50, False, [], 0, None],
-                c4=[180005, 'fixed', 5, 50, False, [], 0, None],
+                c4=[205200, 'fixed', 5, 50, False, [], 0, None],
                 b8=['mock', 'mock', 5, None, False, [], None, None],
                 c8=['mock', 'mock', 5, None, False, [], None, None])
             f1 = dict(f, **dict(
@@ -525,10 +525,10 @@ class LAB_ISO_TEST_CASES(object):
             f = dict(
                 b2=[205201, 'fixed', 10, 50, False, [], 3, None],
                 b3=[205202, 'fixed', 10, 50, False, [], 2, None],
-                b4=[180005, 'fixed', 10, 50, False, [], 3, None],
+                b4=[205200, 'fixed', 10, 50, False, [], 3, None],
                 d2=[205201, 'fixed', 10, 50, False, [], 3, None],
                 d3=[205202, 'fixed', 10, 50, False, [], 2, None],
-                d4=[180005, 'fixed', 10, 50, False, [], 3, None],
+                d4=[205200, 'fixed', 10, 50, False, [], 3, None],
                 e2=['mock', 'mock', 10, None, False, [], None, None],
                 e3=['mock', 'mock', 10, None, False, [], None, None])
             f1 = dict(f, **dict(
@@ -574,10 +574,10 @@ class LAB_ISO_TEST_CASES(object):
             f = dict(
                 b2=[205201, 'fixed', 10, 50, False, [], 3, None],
                 b3=[205202, 'fixed', 10, 50, False, [], 2, None],
-                b4=[180005, 'fixed', 10, 50, False, [], 3, None],
+                b4=[205200, 'fixed', 10, 50, False, [], 3, None],
                 d2=[205201, 'fixed', 10, 50, False, [], 3, None],
                 d3=[205202, 'fixed', 10, 50, False, [], 2, None],
-                d4=[180005, 'fixed', 10, 50, False, [], 3, None],
+                d4=[205200, 'fixed', 10, 50, False, [], 3, None],
                 e2=['mock', 'mock', 10, None, False, [], None, None],
                 e3=['mock', 'mock', 10, None, False, [], None, None])
             f1 = dict(f, **dict(
@@ -593,12 +593,12 @@ class LAB_ISO_TEST_CASES(object):
             f = dict(
                 b2=[205201, 'fixed', 10, 50, True, [], None, None],
                 b3=[330001, 'fixed', 10, 50, True, [], None, None],
-                b4=[180005, 'fixed', 10, 50, True, [], None, None],
+                b4=[205200, 'fixed', 10, 50, True, [], None, None],
                 e2=[205201, 'fixed', 15, 100, True,
                     [TransferTarget('b2', 5, 'a')], None, None],
                 e3=[330001, 'fixed', 15, 100, True,
                     [TransferTarget('b3', 5, 'a')], None, None],
-                e4=[180005, 'fixed', 15, 100, True,
+                e4=[205200, 'fixed', 15, 100, True,
                     [TransferTarget('b4', 5, 'a')], None, None],
                 f2=['mock', 'mock', 10, None, False, [], None, None],
                 f3=['mock', 'mock', 10, None, False, [], None, None])
@@ -621,7 +621,7 @@ class LAB_ISO_TEST_CASES(object):
             f = dict(
                 b3=[205201, 'fixed', 10, 50, True, [], None, None],
                 b5=[330001, 'fixed', 10, 50, True, [], None, None],
-                b7=[180005, 'fixed', 10, 50, True, [], None, None],
+                b7=[205200, 'fixed', 10, 50, True, [], None, None],
                 e3=['mock', 'mock', 10, None, False, [], None, None],
                 e5=['mock', 'mock', 10, None, False, [], None, None],
                 e7=['mock', 'mock', 10, None, False, [], None, None],
@@ -629,7 +629,7 @@ class LAB_ISO_TEST_CASES(object):
                     [TransferTarget('b3', 5, 'a')], None, None],
                 f5=[330001, 'fixed', 15, 100, True,
                     [TransferTarget('b5', 5, 'a')], None, None],
-                f7=[180005, 'fixed', 15, 100, True,
+                f7=[205200, 'fixed', 15, 100, True,
                     [TransferTarget('b7', 5, 'a')], None, None])
             f1 = dict(f, **dict(
                 c3=[205202, 'floating', 10, 50, False, [], 0, None],
@@ -718,7 +718,7 @@ class LAB_ISO_TEST_CASES(object):
                           [TransferTarget('d6', 2, 'a')], None, 's#1'],
                       d4=[1056000, 'fixed', 12, 4000, [],
                           [TransferTarget('d8', 2, 'a')], None, 's#1'],
-                      d5=[180005, 'fixed', 12, 20000, [],
+                      d5=[180005, 'fixed', 12, 40000, [],
                           [TransferTarget('d10', 2, 'a')], None, 's#1'])
             return {'123_iso_01_p' : p1}
         elif case_name == cls.CASE_NO_JOB_COMPLEX:
@@ -732,7 +732,7 @@ class LAB_ISO_TEST_CASES(object):
                 d4=[333803, 'fixed', 250, 1, [],
                     [TransferTarget('d3', 3, 'a'), TransferTarget('d4', 3, 'a')],
                     None, None],
-                f1=[180005, 'fixed', 50, 48000, [],
+                f1=[180005, 'fixed', 50, 96000, [],
                     [TransferTarget('f3', 3, 'a')], None, 's#1'])
             return {'123_iso_01_p' : p1}
         elif case_name == cls.CASE_ASSOCIATION_DIRECT:
@@ -751,9 +751,9 @@ class LAB_ISO_TEST_CASES(object):
                     [TransferTarget('c8', 1, 'p#1')], [], 0, 's#1'],
                 c8=[205203, 'fixed', 100, 250,
                     [], [TransferTarget('b4', 1, 'a')], 1, None],
-                e7=[180005, 'fixed', 11, 25000,
+                e7=[205200, 'fixed', 11, 25000,
                     [TransferTarget('e8', 1, 'p#1')], [], 0, 's#1'],
-                e8=[180005, 'fixed', 100, 250,
+                e8=[205200, 'fixed', 100, 250,
                     [], [TransferTarget('c4', 1, 'a')], 1, None])
             p1 = dict(p, **dict(
                 c11=[205205, 'floating', 11, 25000,
@@ -780,13 +780,13 @@ class LAB_ISO_TEST_CASES(object):
                     [TransferTarget('b2', 1, 'a')], 3, 's#1'],
                 b3=[205202, 'fixed', 100, 500, [],
                     [TransferTarget('b3', 1, 'a')], 2, 's#1'],
-                b4=[180005, 'fixed', 100, 500, [],
+                b4=[205200, 'fixed', 100, 500, [],
                     [TransferTarget('b4', 1, 'a')], 3, 's#1'],
                 d2=[205201, 'fixed', 100, 500, [],
                     [TransferTarget('d2', 1, 'a')], 3, 's#1'],
                 d3=[205202, 'fixed', 100, 500, [],
                     [TransferTarget('d3', 1, 'a')], 2, 's#1'],
-                d4=[180005, 'fixed', 100, 500, [],
+                d4=[205200, 'fixed', 100, 500, [],
                     [TransferTarget('d4', 1, 'a')], 3, 's#1'])
             p1 = dict(p, **dict(
                 c2=[205205, 'floating', 100, 500, [],
@@ -821,13 +821,13 @@ class LAB_ISO_TEST_CASES(object):
                     [TransferTarget('b2', 1, 'a')], 3, 's#1'],
                 b3=[205202, 'fixed', 100, 500, [],
                     [TransferTarget('b3', 1, 'a')], 2, 's#1'],
-                b4=[180005, 'fixed', 100, 500, [],
+                b4=[205200, 'fixed', 100, 500, [],
                     [TransferTarget('b4', 1, 'a')], 3, 's#1'],
                 d2=[205201, 'fixed', 100, 500, [],
                     [TransferTarget('d2', 1, 'a')], 3, 's#1'],
                 d3=[205202, 'fixed', 100, 500, [],
                     [TransferTarget('d3', 1, 'a')], 2, 's#1'],
-                d4=[180005, 'fixed', 100, 500, [],
+                d4=[205200, 'fixed', 100, 500, [],
                     [TransferTarget('d4', 1, 'a')], 3, 's#1'])
             p1 = dict(p, **dict(
                 c2=[205205, 'floating', 100, 500, [],
@@ -949,7 +949,7 @@ class LAB_ISO_TEST_CASES(object):
                  c1=[205201, 'fixed', 100, 500, [],
                      [TransferTarget('c3', 4, 'a'),
                       TransferTarget('e3', 2, 'a')], None, 's#1'],
-                 c2=[180005, 'fixed', 100, 500, [],
+                 c2=[180005, 'fixed', 200, 500, [],
                      [TransferTarget('c5', 4, 'a'),
                       TransferTarget('e5', 2, 'a')], None, 's#1'])
             return {'123_job_01_jp' : jp}
@@ -961,7 +961,7 @@ class LAB_ISO_TEST_CASES(object):
                      [TransferTarget('e2', 2, 'a')], None, 's#1'],
                  e2=[330001, 'fixed', 14.7, 750, [],
                      [TransferTarget('e3', 2, 'a')], None, 's#1'],
-                 e3=[180005, 'fixed', 66.7, 750, [],
+                 e3=[205200, 'fixed', 66.7, 750, [],
                      [TransferTarget('e4', 2, 'a')], None, 's#1'])
             return {'123_job_01_jp' : jp}
         elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
@@ -970,7 +970,7 @@ class LAB_ISO_TEST_CASES(object):
                      [TransferTarget('f3', 2, 'a')], None, 's#1'],
                  f2=[330001, 'fixed', 14.7, 750, [],
                      [TransferTarget('f5', 2, 'a')], None, 's#1'],
-                 f3=[180005, 'fixed', 66.7, 750, [],
+                 f3=[205200, 'fixed', 66.7, 750, [],
                      [TransferTarget('f7', 2, 'a')], None, 's#1'])
             return {'123_job_01_jp' : jp}
         elif case_name == cls.CASE_LIBRARY_SIMPLE:
@@ -1211,7 +1211,7 @@ class LAB_ISO_TEST_CASES(object):
                 return dict(b3=[10, 'b2'], b4=[4, 'b2'])
         elif case_name == cls.CASE_ASSOCIATION_DIRECT:
             if worklist_label == '123_1_a_buffer':
-                return dict(e2=2, e3=2)
+                return dict(e2=4, e3=4, b4=2, d4=2)
         elif case_name == cls.CASE_ASSOCIATION_96:
             if worklist_label == '123_1_p_buffer':
                 return dict(c3=5.5, c4=99, e3=5.5, e4=99, c7=5.5, c8=99,
@@ -1234,7 +1234,7 @@ class LAB_ISO_TEST_CASES(object):
                         3 : [1, 3, 4]}
         elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
             if worklist_label == '123_1_jp_buffer':
-                return dict(c1=99, c2=99)
+                return dict(c1=99, c2=199)
             elif worklist_label == '123_2_p_buffer':
                 return dict(d1=65.7, d2=65.7)
             elif worklist_label == '123_3_a_buffer':
@@ -1402,32 +1402,32 @@ class LAB_ISO_TEST_CASES(object):
             return {205201 : 34, 330001 : 2, 333803 : (2 + 4.7), 1056000 : 4,
                     180005 : (4 + 48)}
         elif case_name == cls.CASE_ASSOCIATION_DIRECT:
-            return {205201 : (4 * 2), 205202 : (4 * 2), 180005 : (4 * 2),
-                    205205 : 2, 205206 : 2, 205207 : 2,
-                    205208 : 2, 205209 : 2, 205210 : 2}
+            return {205201 : (8 * 2), 205202 : (8 * 2), 180005 : (4 * 2),
+                    205205 : 4, 205206 : 4, 205207 : 4,
+                    205208 : 4, 205209 : 4, 205210 : 4}
         elif case_name == cls.CASE_ASSOCIATION_96:
             return {205201 : (5.5 * 2), 205202 : (5.5 * 2), 205203 : (5.5 * 2),
-                    180005 : (5.5 * 2), 205205 : 5.5, 205206: 5.5,
+                    205200 : (5.5 * 2), 205205 : 5.5, 205206: 5.5,
                     205207 : 5.5, 205208 : 5.5}
         elif case_name == cls.CASE_ASSOCIATION_SIMPLE:
-            return {205201 : 2, 205202 : 2, 180005  : 2,
+            return {205201 : 2, 205202 : 2, 205200 : 2,
                     205205 : 1, 205206 : 1, 205207 : 1,
                     205208 : 1, 205209 : 1, 205210 : 1}
         elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
             return {205201 : 1, 180005 : 1,
                     205202 : 1, 205203 : 1, 205204 : 1, 205205 : 1}
         elif case_name == cls.CASE_ASSOCIATION_2_ALIQUOTS:
-            return {205201 : 2, 205202 : 2, 180005 : 2,
+            return {205201 : 2, 205202 : 2, 205200 : 2,
                     205205 : 1, 205206 : 1, 205207 : 1,
                     205208 : 1, 205209 : 1, 205210 : 1}
         elif case_name == cls.CASE_ASSOCIATION_JOB_LAST:
-            return {205201 : 1, 330001 : 1.1, 180005 : 1,
+            return {205201 : 1, 330001 : 1.1, 205200 : 1,
                     205202 : 1, 205203 : 1, 205204 : 1, 205205 : 1, 205206 : 1,
                     205207 : 1,
                     205208 : 1, 205209 : 1, 205210 : 1, 205212 : 1, 205214 : 1,
                     205215 : 1}
         elif case_name == cls.CASE_ASSOCIATION_SEVERAL_CONC:
-            return {205201 : 1, 330001 : 1, 180005 : 1,
+            return {205201 : 1, 330001 : 1, 205200 : 1,
                     205202 : 1, 205203 : 1, 205204 : 1, 205205 : 1,
                     205206 : 1, 205207 : 1,
                     205208 : 1, 205209 : 1, 205210 : 1, 205212 : 1,
@@ -1487,22 +1487,22 @@ class LAB_ISO_TEST_CASES(object):
             return {'123_iso_01_s#1' : s1}
         elif case_name == cls.CASE_ASSOCIATION_DIRECT:
             s1 = dict(
-                a1=[205201, '1000205201', [TransferTarget('b2', 2, 'a'),
-                                           TransferTarget('d2', 2, 'a')]],
-                b1=[205202, '1000205202', [TransferTarget('b3', 2, 'a'),
-                                           TransferTarget('d3', 2, 'a')]],
+                a1=[205201, '1000205201', [TransferTarget('b2', 4, 'a'),
+                                           TransferTarget('d2', 4, 'a')]],
+                b1=[205202, '1000205202', [TransferTarget('b3', 4, 'a'),
+                                           TransferTarget('d3', 4, 'a')]],
                 c1=[180005, '1000180005', [TransferTarget('b4', 2, 'a'),
                                            TransferTarget('d4', 2, 'a')]])
             s21 = dict(
-                b2=[205206, '1000205206', [TransferTarget('c3', 2, 'a')]])
+                b2=[205206, '1000205206', [TransferTarget('c3', 4, 'a')]])
             s22 = dict(
-                b2=[205209, '1000205206', [TransferTarget('c3', 2, 'a')]])
+                b2=[205209, '1000205206', [TransferTarget('c3', 4, 'a')]])
             s31 = dict(
-                b1=[205205, '1000205205', [TransferTarget('c2', 2, 'a')]],
-                b2=[205207, '1000205027', [TransferTarget('c4', 2, 'a')]])
+                b1=[205205, '1000205205', [TransferTarget('c2', 4, 'a')]],
+                b2=[205207, '1000205027', [TransferTarget('c4', 4, 'a')]])
             s32 = dict(
-                b1=[205208, '1000205208', [TransferTarget('c2', 2, 'a')]],
-                b2=[205210, '1000205010', [TransferTarget('c4', 2, 'a')]])
+                b1=[205208, '1000205208', [TransferTarget('c2', 4, 'a')]],
+                b2=[205210, '1000205010', [TransferTarget('c4', 4, 'a')]])
             return {'123_job_01_s#1' : s1,
                     '123_iso_01_s#2' : s21, '123_iso_02_s#2' : s22,
                     '123_iso_01_s#3' : s31, '123_iso_02_s#3' : s32}
@@ -1511,14 +1511,14 @@ class LAB_ISO_TEST_CASES(object):
                 b2=[205201, '1000205201', [TransferTarget('c3', 5.5, 'p')]],
                 c2=[205202, '1000205202', [TransferTarget('e3', 5.5, 'p')]],
                 b4=[205203, '1000205203', [TransferTarget('c7', 5.5, 'p')]],
-                c4=[180005, '1000180005', [TransferTarget('e7', 5.5, 'p')]],
+                c4=[205200, '1000205200', [TransferTarget('e7', 5.5, 'p')]],
                 b6=[205205, '1000205205', [TransferTarget('c11', 5.5, 'p')]],
                 c6=[205206, '1000205206', [TransferTarget('e11', 5.5, 'p')]])
             s12 = dict(
                 b2=[205201, '1000205201', [TransferTarget('c3', 5.5, 'p')]],
                 c2=[205202, '1000205202', [TransferTarget('e3', 5.5, 'p')]],
                 b4=[205203, '1000205203', [TransferTarget('c7', 5.5, 'p')]],
-                c4=[180005, '1000180005', [TransferTarget('e7', 5.5, 'p')]],
+                c4=[205200, '1000205200', [TransferTarget('e7', 5.5, 'p')]],
                 b6=[205207, '1000205207', [TransferTarget('c11', 5.5, 'p')]],
                 c6=[205208, '1000205208', [TransferTarget('e11', 5.5, 'p')]])
             return {'123_iso_01_s#1' : s11, '123_iso_02_s#1' : s12}
@@ -1528,7 +1528,7 @@ class LAB_ISO_TEST_CASES(object):
                                            TransferTarget('d2', 1, 'p')]],
                 b1=[205202, '1000205202', [TransferTarget('b3', 1, 'p'),
                                            TransferTarget('d3', 1, 'p')]],
-                c1=[180005, '1000180005', [TransferTarget('b4', 1, 'p'),
+                c1=[205200, '1000205200', [TransferTarget('b4', 1, 'p'),
                                            TransferTarget('d4', 1, 'p')]])
             s21 = dict(
                 b2=[205206, '1000205206', [TransferTarget('c3', 1, 'p')]])
@@ -1561,7 +1561,7 @@ class LAB_ISO_TEST_CASES(object):
                                            TransferTarget('d2', 1, 'p')]],
                 b1=[205202, '1000205202', [TransferTarget('b3', 1, 'p'),
                                            TransferTarget('d3', 1, 'p')]],
-                c1=[180005, '1000180005', [TransferTarget('b4', 1, 'p'),
+                c1=[205200, '1000205200', [TransferTarget('b4', 1, 'p'),
                                            TransferTarget('d4', 1, 'p')]])
             s21 = dict(
                 b2=[205206, '1000205206', [TransferTarget('c3', 1, 'p')]])
@@ -1580,7 +1580,7 @@ class LAB_ISO_TEST_CASES(object):
             s1 = dict(
                 e1=[205201, '1000205201', [TransferTarget('e1', 1, 'jp')]],
                 e2=[330001, '1000330001', [TransferTarget('e2', 1.1, 'jp')]],
-                e3=[180005, '1000180005', [TransferTarget('e3', 1, 'jp')]])
+                e3=[205200, '1000205200', [TransferTarget('e3', 1, 'jp')]])
             s21 = dict(
                 b2=[205203, '1000205203', [TransferTarget('c3', 1, 'p')]])
             s22 = dict(
@@ -1610,7 +1610,7 @@ class LAB_ISO_TEST_CASES(object):
             s1 = dict(
                 f1=[205201, '1000205201', [TransferTarget('f1', 1, 'jp')]],
                 f2=[330001, '1000330001', [TransferTarget('f2', 1.1, 'jp')]],
-                f3=[180005, '1000180005', [TransferTarget('f3', 1, 'jp')]])
+                f3=[205200, '1000205200', [TransferTarget('f3', 1, 'jp')]])
             s21 = dict(
                 b2=[205202, '1000205202', [TransferTarget('b2', 1, 'p')]],
                 b3=[205203, '1000205203', [TransferTarget('b3', 1, 'p')]],
@@ -1801,12 +1801,12 @@ class LAB_ISO_TEST_CASES(object):
                              e2=[3, 'd1'], f2=[3, 'e1'])
         elif case_name == cls.CASE_ASSOCIATION_DIRECT:
             if worklist_label == '123_1_s#1_to_a':
-                return dict(b2=[2, 'a1'], d2=[2, 'a1'],
-                    b3=[2, 'b1'], d3=[2, 'b1'], b4=[2, 'c1'], d4=[2, 'c1'])
+                return dict(b2=[4, 'a1'], d2=[4, 'a1'],
+                    b3=[4, 'b1'], d3=[4, 'b1'], b4=[2, 'c1'], d4=[2, 'c1'])
             elif worklist_label == '123_1_s#2_to_a':
-                return dict(c3=[2, 'b2'])
+                return dict(c3=[4, 'b2'])
             elif worklist_label == '123_1_s#3_to_a':
-                return dict(c2=[2, 'b1'], c4=[2, 'b2'])
+                return dict(c2=[4, 'b1'], c4=[4, 'b2'])
         elif case_name == cls.CASE_ASSOCIATION_96:
             if worklist_label == '123_1_s#1_to_p':
                 return dict(c3=[5.5, 'b2'], e3=[5.5, 'c2'], c7=[5.5, 'b4'],
@@ -1931,14 +1931,14 @@ class LAB_ISO_TEST_CASES(object):
     def get_plate_intermediate_data(cls, case_name):
         # plate label - pos_label: pool (or None for buffer only), volume, conc
         if case_name == cls.CASE_ASSOCIATION_DIRECT:
-            f = dict(b2=[205201, 2, 50000],
-                     b3=[205202, 2, 50000],
-                     b4=[180005, 2, 50000],
-                     d2=[205201, 2, 50000],
-                     d3=[205202, 2, 50000],
-                     d4=[180005, 2, 50000],
-                     e2=[None, 2, None],
-                     e3=[None, 2, None])
+            f = dict(b2=[205201, 4, 50000],
+                     b3=[205202, 4, 50000],
+                     b4=[180005, 4, 50000],
+                     d2=[205201, 4, 50000],
+                     d3=[205202, 4, 50000],
+                     d4=[180005, 4, 50000],
+                     e2=[None, 4, None],
+                     e3=[None, 4, None])
             return {'123_iso_01_a' : f, '123_iso_02_a' : f}
         elif case_name == cls.CASE_ASSOCIATION_SIMPLE:
             f = dict(b2=[None, 9, None],
@@ -1954,18 +1954,18 @@ class LAB_ISO_TEST_CASES(object):
                      e3=[None, 10, None])
             p = dict(b2=[205201, 100, 500],
                      b3=[205202, 100, 500],
-                     b4=[180005, 100, 500],
+                     b4=[205200, 100, 500],
                      c2=[None, 99, None],
                      c3=[None, 99, None],
                      c4=[None, 99, None],
                      d2=[205201, 100, 500],
                      d3=[205202, 100, 500],
-                     d4=[180005, 100, 500])
+                     d4=[205200, 100, 500])
             return {'123_iso_01_a' : f, '123_iso_01_p' : p,
                     '123_iso_02_a' : f, '123_iso_02_p' : p}
         elif case_name == cls.CASE_ASSOCIATION_NO_CYBIO:
             jp = dict(c1=[205201, 88, 500],
-                      c2=[180005, 88, 500])
+                      c2=[180005, 188, 500])
             p = dict(d1=[None, 65.7, None],
                      d2=[None, 65.7, None])
             f = dict(c3=[205201, 20, 100],
@@ -1987,13 +1987,13 @@ class LAB_ISO_TEST_CASES(object):
         elif case_name == cls.CASE_ASSOCIATION_2_ALIQUOTS:
             p = dict(b2=[205201, 100, 500],
                      b3=[205202, 100, 500],
-                     b4=[180005, 100, 500],
+                     b4=[205200, 100, 500],
                      c2=[None, 99, None],
                      c3=[None, 99, None],
                      c4=[None, 99, None],
                      d2=[205201, 100, 500],
                      d3=[205202, 100, 500],
-                     d4=[180005, 100, 500])
+                     d4=[205200, 100, 500])
             f = dict(b2=[None, 9, None],
                      b3=[None, 9, None],
                      b4=[None, 9, None],
@@ -2545,7 +2545,8 @@ class TestTubeGenerator(object):
     This class contains the data for the stock tubes before tube handling.
     """
     #: pool_id = pos label, tube barcode, rack barcode
-    CANDIDATE_DATA = {205201 : ['g1', '1000205201', '07777777'],
+    CANDIDATE_DATA = {205200 : ['f1', '1000205200', '07777777'],
+                      205201 : ['g1', '1000205201', '07777777'],
                       205202 : ['c1', '1000205202', '07777777'],
                       205203 : ['c2', '1000205203', '07777777'],
                       205204 : ['c3', '1000205204', '07777777'],

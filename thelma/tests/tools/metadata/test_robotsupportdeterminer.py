@@ -674,5 +674,12 @@ class RobotSupportDeterminerLibraryTestCase(_RobotSupportDeterminerTestCase):
     def test_insufficient_iso_volume(self):
         self.number_design_racks = 10
         self._continue_setup()
-        self._test_and_expect_errors('mastermix in the source plate would ' \
-                    'not provide enough volume for all experiment cell plates')
+        tl = self.tool.get_result()
+        self.assert_is_not_none(tl)
+        self._check_warning_messages('Currently, the mastermix in the ' \
+                'source plate would not provide enough volume for all ' \
+                'experiment cell plates (required volume: 100 ul, ' \
+                'available (excl. dead volume): 62.8 ul). Robot support ' \
+                'is disabled now. To activate it reduce the number of ' \
+                'replicates, the number of design racks or the final ' \
+                'concentration, please.')

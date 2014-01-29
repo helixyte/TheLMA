@@ -195,7 +195,6 @@ class LabIsoXL20SummaryWriterTestCase(_AssemblerTestCaseWithStockTubeContainers,
 
     def tear_down(self):
         _AssemblerTestCaseWithStockTubeContainers.tear_down(self)
-        del self.stock_rack_layouts
         del self.excluded_racks
         del self.requested_tubes
         del self.rack_markers
@@ -834,12 +833,14 @@ class StockRackAssemblerLabIsoTestCase(_StockRackAssemblerTestCase):
             self._load_iso_request(LAB_ISO_TEST_CASES.CASE_ASSOCIATION_DIRECT)
             layout = self._get_layout_from_iso()
             pool_set = self.entity.molecule_design_pool_set
+            inactive_pos = set()
             pool = None
             for fp in layout.working_positions():
                 if fp.is_floating:
+                    if pool is None: pool = fp.molecule_design_pool
+                    if not pool == fp.molecule_design_pool: continue
                     fp.volume = 1000
-                    pool = fp.molecule_design_pool
-                    break
+                    inactive_pos.add(fp.rack_position)
             self.entity.rack_layout = layout.create_rack_layout()
             self.assert_true(pool_set.contains(pool))
             zip_stream = self.tool.get_result()
@@ -849,11 +850,14 @@ class StockRackAssemblerLabIsoTestCase(_StockRackAssemblerTestCase):
                     'back into the queue.' % (pool.id))
             self.assert_false(pool_set.contains(pool))
             layout = self._get_layout_from_iso()
-            for fp in layout.working_positions():
-                if not fp.molecule_design_pool == pool:
-                    self.assert_false(fp.is_inactivated)
-                else:
+            for rack_pos, fp in layout.iterpositions():
+                if rack_pos in inactive_pos:
                     self.assert_true(fp.is_inactivated)
+                    self.assert_equal(fp.molecule_design_pool,
+                                      fp.MISSING_FLOATING)
+                else:
+                    self.assert_false(fp.is_inactivated)
+                    self.assert_not_equal(fp.molecule_design_pool, pool)
 
     def test_inconsistent_sectors_for_stock_rack(self):
         with RdbContextManager() as session:
