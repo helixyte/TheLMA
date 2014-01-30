@@ -228,7 +228,7 @@ class RackScanningAdjusterTestCase(FileCreatorTestCase):
                             position=get_rack_position_from_label(pos_label))
                 rack.containers.append(tube)
             self.new_racks.append(rack)
-            session.add(rack)
+            session.add(type(rack), rack)
         session.commit()
 
     def __check_result(self):
@@ -370,7 +370,7 @@ class RackScanningAdjusterTestCase(FileCreatorTestCase):
             plate = plate_specs.create_rack(label='test_plate',
                                             barcode='09999999',
                                             status=get_item_status_managed())
-            session.add(plate)
+            session.add(type(plate), plate)
             self._test_and_expect_errors('The following rack are no tube ' \
                                          'racks: 09999999 (Plate)')
 

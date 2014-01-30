@@ -373,7 +373,7 @@ class StockRackVerifierTestCase(VerifierTestCase):
                             item_status=get_item_status_managed(),
                             barcode=pos_data[1])
             self.rack.add_tube(tube, rack_pos)
-            session.add(tube)
+            session.add(type(tube), tube)
             self._add_sample(tube, pos_data[0])
         session.commit()
 

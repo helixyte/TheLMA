@@ -8,7 +8,7 @@ from everest.entities.utils import get_root_aggregate
 from thelma.automation.handlers.poolcreationset \
     import PoolCreationSetParserHandler
 from thelma.automation.parsers.poolcreationset import PoolCreationSetParser
-from thelma.automation.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeType
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 from thelma.tests.tools.tooltestingutils import ParsingTestCase

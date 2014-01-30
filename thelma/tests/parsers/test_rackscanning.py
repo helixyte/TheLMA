@@ -10,8 +10,8 @@ from thelma.automation.handlers.rackscanning import RackScanningLayout
 from thelma.automation.handlers.rackscanning import \
                                             CenixRackScanningParserHandler
 from thelma.automation.parsers.rackscanning import RackScanningParser
-from thelma.automation.tools.semiconstants import RACK_SHAPE_NAMES
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
+from thelma.automation.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.tests.tools.tooltestingutils import ParsingTestCase
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 import pytz

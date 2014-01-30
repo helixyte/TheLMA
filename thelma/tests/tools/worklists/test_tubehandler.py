@@ -180,7 +180,7 @@ class TubeTransferExecutorTestCase(ToolsAndUtilsTestCase):
                                  status=get_item_status_managed())
             tube_rack.barcode = barcode
             self.rack_map[barcode] = tube_rack
-            session.add(tube_rack)
+            session.add(type(tube_rack), tube_rack)
 
     def __fill_racks(self, session):
         managed_status = get_item_status_managed()
@@ -193,7 +193,7 @@ class TubeTransferExecutorTestCase(ToolsAndUtilsTestCase):
                             position=get_rack_position_from_label(tube_data[1]))
                 rack.containers.append(tube)
                 self.tube_map[tube.barcode] = tube
-                session.add(tube)
+                session.add(type(tube), tube)
         session.commit()
 
     def __create_tube_transfers(self):
@@ -215,7 +215,6 @@ class TubeTransferExecutorTestCase(ToolsAndUtilsTestCase):
             self.__continue_setup(session)
             ttw = self.tool.get_result()
             self.assert_is_not_none(ttw)
-            session.add(ttw)
             session.commit()
             # worklist attributes
             self.assert_equal(ttw.user, self.executor_user)
@@ -381,7 +380,7 @@ class Xl20ExecutorTestCase(ToolsAndUtilsTestCase):
             tube_rack = TubeRack(label=barcode, specs=tube_rack_specs,
                                  status=status, barcode=barcode)
             self.racks[barcode] = tube_rack
-            session.add(tube_rack)
+            session.add(type(tube_rack), tube_rack)
 
     def __create_tubes(self, session):
         tube_specs = self._get_entity(ITubeSpecs)
@@ -394,7 +393,7 @@ class Xl20ExecutorTestCase(ToolsAndUtilsTestCase):
                                 status=status, barcode=tube_barcode,
                                 rack=rack, position=rack_pos)
                 rack.containers.append(tube)
-                session.add(tube)
+                session.add(type(tube), tube)
         session.commit()
 
     def test_result(self):
@@ -402,7 +401,7 @@ class Xl20ExecutorTestCase(ToolsAndUtilsTestCase):
             self.__continue_setup(session)
             ttw = self.tool.get_result()
             self.assert_is_not_none(ttw)
-            session.add(ttw)
+            session.add(type (ttw), ttw)
             session.commit()
             # check worklist
             expected_timestamp = datetime(2010, 1, 15, 8, 29, 13,

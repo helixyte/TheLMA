@@ -10,8 +10,8 @@ from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 from thelma.automation.handlers.tubehandler import XL20OutputParserHandler
 from thelma.automation.parsers.tubehandler import XL20OutputParser
 from thelma.automation.parsers.tubehandler import XL20TransferParsingContainer
-from thelma.automation.tools.semiconstants import get_item_status_managed
-from thelma.automation.tools.semiconstants import get_rack_position_from_label
+from thelma.automation.semiconstants import get_item_status_managed
+from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.interfaces import ITubeRackSpecs
 from thelma.interfaces import ITubeSpecs
 from thelma.models.container import ContainerLocation
@@ -205,7 +205,7 @@ class XL20OutputParserHandlerTestCase(XL20OutputTestCase):
             tube_rack = TubeRack(label=barcode, specs=tube_rack_specs,
                                  status=status, barcode=barcode)
             self.racks[barcode] = tube_rack
-            session.add(tube_rack)
+            session.add(type(tube_rack), tube_rack)
 
     def __create_tubes(self, session):
         tube_barcodes = dict()
@@ -223,7 +223,7 @@ class XL20OutputParserHandlerTestCase(XL20OutputTestCase):
             rack_pos = get_rack_position_from_label(location[1])
             ContainerLocation(container=tube, rack=rack, position=rack_pos)
             rack.containers.append(tube)
-            session.add(tube)
+            session.add(type(tube), tube)
         session.commit()
 
     def _test_and_expect_errors(self, msg=None):

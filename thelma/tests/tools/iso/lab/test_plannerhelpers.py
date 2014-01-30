@@ -598,15 +598,19 @@ class RackPositionContainerTestCase(_LocationContainerTestCase):
                     position_type=self.position_type,
                     concentration=self.target_concentration,
                     volume=self.volume)
-        rpc = self.TEST_CLS.from_lab_iso_position(lip,
-                                                  stock_concentration=50000)
+        pool_container = _PoolContainer(pool=self._get_pool(205200),
+                                        position_type=FIXED_POSITION_TYPE,
+                                        stock_concentration=50000)
+        pool_container.store_target_position_with_origin(lip, 'p#1')
+        rpc = self.TEST_CLS.from_lab_iso_position(lip, pool_container)
         self.assert_true(isinstance(rpc, self.TEST_CLS))
         exp_attrs = dict(final_volume=self.volume,
                 parent_concentration=50000,
                 target_concentration=self.target_concentration,
                 is_final_container=False, location=rack_pos,
                 allows_modification=False, pool=self.pool,
-                position_type=self.position_type)
+                position_type=self.position_type,
+                plate_marker='p#1')
         check_attributes(rpc, exp_attrs)
 
     def test_create_final_lab_iso_position(self):

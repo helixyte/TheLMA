@@ -652,7 +652,7 @@ class VerifierTestCase(ToolsAndUtilsTestCase):
             self.rack = self._create_tube_rack(specs=self.rack_specs)
         self.rack.barcode = '09999999'
         if not session is None:
-            session.add(self.rack)
+            session.add(type(self.rack), self.rack)
 
     def _init_layout(self):
         self.layout = self.LAYOUT_CLS(shape=self.shape)

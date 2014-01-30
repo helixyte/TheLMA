@@ -409,13 +409,15 @@ class TubeTransferExecutor(BaseAutomationTool):
         if len(deviating_src_position) > 0:
             deviating_src_position.sort()
             msg = 'Some rack positions did not contain the expected tubes: ' \
-                  '%s.' % (' - '.join(deviating_src_position))
+                  '%s.' % (self._get_joined_str(deviating_src_position,
+                                                separator=' - '))
             self.add_error(msg)
 
         if len(occupied_trg_position) > 0:
             occupied_trg_position.sort()
             msg = 'Some transfer target positions are not empty: %s.' \
-                  % (' - '.join(occupied_trg_position))
+                  % (self._get_joined_str(occupied_trg_position,
+                                          separator=' - '))
             self.add_error(msg)
 
     def __update_tube_locations(self):
@@ -449,10 +451,6 @@ class TubeTransferExecutor(BaseAutomationTool):
                 tube = tt.tube
                 tt.source_rack.remove_tube(tube)
                 tt.target_rack.add_tube(tube=tube, position=tt.target_position)
-
-#            location = tube.location
-#            location.rack = tt.target_rack
-#            location.position = tt.target_position
 
 
 class XL20Executor(BaseAutomationTool):

@@ -4,19 +4,19 @@ tests the generic sample transfer excel file parser
 AAB
 """
 from everest.entities.utils import get_root_aggregate
-from thelma.models.liquidtransfer import PlannedSampleDilution
-from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.automation.handlers.sampletransfer \
     import GenericSampleTransferPlanParserHandler
 from thelma.automation.parsers.sampletransfer \
     import GenericSampleTransferPlanParser
-from thelma.automation.tools.semiconstants \
+from thelma.automation.semiconstants \
     import get_rack_specs_from_reservoir_specs
-from thelma.automation.tools.semiconstants import RACK_SPECS_NAMES
-from thelma.automation.tools.semiconstants import RESERVOIR_SPECS_NAMES
-from thelma.automation.tools.semiconstants import get_item_status_future
-from thelma.automation.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.semiconstants import RACK_SPECS_NAMES
+from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.automation.semiconstants import get_item_status_future
+from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IRack
+from thelma.models.liquidtransfer import PlannedSampleDilution
+from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.tests.tools.tooltestingutils import ParsingTestCase
 
 class GenericSampleTransferParserTestCase(ParsingTestCase):
