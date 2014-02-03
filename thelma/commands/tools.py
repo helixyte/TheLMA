@@ -1,6 +1,17 @@
 """
 Run tool command.
 """
+import logging
+import os
+import sys
+
+from pyramid.path import DottedNameResolver
+from pyramid.registry import Registry
+from pyramid.testing import DummyRequest
+from sqlalchemy import event
+from sqlalchemy.orm.session import Session
+import transaction
+
 from everest.entities.utils import get_root_aggregate
 from everest.mime import JsonMime
 from everest.querying.specifications import eq # pylint: disable=W0611
@@ -13,13 +24,7 @@ from everest.resources.utils import get_collection_class
 from everest.utils import classproperty
 from paste.deploy import appconfig # pylint: disable=E0611,F0401
 from paste.script.command import Command # pylint: disable=E0611,F0401
-from pyramid.path import DottedNameResolver
-from pyramid.registry import Registry
-from pyramid.testing import DummyRequest
-from sqlalchemy import event
-from sqlalchemy.orm.session import Session
-from thelma.automation.tools.iso.poolcreation.ticket \
-    import StockSampleCreationStockTransferReporter
+from thelma.automation.tools.iso.poolcreation.execution import StockSampleCreationStockTransferReporter
 from thelma.automation.tools.iso.poolcreation.writer \
     import StockSampleCreationTicketWorklistUploader
 from thelma.automation.tools.stock.sampleregistration import \
@@ -39,10 +44,7 @@ from thelma.interfaces import IUser
 from thelma.run import create_config
 from zope.interface import providedBy as provided_by # pylint: disable=E0611,F0401
 from zope.sqlalchemy import ZopeTransactionExtension # pylint: disable=E0611,F0401
-import logging
-import os
-import sys
-import transaction
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['EmptyTubeRegistrarToolCommand',

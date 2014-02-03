@@ -5,6 +5,10 @@ FOG Mar 21, 2011
 """
 
 from datetime import datetime
+import logging
+
+from pyramid.httpexceptions import HTTPBadRequest
+
 from everest.entities.interfaces import IEntity
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.querying.specifications import DescendingOrderSpecification
@@ -17,7 +21,6 @@ from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from everest.resources.staging import create_staging_collection
-from pyramid.httpexceptions import HTTPBadRequest
 from thelma.automation.tools.metadata.ticket \
     import IsoRequestTicketDescriptionUpdater
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketActivator
@@ -40,12 +43,11 @@ from thelma.interfaces import IRackShape
 from thelma.interfaces import IRackSpecs
 from thelma.interfaces import ISubproject
 from thelma.interfaces import ITag
-from thelma.models.racklayout import RackLayout
 from thelma.models.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
-import logging
-# from thelma.models.experiment import ExperimentDesignRack
 
+
+# from thelma.models.experiment import ExperimentDesignRack
 __docformat__ = 'reStructuredText en'
 
 __author__ = 'F Oliver Gathmann'
@@ -98,14 +100,6 @@ class ExperimentDesignMember(Member):
     experiment_metadata = member_attribute(IExperimentMetadata,
                                            'experiment_metadata')
 
-
-    def __getitem__(self, name):
-        if name == 'experiment-design-racks':
-            return self.experiment_design_racks
-        elif name == 'experiment_metadata':
-            return self.experiment_metadata
-        else:
-            raise KeyError(name)
 
     def update(self, data):
         if IEntity.providedBy(data): # pylint:disable=E1101
@@ -170,9 +164,6 @@ class ExperimentMetadataMember(Member):
                                                 'molecule_design_pool_set')
     experiment_design = member_attribute(IExperimentDesign,
                                          'experiment_design')
-    experiment_design_racks = \
-            collection_attribute(IExperimentDesignRack,
-                                 'experiment_design.design_racks')
     iso_request = member_attribute(ILabIsoRequest, 'lab_iso_request')
     creation_date = terminal_attribute(datetime, 'creation_date')
     experiment_metadata_type = member_attribute(IExperimentMetadataType,
@@ -218,19 +209,19 @@ class ExperimentMetadataMember(Member):
             changed_num_reps = (prx.number_replicates != self.number_replicates)
             changed_em_type = (prx.experiment_metadata_type.get('id') \
                                != self.experiment_metadata_type.id)
-            if changed_em_type or changed_num_reps:
-                if not self_entity.experiment_design is None:
-                    # invalidate data to force a fresh upload of the XLS file
-                    self_entity.experiment_design.experiment_design_racks = []
-                    self_entity.experiment_design.worklist_series = None
-                if not self_entity.iso_request is None:
-                    shape = self_entity.iso_request.iso_layout.shape
-                    new_layout = RackLayout(shape=shape)
-                    self_entity.iso_request.iso_layout = new_layout
-                    self_entity.iso_request.owner = ''
+#            if changed_em_type or changed_num_reps:
+#                if not self_entity.experiment_design is None:
+#                    # invalidate data to force a fresh upload of the XLS file
+#                    self_entity.experiment_design.experiment_design_racks = []
+#                    self_entity.experiment_design.worklist_series = None
+#                if not self_entity.lab_iso_request is None:
+#                    shape = self_entity.lab_iso_request.iso_layout.shape
+#                    new_layout = RackLayout(shape=shape)
+#                    self_entity.lab_iso_request.iso_layout = new_layout
+#                    self_entity.lab_iso_request.owner = ''
             Member.update(self, data)
             # Perform appropriate Trac updates.
-            if not self_entity.iso_request is None:
+            if not self_entity.lab_iso_request is None:
                 if self.iso_request.owner == STOCKMANAGEMENT_USER:
                     ticket_activator = IsoRequestTicketActivator(
                                                 experiment_metadata=self_entity)

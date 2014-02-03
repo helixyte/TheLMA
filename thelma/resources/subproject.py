@@ -28,11 +28,16 @@ __all__ = ['SubprojectCollection',
 
 class SubprojectMember(Member):
     relation = "%s/subproject" % RELATION_BASE_URL
-    title = terminal_attribute(str, 'title')
     label = terminal_attribute(str, 'label')
     project = member_attribute(IProject, 'project')
     creation_date = terminal_attribute(datetime, 'creation_date')
     active = terminal_attribute(bool, 'active')
+
+    @property
+    def title(self):
+        # The title is formed from the project's and the subproject's label
+        # and does not need to be persisted or exposed.
+        return self.get_entity().title
 
     def update(self, member):
         super(SubprojectMember, self).update(member)

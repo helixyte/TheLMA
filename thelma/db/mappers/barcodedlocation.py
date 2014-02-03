@@ -31,8 +31,11 @@ def create_mapper(barcoded_location_tbl, rack_barcoded_location_tbl):
                 device=relationship(Device, uselist=False,
                                     back_populates='locations'),
                 rack=relationship(Rack,
-                    uselist=False, back_populates='location', secondary=rbl,
+                    uselist=False,
+                    back_populates='location',
+                    secondary=rbl,
                     foreign_keys=(rbl.c.rack_id, rbl.c.barcoded_location_id),
+                    lazy='joined'
                     ),
                 checkin_date=column_property(
                     select([rbl.c.checkin_date],
