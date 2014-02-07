@@ -325,7 +325,7 @@ class LabIsoRequestMember(IsoRequestMember):
         return result
 
     def __update_stock_racks(self, iso_or_iso_job, status):
-        stock_rack_barcodes = ','.split(status[len('UPDATE_STOCK_RACKS'):])
+        stock_rack_barcodes = status[len('UPDATE_STOCK_RACKS'):].split(';')
         recycler = get_stock_rack_recyler(iso_or_iso_job, stock_rack_barcodes)
         return run_tool(recycler,
                         error_prefix='Invalid stock rack(s)! --')
