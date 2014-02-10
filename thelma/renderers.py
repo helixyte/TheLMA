@@ -178,16 +178,27 @@ class ZippedWorklistRenderer(CustomRenderer):
     def _prepare_for_xl20_worklist_creation(self, entity):
         raise NotImplementedError('Abstract method.')
 
+    def _delete_stock_rack(self, stock_rack):
+        # This is awkward - should be done by appropriate cascade settings
+        # in the backend.
+        if not stock_rack.worklist_series is None:
+            for wls in stock_rack.worklist_series:
+                while len(wls.executed_worklists) > 0:
+                    wls.executed_worklists.pop()
+
 
 class IsoJobWorklistRenderer(ZippedWorklistRenderer):
     def _prepare_for_xl20_worklist_creation(self, entity):
         while len(entity.iso_job_stock_racks) > 0:
-            entity.iso_job_stock_racks.pop()
+            stock_rack = entity.iso_job_stock_racks.pop()
+            self._delete_stock_rack(stock_rack)
 
 
 class IsoWorklistRenderer(ZippedWorklistRenderer):
     def _prepare_for_xl20_worklist_creation(self, entity):
-        while len(entity.iso_stock_racks) > 0:
-            entity.iso_stock_racks.pop()
-        while len(entity.iso_sector_stock_racks) > 0:
-            entity.iso_sector_stock_racks.pop()
+        for sr in entity.iso_stock_racks[:]:
+            self._delete_stock_rack(sr)
+            entity.iso_stock_racks.remove(sr)
+        for sr in entity.iso_sector_stock_racks[:]:
+            self._delete_stock_rack(sr)
+            entity.iso_sector_stock_racks.remove(sr)

@@ -96,20 +96,23 @@
                     <sequence>
                         <group ref="j:JobBase">
                         </group>
-<!--                         <element
+                        <element
                             name="isos"
                             type="iso:IsoType"
-                            minOccurs="1"
+                            minOccurs="0"
                             maxOccurs="unbounded"
                         >
                         </element>
- -->                        <element
+                        <element
                             name="number_stock_racks"
                             type="positiveInteger"
                         >
                         </element>
+                        <element ref="isr:stock_racks">
+                        </element>
                         <element
-                            ref="isr:stock_racks"
+                            name="status"
+                            type="string"
                         >
                         </element>
                     </sequence>

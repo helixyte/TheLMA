@@ -88,7 +88,7 @@ class IsoMember(Member):
 
     def update(self, data):
         if IDataElement.providedBy(data): # pylint: disable=E1101
-            pass
+            raise SyntaxError('Should not get here.')
         else:
             Member.update(self, data)
 
@@ -197,12 +197,12 @@ class LabIsoRequestMember(IsoRequestMember):
             if not prx.isos is None:
                 self.__process_isos(prx.isos)
 
-    def create_xl20_worklist(self, rack_barcodes,
+    def create_xl20_worklist(self, entity, rack_barcodes,
                              optimizer_excluded_racks=None,
                              optimizer_required_racks=None,
                              include_dummy_output=False):
         assembler = lab.get_stock_rack_assembler(
-                                entity=self.get_entity(),
+                                entity=entity,
                                 rack_barcodes=rack_barcodes,
                                 excluded_racks=optimizer_excluded_racks,
                                 requested_tubes=optimizer_required_racks,
@@ -251,8 +251,7 @@ class LabIsoRequestMember(IsoRequestMember):
             iso_job_id = iso_job_prx.id
             iso_job = self.__find_iso_job(iso_job_id)
             if status.startswith('UPDATE_STOCK_RACKS'):
-                barcodes = ','.split(status[len('UPDATE_STOCK_RACKS'):])
-                self.__update_job_stock_racks(iso_job, barcodes)
+                self.__update_stock_racks(iso_job, status)
             elif status == 'PIPETTING':
                 # Transfer from job stock racks.
                 self.__pipetting_iso_or_iso_job(iso_job)
@@ -273,7 +272,9 @@ class LabIsoRequestMember(IsoRequestMember):
             else:
                 # Retrieve the ISO entity and perform an operation on it.
                 iso = self.__find_iso(iso_id)
-                if status == 'PIPETTING':
+                if status.startswith('UPDATE_STOCK_RACKS'):
+                    self.__update_stock_racks(iso, status)
+                elif status == 'PIPETTING':
                     self.__pipetting_iso_or_iso_job(iso)
                 elif status == 'CLOSE_ISO':
                     self.__update_iso_status(iso, ISO_STATUS.DONE)
@@ -318,15 +319,16 @@ class LabIsoRequestMember(IsoRequestMember):
         user = get_current_user()
         executor = get_worklist_executor(iso_or_iso_job, user)
         result = run_tool(executor,
-                          error_prefix='Errors during transfer to ISO. --')
+                          error_prefix='Errors during pipetting. --')
         trac_updater = LabIsoStockTransferReporter(executor=executor)
         run_trac_tool(trac_updater)
         return result
 
-    def __update_job_stock_racks(self, iso_job, stock_rack_barcodes):
-        recycler = get_stock_rack_recyler(iso_job, stock_rack_barcodes)
+    def __update_stock_racks(self, iso_or_iso_job, status):
+        stock_rack_barcodes = status[len('UPDATE_STOCK_RACKS'):].split(';')
+        recycler = get_stock_rack_recyler(iso_or_iso_job, stock_rack_barcodes)
         return run_tool(recycler,
-                        error_prefix='Job stock rack is not valid! --')
+                        error_prefix='Invalid stock rack(s)! --')
 
     def __generate_isos(self, number_of_new_isos,
                         optimizer_excluded_racks, optimizer_requested_tubes):

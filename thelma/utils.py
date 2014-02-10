@@ -8,6 +8,7 @@ import datetime
 import logging
 import pytz
 import tzlocal
+import os
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['as_utc_time',
@@ -69,7 +70,11 @@ class ToolRunnerBase(object):
 
 class ToolRunner(ToolRunnerBase):
     def run(self):
-        result = self._tool.get_result()
+        try:
+            result = self._tool.get_result()
+        except Exception, err:
+            raise HTTPBadRequest("Unknown server error.%s(%s)."
+                                 % (os.linesep, str(err)))
         if result is None:
             raise HTTPBadRequest(self._get_error_messages())
         warnings = self._get_warning_messages()
