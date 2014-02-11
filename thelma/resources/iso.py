@@ -186,8 +186,8 @@ class LabIsoRequestMember(IsoRequestMember):
         else:
             prx = DataElementAttributeProxy(data)
             new_owner = prx.owner
-            current_owner = None if self.owner == '' else self.owner
-            if new_owner != current_owner:
+            if not new_owner is None and new_owner != self.owner:
+#                current_owner = None if self.owner == '' else self.owner
                 self.__process_change_owner(new_owner)
             new_delivery_date = prx.delivery_date
             if new_delivery_date:
@@ -215,13 +215,12 @@ class LabIsoRequestMember(IsoRequestMember):
 
     def __process_change_owner(self, new_owner):
         trac_tool = None
-        if new_owner is None:
+        if new_owner == '':
             # Reassign to requester for editing the experiment
             # metadata.
             trac_tool = IsoRequestTicketReassigner(
                                     iso_request=self.get_entity(),
                                     completed=False)
-            new_owner = ''
         elif new_owner == self.requester.directory_user_id:
             # Close iso request and reassign to requester.
             trac_tool = IsoRequestTicketReassigner(
@@ -406,6 +405,10 @@ class StockRackMember(Member):
     rack = member_attribute(IRack, 'rack')
 
 
+class IsoJobStockRackMember(StockRackMember):
+    relation = "%s/iso-job-stock-rack" % RELATION_BASE_URL
+
+
 class IsoStockRackMember(StockRackMember):
     relation = "%s/iso-stock-rack" % RELATION_BASE_URL
 
@@ -419,15 +422,3 @@ class IsoSectorStockRackMember(StockRackMember):
 class StockRackCollection(Collection):
     title = 'Stock Racks'
     root_name = 'stock-racks'
-
-
-class IsoStockRackCollection(StockRackCollection):
-    title = 'ISO Stock Racks'
-    root_name = 'iso-stock-racks'
-    description = 'Manage ISO stock racks.'
-
-
-class IsoSectorStockRackCollection(StockRackCollection):
-    title = 'ISO Sector Stock Racks'
-    root_name = 'iso-sector-stock-racks'
-    description = 'Manage ISO sector stock racks.'

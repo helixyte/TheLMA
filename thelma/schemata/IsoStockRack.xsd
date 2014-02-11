@@ -46,6 +46,24 @@
         </complexContent>
     </complexType>
 
+    <complexType name="IsoJobStockRackType">
+        <complexContent>
+            <extension base="isr:StockRackType">
+                <choice>
+                    <element
+                        name="link"
+                        type="isr:StockRackLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <group ref="isr:StockRackBase">
+                        </group>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
     <complexType name="IsoStockRackType">
         <complexContent>
             <extension base="isr:StockRackType">
@@ -93,13 +111,11 @@
                 minOccurs="0"
                 maxOccurs="unbounded"
             >
-                <element
-                    ref="isr:iso_stock_rack"
-                >
+                <element ref="isr:iso_job_stock_rack">
                 </element>
-                <element
-                    ref="isr:iso_sector_stock_rack"
-                >
+                <element ref="isr:iso_stock_rack">
+                </element>
+                <element ref="isr:iso_sector_stock_rack">
                 </element>
             </choice>
             <element
@@ -159,6 +175,12 @@
             </restriction>
         </complexContent>
     </complexType>
+
+    <element
+        name="iso_job_stock_rack"
+        type="isr:IsoJobStockRackType"
+    >
+    </element>
 
     <element
         name="iso_stock_rack"

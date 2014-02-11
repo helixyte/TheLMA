@@ -21,6 +21,7 @@ from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from everest.resources.staging import create_staging_collection
+from thelma.automation.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.metadata.ticket \
     import IsoRequestTicketDescriptionUpdater
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketActivator
@@ -161,7 +162,8 @@ class ExperimentMetadataMember(Member):
     subproject = member_attribute(ISubproject, 'subproject')
     number_replicates = terminal_attribute(int, 'number_replicates')
     molecule_design_pool_set = member_attribute(IMoleculeDesignPoolSet,
-                                                'molecule_design_pool_set')
+                                                'molecule_design_pool_set',
+                                                is_modifyable=False)
     experiment_design = member_attribute(IExperimentDesign,
                                          'experiment_design')
     iso_request = member_attribute(ILabIsoRequest, 'lab_iso_request')
@@ -204,22 +206,27 @@ class ExperimentMetadataMember(Member):
 
     def update(self, data):
         if IDataElement.providedBy(data): # pylint: disable=E1101
+            # FIXME: This really should be a PATCH operation.
             prx = DataElementAttributeProxy(data)
             self_entity = self.get_entity()
-            changed_num_reps = (prx.number_replicates != self.number_replicates)
-            changed_em_type = (prx.experiment_metadata_type.get('id') \
-                               != self.experiment_metadata_type.id)
-#            if changed_em_type or changed_num_reps:
-#                if not self_entity.experiment_design is None:
-#                    # invalidate data to force a fresh upload of the XLS file
-#                    self_entity.experiment_design.experiment_design_racks = []
-#                    self_entity.experiment_design.worklist_series = None
-#                if not self_entity.lab_iso_request is None:
-#                    shape = self_entity.lab_iso_request.iso_layout.shape
-#                    new_layout = RackLayout(shape=shape)
-#                    self_entity.lab_iso_request.iso_layout = new_layout
-#                    self_entity.lab_iso_request.owner = ''
-            Member.update(self, data)
+            changed_num_reps = prx.number_replicates != self.number_replicates
+            emt_id = prx.experiment_metadata_type.get('id')
+            changed_em_type = emt_id != self.experiment_metadata_type.id
+            if changed_em_type or changed_num_reps:
+                self_entity.number_replicates = prx.number_replicates
+                self_entity.experiment_metadata_type = \
+                                get_experiment_metadata_type(emt_id)
+                if not self_entity.experiment_design is None:
+                    # invalidate data to force a fresh upload of the XLS file
+                    self_entity.experiment_design.experiment_design_racks = []
+                    self_entity.experiment_design.worklist_series = None
+                if not self_entity.lab_iso_request is None:
+                    shape = self_entity.lab_iso_request.iso_layout.shape
+                    new_layout = RackLayout(shape=shape)
+                    self_entity.lab_iso_request.iso_layout = new_layout
+                    self_entity.lab_iso_request.owner = ''
+            self_entity.subproject = prx.subproject
+            self_entity.label = prx.label
             # Perform appropriate Trac updates.
             if not self_entity.lab_iso_request is None:
                 if self.iso_request.owner == STOCKMANAGEMENT_USER:

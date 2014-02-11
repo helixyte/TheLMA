@@ -1213,9 +1213,40 @@
                     name="write_as_link"
                     value="false" />
             </attribute>
-            <!-- <attribute name="iso_job.iso_control_stock_rack"> <option 
-                name="ignore" value="false" /> <option name="write_as_link" value="false" 
-                /> </attribute> -->
+            <attribute name="iso_job.stock_racks">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="iso_job.stock_racks.rack">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="iso_job.stock_racks.rack.containers">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="iso_job.preparation_plates">
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="iso_job.preparation_plates.containers">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
             <attribute name="stock_racks">
                 <option
                     name="ignore"
@@ -1311,7 +1342,6 @@
         </representer>
     </resource>
 
-
     <!-- Lab ISO -->
 
     <resource
@@ -1385,9 +1415,6 @@
                     name="repr_name"
                     value="jobs" />
             </attribute>
-
-            <!-- <attribute name="iso_jobs"> <option name="namespace" value="http://schemata.cenix-bioscience.com/isorequest" 
-                /> </attribute> -->
         </representer>
         <representer
             kind="member"
@@ -1529,12 +1556,43 @@
 
 
     <resource
+        interface="thelma.interfaces.IIsoJobStockRack"
+        member=".iso.IsoJobStockRackMember"
+        entity="thelma.models.iso.IsoJobStockRack"
+        expose="false"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <attribute name="iso">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="iso_job_stock_rack" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="iso_job_stock_racks" />
+        </representer>
+    </resource>
+
+
+    <resource
         interface="thelma.interfaces.IIsoStockRack"
         member=".iso.IsoStockRackMember"
         entity="thelma.models.iso.IsoStockRack"
         expose="false"
     >
-        <!-- collection=".iso.IsoStockRackCollection" -->
         <representer content_type="everest.mime.XmlMime">
             <attribute name="iso">
                 <option
@@ -1550,8 +1608,14 @@
                 name="xml_tag"
                 value="iso_stock_rack" />
         </representer>
-        <!-- <representer kind="collection" content_type="everest.mime.XmlMime" 
-            > <option name="xml_tag" value="iso_stock_racks" /> </representer> -->
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="iso_stock_racks" />
+        </representer>
     </resource>
 
 
@@ -1560,8 +1624,7 @@
         member=".iso.IsoSectorStockRackMember"
         entity="thelma.models.iso.IsoSectorStockRack"
         expose="false"
-        >
-<!-- collection=".iso.IsoSectorStockRackCollection" -->
+    >
         <representer
             kind="member"
             content_type="everest.mime.XmlMime"
@@ -1570,8 +1633,14 @@
                 name="xml_tag"
                 value="iso_sector_stock_rack" />
         </representer>
-        <!-- <representer kind="collection" content_type="everest.mime.XmlMime" 
-            > <option name="xml_tag" value="iso_sector_stock_racks" /> </representer> -->
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="iso_sector_stock_racks" />
+        </representer>
     </resource>
 
     <!-- Item Status -->
@@ -1688,6 +1757,22 @@
                     value="false" />
             </attribute>
             <attribute name="stock_racks.rack.containers">
+                <option
+                    name="write_as_link"
+                    value="true" />
+            </attribute>
+            <attribute name="preparation_plates">
+                <option
+                    name="namespace"
+                    value="http://schemata.cenix-bioscience.com/job" />
+                <option
+                    name="ignore"
+                    value="false" />
+                <option
+                    name="write_as_link"
+                    value="false" />
+            </attribute>
+            <attribute name="preparation_plates.containers">
                 <option
                     name="write_as_link"
                     value="true" />

@@ -259,13 +259,19 @@ class IStockRack(Interface):
     """
 
 
-class IIsoSectorStockRack(IStockRack):
+class IIsoJobStockRack(IStockRack):
     """
     Marker interface for ISO stock racks.
     """
 
 
 class IIsoStockRack(IStockRack):
+    """
+    Marker interface for ISO stock racks.
+    """
+
+
+class IIsoSectorStockRack(IStockRack):
     """
     Marker interface for ISO stock racks.
     """

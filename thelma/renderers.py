@@ -148,7 +148,7 @@ class ZippedWorklistRenderer(CustomRenderer):
 
     def __create_xl20_worklist_stream(self, resource, options):
         entity = resource.get_entity()
-        self._prepare_for_xl20_worklist_creation(entity)
+#        self._prepare_for_xl20_worklist_creation(entity)
         try:
             tool = lab.get_stock_rack_assembler(entity=entity,
                                                 **options)

@@ -5,8 +5,11 @@ AAB, Created on Jun 22, 2011
 """
 
 from everest.entities.base import Entity
-from thelma.utils import get_utc_time
+from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import IsoJobPreparationPlate
+from thelma.utils import get_utc_time
+from thelma.automation.semiconstants import get_item_status_managed
+
 
 __docformat__ = 'reStructuredText en'
 
@@ -180,7 +183,17 @@ class IsoJob(Job):
                                rack_layout=rack_layout)
 
     def __get_status(self):
-        return self.__status
+        try:
+            status = self.__status
+        except AttributeError:
+            pp = self.preparation_plates
+            # Detect if this ISO job is done (it is sufficient to check the
+            # status of the first preparation plate).
+            if len(pp) > 0 and pp[0].status == get_item_status_managed():
+                status = ISO_STATUS.DONE
+            else:
+                status = ISO_STATUS.QUEUED
+        return status
 
     def __set_status(self, status):
         self.__status = status
@@ -189,6 +202,14 @@ class IsoJob(Job):
     # FIXME: Reconcile entity ISO status flags with ISO processing status
     #        flags used by the client!
     status = property(__get_status, __set_status)
+
+    @property
+    def preparation_plates(self):
+        """
+        Read only access to the racks of the preparation plates in this ISO
+        job.
+        """
+        return [ipp.rack for ipp in self.iso_job_preparation_plates]
 
     def __len__(self):
         return len(self.isos)

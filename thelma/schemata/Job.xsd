@@ -97,18 +97,22 @@
                         <group ref="j:JobBase">
                         </group>
                         <element
-                            name="isos"
-                            type="iso:IsoType"
-                            minOccurs="0"
-                            maxOccurs="unbounded"
-                        >
-                        </element>
-                        <element
                             name="number_stock_racks"
                             type="positiveInteger"
                         >
                         </element>
-                        <element ref="isr:stock_racks">
+                        <element
+                            ref="isr:stock_racks"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="preparation_plates"
+                            type="r:RackCollectionType"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
                         </element>
                         <element
                             name="status"
@@ -124,6 +128,16 @@
     <complexType name="ExperimentJobType">
         <complexContent>
             <extension base="j:JobType">
+                <choice>
+                    <element
+                        name="link"
+                        type="j:JobLinkType"
+                    ></element>
+                    <sequence>
+                        <group ref="j:JobBase">
+                        </group>
+                    </sequence>
+                </choice>
             </extension>
         </complexContent>
     </complexType>
@@ -134,15 +148,25 @@
             minOccurs="0"
         >
             <choice>
+                <choice
+                    minOccurs="0"
+                    maxOccurs="1"
+                >
+                    <element
+                        ref="j:iso_job"
+                        maxOccurs="unbounded"
+                    >
+                    </element>
+                    <element
+                        ref="j:experiment_job"
+                        maxOccurs="unbounded"
+                    >
+                    </element>
+                </choice>
                 <element
                     name="link"
                     type="j:JobCollectionLinkType"
                     maxOccurs="1"
-                    minOccurs="0"
-                ></element>
-                <element
-                    ref="j:job"
-                    maxOccurs="unbounded"
                     minOccurs="0"
                 ></element>
             </choice>
