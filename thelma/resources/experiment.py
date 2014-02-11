@@ -162,8 +162,7 @@ class ExperimentMetadataMember(Member):
     subproject = member_attribute(ISubproject, 'subproject')
     number_replicates = terminal_attribute(int, 'number_replicates')
     molecule_design_pool_set = member_attribute(IMoleculeDesignPoolSet,
-                                                'molecule_design_pool_set',
-                                                is_modifyable=False)
+                                                'molecule_design_pool_set')
     experiment_design = member_attribute(IExperimentDesign,
                                          'experiment_design')
     iso_request = member_attribute(ILabIsoRequest, 'lab_iso_request')
