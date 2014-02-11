@@ -69,7 +69,7 @@ ALTER TABLE planned_worklist_member
   ADD CONSTRAINT planned_worklist_member_planned_liquid_transfer_id_fkey
   FOREIGN KEY (planned_transfer_id)
   REFERENCES planned_transfer (planned_transfer_id)
-  ON UPDATE CASCADE ON DELETE CASCADE;
+  ON UPDATE CASCADE;
 
 
 CREATE TABLE tmp_used_worklists (
