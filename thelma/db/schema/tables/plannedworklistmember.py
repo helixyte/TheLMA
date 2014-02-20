@@ -21,7 +21,7 @@ def create_table(metadata, planned_worklist_tbl, planned_liquid_transfer_tbl):
                 Column('planned_liquid_transfer_id', Integer,
                        ForeignKey(planned_liquid_transfer_tbl.c.\
                                   planned_liquid_transfer_id,
-                                  onupdate='CASCADE', ondelete='CASCADE'),
+                                  onupdate='CASCADE', ondelete='NO ACTION'),
                        nullable=False),
                 )
     PrimaryKeyConstraint(tbl.c.planned_worklist_id,
