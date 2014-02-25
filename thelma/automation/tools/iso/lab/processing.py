@@ -250,6 +250,9 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
             sample_positions = []
             for well in plate.containers:
                 if well.sample is not None:
+                    if layout is not None:
+                        ip = layout.get_working_position(well.location.position)
+                        if ip is not None and ip.is_library: continue
                     sample_positions.append(well.location.position.label)
             if len(sample_positions) > 0:
                 msg = 'Plate %s should be empty but there are samples in ' \

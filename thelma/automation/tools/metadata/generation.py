@@ -1231,8 +1231,7 @@ class ExperimentMetadataGeneratorLibrary(ExperimentMetadataGenerator):
         The plate number is defined by the library - each layout will
         be used once.
         """
-        self.add_debug('Determine number of plates ...')
-        return self.__library.number_layouts
+        self._iso_request.expected_number_isos = self.__library.number_layouts
 
 
 class ExperimentMetadataGeneratorManual(ExperimentMetadataGenerator):

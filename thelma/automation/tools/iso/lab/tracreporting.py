@@ -103,7 +103,7 @@ class LabIsoStockTransferReporter(IsoStockTransferReporter):
                 trg_rack = elt.target_container.rack.barcode
                 plates.add(trg_rack)
 
-        return 'Target plates: %s' % (self._get_joined_str(plates))
+        return '\'\'\'Target plates:\'\'\' %s' % (self._get_joined_str(plates))
 
 
 class LabIsoStockTransferLogFileWriter(CsvWriter):
