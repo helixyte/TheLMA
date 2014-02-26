@@ -997,6 +997,7 @@ class ExperimentMetadataGeneratorLibraryTestCase(
         self.number_rack_wls = 0
         self.expected_ir_data['label'] = self.label
         self.expected_ir_data['comment'] = 'with mastermix support'
+        self.expected_ir_data['expected_number_isos'] = 38
         self.expected_ir_data['iso_plate_reservoir_specs'] = \
                                         get_reservoir_specs_standard_384()
         lib = self._get_entity(IMoleculeDesignLibrary, 'poollib')
