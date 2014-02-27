@@ -462,27 +462,16 @@ class XL20Executor(BaseAutomationTool):
     """
     NAME = 'XL20 Executor'
 
-    def __init__(self, output_file_stream, user,
-                 logging_level=None, add_default_handlers=False):
+    def __init__(self, output_file_stream, user):
         """
         Constructor:
 
         :param output_file_stream: The content of the XL20 output file, as
             :class:`basestring`, file or :class:`StringIO`.
-
         :param user: The user who wants to update the DB.
         :type user: :class:`thelma.models.user.User`
-
-        :param logging_level: defines the least severe level of logging
-                    event the log will record
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
         """
-        BaseAutomationTool.__init__(self, logging_level=logging_level,
-                                    add_default_handlers=add_default_handlers,
-                                    depending=False)
+        BaseAutomationTool.__init__(self, depending=False)
 
         #: The XL20 output file.
         self.output_file_stream = output_file_stream

@@ -16,6 +16,7 @@ from thelma.automation.tools.iso.poolcreation.execution import _StockSampleCreat
 from thelma.automation.tools.iso.poolcreation import get_executor
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
 from thelma.automation.tools.iso.poolcreation.execution import StockSampleCreationStockTransferReporter
+from thelma.automation.tools.iso.tracreporting import IsoStockTransferReporter
 from thelma.automation.tools.iso.poolcreation.base \
     import SingleDesignStockRackLayout
 from thelma.automation.tools.iso.poolcreation.base import LABELS
@@ -531,13 +532,17 @@ class StockSampleCreationStockTransferReporterTestCase(FileCreatorTestCase,
         self._continue_setup()
         self.tool.send_request()
         self.assert_true(self.tool.transaction_completed())
-        tool_stream, comment = self.tool.return_value
+        tool_stream, comment = self.tool.return_value # unpack non-sequence pylint:disable=W0633
         self._compare_csv_file_stream(tool_stream, SSC_TEST_DATA.FILE_NAME_LOG)
-        exp_comment = 'A stock transfer has been executed by Michael Brehm ' \
-          '(see file: attachment:stock_transfer_ssgen_test_01.csv).[[br]]' \
-          'Entity: ssgen_test_01 [[br]]'\
-          'Type: new pooled stock samples[[br]]' \
-          'New pool stock rack: 09999999.[[br]]'
+        exp_comment = IsoStockTransferReporter.BASE_COMMENT \
+                      % ('Michael Brehm', 'stock_transfer_ssgen_test_01.csv',
+                         'ssgen_test_01', 'new pooled stock samples',
+                         "'''New pool stock rack:''' 09999999")
+#        exp_comment = 'A stock transfer has been executed by Michael Brehm ' \
+#          '(see file: attachment:stock_transfer_ssgen_test_01.csv).[[br]]' \
+#          'Entity: ssgen_test_01 [[br]]'\
+#          'Type: new pooled stock samples[[br]]' \
+#          'New pool stock rack: 09999999.[[br]]'
         self.assert_equal(comment, exp_comment)
 
     def test_result_cybio(self):

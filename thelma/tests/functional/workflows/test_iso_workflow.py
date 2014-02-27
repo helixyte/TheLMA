@@ -89,7 +89,8 @@ class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
             emd = url_to_resource(emd_url)
             self._accept_iso_request(emd.iso_request)
             # Step 3: Generate ISOs.
-            #
+            # We need to temporarily reduce the threshold that controls
+            # when to use the Cybio.
             with patch("%s.LabIsoPlanner._MIN_CYBIO_TRANSFER_NUMBER" %
                        LabIsoPlanner.__module__, 6):
                 self._generate_isos(emd.iso_request)

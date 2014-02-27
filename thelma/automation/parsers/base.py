@@ -76,7 +76,7 @@ class BaseParser(EventRecording):
 
         #: The parser log (:class:`thelma.automation.error.ThelmaLog)`.
         self.log = log
-        #: The logging level for te log.
+        #: The logging level for the log.
         self.logging_level = self.log.level
 
         #: If *True* if the parsing process is aborted at the next

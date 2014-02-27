@@ -852,53 +852,34 @@ class ExperimentMetadataReportUploader(BaseTracTool):
     #: Shall existing replacements with the same name be overwritten?
     REPLACE_EXISTING_ATTACHMENTS = True
 
-    def __init__(self, generator, experiment_metadata_link, iso_request_link,
-                 logging_level=logging.WARNING,
-                 add_default_handlers=False):
+    def __init__(self, generator, experiment_metadata_link, iso_request_link):
         """
         Constructor:
 
         :param generator: The generator that has conducted the upload.
         :type generator: :class:`ExperimentMetadataGenerator`
-
         :param experiment_metadata_link: Link to the experiment metadata in
             TheLMA.
         :type experiment_metadata_link: :class:`str`
-
         :param iso_request_link: Link to the ISO request in TheLMA.
         :type iso_request_link: :class:`str`
 
-        :param logging_level: the desired minimum log leve l
-        :type logging_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: logging.WARNING
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *False*
         """
-        BaseTracTool.__init__(self, log=None, depending=False,
-                              logging_level=logging_level,
-                              add_default_handlers=add_default_handlers)
-
+        BaseTracTool.__init__(self, log=None, depending=False)
         #: The generator that has conducted the upload.
         self.generator = generator
         #: Link to the experiment metadata in TheLMA.
         self.experiment_metadata_link = experiment_metadata_link
         #: Link to the ISO request in TheLMA.
         self.iso_request_link = iso_request_link
-
         #: The ID of the :class:`ExperimentMetadataType` for the uploaded
         #: metadata.
         self.__experiment_type_id = None
-
         #: The comment to be sent along with the files.
         self.__comment = None
         #: A dictionary containing the requested changes (key: attribute name,
         #: value: attribute value).
         self.__description = None
-
         #: The file stream of the uploaded excel data.
         self.__excel_stream = None
         #: The file stream for Info TXT file.

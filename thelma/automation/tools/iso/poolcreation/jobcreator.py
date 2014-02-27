@@ -88,32 +88,18 @@ class StockSampleCreationIsoPopulator(IsoProvider):
 
         :param log: The log to record events.
         :type log: :class:`thelma.ThelmaLog`
-
         :param stock_sample_creation_iso_request: The stock sample creation
             ISO request for which to populate the ISO.
         :type stock_sample_creation_iso_request:
             :class:`thelma.models.iso.StockSampleCreationIsoRequest`
-
         :param number_isos: The number of ISOs ordered.
         :type number_isos: :class:`int`
-
         :param excluded_racks: A list of barcodes from stock racks that shall
             not be used for stock sample picking.
         :type excluded_racks: A list of rack barcodes
-
         :param requested_tubes: A list of barcodes from stock tubes that are
             supposed to be used.
         :type requested_tubes: A list of tube barcodes.
-
-        :param logging_level: the desired minimum log level
-        :type log_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: None
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *None*
         """
         IsoProvider.__init__(self, log=log, iso_request=iso_request,
                              number_isos=number_isos,
@@ -302,19 +288,8 @@ class StockSampleCreationIsoResetter(BaseAutomationTool):
 
         :param isos: The ISOs to be reset.
         :type isos: :class:`list` of :class:`StockSampleCreationIso`s
-
-        :param logging_level: the desired minimum log level
-        :type log_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: None
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *None*
         """
         BaseAutomationTool.__init__(self, depending=False, **kw)
-
         #: The ISOs to be reset.
         self.isos = isos
 

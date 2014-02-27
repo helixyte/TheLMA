@@ -57,8 +57,7 @@
 #
 #    NAME = 'LibraryCreationXL20Executor'
 #
-#    def __init__(self, library_creation_iso, user,
-#                 logging_level=logging.WARNING, add_default_handlers=False):
+#    def __init__(self, library_creation_iso, user):
 #        """
 #        Constructor:
 #
@@ -66,24 +65,10 @@
 #            for which to execute the worklists.
 #        :type stock_sample_creation_iso:
 #            :class:`thelma.models.iso.StockSampleCreationIso`
-#
 #        :param user: The user conducting the execution.
 #        :type user: :class:`thelma.models.user.User`
-#
-#        :param logging_level: the desired minimum log level
-#        :type logging_level: :class:`int` (or logging_level as
-#                         imported from :mod:`logging`)
-#        :default logging_level: logging.WARNING
-#
-#        :param add_default_handlers: If *True* the log will automatically add
-#            the default handler upon instantiation.
-#        :type add_default_handlers: :class:`boolean`
-#        :default add_default_handlers: *False*
 #        """
-#        BaseAutomationTool.__init__(self, logging_level=logging_level,
-#                                    add_default_handlers=add_default_handlers,
-#                                    depending=False)
-#
+#        BaseAutomationTool.__init__(self, depending=False)
 #        #: The stock sample creation ISO for which to execute the worklists.
 #        self.stock_sample_creation_iso = stock_sample_creation_iso
 #        #: The user conducting the execution.

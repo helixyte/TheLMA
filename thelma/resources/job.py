@@ -21,12 +21,13 @@ from thelma.automation.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.experiment import get_executor
 from thelma.automation.tools.experiment import get_manual_executor
 from thelma.interfaces import IExperiment
+from thelma.interfaces import IIso
 from thelma.interfaces import IItemStatus
+from thelma.interfaces import IPlate
 from thelma.interfaces import IStockRack
 from thelma.interfaces import IUser
 from thelma.models.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
-from thelma.interfaces import IPlate
 
 
 __docformat__ = 'reStructuredText en'
@@ -108,7 +109,7 @@ class ExperimentJobMember(JobMember):
 class IsoJobMember(JobMember):
     relation = "%s/iso_job" % RELATION_BASE_URL
 
-#    isos = collection_attribute(IIso, 'isos')
+    isos = collection_attribute(IIso, 'isos')
     number_stock_racks = terminal_attribute(int, 'number_stock_racks')
     stock_racks = collection_attribute(IStockRack, 'iso_job_stock_racks')
     preparation_plates = collection_attribute(IPlate, 'preparation_plates')

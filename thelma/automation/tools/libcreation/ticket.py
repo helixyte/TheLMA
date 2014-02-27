@@ -186,8 +186,7 @@
 #    #: the library name and the layout number.
 #    ISO_LABEL_PATTERN = '%s-%s'
 #
-#    def __init__(self, molecule_design_library,
-#                 logging_level=None, add_default_handlers=False):
+#    def __init__(self, molecule_design_library):
 #        """
 #        Constructor:
 #
@@ -195,21 +194,8 @@
 #            generate the ISOs.
 #        :type molecule_design_library:
 #            :class:`thelma.models.library.MoleculeDesignLibrary`
-#
-#        :param logging_level: the desired minimum log level
-#        :type log_level: :class:`int` (or logging_level as
-#                         imported from :mod:`logging`)
-#        :default logging_level: None
-#
-#        :param add_default_handlers: If *True* the log will automatically add
-#            the default handler upon instantiation.
-#        :type add_default_handlers: :class:`boolean`
-#        :default add_default_handlers: *False*
 #        """
-#        BaseAutomationTool.__init__(self, logging_level=logging_level,
-#                                    add_default_handlers=add_default_handlers,
-#                                    depending=False)
-#
+#        BaseAutomationTool.__init__(self, depending=False)
 #        #: The molecule design library for which to generate an ISO.
 #        self.molecule_design_library = molecule_design_library
 #
@@ -299,8 +285,7 @@
 #    #: Shall existing replacements with the same name be overwritten?
 #    REPLACE_EXISTING_ATTACHMENTS = True
 #
-#    def __init__(self, library_creation_iso, file_map,
-#                 logging_level=logging.WARNING, add_default_handlers=False):
+#    def __init__(self, library_creation_iso, file_map):
 #        """
 #        Constructor:
 #
@@ -312,20 +297,8 @@
 #        :param file_map: The streams for the worklists files mapped onto
 #            file names.
 #        :type file_map: :class:`dict`
-#
-#        :param logging_level: the desired minimum log level
-#        :type logging_level: :class:`int` (or logging_level as
-#                         imported from :mod:`logging`)
-#        :default logging_level: logging.WARNING
-#
-#        :param add_default_handlers: If *True* the log will automatically add
-#            the default handler upon instantiation.
-#        :type add_default_handlers: :class:`boolean`
-#        :default add_default_handlers: *False*
 #        """
-#        BaseTracTool.__init__(self, logging_level=logging_level,
-#                              add_default_handlers=add_default_handlers,
-#                              depending=False)
+#        BaseTracTool.__init__(self, depending=False)
 #
 #        #: The library creation ISO the worklists belong to (also contains
 #        #: the ticket ID).

@@ -6,6 +6,7 @@ AAB
 from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.iso.base import StockRackLayout
 from thelma.automation.tools.iso.base import StockRackPosition
+from thelma.automation.tools.iso.tracreporting import IsoStockTransferReporter
 from thelma.automation.tools.iso.lab.tracreporting \
     import LabIsoStockTransferLogFileWriter
 from thelma.automation.tools.iso.lab.tracreporting \
@@ -307,11 +308,9 @@ class _LabIsoProcessingStockTransferReporterTestCase(TracToolTestCase,
     def set_up(self):
         _LabIsoStockTransferTracReportingTestCase.set_up(self)
         TracToolTestCase.set_up_as_add_on(self)
-        self.comment_pattern = 'A stock transfer has been executed by Daniel ' \
-            'Tondera (see file: attachment:%s).[[br]]' \
-            'Entity: %s [[br]]' \
-            'Type: %s[[br]]' \
-            'Target plates: %s.[[br]]'
+        self.comment_pattern = \
+            IsoStockTransferReporter.BASE_COMMENT \
+            % ('Daniel Tondera', '%s', '%s', '%s', "'''Target plates:''' %s")
         self.exp_attachment_name = None
         self.exp_type = None
         self.exp_target_plates_str = None
@@ -339,7 +338,7 @@ class _LabIsoProcessingStockTransferReporterTestCase(TracToolTestCase,
     def _check_result(self):
         self.tool.send_request()
         self.assert_true(self.tool.transaction_completed())
-        tool_stream, comment = self.tool.return_value
+        tool_stream, comment = self.tool.return_value # unpack non-sequence pylint: disable=W0633
         self._check_tool_stream(tool_stream)
         self.__check_comment(comment)
 

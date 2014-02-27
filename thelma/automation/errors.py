@@ -2,13 +2,13 @@
 :Date: May 2011
 :Author: AAB, berger at cenix-bioscience dot com
 """
+import logging
+
 from thelma import LogEvent
 from thelma import ThelmaLog
 from thelma.automation.utils.base import get_trimmed_string
-import logging
 
 __docformat__ = 'reStructuredText en'
-
 __all__ = ['EventRecording',
            ]
 
@@ -23,44 +23,17 @@ class EventRecording(object):
     #: All events having a level equal or larger than this will be regarded as
     #: error
     ERROR_THRESHOLD = ThelmaLog.ERROR_THRESHOLD
-    #
-    logging_level = None
-    """
-    Available options are:
 
-        + logging.CRITICAL  :       severity 50
-        + logging.ERROR     :       severity 40
-        + logging.WARNING   :       severity 30
-        + logging.INFO      :       severity 20
-        + logging.DEBUG     :       severity 10
-        + logging.NOTSET    :
-          (parent logger level or all events (if no parent available))
-
-        All log events having at least the given severity will be logged.
-        It can be adjusted with the :func:`set_log_ecording_level` function.
-    """ #pylint: disable=W0105
-
-    def __init__(self, log,
-                 logging_level=None,
-                 add_default_handlers=False):
+    def __init__(self, log):
         """
         Constructor:
 
         :param log: The ThelmaLog you want to write in. If the
             log is None, the object will create a new log.
         :type log: :class:`ThelmaLog`
-        :param logging_level: the desired minimum log level
-        :type log_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: logging.WARNING
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *False*
         """
         #: The log recording errors and events.
         self.log = None
-
         if log is None:
             # This is to fool pylint. If we use getLogger directly, it thinks
             # the logger is a logging.Logger instance and complains about
@@ -68,20 +41,10 @@ class EventRecording(object):
             get_fn = getattr(logging, 'getLogger')
             self.log = get_fn(self.__class__.__module__ + '.' +
                               self.__class__.__name__)
-            if not logging_level is None:
-                self.log.setLevel(logging_level)
         else:
             self.log = log
-
-        # TODO: do we still need that?
-        if add_default_handlers and len(self.log.handlers) < 1:
-            self._add_default_handlers()
-#        elif log is None and not add_default_handlers:
-#            self.__add_null_handler()
-
         #: The errors that have occurred within the tool.
         self._error_count = 0
-
         #: As soon this is set to *True* errors and warnings will not be
         #: recorded anymore.
         #: However, the execution of running methods is still aborted.
@@ -123,32 +86,15 @@ class EventRecording(object):
         self._error_count = 0
         self._abort_execution = False
 
-    def set_log_recording_level(self, log_level):
+    def set_log_recording_level(self, logging_level):
         """
         Sets the threshold :py:attr:`LOGGING_LEVEL` of the log.
 
-        :param log_level: the desired minimum log level
-        :type log_level: int (or LOGGING_LEVEL as
-                         imported from :py:mod:`logging`)
+        :param logging_level: the desired minimum log level
+        :type logging_level: int (or LOGGING_LEVEL as imported from
+            :mod:`logging`)
         """
-        self.log.level = log_level
-
-    def _add_default_handlers(self):
-        """
-        Generates handlers that are added automatically upon initialisation.
-        """
-        stream_handler = logging.StreamHandler()
-        stream_handler.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(levelname)s - %(message)s')
-        stream_handler.setFormatter(formatter)
-        self.add_log_handler(stream_handler)
-
-    def __add_null_handler(self):
-        """
-        Adds a null handler to the object (if not log has passed and the
-        default handlers are not to be initialised).
-        """
-        self.add_log_handler(logging.NullHandler())
+        self.log.setLevel(logging_level)
 
     def add_critical_error(self, error_msg):
         """
@@ -235,25 +181,6 @@ class EventRecording(object):
             if not self._disable_err_warn_rec:
                 self._error_count += 1
             self._abort_execution = True
-
-    def add_log_handlers(self, handlers):
-        """
-        Adds handlers to the parsing log.
-
-        :param handlers: the desired handlers
-        :type handlers: list of :py:class:`logging.Handler` objects
-        """
-        for handler in handlers:
-            self.log.addHandler(handler)
-
-    def add_log_handler(self, handler):
-        """
-        Adds handlers to the parsing log.
-
-        :param handlers: the desired handler
-        :type handlers: list of :py:class:`logging.Handler` objects
-        """
-        self.log.addHandler(handler)
 
     def _check_input_class(self, name, obj, exp_class):
         """

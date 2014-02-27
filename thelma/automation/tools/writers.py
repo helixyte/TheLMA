@@ -8,7 +8,6 @@ This is an abstract super class for CSV stream generators.
 from StringIO import StringIO
 from thelma.automation.tools.base import BaseAutomationTool
 from zipfile import BadZipfile
-import logging
 import zipfile
 
 __docformat__ = 'reStructuredText en'
@@ -37,43 +36,21 @@ class CsvWriter(BaseAutomationTool):
     #: The delimiter used to separate columns.
     DELIMITER = ','
 
-    def __init__(self, log=None, logging_level=logging.WARNING,
-                 add_default_handlers=False, depending=True):
+    def __init__(self, log=None, depending=True):
         """
         Constructor:
 
         :param log: The ThelmaLog you want to write into.
         :type log: :class:`thelma.ThelmaLog`
-
-        :param logging_level: the desired minimum log leve l
-        :type logging_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: logging.WARNING
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *False*
-
-        :param depending: Defines whether a tool can be initialized directly
-            (*False*) of if it is always called by other tools (*True*).
-            Depending tools must obtain a log and are not capable to
-            reset a log.
-        :type depending: :class:`bool`
-        :default depending: *True*
         """
-        BaseAutomationTool.__init__(self, log, logging_level,
-                                    add_default_handlers, depending)
-
+        BaseAutomationTool.__init__(self, log, depending=depending)
         #: The stream to be generated.
         self.__stream = None
-
         #: Maps :class:`CsvColumnDictionary`s onto column indices.
         self._index_map = None
         #: A list with of :class:`CsvColumnDictionary` (to be set by the
         #: subclasses).
         self._column_map_list = None
-
         #: A boolean that defines whether to print a header.
         self._write_headers = True
 
@@ -341,34 +318,14 @@ class TxtWriter(BaseAutomationTool):
     **Return Value:** a file stream (TXT format)
     """
 
-    def __init__(self, log=None, logging_level=logging.WARNING,
-                 add_default_handlers=False, depending=True):
+    def __init__(self, log=None, depending=True):
         """
         Constructor:
 
         :param log: The ThelmaLog you want to write into.
         :type log: :class:`thelma.ThelmaLog`
-
-        :param logging_level: the desired minimum log leve l
-        :type logging_level: :class:`int` (or logging_level as
-                         imported from :mod:`logging`)
-        :default logging_level: logging.WARNING
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-        :default add_default_handlers: *False*
-
-        :param depending: Defines whether a tool can be initialized directly
-            (*False*) of if it is always called by other tools (*True*).
-            Depending tools must obtain a log and are not capable to
-            reset a log.
-        :type depending: :class:`bool`
-        :default depending: *True*
         """
-        BaseAutomationTool.__init__(self, log, logging_level,
-                                    add_default_handlers, depending)
-
+        BaseAutomationTool.__init__(self, log, depending=depending)
         #: The stream to be generated.
         self._stream = None
 

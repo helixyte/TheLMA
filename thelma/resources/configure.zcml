@@ -1740,6 +1740,11 @@
             <option
                 name="xml_tag"
                 value="iso_job" />
+            <attribute name="isos">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
             <attribute name="stock_racks">
                 <option
                     name="ignore"
