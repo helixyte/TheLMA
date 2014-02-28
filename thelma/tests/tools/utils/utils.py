@@ -541,7 +541,7 @@ class RackSectorTestCase(ToolsAndUtilsTestCase):
         self._continue_setup()
         self._test_and_expect_errors('All sector set must have the same ' \
             'combination of concentrations to ensure all samples are ' \
-            'treated equally. This rule is not met. Talk to Anna, please. ' \
+            'treated equally. This rule is not met. Talk to IT, please. ' \
             'Associated sectors: [[0, 2], [1, 3]], concentrations: 0 (10.0) ' \
             '- 1 (20.0) - 2 (30.0) - 3 (40.0).')
 

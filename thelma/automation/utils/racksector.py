@@ -1028,7 +1028,7 @@ class RackSectorAssociator(BaseAutomationTool):
         elif len(set_concentrations) > 1:
             msg = 'All sector set must have the same combination of ' \
                   'concentrations to ensure all samples are treated equally. ' \
-                  'This rule is not met. Talk to Anna, please. Associated ' \
+                  'This rule is not met. Talk to IT, please. Associated ' \
                   'sectors: %s, concentrations: %s.' \
                    % (current_sets, self._get_joined_map_str(
                                 self._sector_concentrations, all_strs=False))

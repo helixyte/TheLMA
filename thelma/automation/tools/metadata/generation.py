@@ -425,8 +425,8 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
                       'compounds, we assume a stock concentration of %s nM. ' \
                       'Some of the compounds in the set have a different ' \
                       'stock concentration: %s. The ISO processing will not ' \
-                      'adhere the deviating concentrations. Talk to Anna ' \
-                      'or Michael for more information, please.' \
+                      'adhere the deviating concentrations. Talk to IT ' \
+                      'or the stock manager for more information, please.' \
                       % ('{0:,}'.format(ref_conc),
                          ', '.join(sorted(differing_conc)))
                 self.add_warning(msg)
@@ -714,7 +714,7 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
                   'concentrations: %s. Please make sure, that this is the ' \
                   'correct stock concentration for every compound in your ' \
                   'experiment since otherwise you might receive a deviating ' \
-                  'concentration. Talk to Michael or Anna, please.' \
+                  'concentration. Talk to the stock manager or IT, please.' \
                    % (self._get_joined_str(compound_stock_concentrations))
             self.add_warning(msg)
 

@@ -1199,7 +1199,7 @@ class LabIsoPlanner(IsoProvider):
         if len(volumes) > 1:
             msg = 'There are different volumes to be taken from the stock ' \
                   'for the floating positions. This is an programming error. ' \
-                  'Please talk to Anna.'
+                  'Please talk to IT.'
             self.add_error(msg)
         else:
             return pool_volumes.values()[0]
