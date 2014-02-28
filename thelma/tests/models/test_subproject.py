@@ -26,7 +26,7 @@ class SubprojectModelTest(ThelmaModelTestCase):
         self.assert_equal(sub1.label, self.label)
         self.assert_false(sub1.active)
         self.assert_not_equal(sub1.creation_date, None)
-        self.assert_not_equal(sub1.slug, None)
+        self.assert_is_none(sub1.slug)
         sub2 = Subproject(self.label, creation_date=None, active=self.active)
         self.assert_true(sub2.active)
 

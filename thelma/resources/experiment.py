@@ -22,6 +22,7 @@ from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from everest.resources.staging import create_staging_collection
 from thelma.automation.semiconstants import get_experiment_metadata_type
+from everest.resources.utils import url_to_resource
 from thelma.automation.tools.metadata.ticket \
     import IsoRequestTicketDescriptionUpdater
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketActivator
@@ -44,6 +45,7 @@ from thelma.interfaces import IRackShape
 from thelma.interfaces import IRackSpecs
 from thelma.interfaces import ISubproject
 from thelma.interfaces import ITag
+from thelma.models.racklayout import RackLayout
 from thelma.models.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
 
@@ -212,19 +214,25 @@ class ExperimentMetadataMember(Member):
             emt_id = prx.experiment_metadata_type.get('id')
             changed_em_type = emt_id != self.experiment_metadata_type.id
             if changed_em_type or changed_num_reps:
-                self_entity.number_replicates = prx.number_replicates
-                self_entity.experiment_metadata_type = \
+                if changed_num_reps:
+                    self_entity.number_replicates = prx.number_replicates
+                if changed_em_type:
+                    self_entity.experiment_metadata_type = \
                                 get_experiment_metadata_type(emt_id)
                 if not self_entity.experiment_design is None:
                     # invalidate data to force a fresh upload of the XLS file
                     self_entity.experiment_design.experiment_design_racks = []
                     self_entity.experiment_design.worklist_series = None
                 if not self_entity.lab_iso_request is None:
-                    shape = self_entity.lab_iso_request.iso_layout.shape
+                    shape = self_entity.lab_iso_request.rack_layout.shape
                     new_layout = RackLayout(shape=shape)
-                    self_entity.lab_iso_request.iso_layout = new_layout
+                    self_entity.lab_iso_request.rack_layout = new_layout
                     self_entity.lab_iso_request.owner = ''
-            self_entity.subproject = prx.subproject
+            changed_sp = self_entity.subproject.id != prx.subproject.get('id')
+            if changed_sp:
+                new_sp = \
+                    url_to_resource(prx.subproject.get('href')).get_entity()
+                self_entity.subproject = new_sp
             self_entity.label = prx.label
             # Perform appropriate Trac updates.
             if not self_entity.lab_iso_request is None:
