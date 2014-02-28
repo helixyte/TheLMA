@@ -37,12 +37,6 @@ class ProjectMember(Member):
     customer = member_attribute(IOrganization, 'customer')
     subprojects = collection_attribute(ISubproject, 'subprojects')
 
-    def __getitem__(self, name):
-        if name == 'subprojects':
-            return self.subprojects
-        else:
-            raise KeyError(name)
-
 
 class ProjectCollection(Collection):
     title = 'Projects'
