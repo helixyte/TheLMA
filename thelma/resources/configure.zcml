@@ -3113,6 +3113,11 @@
                     name="ignore"
                     value="false" />
             </attribute>
+            <attribute name="cell-line">
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
         </representer>
         <representer
             kind="collection"
@@ -3414,6 +3419,53 @@
             <option
                 name="xml_tag"
                 value="tagged_rack_position_sets" />
+        </representer>
+    </resource>
+
+    <!-- Tissue -->
+
+    <resource
+        interface="thelma.interfaces.ITissue"
+        member=".tissue.TissueMember"
+        collection=".tissue.TissueCollection"
+        entity="thelma.models.tissue.Tissues"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/Tissue.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/tissue" />
+            <option
+                name="xml_prefix"
+                value="tc" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="tissue" />
+            <attribute name="cell-lines">
+                <option
+                    name="ignore"
+                    value="false" />
+            </attribute>
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="tissues" />
+            <attribute name="cell-lines">
+                <option
+                    name="ignore"
+                    value="true" />
+            </attribute>
         </representer>
     </resource>
 

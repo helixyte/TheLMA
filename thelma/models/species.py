@@ -31,9 +31,12 @@ class Species(Entity):
     #: A list of genes (:class:`thelma.models.gene.Genes`)
     #: stored in the database for this species.
     genes = []
+    #: A list of cell lines (:class:`thelma.models.gene.CellLine`)
+    #: stored in the database that are derived from this tissue.
+    cell_lines = []
 
     def __init__(self, genus_name, species_name, common_name, acronym,
-                 ncbi_tax_id, genes=None, **kw):
+                 ncbi_tax_id, genes=None, cell_lines=None, **kw):
         Entity.__init__(self, **kw)
         self.genus_name = genus_name
         self.species_name = species_name
@@ -43,6 +46,9 @@ class Species(Entity):
         if genes is None:
             genes = []
         self.genes = genes
+        if cell_lines is None:
+            cell_lines = []
+        self.cell_lines = cell_lines
 
     @property
     def slug(self):

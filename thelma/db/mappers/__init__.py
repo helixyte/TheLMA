@@ -89,6 +89,7 @@ from thelma.db.mappers import tag
 from thelma.db.mappers import tagged
 from thelma.db.mappers import taggedrackpositionset
 from thelma.db.mappers import tagging
+from thelma.db.mappers import tissue
 from thelma.db.mappers import tube
 from thelma.db.mappers import tuberack
 from thelma.db.mappers import tuberackspecs

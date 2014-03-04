@@ -123,6 +123,7 @@
            .interfaces.ISubproject
            .interfaces.ITag
            .interfaces.ITaggedRackPositionSet
+           .interfaces.ITissue
            .interfaces.ITube
            .interfaces.IUser
            .interfaces.IUserPreferences
@@ -197,6 +198,7 @@
            .interfaces.ISubproject
            .interfaces.ITag
            .interfaces.ITaggedRackPositionSet
+           .interfaces.ITissue
            .interfaces.ITube
            .interfaces.ITubeRack
            .interfaces.ITubeRackSpecs
