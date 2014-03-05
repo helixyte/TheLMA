@@ -43,7 +43,7 @@ __all__ = ['ExperimentJobCollection',
 
 class JobMember(Member):
     relation = '%s/job' % RELATION_BASE_URL
-
+    job_type = terminal_attribute(str, 'job_type')
     label = terminal_attribute(str, 'label')
     user = member_attribute(IUser, 'user')
     creation_time = terminal_attribute(datetime, 'creation_time')

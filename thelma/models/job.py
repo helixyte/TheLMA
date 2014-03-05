@@ -93,15 +93,15 @@ class ExperimentJob(Job):
     #: associated with this job.
     experiments = None
 
-    def __init__(self, label, user, experiments, **kw):
+    def __init__(self, label, user, experiments,
+                 job_type=JOB_TYPES.EXPERIMENT, **kw):
         """
         Constructor:
         """
         if experiments is None or len(experiments) < 1:
             raise ValueError('An experiment job must consist of at least ' \
                              '1 experiment!')
-        Job.__init__(self, label=label, user=user,
-                     job_type=JOB_TYPES.EXPERIMENT, **kw)
+        Job.__init__(self, label=label, user=user, job_type=job_type, **kw)
         self.experiments = experiments
 
     def __len__(self):

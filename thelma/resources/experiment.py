@@ -134,8 +134,8 @@ class ExperimentDesignCollection(Collection):
 
 class ExperimentMember(Member):
     relation = '%s/experiment' % RELATION_BASE_URL
-    label = terminal_attribute(str, 'label')
     title = attribute_alias('label')
+    label = terminal_attribute(str, 'label')
     destination_rack_specs = member_attribute(IRackSpecs,
                                               'destination_rack_specs')
     source_rack = member_attribute(IRack, 'source_rack')
@@ -175,10 +175,7 @@ class ExperimentMetadataMember(Member):
     def __getitem__(self, name):
         if name == 'tags':
             tags_dict = {}
-            if self.experiment_design is not None:
-                design_racks = self.experiment_design.experiment_design_racks
-            else: # order only type
-                design_racks = []
+            design_racks = self.__get_design_racks()
             for rack in design_racks:
                 for tp in rack.rack_layout.tagged_rack_position_sets:
                     for tag in tp.tags:
@@ -188,6 +185,8 @@ class ExperimentMetadataMember(Member):
             for tag in tags_dict.values():
                 tag_coll.add(tag)
             result = tag_coll
+        elif name == 'experiment-design-racks':
+            result = self.__get_design_racks()
         else:
             result = Member.__getitem__(self, name)
         return result
@@ -268,6 +267,13 @@ class ExperimentMetadataMember(Member):
             exc_msg = str(tool.get_messages(logging.ERROR))
             raise HTTPBadRequest(error_msg_text % exc_msg).exception
         return tool.return_value
+
+    def __get_design_racks(self):
+        if self.experiment_design is not None:
+            design_racks = self.experiment_design.experiment_design_racks
+        else: # order only type
+            design_racks = []
+        return design_racks
 
 
 class ExperimentMetadataCollection(Collection):
