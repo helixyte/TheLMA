@@ -54,14 +54,6 @@
     <e:experiments xmlns:e="http://schemata.cenix-bioscience.com/experiment">
         <e:experiment>
             <e:label>UnitTestJob_1_exp1</e:label>
-            <e:destination_rack_specs>
-                <rsp:link
-                    href="http://localhost:6543/plate-specs/std384/"
-                    kind="MEMBER"
-                    title="std. 384 well"
-                    rel="http://relations.cenix-bioscience.com/plate-specs"
-                    xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs" />
-            </e:destination_rack_specs>
             <e:source_rack>
                 <r:link
                     href="http://raven.cenix-bioscience.com:7654/racks/02367784/"

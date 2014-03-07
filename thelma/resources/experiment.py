@@ -21,8 +21,8 @@ from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from everest.resources.staging import create_staging_collection
-from thelma.automation.semiconstants import get_experiment_metadata_type
 from everest.resources.utils import url_to_resource
+from thelma.automation.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.metadata.ticket \
     import IsoRequestTicketDescriptionUpdater
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketActivator
@@ -42,7 +42,6 @@ from thelma.interfaces import IPlate
 from thelma.interfaces import IRack
 from thelma.interfaces import IRackLayout
 from thelma.interfaces import IRackShape
-from thelma.interfaces import IRackSpecs
 from thelma.interfaces import ISubproject
 from thelma.interfaces import ITag
 from thelma.models.racklayout import RackLayout
@@ -82,6 +81,7 @@ class ExperimentDesignRackMember(Member):
     relation = "%s/experiment-design-rack" % RELATION_BASE_URL
     title = attribute_alias('label')
     label = terminal_attribute(str, 'label')
+    rack_shape = member_attribute(IRackShape, 'rack_layout.shape')
     rack_layout = member_attribute(IRackLayout, 'rack_layout')
     tags = collection_attribute(ITag, 'tags')
 
@@ -136,8 +136,6 @@ class ExperimentMember(Member):
     relation = '%s/experiment' % RELATION_BASE_URL
     title = attribute_alias('label')
     label = terminal_attribute(str, 'label')
-    destination_rack_specs = member_attribute(IRackSpecs,
-                                              'destination_rack_specs')
     source_rack = member_attribute(IRack, 'source_rack')
     experiment_design = member_attribute(IExperimentDesign,
                                          'experiment_design')

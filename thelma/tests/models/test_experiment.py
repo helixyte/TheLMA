@@ -3,12 +3,10 @@ Created on May 26, 2011
 
 @author: berger
 """
-
 from everest.repositories.rdb.testing import RdbContextManager
 from everest.repositories.rdb.testing import persist
 from thelma.interfaces import IExperimentMetadataType
 from thelma.interfaces import IPlate
-from thelma.interfaces import IPlateSpecs
 from thelma.interfaces import IRackShape
 from thelma.interfaces import ISubproject
 from thelma.models.experiment import Experiment
@@ -25,7 +23,6 @@ class ExperimentModelTestCase(ThelmaEntityTestCase):
 
     def _get_data(self):
         return dict(label='my experiment',
-                 destination_rack_specs=self._get_entity(IPlateSpecs),
                  source_rack=self._get_entity(IPlate),
                  experiment_design=self._create_experiment_design())
 
@@ -35,10 +32,10 @@ class ExperimentModelTestCase(ThelmaEntityTestCase):
         self.assert_equal(len(exp.experiment_racks), 0)
 
     def test_equality(self):
-        ed1 = self._create_experiment_design(id= -1)
-        ed2 = self._create_experiment_design(id= -2)
-        rack1 = self._create_plate(id= -3)
-        rack2 = self._create_plate(id= -4)
+        ed1 = self._create_experiment_design(id=-1)
+        ed2 = self._create_experiment_design(id=-2)
+        rack1 = self._create_plate(id=-3)
+        rack2 = self._create_plate(id=-4)
         exp1 = self._create_experiment(experiment_design=ed1,
                                        source_rack=rack1)
         exp2 = self._create_experiment(experiment_design=ed1,
@@ -122,11 +119,11 @@ class ExperimentDesignRackModelTest(ThelmaEntityTestCase):
 
     def test_equality(self):
         # do not use the super class method (rack layouts must be unique)
-        rl1 = self._create_rack_layout(id= -1)
-        rl2 = self._create_rack_layout(id= -2)
-        rl3 = self._create_rack_layout(id= -3)
-        edr1 = self._create_experiment_design_rack(rack_layout=rl1, id= -1)
-        edr2 = self._create_experiment_design_rack(rack_layout=rl2, id= -2)
+        rl1 = self._create_rack_layout(id=-1)
+        rl2 = self._create_rack_layout(id=-2)
+        rl3 = self._create_rack_layout(id=-3)
+        edr1 = self._create_experiment_design_rack(rack_layout=rl1, id=-1)
+        edr2 = self._create_experiment_design_rack(rack_layout=rl2, id=-2)
         edr3 = self._create_experiment_design_rack(rack_layout=rl3)
         edr3.id = edr1.id
         self.assert_not_equal(edr1, edr2)

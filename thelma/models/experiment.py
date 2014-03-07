@@ -74,9 +74,6 @@ class Experiment(Entity):
     """
     #: The label of the experiment.
     label = None
-    #: The properties (:class:`thelma.models.rack.RackSpecs`) of the
-    #: cell plates.
-    destination_rack_specs = None
     #: The source rack (:class:`thelma.models.rack.Rack`)
     #: used for this experiment.
     source_rack = None
@@ -90,12 +87,10 @@ class Experiment(Entity):
     #: experiment belongs to.
     job = None
 
-    def __init__(self, label, destination_rack_specs,
-                 experiment_design, source_rack=None, job=None,
-                 experiment_racks=None, **kw):
+    def __init__(self, label, experiment_design,
+                 source_rack=None, job=None, experiment_racks=None, **kw):
         Entity.__init__(self, **kw)
         self.label = label
-        self.destination_rack_specs = destination_rack_specs
         self.source_rack = source_rack
         self.experiment_design = experiment_design
         self.job = job
@@ -315,7 +310,7 @@ class ExperimentMetadata(Entity):
     #: The subproject (:class:`thelma.models.subproject.Subproject`)
     #: this experiment metadata belongs to.
     subproject = None
-    #: The experiment design containing the meta data for the
+    #: The experiment design containing the met    a data for the
     #: experiments (:class:`thelma.models.experiment.ExperimentDesign`)
     experiment_design = None
     #: The sample plan (:class:`thelma.models.iso.LabIsoRequest`) storing

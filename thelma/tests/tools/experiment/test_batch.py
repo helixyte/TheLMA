@@ -194,7 +194,7 @@ class _ExperimentBatchTestCase(ExperimentTestCase):
         exp_label2 = _EXPERIMENT_BATCH_TEST_DATA.\
                      get_experiment_label2(self.case)
         self.experiment2 = self._create_experiment(label=exp_label2,
-                destination_rack_specs=plate_specs, source_rack=self.iso_plate2,
+                                                   source_rack=self.iso_plate2,
                 experiment_design=self.experiment_metadata.experiment_design)
         self._generate_experiment_plates(plate_specs,
                              _EXPERIMENT_BATCH_TEST_DATA.EXPERIMENT_PLATES_2,
