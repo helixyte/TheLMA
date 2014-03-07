@@ -183,7 +183,7 @@ class LabIsoRequestMember(IsoRequestMember):
         else:
             prx = DataElementAttributeProxy(data)
             new_owner = prx.owner
-            if not new_owner is None and new_owner != self.owner:
+            if new_owner != self.owner:
 #                current_owner = None if self.owner == '' else self.owner
                 self.__process_change_owner(new_owner)
             new_delivery_date = prx.delivery_date
@@ -212,12 +212,13 @@ class LabIsoRequestMember(IsoRequestMember):
 
     def __process_change_owner(self, new_owner):
         trac_tool = None
-        if new_owner == '':
+        if new_owner is None:
             # Reassign to requester for editing the experiment
             # metadata.
             trac_tool = IsoRequestTicketReassigner(
                                     iso_request=self.get_entity(),
                                     completed=False)
+            new_owner = ''
         elif new_owner == self.requester.directory_user_id:
             # Close iso request and reassign to requester.
             trac_tool = IsoRequestTicketReassigner(
