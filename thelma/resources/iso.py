@@ -228,15 +228,19 @@ class LabIsoRequestMember(IsoRequestMember):
                                     iso_request=self.get_entity(),
                                     completed=True)
         elif new_owner == STOCKMANAGEMENT_USER:
-            pass
-        elif new_owner == 'reopen':
-            user_id = get_current_user().directory_user_id
-            new_owner = user_id + ", " + STOCKMANAGEMENT_USER
-            trac_tool = IsoRequestTicketReopener(
-                                    iso_request=self.get_entity(),
-                                    username=user_id)
+            if self.owner == '':
+                # Activate this ISO request for the first time.
+                trac_tool = IsoRequestTicketAccepter(
+                                        iso_request=self.get_entity(),
+                                        username=new_owner)
+            else:
+                user_id = get_current_user().directory_user_id
+                new_owner = user_id + ", " + STOCKMANAGEMENT_USER
+                trac_tool = IsoRequestTicketReopener(
+                                        iso_request=self.get_entity(),
+                                        username=user_id)
         else:
-            # Accept iso request.
+            # Accept this ISO request.
             tkt_user = new_owner.split(',')[0]
             trac_tool = IsoRequestTicketAccepter(
                                     iso_request=self.get_entity(),
