@@ -169,6 +169,7 @@ class LabIsoRequestMember(IsoRequestMember):
                     for plate in iso.iso_aliquot_plates:
                         if iso.status == ISO_STATUS.DONE:
                             iso_plates.add(plate)
+            iso_plates.__parent__ = self
             result = iso_plates
         else:
             result = Member.__getitem__(self, name)
