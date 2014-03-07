@@ -17,7 +17,6 @@ from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from everest.resources.staging import create_staging_collection
-from thelma.automation.semiconstants import get_item_status_future
 from thelma.automation.tools.iso import get_job_creator
 from thelma.automation.tools.iso import lab
 from thelma.automation.tools.iso.lab import get_stock_rack_recyler
@@ -41,9 +40,6 @@ from thelma.interfaces import IUser
 from thelma.models.experiment import EXPERIMENT_METADATA_TYPES
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import ISO_TYPES
-from thelma.models.iso import Iso
-from thelma.models.iso import IsoPreparationPlate
-from thelma.models.job import IsoJob
 from thelma.models.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
 from thelma.utils import run_tool
@@ -299,25 +295,31 @@ class LabIsoRequestMember(IsoRequestMember):
         iso.status = new_status
 
     def __copy_iso(self, iso):
-        future = get_item_status_future()
-        new_iso = Iso(label=iso.label + '_copy',
-                      iso_request=iso.iso_request,
-                      molecule_design_pool_set=\
-                                iso.molecule_design_pool_set,
-                      optimizer_excluded_racks=
-                                    iso.optimizer_excluded_racks,
-                      optimizer_required_racks=
-                                    iso.optimizer_required_racks,
-                      rack_layout=iso.rack_layout,)
-        prep_label = 'p_%s' % (new_iso.label)
-        prep_plate = iso.preparation_plate.specs.create_rack(
-                            label=prep_label,
-                            status=future)
-        IsoPreparationPlate(iso=new_iso, plate=prep_plate)
-        new_isos = [new_iso]
-        job_num = len(iso.iso_request.iso_jobs) + 1
-        IsoJob(label='ISO Job %d' % job_num, user=get_current_user(),
-               isos=new_isos)
+        # FIXME: We need to figure out what to do her (#563).
+        raise NotImplementedError('Not implemented.')
+#        future = get_item_status_future()
+#        new_iso = LabIso(label=iso.label + '_copy',
+#                         number_stock_racks=iso.number_stock_racks,
+#                         rack_layout=iso.rack_layout,
+#                         iso_request=iso.iso_request,
+#                         molecule_design_pool_set=\
+#                                    iso.molecule_design_pool_set,
+#                         optimizer_excluded_racks=
+#                                        iso.optimizer_excluded_racks,
+#                         optimizer_required_racks=
+#                                        iso.optimizer_required_racks,
+#                         )
+#        prep_label = 'p_%s' % (new_iso.label)
+#        prep_plate = iso.preparation_plate.specs.create_rack(
+#                            label=prep_label,
+#                            status=future)
+#        # FIXME: Using side effect of instantiation.
+#        IsoPreparationPlate(iso=new_iso, plate=prep_plate)
+#        new_isos = [new_iso]
+#        job_num = len(iso.iso_request.iso_jobs) + 1
+#        # FIXME: Using side effect of instantiation.
+#        IsoJob(label='ISO Job %d' % job_num, user=get_current_user(),
+#               isos=new_isos)
 
     def __pipetting_iso_or_iso_job(self, iso_or_iso_job):
         user = get_current_user()
