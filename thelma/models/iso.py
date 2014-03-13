@@ -150,7 +150,6 @@ class LabIsoRequest(IsoRequest):
     #: preparations?). Default: True. If there is no ISO job processing this
     #: value is ignored.
     process_job_first = None
-
     #: The molecule design library whose plates are used for this ISO request
     #: (:class:`thelma.models.library.MoleculeDesignLibrary`, optional).
     molecule_design_library = None
@@ -178,6 +177,10 @@ class LabIsoRequest(IsoRequest):
         The experiment type of the experiment metadata.
         """
         return self.experiment_metadata.experiment_metadata_type
+
+    @property
+    def has_library(self):
+        return not self.molecule_design_library is None
 
 
 class StockSampleCreationIsoRequest(IsoRequest):
@@ -412,7 +415,6 @@ class LabIso(Iso):
 
     **Equality condition**: equal :attr:`iso_request` and equal :attr:`label`
     """
-
     #: In case of lab ISOs we use pre-existing library plates instead of
     #: creating aliquot plates (:class:`thelma.models.library.LibraryPlate`).
     library_plates = None
@@ -444,6 +446,7 @@ class LabIso(Iso):
         :param plate: The plate to be added.
         :type plate: :class:`thelma.models.rack.Plate`
         """
+        # FIXME: Using instantiation for side effect.
         IsoAliquotPlate(iso=self, rack=plate)
 
     def add_preparation_plate(self, plate, rack_layout):
@@ -456,6 +459,7 @@ class LabIso(Iso):
         :param rack_layout: The rack layout containing the plate data.
         :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
         """
+        # FIXME: Using instantiation for side effect.
         IsoPreparationPlate(iso=self, rack=plate, rack_layout=rack_layout)
 
 

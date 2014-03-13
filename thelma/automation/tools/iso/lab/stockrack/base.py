@@ -194,10 +194,15 @@ class _StockRackAssigner(BaseAutomationTool):
         plates of an ISO. The rack markers for aliquot and library plates
         need to be distinguished.
         """
+        # FIXME: Hack around not having proper "final" plates attached to
+        #        the ISO.
+        library_plates = set([lp.rack for lp in iso.library_plates])
         for fp in iso.iso_aliquot_plates:
             self.__final_plate_count += 1
-            self._store_rack_container(fp.rack, role=LABELS.ROLE_FINAL)
-
+            if not fp.rack in library_plates:
+                self._store_rack_container(fp.rack, role=LABELS.ROLE_FINAL)
+            else:
+                rack_marker = LABELS.ROLE_FINAL
         counter = 0
         one_aliquot = (self._iso_request.number_aliquots == 1)
         for fp in iso.library_plates:

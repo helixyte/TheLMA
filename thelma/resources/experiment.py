@@ -49,7 +49,6 @@ from thelma.models.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
 
 
-# from thelma.models.experiment import ExperimentDesignRack
 __docformat__ = 'reStructuredText en'
 
 __author__ = 'F Oliver Gathmann'

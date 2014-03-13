@@ -60,13 +60,21 @@ class ExperimentJobMember(JobMember):
     def update(self, data):
         if IDataElement.providedBy(data): # pylint: disable=E1101
             prx = DataElementAttributeProxy(data)
-            exp_nodes = prx.experiments
-            if exp_nodes is not None:
+            try:
+                exp_nodes = prx.experiments
+            except AttributeError:
+                pass
+            else:
                 for exp_node in exp_nodes:
-                    exp_rack_nodes = exp_node.experiment_racks
                     exp_id = exp_node.id
-                    if exp_rack_nodes is not None and len(exp_rack_nodes) > 0:
-                        self.__update_experiment_racks(exp_rack_nodes, exp_id)
+                    try:
+                        exp_rack_nodes = exp_node.experiment_racks
+                    except AttributeError:
+                        pass
+                    else:
+                        if len(exp_rack_nodes) > 0:
+                            self.__update_experiment_racks(exp_rack_nodes,
+                                                           exp_id)
         else:
             JobMember.update(self, data)
 

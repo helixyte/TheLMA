@@ -44,6 +44,7 @@ from thelma.models.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
 from thelma.utils import run_tool
 from thelma.utils import run_trac_tool
+from thelma.interfaces import ILibraryPlate
 
 
 #from thelma.automation.tools.libcreation.iso import LibraryCreationIsoPopulator
@@ -93,6 +94,8 @@ class LabIsoMember(IsoMember):
     relation = "%s/lab-iso" % RELATION_BASE_URL
 
     iso_request = member_attribute(ILabIsoRequest, 'iso_request')
+    library_plates = collection_attribute(ILibraryPlate, 'library_plates',
+                                          backref='lab_iso')
 
 
 class StockSampleCreationIsoMember(IsoMember):
@@ -182,17 +185,32 @@ class LabIsoRequestMember(IsoRequestMember):
 #            self.number_aliquots = new_entity.number_aliquots
         else:
             prx = DataElementAttributeProxy(data)
-            new_owner = prx.owner
-            if new_owner != self.owner:
+            try:
+                new_owner = prx.owner
+            except AttributeError:
+                pass
+            else:
+                if new_owner != self.owner:
 #                current_owner = None if self.owner == '' else self.owner
-                self.__process_change_owner(new_owner)
-            new_delivery_date = prx.delivery_date
-            if new_delivery_date:
+                    self.__process_change_owner(new_owner)
+            try:
+                new_delivery_date = prx.delivery_date
+            except AttributeError:
+                pass
+            else:
                 self.delivery_date = new_delivery_date
-            if not prx.jobs is None:
-                self.__process_iso_jobs(prx.jobs)
-            if not prx.isos is None:
-                self.__process_isos(prx.isos)
+            try:
+                jobs = prx.jobs
+            except AttributeError:
+                pass
+            else:
+                self.__process_iso_jobs(jobs)
+            try:
+                isos = prx.isos
+            except AttributeError:
+                pass
+            else:
+                self.__process_isos(isos)
 
     def create_xl20_worklist(self, entity, rack_barcodes,
                              optimizer_excluded_racks=None,

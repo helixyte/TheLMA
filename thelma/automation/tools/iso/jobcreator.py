@@ -136,13 +136,11 @@ class IsoJobCreator(BaseAutomationTool):
                   log=self.log)
 
     def __create_iso_job(self):
-
         """
         Creates an :class:`IsoJob` summarizing the ISOs. The label for
         the job is derived from the ISO request label.
         """
         self.add_debug('Create ISO job ...')
-
         job_label = self._get_job_label()
         number_stock_racks = self._get_number_stock_racks()
         worklist_series = self._create_iso_job_worklist_series()

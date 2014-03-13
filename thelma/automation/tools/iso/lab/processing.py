@@ -172,8 +172,7 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
 
         isos = self._get_isos()
         for iso in isos:
-            converter = FinalLabIsoLayoutConverter(log=self.log,
-                                                   rack_layout=iso.rack_layout)
+            converter = FinalLabIsoLayoutConverter(iso.rack_layout, self.log)
             layout = converter.get_result()
             if layout is None:
                 msg = 'Error when trying to convert final layout for ISO ' \
@@ -245,7 +244,6 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         """
         plate = iso_plate.rack
         rack_name = '%s (%s)' % (plate.barcode, plate.label)
-
         if self._expected_iso_status == ISO_STATUS.QUEUED and verify:
             sample_positions = []
             for well in plate.containers:
@@ -664,7 +662,7 @@ class WriterExecutorIsoJob(_LabIsoWriterExecutorTool):
     **Return Value:** a zip stream for for printing mode or the updated ISO job
         for execution mode
     """
-    NAME = 'Lab ISO Writer/Executor'
+    NAME = 'Lab ISO Job Writer/Executor'
     ENTITY_CLS = IsoJob
 
     def __init__(self, iso_job, mode, user=None, **kw):
@@ -748,7 +746,7 @@ class WriterExecutorLabIso(_LabIsoWriterExecutorTool):
     **Return Value:** a zip stream for for printing mode or the updated ISO
         for execution mode
     """
-    NAME = 'Lab ISO Job Writer/Executor'
+    NAME = 'Lab ISO Writer/Executor'
     ENTITY_CLS = LabIso
 
     def __init__(self, iso, mode, user=None, **kw):

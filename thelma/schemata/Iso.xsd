@@ -4,13 +4,14 @@
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
     xmlns:iso="http://schemata.cenix-bioscience.com/iso"
-    xmlns:isr="http://schemata.cenix-bioscience.com/isostockrack"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
     xmlns:isor="http://schemata.cenix-bioscience.com/isorequest"
+    xmlns:isr="http://schemata.cenix-bioscience.com/isostockrack"
+    xmlns:j="http://schemata.cenix-bioscience.com/job"
+    xmlns:lp="http://schemata.cenix-bioscience.com/libraryplate"
     xmlns:mdps="http://schemata.cenix-bioscience.com/moleculedesignpoolset"
     xmlns:r="http://schemata.cenix-bioscience.com/rack"
     xmlns:rl="http://schemata.cenix-bioscience.com/racklayout"
-    xmlns:j="http://schemata.cenix-bioscience.com/job"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
 >
     <import
         schemaLocation="IsoRequest.xsd"
@@ -23,31 +24,33 @@
     >
     </import>
     <import
+        schemaLocation="Job.xsd"
+        namespace="http://schemata.cenix-bioscience.com/job"
+    >
+    </import>
+    <import
+        schemaLocation="LibraryPlate.xsd"
+        namespace="http://schemata.cenix-bioscience.com/libraryplate"
+    >
+    </import>
+    <import
         schemaLocation="MoleculeDesignPoolSet.xsd"
         namespace="http://schemata.cenix-bioscience.com/moleculedesignpoolset"
     >
     </import>
-
-    <import
-        schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
-    >
-    </import>
-
     <import
         schemaLocation="Rack.xsd"
         namespace="http://schemata.cenix-bioscience.com/rack"
     >
     </import>
-
     <import
         schemaLocation="RackLayout.xsd"
         namespace="http://schemata.cenix-bioscience.com/racklayout"
     >
     </import>
     <import
-        schemaLocation="Job.xsd"
-        namespace="http://schemata.cenix-bioscience.com/job"
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
     >
     </import>
 
@@ -152,6 +155,12 @@
                         </group>
                         <element
                             ref="isor:lab_iso_request"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            ref="lp:library_plates"
                             minOccurs="0"
                             maxOccurs="1"
                         >

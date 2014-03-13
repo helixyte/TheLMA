@@ -42,10 +42,12 @@ class LocationMember(Member):
         if IDataElement.providedBy(data): # pylint: disable=E1101
             prx = DataElementAttributeProxy(data)
             loc = self.get_entity()
-            if prx.rack is None:
+            try:
+                rack = prx.rack
+            except AttributeError:
                 loc.checkout_rack()
             else:
-                loc.checkin_rack(prx.rack.get_entity())
+                loc.checkin_rack(rack.get_entity())
         else:
             Member.update(self, data)
 

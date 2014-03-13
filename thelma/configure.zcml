@@ -101,6 +101,7 @@
            .interfaces.IIsoRequest
            .interfaces.IItemStatus
            .interfaces.IJob
+           .interfaces.ILibraryPlate
            .interfaces.ILocation
            .interfaces.ILocationType
            .interfaces.IMolecule
@@ -175,6 +176,7 @@
            .interfaces.IIsoRequest
            .interfaces.IItemStatus
            .interfaces.IJob
+           .interfaces.ILibraryPlate
            .interfaces.ILocation
            .interfaces.ILocationType
            .interfaces.IMolecule

@@ -160,20 +160,14 @@ class BaseLayoutConverter(BaseAutomationTool):
         Checks whether there are tags for all required parameters in the
         source rack layout.
         """
-
         self.add_debug('Check completeness of the required parameters ...')
 
-        all_predicates = set()
-        for tag in self.rack_layout.get_tags():
-            all_predicates.add(tag.predicate)
-
+        all_predicates = \
+            set([tag.predicate for tag in self.rack_layout.get_tags()])
         has_tag_map = dict()
         for parameter, validator in self._parameter_validators.iteritems():
-            has_tag_map[parameter] = False
-            for predicate in all_predicates:
-                if validator.has_alias(predicate):
-                    has_tag_map[parameter] = True
-
+            has_tag_map[parameter] = \
+                any((validator.has_alias(pred) for pred in all_predicates))
         for parameter, has_tag in has_tag_map.iteritems():
             if not has_tag and not parameter in self._optional_parameters:
                 msg = 'There is no %s specification for this rack layout. ' \
@@ -190,7 +184,6 @@ class BaseLayoutConverter(BaseAutomationTool):
         parameter_map = {self._RACK_POSITION_KEY : rack_position}
         for parameter in self._parameter_validators.keys():
             parameter_map[parameter] = None
-
         for tag in tag_set:
             #: Find parameter for this tag (if any).
             predicate = None
@@ -205,7 +198,6 @@ class BaseLayoutConverter(BaseAutomationTool):
                 info = '%s ("%s")' % (rack_position, tag.predicate)
                 self._multiple_tags.append(info)
             parameter_map[predicate] = value
-
         return parameter_map
 
     def __obtain_working_position(self, parameter_map):

@@ -315,7 +315,6 @@ class LabIsoPosition(TransferPosition):
     Represents a position in a plate involved in lab ISO processing.
     """
     PARAMETER_SET = LabIsoParameters
-
     #: Used in the ISO planning phase to mark a staring position for which
     #: there is no tube barcode yet.
     TEMP_STOCK_DATA = 'to be defined'
@@ -328,17 +327,7 @@ class LabIsoPosition(TransferPosition):
                  stock_tube_barcode=None, stock_rack_barcode=None,
                  sector_index=None, stock_rack_marker=None):
         """
-        Constructor:
-
-        :param rack_position: The position within the rack.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`
-
-        :param molecule_design_pool: The molecule design pool for this position.
-        :type molecule_design_pool:  placeholder or
-            :class:`thelma.models.moleculedesign.MoleculeDesignPool`
-
-        :param position_type: The position type (fixed, floating or mock).
-        :type position_type: :class:`str`
+        Constructor.
 
         :param concentration: The target concentration in the plate after
             all additions and dilutions.
@@ -347,9 +336,6 @@ class LabIsoPosition(TransferPosition):
         :param volume: The maximum volume in the plate (after all dilutions
             but before usage as source well).
         :type volume: positive number, unit ul
-
-        :param transfer_targets: The transfer targets *within the same plate*.
-        type transfer_targets: List of transfer target objects.
 
         :param stock_tube_barcode: The barcode of the stock tube of the prime
             hit of the optimisation query.
@@ -373,8 +359,8 @@ class LabIsoPosition(TransferPosition):
             raise ValueError(msg)
         TransferPosition.__init__(self, rack_position=rack_position,
                                   molecule_design_pool=molecule_design_pool,
-                                  transfer_targets=transfer_targets,
-                                  position_type=position_type)
+                                  position_type=position_type,
+                                  transfer_targets=transfer_targets)
 
         if concentration is None:
             if self.is_fixed or self.is_floating or self.is_library:
@@ -1019,49 +1005,12 @@ class FinalLabIsoPosition(LabIsoPosition):
                  stock_tube_barcode=None, stock_rack_barcode=None,
                  sector_index=None, stock_rack_marker=None):
         """
-        Constructor:
-
-        :param rack_position: The position within the rack.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`
-
-        :param molecule_design_pool: The molecule design pool for this position.
-        :type molecule_design_pool:  placeholder or
-            :class:`thelma.models.moleculedesign.MoleculeDesignPool`
-
-        :param position_type: The position type (fixed, floating or mock).
-        :type position_type: :class:`str`
-
-        :param concentration: The target concentration in the plate after
-            all additions and dilutions.
-        :type concentration: positive number, unit nM
-
-        :param volume: The maximum volume in the plate (after all dilutions
-            but before usage as source well).
-        :type volume: positive number, unit ul
+        Constructor.
 
         :param from_job: Is the pool for this position handled by the ISO job
             (*True*) or the ISO (*False*)?
         :type from_job: :class:`bool`
         :default from_job: *False*
-
-        :param transfer_targets: The transfer targets *within the same plate*.
-        type transfer_targets: List of transfer target objects.
-
-        :param stock_tube_barcode: The barcode of the stock tube of the prime
-            hit of the optimisation query.
-        :type stock_tube_barcode: :class:`str`
-
-        :param stock_rack_barcode: The barcode of the stock rack of the prime
-            hit of the optimisation query.
-        :type stock_rack_barcode: :class:`str`
-
-        :param sector_index: The sector index within in the plate (only for
-            samples that are transferred via the CyBio).
-        :type sector_index: non-negative integer
-
-        :param stock_rack_marker: The plate marker (see :class:`LABELS`) for
-            the source stock rack (only for starting wells).
-        :type stock_rack_marker: :class:`str`
         """
         LabIsoPosition.__init__(self, rack_position=rack_position,
                                   molecule_design_pool=molecule_design_pool,
@@ -1092,7 +1041,6 @@ class FinalLabIsoPosition(LabIsoPosition):
         :param from_job: Does the sample originate from ISO job processing
             (*True*) or the ISO processing (*False*)?
         :type from_job: :class:`bool`
-
         :param iso_plate_pos: The ISO plate position containing the values
             for this final ISO position.
         :type iso_plate_pos: :class:`LabIsoPosition`
@@ -1101,10 +1049,8 @@ class FinalLabIsoPosition(LabIsoPosition):
                       'concentration', 'volume', 'transfer_targets',
                       'stock_tube_barcode', 'stock_rack_barcode',
                       'stock_rack_marker')
-        kw = dict()
-        for attr_name in attr_names:
-            value = getattr(iso_plate_pos, attr_name)
-            kw[attr_name] = value
+        kw = dict([(attr_name, getattr(iso_plate_pos, attr_name))
+                   for attr_name in attr_names])
         kw['from_job'] = from_job
         return FinalLabIsoPosition(**kw)
 
@@ -1116,10 +1062,8 @@ class FinalLabIsoPosition(LabIsoPosition):
 
         :param rack_position: The position within the rack.
         :type rack_position: :class:`thelma.models.rack.RackPosition`
-
         :param concentration: The pool concentration in the plate *in nM*.
         :type concentration: positive number, unit nM
-
         :param volume: The volume in the plate *in ul*.
         :type volume: positive number, unit ul
         """
