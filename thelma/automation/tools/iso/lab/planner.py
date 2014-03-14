@@ -3481,8 +3481,8 @@ class SectorPlanner(_LayoutPlanner):
             self._registered_containers[sector_index] = container
 
     def _init_assigner(self, reservoir_specs):
-        return SectorLocationAssigner(reservoir_specs=reservoir_specs,
-                      final_plate_dead_vol=self._final_plate_dead_vol)
+        return SectorLocationAssigner(reservoir_specs,
+                                      self._final_plate_dead_vol)
 
     def _find_coupled_containers(self):
         """
