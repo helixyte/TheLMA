@@ -286,8 +286,10 @@ class LabIsoRequestMember(IsoRequestMember):
             iso_id = iso_prx.id
             if status == 'NEW':
                 number_of_new_isos += 1
-                optimizer_excluded_racks = iso_prx.optimizer_excluded_racks
-                optimizer_required_racks = iso_prx.optimizer_required_racks
+                optimizer_excluded_racks = \
+                    getattr(iso_prx, 'optimizer_excluded_racks', None)
+                optimizer_required_racks = \
+                    getattr(iso_prx, 'optimizer_required_racks', None)
             else:
                 # Retrieve the ISO entity and perform an operation on it.
                 iso = self.__find_iso(iso_id)
