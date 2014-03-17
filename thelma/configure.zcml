@@ -233,7 +233,6 @@
              .interfaces.IIsoJob
              .interfaces.IOrganization
              .interfaces.IProject
-             .interfaces.ITube
              .interfaces.IUser
              "
         request_method="PUT
@@ -243,6 +242,7 @@
 
     <member_view
         for=".interfaces.IIsoRequest
+             .interfaces.ITube
             "
         renderer="atom"
         request_method="PATCH
