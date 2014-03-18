@@ -263,11 +263,9 @@ class Iso(Entity):
 
     **Equality condition**: equal :attr:`iso_request` and equal :attr:`label`
     """
-
     #: The type of the ISO (see :class:`ISO_TYPES` - lab or stock sample
     #: creation).
     iso_type = None
-
     #: A (human-readable) label, this usually contains a running number
     #: within the :class:`IsoRequest`.
     label = None
@@ -281,10 +279,8 @@ class Iso(Entity):
     rack_layout = None
     #: The ISO job this ISO belongs to (:class:`IsoJob`).
     iso_job = None
-
     #: The maximum number if ISO stock racks (all ISO types) for this ISO.
     number_stock_racks = None
-
     #: The ISO stocks rack for this ISO (set of :class:`IsoStockRack`) provide
     #: samples that are only used in the processing of this ISO and not by
     #: other ISOs in the same :attr:`iso_job`.
@@ -299,16 +295,14 @@ class Iso(Entity):
     #: These are the actual final plates this ISO was meant to create
     #: (list of :class:`IsoAliquotPlate`).
     iso_aliquot_plates = None
-
     #: This set contains the molecule design pools specific to this ISO. The set
     #: is a subset of the :attr:`iso_request` pool set.
     molecule_design_pool_set = None
-
     #: comma separated list of stock racks id to be ignored by the optimizer
+    # FIXME: The optimizer parameters should actually be part of the ISO job.
     optimizer_excluded_racks = None
-    #: comma separated list of stock racks id to be used by the optimizer
-    optimizer_required_racks = None
-
+    #: comma separated list of stock tube barcodes to be used by the optimizer
+    optimizer_requested_tubes = None
     #: the status the ISO is set to if no other status is specified (*queued*).
     DEFAULT_STATUS = ISO_STATUS.QUEUED
 
@@ -316,7 +310,7 @@ class Iso(Entity):
                  iso_request=None,
                  status=None, molecule_design_pool_set=None,
                  optimizer_excluded_racks=None,
-                 optimizer_required_racks=None, iso_job=None,
+                 optimizer_requested_tubes=None, iso_job=None,
                  iso_stock_racks=None, iso_sector_stock_racks=None,
                  iso_preparation_plates=None, iso_aliquot_plates=None,
                  iso_type=None, **kw):
@@ -351,7 +345,7 @@ class Iso(Entity):
         self.iso_aliquot_plates = iso_aliquot_plates
         self.molecule_design_pool_set = molecule_design_pool_set
         self.optimizer_excluded_racks = optimizer_excluded_racks
-        self.optimizer_required_racks = optimizer_required_racks
+        self.optimizer_requested_tubes = optimizer_requested_tubes
 
     @property
     def slug(self):
@@ -415,17 +409,23 @@ class LabIso(Iso):
 
     **Equality condition**: equal :attr:`iso_request` and equal :attr:`label`
     """
-    #: In case of lab ISOs we use pre-existing library plates instead of
+    #: In case of library ISOs we use pre-existing library plates instead of
     #: creating aliquot plates (:class:`thelma.models.library.LibraryPlate`).
     library_plates = None
+    #: A list of requested library plate barcodes if this is a library ISO.
+    # FIXME: Like the optimizer parameters, this should actually be part of
+    #        the ISO job.
+    requested_library_plates = None
 
-    def __init__(self, label, number_stock_racks, **kw):
+    def __init__(self, label, number_stock_racks,
+                 requested_library_plates=None, **kw):
         """
         Constructor
         """
         Iso.__init__(self, label=label, number_stock_racks=number_stock_racks,
                      iso_type=ISO_TYPES.LAB, **kw)
         self.library_plates = []
+        self.requested_library_plates = requested_library_plates
 
     @property
     def final_plates(self):

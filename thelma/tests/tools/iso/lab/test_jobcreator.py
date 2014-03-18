@@ -47,7 +47,7 @@ class _LabIsoJobCreatorDummy(LabIsoJobCreator):
         LabIsoJobCreator.__init__(self, **kw)
         self.use_library_planner = use_library_planner
 
-    def _get_builder_cls(self):
+    def _get_planner_class(self):
         if self.use_library_planner:
             return LibraryIsoPlanner
         else:
@@ -137,7 +137,7 @@ class LabIsoJobCreatorTestCase(LabIsoTestCase1):
             self.assert_equal(iso.iso_sector_stock_racks, [])
             self.assert_equal(iso.optimizer_excluded_racks,
                               excluded_racks_str)
-            self.assert_equal(iso.optimizer_required_racks,
+            self.assert_equal(iso.optimizer_requested_tubes,
                               requested_tubes_str)
 
     def __check_job_preparation_plates(self, iso_job):

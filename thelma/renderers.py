@@ -123,18 +123,18 @@ class ZippedWorklistRenderer(CustomRenderer):
 
     def _extract_from_params(self, params):
         optimizer_excluded_racks = params.get('optimizer_excluded_racks', '')
-        optimizer_required_racks = params.get('optimizer_required_racks', '')
+        optimizer_requested_tubes = params.get('optimizer_requested_tubes', '')
         if len(optimizer_excluded_racks) > 0:
             optimizer_excluded_racks = optimizer_excluded_racks.split(',')
         else:
             optimizer_excluded_racks = None
-        if len(optimizer_required_racks) > 0:
-            optimizer_required_racks = optimizer_required_racks.split(',')
+        if len(optimizer_requested_tubes) > 0:
+            optimizer_requested_tubes = optimizer_requested_tubes.split(',')
         else:
-            optimizer_required_racks = None
+            optimizer_requested_tubes = None
         include_dummy_output = params.get('include_dummy_output') == 'true'
         return dict(excluded_racks=optimizer_excluded_racks,
-                    requested_tubes=optimizer_required_racks,
+                    requested_tubes=optimizer_requested_tubes,
                     include_dummy_output=include_dummy_output)
 
     def __create_worklist_stream(self, resource, options, worklist_type):

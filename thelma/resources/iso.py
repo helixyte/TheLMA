@@ -30,6 +30,7 @@ from thelma.interfaces import IExperimentMetadata
 from thelma.interfaces import IIsoJob
 from thelma.interfaces import ILabIso
 from thelma.interfaces import ILabIsoRequest
+from thelma.interfaces import ILibraryPlate
 from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeDesignPoolSet
 from thelma.interfaces import IPlate
@@ -44,7 +45,6 @@ from thelma.models.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
 from thelma.utils import run_tool
 from thelma.utils import run_trac_tool
-from thelma.interfaces import ILibraryPlate
 
 
 #from thelma.automation.tools.libcreation.iso import LibraryCreationIsoPopulator
@@ -75,8 +75,8 @@ class IsoMember(Member):
                                                 'molecule_design_pool_set')
     optimizer_excluded_racks = terminal_attribute(str,
                                                   'optimizer_excluded_racks')
-    optimizer_required_racks = terminal_attribute(str,
-                                                  'optimizer_required_racks')
+    optimizer_requested_tubes = terminal_attribute(str,
+                                                  'optimizer_requested_tubes')
     preparation_plates = collection_attribute(IPlate,
                                               'preparation_plates')
     aliquot_plates = collection_attribute(IPlate,
@@ -96,6 +96,8 @@ class LabIsoMember(IsoMember):
     iso_request = member_attribute(ILabIsoRequest, 'iso_request')
     library_plates = collection_attribute(ILibraryPlate, 'library_plates',
                                           backref='lab_iso')
+    requested_library_plates = terminal_attribute(str,
+                                                  'requested_library_plates')
 
 
 class StockSampleCreationIsoMember(IsoMember):
@@ -214,13 +216,13 @@ class LabIsoRequestMember(IsoRequestMember):
 
     def create_xl20_worklist(self, entity, rack_barcodes,
                              optimizer_excluded_racks=None,
-                             optimizer_required_racks=None,
+                             optimizer_requested_tubes=None,
                              include_dummy_output=False):
         assembler = lab.get_stock_rack_assembler(
                                 entity=entity,
                                 rack_barcodes=rack_barcodes,
                                 excluded_racks=optimizer_excluded_racks,
-                                requested_tubes=optimizer_required_racks,
+                                requested_tubes=optimizer_requested_tubes,
                                 include_dummy_output=include_dummy_output)
         return run_tool(assembler)
 
@@ -280,7 +282,8 @@ class LabIsoRequestMember(IsoRequestMember):
     def __process_isos(self, isos_prx):
         number_of_new_isos = 0
         optimizer_excluded_racks = None
-        optimizer_required_racks = None
+        optimizer_requested_tubes = None
+        requested_library_plates = None
         for iso_prx in isos_prx:
             status = iso_prx.status
             iso_id = iso_prx.id
@@ -288,8 +291,10 @@ class LabIsoRequestMember(IsoRequestMember):
                 number_of_new_isos += 1
                 optimizer_excluded_racks = \
                     getattr(iso_prx, 'optimizer_excluded_racks', None)
-                optimizer_required_racks = \
-                    getattr(iso_prx, 'optimizer_required_racks', None)
+                optimizer_requested_tubes = \
+                    getattr(iso_prx, 'optimizer_requested_tubes', None)
+                requested_library_plates = \
+                    getattr(iso_prx, 'requested_library_plates', None)
             else:
                 # Retrieve the ISO entity and perform an operation on it.
                 iso = self.__find_iso(iso_id)
@@ -310,7 +315,8 @@ class LabIsoRequestMember(IsoRequestMember):
         if number_of_new_isos > 0:
             self.__generate_isos(number_of_new_isos,
                                  optimizer_excluded_racks,
-                                 optimizer_required_racks)
+                                 optimizer_requested_tubes,
+                                 requested_library_plates)
 
     def __update_iso_status(self, iso, new_status):
         iso.status = new_status
@@ -327,8 +333,8 @@ class LabIsoRequestMember(IsoRequestMember):
 #                                    iso.molecule_design_pool_set,
 #                         optimizer_excluded_racks=
 #                                        iso.optimizer_excluded_racks,
-#                         optimizer_required_racks=
-#                                        iso.optimizer_required_racks,
+#                         optimizer_requested_tubes=
+#                                        iso.optimizer_requested_tubes,
 #                         )
 #        prep_label = 'p_%s' % (new_iso.label)
 #        prep_plate = iso.preparation_plate.specs.create_rack(
@@ -358,11 +364,14 @@ class LabIsoRequestMember(IsoRequestMember):
                         error_prefix='Invalid stock rack(s)! --')
 
     def __generate_isos(self, number_of_new_isos,
-                        optimizer_excluded_racks, optimizer_requested_tubes):
-        if optimizer_excluded_racks is not None:
+                        optimizer_excluded_racks, optimizer_requested_tubes,
+                        requested_library_plates):
+        if not optimizer_excluded_racks is None:
             optimizer_excluded_racks = optimizer_excluded_racks.split(',')
-        if optimizer_requested_tubes is not None:
+        if not optimizer_requested_tubes is None:
             optimizer_requested_tubes = optimizer_requested_tubes.split(',')
+        if not requested_library_plates is None:
+            requested_library_plates = requested_library_plates.split(',')
         iso_request = self.get_entity()
         user = get_current_user()
         if iso_request.iso_type == ISO_TYPES.LAB:
@@ -371,7 +380,9 @@ class LabIsoRequestMember(IsoRequestMember):
                                 user,
                                 number_of_new_isos,
                                 excluded_racks=optimizer_excluded_racks,
-                                requested_tubes=optimizer_requested_tubes)
+                                requested_tubes=optimizer_requested_tubes,
+                                requested_library_plates=
+                                                    requested_library_plates)
         else:
             raise NotImplementedError('POOL CREATION ISOs not implemented.')
         return run_tool(creator)

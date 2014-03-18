@@ -102,7 +102,7 @@
             >
             </element>
             <element
-                name="optimizer_required_racks"
+                name="optimizer_requested_tubes"
                 type="string"
                 minOccurs="0"
                 maxOccurs="1"
@@ -161,6 +161,13 @@
                         </element>
                         <element
                             ref="lp:library_plates"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="requested_library_plates"
+                            type="string"
                             minOccurs="0"
                             maxOccurs="1"
                         >

@@ -5,6 +5,9 @@ what sort of plates and layout we need.
 AAB
 """
 from math import ceil
+
+from everest.entities.utils import get_root_aggregate
+from everest.querying.specifications import cntd
 from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.semiconstants import get_96_rack_shape
@@ -33,6 +36,7 @@ from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.base import are_equal_values
+from thelma.automation.utils.base import get_nested_dict
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import is_larger_than
 from thelma.automation.utils.base import is_smaller_than
@@ -47,15 +51,16 @@ from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
 from thelma.automation.utils.layouts import TransferTarget
 from thelma.automation.utils.racksector import QuadrantIterator
 from thelma.automation.utils.racksector import RackSectorTranslator
+from thelma.interfaces import ILibraryPlate
 from thelma.models.iso import ISO_STATUS
+from thelma.models.iso import ISO_TYPES
 from thelma.models.iso import LabIso
 from thelma.models.iso import LabIsoRequest
 from thelma.models.liquidtransfer import PlannedRackSampleTransfer
 from thelma.models.liquidtransfer import PlannedSampleDilution
 from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
-from thelma.automation.utils.base import get_nested_dict
-from thelma.models.iso import ISO_TYPES
+
 
 __docformat__ = 'reStructuredText en'
 
@@ -330,7 +335,7 @@ class LabIsoBuilder(object):
                      molecule_design_pool_set=pool_set,
                      rack_layout=final_layout.create_rack_layout(),
                      optimizer_excluded_racks=self._exluded_racks,
-                     optimizer_required_racks=self._requested_tubes)
+                     optimizer_requested_tubes=self._requested_tubes)
         self.__add_final_iso_plates(iso)
         if len(prep_layouts) > 0:
             self._create_iso_preparation_plates(iso, prep_layouts)
@@ -3997,7 +4002,7 @@ class LibraryIsoBuilder(LabIsoBuilder):
                      number_stock_racks=0,
                      rack_layout=final_layout.create_rack_layout(),
                      optimizer_excluded_racks=self._exluded_racks,
-                     optimizer_required_racks=self._requested_tubes)
+                     optimizer_requested_tubes=self._requested_tubes)
         if len(prep_layouts) > 0:
             self._create_iso_preparation_plates(iso, prep_layouts)
         self.__attach_library_plates(iso)
@@ -4041,8 +4046,8 @@ class LibraryIsoPlanner(LabIsoPlanner):
 
     _BUILDER_CLS = LibraryIsoBuilder
 
-    def __init__(self, log, iso_request, number_isos,
-                       excluded_racks=None, requested_tubes=None):
+    def __init__(self, log, iso_request, number_isos, excluded_racks=None,
+                 requested_tubes=None, requested_library_plates=None):
         LabIsoPlanner.__init__(self, log=log, iso_request=iso_request,
                                number_isos=number_isos,
                                excluded_racks=excluded_racks,
@@ -4052,6 +4057,9 @@ class LibraryIsoPlanner(LabIsoPlanner):
         #: The library plates (future aliquot plates) mapped onto layout
         #: numbers.
         self.__library_plates = None
+        #: Library plates requested for this ISO. If None, plates are
+        #: assigned automatically.
+        self.__requested_library_plates = requested_library_plates
 
     def reset(self):
         LabIsoPlanner.reset(self)
@@ -4073,13 +4081,59 @@ class LibraryIsoPlanner(LabIsoPlanner):
             msg = 'There is no library for this ISO request!'
             self.add_error(msg)
         else:
-            self.__find_library_plates()
+            if self.__requested_library_plates is None:
+                self.__find_library_plates()
+            else:
+                self.__check_library_plates()
             if not self.has_errors():
                 self._real_number_isos = len(self.__library_plates)
                 # pylint: disable=E1103
                 self._builder.set_iso_request_layout(self._iso_request_layout)
                 self._builder.set_library_plates(self.__library_plates)
                 # pylint: enable=E1103
+
+    def __check_library_plates(self):
+        # Check if the number of library plates requested matches the number
+        # of ISOs requested.
+        if len(self.__requested_library_plates) != self.number_isos:
+            msg = 'The number of requested library plates (%d) differs ' \
+                  'from the number of ISOs (%d).' \
+                  % (len(self.__requested_library_plates), self.number_isos)
+            self.add_error(msg)
+        # Gather library plates.
+        lp_agg = get_root_aggregate(ILibraryPlate)
+        lp_agg.filter = \
+            cntd(**{'rack.barcode' : self.__requested_library_plates})
+        lib_plates = list(lp_agg.iterator())
+        found_lib_plates = set([lp.rack.barcode for lp in lib_plates])
+        # Check if all requested barcodes belong to library plates.
+        if len(found_lib_plates) < len(self.__requested_library_plates):
+            req_lib_plates = set(self.__requested_library_plates)
+            diff = req_lib_plates.symmetric_difference(found_lib_plates)
+            msg = 'The following requested barcodes do not belong to ' \
+                   'library plates: %s' % diff
+            self.add_error(msg)
+        # Check if any of the requested library plates has been used already.
+        used_lib_racks = [lp.rack.barcode
+                          for lp in lib_plates if lp.has_been_used]
+        if len(used_lib_racks) > 0:
+            msg = 'The following requested library plates have already been ' \
+                  'used: %s' % used_lib_racks
+            self.add_error(msg)
+        if not self.has_errors():
+            # Build the library plates map (layout number -> library plate).
+            self.__library_plates = {}
+            for lp in lib_plates:
+                self.__library_plates.setdefault(
+                                            lp.layout_number, []).append(lp)
+            # Check if any layout erroneously was requested multiple times.
+            dup_layout_lib_plates = [lps[0].rack.barcode
+                                     for lps in self.__library_plates.values()
+                                     if len(lps) > 1]
+            if len(dup_layout_lib_plates) > 0:
+                msg = 'The following requested library plates belong to ' \
+                      'the same ISO layout: %s' % dup_layout_lib_plates
+                self.add_error(msg)
 
     def __find_library_plates(self):
         """

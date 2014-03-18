@@ -7,4 +7,6 @@ alter table new_experiment drop column destination_rack_specs_id;
 
 create index rack_position_set_hash_value_idx on rack_position_set(hash_value);
 
+alter table iso rename column optimizer_required_racks to optimizer_requested_tubes;
+
 CREATE OR REPLACE VIEW db_version AS SELECT 17.4 AS version;
