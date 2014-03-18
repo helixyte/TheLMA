@@ -35,6 +35,6 @@ def create_table(metadata, iso_request_tbl, rack_layout_tbl):
                        CheckConstraint('number_stock_racks >= 0'),
                        nullable=False),
                 Column('optimizer_excluded_racks', String, nullable=True),
-                Column('optimizer_required_racks', String, nullable=True)
+                Column('optimizer_requested_tubes', String, nullable=True)
                 )
     return tbl

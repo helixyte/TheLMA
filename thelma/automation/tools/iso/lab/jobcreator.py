@@ -33,7 +33,8 @@ class LabIsoJobCreator(IsoJobCreator):
     _ISO_TYPE = ISO_TYPES.LAB
 
     def __init__(self, iso_request, job_owner, number_isos,
-                       excluded_racks=None, requested_tubes=None, **kw):
+                       excluded_racks=None, requested_tubes=None,
+                       requested_library_plates=None, **kw):
         IsoJobCreator.__init__(self, iso_request=iso_request,
                                job_owner=job_owner, number_isos=number_isos,
                                excluded_racks=excluded_racks,
@@ -43,6 +44,8 @@ class LabIsoJobCreator(IsoJobCreator):
         #: The worklist series for the ISO job (if there is one,
         #: :class:`thelma.models.liquidtransfer.WorklistSeries`).
         self.__job_worklist_series = None
+        #: List of requested library plates if this is a library ISO job.
+        self.requested_library_plates = requested_library_plates
 
     def reset(self):
         IsoJobCreator.reset(self)
@@ -73,25 +76,27 @@ class LabIsoJobCreator(IsoJobCreator):
                    number_isos=self.number_isos,
                    excluded_racks=self.excluded_racks,
                    requested_tubes=self.requested_tubes)
-
-        planner_cls = self._get_builder_cls()
+        planner_cls = self._get_planner_class()
+        if not self.iso_request.molecule_design_library is None:
+            # The library planner needs the requested library plates
+            # parameter.
+            kw['requested_library_plates'] = self.requested_library_plates
         planner = planner_cls(**kw)
         self.__builder = planner.get_result()
-
         if self.__builder is None:
             msg = 'Error when generate ISO builder!'
             self.add_error(msg)
 
-    def _get_builder_cls(self):
+    def _get_planner_class(self):
         """
         Library screening need special handling because we use exisiting
         library plates as final plates.
         """
-        if self.iso_request.molecule_design_library is not None:
-            builder_cls = LibraryIsoPlanner
+        if not self.iso_request.molecule_design_library is None:
+            planner_cls = LibraryIsoPlanner
         else:
-            builder_cls = LabIsoPlanner
-        return builder_cls
+            planner_cls = LabIsoPlanner
+        return planner_cls
 
     def _get_job_label(self):
         job_num = LABELS.get_new_job_number(iso_request=self.iso_request)
