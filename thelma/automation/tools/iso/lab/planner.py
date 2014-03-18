@@ -4020,12 +4020,16 @@ class LibraryIsoBuilder(LabIsoBuilder):
         return copied_final_layout
 
     def __attach_library_plates(self, iso):
-        # Attach the library plates for the next layout number and remove
-        # from the __library_plates map.
+        # Find library plates for next layout number, attach to ISO, and
+        # remove from library plates map.
         layout_number = min(self._library_plates.keys())
         library_plates = self._library_plates[layout_number]
         iso.library_plates = library_plates
         del self._library_plates[layout_number]
+        # Indicate that the plates have been used; we have to do this now so
+        # no other Library ISO Request can grab the same plates.
+        for lp in library_plates:
+            lp.has_been_used = True
 
 
 class LibraryIsoPlanner(LabIsoPlanner):
