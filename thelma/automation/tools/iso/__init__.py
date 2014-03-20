@@ -33,13 +33,14 @@ def get_job_creator(iso_request, job_owner, number_isos,
         the ISO job to be created.
     :type requested_tubes: A list of tube barcodes.
     :param requested_library_plates: A list of barcodes from library plates
-        to use for the ISO job to be created.
+        to use for the ISO job to be created. This is only passed on if
+        the request's ISO type is `ISO_TYPES.LAB`
     """
     kw = dict(iso_request=iso_request, job_owner=job_owner,
               number_isos=number_isos, requested_tubes=requested_tubes,
-              excluded_racks=excluded_racks,
-              requested_library_plates=requested_library_plates, **kw)
+              excluded_racks=excluded_racks, **kw)
     if iso_request.iso_type == ISO_TYPES.LAB:
+        kw['requested_library_plates'] = requested_library_plates
         creator_cls = LabIsoJobCreator
     elif iso_request.iso_type == ISO_TYPES.STOCK_SAMPLE_GENERATION:
         creator_cls = StockSampleCreationIsoJobCreator
