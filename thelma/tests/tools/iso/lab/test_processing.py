@@ -458,9 +458,8 @@ class _LabIsoWriterExecutorToolTestCase(LabIsoTestCase2,
         # library plates status
         if LAB_ISO_TEST_CASES.is_library_case(self.case) and self.FOR_JOB:
             for iso in self.isos.values():
-                exp_value = (self.mode == self.tool.MODE_EXECUTE)
                 for lib_plate in iso.library_plates:
-                    self.assert_equal(lib_plate.has_been_used, exp_value)
+                    self.assert_true(lib_plate.has_been_used)
 
     def __check_final_iso_plate(self, plate, iso_label):
         ir_data = LAB_ISO_TEST_CASES.get_iso_request_layout_data(self.case)

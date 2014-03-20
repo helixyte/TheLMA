@@ -320,6 +320,11 @@ class LabIsoRequestMember(IsoRequestMember):
 
     def __update_iso_status(self, iso, new_status):
         iso.status = new_status
+        if new_status == ISO_STATUS.CANCELLED \
+           and iso.status != ISO_STATUS.DONE:
+            # Release the reserved library plates again.
+            for lp in iso.library_plates:
+                lp.has_been_used = False
 
     def __copy_iso(self, iso):
         # FIXME: We need to figure out what to do her (#563).
