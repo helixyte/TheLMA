@@ -21,12 +21,13 @@ from thelma.automation.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.tools.experiment import get_executor
 from thelma.automation.tools.experiment import get_manual_executor
 from thelma.interfaces import IExperiment
+from thelma.interfaces import IIso
 from thelma.interfaces import IItemStatus
+from thelma.interfaces import IPlate
 from thelma.interfaces import IStockRack
 from thelma.interfaces import IUser
 from thelma.models.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
-from thelma.interfaces import IPlate
 
 
 __docformat__ = 'reStructuredText en'
@@ -42,7 +43,7 @@ __all__ = ['ExperimentJobCollection',
 
 class JobMember(Member):
     relation = '%s/job' % RELATION_BASE_URL
-
+    job_type = terminal_attribute(str, 'job_type')
     label = terminal_attribute(str, 'label')
     user = member_attribute(IUser, 'user')
     creation_time = terminal_attribute(datetime, 'creation_time')
@@ -59,13 +60,21 @@ class ExperimentJobMember(JobMember):
     def update(self, data):
         if IDataElement.providedBy(data): # pylint: disable=E1101
             prx = DataElementAttributeProxy(data)
-            exp_nodes = prx.experiments
-            if exp_nodes is not None:
+            try:
+                exp_nodes = prx.experiments
+            except AttributeError:
+                pass
+            else:
                 for exp_node in exp_nodes:
-                    exp_rack_nodes = exp_node.experiment_racks
                     exp_id = exp_node.id
-                    if exp_rack_nodes is not None and len(exp_rack_nodes) > 0:
-                        self.__update_experiment_racks(exp_rack_nodes, exp_id)
+                    try:
+                        exp_rack_nodes = exp_node.experiment_racks
+                    except AttributeError:
+                        pass
+                    else:
+                        if len(exp_rack_nodes) > 0:
+                            self.__update_experiment_racks(exp_rack_nodes,
+                                                           exp_id)
         else:
             JobMember.update(self, data)
 
@@ -108,7 +117,7 @@ class ExperimentJobMember(JobMember):
 class IsoJobMember(JobMember):
     relation = "%s/iso_job" % RELATION_BASE_URL
 
-#    isos = collection_attribute(IIso, 'isos')
+    isos = collection_attribute(IIso, 'isos')
     number_stock_racks = terminal_attribute(int, 'number_stock_racks')
     stock_racks = collection_attribute(IStockRack, 'iso_job_stock_racks')
     preparation_plates = collection_attribute(IPlate, 'preparation_plates')

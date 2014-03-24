@@ -679,7 +679,12 @@ class LAB_ISO_TEST_CASES(object):
                 i10=[205201, 'fixed', 4, 1270, True, [], None, None],
                 k10=[330001, 'fixed', 4, 1270, True, [], None, None],
                 m10=[1056000, 'fixed', 4, 1270, True, [], None, None],
-                o10=['mock', 'mock', 4, None, False, [], None, None])
+                o10=['mock', 'mock', 4, None, False, [], None, None],
+                b3=['library', 'library', 4, 1270, False, [], None, None],
+                b4=['library', 'library', 4, 1270, False, [], None, None],
+                c3=['library', 'library', 4, 1270, False, [], None, None],
+                c4=['library', 'library', 4, 1270, False, [], None, None]
+                )
             return {iso_labels[0] : f, iso_labels[1] : f}
         elif case_name == cls.CASE_LIBRARY_2_ALIQUOTS:
             f = dict(
@@ -690,7 +695,12 @@ class LAB_ISO_TEST_CASES(object):
                 i10=[205201, 'fixed', 4, 1270, True, [], None, None],
                 k10=[330001, 'fixed', 4, 1270, True, [], None, None],
                 m10=[1056000, 'fixed', 4, 1270, True, [], None, None],
-                o10=['mock', 'mock', 4, None, False, [], None, None])
+                o10=['mock', 'mock', 4, None, False, [], None, None],
+                b3=['library', 'library', 4, 1270, False, [], None, None],
+                b4=['library', 'library', 4, 1270, False, [], None, None],
+                c3=['library', 'library', 4, 1270, False, [], None, None],
+                c4=['library', 'library', 4, 1270, False, [], None, None]
+                )
             return {iso_labels[0] : f, iso_labels[1] : f}
         raise NotImplementedError('The value for this case is missing.')
 

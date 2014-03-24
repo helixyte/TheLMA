@@ -1150,7 +1150,7 @@ class TransfectionSectorAssociator(IsoRequestSectorAssociator):
         if len(self._associated_sectors) > 1:
             msg = 'Unable to adjust floating position association ' \
                   'because basic assumptions are not met. This is ' \
-                  'a programming error. Talk to Anna, please.'
+                  'a programming error. Talk to IT, please.'
             raise AssertionError(msg)
 
         if len(present_sectors) > 1:

@@ -25,6 +25,10 @@ from everest.utils import classproperty
 from paste.deploy import appconfig # pylint: disable=E0611,F0401
 from paste.script.command import Command # pylint: disable=E0611,F0401
 from thelma.automation.tools.iso.poolcreation.execution import StockSampleCreationStockTransferReporter
+from thelma.interfaces import IPlannedRackSampleTransfer
+from thelma.interfaces import IPlannedWorklist
+from thelma.automation.semiconstants import get_reservoir_spec
+from thelma.automation.semiconstants import get_pipetting_specs
 from thelma.automation.tools.iso.poolcreation.writer \
     import StockSampleCreationTicketWorklistUploader
 from thelma.automation.tools.stock.sampleregistration import \
@@ -36,6 +40,7 @@ from thelma.automation.tools.stock.sampleregistration import \
 from thelma.automation.tools.stock.sampleregistration import \
     ISupplierSampleRegistrationItem
 from thelma.interfaces import IIsoJob
+from thelma.interfaces import IRack
 from thelma.interfaces import IStockSampleCreationIso
 from thelma.interfaces import IStockSampleCreationIsoRequest
 from thelma.interfaces import ITube
@@ -106,7 +111,7 @@ class MetaToolCommand(type):
         return cls
 
 
-class LazyOption(object):
+class LazyOptionCallback(object):
     """
     Simple capsule for options that can only be initialized when TheLMA has
     started up.
@@ -227,7 +232,7 @@ class ToolCommand(Command):
         opts = self.options # pylint: disable=E1101
         for arg_name in arg_names:
             arg_value = getattr(opts, arg_name)
-            if isinstance(arg_value, LazyOption):
+            if isinstance(arg_value, LazyOptionCallback):
                 arg_value = arg_value.initialize(self.__target_class, opts)
                 setattr(opts, arg_name, arg_value)
         kw = dict((arg_name, getattr(opts, arg_name))
@@ -349,7 +354,7 @@ class _RegistrarCommand(ToolCommand): # no __init__ pylint: disable=W0232
           dict(help='File containing JSON registration data.',
                action='callback',
                type='string',
-               callback=LazyOption(lambda cls, value, options:
+               callback=LazyOptionCallback(lambda cls, value, options:
                                         cls._data_callback(value, options)) # pylint: disable=W0212
                ),
           ),
@@ -446,10 +451,10 @@ class XL20ExecutorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
     Runs the XL20 executor that executes tube transfers on DB level.
     """
     _user_callback = \
-        LazyOption(lambda cls, value, options:
+        LazyOptionCallback(lambda cls, value, options:
                                 get_root_aggregate(IUser).get_by_slug(value))
     _output_file_callback = \
-            LazyOption(lambda cls, value, options: open(value, 'rb').read())
+            LazyOptionCallback(lambda cls, value, options: open(value, 'rb').read())
 
     name = 'xl20executor'
     tool = 'thelma.automation.tools.worklists.tubehandler:XL20Executor'
@@ -489,7 +494,7 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
         return value.split(',')
 
     _excluded_racks_callback = \
-        LazyOption(lambda cls, value, options:
+        LazyOptionCallback(lambda cls, value, options:
                             StockCondenserToolCommand.split_string(value))
 
     name = 'stockcondenser'
@@ -527,10 +532,10 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #    """
 #    Runs the library ISO creator tool.
 #    """
-#    _excel_file_callback = LazyOption(lambda cls, value, options:
+#    _excel_file_callback = LazyOptionCallback(lambda cls, value, options:
 #                                            open(value, 'rb').read())
 #    _user_callback = \
-#            LazyOption(lambda cls, value, options:
+#            LazyOptionCallback(lambda cls, value, options:
 #                            get_root_aggregate(IUser).get_by_slug(value))
 #    name = 'librarygenerator'
 #    tool = 'thelma.automation.tools.libcreation.generation:LibraryGenerator'
@@ -575,7 +580,7 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #        return list(agg.iterator())[0]
 #
 #    _library_callback = \
-#        LazyOption(lambda cls, value, options: cls.get_library(value))
+#        LazyOptionCallback(lambda cls, value, options: cls.get_library(value))
 #
 #    name = 'librarycreationisogenerator'
 #    tool = 'thelma.automation.tools.libcreation.ticket:LibraryCreationIsoCreator'
@@ -602,13 +607,13 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #        return value.split(',')
 #
 #    _library_callback = \
-#        LazyOption(lambda cls, value, options: cls.get_library(value))
+#        LazyOptionCallback(lambda cls, value, options: cls.get_library(value))
 #
 #    _excluded_racks_callback = \
-#        LazyOption(lambda cls, value, options: cls.split_string(value))
+#        LazyOptionCallback(lambda cls, value, options: cls.split_string(value))
 #
 #    _requested_tube_callback = \
-#        LazyOption(lambda cls, value, options: cls.split_string(value))
+#        LazyOptionCallback(lambda cls, value, options: cls.split_string(value))
 #
 #    name = 'librarycreationisopopulator'
 #    tool = 'thelma.automation.tools.libcreation.iso:LibraryCreationIsoPopulator'
@@ -664,7 +669,7 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #        return list(agg.iterator())[0]
 #
 #    _iso_callback = \
-#        LazyOption(lambda cls, value, options: cls.get_iso(value))
+#        LazyOptionCallback(lambda cls, value, options: cls.get_iso(value))
 #
 #    name = 'librarycreationisolayoutwriter'
 #    tool = 'thelma.automation.tools.libcreation.iso:LibraryCreationIsoLayoutWriter'
@@ -726,15 +731,15 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #        return pool_racks
 #
 #    _iso_callback = \
-#        LazyOption(lambda cls, value, options: cls.get_iso(value))
+#        LazyOptionCallback(lambda cls, value, options: cls.get_iso(value))
 #
 #    _tube_destination_racks_callback = \
-#        LazyOption(lambda cls, value, options:
+#        LazyOptionCallback(lambda cls, value, options:
 #                        cls.get_tube_destination_map(value))
 #
 #
 #    _pool_stock_rack_callback = \
-#        LazyOption(lambda cls, value, options:
+#        LazyOptionCallback(lambda cls, value, options:
 #                        cls.get_pool_stock_rack_barcodes(value))
 #
 #    name = 'librarycreationworklistwriter'
@@ -792,9 +797,9 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #        return list(agg.iterator())[0]
 #
 #    _iso_callback = \
-#        LazyOption(lambda cls, value, options: cls.get_iso(value))
+#        LazyOptionCallback(lambda cls, value, options: cls.get_iso(value))
 #    _user_callback = \
-#        LazyOption(lambda cls, value, options:
+#        LazyOptionCallback(lambda cls, value, options:
 #                        get_root_aggregate(IUser).get_by_slug(value))
 #
 #    name = 'librarycreationexecutor'
@@ -831,10 +836,10 @@ class PoolGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
     """
     Runs the pool stock sample creator tool.
     """
-    _excel_file_callback = LazyOption(lambda cls, value, options:
+    _excel_file_callback = LazyOptionCallback(lambda cls, value, options:
                                             open(value, 'rb').read())
     _user_callback = \
-            LazyOption(lambda cls, value, options:
+            LazyOptionCallback(lambda cls, value, options:
                             get_root_aggregate(IUser).get_by_slug(value))
 
     name = 'poolcreationlibrarygenerator'
@@ -891,7 +896,7 @@ class PoolCreationIsoGeneratorToolCommand(ToolCommand): # no __init__ pylint: di
         ir_agg.filter = eq(label=value)
         return list(ir_agg.iterator())[0]
 
-    _iso_request_callback = LazyOption(lambda cls, value, options: # pylint: disable=W0108
+    _iso_request_callback = LazyOptionCallback(lambda cls, value, options: # pylint: disable=W0108
                     PoolCreationIsoGeneratorToolCommand.get_iso_request(value))
 
     name = 'poolcreationisogenerator'
@@ -914,11 +919,11 @@ class PoolCreationIsoJobCreatorToolCommand(ToolCommand): # no __init__ pylint: d
         ir_agg.filter = eq(label=value)
         return list(ir_agg.iterator())[0]
 
-    _iso_request_callback = LazyOption(lambda cls, value, options: # pylint: disable=W0108
+    _iso_request_callback = LazyOptionCallback(lambda cls, value, options: # pylint: disable=W0108
                     PoolCreationIsoGeneratorToolCommand.get_iso_request(value))
 
     _user_callback = \
-            LazyOption(lambda cls, value, options:
+            LazyOptionCallback(lambda cls, value, options:
                             get_root_aggregate(IUser).get_by_slug(value))
 
     name = 'poolcreationisogenerator'
@@ -961,10 +966,10 @@ class PoolCreationWorklistWriterToolCommand(ToolCommand): # no __init__ pylint: 
         agg.filter = eq(label=value)
         return list(agg.iterator())[0]
 
-    _iso_callback = LazyOption(lambda cls, value, options: # pylint: disable=W0108
+    _iso_callback = LazyOptionCallback(lambda cls, value, options: # pylint: disable=W0108
                     PoolCreationWorklistWriterToolCommand.get_iso(value))
 
-    _tube_destination_racks_callback = LazyOption(lambda cls, value, options:
+    _tube_destination_racks_callback = LazyOptionCallback(lambda cls, value, options:
                                                   value.split(','))
 
     name = 'poolcreationworklistwriter'
@@ -1022,10 +1027,10 @@ class PoolCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: disabl
         return list(agg.iterator())[0]
 
     _iso_callback = \
-        LazyOption(lambda cls, value, options: # pylint: disable=W0108
+        LazyOptionCallback(lambda cls, value, options: # pylint: disable=W0108
                    PoolCreationExecutorToolCommand.get_iso(value))
     _user_callback = \
-        LazyOption(lambda cls, value, options:
+        LazyOptionCallback(lambda cls, value, options:
                         get_root_aggregate(IUser).get_by_slug(value))
 
     name = 'poolcreationexecutor'
@@ -1078,7 +1083,7 @@ class StockAuditToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
 class RackScanningAdjusterToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
 
     _user_callback = \
-        LazyOption(lambda cls, value, options:
+        LazyOptionCallback(lambda cls, value, options:
                                 get_root_aggregate(IUser).get_by_slug(value))
 
     name = 'rackscanningadjuster'
@@ -1113,7 +1118,7 @@ class RackScanningAdjusterToolCommand(ToolCommand): # no __init__ pylint: disabl
 
 class XL20DummyToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
 
-    _wl_file_callback = LazyOption(lambda cls, value, options:
+    _wl_file_callback = LazyOptionCallback(lambda cls, value, options:
                                         open(value, 'rb'))
 
     name = 'xl20dummy'
@@ -1147,10 +1152,10 @@ class CustomLiquidTransferToolCommand(ToolCommand):
     name = 'customliquidtransfertool'
     tool = 'thelma.automation.tools.worklists.custom:CustomLiquidTransferTool'
 
-    _excel_file_callback = LazyOption(lambda cls, value, options:
+    _excel_file_callback = LazyOptionCallback(lambda cls, value, options:
                                             open(value, 'rb').read())
     _user_callback = \
-        LazyOption(lambda cls, value, options:
+        LazyOptionCallback(lambda cls, value, options:
                                 get_root_aggregate(IUser).get_by_slug(value))
 
     option_defs = [('--excel-file',
@@ -1189,12 +1194,13 @@ class CustomLiquidTransferToolCommand(ToolCommand):
 class CustomLiquidTransferWorklistExecutor(ToolCommand):
 
     name = 'customliquidtransferexecutor'
-    tool = 'thelma.automation.tools.worklists.custom:CustomLiquidTransferExecutor'
+    tool = 'thelma.automation.tools.worklists.custom:' \
+           'CustomLiquidTransferExecutor'
 
     _user_callback = \
-        LazyOption(lambda cls, value, options:
+        LazyOptionCallback(lambda cls, value, options:
                                 get_root_aggregate(IUser).get_by_slug(value))
-    _excel_file_callback = LazyOption(lambda cls, value, options:
+    _excel_file_callback = LazyOptionCallback(lambda cls, value, options:
                                             open(value, 'rb').read())
 
     option_defs = [('--excel-file',
@@ -1211,4 +1217,101 @@ class CustomLiquidTransferWorklistExecutor(ToolCommand):
                          type='string',
                          callback=_user_callback),
                    )
+                   ]
+
+
+def make_lazy_option_def(option_name, help_string, option_type,
+                         parameter_name=None):
+    if parameter_name is None:
+        parameter_name = option_name
+    callback = LazyOptionCallback(
+                lambda cls, value, options:
+                        get_root_aggregate(option_type).get_by_slug(value))
+    return ('--%s' % option_name,
+            parameter_name,
+            dict(help=help_string,
+                 action='callback',
+                 type='string',
+                 callback=callback)
+            )
+
+
+def make_lazy_user_option_def(option_name='user',
+                              parameter_name=None,
+                              help_string='User name running the tool.'):
+    return make_lazy_option_def(option_name, help_string, IUser,
+                                parameter_name=parameter_name)
+
+
+class SampleDilutionWorklistExecutor(ToolCommand):
+    name = 'sampledilutionworklistexecutor'
+    tool = 'thelma.automation.tools.worklists.execution:' \
+           'SampleDilutionWorklistExecutor'
+
+    _worklist_callback = \
+        LazyOptionCallback(lambda cls, value, options:
+                            get_root_aggregate(IPlannedWorklist) \
+                            .get_by_id(value))
+
+    _reservoir_specs_callback = \
+        LazyOptionCallback(lambda cls, value, options:
+                            get_reservoir_spec(value))
+
+    _pipetting_specs_callback = \
+        LazyOptionCallback(lambda cls, value, options:
+                            get_pipetting_specs(value))
+
+    option_defs = [('--transfer',
+                    'planned_worklist',
+                    dict(help='ID of the planned dilution worklist to be '
+                              'executed.',
+                         action='callback',
+                         type='int',
+                         callback=_worklist_callback
+                         )
+                    ),
+                   make_lazy_option_def('target-rack',
+                                        'Barcode of the target rack.',
+                                        IRack,
+                                        parameter_name='target_rack'),
+                   make_lazy_user_option_def(),
+                   ('--reservoir-specs',
+                    'reservoir_specs',
+                    dict(help=''),
+                    ),
+                   ('--pipetting-specs',
+                    'pipetting_specs',
+                    dict(help=''),
+                    ),
+                   ]
+
+
+class RackSampleTransferExecutor(ToolCommand):
+    name = 'racksampletransferexecutor'
+    tool = 'thelma.automation.tools.worklists.execution:' \
+           'RackSampleTransferExecutor'
+
+    _transfer_callback = \
+        LazyOptionCallback(lambda cls, value, options:
+                            get_root_aggregate(IPlannedRackSampleTransfer) \
+                            .get_by_id(value))
+
+    option_defs = [('--transfer',
+                    'planned_rack_sample_transfer',
+                    dict(help='ID of the planned rack sample transfer to be '
+                              'executed.',
+                         action='callback',
+                         type='int',
+                         callback=_transfer_callback
+                         )
+                    ),
+                   make_lazy_option_def('source-rack',
+                                        'Barcode of the source rack.',
+                                        IRack,
+                                        parameter_name='source_rack'),
+                   make_lazy_option_def('target-rack',
+                                        'Barcode of the target rack.',
+                                        IRack,
+                                        parameter_name='target_rack'),
+                   make_lazy_user_option_def()
                    ]

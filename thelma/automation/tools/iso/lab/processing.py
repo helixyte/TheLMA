@@ -172,8 +172,7 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
 
         isos = self._get_isos()
         for iso in isos:
-            converter = FinalLabIsoLayoutConverter(log=self.log,
-                                                   rack_layout=iso.rack_layout)
+            converter = FinalLabIsoLayoutConverter(iso.rack_layout, self.log)
             layout = converter.get_result()
             if layout is None:
                 msg = 'Error when trying to convert final layout for ISO ' \
@@ -245,11 +244,13 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         """
         plate = iso_plate.rack
         rack_name = '%s (%s)' % (plate.barcode, plate.label)
-
         if self._expected_iso_status == ISO_STATUS.QUEUED and verify:
             sample_positions = []
             for well in plate.containers:
                 if well.sample is not None:
+                    if layout is not None:
+                        ip = layout.get_working_position(well.location.position)
+                        if ip is not None and ip.is_library: continue
                     sample_positions.append(well.location.position.label)
             if len(sample_positions) > 0:
                 msg = 'Plate %s should be empty but there are samples in ' \
@@ -661,7 +662,7 @@ class WriterExecutorIsoJob(_LabIsoWriterExecutorTool):
     **Return Value:** a zip stream for for printing mode or the updated ISO job
         for execution mode
     """
-    NAME = 'Lab ISO Writer/Executor'
+    NAME = 'Lab ISO Job Writer/Executor'
     ENTITY_CLS = IsoJob
 
     def __init__(self, iso_job, mode, user=None, **kw):
@@ -726,16 +727,6 @@ class WriterExecutorIsoJob(_LabIsoWriterExecutorTool):
         else: # NO_ISO or ISO_FIRST
             return ISO_STATUS.DONE
 
-    def _update_iso_status(self):
-        """
-        If we use library plates, the state of the used library plates must
-        be set to "has been used".
-        """
-        _LabIsoWriterExecutorTool._update_iso_status(self)
-        for iso in self.entity.isos:
-            for lib_plate in iso.library_plates:
-                lib_plate.has_been_used = True
-
 
 class WriterExecutorLabIso(_LabIsoWriterExecutorTool):
     """
@@ -745,7 +736,7 @@ class WriterExecutorLabIso(_LabIsoWriterExecutorTool):
     **Return Value:** a zip stream for for printing mode or the updated ISO
         for execution mode
     """
-    NAME = 'Lab ISO Job Writer/Executor'
+    NAME = 'Lab ISO Writer/Executor'
     ENTITY_CLS = LabIso
 
     def __init__(self, iso, mode, user=None, **kw):

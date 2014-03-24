@@ -61,35 +61,19 @@
 #    """
 #    NAME = 'Library Generation'
 #
-#    def __init__(self, library_name, stream, requester,
-#                 logging_level=None, add_default_handlers=False):
+#    def __init__(self, library_name, stream, requester):
 #        """
 #        Constructor:
 #
 #        :param library_name: The name of the library to be created.
 #        :type library_name: :class:`str`
-#
 #        :param stream: Excel file stream containing one sheet with the
 #            base layout and one with the molecule design data.
-#
 #        :param requester: This user will be owner and reporter of the ISO
 #            trac tickets.
 #        :type requester: :class:`thelma.models.user.User`
-#
-#        :param logging_level: the desired minimum log level
-#        :type log_level: :class:`int` (or logging_level as
-#                         imported from :mod:`logging`)
-#        :default logging_level: None
-#
-#        :param add_default_handlers: If *True* the log will automatically add
-#            the default handler upon instantiation.
-#        :type add_default_handlers: :class:`boolean`
-#        :default add_default_handlers: *False*
 #        """
-#        BaseAutomationTool.__init__(self, logging_level=logging_level,
-#                                    add_default_handlers=add_default_handlers,
-#                                    depending=False)
-#
+#        BaseAutomationTool.__init__(self, depending=False)
 #        #: The name of the library to be created.
 #        self.library_name = library_name
 #        #: Excel file stream containing one sheet with the base layout and one

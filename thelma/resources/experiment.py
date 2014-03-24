@@ -21,6 +21,7 @@ from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from everest.resources.staging import create_staging_collection
+from everest.resources.utils import url_to_resource
 from thelma.automation.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.metadata.ticket \
     import IsoRequestTicketDescriptionUpdater
@@ -41,14 +42,13 @@ from thelma.interfaces import IPlate
 from thelma.interfaces import IRack
 from thelma.interfaces import IRackLayout
 from thelma.interfaces import IRackShape
-from thelma.interfaces import IRackSpecs
 from thelma.interfaces import ISubproject
 from thelma.interfaces import ITag
+from thelma.models.racklayout import RackLayout
 from thelma.models.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
 
 
-# from thelma.models.experiment import ExperimentDesignRack
 __docformat__ = 'reStructuredText en'
 
 __author__ = 'F Oliver Gathmann'
@@ -80,6 +80,7 @@ class ExperimentDesignRackMember(Member):
     relation = "%s/experiment-design-rack" % RELATION_BASE_URL
     title = attribute_alias('label')
     label = terminal_attribute(str, 'label')
+    rack_shape = member_attribute(IRackShape, 'rack_layout.shape')
     rack_layout = member_attribute(IRackLayout, 'rack_layout')
     tags = collection_attribute(ITag, 'tags')
 
@@ -132,10 +133,8 @@ class ExperimentDesignCollection(Collection):
 
 class ExperimentMember(Member):
     relation = '%s/experiment' % RELATION_BASE_URL
-    label = terminal_attribute(str, 'label')
     title = attribute_alias('label')
-    destination_rack_specs = member_attribute(IRackSpecs,
-                                              'destination_rack_specs')
+    label = terminal_attribute(str, 'label')
     source_rack = member_attribute(IRack, 'source_rack')
     experiment_design = member_attribute(IExperimentDesign,
                                          'experiment_design')
@@ -173,10 +172,7 @@ class ExperimentMetadataMember(Member):
     def __getitem__(self, name):
         if name == 'tags':
             tags_dict = {}
-            if self.experiment_design is not None:
-                design_racks = self.experiment_design.experiment_design_racks
-            else: # order only type
-                design_racks = []
+            design_racks = self.__get_design_racks()
             for rack in design_racks:
                 for tp in rack.rack_layout.tagged_rack_position_sets:
                     for tag in tp.tags:
@@ -186,6 +182,8 @@ class ExperimentMetadataMember(Member):
             for tag in tags_dict.values():
                 tag_coll.add(tag)
             result = tag_coll
+        elif name == 'experiment-design-racks':
+            result = self.__get_design_racks()
         else:
             result = Member.__getitem__(self, name)
         return result
@@ -212,19 +210,25 @@ class ExperimentMetadataMember(Member):
             emt_id = prx.experiment_metadata_type.get('id')
             changed_em_type = emt_id != self.experiment_metadata_type.id
             if changed_em_type or changed_num_reps:
-                self_entity.number_replicates = prx.number_replicates
-                self_entity.experiment_metadata_type = \
+                if changed_num_reps:
+                    self_entity.number_replicates = prx.number_replicates
+                if changed_em_type:
+                    self_entity.experiment_metadata_type = \
                                 get_experiment_metadata_type(emt_id)
                 if not self_entity.experiment_design is None:
                     # invalidate data to force a fresh upload of the XLS file
                     self_entity.experiment_design.experiment_design_racks = []
                     self_entity.experiment_design.worklist_series = None
                 if not self_entity.lab_iso_request is None:
-                    shape = self_entity.lab_iso_request.iso_layout.shape
+                    shape = self_entity.lab_iso_request.rack_layout.shape
                     new_layout = RackLayout(shape=shape)
-                    self_entity.lab_iso_request.iso_layout = new_layout
+                    self_entity.lab_iso_request.rack_layout = new_layout
                     self_entity.lab_iso_request.owner = ''
-            self_entity.subproject = prx.subproject
+            changed_sp = self_entity.subproject.id != prx.subproject.get('id')
+            if changed_sp:
+                new_sp = \
+                    url_to_resource(prx.subproject.get('href')).get_entity()
+                self_entity.subproject = new_sp
             self_entity.label = prx.label
             # Perform appropriate Trac updates.
             if not self_entity.lab_iso_request is None:
@@ -260,6 +264,13 @@ class ExperimentMetadataMember(Member):
             exc_msg = str(tool.get_messages(logging.ERROR))
             raise HTTPBadRequest(error_msg_text % exc_msg).exception
         return tool.return_value
+
+    def __get_design_racks(self):
+        if self.experiment_design is not None:
+            design_racks = self.experiment_design.experiment_design_racks
+        else: # order only type
+            design_racks = []
+        return design_racks
 
 
 class ExperimentMetadataCollection(Collection):

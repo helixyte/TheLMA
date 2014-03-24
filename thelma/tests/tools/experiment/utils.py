@@ -450,7 +450,7 @@ class ExperimentTestCase(ExperimentMetadataReadingTestCase,
         plate_specs = RACK_SPECS_NAMES.from_name(ps_name)
         exp_label = EXPERIMENT_TEST_DATA.get_experiment_label(self.case)
         self.experiment = self._create_experiment(label=exp_label,
-                destination_rack_specs=plate_specs, source_rack=self.iso_plate,
+                                                  source_rack=self.iso_plate,
                 experiment_design=self.experiment_metadata.experiment_design)
         self._generate_experiment_plates(plate_specs,
                                          EXPERIMENT_TEST_DATA.EXPERIMENT_PLATES)

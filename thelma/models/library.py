@@ -4,9 +4,11 @@ Model classes related to molecule design libraries
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
 
-__docformat__ = 'reStructuredText en'
 
-__all__ = ['MoleculeDesignLibrary']
+__docformat__ = 'reStructuredText en'
+__all__ = ['LibraryPlate',
+           'MoleculeDesignLibrary',
+           ]
 
 
 class MoleculeDesignLibrary(Entity):
@@ -30,10 +32,8 @@ class MoleculeDesignLibrary(Entity):
     #: layout type: :class:`LibraryLayout`) defines which rack position are
     #: reserved for library samples.
     rack_layout = None
-
     #: The library plates for this library (:class:`LibraryPlate`).
     library_plates = None
-
     #: The ISO request used to generate this library (optional,
     #: :class:`thelma.models.iso.StockSampleCreationIsoRequest`).
     creation_iso_request = None
@@ -102,16 +102,12 @@ class LibraryPlate(Entity):
     layout_number = None
     #: Marks whether a plate is still available for experiments.
     has_been_used = None
-
     #: Library plates can be used by lab ISOs instead of aliquot plates
     #: (:class:`thelma.models.iso.LabIso`).
     lab_iso = None
 
     def __init__(self, molecule_design_library, rack, layout_number,
                  has_been_used=False, **kw):
-        """
-        Constructor
-        """
         Entity.__init__(self, **kw)
         self.molecule_design_library = molecule_design_library
         self.rack = rack
@@ -128,4 +124,3 @@ class LibraryPlate(Entity):
                   self.molecule_design_library, self.layout_number,
                   self.has_been_used)
         return str_format % params
-

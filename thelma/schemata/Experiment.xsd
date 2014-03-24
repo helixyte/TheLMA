@@ -71,13 +71,6 @@
                         >
                         </element>
                         <element
-                            name="destination_rack_specs"
-                            type="rsp:PlateSpecsType"
-                            minOccurs="1"
-                            maxOccurs="1"
-                        >
-                        </element>
-                        <element
                             name="source_rack"
                             type="r:RackType"
                             minOccurs="0"

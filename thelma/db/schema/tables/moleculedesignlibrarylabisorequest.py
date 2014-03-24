@@ -23,7 +23,5 @@ def create_table(metadata, molecule_design_library_tbl, lab_iso_request_tbl):
                        ForeignKey(lab_iso_request_tbl.c.iso_request_id),
                        nullable=False),
         )
-
-    PrimaryKeyConstraint(tbl.c.molecule_design_library_id)
-
+    PrimaryKeyConstraint(tbl.c.iso_request_id)
     return tbl

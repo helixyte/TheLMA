@@ -672,13 +672,6 @@
                         >
                         </xs:element>
                         <xs:element
-                            name="destination_rack_specs"
-                            type="RackSpecsType"
-                            minOccurs="1"
-                            maxOccurs="1"
-                        >
-                        </xs:element>
-                        <xs:element
                             name="source_rack"
                             type="RackType"
                             minOccurs="1"

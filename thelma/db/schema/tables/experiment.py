@@ -11,15 +11,12 @@ __docformat__ = "reStructuredText en"
 __all__ = ['create_table']
 
 
-def create_table(metadata, rack_specs_tbl, experiment_design_tbl, job_tbl):
+def create_table(metadata, experiment_design_tbl, job_tbl):
     "Table factory."
     # FIXME: need to retire the old experiment table.
     tbl = Table('new_experiment', metadata,
                 Column('experiment_id', Integer, primary_key=True),
                 Column('label', String, unique=True, nullable=False),
-                Column('destination_rack_specs_id', Integer,
-                       ForeignKey(rack_specs_tbl.c.rack_specs_id),
-                       nullable=False),
                 Column('experiment_design_id', Integer,
                        ForeignKey(experiment_design_tbl.c.experiment_design_id),
                        nullable=False),

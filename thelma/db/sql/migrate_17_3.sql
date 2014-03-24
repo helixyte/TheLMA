@@ -22,6 +22,14 @@ DELETE FROM executed_worklist WHERE executed_worklist_id IN (
   SELECT worklist_id FROM tmp_empty_worklists);
 DROP TABLE tmp_empty_worklists;
 
+ALTER TABLE worklist_series_member DROP CONSTRAINT
+  worklist_series_member_planned_worklist_id_fkey;
+ALTER TABLE worklist_series_member
+  ADD CONSTRAINT worklist_series_member_planned_worklist_id_fkey
+  FOREIGN KEY (planned_worklist_id)
+  REFERENCES planned_worklist (planned_worklist_id)
+  ON UPDATE CASCADE ON DELETE CASCADE;
+
 CREATE TABLE tmp_empty_worklists (worklist_id INTEGER NOT NULL UNIQUE);
 INSERT INTO tmp_empty_worklists (worklist_id)
   SELECT pw.planned_worklist_id
@@ -32,14 +40,6 @@ INSERT INTO tmp_empty_worklists (worklist_id)
 DELETE FROM planned_worklist WHERE planned_worklist_id IN (
   SELECT worklist_id FROM tmp_empty_worklists);
 DROP TABLE tmp_empty_worklists;
-
-ALTER TABLE worklist_series_member DROP CONSTRAINT
-  worklist_series_member_planned_worklist_id_fkey;
-ALTER TABLE worklist_series_member
-  ADD CONSTRAINT worklist_series_member_planned_worklist_id_fkey
-  FOREIGN KEY (planned_worklist_id)
-  REFERENCES planned_worklist (planned_worklist_id)
-  ON UPDATE CASCADE ON DELETE CASCADE;
 
 CREATE TABLE tmp_used_worklist_series (
   worklist_series_id INTEGER NOT NULL UNIQUE);

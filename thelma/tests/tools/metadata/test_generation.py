@@ -111,15 +111,17 @@ class _ExperimentMetadataGeneratorTestCase(FileReadingTestCase):
         # for update tests
         if create_experiment:
             plate = self._get_entity(IPlate)
-            plate_specs = plate.specs
         self._continue_setup()
         self.experiment_metadata = self.tool.get_result()
         if not self.experiment_type_id == EXPERIMENT_SCENARIOS.ISO_LESS:
             self._check_result()
-        if create_iso: self.__create_iso()
-        if create_experiment: self.__create_experiment(plate, plate_specs)
+        if create_iso:
+            self.__create_iso()
+        if create_experiment:
+            self.__create_experiment(plate)
         self._continue_setup(second_file)
-        if create_tool: self._create_tool()
+        if create_tool:
+            self._create_tool()
 
     def __create_metadata(self):
         em_type = get_experiment_metadata_type(self.experiment_type_id)
@@ -133,9 +135,8 @@ class _ExperimentMetadataGeneratorTestCase(FileReadingTestCase):
         self._create_lab_iso(
                 iso_request=self.experiment_metadata.lab_iso_request)
 
-    def __create_experiment(self, plate, plate_specs):
+    def __create_experiment(self, plate):
         experiment = self._create_experiment(source_rack=plate,
-                destination_rack_specs=plate_specs,
                 experiment_design=self.experiment_metadata.experiment_design)
         self._create_experiment_job(experiments=[experiment])
 
@@ -997,6 +998,7 @@ class ExperimentMetadataGeneratorLibraryTestCase(
         self.number_rack_wls = 0
         self.expected_ir_data['label'] = self.label
         self.expected_ir_data['comment'] = 'with mastermix support'
+        self.expected_ir_data['expected_number_isos'] = 38
         self.expected_ir_data['iso_plate_reservoir_specs'] = \
                                         get_reservoir_specs_standard_384()
         lib = self._get_entity(IMoleculeDesignLibrary, 'poollib')

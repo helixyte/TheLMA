@@ -93,15 +93,15 @@ class ExperimentJob(Job):
     #: associated with this job.
     experiments = None
 
-    def __init__(self, label, user, experiments, **kw):
+    def __init__(self, label, user, experiments,
+                 job_type=JOB_TYPES.EXPERIMENT, **kw):
         """
         Constructor:
         """
         if experiments is None or len(experiments) < 1:
             raise ValueError('An experiment job must consist of at least ' \
                              '1 experiment!')
-        Job.__init__(self, label=label, user=user,
-                     job_type=JOB_TYPES.EXPERIMENT, **kw)
+        Job.__init__(self, label=label, user=user, job_type=job_type, **kw)
         self.experiments = experiments
 
     def __len__(self):
@@ -119,12 +119,10 @@ class IsoJob(Job):
 
     **Equality Condition**: equal :attr:`id`
     """
-
     #: The ISOs belonging to this job.
     isos = []
     #: The maximum number if ISO stock racks for this ISO job.
     number_stock_racks = None
-
     #: The rack containing the stock tubes for the controls that are
     #: used in this job (not every ISO job needs some, list of
     #: :class:`thelma.models.iso.IsoJobStockRack`)
@@ -134,7 +132,6 @@ class IsoJob(Job):
     #: ISOs in this job (not every ISO job needs some, list of
     #: :class:`thelma.models.iso.IsoJobPreparationPlate`).
     iso_job_preparation_plates = None
-
     #: Contains the worklists specific to the (lab) ISO job processing. Can
     #: be *None*; :class:`thelma.models.liquidtransfer.WorklistSeries`
     worklist_series = None

@@ -504,8 +504,7 @@
 #    def __create_library(self):
 #        generator = LibraryGenerator(library_name=self.libname,
 #                                     stream=self.stream,
-#                                     requester=self.requester,
-#                                     logging_level=30)
+#                                     requester=self.requester)
 #        self.library = generator.get_result()
 #
 #    def __add_pool_ids(self, session):

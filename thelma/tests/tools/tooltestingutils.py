@@ -2,7 +2,6 @@
 Utils for tool testing.
 """
 
-from logging import config
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 from pyramid.threadlocal import get_current_registry
 from thelma import ThelmaLog
@@ -38,21 +37,7 @@ class TestingLog(ThelmaLog):
     """
 
     def __init__(self):
-        ThelmaLog.__init__(self, 'tool_tester', logging.WARNING)
-        self.add_default_handlers()
-
-    def add_default_handlers(self):
-        """
-        Generates handlers that are added automatically upon initialization.
-        """
-
-        file_name = CONF_FILE.split(':')
-        conf_file = resource_filename(*file_name) # pylint: disable=W0142
-        config.fileConfig(conf_file)
-        logger = logging.getLogger('tooltesting')
-        handlers = logger.handlers
-        for handler in handlers:
-            self.addHandler(handler)
+        ThelmaLog.__init__(self, 'tool_tester', log_level=logging.WARNING)
 
 
 class SilentLog(ThelmaLog):
@@ -60,7 +45,8 @@ class SilentLog(ThelmaLog):
     A log that receives log messages but does not store them.
     """
     def __init__(self):
-        ThelmaLog.__init__(self, 'silent_tool_tester', logging.WARNING)
+        ThelmaLog.__init__(self, 'silent_tool_tester',
+                           log_level=logging.WARNING)
         self.addHandler(logging.NullHandler())
 
 

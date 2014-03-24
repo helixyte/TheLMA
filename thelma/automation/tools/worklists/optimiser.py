@@ -248,7 +248,7 @@ class BiomekLayoutOptimizer(BaseAutomationTool):
                 msg = 'Error during 1-to-1 sorting. The length of the source ' \
                       'transfection layout (%i) does not match the number of ' \
                       'distinct hash values (%i). This should not happen. ' \
-                      'Talk to Anna, please.' \
+                      'Talk to IT, please.' \
                       % (len(self._source_layout), len(self._hash_values))
                 self.add_error(msg)
 
@@ -384,7 +384,7 @@ class BiomekLayoutOptimizer(BaseAutomationTool):
         if not len(self._source_layout) == len(self._hash_values):
             msg = 'The number of final source positions (%i) does not match ' \
                   'the number of distinct hash values (%i). This should ' \
-                  'not happen. Talk to Anna, please.' \
+                  'not happen. Talk to IT, please.' \
                   % (len(self._source_layout), len(self._hash_values))
             self.add_error(msg)
 
@@ -412,7 +412,7 @@ class BiomekLayoutOptimizer(BaseAutomationTool):
             free_count -= 1
 
         msg = 'There is no unassigned position left in the source layout. ' \
-              'This should not happen. Talk to Anna, please.'
+              'This should not happen. Talk to IT, please.'
         self.add_error(msg)
 
     def __get_column_with_equal_positions(self, number_positions):

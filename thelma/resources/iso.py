@@ -17,7 +17,6 @@ from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from everest.resources.staging import create_staging_collection
-from thelma.automation.semiconstants import get_item_status_future
 from thelma.automation.tools.iso import get_job_creator
 from thelma.automation.tools.iso import lab
 from thelma.automation.tools.iso.lab import get_stock_rack_recyler
@@ -31,6 +30,7 @@ from thelma.interfaces import IExperimentMetadata
 from thelma.interfaces import IIsoJob
 from thelma.interfaces import ILabIso
 from thelma.interfaces import ILabIsoRequest
+from thelma.interfaces import ILibraryPlate
 from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeDesignPoolSet
 from thelma.interfaces import IPlate
@@ -41,9 +41,6 @@ from thelma.interfaces import IUser
 from thelma.models.experiment import EXPERIMENT_METADATA_TYPES
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import ISO_TYPES
-from thelma.models.iso import Iso
-from thelma.models.iso import IsoPreparationPlate
-from thelma.models.job import IsoJob
 from thelma.models.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
 from thelma.utils import run_tool
@@ -78,8 +75,8 @@ class IsoMember(Member):
                                                 'molecule_design_pool_set')
     optimizer_excluded_racks = terminal_attribute(str,
                                                   'optimizer_excluded_racks')
-    optimizer_required_racks = terminal_attribute(str,
-                                                  'optimizer_required_racks')
+    optimizer_requested_tubes = terminal_attribute(str,
+                                                  'optimizer_requested_tubes')
     preparation_plates = collection_attribute(IPlate,
                                               'preparation_plates')
     aliquot_plates = collection_attribute(IPlate,
@@ -97,6 +94,10 @@ class LabIsoMember(IsoMember):
     relation = "%s/lab-iso" % RELATION_BASE_URL
 
     iso_request = member_attribute(ILabIsoRequest, 'iso_request')
+    library_plates = collection_attribute(ILibraryPlate, 'library_plates',
+                                          backref='lab_iso')
+    requested_library_plates = terminal_attribute(str,
+                                                  'requested_library_plates')
 
 
 class StockSampleCreationIsoMember(IsoMember):
@@ -169,6 +170,7 @@ class LabIsoRequestMember(IsoRequestMember):
                     for plate in iso.iso_aliquot_plates:
                         if iso.status == ISO_STATUS.DONE:
                             iso_plates.add(plate)
+            iso_plates.__parent__ = self
             result = iso_plates
         else:
             result = Member.__getitem__(self, name)
@@ -185,27 +187,42 @@ class LabIsoRequestMember(IsoRequestMember):
 #            self.number_aliquots = new_entity.number_aliquots
         else:
             prx = DataElementAttributeProxy(data)
-            new_owner = prx.owner
-            if not new_owner is None and new_owner != self.owner:
+            try:
+                new_owner = prx.owner
+            except AttributeError:
+                pass
+            else:
+                if new_owner != self.owner:
 #                current_owner = None if self.owner == '' else self.owner
-                self.__process_change_owner(new_owner)
-            new_delivery_date = prx.delivery_date
-            if new_delivery_date:
+                    self.__process_change_owner(new_owner)
+            try:
+                new_delivery_date = prx.delivery_date
+            except AttributeError:
+                pass
+            else:
                 self.delivery_date = new_delivery_date
-            if not prx.jobs is None:
-                self.__process_iso_jobs(prx.jobs)
-            if not prx.isos is None:
-                self.__process_isos(prx.isos)
+            try:
+                jobs = prx.jobs
+            except AttributeError:
+                pass
+            else:
+                self.__process_iso_jobs(jobs)
+            try:
+                isos = prx.isos
+            except AttributeError:
+                pass
+            else:
+                self.__process_isos(isos)
 
     def create_xl20_worklist(self, entity, rack_barcodes,
                              optimizer_excluded_racks=None,
-                             optimizer_required_racks=None,
+                             optimizer_requested_tubes=None,
                              include_dummy_output=False):
         assembler = lab.get_stock_rack_assembler(
                                 entity=entity,
                                 rack_barcodes=rack_barcodes,
                                 excluded_racks=optimizer_excluded_racks,
-                                requested_tubes=optimizer_required_racks,
+                                requested_tubes=optimizer_requested_tubes,
                                 include_dummy_output=include_dummy_output)
         return run_tool(assembler)
 
@@ -215,27 +232,32 @@ class LabIsoRequestMember(IsoRequestMember):
 
     def __process_change_owner(self, new_owner):
         trac_tool = None
-        if new_owner == '':
+        if new_owner is None:
             # Reassign to requester for editing the experiment
             # metadata.
             trac_tool = IsoRequestTicketReassigner(
                                     iso_request=self.get_entity(),
                                     completed=False)
+            new_owner = ''
         elif new_owner == self.requester.directory_user_id:
             # Close iso request and reassign to requester.
             trac_tool = IsoRequestTicketReassigner(
                                     iso_request=self.get_entity(),
                                     completed=True)
         elif new_owner == STOCKMANAGEMENT_USER:
-            pass
-        elif new_owner == 'reopen':
-            user_id = get_current_user().directory_user_id
-            new_owner = user_id + ", " + STOCKMANAGEMENT_USER
-            trac_tool = IsoRequestTicketReopener(
-                                    iso_request=self.get_entity(),
-                                    username=user_id)
+            if self.owner == '':
+                # Activate this ISO request for the first time.
+                trac_tool = IsoRequestTicketAccepter(
+                                        iso_request=self.get_entity(),
+                                        username=new_owner)
+            else:
+                user_id = get_current_user().directory_user_id
+                new_owner = user_id + ", " + STOCKMANAGEMENT_USER
+                trac_tool = IsoRequestTicketReopener(
+                                        iso_request=self.get_entity(),
+                                        username=user_id)
         else:
-            # Accept iso request.
+            # Accept this ISO request.
             tkt_user = new_owner.split(',')[0]
             trac_tool = IsoRequestTicketAccepter(
                                     iso_request=self.get_entity(),
@@ -260,14 +282,19 @@ class LabIsoRequestMember(IsoRequestMember):
     def __process_isos(self, isos_prx):
         number_of_new_isos = 0
         optimizer_excluded_racks = None
-        optimizer_required_racks = None
+        optimizer_requested_tubes = None
+        requested_library_plates = None
         for iso_prx in isos_prx:
             status = iso_prx.status
             iso_id = iso_prx.id
             if status == 'NEW':
                 number_of_new_isos += 1
-                optimizer_excluded_racks = iso_prx.optimizer_excluded_racks
-                optimizer_required_racks = iso_prx.optimizer_required_racks
+                optimizer_excluded_racks = \
+                    getattr(iso_prx, 'optimizer_excluded_racks', None)
+                optimizer_requested_tubes = \
+                    getattr(iso_prx, 'optimizer_requested_tubes', None)
+                requested_library_plates = \
+                    getattr(iso_prx, 'requested_library_plates', None)
             else:
                 # Retrieve the ISO entity and perform an operation on it.
                 iso = self.__find_iso(iso_id)
@@ -288,31 +315,43 @@ class LabIsoRequestMember(IsoRequestMember):
         if number_of_new_isos > 0:
             self.__generate_isos(number_of_new_isos,
                                  optimizer_excluded_racks,
-                                 optimizer_required_racks)
+                                 optimizer_requested_tubes,
+                                 requested_library_plates)
 
     def __update_iso_status(self, iso, new_status):
         iso.status = new_status
+        if new_status == ISO_STATUS.CANCELLED \
+           and iso.status != ISO_STATUS.DONE:
+            # Release the reserved library plates again.
+            for lp in iso.library_plates:
+                lp.has_been_used = False
 
     def __copy_iso(self, iso):
-        future = get_item_status_future()
-        new_iso = Iso(label=iso.label + '_copy',
-                      iso_request=iso.iso_request,
-                      molecule_design_pool_set=\
-                                iso.molecule_design_pool_set,
-                      optimizer_excluded_racks=
-                                    iso.optimizer_excluded_racks,
-                      optimizer_required_racks=
-                                    iso.optimizer_required_racks,
-                      rack_layout=iso.rack_layout,)
-        prep_label = 'p_%s' % (new_iso.label)
-        prep_plate = iso.preparation_plate.specs.create_rack(
-                            label=prep_label,
-                            status=future)
-        IsoPreparationPlate(iso=new_iso, plate=prep_plate)
-        new_isos = [new_iso]
-        job_num = len(iso.iso_request.iso_jobs) + 1
-        IsoJob(label='ISO Job %d' % job_num, user=get_current_user(),
-               isos=new_isos)
+        # FIXME: We need to figure out what to do her (#563).
+        raise NotImplementedError('Not implemented.')
+#        future = get_item_status_future()
+#        new_iso = LabIso(label=iso.label + '_copy',
+#                         number_stock_racks=iso.number_stock_racks,
+#                         rack_layout=iso.rack_layout,
+#                         iso_request=iso.iso_request,
+#                         molecule_design_pool_set=\
+#                                    iso.molecule_design_pool_set,
+#                         optimizer_excluded_racks=
+#                                        iso.optimizer_excluded_racks,
+#                         optimizer_requested_tubes=
+#                                        iso.optimizer_requested_tubes,
+#                         )
+#        prep_label = 'p_%s' % (new_iso.label)
+#        prep_plate = iso.preparation_plate.specs.create_rack(
+#                            label=prep_label,
+#                            status=future)
+#        # FIXME: Using side effect of instantiation.
+#        IsoPreparationPlate(iso=new_iso, plate=prep_plate)
+#        new_isos = [new_iso]
+#        job_num = len(iso.iso_request.iso_jobs) + 1
+#        # FIXME: Using side effect of instantiation.
+#        IsoJob(label='ISO Job %d' % job_num, user=get_current_user(),
+#               isos=new_isos)
 
     def __pipetting_iso_or_iso_job(self, iso_or_iso_job):
         user = get_current_user()
@@ -330,11 +369,14 @@ class LabIsoRequestMember(IsoRequestMember):
                         error_prefix='Invalid stock rack(s)! --')
 
     def __generate_isos(self, number_of_new_isos,
-                        optimizer_excluded_racks, optimizer_requested_tubes):
-        if optimizer_excluded_racks is not None:
+                        optimizer_excluded_racks, optimizer_requested_tubes,
+                        requested_library_plates):
+        if not optimizer_excluded_racks is None:
             optimizer_excluded_racks = optimizer_excluded_racks.split(',')
-        if optimizer_requested_tubes is not None:
+        if not optimizer_requested_tubes is None:
             optimizer_requested_tubes = optimizer_requested_tubes.split(',')
+        if not requested_library_plates is None:
+            requested_library_plates = requested_library_plates.split(',')
         iso_request = self.get_entity()
         user = get_current_user()
         if iso_request.iso_type == ISO_TYPES.LAB:
@@ -343,7 +385,9 @@ class LabIsoRequestMember(IsoRequestMember):
                                 user,
                                 number_of_new_isos,
                                 excluded_racks=optimizer_excluded_racks,
-                                requested_tubes=optimizer_requested_tubes)
+                                requested_tubes=optimizer_requested_tubes,
+                                requested_library_plates=
+                                                    requested_library_plates)
         else:
             raise NotImplementedError('POOL CREATION ISOs not implemented.')
         return run_tool(creator)

@@ -87,8 +87,7 @@
 #    FILE_NAME_CYBIO = '%s-%s-CyBio_instructions.txt'
 #
 #    def __init__(self, library_creation_iso, tube_destination_racks,
-#                 pool_stock_racks,
-#                 logging_level=logging.WARNING, add_default_handlers=False):
+#                 pool_stock_racks):
 #        """
 #        Constructor:
 #
@@ -107,20 +106,8 @@
 #            (these racks have to have empty tubes in defined positions).
 #        :type pool_stock_racks: map of barcodes
 #            (:class:`basestring`) mapped onto sector indices.
-#
-#        :param logging_level: the desired minimum log level
-#        :type logging_level: :class:`int` (or logging_level as
-#                         imported from :mod:`logging`)
-#        :default logging_level: logging.WARNING
-#
-#        :param add_default_handlers: If *True* the log will automatically add
-#            the default handler upon instantiation.
-#        :type add_default_handlers: :class:`boolean`
-#        :default add_default_handlers: *False*
 #        """
-#        BaseAutomationTool.__init__(self, logging_level=logging_level,
-#                                    add_default_handlers=add_default_handlers,
-#                                    depending=False)
+#        BaseAutomationTool.__init__(self, depending=False)
 #
 #        #: The library creation ISO for which to generate the worklist files.
 #        self.library_creation_iso = library_creation_iso

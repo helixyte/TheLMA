@@ -115,21 +115,14 @@ class PlannedLiquidTransfer(Entity):
         return self._transfer_type
 
     @classmethod
-    def _get_entity(cls, volume, **kw):
-        """
-        Factory method returning the planned sample transfer for the given
-        values. If there is already an entity with this values in the DB,
-        the entity will be loaded, otherwise a new entity is generated.
-
-        :param volume: The volume *in l*.
-        :type volume: positive number
-        """
-        hash_value = cls.get_hash_value(volume, **kw)
+    def create_from_data(cls, data):
+        # We reuse existing transfers with the same hash value.
+        volume = data.pop('volume')
+        hash_value = cls.get_hash_value(volume, **data)
         agg = get_root_aggregate(cls._MARKER_INTERFACE)
         pt = agg.get_by_slug(hash_value)
-
         if pt is None:
-            pt = cls(volume=volume, hash_value=hash_value, **kw)
+            pt = cls(volume=volume, hash_value=hash_value, **data)
             agg.add(pt)
         return pt
 
@@ -172,6 +165,9 @@ class PlannedLiquidTransfer(Entity):
     def __eq__(self, other):
         return isinstance(other, self.__class__) and \
                 self._hash_value == other.hash_value
+
+    def __hash__(self):
+        return hash(self._hash_value)
 
 
 class PlannedSampleDilution(PlannedLiquidTransfer):
@@ -224,8 +220,10 @@ class PlannedSampleDilution(PlannedLiquidTransfer):
 
         :return: :class:`PlannedSampleDilution`
         """
-        kw = dict(diluent_info=diluent_info, target_position=target_position)
-        return cls._get_entity(volume=volume, **kw)
+        data = dict(diluent_info=diluent_info,
+                    target_position=target_position)
+        data['volume'] = volume
+        return cls.create_from_data(data)
 
     #pylint: disable=W0221
     @classmethod
@@ -341,9 +339,10 @@ class PlannedSampleTransfer(PlannedLiquidTransfer):
 
         :return: :class:`PlannedSampleTransfer`
         """
-        kw = dict(source_position=source_position,
-                  target_position=target_position)
-        return cls._get_entity(volume=volume, **kw)
+        data = dict(source_position=source_position,
+                    target_position=target_position)
+        data['volume'] = volume
+        return cls.create_from_data(data)
 
     #pylint: disable=W0221
     @classmethod
@@ -458,10 +457,11 @@ class PlannedRackSampleTransfer(PlannedLiquidTransfer):
 
         :return: :class:`PlannedRackSampleTransfer`
         """
-        kw = dict(number_sectors=number_sectors,
-                  source_sector_index=source_sector_index,
-                  target_sector_index=target_sector_index)
-        return cls._get_entity(volume=volume, **kw)
+        data = dict(number_sectors=number_sectors,
+                    source_sector_index=source_sector_index,
+                    target_sector_index=target_sector_index)
+        data['volume'] = volume
+        return cls.create_from_data(data)
 
     #pylint: disable=W0221
     @classmethod

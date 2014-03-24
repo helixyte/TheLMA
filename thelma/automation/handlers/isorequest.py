@@ -743,7 +743,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
                   'different concentrations for a molecule design pool must ' \
                   'be located in the same rack sector and that the ' \
                   'distribution of concentrations must be the same for all ' \
-                  'quadrants. If you have questions, ask Anna, please.'
+                  'quadrants. If you have questions, ask IT, please.'
             self.add_error(msg)
         else:
             self.__association_data = self.__get_association_data()
@@ -789,7 +789,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
                   'design pools shall occur several times, all occurrences ' \
                   'must be located in the same rack sector and that the ' \
                   'distribution of concentrations must be the same for all ' \
-                  'quadrants. If you have questions, ask Anna, please.'
+                  'quadrants. If you have questions, ask IT, please.'
             self.add_error(msg)
             return None
         elif self.__has_consistent_final_concentration(association_data):

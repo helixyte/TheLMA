@@ -259,9 +259,6 @@ class EntityCreatorMixin(EverestEntityCreatorMixin):
     def _create_experiment(self, **kw):
         if not 'label' in kw:
             kw['label'] = 'TestExperiment'
-        if not 'destination_rack_specs' in kw:
-            kw['destination_rack_specs'] = \
-               self._get_entity(IPlateSpecs)
         if not 'experiment_design' in kw:
             kw['experiment_design'] = self._get_entity(IExperimentDesign)
         exp = self._create_entity(Experiment, kw)

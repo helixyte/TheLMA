@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/libraryplate"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:iso="http://schemata.cenix-bioscience.com/iso"
+    xmlns:lp="http://schemata.cenix-bioscience.com/libraryplate"
+    xmlns:r="http://schemata.cenix-bioscience.com/rack"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+>
+    <import
+        schemaLocation="Iso.xsd"
+        namespace="http://schemata.cenix-bioscience.com/iso"
+    >
+    </import>
+    <import
+        schemaLocation="Rack.xsd"
+        namespace="http://schemata.cenix-bioscience.com/rack"
+    >
+    </import>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+
+    <complexType name="LibraryPlateType">
+        <complexContent>
+            <extension base="sh:ResourceType">
+                <choice>
+                    <element
+                        name="link"
+                        type="lp:LibraryPlateLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element ref="r:rack">
+                        </element>
+                        <element
+                            name="layout_number"
+                            type="int"
+                        >
+                        </element>
+                        <element
+                            name="has_been_used"
+                            type="boolean"
+                        >
+                        </element>
+                        <element ref="iso:lab_iso">
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType name="LibraryPlateCollectionType">
+        <choice>
+            <element
+                ref="lp:library_plate"
+                maxOccurs="unbounded"
+                minOccurs="0"
+            >
+            </element>
+            <element
+                name="link"
+                type="lp:LibraryPlateCollectionLinkType"
+                maxOccurs="1"
+                minOccurs="0"
+            >
+            </element>
+        </choice>
+
+    </complexType>
+
+    <complexType name="LibraryPlateLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/location"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType name="LibraryPlateCollectionLinkType">
+        <complexContent>
+            <restriction base="sh:LinkType">
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/location-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="library_plate"
+        type="lp:LibraryPlateType"
+    >
+    </element>
+
+    <element
+        name="library_plates"
+        type="lp:LibraryPlateCollectionType"
+    >
+    </element>
+
+</schema>

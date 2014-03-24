@@ -771,7 +771,6 @@ class MoleculeDesignPoolPosition(WorkingPosition):
     design pools.
     """
     PARAMETER_SET = MoleculeDesignPoolParameters
-
     #: If *False*, position types are not stored in the rack layouts.
     EXPOSE_POSITION_TYPE = True
     #: If *True* incoming position type are checked for compliance with the
@@ -781,38 +780,29 @@ class MoleculeDesignPoolPosition(WorkingPosition):
     def __init__(self, rack_position, molecule_design_pool=None,
                  position_type=None):
         """
-        Constructor:
-
-        :param rack_position: The rack position.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`.
+        Constructor.
 
         :param molecule_design_pool: The molecule design pool for this position
             or a valid placeholder.
         :type molecule_design_pool:
             :class:`thelma.models.moleculedesign.MoleculeDesignPool`
             or :class:`basestring`
-
         :param position_type: influences valid values for other parameters
         :type position_type: :class:`str
         """
-        if self.__class__ == MoleculeDesignPoolPosition:
+        if self.__class__ is MoleculeDesignPoolPosition:
             raise NotImplementedError('Abstract class')
-
         WorkingPosition.__init__(self, rack_position)
-
         #: The molecule design pool (or placeholder).
         self.molecule_design_pool = molecule_design_pool
-
         #: The type of the ISO position.
         self.position_type = self._get_position_type(position_type)
-
         if self.is_fixed and not isinstance(self.molecule_design_pool,
                                             MoleculeDesignPool):
             msg = 'The molecule design pool must be a %s (obtained: %s).' \
                   % (MoleculeDesignPool.__name__,
                      molecule_design_pool.__class__.__name__)
             raise TypeError(msg)
-
 
     def _get_position_type(self, position_type):
         """
@@ -853,70 +843,53 @@ class MoleculeDesignPoolPosition(WorkingPosition):
         """
         If *True* this position represents a empty or untreated position.
         """
-        if self.position_type == self.PARAMETER_SET.EMPTY_TYPE_VALUE or \
-                self.PARAMETER_SET.is_untreated_type(self.position_type):
-            return True
-        else:
-            return False
+        return self.position_type == self.PARAMETER_SET.EMPTY_TYPE_VALUE or \
+                self.PARAMETER_SET.is_untreated_type(self.position_type)
 
     @property
     def is_untreated_type(self):
         """
         If *True* this position represents an untreated position.
         """
-        if self.PARAMETER_SET.is_untreated_type(self.position_type):
-            return True
-        else:
-            return False
+        return self.PARAMETER_SET.is_untreated_type(self.position_type)
 
     @property
     def is_mock(self):
         """
         If *True* this position represents a mock position.
         """
-        if self.position_type == self.PARAMETER_SET.MOCK_TYPE_VALUE:
-            return True
-        else:
-            return False
+        return self.position_type == self.PARAMETER_SET.MOCK_TYPE_VALUE
 
     @property
     def is_library(self):
         """
         If *True* this position represents a library position.
         """
-        if self.position_type == self.PARAMETER_SET.LIBRARY_TYPE_VALUE:
-            return True
-        else:
-            return False
+        return self.position_type == self.PARAMETER_SET.LIBRARY_TYPE_VALUE
 
     @property
     def is_floating(self):
         """
         If *True* this position represents a floating position.
         """
-        if self.position_type == self.PARAMETER_SET.FLOATING_TYPE_VALUE:
-            return True
-        else:
-            return False
+        return self.position_type == self.PARAMETER_SET.FLOATING_TYPE_VALUE
 
     @property
     def is_fixed(self):
         """
         If *True* this position represents a fixed position.
         """
-        if self.position_type == self.PARAMETER_SET.FIXED_TYPE_VALUE:
-            return True
-        else:
-            return False
+        return self.position_type == self.PARAMETER_SET.FIXED_TYPE_VALUE
 
     @property
     def molecule_design_pool_id(self):
         """
         The molecule design pool ID or the molecule design pool placeholder.
         """
-        pool_id = self.molecule_design_pool
         if isinstance(self.molecule_design_pool, MoleculeDesignPool):
-            pool_id = self.molecule_design_pool.id #pylint: disable=E1103
+            pool_id = self.molecule_design_pool.id
+        else:
+            pool_id = self.molecule_design_pool
         return pool_id
 
     @property
@@ -926,10 +899,11 @@ class MoleculeDesignPoolPosition(WorkingPosition):
         with molecule design pools).
         """
         if isinstance(self.molecule_design_pool, MoleculeDesignPool):
-            return self.molecule_design_pool.\
-                   default_stock_concentration * CONCENTRATION_CONVERSION_FACTOR
+            conc = self.molecule_design_pool.default_stock_concentration \
+                   * CONCENTRATION_CONVERSION_FACTOR
         else:
-            return None
+            conc = None
+        return conc
 
     @property
     def molecule_type(self):
@@ -938,9 +912,10 @@ class MoleculeDesignPoolPosition(WorkingPosition):
         pools).
         """
         if isinstance(self.molecule_design_pool, MoleculeDesignPool):
-            return self.molecule_design_pool.molecule_type
+            mt = self.molecule_design_pool.molecule_type
         else:
-            return None
+            mt = None
+        return mt
 
     @classmethod
     def is_valid_untreated_value(cls, value):
@@ -970,9 +945,10 @@ class MoleculeDesignPoolPosition(WorkingPosition):
         All other return all value tags.
         """
         if self.is_empty and not self.is_untreated_type:
-            return set([self.get_parameter_tag(self.PARAMETER_SET.POS_TYPE)])
+            tset = set([self.get_parameter_tag(self.PARAMETER_SET.POS_TYPE)])
         else:
-            return WorkingPosition.get_tag_set(self)
+            tset = WorkingPosition.get_tag_set(self)
+        return tset
 
     def get_parameter_tag(self, parameter):
         """
@@ -981,8 +957,10 @@ class MoleculeDesignPoolPosition(WorkingPosition):
         """
         if parameter == self.PARAMETER_SET.POS_TYPE and \
                                             not self.EXPOSE_POSITION_TYPE:
-            return None
-        return WorkingPosition.get_parameter_tag(self, parameter)
+            tag = None
+        else:
+            tag = WorkingPosition.get_parameter_tag(self, parameter)
+        return tag
 
     def _get_parameter_values_map(self):
         """
@@ -1016,24 +994,14 @@ class MoleculeDesignPoolLayout(WorkingLayout):
     An abstract base class for designs that store molecule design pool
     data.
     """
-
     POSITION_CLS = MoleculeDesignPoolPosition
 
     def __init__(self, shape):
-        """
-        Constructor:
-
-        :param shape: The rack shape.
-        :type shape: :class:`thelma.models.rack.RackShape`
-        """
-        if self.__class__ == MoleculeDesignPoolLayout:
+        if self.__class__ is MoleculeDesignPoolLayout:
             raise NotImplementedError('Abstract class')
-
         WorkingLayout.__init__(self, shape)
-
         #: You cannot add new positions to a closed layout.
         self.is_closed = False
-
         #: The molecule type for floating positions.
         self._floating_molecule_type = None
         #: The stock concentration for floating positions in nM.
@@ -1059,7 +1027,6 @@ class MoleculeDesignPoolLayout(WorkingLayout):
             msg = 'The molecule type must be a %s (obtained: %s).' \
                   % (MoleculeType.__name__, molecule_type.__class__.__name__)
             raise TypeError(msg)
-
         self._floating_molecule_type = molecule_type
 
     @property
@@ -1087,7 +1054,6 @@ class MoleculeDesignPoolLayout(WorkingLayout):
             msg = 'The stock concentration must be a positive number ' \
                   '(obtained: %s).' % (stock_concentration)
             raise ValueError(msg)
-
         if stock_concentration < 1:
             self._floating_stock_concentration = stock_concentration \
                                         * CONCENTRATION_CONVERSION_FACTOR
@@ -1105,19 +1071,17 @@ class MoleculeDesignPoolLayout(WorkingLayout):
         :raises AttributeError: If the layout is closed.
         :raises TypeError: if the position has the wrong type
         """
-        if not self.is_closed:
-            WorkingLayout.add_position(self, working_position)
-        else:
+        if self.is_closed:
             raise AttributeError('The layout is closed!')
+        WorkingLayout.add_position(self, working_position)
 
     def has_floatings(self):
         """
         Returns *True* if this layout is having floating position and *False*
         if there are none.
         """
-        for pool_pos in self._position_map.values():
-            if pool_pos.is_floating: return True
-        return False
+        return any((pool_pos.is_floating
+                    for pool_pos in self._position_map.values()))
 
     def get_floating_positions(self):
         """
@@ -1150,7 +1114,6 @@ class MoleculeDesignPoolLayout(WorkingLayout):
         are kept.
         """
         if not self.is_closed:
-
             del_positions = []
             for rack_pos, pool_pos in self._position_map.iteritems():
                 if pool_pos.is_untreated_type: continue
@@ -1164,7 +1127,6 @@ class TransferTarget(object):
     """
     This class represents the target of a transfer.
     """
-
     #: This character separates the values of transfer target in the info
     #: string.
     INFO_DELIMITER = ':'
@@ -1192,18 +1154,15 @@ class TransferTarget(object):
             msg = 'The rack position must be a RackPosition or a string ' \
                   '(obtained: %s).' % (rack_position.__class__.__name__)
             raise TypeError(msg)
-
         if not is_valid_number(transfer_volume):
             msg = 'The transfer volume must be a positive number ' \
                   '(obtained: %s).' % (transfer_volume)
             raise ValueError(msg)
-
         if not target_rack_marker is None and \
                             not isinstance(target_rack_marker, basestring):
             msg = 'The target rack marker must be string (obtained: %s)!' \
                   % (target_rack_marker.__class__.__name__)
             raise TypeError(msg)
-
         #: The target position the liquid shall be added to.
         self.position_label = label
         #: The volume to be transferred.
@@ -1280,31 +1239,24 @@ class TransferParameters(MoleculeDesignPoolParameters):
     A list of transfer parameters. The subclasses might have different
     sets of transfer targets. The sets are handled separately.
     """
-
     #: The domain for transfer-related tags.
     DOMAIN = 'sample_transfer'
-
     #: The molecule design pool (tag value: molecule design pool id).
     MOLECULE_DESIGN_POOL = MoleculeDesignPoolParameters.MOLECULE_DESIGN_POOL
     #: The position type (fixed, floating, mock or empty).
     POS_TYPE = MoleculeDesignPoolParameters.POS_TYPE
-
     #: A list of :class:`TransferTarget` objects. This is the main transfer
     #: target set that is inherited by all subclasses.
     TRANSFER_TARGETS = 'transfer_targets'
     #: Do there have to be transfer targets for the given parameter?
     #: (default for :attr:`TRANSFER_TARGETS` : *False*)
     MUST_HAVE_TRANSFER_TARGETS = {TRANSFER_TARGETS : False}
-
     #: All parameters that deal with transfer targets.
     TRANSFER_TARGET_PARAMETERS = [TRANSFER_TARGETS]
-
     ALL = MoleculeDesignPoolParameters.ALL + [TRANSFER_TARGETS]
     REQUIRED = MoleculeDesignPoolParameters.REQUIRED
-
     ALIAS_MAP = dict(MoleculeDesignPoolParameters.ALIAS_MAP, **{
                             TRANSFER_TARGETS : ['target_wells']})
-
     DOMAIN_MAP = dict(MoleculeDesignPoolParameters.DOMAIN_MAP,
                       **{TRANSFER_TARGETS : DOMAIN})
 
@@ -1327,10 +1279,8 @@ class TransferPosition(MoleculeDesignPoolPosition):
     **Equality condition**: equal :attr:`rack_position` and
         :attr:`target_positions`.
     """
-
     #: The parameter set this working position is associated with.
     PARAMETER_SET = TransferParameters
-
     #: The delimiter for the different target infos.
     TARGETS_DELIMITER = '-'
 
@@ -1338,18 +1288,6 @@ class TransferPosition(MoleculeDesignPoolPosition):
                  position_type=None, transfer_targets=None):
         """
         Constructor:
-
-        :param rack_position: The source rack position in the source rack.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`
-
-        :param molecule_design_pool: The molecule design pool for this position
-            or a valid placeholder.
-        :type molecule_design_pool:
-            :class:`thelma.models.moleculedesign.MoleculeDesignPool`
-            or :class:`basestring`
-
-        :param position_type: influences valid values for other parameters
-        :type position_type: :class:`str
 
         :param transfer_targets: The target positions and transfer volumes.
             Some subclasses require transfer targets, in others there are
@@ -1359,11 +1297,9 @@ class TransferPosition(MoleculeDesignPoolPosition):
         """
         if self.__class__ == TransferPosition:
             raise NotImplementedError('Abstract class')
-
         MoleculeDesignPoolPosition.__init__(self, rack_position=rack_position,
                                     molecule_design_pool=molecule_design_pool,
                                     position_type=position_type)
-
         #: The target positions and transfer volumes. Some subclasses require
         #: transfer targets, in others there are optional. This is set in
         #: the :attr:`MUST_HAVE_TRANSFER_TARGETS` attribute of the
@@ -1503,19 +1439,17 @@ class TransferPosition(MoleculeDesignPoolPosition):
         :raises ValueError: If the string cannot be parsed or there are
             duplicate targets.
         """
-        if target_tag_value == cls.NONE_REPLACER: return []
-
-        tokens = target_tag_value.split(cls.TARGETS_DELIMITER)
-        hash_values = set()
-        target_list = list()
-        for token in tokens:
-            tt = TransferTarget.parse_info_string(token)
-            if tt.hash_value in hash_values:
-                msg = 'Duplicate transfer target: %s!' % (tt.hash_value)
-                raise ValueError(msg)
-            target_list.append(tt)
-            hash_values.add(tt.hash_value)
-
+        target_list = []
+        if target_tag_value != cls.NONE_REPLACER:
+            tokens = target_tag_value.split(cls.TARGETS_DELIMITER)
+            hash_values = set()
+            for token in tokens:
+                tt = TransferTarget.parse_info_string(token)
+                if tt.hash_value in hash_values:
+                    msg = 'Duplicate transfer target: %s!' % (tt.hash_value)
+                    raise ValueError(msg)
+                target_list.append(tt)
+                hash_values.add(tt.hash_value)
         return target_list
 
     def get_parameter_tag(self, parameter):
@@ -1524,9 +1458,11 @@ class TransferPosition(MoleculeDesignPoolPosition):
         designs tag is a concatenated string.
         """
         if parameter in self.PARAMETER_SET.TRANSFER_TARGET_PARAMETERS:
-            return self.get_targets_tag(parameter)
+            tag = self.get_targets_tag(parameter)
         else:
-            return MoleculeDesignPoolPosition.get_parameter_tag(self, parameter)
+            tag = MoleculeDesignPoolPosition.get_parameter_tag(self,
+                                                               parameter)
+        return tag
 
     def _get_parameter_values_map(self):
         """
@@ -1552,12 +1488,10 @@ class TransferLayout(MoleculeDesignPoolLayout):
     """
     #: The working position class this layout is associated with.
     POSITION_CLS = TransferPosition
-
     #: Short cut to the transfer target parameters of the working position
     #: parameter set.
     _TRANSFER_TARGET_PARAMETERS = POSITION_CLS.PARAMETER_SET.\
                                   TRANSFER_TARGET_PARAMETERS
-
     #: By default, each transfer targets within a layout must be unique.
     #: This is only compared within the parameter.
     ALLOW_DUPLICATE_TARGET_WELLS = {POSITION_CLS.PARAMETER_SET.\
@@ -1573,7 +1507,6 @@ class TransferLayout(MoleculeDesignPoolLayout):
         if self.__class__ == TransferLayout:
             raise NotImplementedError('Abstract class')
         MoleculeDesignPoolLayout.__init__(self, shape=shape)
-
         #: The transfer targets for each transfer target parameter mapped
         #: onto rack positions.
         self._transfer_target_map = dict()
@@ -1627,13 +1560,10 @@ class LibraryLayoutParameters(ParameterSet):
     Marks which position in library are reserved for library position.
     """
     DOMAIN = 'library_base_layout'
-
     #: If *True* the position in a library plate will contain a library sample.
     IS_LIBRARY_POS = 'is_library_position'
-
     REQUIRED = [IS_LIBRARY_POS]
     ALL = [IS_LIBRARY_POS]
-
     ALIAS_MAP = {IS_LIBRARY_POS : ['is_sample_position']}
     DOMAIN_MAP = {IS_LIBRARY_POS : DOMAIN}
 
@@ -1647,7 +1577,6 @@ class LibraryLayoutPosition(WorkingPosition):
         :attr:`is_sample_pos`
     """
     PARAMETER_SET = LibraryLayoutParameters
-
     RECORD_FALSE_VALUES = False
 
     def __init__(self, rack_position, is_library_position=True):

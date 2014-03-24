@@ -314,16 +314,24 @@ class IMoleculeDesignPool(IMoleculeDesignSet):
     resources.
     """
 
+
 class IMoleculeDesignPoolSet(Interface):
     """
     Marker interface indicating participation in molecule design pool set
     resources.
     """
 
+
 class IMoleculeDesignLibrary(Interface):
     """
     Marker interface indicating participation in molecule design library
     resources.
+    """
+
+
+class ILibraryPlate(Interface):
+    """
+    Marker interface indicating participation in library plate resources.
     """
 
 

@@ -4,7 +4,6 @@ Subproject model classes.
 FOG 11.2010, AAB
 """
 from everest.entities.base import Entity
-from everest.entities.utils import slug_from_integer
 from thelma.utils import get_utc_time
 
 __docformat__ = "reStructuredText en"
@@ -53,12 +52,6 @@ class Subproject(Entity):
         """
         self.label = member.label
         self.active = member.active
-
-    @property
-    def slug(self):
-        #: For instances of this class, the slug is derived from the
-        #: :attr:`label`.
-        return slug_from_integer(self.id)
 
     def __eq__(self, other):
         return (isinstance(other, Subproject) \

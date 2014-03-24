@@ -50,6 +50,11 @@
     <group name="JobBase">
         <sequence>
             <element
+                name="job_type"
+                type="string"
+            >
+            </element>
+            <element
                 name="label"
                 type="string"
             >
@@ -58,11 +63,6 @@
                 ref="u:user"
                 minOccurs="0"
                 maxOccurs="1"
-            >
-            </element>
-            <element
-                name="job_type"
-                type="string"
             >
             </element>
             <element
@@ -136,6 +136,8 @@
                     <sequence>
                         <group ref="j:JobBase">
                         </group>
+                        <element ref="e:experiments">
+                        </element>
                     </sequence>
                 </choice>
             </extension>

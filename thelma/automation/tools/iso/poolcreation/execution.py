@@ -455,7 +455,7 @@ class StockSampleCreationStockTransferReporter(IsoStockTransferReporter):
         (instead of the preparation plate).
         """
         rack = self.executor.entity.iso_stock_racks[0].rack
-        rack_str = 'New pool stock rack: %s' % (rack.barcode)
+        rack_str = "'''New pool stock rack:''' %s" % (rack.barcode)
         return rack_str
 
     def _get_log_file_writer(self):

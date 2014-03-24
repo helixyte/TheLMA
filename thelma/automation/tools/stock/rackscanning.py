@@ -21,7 +21,6 @@ from thelma.models.rack import TubeRack
 from thelma.models.tubetransfer import TubeTransfer
 from thelma.models.user import User
 from thelma.utils import get_utc_time
-import logging
 import os
 import glob
 from StringIO import StringIO
@@ -30,7 +29,6 @@ __docformat__ = "reStructuredText en"
 
 __all__ = ['RackScanningAdjuster',
            'RackScanningReportWriter']
-
 
 
 class RackScanningAdjuster(BaseAutomationTool):
@@ -71,36 +69,23 @@ class RackScanningAdjuster(BaseAutomationTool):
     #: The maximum age a rack scanning timestamp may have.
     MAX_FILE_AGE = 1 # days
 
-    def __init__(self, rack_scanning_files, adjust_database=False, user=None,
-                 logging_level=logging.WARNING, add_default_handlers=False):
+    def __init__(self, rack_scanning_files, adjust_database=False, user=None):
         """
         Constructor:
 
         :param rack_scanning_files The rack scanning stream, either
             a single rack scanning file, as zip archive or as directory path
             (if containing several files).
-
         :param adjust_database: Shall the DB be adjusted (*True*) or do
             you only want to have a report (*False*)?
         :type adjust_database: :class:`bool`
         :default adjust_database: *False*
-
         :param user: The user who wants to update the DB - must not be *None* if
             :attr:`adjust_database` is *True*.
         :type user: :class:`thelma.models.user.User`
         :default user: *None*
-
-        :param logging_level: defines the least severe level of logging
-                    event the log will record
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
         """
-        BaseAutomationTool.__init__(self, logging_level=logging_level,
-                                    add_default_handlers=add_default_handlers,
-                                    depending=False)
-
+        BaseAutomationTool.__init__(self, depending=False)
         #: The rack scanning stream (single file, zip archive or directory -
         #: in case of an directory, :attr:`is_directory` must be *True*).
         self.rack_scanning_files = rack_scanning_files

@@ -23,24 +23,13 @@ class BaseAutomationTool(EventRecording):
     #: The name of the automation tool.
     NAME = None
 
-    def __init__(self, log=None,
-                 logging_level=None,
-                 add_default_handlers=False,
-                 depending=True):
+    def __init__(self, log=None, depending=True):
         """
         Constructor:
 
         :param log: The ThelmaLog you want to write into. If the
             log is None, the object will create a new log.
         :type log: :class:`thelma.ThelmaLog`
-
-        :param logging_level: defines the least severe level of logging
-                    event the log will record
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-
         :param depending: Defines whether a tool can be initialized directly
             (*False*) of if it is always called by other tools (*True*).
             Depending tools cannot initialize and reset logs but must
@@ -48,8 +37,7 @@ class BaseAutomationTool(EventRecording):
         :type depending: :class:`bool`
         :default depending: *True*
         """
-        EventRecording.__init__(self, log, logging_level, add_default_handlers)
-
+        EventRecording.__init__(self, log)
         #: Defines whether a tool can be initialized directly (*False*) of if
         #: it is always called by other tools (*True*). Depending tools cannot
         #: initialize and reset logs but must return a external one.
@@ -58,7 +46,6 @@ class BaseAutomationTool(EventRecording):
             self._check_input_class('log', log, ThelmaLog)
         else:
             initialize_semiconstant_caches()
-
         #: The object to be passed as result.
         self.return_value = None
 
@@ -114,36 +101,15 @@ class SessionTool(BaseAutomationTool): # pylint: disable=W0223
     """
     Abstract base class for tools that run queries.
     """
-
-    def __init__(self, log=None,
-                 logging_level=None,
-                 add_default_handlers=False,
-                 depending=True):
+    def __init__(self, log=None, depending=True):
         """
         Constructor:
 
         :param log: The ThelmaLog you want to write into. If the
             log is None, the object will create a new log.
         :type log: :class:`thelma.ThelmaLog`
-
-        :param logging_level: defines the least severe level of logging
-                    event the log will record
-
-        :param add_default_handlers: If *True* the log will automatically add
-            the default handler upon instantiation.
-        :type add_default_handlers: :class:`boolean`
-
-        :param depending: Defines whether a tool can be initialized directly
-            (*False*) of if it is always called by other tools (*True*).
-            Depending tools cannot initialize and reset logs but must
-            return a external one.
-        :type depending: :class:`bool`
-        :default depending: *True*
         """
-        BaseAutomationTool.__init__(self, log=log, logging_level=logging_level,
-                                    add_default_handlers=add_default_handlers,
-                                    depending=depending)
-
+        BaseAutomationTool.__init__(self, log=log, depending=depending)
         #: The DB session used for the queries.
         self.__session = None
 

@@ -72,8 +72,7 @@
 #    ALIQUOT_PLATE_LABEL_PATTERN = '%s-%i-%inM-%i'
 #
 #    def __init__(self, molecule_design_library, number_isos,
-#                 excluded_racks=None, requested_tubes=None,
-#                 logging_level=logging.WARNING, add_default_handlers=False):
+#                 excluded_racks=None, requested_tubes=None):
 #        """
 #        Constructor:
 #
@@ -81,32 +80,16 @@
 #            populate the ISO.
 #        :type molecule_design_library:
 #            :class:`thelma.models.library.MoleculeDesignLibrary`
-#
 #        :param number_isos: The number of ISOs ordered.
 #        :type number_isos: :class:`int`
-#
 #        :param excluded_racks: A list of barcodes from stock racks that shall
 #            not be used for stock sample picking.
 #        :type excluded_racks: A list of rack barcodes
-#
 #        :param requested_tubes: A list of barcodes from stock tubes that are
 #            supposed to be used.
 #        :type requested_tubes: A list of tube barcodes.
-#
-#        :param logging_level: the desired minimum log level
-#        :type log_level: :class:`int` (or logging_level as
-#                         imported from :mod:`logging`)
-#        :default logging_level: logging.WARNING
-#
-#        :param add_default_handlers: If *True* the log will automatically add
-#            the default handler upon instantiation.
-#        :type add_default_handlers: :class:`boolean`
-#        :default add_default_handlers: *False*
 #        """
-#        BaseAutomationTool.__init__(self, logging_level=logging_level,
-#                                    add_default_handlers=add_default_handlers,
-#                                    depending=False)
-#
+#        BaseAutomationTool.__init__(self, depending=False)
 #        #: The molecule design library for which to generate an ISO.
 #        self.molecule_design_library = molecule_design_library
 #        #: The number of ISOs ordered.
@@ -410,8 +393,7 @@
 #    #: The index for the stock tube barcode column.
 #    TUBE_INDEX = 3
 #
-#    def __init__(self, library_creation_iso,
-#                 logging_level=logging.WARNING, add_default_handlers=False):
+#    def __init__(self, library_creation_iso):
 #        """
 #        Constructor:
 #
@@ -419,20 +401,8 @@
 #            to print.
 #        :type library_creation_iso:
 #            :class:`thelma.models.library.LibraryCreationIso`
-#
-#        :param logging_level: the desired minimum log level
-#        :type log_level: :class:`int` (or logging_level as
-#                         imported from :mod:`logging`)
-#        :default logging_level: logging.WARNING
-#
-#        :param add_default_handlers: If *True* the log will automatically add
-#            the default handler upon instantiation.
-#        :type add_default_handlers: :class:`boolean`
-#        :default add_default_handlers: *False*
 #        """
-#        CsvWriter.__init__(self, logging_level=logging_level,
-#                           add_default_handlers=add_default_handlers,
-#                           depending=False)
+#        CsvWriter.__init__(self, depending=False)
 #
 #        #: The ISO whose layout you want to print.
 #        self.library_creation_iso = library_creation_iso

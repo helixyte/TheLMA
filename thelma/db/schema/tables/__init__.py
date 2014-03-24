@@ -255,7 +255,7 @@ def initialize_tables(metadata):
             worklistseriesexperimentdesign.create_table(metadata,
             experiment_design_tbl, worklist_series_tbl)
     experiment_tbl = experiment.create_table(
-                    metadata, rack_specs_tbl, experiment_design_tbl, job_tbl)
+                    metadata, experiment_design_tbl, job_tbl)
     experiment_source_rack_tbl = experimentsourcerack.create_table(metadata,
                                                    experiment_tbl, rack_tbl)
     experiment_design_rack_tbl = experimentdesignrack.create_table(

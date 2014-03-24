@@ -27,7 +27,7 @@ class _EventRecordingExampleClass(EventRecording):
 
 
     def __init__(self):
-        EventRecording.__init__(self, TestingLog(), logging.WARNING, False)
+        EventRecording.__init__(self, TestingLog())
         self.nested = None
 
     def run(self):

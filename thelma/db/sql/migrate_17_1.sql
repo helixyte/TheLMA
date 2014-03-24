@@ -4,14 +4,10 @@
 -- independent from experiment metadata types). To this end, we also introduce
 -- some more polymorphic inheritances.
 
- IMPORTANT: before starting assert we have only one library in the DB
- that does not belong to a stock sample pool creation iso request
- (as opposed to a proper library)! The name of the library must be 'poollib'
- In addition, make sure all ISO requests for libraries and pool creations
- are set to 'LIBRARY_CREATION'!
-
 SELECT assert('(select version from db_version) = 16.2');
 
+select assert('(select count(*) from iso_request where iso_type=''LIBRARY_CREATION'' and plate_set_label=''poollib'') = 1');
+select assert('(select count(*) from iso_request where iso_type = ''LIBRARY_CREATION'' and number_aliquots > 1) = 1');
 
 -- ISO request: create 2 subtypes, rename available types and migrate data,
 -- shift rack layouts into a separate table
