@@ -8,6 +8,7 @@ from datetime import datetime
 from everest.entities.interfaces import IEntity
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.querying.specifications import DescendingOrderSpecification
+from everest.querying.specifications import cntd
 from everest.representers.dataelements import DataElementAttributeProxy
 from everest.representers.interfaces import IDataElement
 from everest.resources.base import Collection
@@ -16,7 +17,7 @@ from everest.resources.descriptors import attribute_alias
 from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
-from everest.resources.staging import create_staging_collection
+from everest.resources.utils import get_root_collection
 from thelma.automation.tools.iso import get_job_creator
 from thelma.automation.tools.iso import lab
 from thelma.automation.tools.iso.lab import get_stock_rack_recyler
@@ -153,24 +154,26 @@ class LabIsoRequestMember(IsoRequestMember):
         return 'Lab ISO Request'
 
     def __getitem__(self, name):
-        if name == 'completed-iso-plates':
-            iso_plates = create_staging_collection(IPlate)
-            if self.iso_type == ISO_TYPES.LAB \
-               and self.experiment_metadata.experiment_metadata_type.id == \
-                                            EXPERIMENT_METADATA_TYPES.MANUAL:
+        if name == 'completed-iso-plates' and self.iso_type == ISO_TYPES.LAB:
+            iso_plate_bcs = []
+            if self.experiment_metadata.experiment_metadata_type.id == \
+                                          EXPERIMENT_METADATA_TYPES.MANUAL:
                 # For standard, manual ISOs, the preparation plates are used
                 # to schedule the experiment jobs.
-                for iso in self.isos:
-                    if iso.status == ISO_STATUS.DONE:
-                        iso_plates.add(iso.iso_preparation_plate)
+                func = lambda iso: [pp for pp in iso.preparation_plates]
+            elif self.experiment_metadata.experiment_metadata_type.id == \
+                                            EXPERIMENT_METADATA_TYPES.LIBRARY:
+                func = lambda iso: [lp.rack for lp in iso.library_plates]
             else:
                 # In all other cases the aliquot plates are used to schedule
                 # experiment jobs.
-                for iso in self.isos:
-                    for plate in iso.iso_aliquot_plates:
-                        if iso.status == ISO_STATUS.DONE:
-                            iso_plates.add(plate)
-            iso_plates.__parent__ = self
+                func = lambda iso: [ap for ap in iso.aliquot_plates]
+            for iso in self.isos:
+                if iso.status == ISO_STATUS.DONE:
+                    for plt in func(iso):
+                        iso_plate_bcs.append(plt.barcode)
+            iso_plates = get_root_collection(IPlate)
+            iso_plates.filter = cntd(barcode=iso_plate_bcs)
             result = iso_plates
         else:
             result = Member.__getitem__(self, name)
