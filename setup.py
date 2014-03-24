@@ -24,7 +24,7 @@ tests_requirements = install_requirements + [
     ]
 
 setup(name='TheLMA',
-      version='1.7.x',
+      version='1.7.0',
       description='TheLMA',
       long_description=README + '\n\n' + CHANGES,
       classifiers=[
@@ -45,7 +45,7 @@ setup(name='TheLMA',
       tests_require=tests_requirements,
       test_suite="thelma",
       dependency_links=
-        ['https://github.com/cenix/everest/tarball/master#egg=everest',
+        ['https://github.com/fogathmann/everest-thelma/tarball/v17x#egg=everest',
          'https://github.com/cenix/tractor/tarball/master#egg=tractor'],
       entry_points="""\
       [paste.app_factory]
