@@ -14,7 +14,7 @@ setup_requirements = []
 install_requirements = \
     [line
      for line in open('requirements.txt', 'rU').readlines()
-     if not line.startswith('-e')]
+     if not line.startswith('http')]
 install_requirements.append('everest')
 install_requirements.append('tractor')
 
