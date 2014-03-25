@@ -139,7 +139,7 @@ class ZippedWorklistRenderer(CustomRenderer):
         return options
 
     def _run(self, resource, options):
-        wl_type = options['worklist_type']
+        wl_type = options.pop('worklist_type')
         if wl_type == 'XL20':
             stream = self.__create_xl20_worklist_stream(resource, options)
         elif wl_type == 'PIPETTING':
