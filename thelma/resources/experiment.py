@@ -12,6 +12,7 @@ from pyramid.httpexceptions import HTTPBadRequest
 from everest.entities.interfaces import IEntity
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.querying.specifications import DescendingOrderSpecification
+from everest.querying.specifications import cntd
 from everest.representers.dataelements import DataElementAttributeProxy
 from everest.representers.interfaces import IDataElement
 from everest.resources.base import Collection
@@ -20,9 +21,10 @@ from everest.resources.descriptors import attribute_alias
 from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
-from everest.resources.staging import create_staging_collection
+from everest.resources.utils import get_root_collection
 from everest.resources.utils import url_to_resource
 from thelma.automation.semiconstants import get_experiment_metadata_type
+from thelma.automation.tools.experiment import get_writer
 from thelma.automation.tools.metadata.ticket \
     import IsoRequestTicketDescriptionUpdater
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketActivator
@@ -145,6 +147,9 @@ class ExperimentMember(Member):
         member_attribute(IExperimentMetadataType,
             'experiment_design.experiment_metadata.experiment_metadata_type')
 
+    def get_writer(self):
+        return get_writer(self.get_entity())
+
 
 class ExperimentCollection(Collection):
     title = 'Experiments'
@@ -177,10 +182,8 @@ class ExperimentMetadataMember(Member):
                 for tp in rack.rack_layout.tagged_rack_position_sets:
                     for tag in tp.tags:
                         tags_dict[tag.get_entity().slug] = tag
-            tag_coll = create_staging_collection(ITag)
-            tag_coll.__parent__ = self
-            for tag in tags_dict.values():
-                tag_coll.add(tag)
+            tag_coll = get_root_collection(ITag)
+            tag_coll.filter = cntd(id=[tag.id for tag in tags_dict.values()])
             result = tag_coll
         elif name == 'experiment-design-racks':
             result = self.__get_design_racks()
