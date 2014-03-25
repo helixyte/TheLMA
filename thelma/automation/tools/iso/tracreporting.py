@@ -36,7 +36,7 @@ class IsoStockTransferReporter(BaseTracTool):
 
     #: The ticket comment for the update.
     BASE_COMMENT = 'A stock transfer has been executed by %s ' \
-                   '(see file: attachment:%s).[[br]]' \
+                   '(see file: [attachment:%s]).[[br]]' \
                    "'''Entity:''' %s[[br]]" \
                    "'''Type:''' %s[[br]]" \
                    "%s.[[br]]"
