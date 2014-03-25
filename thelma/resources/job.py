@@ -18,6 +18,7 @@ from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from thelma.automation.semiconstants import ITEM_STATUS_NAMES
+from thelma.automation.tools.experiment import get_batch_writer
 from thelma.automation.tools.experiment import get_executor
 from thelma.automation.tools.experiment import get_manual_executor
 from thelma.interfaces import IExperiment
@@ -77,6 +78,9 @@ class ExperimentJobMember(JobMember):
                                                            exp_id)
         else:
             JobMember.update(self, data)
+
+    def get_writer(self):
+        return get_batch_writer(experiments=self.get_entity().experiments)
 
     def __update_experiment_racks(self, exp_rack_nodes, exp_id):
         plate_node = exp_rack_nodes[0].plate

@@ -5,10 +5,10 @@ AAB, Created on Jun 22, 2011
 """
 
 from everest.entities.base import Entity
+from thelma.automation.semiconstants import get_item_status_managed
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import IsoJobPreparationPlate
 from thelma.utils import get_utc_time
-from thelma.automation.semiconstants import get_item_status_managed
 
 
 __docformat__ = 'reStructuredText en'
