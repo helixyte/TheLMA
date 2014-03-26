@@ -326,7 +326,8 @@ class LabIsoRequestMember(IsoRequestMember):
         if new_status == ISO_STATUS.CANCELLED \
            and iso.status != ISO_STATUS.DONE:
             # Release the reserved library plates again.
-            for lp in iso.library_plates:
+            while iso.library_plates:
+                lp = iso.library_plates.pop()
                 lp.has_been_used = False
 
     def __copy_iso(self, iso):
