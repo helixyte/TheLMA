@@ -7,7 +7,7 @@ from csv import QUOTE_NONNUMERIC
 from csv import register_dialect
 from csv import DictWriter
 from everest.repositories.rdb import Session
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from collections import OrderedDict
 
 __docformat__ = 'reStructuredText en'
@@ -28,7 +28,7 @@ class AuditCsvDialect(Dialect): # ignore no __init__ pylint: disable=W0232
 register_dialect('audit', AuditCsvDialect)
 
 
-class StockAuditReporter(BaseAutomationTool):
+class StockAuditReporter(BaseTool):
     """
     Reporter for stock audits.
 
@@ -174,7 +174,7 @@ class StockAuditReporter(BaseAutomationTool):
                              supplier='Supplier',
                              initialamount='Initial Amount')
     def __init__(self, molecule_type, output_file):
-        BaseAutomationTool.__init__(self, depending=False)
+        BaseTool.__init__(self, depending=False)
         self.__molecule_type = molecule_type
         self.__output_file = output_file
 

@@ -180,9 +180,7 @@
 #            self.add_info('Worklist file generation completed.')
 #
 #    def __check_input(self):
-#        """
-#        Checks the initialisation values.
-#        """
+#        # Checks the initialisation values.
 #        self.add_debug('Check input values ...')
 #
 #        if self._check_input_class('library creation ISO',
@@ -223,9 +221,7 @@
 #                self.add_error(msg)
 #
 #    def __get_tube_racks(self):
-#        """
-#        Fetches the tubes rack for the rack barcodes.
-#        """
+#        # Fetches the tubes rack for the rack barcodes.
 #        self.add_debug('Fetch tube racks ...')
 #
 #        tube_rack_agg = get_root_aggregate(ITubeRack)
@@ -252,15 +248,12 @@
 #            self.add_error(msg)
 #
 #    def __get_library_layout(self):
-#        """
-#        Fetches the library layout and sorts its positions into quadrants.
-#        """
-#        self.add_debug('Fetch library layout ...')
-#
-#        converter = LibraryLayoutConverter(log=self.log,
-#                            rack_layout=self.library_creation_iso.rack_layout)
+#        # Fetches the library layout and sorts its positions into quadrants.
+#        self.add_debug('Fetch library layout ...')#
+#        converter = LibraryLayoutConverter(
+#                            self.library_creation_iso.rack_layout,
+#                            parent=self)
 #        self.__library_layout = converter.get_result()
-#
 #        if self.__library_layout is None:
 #            msg = 'Error when trying to convert library layout.'
 #            self.add_error(msg)
@@ -273,27 +266,25 @@
 #                if len(positions) < 1:
 #                    del_sectors.append(sector_index)
 #                    continue
-#                translator = RackSectorTranslator(number_sectors=NUMBER_SECTORS,
-#                                source_sector_index=sector_index,
-#                                target_sector_index=0,
-#                                enforce_type=RackSectorTranslator.ONE_TO_MANY)
+#                translator = RackSectorTranslator(
+#                                NUMBER_SECTORS,
+#                                sector_index,
+#                                0,
+#                                behaviour=RackSectorTranslator.ONE_TO_MANY)
 #                translated_positions = []
 #                for lib_pos in positions:
-#                    translated_pos = translator.translate(lib_pos.rack_position)
+#                    translated_pos = \
+#                         translator.translate(lib_pos.rack_position)
 #                    translated_positions.append(translated_pos)
 #                self.__translated_sectors[sector_index] = translated_positions
 #            for sector_index in del_sectors:
 #                del self.__library_sectors[sector_index]
 #
 #    def __check_tube_destination_racks(self):
-#        """
-#        Makes sure there is the right number of tube destination racks for
-#        each quadrant and that all racks are empty.
-#        """
+#        # Makes sure there is the right number of tube destination racks for
+#        # each quadrant and that all racks are empty.
 #        self.add_debug('Check tube destination racks ...')
-#
 #        not_empty = []
-#
 #        for sector_index, barcodes in self.tube_destination_racks.iteritems():
 #            if not self.__library_sectors.has_key(sector_index): continue
 #            if not len(barcodes) >= NUMBER_MOLECULE_DESIGNS:
@@ -302,39 +293,32 @@
 #                      '%i barcodes.' % (NUMBER_MOLECULE_DESIGNS,
 #                                        (sector_index + 1), len(barcodes))
 #                self.add_error(msg)
-#
 #            for barcode in barcodes:
 #                rack = self.__rack_map[barcode]
 #                if len(rack.containers) > 0: not_empty.append(barcode)
-#
 #        if len(not_empty) > 0:
 #            msg = 'The following tube destination racks you have chosen are ' \
 #                  'not empty: %s.' % (', '.join(sorted(not_empty)))
 #            self.add_error(msg)
 #
 #    def __check_pool_stock_racks(self):
-#        """
-#        Checks whether the pool stock comply with there assumed sector layouts
-#        and whether all tubes are empty.
-#        """
+#        # Checks whether the pool stock comply with there assumed sector layouts
+#        # and whether all tubes are empty.
 #        self.add_debug('Check pool stock racks ...')
-#
 #        for sector_index, positions in self.__translated_sectors.iteritems():
 #            if not self.pool_stock_racks.has_key(sector_index):
 #                msg = 'Please provide a pool stock rack for sector %i!' \
 #                      % (sector_index + 1)
 #                self.add_error(msg)
 #                break
-#
 #            barcode = self.pool_stock_racks[sector_index]
 #            rack = self.__rack_map[barcode]
 #            tube_map = dict()
-#            for tube in rack.containers: tube_map[tube.location.position] = tube
-#
+#            for tube in rack.containers:
+#                tube_map[tube.location.position] = tube
 #            tube_missing = []
 #            not_empty = []
 #            add_tube = []
-#
 #            for rack_pos in get_positions_for_shape(rack.rack_shape):
 #                if rack_pos in positions:
 #                    if not tube_map.has_key(rack_pos):
@@ -347,7 +331,6 @@
 #                        not_empty.append(rack_pos.label)
 #                elif tube_map.has_key(rack_pos):
 #                    add_tube.append(rack_pos.label)
-#
 #            if len(tube_missing) > 0:
 #                msg = 'There are some tubes missing in the pool stock rack ' \
 #                      'for sector %i (%s): %s.' % ((sector_index + 1),
@@ -366,16 +349,12 @@
 #                self.add_warning(msg)
 #
 #    def __create_sample_stock_racks(self):
-#        """
-#        Creates the ISO sample stock rack (= the pool stock racks) for the
-#        library. The stock rack list of the ISO has to be reset before
-#        (in case of update).
-#        """
+#        # Creates the ISO sample stock rack (= the pool stock racks) for the
+#        # library. The stock rack list of the ISO has to be reset before
+#        # (in case of update).
 #        self.add_debug('Create pool stock racks ...')
-#
 #        worklists = self.__create_takeout_worklists()
 #        issrs = self.library_creation_iso.iso_sample_stock_racks
-#
 #        if len(issrs) < 1:
 #            for sector_index, barcode in self.pool_stock_racks.iteritems():
 #                if not worklists.has_key(sector_index): continue
@@ -391,17 +370,12 @@
 #                issr.rack = self.__rack_map[barcode]
 #
 #    def __create_takeout_worklists(self):
-#        """
-#        Creates the container transfer for the stock sample worklists (this
-#        is in theory a 1-to-1 rack transfer, but since the sources are tubes
-#        that can be moved we use container transfers instead).
-#        """
+#        # Creates the container transfer for the stock sample worklists (this
+#        # is in theory a 1-to-1 rack transfer, but since the sources are tubes
+#        # that can be moved we use container transfers instead).
 #        self.add_debug('Create stock take out worklists ...')
-#
 #        worklists = dict()
-#
 #        volume = MOLECULE_DESIGN_TRANSFER_VOLUME / VOLUME_CONVERSION_FACTOR
-#
 #        for sector_index in self.pool_stock_racks.keys():
 #            if not self.__translated_sectors.has_key(sector_index): continue
 #            positions = self.__translated_sectors[sector_index]
@@ -415,19 +389,14 @@
 #                            source_position=rack_pos,
 #                            target_position=rack_pos)
 #                worklist.planned_transfers.append(pct)
-#
 #            worklists[sector_index] = worklist
-#
 #        return worklists
 #
 #    def __fetch_tube_locations(self):
-#        """
-#        Fetches the rack barcode amd tube location for every scheduled tube.
-#        """
+#        # Fetches the rack barcode amd tube location for every scheduled
+#        # tube.
 #        self.add_debug('Fetch tube locations ...')
-#
 #        self.__fetch_tubes()
-#
 #        if not self.has_errors():
 #            source_racks = set()
 #            for tube in self.__tube_map.values():
@@ -438,17 +407,13 @@
 #            self.__create_tube_transfers()
 #
 #    def __fetch_tubes(self):
-#        """
-#        Fetches tube (for location data), from the the DB. Uses the tube
-#        barcodes from the library layouts.
-#        """
+#        # Fetches tube (for location data), from the the DB. Uses the tube
+#        # barcodes from the library layouts.
 #        self.add_debug('Fetch tubes ...')
-#
 #        tube_barcodes = []
 #        for lib_pos in self.__library_layout.working_positions():
 #            for barcode in lib_pos.stock_tube_barcodes:
 #                tube_barcodes.append(barcode)
-#
 #        tube_agg = get_root_aggregate(ITube)
 #        tube_agg.filter = cntd(barcode=tube_barcodes)
 #        iterator = tube_agg.iterator()
@@ -459,7 +424,6 @@
 #                break
 #            else:
 #                self.__tube_map[tube.barcode] = tube
-#
 #        if not len(tube_barcodes) == len(self.__tube_map):
 #            missing_tubes = []
 #            for tube_barcode in tube_barcodes:
@@ -470,21 +434,16 @@
 #            self.add_error(msg)
 #
 #    def __create_tube_transfers(self):
-#        """
-#        Assign the tube data items to target positions and create tube
-#        transfer data items for them.
-#        """
+#        # Assign the tube data items to target positions and create tube
+#        # transfer data items for them.
 #        self.add_debug('Create tube transfer data ...')
-#
 #        for sector_index, positions in self.__library_sectors.iteritems():
-#
 #            translator = RackSectorTranslator(number_sectors=NUMBER_SECTORS,
 #                        source_sector_index=sector_index,
 #                        target_sector_index=0,
 #                        enforce_type=RackSectorTranslator.ONE_TO_MANY)
 #            rack_barcodes = self.tube_destination_racks[sector_index]
 #            tube_transfers = []
-#
 #            for lib_pos in positions:
 #                target_pos_384 = lib_pos.rack_position
 #                target_pos_96 = translator.translate(target_pos_384)
@@ -500,16 +459,12 @@
 #                                    trg_rack_barcode=target_rack_barcode,
 #                                    trg_pos=target_pos_96)
 #                    tube_transfers.append(ttd)
-#
 #            self.__tube_transfers[sector_index] = tube_transfers
 #
 #    def __get_rack_locations(self, source_racks):
-#        """
-#        Returns a map that stores the rack location for each source rack
-#        (DB query).
-#        """
+#        # Returns a map that stores the rack location for each source rack
+#        # (DB query).
 #        self.add_debug('Fetch rack locations ...')
-#
 #        for src_rack in source_racks:
 #            barcode = src_rack.barcode
 #            loc = src_rack.location
@@ -525,16 +480,11 @@
 #                                                         % (name, index)
 #
 #    def __write_tube_handler_files(self):
-#        """
-#        Creates the tube handler worklists and report files for every
-#        quadrant.
-#        """
+#        # Creates the tube handler worklists and report files for every
+#        # quadrant.
 #        self.add_debug('Write XL20 files ...')
-#
 #        for sector_index, tube_transfers in self.__tube_transfers.iteritems():
-#
-#            worklist_writer = XL20WorklistWriter(log=self.log,
-#                                                 tube_transfers=tube_transfers)
+#            worklist_writer = XL20WorklistWriter(tube_transfers, parent=self)
 #            worklist_stream = worklist_writer.get_result()
 #            if worklist_stream is None:
 #                msg = 'Error when trying to write tube handler worklist ' \
@@ -545,12 +495,9 @@
 #                                        self.layout_number, (sector_index + 1))
 #                self.__file_map[fn] = worklist_stream
 #
-#            report_writer = LibraryCreationXL20ReportWriter(log=self.log,
-#                    tube_transfers=tube_transfers,
-#                    library_name=self.library_name,
-#                    layout_number=self.layout_number,
-#                    sector_index=sector_index,
-#                    source_rack_locations=self.__source_rack_locations)
+#            report_writer = LibraryCreationXL20ReportWriter(
+#                    tube_transfers, self.library_name, self.layout_number,
+#                    sector_index, self.__source_rack_locations)
 #            report_stream = report_writer.get_result()
 #            if report_stream is None:
 #                msg = 'Error when trying to write tube handler report for ' \
@@ -562,19 +509,14 @@
 #                self.__file_map[fn] = report_stream
 #
 #    def __write_cybio_overview_file(self):
-#        """
-#        Generates the file stream with the CyBio instructions. This file is
-#        not created by a normal series worklist file writer because the tubes
-#        for the first steck (pool generation) are not in place yet.
-#        """
+#        # Generates the file stream with the CyBio instructions. This file is
+#        # not created by a normal series worklist file writer because the
+#        # tubes for the first steck (pool generation) are not in place yet.
 #        self.add_debug('Generate CyBio info file ...')
-#
-#        writer = LibraryCreationCyBioOverviewWriter(log=self.log,
-#                        library_creation_iso=self.library_creation_iso,
-#                        pool_stock_racks=self.pool_stock_racks,
-#                        tube_destination_racks=self.tube_destination_racks)
+#        writer = LibraryCreationCyBioOverviewWriter(
+#                        self.library_creation_iso, self.pool_stock_racks,
+#                        self.tube_destination_racks, parent=self)
 #        stream = writer.get_result()
-#
 #        if stream is None:
 #            msg = 'Error when trying to write CyBio info file.'
 #            self.add_error(msg)
@@ -591,10 +533,8 @@
 #    **Return Value:** stream (TXT)
 #    """
 #    NAME = 'Library Creation XL20 Report Writer'
-#
 #    #: The main headline of the file.
 #    BASE_MAIN_HEADER = 'XL20 Worklist Generation Report / %s / %s'
-#
 #    #: The header text for the general section.
 #    GENERAL_HEADER = 'General Settings'
 #    #: This line presents the library name.
@@ -607,42 +547,28 @@
 #    TUBE_NO_LINE = 'Total number of tubes: %i'
 #    #: This line presents the transfer volume.
 #    VOLUME_LINE = 'Volume: %.1f ul'
-#
 #    #: The header text for the destination racks section.
 #    DESTINATION_RACKS_HEADER = 'Destination Racks'
 #    #: The body for the destination racks section.
 #    DESTINATION_RACK_BASE_LINE = '%s'
-#
 #    #: The header for the source racks section.
 #    SOURCE_RACKS_HEADER = 'Source Racks'
 #    #: The body for the source racks section.
 #    SOURCE_RACKS_BASE_LINE = '%s (%s)'
-#
-#    def __init__(self, log, tube_transfers, library_name, layout_number,
-#                 sector_index, source_rack_locations):
+#    def __init__(self, tube_transfers, library_name, layout_number,
+#                 sector_index, source_rack_locations, parent=None):
 #        """
-#        Constructor:
-#
-#        :param log: The log to write into.
-#        :type log: :class:`thelma.ThelmaLog`
+#        Constructor.
 #
 #        :param tube_transfers: Define which tube goes where.
-#        :type tube_transfers: :class:`TubeTransfer`
-#
-#        :param library_name: The library we are creating.
-#        :type library_name: :class:`str`
-#
-#        :param layout_number: the layout for which we are creating racks
-#        :type layout_number: :class:`int`
-#
-#        :param sector_index: The sector we are dealing with.
-#        :type sector_index: :class:`int`
-#
+#        :type tube_transfers: :class:`TubeTransfer`#
+#        :param str library_name: The library we are creating.
+#        :param int layout_number: the layout for which we are creating racks
+#        :param int sector_index: The sector we are dealing with.
 #        :param source_rack_locations: Maps rack locations onto rack barcodes.
 #        :type source_rack_locations: :class:`dict`
 #        """
-#        TxtWriter.__init__(self, log=log)
-#
+#        TxtWriter.__init__(self, parent=None)
 #        #: Define which tube goes where.
 #        self.tube_transfers = tube_transfers
 #        #: The library we are creating.
@@ -683,9 +609,7 @@
 #        self.__write_source_racks_section()
 #
 #    def __write_main_headline(self):
-#        """
-#        Writes the main head line.
-#        """
+#        # Writes the main head line.
 #        now = datetime.now()
 #        date_string = now.strftime('%d.%m.%Y')
 #        time_string = now.strftime('%H:%M')
@@ -694,12 +618,9 @@
 #                             preceding_blank_lines=0, trailing_blank_lines=1)
 #
 #    def __write_general_section(self):
-#        """
-#        The general section contains library name, sector index, layout number
-#        and the number of tubes.
-#        """
+#        # The general section contains library name, sector index, layout
+#        # number and the number of tubes.
 #        self._write_headline(self.GENERAL_HEADER, preceding_blank_lines=1)
-#
 #        general_lines = [self.LIBRARY_LINE % (self.library_name),
 #                         self.LAYOUT_NUMBER_LINE % (self.layout_number),
 #                         self.SECTOR_NUMBER_LINE % (self.sector_index + 1),
@@ -708,13 +629,10 @@
 #        self._write_body_lines(general_lines)
 #
 #    def __write_destination_racks_section(self):
-#        """
-#        Writes the destination rack section.
-#        """
+#        # Writes the destination rack section.
 #        barcodes = set()
 #        for ttd in self.tube_transfers:
 #            barcodes.add(ttd.trg_rack_barcode)
-#
 #        self._write_headline(self.DESTINATION_RACKS_HEADER)
 #        lines = []
 #        for barcode in barcodes:
@@ -722,14 +640,11 @@
 #        self._write_body_lines(lines)
 #
 #    def __write_source_racks_section(self):
-#        """
-#        Writes the source rack section.
-#        """
+#        # Writes the source rack section.
 #        barcodes = set()
 #        for ttd in self.tube_transfers:
 #            barcodes.add(ttd.src_rack_barcode)
 #        sorted_barcodes = sorted(list(barcodes))
-#
 #        self._write_headline(self.SOURCE_RACKS_HEADER)
 #        lines = []
 #        for barcode in sorted_barcodes:
@@ -741,28 +656,25 @@
 #
 #class LibraryCreationCyBioOverviewWriter(TxtWriter):
 #    """
-#    This tools writes an CyBio overview file for the CyBio steps involved in
-#    the creation of library plates. We do not use the normal series worklist
-#    writer here, because the stock tubes for the single molecule designs
-#    are not the right positions yet, and thus, the writer would fail.
+#    This tool writes a CyBio overview file for the CyBio steps involved in
+#    the creation of library plates.
+
+#    We do not use the normal series worklist writer here because the stock
+#    tubes for the single molecule designs are not the right positions yet.
 #
 #    **Return Value:** stream (TXT)
 #    """
-#
 #    NAME = 'Library Creation CyBio Writer'
-#
 #    #: Header for the pool creation section.
 #    HEADER_POOL_CREATION = 'Pool Creation'
 #    #: Header for the preparation plate transfer section.
 #    HEADER_SOURCE_CREATION = 'Transfer from Stock Rack to Preparation Plates'
 #    #: Header for the aliquot transfer section.
 #    HEADER_ALIQUOT_TRANSFER = 'Transfer to Library Aliquot Plates'
-#
 #    #: Base line for transfer volumes.
 #    VOLUME_LINE = 'Volume: %.1f ul'
 #    #: Base line for buffer volumes.
 #    BUFFER_LINE = 'Assumed buffer volume: %.1f ul'
-#
 #    #: Base line for source racks (singular, for prep plate creation)
 #    SOURCE_LINE = 'Source rack: %s'
 #    #: Base line for source racks (plural, for pool creation).
@@ -774,33 +686,26 @@
 #    #: Base line for quadrant depcitions.
 #    QUADRANT_LINE = 'Q%i:'
 #
-#
-#    def __init__(self, log, library_creation_iso, pool_stock_racks,
-#                 tube_destination_racks):
+#    def __init__(self, library_creation_iso, pool_stock_racks,
+#                 tube_destination_racks, parent=None):
 #        """
-#        Constructor:
-#
-#        :param log: The log to write into.
-#        :type log: :class:`thelma.ThelmaLog`
+#        Constructor.
 #
 #        :param library_creation_iso: The library creation ISO for which to
 #            generate the file.
 #        :type library_creation_iso:
 #            :class:`thelma.models.library.LibraryCreationIso`
-#
 #        :param tube_destination_racks: The barcodes for the destination
 #            rack for the single molecule design tube (these racks have to be
 #            empty).
 #        :type tube_destination_racks: map of barcode lists
 #            (:class:`basestring`) mapped onto sector indices.
-#
 #        :param pool_stock_racks: The barcodes for the pool stock racks
 #            (these racks have to have empty tubes in defined positions).
 #        :type pool_stock_racks: map of barcodes
 #            (:class:`basestring`) mapped onto sector indices.
 #        """
-#        TxtWriter.__init__(self, log=log)
-#
+#        TxtWriter.__init__(self, parent=parent)
 #        #: The library creation ISO for which to generate the file.
 #        self.library_creation_iso = library_creation_iso
 #        #: The barcodes for the destination, rack for the single molecule
@@ -808,7 +713,6 @@
 #        self.tube_destination_racks = tube_destination_racks
 #        #: The barcodes for the pool stock racks.
 #        self.pool_stock_racks = pool_stock_racks
-#
 #        #: The library source (preparation) plates mapped onto
 #        #: rack sectors.
 #        self.__source_plates = None
@@ -866,24 +770,17 @@
 #        self.__write_aliquot_part()
 #
 #    def __write_pool_creation_section(self):
-#        """
-#        This is the stock transfer part (creating pools from single molecule
-#        designs).
-#        """
+#        # This is the stock transfer part (creating pools from single molecule
+#        # designs).
 #        self.add_debug('Create pool section ...')
-#
 #        self._write_headline(header_text=self.HEADER_POOL_CREATION,
 #                             preceding_blank_lines=0)
-#
 #        lines = []
-#
 #        volume_line = self.VOLUME_LINE % (MOLECULE_DESIGN_TRANSFER_VOLUME)
 #        volume_line += ' each'
 #        lines.append(volume_line)
-#
 #        buffer_line = self.BUFFER_LINE % get_stock_pool_buffer_volume()
 #        lines.append(buffer_line)
-#
 #        for sector_index in sorted(self.tube_destination_racks.keys()):
 #            lines.append('')
 #            lines.append(self.QUADRANT_LINE % (sector_index + 1))
@@ -892,35 +789,25 @@
 #            src_line = self.SOURCE_LINE_PLURAL % (', '.join(sorted(barcodes)))
 #            lines.append(src_line)
 #            lines.append(self.TARGET_LINE % (target_rack))
-#
 #        self._write_body_lines(lines)
 #
 #    def __get_source_plates(self):
-#        """
-#        Maps library source (preparation) plate barcodes onto sector indices.
-#        """
+#        # Maps library source (preparation) plate barcodes onto sector indices.
 #        for lsp in self.library_creation_iso.library_source_plates:
 #            self.__source_plates[lsp.sector_index] = lsp.plate
 #
 #    def __write_prep_creation_section(self):
-#        """
-#        This part deals with the transfer from pool stock racks to preparation
-#        (source) plates.
-#        """
+#        # This part deals with the transfer from pool stock racks to preparation
+#        # (source) plates.
 #        self.add_debug('Create source plate section ...')
-#
 #        self._write_headline(header_text=self.HEADER_SOURCE_CREATION)
-#
 #        lines = []
-#
 #        transfer_volume = get_source_plate_transfer_volume()
 #        volume_line = self.VOLUME_LINE % (transfer_volume)
 #        lines.append(volume_line)
-#
 #        buffer_volume = PREPARATION_PLATE_VOLUME - transfer_volume
 #        buffer_line = self.BUFFER_LINE % buffer_volume
 #        lines.append(buffer_line)
-#
 #        for sector_index in sorted(self.pool_stock_racks.keys()):
 #            lines.append('')
 #            lines.append(self.QUADRANT_LINE % (sector_index + 1))
@@ -929,18 +816,13 @@
 #            src_term = '%s (%s)' % (src_plate.barcode, src_plate.label)
 #            lines.append(self.SOURCE_LINE % (pool_barcode))
 #            lines.append(self.TARGET_LINE % (src_term))
-#
 #        self._write_body_lines(lines)
 #
 #    def __write_aliquot_part(self):
-#        """
-#        This part deals with the transfer from pool stock racks to preparation
-#        (source) plates.
-#        """
+#        # This part deals with the transfer from pool stock racks to
+#        # preparation (source) plates.
 #        self.add_debug('Write aliquot transfer section ...')
-#
 #        self._write_headline(self.HEADER_ALIQUOT_TRANSFER)
-#
 #        lines = []
 #        lines.append(self.SOURCE_LINE_PLURAL % '')
 #        for sector_index in sorted(self.__source_plates.keys()):
@@ -949,17 +831,14 @@
 #            src_term = ' %s (%s)' % (src_plate.barcode, src_plate.label)
 #            line += '%s' % (src_term)
 #            lines.append(line)
-#
 #        aliquot_plates = dict()
 #        for iap in self.library_creation_iso.iso_aliquot_plates:
 #            plate = iap.plate
 #            aliquot_plates[plate.label] = plate.barcode
-#
 #        lines.append(LINEBREAK_CHAR)
 #        lines.append(self.TARGET_LINE_PLURAL % '')
 #        for label in sorted(aliquot_plates.keys()):
 #            barcode = aliquot_plates[label]
 #            trg_term = '%s (%s)' % (barcode, label)
 #            lines.append(trg_term)
-#
 #        self._write_body_lines(lines)

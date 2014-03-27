@@ -7,6 +7,7 @@ AAB
 """
 from StringIO import StringIO
 from datetime import datetime
+
 from everest.repositories.rdb import Session
 from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_positions_for_shape
@@ -436,18 +437,17 @@ class StockCondenser(SessionTool):
         """
         self.add_debug('Write files ...')
 
-        worklist_writer = XL20WorklistWriter(log=self.log,
-                                        tube_transfers=self.__tube_transfers)
+        worklist_writer = XL20WorklistWriter(self.__tube_transfers,
+                                             parent=self)
         self.__worklist_stream = worklist_writer.get_result()
         if self.__worklist_stream is None:
             msg = 'Error when trying to write XL20 worklist!'
             self.add_error(msg)
-
-        report_writer = StockCondenseReportWriter(log=self.log,
-                                donor_racks=self.__donor_racks,
-                                receiver_racks=self.__receiver_racks,
-                                excluded_racks=list(self.excluded_racks),
-                                racks_to_empty=self.racks_to_empty)
+        report_writer = StockCondenseReportWriter(self.__donor_racks,
+                                                  self.__receiver_racks,
+                                                  list(self.excluded_racks),
+                                                  self.racks_to_empty,
+                                                  parent=self)
         self.__report_stream = report_writer.get_result()
         if self.__report_stream is None:
             msg = 'Error when trying to generate stock condense overview.'
@@ -797,10 +797,8 @@ class StockCondenseReportWriter(TxtWriter):
     **Return Value:** file stream (TXT format)
     """
     NAME = 'Stock Condense Report Writer'
-
     #: The main headline of the file.
     BASE_MAIN_HEADER = 'Stock Condense Worklist Generation Report / %s / %s'
-
     #: The header text for the general section.
     GENERAL_HEADER = 'General Settings'
     #: This line presents the number of racks to empty (user input).
@@ -809,7 +807,6 @@ class StockCondenseReportWriter(TxtWriter):
     NOT_SPECIFIED_MARKER = 'not specified'
     #: The line presents the total number of tubes moved.
     TUBES_MOVED_LINE = 'Number of tubes to move: %i'
-
     #: The header text for the donor rack section.
     DONOR_HEADER = 'Donating Racks'
     #: The header text for the receiver rack section.
@@ -818,35 +815,24 @@ class StockCondenseReportWriter(TxtWriter):
     COUNT_LINE = 'Number of racks: %i'
     #: Use when the location of a rack is unknown.
     UNKNOWN_MARKER = 'unknown'
-
     #: The header text for the excluded racks section.
     EXCLUDED_RACKS_HEADER = 'Excluded Racks'
     #: Is used if there are no exlcuded racks.
     NO_EXCLUDED_RACKS_MARKER = 'no excluded racks'
 
-    def __init__(self, log, donor_racks, receiver_racks, excluded_racks,
-                 racks_to_empty):
+    def __init__(self, donor_racks, receiver_racks, excluded_racks,
+                 racks_to_empty, parent=None):
         """
-        Constructor:
-
-        :param log: The log to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param donor_racks: The donor racks mapped onto rack barcodes.
-        :type donor_racks: :class:`dict`
-
-        :param receiver_racks: The receiver racks mapped onto rack barcodes.
-        :type receiver_racks: :class:`dict`
-
-        :param excluded_racks: Barcodes from racks that shall not be used.
-        :type excluded_racks: :class:`list`
-
-        :param racks_to_empty: The number of empty racks the run shall
-            result in (optional).
-        :type racks_to_empty: :class:`int`
+        Constructor.
+        :param dict donor_racks: The donor racks mapped onto rack barcodes.
+        :param dict receiver_racks: The receiver racks mapped onto rack
+            barcodes.
+        :param list excluded_racks: Barcodes from racks that should not be
+            used.
+        :param int racks_to_empty: The number of empty racks the run shall
+            result in.
         """
-        TxtWriter.__init__(self, log=log)
-
+        TxtWriter.__init__(self, parent=parent)
         #: The donor racks mapped onto rack barcodes.
         self.donor_racks = donor_racks
         #: The receiver racks mapped onto rack barcodes.
@@ -861,25 +847,21 @@ class StockCondenseReportWriter(TxtWriter):
         Checks if the tools has obtained correct input values.
         """
         self.add_debug('Check input values ...')
-
         if not self.racks_to_empty is None:
             self._check_input_class('number of racks to empty',
                                     self.racks_to_empty, int)
-
         if self._check_input_class('donor map', self.donor_racks, dict):
             for barcode, scr in self.donor_racks.iteritems():
                 if not self._check_input_class('donor rack barcode', barcode,
                                                basestring): break
                 if not self._check_input_class('donor rack', scr,
                                                StockCondenseRack): break
-
         if self._check_input_class('receiver map', self.receiver_racks, dict):
             for barcode, scr in self.receiver_racks.iteritems():
                 if not self._check_input_class('receiver rack barcode', barcode,
                                                basestring): break
                 if not self._check_input_class('receiver rack', scr,
                                                StockCondenseRack): break
-
         if self._check_input_class('excluded racks list', self.excluded_racks,
                                    list):
             for rack_barcode in self.excluded_racks:
@@ -891,7 +873,6 @@ class StockCondenseReportWriter(TxtWriter):
         Writes into the streams.
         """
         self.add_debug('Write stream ...')
-
         self.__write_main_headline()
         self.__write_general_section()
         self.__write_condense_racks_section(self.DONOR_HEADER,
@@ -901,9 +882,7 @@ class StockCondenseReportWriter(TxtWriter):
         self.__write_excluded_racks_section()
 
     def __write_main_headline(self):
-        """
-        Writes the main head line.
-        """
+        # Writes the main head line.
         now = datetime.now()
         date_string = now.strftime('%d.%m.%Y')
         time_string = now.strftime('%H:%M')
@@ -912,32 +891,24 @@ class StockCondenseReportWriter(TxtWriter):
                              preceding_blank_lines=0, trailing_blank_lines=1)
 
     def __write_general_section(self):
-        """
-        Writes the GENERAL section.
-        """
+        # Writes the GENERAL section.
         self._write_headline(self.GENERAL_HEADER, preceding_blank_lines=1)
-
         if self.racks_to_empty is None:
             rack_line = self.RACK_TO_EMTPTY_LINE % (self.NOT_SPECIFIED_MARKER)
         else:
             rack_line = self.RACK_TO_EMTPTY_LINE \
                                     % (get_trimmed_string(self.racks_to_empty))
-
         total_transfer_count = 0
         for scr in self.donor_racks.values():
             for transfer_count in scr.associated_racks.values():
                 total_transfer_count += transfer_count
         moved_tubes_line = self.TUBES_MOVED_LINE % (total_transfer_count)
-
         general_lines = [rack_line, moved_tubes_line]
         self._write_body_lines(general_lines)
 
     def __write_condense_racks_section(self, header, rack_map):
-        """
-        Writes the DONOR RACKS or the RECEIVER RACKS section.
-        """
+        # Writes the DONOR RACKS or the RECEIVER RACKS section.
         self._write_headline(header)
-
         rack_lines = []
         barcodes = rack_map.keys()
         barcodes.sort()
@@ -949,22 +920,17 @@ class StockCondenseReportWriter(TxtWriter):
             scr_line = '%s (%s, %i tubes)' \
                                 % (rack_barcode, loc_info, num_transfers)
             rack_lines.append(scr_line)
-
         rack_lines.append(' ')
         rack_lines.append(self.COUNT_LINE % (len(rack_map)))
         self._write_body_lines(rack_lines)
 
     def __write_excluded_racks_section(self):
-        """
-        Writes the excluded racks section.
-        """
+        # Writes the excluded racks section.
         self._write_headline(self.EXCLUDED_RACKS_HEADER)
-
         if len(self.excluded_racks) < 1:
             lines = [self.NO_EXCLUDED_RACKS_MARKER]
         else:
             lines = []
             for rack_barcode in self.excluded_racks:
                 lines.append(rack_barcode)
-
         self._write_body_lines(line_list=lines)

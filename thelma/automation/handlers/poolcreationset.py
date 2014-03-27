@@ -34,34 +34,22 @@ class PoolCreationSetParserHandler(BaseParserHandler):
 
     _PARSER_CLS = PoolCreationSetParser
 
-    def __init__(self, log, stream):
-        """
-        Constructor:
-
-        :param log: The ThelmaLog to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param stream: stream of the file to parse.
-        """
-        BaseParserHandler.__init__(self, log=log, stream=stream)
+    def __init__(self, stream, parent=None):
+        BaseParserHandler.__init__(self, stream=stream, parent=parent)
         #: The number of molecule designs per cell (list).
         self.__number_molecule_designs = None
         #: The expected molecule type for all molecule designs in the library.
         self.__molecule_type = None
-
         #: Maps molecule designs onto molecule design IDs.
         self.__md_map = None
         #: Maps pools onto pool IDs.
         self.__pool_map = None
-
         #: Stores set of single molecule design for which we still have to
         #: find the pool ID.
         self.__pools_to_find = None
-
         #: Contains the molecule design pool sets for the final
         #: ISO request pool set.
         self.__pools = None
-
         # Intermediate error storage.
         self.__invalid_number_designs = None
         self.__invalid_molecule_type = None
@@ -89,7 +77,7 @@ class PoolCreationSetParserHandler(BaseParserHandler):
         """
         return self._get_additional_value(self.__molecule_type)
 
-    def _convert_results_to_model_entity(self):
+    def _convert_results_to_entity(self):
         """
         Converts the parsing results into a :class:`MoleculeDesignSet`.
         """

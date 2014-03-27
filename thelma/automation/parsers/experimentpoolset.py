@@ -59,8 +59,8 @@ Implementation
 """
 
 from thelma.automation.parsers.base import ExcelFileParser
-from thelma.automation.parsers.base import ExcelFileParsingLogEvent
 from thelma.models.utils import label_from_number
+from pyramid.compat import string_types
 
 __docformat__ = "reStructuredText en"
 
@@ -74,46 +74,39 @@ class ExperimentPoolSetParser(ExcelFileParser):
     design pool set
     (:class:`thelma.models.moleculedesign.MoleculeDesignPoolSet`).
     """
-
-    #: name of the parser (requested by logs).
+    #: Name of the parser (requested by logs).
     NAME = 'Experiment Pool Set Parser'
-    #: name of the sheet containing the molecule design list.
+    #: Name of the sheet containing the molecule design list.
     SHEET_NAME = 'Molecule Design Pools'
     #: The name of the column containing the molecule design pools IDs.
     COLUMN_NAME = 'Molecule Design Pool ID'
 
-    def __init__(self, stream, log):
-        """
-        :param stream: open Excel file to be parsed
-        """
-
-        ExcelFileParser.__init__(self, stream, log)
-
+    def __init__(self, stream, parent=None):
+        ExcelFileParser.__init__(self, stream, parent=parent)
         #: The Excel sheet containing the data.
         self.sheet = None
         #: a list of molecule design pool IDs (before validation)
         self.molecule_design_pool_ids = None
         #: The index of the column containing the molecule design pool IDs.
         self.column_index = None
-
         #: The message that is launched upon abort.
         self.abort_message = None
 
-
-    def parse(self):
+    def run(self):
         """
         Parses the molecule design pool ID list sheet.
         """
-
         self.reset()
-        self.log.add_info('Start parsing of the molecule design pool list ...')
-        if self.has_errors(): return None
-
-        wb = self.open_workbook()
-        self.sheet = self.__get_sheet(wb)
-        if not self.has_errors(): self.__parse_headers()
-        if not self.has_errors(): self.__parse_column()
-        if not self.has_errors(): self.add_info('Parsing completed.')
+        self.add_info('Start parsing of the molecule design pool list ...')
+        if not self.has_errors():
+            wb = self.open_workbook()
+            self.sheet = self.__get_sheet(wb)
+            if not self.has_errors():
+                self.__parse_headers()
+            if not self.has_errors():
+                self.__parse_column()
+            if not self.has_errors():
+                self.add_info('Parsing completed.')
 
     def reset(self):
         """
@@ -133,14 +126,13 @@ class ExperimentPoolSetParser(ExcelFileParser):
         for sheet_name in workbook.sheet_names():
             if sheet_name.upper().replace('_', ' ') == self.SHEET_NAME.upper():
                 sheet = self.get_sheet_by_name(workbook, sheet_name)
-                return sheet
-
+                break
         if sheet is None:
-            self.abort_parsing = True
+            self.abort_execution = True
             self.abort_message = 'There is no molecule design pool list sheet ' \
                     'in this Excel File! A valid sheet must be called ' \
                     '"%s" (case-insensitive).' % (self.SHEET_NAME)
-            return None
+        return sheet
 
     def __parse_headers(self):
         """
@@ -181,9 +173,9 @@ class ExperimentPoolSetParser(ExcelFileParser):
                       'parsing is stopped here. All pool that have been ' \
                       'found so far are stored. Continue parsing of the ' \
                       'remaining sheets.' % (row_index + 1)
-                le = ExcelFileParsingLogEvent(self.NAME, self.SHEET_NAME,
-                                              cell_name, msg)
-                self.add_warning(le)
+                warn_msg = self.format_log_message(self.SHEET_NAME, cell_name,
+                                                   msg)
+                self.add_warning(warn_msg)
                 break
             pool_id = self.__get_integer_id(cell_value, row_index)
             if pool_id is None: break
@@ -194,38 +186,46 @@ class ExperimentPoolSetParser(ExcelFileParser):
         if len(self.molecule_design_pool_ids) < 1:
             self.abort_message = 'There are no molecule design pool IDs on ' \
                                  'the molecule design sheet!'
-            self.abort_parsing = True
+            self.abort_execution = True
 
     def __get_integer_id(self, cell_value, row_index):
         """
         Converts the parsed ID into an integer.
         """
-        if isinstance(cell_value, int): return cell_value
-        if isinstance(cell_value, float): return int(cell_value)
-        if isinstance(cell_value, unicode) or isinstance(cell_value, str):
-            if '.' in cell_value: cell_value = cell_value.split('.')[0]
-            for character in cell_value:
-                if not character.isdigit():
-                    cell_name = '%s%i' \
-                                % (label_from_number(self.column_index + 1),
-                                   row_index + 1)
-                    msg = 'There is a non-number character in row %i. ' \
-                          % (row_index + 1)
-                    self.add_error(ExcelFileParsingLogEvent(
-                                   self.NAME, self.SHEET_NAME,
-                                   cell_name, msg))
-                    return None
-            return int(cell_value)
+        if isinstance(cell_value, int):
+            result = cell_value
+        elif isinstance(cell_value, float):
+            result = int(cell_value)
+        elif isinstance(cell_value, string_types):
+            # FIXME: This is highly suspicious - do we really want to parse
+            #        1.99999 as 1??
+            if '.' in cell_value:
+                cell_value = cell_value.split('.')[0]
+            try:
+                result = int(cell_value)
+            except ValueError:
+                result = None
+                cell_name = '%s%i' \
+                            % (label_from_number(self.column_index + 1),
+                               row_index + 1)
+                msg = 'There is a non-number character in row %i. ' \
+                      % (row_index + 1)
+                error_msg = self.format_log_message(self.SHEET_NAME,
+                                                    cell_name, msg)
+                self.add_error(error_msg)
+            if not result is None:
+                result = int(cell_value)
+        return result
 
     def __check_for_duplicate_id(self, pool_id, row_index):
         """
         Checks whether the current molecule design has been found before.
         """
-
         if pool_id in self.molecule_design_pool_ids:
             cell_name = '%s%i' % (label_from_number(self.column_index + 1),
                                   row_index + 1)
             msg = 'Duplicate molecule design pool ID %i in row %i!' \
                   % (pool_id, row_index + 1)
-            self.add_warning(ExcelFileParsingLogEvent(self.NAME,
-                             self.SHEET_NAME, cell_name, msg))
+            warning_msg = self.format_log_message(self.SHEET_NAME, cell_name,
+                                                  msg)
+            self.add_warning(warning_msg)

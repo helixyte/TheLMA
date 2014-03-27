@@ -49,7 +49,7 @@ Steps
  3. build transfection layout for the ISO request (Biomek optimized)
 """
 
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.tools.metadata.base import TransfectionLayout
 from thelma.automation.tools.metadata.base import TransfectionLayoutConverter
 from thelma.automation.tools.metadata.base import TransfectionPosition
@@ -66,7 +66,7 @@ __all__ = ['TransfectionLayoutFinder',
            '_TransfectionLayoutOptimizer']
 
 
-class TransfectionLayoutFinder(BaseAutomationTool):
+class TransfectionLayoutFinder(BaseTool):
     """
     This tool generates an transfection source layout (ISO layout plus
     transfection data) from an experiment design.
@@ -78,30 +78,22 @@ class TransfectionLayoutFinder(BaseAutomationTool):
     **Return Value:** TransfectionLayout for the ISO plate (with mastermix
         data but without ISO volumes and concentrations).
     """
-
     NAME = 'Transfection Layout Finder'
 
-    def __init__(self, experiment_design, log):
+    def __init__(self, experiment_design, parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param experiment_design: The experiment containing the data for the
                 ISO layout.
         :type experiment_design: :class:`thelma.models.experiment.ExperimentDesign`
-
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
-        :type log: :class:`thelma.ThelmaLog`
         """
-
-        BaseAutomationTool.__init__(self, log)
+        BaseTool.__init__(self, parent=parent)
         self.experiment_design = experiment_design
-
         #: The transfection layouts of the design racks.
         self.__experiment_layouts = None
         #: Used to sort floating positions within the layouts.
         self.__placeholder_maps = None
-
         #: The ISO layout created from the experiment designs layout
         #: (:class:`TransfectionLayout`).
         self.__iso_layout = None
@@ -110,22 +102,19 @@ class TransfectionLayoutFinder(BaseAutomationTool):
         """
         Resets all attributes except for the :attr:`experiment_design`.
         """
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self.__experiment_layouts = dict()
         self.__placeholder_maps = dict()
         self.__iso_layout = None
 
     def run(self):
-        """
-        Runs the conversion.
-        """
-
         self.reset()
         self.add_info('Generate ISO layout from experiment design ...')
-
         self.__check_input()
-        if not self.has_errors(): self.__get_experiment_layouts()
-        if not self.has_errors(): self.__optimise_layout()
+        if not self.has_errors():
+            self.__get_experiment_layouts()
+        if not self.has_errors():
+            self.__optimise_layout()
         if not self.has_errors():
             self.return_value = self.__iso_layout
             self.add_info('Automated ISO layout generation completed.')
@@ -137,53 +126,47 @@ class TransfectionLayoutFinder(BaseAutomationTool):
         :return: The transfections layouts as map (mapped onto design
                  rack labels).
         """
-        if self.has_errors(): return None
-
-        return self.__experiment_layouts
+        if self.has_errors():
+            result = None
+        else:
+            result = self.__experiment_layouts
+        return result
 
     def __check_input(self):
-        """
-        Checks the initialisation values.
-        """
+        # Checks the initialisation values.
         self.add_debug('Check input values ...')
         self._check_input_class('experiment design', self.experiment_design,
                                 ExperimentDesign)
 
     def __get_experiment_layouts(self):
-        """
-        Generates the transfection layouts for the experiment design's
-        design racks.
-        """
+        # Generates the transfection layouts for the experiment design's
+        # design racks.
         self.add_debug('Determine experiment design transfection layouts ...')
-
         for design_rack in self.experiment_design.experiment_design_racks:
             experiment_layout = design_rack.rack_layout
-            converter = TransfectionLayoutConverter(log=self.log,
-                                        rack_layout=experiment_layout,
+            converter = TransfectionLayoutConverter(
+                                        experiment_layout,
                                         is_iso_request_layout=False,
-                                        is_mastermix_template=True)
+                                        is_mastermix_template=True,
+                                        parent=self)
             experiment_layout = converter.get_result()
-
             if experiment_layout is None:
                 msg = 'Error when trying to convert design rack layout for ' \
                       'design rack "%s".' % (design_rack.label)
                 self.add_error(msg)
                 break
             else:
-                self.__experiment_layouts[design_rack.label] = experiment_layout
+                self.__experiment_layouts[design_rack.label] = \
+                                                experiment_layout
                 self.__sort_floatings(experiment_layout, design_rack.label)
-
         for design_rack in self.experiment_design.experiment_design_racks:
             if self.__check_for_iso_volume_and_concentration(design_rack):
                 break
 
     def __sort_floatings(self, experiment_layout, design_rack_label):
-        """
-        Sorts the floating positions within the layouts (assigned placeholders
-        are stored in the :attr:`__placeholder_map`).
-        Also looks whether there are controls in the layout.
-        """
-
+        # Sorts the floating positions within the layouts (assigned
+        # placeholders are stored in the :attr:`__placeholder_map`).
+        # Also looks whether there are controls in the layout.
         has_controls = False
         for tf_pos in experiment_layout.get_sorted_working_positions():
             if tf_pos.is_fixed:
@@ -200,7 +183,6 @@ class TransfectionLayoutFinder(BaseAutomationTool):
                                         len(self.__placeholder_maps) + 1)
                 self.__placeholder_maps[old_placeholder] = new_placeholder
             tf_pos.molecule_design_pool = new_placeholder
-
         if not has_controls:
             msg = 'There are no controls in the layout for design rack "%s"!' \
                   % (design_rack_label)
@@ -248,11 +230,9 @@ class TransfectionLayoutFinder(BaseAutomationTool):
         Runs the transfection layout optimiser.
         """
         self.add_debug('Optimise ISO layout ...')
-
-        optimiser = _TransfectionLayoutOptimizer(log=self.log,
-                                design_rack_layouts=self.__experiment_layouts)
+        optimiser = _TransfectionLayoutOptimizer(self.__experiment_layouts,
+                                                 parent=self)
         self.__iso_layout = optimiser.get_result()
-
         if self.__iso_layout is None:
             msg = 'Error when trying to optimise ISO layout.'
             self.add_error(msg)
@@ -282,20 +262,15 @@ class _TransfectionLayoutOptimizer(BiomekLayoutOptimizer):
     SOURCE_LAYOUT_CLS = TransfectionLayout
     TRANSFER_ITEM_CLASS = _TransfectionTransferItem
 
-    def __init__(self, design_rack_layouts, log):
+    def __init__(self, design_rack_layouts, parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param design_rack_layouts: The transfection layout for each design
             rack.
         :type design_rack_layouts: :class:`dict`
-
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
-        :type log: :class:`thelma.ThelmaLog`
         """
-        BiomekLayoutOptimizer.__init__(self, log=log)
-
+        BiomekLayoutOptimizer.__init__(self, parent=parent)
         #: The transfection layout for each design rack.
         self.design_rack_layouts = design_rack_layouts
 

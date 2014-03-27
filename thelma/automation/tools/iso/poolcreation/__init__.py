@@ -151,8 +151,8 @@ def get_executor(iso, user, **kw):
 def get_stock_transfer_reporter(executor, **kw):
     """
     Factory method generating a
-    :class:`StockSampleCreationStockTransferReporter`. This
-    tool log a stock transfers at the trac ticket.
+    :class:`StockSampleCreationStockTransferReporter`. This tool logs a
+    stock transfers in the Trac ticket.
 
     :param executor: The executor tool (after run has been completed).
     :type executor: :class:`StockSampleCreationExecutor`

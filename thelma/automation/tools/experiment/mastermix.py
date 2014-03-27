@@ -250,44 +250,39 @@ class ExperimentScreeningWriterExecutor(ExperimentTool):
             self._final_streams[self.FILE_SUFFIX_TRANSFER] = stream
 
 
-def get_experiment_writer(experiment, log=None, **kw):
+def get_experiment_writer(experiment, parent=None, **kw):
     """
     Factory method returning the writer/executor for the passed experiment
     in printing mode.
 
     :param experiment: The experiment for which to generate the robot worklists.
     :type experiment: :class:`thelma.models.experiment.Experiment`
-
-    :param log: The ThelmaLog to write into (if used as part of a batch).
-    :type log: :class:`thelma.ThelmaLog`
-    :default log: *None*
-
+    :param parent: The parent tool.
+    :type parent: :class:`thelma.automation.tools.base.BaseTool`
+    :default parent: *None*
     :raises TypeError: if the experiment metadata type is not supported.
     """
     return __get_writer_executor(mode=ExperimentTool.MODE_PRINT_WORKLISTS,
-                                 experiment=experiment, log=log, **kw)
+                                 experiment=experiment, parent=parent, **kw)
 
-def get_experiment_executor(experiment, user, log=None, **kw):
+def get_experiment_executor(experiment, user, parent=None, **kw):
     """
     Factory method returning the writer/executor for the passed experiment
     in execution mode.
 
     :param experiment: The experiment to execute.
     :type experiment: :class:`thelma.models.experiment.Experiment`
-
     :param user: The user who conducts the DB update.
     :type user: :class:`thelma.models.user.User`
-
-    :param log: The ThelmaLog to write into (if used as part of a batch).
-    :type log: :class:`thelma.ThelmaLog`
-    :default log: *None*
-
+    :param parent: The parent tool.
+    :type parent: :class:`thelma.automation.tools.base.BaseTool`
+    :default parent: *None*
     :raises TypeError: if the experiment metadata type is not supported.
     """
     return __get_writer_executor(mode=ExperimentTool.MODE_EXECUTE, user=user,
-                                 experiment=experiment, log=log, **kw)
+                                 experiment=experiment, parent=parent, **kw)
 
-def __get_writer_executor(mode, experiment, user=None, log=None, **kw):
+def __get_writer_executor(mode, experiment, user=None, parent=None, **kw):
     """
     Helper factory method creating an experiment writer/executor for
     for the passed experiment type in the given mode.
@@ -301,13 +296,12 @@ def __get_writer_executor(mode, experiment, user=None, log=None, **kw):
     else:
         msg = 'This experiment type (%s) does not support robot ' \
               'worklists!' % (experiment_type.display_name)
-        if log is None:
+        if parent is None:
             raise TypeError(msg)
         else:
-            log.add_error(msg)
+            parent.add_error(msg)
             return None
-
-    kw.update(dict(mode=mode, experiment=experiment, user=user, log=log))
+    kw.update(dict(mode=mode, experiment=experiment, user=user, parent=parent))
     return tool_cls(**kw)
 
 

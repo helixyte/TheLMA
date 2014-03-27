@@ -46,24 +46,9 @@ class ExperimentManualExecutor(ExperimentTool):
     FINAL_SAMPLE_VOLUME = TransfectionParameters.TRANSFER_VOLUME * \
                             TransfectionParameters.CELL_DILUTION_FACTOR
 
-    def __init__(self, experiment, user, log=None, **kw):
-        """
-        Constructor:
-
-        :param experiment: The experiment for which to generate the BioMek
-                worklists.
-        :type experiment: :class:`thelma.models.experiment.Experiment`
-
-        :param user: The user who has committed the update.
-        :type user: :class:`thelma.models.user.User`
-
-        :param log: The ThelmaLog to write into (if used as part of a batch).
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        ExperimentTool.__init__(self, experiment=experiment,
-                                log=log, mode=ExperimentTool.MODE_EXECUTE,
-                                user=user, **kw)
-
+    def __init__(self, experiment, user, parent=None):
+        ExperimentTool.__init__(self, experiment, ExperimentTool.MODE_EXECUTE,
+                                user=user, parent=parent)
         #: Maps molecules onto pools (or pool placeholders).
         self.__pool_molecule_map = None
         #: The final volume for the samples *in l*.
@@ -153,9 +138,10 @@ class ExperimentManualExecutor(ExperimentTool):
         """
         Fetches the transfection layouts for each design rack.
         """
-        converter = TransfectionLayoutConverter(log=self.log,
+        converter = TransfectionLayoutConverter(
                                         rack_layout=design_rack.rack_layout,
-                                        is_iso_request_layout=False)
+                                        is_iso_request_layout=False,
+                                        parent=self)
         tf_layout = converter.get_result()
         if tf_layout is None:
             msg = 'Could not get layout for design rack "%s"!' \

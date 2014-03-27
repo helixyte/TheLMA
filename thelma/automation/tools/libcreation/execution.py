@@ -183,8 +183,9 @@
 #        """
 #        self.add_debug('Fetch library layout ...')
 #
-#        converter = LibraryLayoutConverter(log=self.log,
-#                        rack_layout=self.stock_sample_creation_iso.rack_layout)
+#        converter = LibraryLayoutConverter(
+#                                self.stock_sample_creation_iso.rack_layout,
+#                                parent=self)
 #        self.__library_layout = converter.get_result()
 #
 #        if self.__library_layout is None:
@@ -249,9 +250,9 @@
 #        positions and no additional tubes in the single molecule design
 #        stock racks.
 #        """
-#        verifier = LibraryCreationStockRackVerifier(log=self.log,
-#                                        library_layout=self.__library_layout,
-#                                        stock_racks=self.__stock_rack_map)
+#        verifier = LibraryCreationStockRackVerifier(self.__library_layout,
+#                                                    self.__stock_rack_map,
+#                                                    parent=self)
 #        compatible = verifier.get_result()
 #
 #        if compatible is None:
@@ -273,9 +274,9 @@
 #
 #        for sector_index in self.__library_sectors.keys():
 #            self.__ignore_positions_96[sector_index] = []
-#
-#        converter = LibraryBaseLayoutConverter(log=self.log,
-#                rack_layout=self.library_creation_iso.iso_request.iso_layout)
+#        converter = LibraryBaseLayoutConverter(
+#                            self.library_creation_iso.iso_request.iso_layout,
+#                            parent=self)
 #        base_layout = converter.get_result()
 #
 #        if base_layout is None:
@@ -321,13 +322,12 @@
 #        for sector_index, issr in self.__sample_stock_racks.iteritems():
 #            rack = issr.rack
 #            stock_racks[sector_index] = rack
-#
-#        creator = LibraryCreationBufferWorklistTransferJobCreator(log=self.log,
-#                                library_creation_iso=self.library_creation_iso,
-#                                pool_stock_racks=stock_racks,
-#                                ignored_positions=self.__ignore_positions_96)
+#        creator = LibraryCreationBufferWorklistTransferJobCreator(
+#                                self.library_creation_iso,
+#                                stock_racks,
+#                                self.__ignore_positions_96,
+#                                parent=self)
 #        self.__transfer_jobs = creator.get_result()
-#
 #        if self.__transfer_jobs is None:
 #            msg = 'Unable to get buffer transfer jobs!'
 #            self.add_error(msg)
@@ -456,11 +456,9 @@
 #        for rack transfers have to be created here.
 #        """
 #        self.add_debug('Execute transfer job ...')
-#
-#        executor = SeriesExecutor(transfer_jobs=self.__transfer_jobs.values(),
-#                                  user=self.user, log=self.log)
+#        executor = SeriesExecutor(self.__transfer_jobs.values(), self.user,
+#                                  parent=self)
 #        executed_items = executor.get_result()
-#
 #        if executed_items is None:
 #            msg = 'Error during serial transfer execution.'
 #            self.add_error(msg)
@@ -483,7 +481,7 @@
 #                executed_worklist.executed_transfers.append(ert)
 #
 #
-#class LibraryCreationStockRackVerifier(BaseAutomationTool):
+#class LibraryCreationStockRackVerifier(BaseTool):
 #    """
 #    This tools verifies whether the single molecule design stock racks of
 #    a library creation ISO (after rearrangment of stock tubes) are compliant
@@ -493,21 +491,16 @@
 #    """
 #    NAME = 'Library Creation Stock Rack Verifier'
 #
-#    def __init__(self, library_layout, stock_racks, log):
+#    def __init__(self, library_layout, stock_racks, parent=None):
 #        """
-#        Constructor:
+#        Constructor.
 #
 #        :param library_layout: Contains the pool and molecule design data.
 #        :type library_layout: :class:`LibraryLayout`
-#
 #        :param stock_racks: The stock racks for each sector.
 #        :type stock_racks: lists of racks mapped onto sector indices
-#
-#        :param log: The log to write into.
-#        :type log: :class:`thelma.ThelmaLog`
 #        """
-#        BaseAutomationTool.__init__(self, log=log)
-#
+#        BaseTool.__init__(self, parent=parent)
 #        #: Contains the pool and molecule design data.
 #        self.library_layout = library_layout
 #        #: The stock racks for each sector (lists) mapped onto sector indices.
@@ -673,36 +666,29 @@
 #        return pool_map
 #
 #
-#class LibraryCreationBufferWorklistTransferJobCreator(BaseAutomationTool):
+#class LibraryCreationBufferWorklistTransferJobCreator(BaseTool):
 #    """
 #    Creates the transfer jobs (all container dilutions) for the non-CyBio
 #    worklists of the library creation (buffer dilutions).
 #
 #    **Return Value:** transfer jobs mapped onto job indices.
 #    """
-#
 #    NAME = 'Library Creation Buffer Worklist Transfer Job Creator'
-#
 #    #: The barcode for the buffer source reservoir.
 #    BUFFER_RESERVOIR_BARCODE = 'buffer_reservoir'
 #
-#    def __init__(self, log, library_creation_iso, pool_stock_racks,
-#                 ignored_positions):
+#    def __init__(self, library_creation_iso, pool_stock_racks,
+#                 ignored_positions, parent=None):
 #        """
-#        Constructor:
-#
-#        :param log: The log to write into.
-#        :type log: :class:`thelma.ThelmaLog`
+#        Constructor.
 #
 #        :param library_creation_iso: The library creation ISO for which to
 #            generate the transfer jobs.
 #        :type library_creation_iso:
 #            :class:`thelma.models.library.LibraryCreationIso`
-#
 #        :param pool_stock_racks: The pool stock racks mapped onto sector
 #            indices (these racks have to have empty tubes in defined positions).
 #        :type pool_stock_racks: :class:`thelma.models.rack.TubeRack`
-#
 #        :param ignored_positions: Target positions that shall be ignored
 #            during worklist execution (because there is no library position
 #            for them). Regard that sectors which are not omitted completely
@@ -712,8 +698,7 @@
 #        :type ignored_positions: :class:`dict` (rack position list mapped
 #            onto sector indices).
 #        """
-#        BaseAutomationTool.__init__(self, log=log)
-#
+#        BaseAutomationTool.__init__(self, parent=parent)
 #        #: The library creation ISO for which to create the transfer jobs.
 #        self.library_creation_iso = library_creation_iso
 #        #: The barcodes for the pool stock racks racks.

@@ -4,7 +4,7 @@ ISO types.
 
 AAB
 """
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.utils.base import is_valid_number
 from thelma.models.iso import ISO_TYPES
 from thelma.models.iso import IsoRequest
@@ -20,7 +20,7 @@ __all__ = ['IsoJobCreator',
            'IsoProvider']
 
 
-class IsoJobCreator(BaseAutomationTool):
+class IsoJobCreator(BaseTool):
     """
     Creates, copies or populates ISOs for an ISO request and summarises them
     in an ISO job. The class is abstract - however, sub class only need to
@@ -58,7 +58,7 @@ class IsoJobCreator(BaseAutomationTool):
             supposed to be used.
         :type requested_tubes: A list of tube barcodes.
         """
-        BaseAutomationTool.__init__(self, depending=False, **kw)
+        BaseTool.__init__(self, depending=False, **kw)
 
         #: The ISO request that will take up the ISOs.
         self.iso_request = iso_request
@@ -83,7 +83,7 @@ class IsoJobCreator(BaseAutomationTool):
         self._iso_job = None
 
     def reset(self):
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self._isos = None
         self._iso_job = None
 
@@ -133,7 +133,7 @@ class IsoJobCreator(BaseAutomationTool):
                   number_isos=self.number_isos,
                   excluded_racks=self.excluded_racks,
                   requested_tubes=self.requested_tubes,
-                  log=self.log)
+                  parent=self)
 
     def __create_iso_job(self):
         """
@@ -177,7 +177,7 @@ class IsoJobCreator(BaseAutomationTool):
         return None
 
 
-class IsoProvider(BaseAutomationTool):
+class IsoProvider(BaseTool):
     """
     Creates, copies or populates ISOs for an ISO request. This includes
     tube picking, layout generation and in some cases also worklist generation.
@@ -193,43 +193,35 @@ class IsoProvider(BaseAutomationTool):
     __ISO_REQUEST_CLS = {ISO_TYPES.LAB : LabIsoRequest,
             ISO_TYPES.STOCK_SAMPLE_GENERATION : StockSampleCreationIsoRequest}
 
-    def __init__(self, log, iso_request, number_isos,
-                       excluded_racks=None, requested_tubes=None):
+    def __init__(self, iso_request, number_isos,
+                 excluded_racks=None, requested_tubes=None, parent=None):
         """
-        Constructor:
-
-        :param log: The log to record events.
-        :type log: :class:`thelma.ThelmaLog`
+        Constructor.
 
         :param iso_request: The ISO request containing the ISO layout for the
             ISO (and experiment metadata with the molecule design pools).
         :type iso_request: :class:`thelma.models.iso.IsoRequest`
-
-        :param number_isos: The number of ISOs ordered.
-        :type number_isos: :class:`int`
-
+        :param int number_isos: The number of ISOs ordered.
         :param excluded_racks: A list of barcodes from stock racks that shall
             not be used for stock sample picking.
         :type excluded_racks: A list of rack barcodes
-
         :param requested_tubes: A list of barcodes from stock tubes that are
             supposed to be used.
         :type requested_tubes: A list of tube barcodes.
         """
-        BaseAutomationTool.__init__(self, log=log)
-
+        BaseTool.__init__(self, parent=parent)
         #: The ISO request defining the ISO layout
         #: (:class:`thelma.models.iso.IsoRequest`)
         self.iso_request = iso_request
         #: The number of ISOs ordered.
         self.number_isos = number_isos
-
         #: A list of barcodes from stock racks that shall not be used for
         #: stock sample (molecule design pool) picking.
         self.excluded_racks = excluded_racks
-        if excluded_racks is None: self.excluded_racks = []
-
-        if requested_tubes is None: requested_tubes = []
+        if excluded_racks is None:
+            self.excluded_racks = []
+        if requested_tubes is None:
+            requested_tubes = []
         #: A list of barcodes from stock tubes that are supposed to be used
         #: (for fixed positions).
         self.requested_tubes = requested_tubes

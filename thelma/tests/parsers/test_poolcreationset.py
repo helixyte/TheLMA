@@ -54,7 +54,7 @@ class PoolCreationSetParserTestCase(PoolCreationSetParsingTestCase):
 
     def __check_result(self, file_name=None, exp_md_lists=None, exp_pools=None):
         self._continue_setup(file_name)
-        self.tool.parse()
+        self.tool.run()
         self.assert_false(self.tool.has_errors())
         md_lists = self.tool.molecule_design_lists
         if exp_md_lists is None:
@@ -69,7 +69,7 @@ class PoolCreationSetParserTestCase(PoolCreationSetParsingTestCase):
 
     def __test_and_expect_errors(self, file_name, msg):
         self._continue_setup(file_name)
-        self.tool.parse()
+        self.tool.run()
         self.assert_true(self.tool.has_errors())
         self._check_error_messages(msg)
 

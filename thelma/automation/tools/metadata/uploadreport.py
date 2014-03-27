@@ -1,7 +1,12 @@
 """
 Tools generating reports for experiment metadata uploads.
 """
-from thelma import ThelmaLog
+import logging
+from tractor import AttachmentWrapper
+from tractor import create_wrapper_for_ticket_update
+from xmlrpclib import Fault
+from xmlrpclib import ProtocolError
+
 from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.metadata.base import TransfectionLayout
 from thelma.automation.tools.metadata.base import TransfectionParameters
@@ -22,11 +27,6 @@ from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import sort_rack_positions
 from thelma.models.liquidtransfer import ReservoirSpecs
-from tractor import AttachmentWrapper
-from tractor import create_wrapper_for_ticket_update
-from xmlrpclib import Fault
-from xmlrpclib import ProtocolError
-import logging
 
 
 __docformat__ = 'reStructuredText en'
@@ -43,9 +43,7 @@ class ExperimentMetadataAssignmentWriter(CsvWriter):
     This tool generates a report presenting the concentration and volumes
     calculated for an experiment metadata ISO to experiment rack translation.
     """
-
     NAME = 'EM Assignment Report Writer'
-
     #: The header for the design rack column.
     DESIGN_RACK_HEADER = 'Design Rack Label'
     #: The header for the source well column.
@@ -58,7 +56,6 @@ class ExperimentMetadataAssignmentWriter(CsvWriter):
     ISO_CONCENTRATION_HEADER = 'ISO Concentration in nM'
     #: The header for the ISO volume column.
     ISO_VOLUME_HEADER = 'ISO Volume in ul'
-
     #: The index for the design rack column.
     DESIGN_RACK_INDEX = 0
     #: The index for the source well column.
@@ -72,22 +69,16 @@ class ExperimentMetadataAssignmentWriter(CsvWriter):
     #: The index for the ISO volume column.
     ISO_VOLUME_INDEX = 5
 
-    def __init__(self, generator, log):
+    def __init__(self, generator, parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param generator: The generator that has conducted the upload.
         :type generator: :class:`ExperimentMetadataGenerator`
-        :param log: The ThelmaLog you want to write into. If the
-            log is None, the object will create a new log.
-        :type log: :class:`thelma.ThelmaLog`
         """
-
-        CsvWriter.__init__(self, log)
-
+        CsvWriter.__init__(self, parent=parent)
         #: The generator that has conducted the upload.
         self.generator = generator
-
         #: The completed ISO source layout.
         self.source_layout = None
         #: The transfection layouts containing the association data for
@@ -95,7 +86,6 @@ class ExperimentMetadataAssignmentWriter(CsvWriter):
         self.association_layouts = None
         #: A map containing the final concentrations for each design rack.
         self.final_concentrations = None
-
         #: Intermediate storage for the column values.
         self.__source_well_values = None
         self.__design_rack_values = None
@@ -129,23 +119,17 @@ class ExperimentMetadataAssignmentWriter(CsvWriter):
         if not self.has_errors(): self.__generate_columns()
 
     def __check_input(self):
-        """
-        Checks if the tools has obtained correct input values.
-        """
+        # Checks if the tools has obtained correct input values.
         self.add_debug('Check input values ...')
         self._check_input_class('experiment metadata generator',
                                 self.generator, ExperimentMetadataGenerator)
 
     def __fetch_report_data(self):
-        """
-        Retrieves the data required from the generator.
-        """
+        # Retrieves the data required from the generator.
         self.add_debug('Fetch report data ...')
-
         self.source_layout = self.generator.get_source_layout()
         self.association_layouts = self.generator.get_association_layouts()
         self.final_concentrations = self.generator.get_final_concentrations()
-
         if self.source_layout is None \
                             or self.association_layouts is None \
                             or self.final_concentrations is None:
@@ -153,24 +137,18 @@ class ExperimentMetadataAssignmentWriter(CsvWriter):
             self.add_error(msg)
 
     def __generate_column_values(self):
-        """
-        Generates the values for the CSV columns.
-        """
+        # Generates the values for the CSV columns.
         self.add_debug('Generate column value lists ...')
-
         labels = self.association_layouts.keys()
         labels.sort()
-        for label in labels: self.__store_design_rack_value(label)
+        for label in labels:
+            self.__store_design_rack_value(label)
 
     def __store_design_rack_value(self, label):
-        """
-        Stores the values for a particular design rack.
-        """
+        # Stores the values for a particular design rack.
         self.add_debug('Store values for design rack %s ...' % (label))
-
         tf_layout = self.association_layouts[label]
         concentrations = self.final_concentrations[label]
-
         missing_final_concentration = []
         for tf_pos in tf_layout.get_sorted_working_positions():
             cell_plate_positions = tf_pos.cell_plate_positions
@@ -185,13 +163,11 @@ class ExperimentMetadataAssignmentWriter(CsvWriter):
                 self.__iso_volume_values.append(src_pos.iso_volume)
                 self.__iso_concentration_values.append(
                                                     src_pos.iso_concentration)
-
                 if not concentrations.has_key(trg_pos):
                     missing_final_concentration.append(trg_pos.label)
                     continue
                 final_conc = concentrations[trg_pos]
                 self.__final_concentration_values.append(final_conc)
-
         if len(missing_final_concentration) > 0:
             msg = 'There are final concentrations missing for the following ' \
                   'rack positions of design rack %s: %s' \
@@ -199,11 +175,8 @@ class ExperimentMetadataAssignmentWriter(CsvWriter):
             self.add_error(msg)
 
     def __generate_columns(self):
-        """
-        Generates the columns for the report.
-        """
+        # Generates the columns for the report.
         self.add_debug('Generate columns ...')
-
         source_well_column = CsvColumnParameters.create_csv_parameter_map(
                     self.SOURCE_WELL_INDEX, self.SOURCE_WELL_HEADER,
                     self.__source_well_values)
@@ -223,7 +196,6 @@ class ExperimentMetadataAssignmentWriter(CsvWriter):
                     self.FINAL_CONCENTRATION_INDEX,
                     self.FINAL_CONCENTRATION_HEADER,
                     self.__final_concentration_values)
-
         self._column_map_list = [source_well_column, design_rack_column,
                                  target_well_column, iso_volume_column,
                                  iso_concentration_column,
@@ -233,12 +205,10 @@ class ExperimentMetadataAssignmentWriter(CsvWriter):
 
 class ExperimentMetadataIsoPlateWriter(CsvWriter):
     """
-    This tool generates a report presenting the concentrations and volumes
+    Tool generating a report presenting the concentrations and volumes
     and molecule designs of the ISO plate.
     """
-
     NAME = 'EM ISO Plate Writer'
-
     #: The header for the source well column.
     POSITION_HEADER = 'Rack Position'
     #: The header for the molecule design pool ID column.
@@ -247,7 +217,6 @@ class ExperimentMetadataIsoPlateWriter(CsvWriter):
     ISO_CONCENTRATION_HEADER = 'ISO Concentration in nM'
     #: The header for the ISO volume column.
     ISO_VOLUME_HEADER = 'ISO Volume in ul'
-
     #: The index for the position column.
     POSITION_INDEX = 0
     #: The index for the molecule design pool ID.
@@ -257,26 +226,18 @@ class ExperimentMetadataIsoPlateWriter(CsvWriter):
     #: The index for the ISO volume column.
     ISO_VOLUME_INDEX = 3
 
-    def __init__(self, generator, log):
+    def __init__(self, generator, parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param generator: The generator that has conducted the upload.
         :type generator: :class:`ExperimentMetadataGenerator`
-
-        :param log: The ThelmaLog you want to write into. If the
-            log is None, the object will create a new log.
-        :type log: :class:`thelma.ThelmaLog`
         """
-
-        CsvWriter.__init__(self, log)
-
+        CsvWriter.__init__(self, parent=parent)
         #: The generator that has conducted the upload.
         self.generator = generator
-
         #: The completed ISO source layout.
         self.source_layout = None
-
         #: Intermediate storage for the column values.
         self.__position_values = None
         self.__md_pool_values = None
@@ -299,24 +260,22 @@ class ExperimentMetadataIsoPlateWriter(CsvWriter):
         Creates the :attr:`_column_map_list`
         """
         self.__check_input()
-        if not self.has_errors(): self.__fetch_report_data()
-        if not self.has_errors(): self.__generate_column_values()
-        if not self.has_errors(): self.__generate_columns()
+        if not self.has_errors():
+            self.__fetch_report_data()
+        if not self.has_errors():
+            self.__generate_column_values()
+        if not self.has_errors():
+            self.__generate_columns()
 
     def __check_input(self):
-        """
-        Checks if the tools has obtained correct input values.
-        """
+        # Checks if the tools has obtained correct input values.
         self.add_debug('Check input values ...')
         self._check_input_class('experiment metadata generator',
                                 self.generator, ExperimentMetadataGenerator)
 
     def __fetch_report_data(self):
-        """
-        Retrieves the data required from the generator.
-        """
+        # Retrieves the data required from the generator.
         self.add_debug('Fetch report data ...')
-
         self.source_layout = self.generator.get_source_layout()
         if self.source_layout is None:
             msg = 'The generator has errors. Abort file stream generation.'
@@ -326,11 +285,8 @@ class ExperimentMetadataIsoPlateWriter(CsvWriter):
                                     TransfectionLayout)
 
     def __generate_column_values(self):
-        """
-        Generates the values for the CSV columns.
-        """
+        # Generates the values for the CSV columns.
         self.add_debug('Generate column value lists ...')
-
         for tf_pos in self.source_layout.get_sorted_working_positions():
             if tf_pos.is_empty: continue
             self.__position_values.append(tf_pos.rack_position.label)
@@ -340,9 +296,7 @@ class ExperimentMetadataIsoPlateWriter(CsvWriter):
             self.__iso_volume_values.append(tf_pos.iso_volume)
 
     def __generate_columns(self):
-        """
-        Generates the columns for the report.
-        """
+        # Generates the columns for the report.
         position_column = CsvColumnParameters.create_csv_parameter_map(
                           self.POSITION_INDEX, self.POSITION_HEADER,
                           self.__position_values)
@@ -366,15 +320,12 @@ class ExperimentMetadataInfoWriter(TxtWriter):
     Generates a stream containing the warnings and applied equation for an
     experiment metadata upload.
     """
-
     NAME = 'EM Upload Info Writer'
-
     FORMULA_TITLE = 'FORMULAS'
     FORMULA_BASE = \
 '''
 ISO volume and ISO concentration have been calculated by the system.\n
 '''
-
     ISO_VOLUME_FORMULA = \
 '''
 The minimum ISO volume is determined using the following formula:\n
@@ -396,7 +347,6 @@ The minimum ISO volume is determined using the following formula:\n
     amount of %s ul is added to the dead volume, up to a maximum dead
     volume of %s ul.\n\n
 '''
-
     ISO_CONCENTRATION_FORMULA = \
 '''
 The ISO concentration is determined using the following formula:\n
@@ -409,46 +359,34 @@ The ISO concentration is determined using the following formula:\n
     ODF - is the OptiMem dilution factor (3 or 4 depending on the molecule type).\n
     The isoConcentration is rounded to one decimal place.
 '''
-
     MANUAL_INPUT_LINE = \
 '''
 There is no mastermix support for this experiment.
 The ISO volumes and ISO concentrations for this metadata have been set manually.
 '''
 
-
-    def __init__(self, em_log, number_replicates, supports_mastermix,
-                 reservoir_specs, log):
+    def __init__(self, generator, number_replicates, supports_mastermix,
+                 reservoir_specs, parent=None):
         """
-        Constructor:
+        Constructor.
 
-        :param em_log: The log of the experiment metadata generator.
-        :type em_log: :class:`thelma.ThelmaLog`
-
-        :param number_replicates: The number of replicates planned for this
-            experiment design.
-        :type number_replicates: :class:`int`
-
-        :param supports_mastermix: Do the values support mastermix preparation?
-        :type supports_mastermix: :class:`bool`
-
+        :param generator: The experiment metadata generator.
+        :type generator: :class:`ExperimentMetadataGenerator`
+        :param int number_replicates: The number of replicates planned for this
+            experiment design (positive number).
+        :param bool supports_mastermix: Indicates if the values support
+            mastermix preparation.
         :param reservoir_specs: The reservoir specs of the ISO plate.
         :type reservoir_specs:
             :class:`thelma.models.liquidtransfer.ReservoirSpecs`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
         """
-        TxtWriter.__init__(self, log)
-
-        #: The log of the experiment metadata generator.
-        self.em_log = em_log
+        TxtWriter.__init__(self, parent=parent)
+        #: The experiment metadata generator.
+        self.generator = generator
         #: The planned number of replicates.
         self.number_replicates = number_replicates
-
         #: Do the values support mastermix preparation?
         self.supports_mastermix = supports_mastermix
-
         #: The reservoir specs of the ISO plate.
         self.reservoir_specs = reservoir_specs
 
@@ -456,20 +394,21 @@ The ISO volumes and ISO concentrations for this metadata have been set manually.
         """
         Checks if the tools has obtained correct input values.
         """
-        self._check_input_class('log', self.em_log, ThelmaLog)
-        self._check_input_class('number of replicates', self.number_replicates,
+        if self._check_input_class('experiment metadata generator',
+                                   self.generator,
+                                   ExperimentMetadataGenerator):
+            errors = self.generator.get_messages(logging.ERROR)
+            if len(errors) > 0:
+                msg = 'The experiment metadata generator did not complete ' \
+                      'its run. Abort file stream generation.'
+                self.add_error(msg)
+        self._check_input_class('number of replicates',
+                                self.number_replicates,
                                 int)
         self._check_input_class('"supports mastermix" flag',
                                 self.supports_mastermix, bool)
         self._check_input_class('ISO plate reservoir specs',
                                 self.reservoir_specs, ReservoirSpecs)
-
-        if not self.has_errors():
-            errors = self.em_log.get_messages(logging.ERROR)
-            if len(errors) > 0:
-                msg = 'The experiment metadata generator did not complete ' \
-                      'its run. Abort file stream generation.'
-                self.add_error(msg)
 
     def _write_stream_content(self):
         """
@@ -483,19 +422,14 @@ The ISO volumes and ISO concentrations for this metadata have been set manually.
             self.__write_warnings()
 
     def __write_formulas(self):
-        """
-        Write the formula explanations in the stream.
-        """
-
+        # Write the formula explanations in the stream.
         self._write_headline(self.FORMULA_TITLE, preceding_blank_lines=0,
                              trailing_blank_lines=0)
         self._stream.write(self.FORMULA_BASE)
-
         min_dead_volume = self.reservoir_specs.min_dead_volume \
                           * VOLUME_CONVERSION_FACTOR
         max_dead_volume = self.reservoir_specs.max_dead_volume \
                           * VOLUME_CONVERSION_FACTOR
-
         self._stream.write(self.ISO_VOLUME_FORMULA % (
                             self.number_replicates,
                             TransfectionParameters.TRANSFER_VOLUME,
@@ -509,12 +443,9 @@ The ISO volumes and ISO concentrations for this metadata have been set manually.
                              TransfectionParameters.CELL_DILUTION_FACTOR))
 
     def __write_warnings(self):
-        """
-        Writes the warnings recorded during the upload.
-        """
+        # Writes the warnings recorded during the upload.
         self._write_headline('WARNINGS')
-
-        warnings = self.em_log.get_messages(logging.WARNING)
+        warnings = self.generator.get_messages(logging.WARNING)
         if len(warnings) < 1:
             self._stream.write('no warnings')
         else:
@@ -535,28 +466,24 @@ class ExperimentMetadataInfoWriterWarningOnly(TxtWriter):
     #: This line is printed if there are not warnings.
     NO_WARNINGS_LINE = 'no warnings'
 
-    def __init__(self, em_log, em_label, log):
+    def __init__(self, generator, em_label, parent=None):
         """
-        Constructor:
+        Constructor.
 
-        :param em_log: The log of the experiment metadata generator.
-        :type em_log: :class:`thelma.ThelmaLog`
-
-        :param em_label: The label of the experiment metadata.
-        :type em_label: :class:`basestring`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
+        :param generator: The experiment metadata generator.
+        :type generator: :class:`ExperimentMetadataGenerator`
+        :param str em_label: The label of the experiment metadata.
         """
-        TxtWriter.__init__(self, log=log)
-
-        #: The log of the experiment metadata generator.
-        self.em_log = em_log
+        TxtWriter.__init__(self, parent=parent)
+        #: The experiment metadata generator.
+        self.generator = generator
         #: The label of the experiment metadata.
         self.em_label = em_label
 
     def _check_input(self):
-        self._check_input_class('log', self.em_log, ThelmaLog)
+        self._check_input_class('experiment metadata generator',
+                                self.generator,
+                                ExperimentMetadataGenerator)
         self._check_input_class('experiment metadata label', self.em_label,
                                 basestring)
 
@@ -567,7 +494,7 @@ class ExperimentMetadataInfoWriterWarningOnly(TxtWriter):
         self._write_headline(self.WARNING_TITLE % (self.em_label),
                              preceding_blank_lines=0)
 
-        warnings = self.em_log.get_messages(logging.WARNING)
+        warnings = self.generator.get_messages(logging.WARNING)
         if len(warnings) < 1:
             self._stream.write(self.NO_WARNINGS_LINE)
         else:
@@ -583,7 +510,6 @@ class ExperimentMetadataInfoWriterLibrary(TxtWriter):
     **Return Value:** stream (TXT)
     """
     NAME = 'EM Upload Info Writer Library'
-
     #: The title for the general section (contains the name of the metadata).
     GENERAL_TITLE = '%s Values'
     #: Presents the robot support flag value.
@@ -603,15 +529,12 @@ class ExperimentMetadataInfoWriterLibrary(TxtWriter):
     REAGENT_NAME_LINE = 'Tranfection reagent: %s'
     #: Presents the reagent dilution factor for the plate.
     REAGENT_DF_LINE = 'Final dilution factor of the transfection reagent: %s'
-
     #: The header of the warning section.
     WARNING_TITLE = 'Warnings'
     #: This line is printed if there are not warnings.
     NO_WARNINGS_LINE = 'no warnings'
-
     #: The header for the OptiMem dilution factor section.
     ODF_TITLE = 'Determination of the OptiMem Dilution Factor'
-
     ODF_FORMULA = '''
 ODF = (isoConcentration / finalConcentration) / (RDF * CDF)\n
 where\n
@@ -623,22 +546,17 @@ where\n
     The OptiMem dilution factors is rounded to one decimal place.
 '''
 
-    def __init__(self, generator, log):
+    def __init__(self, generator, parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param generator: The experiment metadata generator used for the
             upload.
         :type generator: :class:`ExperimentMetadataGeneratorLibrary`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
         """
-        TxtWriter.__init__(self, log=log)
-
+        TxtWriter.__init__(self, parent=parent)
         #: The experiment metadata generator used for the upload.
         self.generator = generator
-
         #: Do the values support mastermix preparation?
         self.__support_mastermix = None
         #: The library to be screened.
@@ -672,7 +590,6 @@ where\n
         We have 3 sections: general, warnings and ODF formula.
         """
         self.add_debug('Write stream content ...')
-
         self.__set_report_values()
         if not self.has_errors():
             self.__write_general_section()
@@ -680,43 +597,32 @@ where\n
             self.__write_formula_section()
 
     def __set_report_values(self):
-        """
-        Fetches the values from the reporter and makes sure there are not None.
-        """
+        # Fetches the values from the reporter and makes sure there are not None.
         msg = 'Error when trying to fetch %s from the generator (the value ' \
               'is None)! This is a programming error, please contact the ' \
               'IT department.'
-
         self.__library = self.generator.get_library()
         if self.__library is None:
             self.add_error(msg % ('library'))
-
         self.__support_mastermix = self.generator.supports_mastermix
         if self.__support_mastermix is None:
             self.add_error(msg % ('"support mastermix" flag'))
-
         self.__parameter_values = self.generator.get_parameter_values()
         if self.__parameter_values is None:
             self.add_error(msg % ('parameter values'))
 
     def __write_general_section(self):
-        """
-        Volume, concentration, dilution factors, etc.
-        """
+        # Volume, concentration, dilution factors, etc.
         header = self.GENERAL_TITLE % (self.generator.return_value.label)
         self._write_headline(header, preceding_blank_lines=0,
                              trailing_blank_lines=1)
-
         general_lines = []
-
         if self.__support_mastermix:
             robot_support = 'yes'
         else:
             robot_support = 'no'
         general_lines.append(self.SUPPORTS_MASTERMIX_LINE % robot_support)
-
         general_lines.append(self.LIBRARY_LINE % (self.__library.label))
-
         iso_vol = self.__library.final_volume * VOLUME_CONVERSION_FACTOR
         general_lines.append(self.ISO_VOLUME_LINE % (get_trimmed_string(
                                                                 iso_vol)))
@@ -724,7 +630,6 @@ where\n
                           * CONCENTRATION_CONVERSION_FACTOR
         general_lines.append(self.ISO_CONCENTRATION_LINE \
                              % get_trimmed_string(self.__iso_conc))
-
         parameters = TransfectionParameters
         self.__final_conc = self.__parameter_values[
                                                 parameters.FINAL_CONCENTRATION]
@@ -737,17 +642,12 @@ where\n
         reagent_df = self.__parameter_values[parameters.REAGENT_DIL_FACTOR]
         general_lines.append(self.REAGENT_DF_LINE % (
                                                 get_trimmed_string(reagent_df)))
-
         self._write_body_lines(general_lines)
 
     def __write_warning_section(self):
-        """
-        Writes the warnings recorded during the upload.
-        """
+        # Writes the warnings recorded during the upload.
         self._write_headline(self.WARNING_TITLE)
-
-        generator_log = self.generator.log
-        warnings = generator_log.get_messages(logging.WARNING)
+        warnings = self.generator.get_messages(logging.WARNING)
         if len(warnings) < 1:
             self._stream.write(self.NO_WARNINGS_LINE)
         else:
@@ -755,12 +655,9 @@ where\n
                 self._stream.write('%s\n' % msg)
 
     def __write_formula_section(self):
-        """
-        Writes the formula for the determination of the OptiMem dilution
-        factor.
-        """
+        # Writes the formula for the determination of the OptiMem dilution
+        # factor.
         self._write_headline(self.ODF_TITLE)
-
         formula = self.ODF_FORMULA % (get_trimmed_string(self.__iso_conc),
                             get_trimmed_string(self.__final_conc),
                             TransfectionParameters.REAGENT_MM_DILUTION_FACTOR,
@@ -770,12 +667,11 @@ where\n
 
 class ExperimentMetadataReportUploader(BaseTracTool):
     """
-    A tool that uploads the experiment metadata file, the upload info
+    Tool uploading the experiment metadata file, the upload info
     file and the calculation report file to the trac ticket assigned
     to the experiment metadata.
 
     Currently there are 4 files available to be uploaded:
-
         1. The uploaded excel file containing the Experiment Metadata (all
             experiment scenarios).
         2. An file containing the warnings that have been recorded during
@@ -784,15 +680,11 @@ class ExperimentMetadataReportUploader(BaseTracTool):
            and volumes and concentrations.
         4. A CSV table presenting the data of the ISO plate.
     """
-
     NAME = 'Experiment Metadata Upload Reporter'
-
     #: The base comment for the upload.
     BASE_COMMENT = 'Experiment metadata file upload. %s'
-
     #: The comment addition for experiments without ISO.
     ISO_LESS_COMMENT = 'There is no ISO request for this experiment set.'
-
     #: The comment addition for experiments with ISO.
     ISO_COMMENT = 'The ISO volumes and concentrations have been %s'
     #: Comment addition if robot support is not available.
@@ -808,7 +700,6 @@ class ExperimentMetadataReportUploader(BaseTracTool):
                      % (ROBOT_OPTION_NO)
     #: Base comment completion for library experiments.
     LIBRARY_OPTION = 'set by the system according to the library values. '
-
     #: The description for the Excel file.
     EXCEL_DESCRIPTION = 'Experiment metadata excel file.'
     #: The description for the info file.
@@ -820,7 +711,6 @@ class ExperimentMetadataReportUploader(BaseTracTool):
     ISO_DESCRIPTION = 'ISO Plate Overview.'
     #: The descrition for the volume file.
     VOLUME_DESCRIPTION = 'Required stock volumes.'
-
     #: The file name for the Excel file.
     EXCEL_FILE_NAME = '%s.xls'
     #: The file name for the info file.
@@ -829,43 +719,38 @@ class ExperimentMetadataReportUploader(BaseTracTool):
     ASSIGNMENT_FILE_NAME = '%s_assignments.csv'
     #: The file name for the ISO plate overview file.
     ISO_FILE_NAME = '%s_ISO_data.csv'
-
     #: The info writer class for each scenario.
     INFO_WRITER_CLS = {
         EXPERIMENT_SCENARIOS.OPTIMISATION : ExperimentMetadataInfoWriter,
         EXPERIMENT_SCENARIOS.SCREENING : ExperimentMetadataInfoWriter,
         EXPERIMENT_SCENARIOS.LIBRARY : ExperimentMetadataInfoWriterLibrary,
         EXPERIMENT_SCENARIOS.MANUAL : ExperimentMetadataInfoWriter,
-        EXPERIMENT_SCENARIOS.ISO_LESS : ExperimentMetadataInfoWriterWarningOnly,
+        EXPERIMENT_SCENARIOS.ISO_LESS :
+                            ExperimentMetadataInfoWriterWarningOnly,
         EXPERIMENT_SCENARIOS.ORDER_ONLY :
-                                        ExperimentMetadataInfoWriterWarningOnly}
-
+                            ExperimentMetadataInfoWriterWarningOnly}
     #: Experiment scenarios that get assignment files.
     ASSIGNMENT_FILE_SCENARIOS = [EXPERIMENT_SCENARIOS.OPTIMISATION]
-
     #: Experiment scenario that get ISO overview files.
     ISO_OVERVIEW_SCENARIOS = [EXPERIMENT_SCENARIOS.OPTIMISATION,
                               EXPERIMENT_SCENARIOS.SCREENING,
                               EXPERIMENT_SCENARIOS.MANUAL,
                               EXPERIMENT_SCENARIOS.ORDER_ONLY]
-
     #: Shall existing replacements with the same name be overwritten?
     REPLACE_EXISTING_ATTACHMENTS = True
 
-    def __init__(self, generator, experiment_metadata_link, iso_request_link):
+    def __init__(self, generator, experiment_metadata_link, iso_request_link,
+                 parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param generator: The generator that has conducted the upload.
         :type generator: :class:`ExperimentMetadataGenerator`
-        :param experiment_metadata_link: Link to the experiment metadata in
+        :param str experiment_metadata_link: Link to the experiment metadata in
             TheLMA.
-        :type experiment_metadata_link: :class:`str`
-        :param iso_request_link: Link to the ISO request in TheLMA.
-        :type iso_request_link: :class:`str`
-
+        :param str iso_request_link: Link to the ISO request in TheLMA.
         """
-        BaseTracTool.__init__(self, log=None, depending=False)
+        BaseTracTool.__init__(self, parent=parent)
         #: The generator that has conducted the upload.
         self.generator = generator
         #: Link to the experiment metadata in TheLMA.
@@ -888,7 +773,6 @@ class ExperimentMetadataReportUploader(BaseTracTool):
         self.__assign_stream = None
         #: The file stream for ISO plate overview file.
         self.__iso_stream = None
-
         #: The attachment to be uploaded.
         self.__attachments = None
 
@@ -912,16 +796,19 @@ class ExperimentMetadataReportUploader(BaseTracTool):
         self.add_info('Start upload report generation ...')
         self.reset()
         self.__check_input()
-        if not self.has_errors(): self.__get_streams()
-        if not self.has_errors(): self.__create_description()
-        if not self.has_errors(): self.__generate_comment()
-        if not self.has_errors(): self.__generate_attachment_data()
-        if not self.has_errors(): self.__send_attachments_and_comment()
+        if not self.has_errors():
+            self.__get_streams()
+        if not self.has_errors():
+            self.__create_description()
+        if not self.has_errors():
+            self.__generate_comment()
+        if not self.has_errors():
+            self.__generate_attachment_data()
+        if not self.has_errors():
+            self.__send_attachments_and_comment()
 
     def __check_input(self):
-        """
-        Checks if the tools has obtained correct input values.
-        """
+        # Checks if the tools has obtained correct input values.
         self.add_debug('Check input values ...')
         if self._check_input_class('experiment metadata generator',
                                    self.generator,
@@ -940,96 +827,79 @@ class ExperimentMetadataReportUploader(BaseTracTool):
                                     basestring)
 
     def __get_streams(self):
-        """
-        Retrieves the file streams for the report.
-        """
+        # Retrieves the file streams for the report.
         self.add_debug('Get file streams ...')
-
         self.__experiment_type_id = self.generator.SUPPORTED_EXPERIMENT_TYPE
         self.__excel_stream = self.generator.stream
-
         self.__write_info_stream()
         self.__write_assignment_stream()
         self.__write_iso_plate_stream()
 
     def __write_info_stream(self):
-        """
-        This files contains potential warnings and formulas.
-        """
+        # This files contains potential warnings and formulas.
         writer_cls = self.INFO_WRITER_CLS[self.__experiment_type_id]
-
         if writer_cls == ExperimentMetadataInfoWriterLibrary:
-            info_writer = ExperimentMetadataInfoWriterLibrary(log=self.log,
-                                                    generator=self.generator)
+            info_writer = ExperimentMetadataInfoWriterLibrary(self.generator,
+                                                              parent=self)
         elif writer_cls == ExperimentMetadataInfoWriterWarningOnly:
-            info_writer = ExperimentMetadataInfoWriterWarningOnly(log=self.log,
-                                    em_log=self.generator.log,
-                                    em_label=self.generator.return_value.label)
+            info_writer = ExperimentMetadataInfoWriterWarningOnly(
+                                            self.generator,
+                                            self.generator.return_value.label,
+                                            parent=self)
         else:
             iso_rs = self.generator.return_value.lab_iso_request.\
                      iso_plate_reservoir_specs
             number_replicates = self.generator.return_value.number_replicates
-            info_writer = ExperimentMetadataInfoWriter(self.generator.log,
-                        number_replicates=number_replicates,
-                        supports_mastermix=self.generator.supports_mastermix,
-                        reservoir_specs=iso_rs, log=self.log)
-
+            info_writer = ExperimentMetadataInfoWriter(
+                                            self.generator,
+                                            number_replicates,
+                                            self.generator.supports_mastermix,
+                                            iso_rs,
+                                            parent=self)
         self.__info_stream = info_writer.get_result()
         if self.__info_stream is None:
             msg = 'Error when trying to write info file stream!'
             self.add_error(msg)
 
     def __write_assignment_stream(self):
-        """
-        What are the ISO plate source wells for each experiment cell plate well?
-        """
+        # What are the ISO plate source wells for each experiment cell plate well?
         if self.__experiment_type_id in self.ASSIGNMENT_FILE_SCENARIOS:
-            table_writer = ExperimentMetadataAssignmentWriter(log=self.log,
-                                                  generator=self.generator)
+            table_writer = ExperimentMetadataAssignmentWriter(self.generator,
+                                                              parent=self)
             self.__assign_stream = table_writer.get_result()
             if self.__assign_stream is None:
                 msg = 'Error when trying to write assignment stream!'
                 self.add_error(msg)
 
     def __write_iso_plate_stream(self):
-        """
-        The most important ISO layout parameters as CSV.
-        """
+        # The most important ISO layout parameters as CSV.
         if self.__experiment_type_id in self.ISO_OVERVIEW_SCENARIOS:
             iso_writer = ExperimentMetadataIsoPlateWriter(self.generator,
-                                                          self.log)
+                                                          parent=self)
             self.__iso_stream = iso_writer.get_result()
             if self.__iso_stream is None:
                 msg = 'Error when trying to write ISO plate overview!'
                 self.add_error(msg)
 
     def __create_description(self):
-        """
-        Builds the :attr:`__changes` dictionary (this method assumes validated
-        values).
-        """
+        # Builds the :attr:`__changes` dictionary (this method assumes
+        # validated values).
         self.add_debug('Generate ticket changes dictionary ...')
-
         description_builder = IsoRequestTicketDescriptionBuilder(
-                    experiment_metadata=self.generator.return_value,
-                    experiment_metadata_link=self.experiment_metadata_link,
-                    iso_request_link=self.iso_request_link,
-                    log=self.log)
+                                            self.generator.return_value,
+                                            self.experiment_metadata_link,
+                                            self.iso_request_link,
+                                            parent=self)
         self.__description = description_builder.get_result()
-
         if self.__description is None:
             msg = 'Error when trying to generate ticket description.'
             self.add_error(msg)
 
     def __generate_comment(self):
-        """
-        Generates the comment to be sent along with the files.
-        """
+        # Generates the comment to be sent along with the files.
         self.add_debug('Generate comment ...')
-
         if self.__experiment_type_id == EXPERIMENT_SCENARIOS.ISO_LESS:
             iso_option = self.ISO_LESS_COMMENT
-
         else:
             if self.__experiment_type_id == EXPERIMENT_SCENARIOS.LIBRARY:
                 calc_option = self.LIBRARY_OPTION
@@ -1043,20 +913,16 @@ class ExperimentMetadataReportUploader(BaseTracTool):
                 calc_option = self.MANUAL_OPTION
 
             iso_option = self.ISO_COMMENT % (calc_option)
-
         self.__comment = self.BASE_COMMENT % (iso_option)
 
     def __generate_attachment_data(self):
-        """
-        Generates the AttachmentData objects for the TracAttachmentAdder.
-        """
+        # Generates the AttachmentData objects for the TracAttachmentAdder.
         file_data = (
             [self.__excel_stream, self.EXCEL_FILE_NAME, self.EXCEL_DESCRIPTION],
             [self.__info_stream, self.INFO_FILE_NAME, self.INFO_DESCRIPTION],
             [self.__assign_stream, self.ASSIGNMENT_FILE_NAME,
              self.ASSIGNMENT_DESCRIPTION],
             [self.__iso_stream, self.ISO_FILE_NAME, self.ISO_DESCRIPTION])
-
         em_label = self.generator.return_value.label
         for stream_data in file_data:
             if stream_data[0] is None: continue
@@ -1066,20 +932,15 @@ class ExperimentMetadataReportUploader(BaseTracTool):
             self.__attachments.append(attachment)
 
     def __send_attachments_and_comment(self):
-        """
-        Uploads the attachments to the Trac ticket.
-        """
-
+        # Uploads the attachments to the Trac ticket.
         self.add_info('Preparations completed. Update ticket ...')
-
         ticket_id = self.generator.return_value.ticket_number
         self.__update_description(ticket_id)
-        if not self.has_errors(): self.__send_attachments(ticket_id)
+        if not self.has_errors():
+            self.__send_attachments(ticket_id)
 
     def __update_description(self, ticket_id):
-        """
-        Updates the ticket description.
-        """
+        # Updates the ticket description.
         try:
             project_leader = self.generator.return_value.subproject.project.\
                              leader.directory_user_id
@@ -1097,10 +958,7 @@ class ExperimentMetadataReportUploader(BaseTracTool):
             self.add_error(msg)
 
     def __send_attachments(self, ticket_id):
-        """
-        Adds the ticket attachments.
-        """
-
+        # Adds the ticket attachments.
         file_names = []
         for attachment_wrapper in self.__attachments:
             try:
@@ -1116,7 +974,6 @@ class ExperimentMetadataReportUploader(BaseTracTool):
                 break
             else:
                 file_names.append(fn)
-
         if not self.has_errors():
             self.return_value = file_names
             msg = 'The experiment metadata report has been uploaded ' \

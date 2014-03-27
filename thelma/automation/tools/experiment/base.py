@@ -58,10 +58,8 @@ class ExperimentTool(SerialWriterExecutorTool):
     **Return Value:** a zip stream for for printing mode or executed worklists
         for execution mode
     """
-
     #: The experiment types supported by this tool.
     SUPPORTED_SCENARIOS = []
-
     #: The index of the optimem worklist in the experiment design series.
     OPTIMEM_WORKLIST_INDEX = ExperimentWorklistGenerator.OPTIMEM_WORKLIST_INDEX
     #: The index of the optimem worklist in the experiment design series.
@@ -71,7 +69,6 @@ class ExperimentTool(SerialWriterExecutorTool):
     OPTIMEM_PLATE_BARCODE = 'optimem_plate'
     #: The barcode of the reservoir providing the transfection reagent.
     REAGENT_PLATE_BARCODE = 'complexes'
-
     #: The suffix for the file name of the first CSV worklist (which deals with
     #: addition of OptiMem solutions into the ISO plate). The first part of the
     #: file name will be the experiment metadata label.
@@ -89,33 +86,17 @@ class ExperimentTool(SerialWriterExecutorTool):
     #: The first part of the file name will be the experiment metadata label.
     FILE_SUFFIX_PREPARATION = '_reagent_instructions.csv'
 
-    def __init__(self, experiment, mode, user=None, log=None, **kw):
+    def __init__(self, experiment, mode, user=None, parent=None, **kw):
         """
-        Constructor:
+        Constructor.
 
         :param experiment: The experiment to process.
         :type experiment: :class:`thelma.models.experiment.Experiment`
-
-        :param mode: :attr:`MODE_EXECUTE` or :attr:`MODE_PRINT_WORKLISTS`
-        :type mode: str
-
-        :param user: The user who conducts the DB update (required for
-            execution mode).
-        :type user: :class:`thelma.models.user.User`
-        :default user: *None*
-
-        :param log: The ThelmaLog to write into (if used as part of a batch).
-        :type log: :class:`thelma.ThelmaLog`
-        :default log: *None*
         """
-        depending = not log is None
-        SerialWriterExecutorTool.__init__(self, log=log,
-                                          mode=mode, user=user,
-                                          depending=depending, **kw)
-
+        SerialWriterExecutorTool.__init__(self, mode,
+                                          user=user, parent=parent, **kw)
         #: The experiment for which to generate the rack.
         self.experiment = experiment
-
         #: The experiment metadata type
         #: (:class:`thelma.models.experiment.ExperimentMetadataType`).
         self._scenario = None
@@ -130,12 +111,10 @@ class ExperimentTool(SerialWriterExecutorTool):
         self._transfer_worklist_index = None
         #: The index of the cell worklist within a valid design rack series.
         self._cell_worklist_index = None
-
         #: Maps experiment racks onto the design rack they belong to.
         self._experiment_racks = None
         #: The source plate (ISO plate) for this experiment.
         self._source_plate = None
-
         #: The ISO layout for this experiment.
         self._source_layout = None
         #: A list of rack position to be ignore during execution or worklist
@@ -146,7 +125,6 @@ class ExperimentTool(SerialWriterExecutorTool):
         #: or worklist generation. The rack position are floating position
         #: for which there were no molecule design pools left anymore.
         self._ignored_floatings = None
-
         #: The final stream mapped onto file suffixes (print mode only).
         self._final_streams = None
 
@@ -282,8 +260,9 @@ class ExperimentTool(SerialWriterExecutorTool):
         iso_request = self.experiment.experiment_design.experiment_metadata.\
                       lab_iso_request
 
-        verifier = SourceRackVerifier(log=self.log, iso_request=iso_request,
-                        source_plate=self._source_plate)
+        verifier = SourceRackVerifier(iso_request=iso_request,
+                                      source_plate=self._source_plate,
+                                      parent=self)
         compatible = verifier.get_result()
         if compatible is None:
             msg = 'Error when trying to verify source rack!'
@@ -501,8 +480,9 @@ class ExperimentTool(SerialWriterExecutorTool):
         reagent_stream = self._final_streams[self.FILE_SUFFIX_REAGENT]
         reagent_content = reagent_stream.read()
         reagent_stream.seek(0)
-        preparation_writer = ReagentPreparationWriter(log=self.log,
-                                    reagent_stream_content=reagent_content)
+        preparation_writer = ReagentPreparationWriter(
+                                    reagent_stream_content=reagent_content,
+                                    parent=self)
         prep_stream = preparation_writer.get_result()
         if prep_stream is None:
             msg = 'ExperimentWorklistWriters - Error when trying to write ' \
@@ -549,26 +529,20 @@ class SourceRackVerifier(BaseRackVerifier):
     _RACK_CLS = Plate
     _LAYOUT_CLS = TransfectionLayout
 
-    def __init__(self, log, source_plate, iso_request):
+    def __init__(self, source_plate, iso_request, parent=None):
         """
-        Constructor:
-
-        :param log: The log the write in.
-        :type log: :class:`thelma.ThelmaLog`
+        Constructor.
 
         :param iso_request: The ISO request the plate must represent.
         :type iso_request: :class:`thelma.models.iso.isoRequest`
-
         :param source_plate: The plate to be checked.
         :type source_plate: :class:`thelma.models.rack.Plate`
         """
-        BaseRackVerifier.__init__(self, log=log)
-
+        BaseRackVerifier.__init__(self, parent=parent)
         #: The ISO request the plate must represent.
         self.iso_request = iso_request
         #: The plate to be checked.
         self.source_plate = source_plate
-
         #: Maps floating maps (molecule design pools for placeholders) onto ISO
         #: label - is only used when there are floating positions in the ISO
         #: layout.
@@ -594,8 +568,9 @@ class SourceRackVerifier(BaseRackVerifier):
         """
         self.add_debug('Get ISO layout ...')
 
-        converter = TransfectionLayoutConverter(log=self.log,
-                                rack_layout=self.iso_request.rack_layout)
+        converter = TransfectionLayoutConverter(
+                                rack_layout=self.iso_request.rack_layout,
+                                parent=self)
         self._expected_layout = converter.get_result()
         if self._expected_layout is None:
             msg = 'Error when trying to convert transfection layout.'
@@ -614,16 +589,13 @@ class SourceRackVerifier(BaseRackVerifier):
         self._iso_map = dict()
 
         for iso in self.iso_request.isos:
-            converter = LabIsoLayoutConverter(rack_layout=iso.rack_layout,
-                                              log=self.log)
+            converter = LabIsoLayoutConverter(iso.rack_layout, parent=self)
             iso_layout = converter.get_result()
-
             if iso_layout is None:
                 msg = 'Error when trying to convert layout for ISO "%s".' \
                       % (iso.label)
                 self.add_error(msg)
                 continue
-
             floating_map = dict()
             for rack_pos, ir_pos in self._expected_layout.iterpositions():
                 if not ir_pos.is_floating: continue
@@ -636,7 +608,6 @@ class SourceRackVerifier(BaseRackVerifier):
                     pool = iso_pos.molecule_design_pool
                 floating_map[placeholder] = pool
             self._iso_map[iso.label] = floating_map
-
         if len(self._iso_map) < 1:
             msg = 'There are no ISOs for this ISO request!'
             self.add_error(msg)
@@ -704,9 +675,7 @@ class ReagentPreparationWriter(CsvWriter):
 
     **Return Value:** file stream (CSV)
     """
-
     NAME = 'Reagent Preparation Writer'
-
     #: The header for the position column.
     POSITION_HEADER = 'Rack Position'
     #: The header for the reagent name column.
@@ -721,7 +690,6 @@ class ReagentPreparationWriter(CsvWriter):
     REAGENT_VOL_HEADER = 'Reagent Volume'
     #: The header for the diluent volume column.
     DILUENT_VOL_HEADER = 'Diluent Volume'
-
     #: The index for the position column.
     POSITION_INDEX = 0
     #: The index for the reagent name column.
@@ -737,30 +705,22 @@ class ReagentPreparationWriter(CsvWriter):
     #: The index for the diluent volume column.
     DILUENT_VOL_INDEX = 6
 
-    def __init__(self, reagent_stream_content, log):
+    def __init__(self, reagent_stream_content, parent=None):
         """
-        Constructor:
+        Constructor.
 
-        :param reagent_stream_content: The content of the reagent dilution
+        :param str reagent_stream_content: The content of the reagent dilution
             worklist stream.
-        :type reagent_stream_content: :class:`str`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
         """
-        CsvWriter.__init__(self, log=log)
-
+        CsvWriter.__init__(self, parent=parent)
         #: The content of the reagent dilution worklist stream.
         self.reagent_stream_content = reagent_stream_content
-
         #: The relevant data of the worklist (key: line index, values:
         #: tuple (source pos, dilution volume, diluent info) .
         self.__worklist_data = None
-
         #: The estimated dead volume in ul.
         self.__dead_volume = get_reservoir_spec(RESERVOIR_SPECS_NAMES.TUBE_24).\
                              max_dead_volume * VOLUME_CONVERSION_FACTOR
-
         #: Intermediate storage for the column values.
         self.__position_values = None
         self.__name_values = None

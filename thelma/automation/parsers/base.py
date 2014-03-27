@@ -3,27 +3,28 @@
 :Author: AAB, berger at cenix-bioscience dot com
 
 """
-
 from StringIO import StringIO
-from thelma import LogEvent
-from thelma.automation.errors import EventRecording
+
+from pyramid.compat import ascii_native_
+from pyramid.compat import string_types
+from xlrd import XLRDError
+from xlrd import open_workbook
+
+from thelma.automation.errors import MessageRecorder
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import is_valid_number
 from thelma.models.utils import label_from_number
-from xlrd import XLRDError
-from xlrd import open_workbook
-import logging
+
 
 __docformat__ = 'reStructuredText en'
-
 __all__ = ['BaseParser',
            'ParsingContainer',
            'RackShapeParsingContainer',
            'RackPositionParsingContainer',
            'TxtFileParser',
            'ExcelFileParser',
-           'ExcelFileParsingLogEvent',
            'ExcelParsingContainer',
            'ExcelSheetParsingContainer',
            'LayoutParsingContainer',
@@ -34,83 +35,45 @@ __all__ = ['BaseParser',
            'ExcelMoleculeDesignPoolLayoutParsingContainer']
 
 
-class BaseParser(EventRecording):
+class BaseParser(BaseTool): # still abstract pylint:disable=W0223
     """
-    This is the abstract base class for all parser integrated into TheLMA.
+    Abstract base class for all parsers in TheLMA.
 
-    Parsers work on file streams. They parse and collect data (with the help of
-    :class:`ParsingContainer`s and present them in an ordered manner.
+    Parsers work on file streams. They parse and collect data (using
+    :class:`ParsingContainer`s) and present them in an ordered manner.
 
-    Parsers to do not use or interact with TheLMA specific modules. All
+    Parsers do not use or interact with TheLMA specific modules. All
     external transfers are taken over by specialized parser handlers (see
     :class:`thelma.parsers.handlers.base.BaseParserHandler`). They are
     initialized and run by the parser handlers.
 
     Parsing is performed using only default python classes and parsing
-    containers. Events occurring during the run are recorded in a log
-    (:class:`thelma.parsers.errors.ParsingLog`) provided by the handler.
-    The final conversion of the data into entity objects and the checks
-    related to them are taken over by the parser handler, too.
+    containers. The final conversion of the data into entity objects and the
+    checks related to them are also performed by the parser handler.
     """
-
-    #: The name of the parser (required for logging), :class:`string`
-    NAME = None
-
-    def __init__(self, stream, log): #pylint: disable=W0231
+    def __init__(self, stream, parent=None):
         """
-        Constructor:
+        Constructor.
 
-        :param stream: the open file to parse
+        :param stream: The open file to parse.
         :type stream: :class:`stream`
-        :param log: The log recording the events occurring during the parsing
-            run.
-        :type log: :class:`thelma.parsers.eorrors.ParsingLog`
         """
-        EventRecording.__init__(self, log=log)
-
+        BaseTool.__init__(self, parent=parent)
         #: The stream to be parsed.
         self.stream = stream
-
         #: Is set to true if the parser attempts to run.
         self.has_run = False
-
-        #: The parser log (:class:`thelma.automation.error.ThelmaLog)`.
-        self.log = log
-        #: The logging level for the log.
-        self.logging_level = self.log.level
-
         #: If *True* if the parsing process is aborted at the next
         #: :func:`has_errors` check. This variable is used if you want to abort
-        #: parsing without launching an error.
-        self.abort_parsing = False
+        #: parsing without raising an error.
+        self.abort_execution = False
 
     def reset(self):
         """
         Resets the parser. Call this before running the parser.
         """
-        self.add_debug('Parser reset.')
+        MessageRecorder.reset(self)
         self.has_run = False
-        self.abort_parsing = False
-
-    def parse(self):
-        """
-        Runs the parser.
-        """
-        raise NotImplementedError('Abstract method. '
-                                  'Parser specification missing.')
-
-    def has_errors(self):
-        """
-        Checks if the parser found any errors in the current parsing run
-        (ParsingLog types: ERROR and CRITICAL).
-
-        :return: 0 (\'False\') if there are no errors recorded so far and
-            the parsing is also not to be aborted for other reasons
-        :rtype: :class:`boolean`
-        """
-        has_error = False
-        if self._error_count > 0: has_error = True
-        return has_error or self.abort_parsing
 
     def __str__(self):
         return '<Parser: %s, errors: %i>' % (self.NAME, self._error_count)
@@ -127,10 +90,12 @@ class ParsingContainer(object):
 
     def __init__(self, parser):
         """
-        :param _parser: parser the retrieved information shall be passed to
+        Constructor.
+
+        :param parser: The parser this container belongs to.
+        :type parser: :class:`BaseParser`
         """
         self._parser = parser
-
         if not issubclass(self._parser.__class__, self._PARSER_CLS):
             msg = 'Unexpected parser class "%s". Expected: %s or subclass.' \
                    % (self._parser.__class__.__name__,
@@ -140,21 +105,14 @@ class ParsingContainer(object):
 
 class RackShapeParsingContainer(ParsingContainer):
     """
-    A parsing container for RackShapes.
+    Parsing container for RackShapes.
     """
-
     def __init__(self, parser, row_number, column_number):
         """
-        Constructor:
+        Constructor.
 
-        :param parser: The parser this container belongs to.
-        :type parser: :class:`BaseParser`
-
-        :param row_number: The number of rows for this rack shape.
-        :type row_number: :class:`int`
-
-        :param column_number: The number of columns for this rack shape.
-        :type column_number: :class:`int`
+        :param int row_number: The number of rows for this rack shape.
+        :param int column_number: The number of columns for this rack shape.
         """
         ParsingContainer.__init__(self, parser)
         self.row_number = row_number
@@ -181,7 +139,7 @@ class RackShapeParsingContainer(ParsingContainer):
     @property
     def position_containers(self):
         """
-        A list of all rack positions contained in this rack shape
+        List of all rack positions contained in this rack shape
         (:class:`RackPositionContainer`).
         """
         pos_containers = []
@@ -199,21 +157,15 @@ class RackShapeParsingContainer(ParsingContainer):
 
 class RackPositionParsingContainer(ParsingContainer):
     """
-    A parsing container for RackPositions.
+    Parsing container for RackPositions.
     """
-
     def __init__(self, parser, row_index, column_index):
         """
-        Constructor:
+        Constructor.
 
-        :param parser: The parser this container belongs to.
-        :type parser: :class:`BaseParser`
-
-        :param row_index: The index of this well's row in the rack shape.
-        :type row_index: :class:`int`
-
-        :param column_index: The index of this well's columns in the rack shape.
-        :type column_index: :class:`int`
+        :param int row_index: The index of this well's row in the rack shape.
+        :param int column_index: The index of this well's columns in the rack
+            shape.
         """
         ParsingContainer.__init__(self, parser)
         self.row_index = row_index
@@ -241,22 +193,12 @@ class RackPositionParsingContainer(ParsingContainer):
                          self.column_index + 1)
 
 
-class TxtFileParser(BaseParser): #pylint: disable=W0223
+class TxtFileParser(BaseParser): # still abstract pylint: disable=W0223
     """
-    An abstract base class for all TXT-based parsers (incl. CSV files).
+    Abstract base class for all TXT-based parsers (incl. CSV files).
     """
-
-    def __init__(self, stream, log):
-        """
-        Constructor:
-
-        :param stream: stream of the file to parse.
-
-        :param log: The ThelmaLog to write into.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        BaseParser.__init__(self, stream=stream, log=log)
-
+    def __init__(self, stream, parent=None):
+        BaseParser.__init__(self, stream, parent=parent)
         #: The content of the file split into lines.
         self._lines = None
 
@@ -285,23 +227,14 @@ class TxtFileParser(BaseParser): #pylint: disable=W0223
             self.add_error(msg)
 
 
-class ExcelFileParser(BaseParser): #pylint: disable=W0223
+class ExcelFileParser(BaseParser): # still abstract pylint: disable=W0223
     """
-    This is the abstract base class for all Excel file parsers.
+    Abstract base class for all Excel file parsers.
     """
-
     NAME = 'ExcelFileParser'
 
-    def __init__(self, stream, log):
-        """
-        :param stream: file name and path
-        :type stream: :class:`string`
-
-        :param log: The ThelmaLog to write into.
-        :type log: :class:`thelma.automation.errors.ThelmaLog`
-        """
-        BaseParser.__init__(self, stream, log)
-
+    def __init__(self, stream, parent=None):
+        BaseParser.__init__(self, stream, parent=parent)
         #: The sheet that is parsed at the moment.
         self.sheet = None
 
@@ -309,24 +242,23 @@ class ExcelFileParser(BaseParser): #pylint: disable=W0223
         """
         Opens the Excel file as workbook and performs some checks.
 
-        :return: workbook
-        :raise: critical error
-            (:class:`thelma.parsers.errors.ExcelFileParsingLogEvent`)
-            if unable to open the workbook.
-        """
+        Records a critical error if the workbook can not be opened.
 
+        :returns: Workbook.
+        """
         self.reset()
         self.add_info('Open workbook ...')
         self.has_run = True
-        wb = None
         try:
             wb = open_workbook(file_contents=self.stream,
                                 formatting_info=True,
                                 on_demand=True)
-            self.add_info('Opening workbook completed.')
         except XLRDError:
+            wb = None
             msg = 'Could not open Excel File.'
             self.add_critical_error(ValueError(msg))
+        else:
+            self.add_info('Opening workbook completed.')
         return wb
 
     def get_sheet_by_name(self, workbook, sheet_name, raise_error=True):
@@ -335,18 +267,12 @@ class ExcelFileParser(BaseParser): #pylint: disable=W0223
 
         :param workbook: The workbook containing the sheet.
         :param str sheet_name: The name of the sheet.
-        :param raise_error: Shall the parser raise an error if there is no
-            sheet wit this name? (default: *False*)
-        :type raise_error: :class:`boolean`
-
-        :return: sheet with the specified name
-        :raise: error (:class:`thelma.parsers.errors.ExcelFileParsingLogEvent`)
-            if there is no sheet with the specified name and :attr:`raise_error`
-            == *True*
+        :param bool raise_error: If set, the parser raises an error if there
+            is no sheet wit this name (default: *False*).
+        :returns: Sheet with the specified name.
         """
         sheet = None
         names = [sheet_name, sheet_name.lower(), sheet_name.upper()]
-
         for name in names:
             try:
                 sheet = workbook.sheet_by_name(name)
@@ -354,45 +280,45 @@ class ExcelFileParser(BaseParser): #pylint: disable=W0223
                 pass
             else:
                 break
-
-        if sheet is None and raise_error == True:
+        if sheet is None and raise_error:
             msg = 'There is no sheet called "%s"' % (sheet_name)
             self.add_error(ValueError(msg))
-
         return sheet
 
     def get_sheet_name(self, sheet):
         """
         Returns the name of the given sheet.
 
-        :return: name of the sheet
+        :returns: Name of the sheet.
         :rtype: :class:`string`
         """
         return sheet.name
 
     def get_sheet_shape(self, sheet):
         """
-        Returns the dimension (No of rows, No of columns) of the given sheet.
+        Returns a 2-tuple containing the dimension (number of rows,
+        number of columns) of the given sheet.
 
-        :param sheet: The Excel sheet whose dimensions ou want to obtain.
-        :return: No. rows (:class:`int`), No. of columns (:class:`int`)
+        :param sheet: The Excel sheet to query the shape of.
+        :returns: Number of rows (:class:`int`), Number of columns (:class:`int`)
+        :rtype: :class:`tuple`
         """
         return sheet.nrows, sheet.ncols
 
     def get_sheet_row_number(self, sheet):
         """
-        Return the number of rows for the given sheet.
+        Returns the number of rows for the given sheet.
 
-        :return: No. of rows
+        :returns: Number of rows.
         :rtype: :class:`int`
         """
         return sheet.nrows
 
     def get_sheet_column_number(self, sheet):
         """
-        Return the number of columns for the given sheet.
+        Returns the number of columns for the given sheet.
 
-        :return: No. of columns
+        :return: Number of columns.
         :rtype: :class:`int`
         """
         return sheet.ncols
@@ -407,78 +333,64 @@ class ExcelFileParser(BaseParser): #pylint: disable=W0223
         cell_name = '%s%i' % (label_from_number(column_index + 1),
                               row_index + 1)
         sheet_name = self.get_sheet_name(sheet)
-
         conv_value = None
-        if isinstance(cell_value, unicode):
+        if isinstance(cell_value, string_types):
             try:
-                conv_value = cell_value.encode('ascii')
+                conv_value = ascii_native_(cell_value)
             except UnicodeEncodeError:
                 msg = 'Unknown character in cell %s (sheet "%s"). Remove ' \
                       'or replace the character, please.' \
                       % (cell_name, sheet_name)
                 self.add_error(msg)
-        elif isinstance(cell_value, str):
-            conv_value = cell_value
+            else:
+                if conv_value == '':
+                    conv_value = None
+                else:
+                    # Try to convert to an int or float.
+                    try:
+                        conv_value = int(conv_value)
+                    except ValueError:
+                        try:
+                            conv_value = float(conv_value)
+                        except ValueError:
+                            pass
         elif isinstance(cell_value, (float, int)):
             if is_valid_number(value=cell_value, is_integer=True):
-                return int(cell_value)
-            return cell_value
+                conv_value = int(cell_value)
+            else:
+                conv_value = cell_value
         else:
             msg = 'There is some unknown content in cell %s (sheet %s).' \
                   % (cell_name, sheet_name)
             self.add_error(msg)
-
-        if conv_value is None or conv_value == '': return None
-
-        try:
-            conv_value = int(conv_value)
-        except ValueError:
-            try:
-                conv_value = float(conv_value)
-            except ValueError:
-                pass
         return conv_value
 
     @staticmethod
     def get_cell_name(row_index, column_index):
         """
-        Convenience method deriving an excel cell label from a row and
+        Convenience method deriving an Excel cell label from a row and
         column index.
+
+        :returns: Cell name.
+        :rtype: :class:`str`
         """
-        if row_index is None or column_index is None: return None
-        return  '%s%i' % (label_from_number(column_index + 1), row_index + 1)
-
-
-class ExcelFileParsingLogEvent(LogEvent):
-    """
-    Error Class for Excel file parsing. Stores the sheet name
-    and the cell (if any) in which the error has occurred.
-    """
-
-    def __init__(self, name, sheet_name, cell_name, message, is_exception=True):
-        """
-        :param name: The name of the parser which creates the event.
-        :type name: :class:`str`
-
-        :param sheet_name: name of the sheet
-        :type sheet_name: :class:`string`
-
-        :param cell_name: name of the cell
-        :type cell_name: :class:`string`
-
-        :param message: explanation of the error
-        :type message: :class:`string`
-        """
-        LogEvent.__init__(self, name, message, is_exception)
-        self.sheet_name = sheet_name
-        self.cell_name = cell_name
-
-    def __str__(self):
-        if not self.cell_name is None:
-            msg = 'On sheet "%s" cell %s: %s' % \
-                  (self.sheet_name, self.cell_name, self.message)
+        if row_index is None or column_index is None:
+            result = None
         else:
-            msg = 'On sheet "%s": %s' % (self.sheet_name, self.message)
+            result = '%s%i' \
+                     % (label_from_number(column_index + 1), row_index + 1)
+        return result
+
+    @classmethod
+    def format_log_message(cls, sheet_name, cell_name, message):
+        """
+        Adds sheet and cell information to the given log message.
+        """
+        if cell_name is None:
+            msg = 'On sheet "%s": %s' % (sheet_name, message)
+        else:
+            msg = 'On sheet "%s" cell %s: %s' \
+                  % (sheet_name, cell_name, message)
         return msg
 
 
@@ -490,59 +402,44 @@ class ExcelParsingContainer(ParsingContainer):
 
     def _create_error(self, msg, cell_name=None):
         """
-        Convenience method. Creates errors for the parser's log.
+        Convenience method. Records an error message in the parser.
 
-        :param str msg: The error message
-        :param str cell_name: The name of the cell the error occurred in
+        :param str msg: The error message.
+        :param str cell_name: The name of the cell the error occurred in.
         """
         sheet_name = self.__get_sheet_name()
-        err = ExcelFileParsingLogEvent(self._parser.NAME, sheet_name,
-                                       cell_name, msg)
-        self._parser.add_log_event(err, logging.ERROR)
+        msg = self._PARSER_CLS.format_log_message(sheet_name, cell_name, msg)
+        self._parser.add_error(msg)
 
     def _create_warning(self, msg):
         """
-        Convenience method. Creates warnings for the parser's log.
+        Convenience method. Records a warning message in the parser.
 
         :param str msg: The warning message
         """
         sheet_name = self.__get_sheet_name()
-        warning = ExcelFileParsingLogEvent(self._parser.NAME,
-                                           sheet_name, None, msg,
-                                           is_exception=False)
-        self._parser.add_log_event(warning, logging.WARNING)
+        msg = self._PARSER_CLS.format_log_message(sheet_name, None, msg)
+        self._parser.add_warning(msg)
 
     def _create_info(self, msg):
         """
-        Convenience method. Creates infos for the parser's log.
+        Convenience method. Records an info message in the parser.
 
-        :param str msg: The info message
+        :param str msg: The info message.
         """
         sheet_name = self.__get_sheet_name()
-        info = ExcelFileParsingLogEvent(self._parser.NAME,
-                                        sheet_name, None, msg,
-                                        is_exception=False)
-        self._parser.add_log_event(info, logging.INFO)
+        msg = self._PARSER_CLS.format_log_message(sheet_name, None, msg)
+        self._parser.add_info(msg)
 
     def _create_debug_info(self, msg):
         """
-        Convenience method. Creates debug records for the parser's log.
+        Convenience method. Records a debug message in the parser.
 
         :param str msg: The debugging message.
         """
         sheet_name = self.__get_sheet_name()
-        debug = ExcelFileParsingLogEvent(self._parser.NAME,
-                                         sheet_name, None, msg,
-                                         is_exception=False)
-        self._parser.add_log_event(debug, logging.DEBUG)
-
-    def __get_sheet_name(self):
-        """
-        Convenience method.
-
-        :return: The name of the sheet currently parsed (:class:`string`)
-        """
-        return self._parser.get_sheet_name(self._parser.sheet)
+        msg = self._PARSER_CLS.format_log_message(sheet_name, None, msg)
+        self._parser.add_debug(msg)
 
     def _convert_keyword(self, keyword):
         """
@@ -554,6 +451,9 @@ class ExcelParsingContainer(ParsingContainer):
         keyword = keyword.lower()
         return keyword
 
+    def __get_sheet_name(self):
+        return self._parser.get_sheet_name(self._parser.sheet)
+
 
 class ExcelSheetParsingContainer(ExcelParsingContainer):
     """
@@ -561,29 +461,23 @@ class ExcelSheetParsingContainer(ExcelParsingContainer):
     """
     def __init__(self, parser, sheet):
         """
-        :param parser: the parser this container belongs to
-        :type parser: :class:`ExcelFileParser`
-
-        :param sheet: the excel sheet this container deals with
+        :param sheet: The excel sheet associated with this container.
         """
         ExcelParsingContainer.__init__(self, parser=parser)
-
-        #: the excel sheet this container deals with
+        #: The associated Excel sheet.
         self._sheet = sheet
-
         self._current_row = 0
         self._row_number = self._parser.get_sheet_row_number(sheet)
         self._col_number = self._parser.get_sheet_column_number(sheet)
-
         #: Can be used to abort parsing of cancel progress in rows.
         self._end_reached = False
 
     def _check_for_end(self):
         """
         Sets the :attr:`_end_reached` flag. The effect on the parsing process
-        depends on the derived class.
-        Per default, the boolean is set to *True* if the row tracker
-        (:attr:`_current_row`) is in the last row of the sheet.
+        depends on the derived class. Per default, this flag is set to *True*
+        if the row tracker (:attr:`_current_row`) hits the last row of the
+        sheet.
         """
         if self._current_row > (self._row_number - 1):
             self._end_reached = True
@@ -603,7 +497,7 @@ class ExcelSheetParsingContainer(ExcelParsingContainer):
 
         :param int row_index: The row index of the cell.
         :param int column_index: The column index of the cell.
-        :return: The cell value.
+        :returns: The cell value.
         """
         return self._parser.get_cell_value(self._sheet, row_index,
                                            column_index)
@@ -612,57 +506,48 @@ class ExcelSheetParsingContainer(ExcelParsingContainer):
         """
         Convenience method deriving an excel cell label from a row and
         column index.
+
+        :returns: Cell name.
+        :rtype: :class:`str`
         """
         return ExcelFileParser.get_cell_name(row_index, column_index)
 
 
 class ExcelLayoutFileParser(ExcelFileParser): #pylint: disable=W0223
     """
-    A abstract :class:`ExcelFileParser` for Excel sheet containing
-    layout and tags.
+    Abstract base class for :class:`ExcelFileParser`s that process Excel
+    sheets containing layout and tags.
     """
-
-    #: Do all layouts have to have the same dimension (default: *True*)?
+    #: Flag indicating if all layouts have to have the same dimension
+    #: (default: *True*).
     HAS_COMMON_LAYOUT_DIMENSION = True
 
-    def __init__(self, stream, log):
-        """
-        :param stream: file name and path
-        :type stream: :class:`string`
-
-        :param log: The ThelmaLog to write into.
-        :type log: :class:`thelma.automation.errors.ThelmaLog`
-        """
-        ExcelFileParser.__init__(self, stream=stream, log=log)
-
+    def __init__(self, stream, parent=None):
+        ExcelFileParser.__init__(self, stream, parent=parent)
         #: Defines the allow rack shapes (needs to set by the handler).
         self.allowed_rack_dimensions = None
-
-        #: stores the racks found in the source file
+        #: Stores the racks found in the source file
         # key: rack_label, value: RackParsingContainer
         self.rack_map = {}
-        #: stores the layouts found in the source file
+        #: Stores the layouts found in the source file
         # key: string [sheet_name][top_left_row][top_left_column],
         # value: LayoutParsingContainer
         self.layout_map = {}
-
-        #: Do layouts have a rack specifier (used to determine the
-        #: starting cell name) - default: *True*.
+        #: Flag indicating if layouts have a rack specifier (used to determine
+        #: the starting cell name) - default: *True*.
         self.layouts_have_specifiers = True
-
-        #: the rack dimensions for the layouts
-        #: (:class:`RackShapeParsingContainer`) (only if
-        #: :attr:`HAS_COMMON_LAYOUT_DIMENSION`.
+        #: The rack dimensions for the layouts
+        #: (:class:`RackShapeParsingContainer`) (only set if
+        #: :attr:`HAS_COMMON_LAYOUT_DIMENSION`).
         self.shape = None
 
 
 class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
     """
-    A special :class:`ExcelSheetParsingContainer` for Excel sheet containing
-    layout and tags.
+    Specialized :class:`ExcelSheetParsingContainer` for Excel sheets
+    containing layout and tags.
     """
     _PARSER_CLS = ExcelLayoutFileParser
-
     #: Marker telling the parser when to finish the parsing the current sheet
     #: (must be located in column A by default).
     _END_MARKER = 'end'
@@ -672,37 +557,29 @@ class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
     _LEVEL_MARKER = 'level'
     #: Marks the code column (must be located to the right of a factor marker).
     _CODE_MARKER = 'code'
-
     #: The index of the column containing the code values.
     _CODE_COLUMN_INDEX = 1
+    #
+    __INVALID_FACTOR_DEF_MSG = 'Invalid factor definition! There must be a ' \
+                               '"Code" marker next to and a "Level" marker ' \
+                               'below the "Factor" marker!'
 
     def __init__(self, parser, sheet):
-        """
-        Constructor:
-
-        :param parser: The parser the data shall be passed to.
-        :type parser: :class:`ExcelLayoutFileParser`
-
-        :param sheet: The sheet this container deals with.
-        """
         ExcelSheetParsingContainer.__init__(self, parser=parser, sheet=sheet)
-
         #: Store all tag containers found.
         self._tags = set()
         #: The tag container sorted by starting row.
         self._tags_by_row = dict()
-
         #: Remember the largest tag defintion column index (to speed up
         #: layout search).
         self.__max_tag_column_index = 0
 
     def _check_for_end(self):
         """
-        In addition to the default implementation we also check for the
-        presence of the :attr:`_END_MARKER` (in the first column).
+        Extends the super class method to also check for the presence of
+        the :attr:`_END_MARKER` (in the first column).
         """
         ExcelSheetParsingContainer._check_for_end(self)
-
         if not self._end_reached:
             first_col_value = self._get_cell_value(self._current_row, 0)
             if isinstance(first_col_value, str) and \
@@ -714,69 +591,75 @@ class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
         Checks the current row for a tag definition start (Factor marker).
         If it finds a marker, it parses the referring definition.
         """
-        if not self.__is_tag_definition(): return None
-
-        starting_row = self._current_row
-        current_tags = dict()
-        for col_index in range(2, self._col_number):
-            tag_label = self._get_tag_label(col_index)
-            if tag_label is None: break
-            tag_definition = self._init_tag_definition_container(tag_label)
-            if tag_definition is None: break
-            current_tags[col_index] = tag_definition
-
-        self.__parse_tag_codes_and_values(current_tags)
-        self._check_last_tags(current_tags)
-        self._tags_by_row[starting_row] = current_tags.values()
-        if len(current_tags) > 0:
-            self.__max_tag_column_index = max(self.__max_tag_column_index,
-                                          max(current_tags.keys()))
+        if not self.__is_tag_definition():
+            current_tags = None
+        else:
+            starting_row = self._current_row
+            current_tags = dict()
+            for col_index in range(2, self._col_number):
+                tag_label = self._get_tag_label(col_index)
+                if tag_label is None:
+                    break
+                tag_definition = \
+                        self._init_tag_definition_container(tag_label)
+                if tag_definition is None:
+                    break
+                current_tags[col_index] = tag_definition
+            self.__parse_tag_codes_and_values(current_tags)
+            self._check_last_tags(current_tags)
+            self._tags_by_row[starting_row] = current_tags.values()
+            if len(current_tags) > 0:
+                self.__max_tag_column_index = max(self.__max_tag_column_index,
+                                              max(current_tags.keys()))
         return current_tags
 
     def __is_tag_definition(self):
-        """
-        Does the current row contain a tag definition? All three markers
-        (factor, code, level) must be in place.
-        """
+        # Checks if the current row contains a tag definition. All three
+        # markers (factor, code, level) must be in place.
         cell_value = self._get_cell_value(self._current_row, 0)
-        if not isinstance(cell_value, str): return False
-        if not cell_value.lower().startswith(self._FACTOR_MARKER):
-            return False
-
-        msg = 'Invalid factor definition! There must be a "Code" marker ' \
-              'next to and a "Level" marker below the "Factor" marker!'
-        code_cell_value = self._get_cell_value(self._current_row, 1)
-        if not isinstance(code_cell_value, str) or \
-                            not code_cell_value.lower() == self._CODE_MARKER:
-            self._create_error(msg, self._get_cell_name(self._current_row, 1))
-            return False
-
-        if (self._current_row + 1) >= self._row_number:
-            self._create_error(msg, self._get_cell_name(self._current_row, 0))
-            return False
-
-        level_cell_value = self._get_cell_value((self._current_row + 1), 0)
-        if not isinstance(level_cell_value, str) or \
-                    not level_cell_value.lower().startswith(self._LEVEL_MARKER):
-            self._create_error(msg,
-                               self._get_cell_name((self._current_row + 1), 0))
-            return False
-
-        return True
+        if not isinstance(cell_value, str):
+            result = False
+        elif not cell_value.lower().startswith(self._FACTOR_MARKER):
+            result = False
+        else:
+            code_cell_value = self._get_cell_value(self._current_row, 1)
+            if not isinstance(code_cell_value, str) \
+               or not code_cell_value.lower() == self._CODE_MARKER:
+                cell_name = self._get_cell_name(self._current_row, 1)
+                self._create_error(self.__INVALID_FACTOR_DEF_MSG, cell_name)
+                result = False
+            elif self._current_row + 1 >= self._row_number:
+                cell_name = self._get_cell_name(self._current_row, 0)
+                self._create_error(self.__INVALID_FACTOR_DEF_MSG, cell_name)
+                result = False
+            else:
+                level_cell_value = \
+                    self._get_cell_value(self._current_row + 1, 0).lower()
+                if not isinstance(level_cell_value, str) \
+                   or not level_cell_value.startswith(self._LEVEL_MARKER):
+                    cell_name = self._get_cell_name(self._current_row + 1, 0)
+                    self._create_error(self.__INVALID_FACTOR_DEF_MSG,
+                                       cell_name)
+                result = False
+            return result
 
     def _get_tag_label(self, column_index):
         """
         Convenience method returning a tag label. All tag labels are strings.
-        Returns *None* if there is an empty string.
+        Returns *None* if the tag label is an empty string.
 
-        Overwrite this method
-        if there are condition about formats (e.g. keyword conversion,
-        case-sensitivity, whitespaces, etc.).
+        Overwrite this method to address special formats (e.g. keyword
+        conversion, case-sensitivity, whitespaces, etc.).
+
+        :returns: Tag label.
+        :rtype: :class:`str`
         """
         tag_label = self._get_cell_value(self._current_row, column_index)
-        if tag_label is None: return None
-        tag_label = str(tag_label)
-        return tag_label
+        if tag_label is None:
+            result = None
+        else:
+            result = ascii_native_(tag_label)
+        return result
 
     def _init_tag_definition_container(self, predicate):
         """
@@ -787,11 +670,13 @@ class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
                                         tag_predicate=predicate,
                                         start_row_index=self._current_row)
         if container in self._tags:
+            result = None
             msg = 'Duplicate tag "%s"!' % (predicate)
             self._create_error(msg)
-            return None
-        self._tags.add(container)
-        return container
+        else:
+            result = container
+            self._tags.add(container)
+        return result
 
     def __parse_tag_codes_and_values(self, current_tags):
         """
@@ -801,7 +686,8 @@ class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
         self._step_to_next_row()
         invalid = False
         while not self._end_reached:
-            if invalid: break
+            if invalid:
+                break
             code = self._get_cell_value(self._current_row,
                                         self._CODE_COLUMN_INDEX)
             if code is None:
@@ -811,10 +697,12 @@ class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
             for col_index, tag_definition in current_tags.iteritems():
                 cell_value = self._get_cell_value(self._current_row, col_index)
                 tag_definition.add_code_and_value(cell_value, code)
-                if not cell_value is None: all_values.append(cell_value)
-            if self._parser.has_errors(): break
-            if not self._has_valid_tag_values(all_values): break
-
+                if not cell_value is None:
+                    all_values.append(cell_value)
+            if self._parser.has_errors():
+                break
+            if not self._has_valid_tag_values(all_values):
+                break
             self._step_to_next_row()
 
     def __check_level_consistency(self, current_tags):
@@ -824,7 +712,8 @@ class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
         (if there are levels but no codes for a tag).
         """
         for col_index, tag_definition in current_tags.iteritems():
-            if tag_definition.inactive: continue
+            if tag_definition.inactive:
+                continue
             level_value = self._get_cell_value(self._current_row, col_index)
             if not level_value is None:
                 msg = 'There are levels in definition for factor "%s" ' \
@@ -836,15 +725,19 @@ class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
         """
         Allows to perform additional checks on the value set of a tag
         definition. By default, there must be at least one value.
+
+        :returns: Result of the check.
+        :rtype: :class:`bool`
         """
         if len(values) < 1:
             msg = 'There is a code without label!'
             cell_name = self._get_cell_name(self._current_row,
                                             self._CODE_COLUMN_INDEX)
             self._create_error(msg, cell_name)
-            return False
-
-        return True
+            result = False
+        else:
+            result = True
+        return result
 
     def _check_last_tags(self, current_tags):
         """
@@ -853,7 +746,8 @@ class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
         """
         del_indices = []
         for col_index, tag_definition in current_tags.iteritems():
-            if len(tag_definition.values) < 1: del_indices.append(col_index)
+            if len(tag_definition.values) < 1:
+                del_indices.append(col_index)
         for col_index in del_indices:
             tag_definition = current_tags[col_index]
             self._tags.remove(tag_definition)
@@ -866,22 +760,24 @@ class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
         """
         self._current_row = 1
         self._end_reached = False
-
         layout_found = False
         while not self._end_reached:
             for col_index in range(self.__max_tag_column_index,
                                    self._col_number):
-                if self._parser.has_errors(): break
+                if self._parser.has_errors():
+                    break
                 layout_container = self.__get_layout(col_index)
-                if self._parser.has_errors(): break
-                if layout_container is None: continue
-
+                if self._parser.has_errors():
+                    break
+                if layout_container is None:
+                    continue
                 layout_found = True
                 # associate tags
                 tag_definitions = None
                 for row_index in sorted(self._tags_by_row.keys(),
                                         reverse=True):
-                    if row_index > self._current_row: continue
+                    if row_index > self._current_row:
+                        continue
                     tag_definitions = self._tags_by_row[row_index]
                     break
                 if tag_definitions is None:
@@ -890,11 +786,9 @@ class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
                           % (self._current_row + 1)
                     self._create_error(msg)
                     break
-
                 if len(tag_definitions) > 0:
                     self._parse_layout_codes(layout_container, tag_definitions)
             self._step_to_next_row()
-
         if not layout_found and not self._parser.has_errors():
             msg = 'Could not find a layout definition on this sheet. ' \
                   'Please make sure you have indicated them correctly.'
@@ -910,69 +804,74 @@ class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
                     and self._col_number >= col_index + 1 \
                     and self._get_cell_value(self._current_row - 1,
                                              col_index + 1) == 1
-        if not is_layout: return None
-
-        ori_row = self._current_row - 1
-        ori_col = col_index
-        top_left_pos = (ori_row, ori_col)
-        shape = self.__parse_layout_shape(ori_row, ori_col)
-        if shape is None: return None
-
-        layout_specifier = self._get_cell_value((ori_row - 1), ori_col)
-        layout_container = LayoutParsingContainer(parser=self._parser,
-                                  shape=shape, top_left_position=top_left_pos)
-
-        rack_containers = self._parse_layout_specifiers(layout_specifier,
-                                                        layout_container)
-        if rack_containers is None: return None
-
-        # store racks
-        for rack_container in rack_containers:
-            rack_container.add_layout_container(layout_container)
-            rack_label = rack_container.rack_label
-            if not self._parser.rack_map.has_key(rack_label):
-                self._parser.rack_map[rack_label] = rack_container
-
-        return layout_container
+        result = None
+        if is_layout:
+            ori_row = self._current_row - 1
+            ori_col = col_index
+            top_left_pos = (ori_row, ori_col)
+            shape = self.__parse_layout_shape(ori_row, ori_col)
+            if not shape is None:
+                layout_specifier = self._get_cell_value(ori_row - 1, ori_col)
+                layout_container = \
+                    LayoutParsingContainer(parser=self._parser,
+                                           shape=shape,
+                                           top_left_position=top_left_pos)
+                rack_containers = \
+                        self._parse_layout_specifiers(layout_specifier,
+                                                      layout_container)
+                if not rack_containers is None:
+                    # Store racks.
+                    for rack_container in rack_containers:
+                        rack_container.add_layout_container(layout_container)
+                        rack_label = rack_container.rack_label
+                        if not self._parser.rack_map.has_key(rack_label):
+                            self._parser.rack_map[rack_label] = rack_container
+                    # Success!
+                    result = layout_container
+        return result
 
     def __parse_layout_shape(self, start_row, start_col):
         """
         Determines the dimensions of plate layout definition.
         """
-        rack_row, rack_col = 0, 0
-        # get number of rows, row labels are alphanumeric
-        while (rack_row + start_row + 2) < self._row_number:
-            row_value = self._get_cell_value((start_row + rack_row + 1),
+        rack_row = 0
+        rack_col = 0
+        # Get number of rows, row labels are alphanumeric.
+        while rack_row + start_row + 2 < self._row_number:
+            row_value = self._get_cell_value(start_row + rack_row + 1,
                                              start_col)
-            if row_value != label_from_number(rack_row + 1): break
+            if row_value != label_from_number(rack_row + 1):
+                break
             rack_row += 1
-        # get number of columns, column labels are numbers
-        while (start_col + rack_col + 1) < self._col_number:
+        # Get number of columns, column labels are numbers.
+        while start_col + rack_col + 1 < self._col_number:
             col_value = self._get_cell_value(start_row,
-                                             (start_col + rack_col + 1))
-            if col_value != (rack_col + 1): break
+                                             start_col + rack_col + 1)
+            if col_value != rack_col + 1:
+                break
             rack_col += 1
-
+        result = None
         if not (rack_row, rack_col) in self._parser.allowed_rack_dimensions:
             msg = 'Invalid layout block shape (%ix%i). Make sure you ' \
                   'have placed an "%s" maker, too.' % (rack_row, rack_col,
                                                        self._END_MARKER)
             self._create_error(msg, self._get_cell_name(start_row, start_col))
-            return None
-
-        shape = RackShapeParsingContainer(self._parser, rack_row, rack_col)
-
-        if self._parser.HAS_COMMON_LAYOUT_DIMENSION:
-            if self._parser.shape is None:
-                self._parser.shape = shape
-            elif not shape == self._parser.shape:
-                msg = 'There are 2 different layout shapes in the file ' \
-                      '(%s and %s). For this parser, all layout dimensions ' \
-                      'have to be the same.' % (shape, self._parser.shape)
-                self._create_error(msg)
-                return None
-
-        return shape
+        else:
+            shape = RackShapeParsingContainer(self._parser, rack_row,
+                                              rack_col)
+            if self._parser.HAS_COMMON_LAYOUT_DIMENSION:
+                if not shape == self._parser.shape:
+                    msg = 'There are 2 different layout shapes in the file ' \
+                          '(%s and %s). For this parser, all layout ' \
+                          'dimensions have to be the same.' \
+                          % (shape, self._parser.shape)
+                    self._create_error(msg)
+                else:
+                    if self._parser.shape is None:
+                        self._parser.shape = shape
+                    # Success!
+                    result = shape
+        return result
 
     def _parse_layout_specifiers(self, layout_specifier, layout_container):
         """
@@ -989,10 +888,12 @@ class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
         for cell_indices in layout_container.get_all_layout_cells():
             table_row, table_col = cell_indices[0], cell_indices[1]
             code = self._get_cell_value(table_row, table_col)
-            if code is None: continue
+            if code is None:
+                continue
             for tag_definition in tag_definitions:
                 value = self._get_tag_value_for_code(tag_definition, code)
-                if value is None: break
+                if value is None:
+                    break
                 layout_container.add_tagged_position(tag_definition.predicate,
                                                      value, cell_indices)
 
@@ -1007,6 +908,7 @@ class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
 class LayoutParsingContainer(ExcelParsingContainer):
     """
     ParsingContainer subclass for the storage of layouts.
+
     A LayoutParsingContainer corresponds to one layout (rack
     pattern) definition in the source Excel file.
     """
@@ -1014,29 +916,22 @@ class LayoutParsingContainer(ExcelParsingContainer):
 
     def __init__(self, parser, shape, top_left_position):
         """
-        Constructor:
-
-        :param parser: parser the retrieved information shall be passed to
-        :type parser: :class:`ExcelLayoutFileParser`
+        Constructor.
 
         :param shape: the dimension of the layout (row number and column number)
         :type shape: :class:`RackShapeparsingContainer`
-
         :param top_left_position: top left position of the layout
             pattern within the Excel File, also used as key for
             the layout container
         :type top_left_position: tuple (row_index (int), column_index (int))
-
         """
         ExcelParsingContainer.__init__(self, parser)
         self.shape = shape
         self.top_left_position = top_left_position
         self.layout_cells = None
-
         #: Stores the position for each tag predicate-value combination.
         self.tag_data = dict()
-
-        # key: position_set hash_value, value = tags for this set
+        #: Map with key: position_set hash_value and value: tags for this set.
         self.positions_tag_map = {}
 
     def get_all_layout_cells(self):
@@ -1045,9 +940,7 @@ class LayoutParsingContainer(ExcelParsingContainer):
 
         :rtype: list of tuples (row_index (int), column_index (int))
         """
-        if not self.layout_cells is None:
-            return self.layout_cells
-        else:
+        if self.layout_cells is None:
             layout_cells = []
             for row in range(self.shape.row_number):
                 row_index = self.top_left_position[0] + 1 + row
@@ -1055,7 +948,7 @@ class LayoutParsingContainer(ExcelParsingContainer):
                     column_index = self.top_left_position[1] + 1 + column
                     layout_cells.append((row_index, column_index))
             self.layout_cells = layout_cells
-            return layout_cells
+        return self.layout_cells
 
     def get_unique_key(self):
         """
@@ -1064,10 +957,9 @@ class LayoutParsingContainer(ExcelParsingContainer):
 
         :rtype: string
         """
-        l_key = '%s%i%i' % (self._parser.get_sheet_name(self._parser.sheet),
-                            self.top_left_position[0],
-                            self.top_left_position[1])
-        return l_key
+        return '%s%i%i' % (self._parser.get_sheet_name(self._parser.sheet),
+                           self.top_left_position[0],
+                           self.top_left_position[1])
 
     def get_starting_cell_name(self):
         """
@@ -1104,26 +996,21 @@ class LayoutParsingContainer(ExcelParsingContainer):
 
 class TagDefinitionParsingContainer(ExcelParsingContainer):
     """
-    ParsingContainer subclass for the storage of a tags including
-    all its value-code pairs.
-    A TagParsingContainer corresponds to one tag-value-code definition
-    in the source excel file.
+    ParsingContainer subclass for the storage of a tags including all its
+    value-code pairs.
+
+    A TagParsingContainer corresponds to one tag-value-code definition in the
+    source excel file.
     """
     _PARSER_CLS = ExcelLayoutFileParser
 
     def __init__(self, parser, tag_predicate, start_row_index):
         """
-        Constructor:
+        Constructor.
 
-        :param parser: parser the retrieved information shall be passed to
-        :type parser: :class:`ExcelLayoutFileParser`
-
-        :param tag_predicate: predicate of the tag (string)
-        :type tag_predicate: :class:`str`
-
-        :param start_row_index: row index of the factor marker for this
+        :param str tag_predicate: predicate of the tag (string)
+        :param int start_row_index: row index of the factor marker for this
             tag definition
-        :type start_row_index: :class:`int`
         """
         ExcelParsingContainer.__init__(self, parser)
         self.predicate = tag_predicate
@@ -1142,11 +1029,8 @@ class TagDefinitionParsingContainer(ExcelParsingContainer):
         """
         Adds a value (level) and its code this tag.
 
-        :param value: the value
-        :type value: string
-
-        :param code: the code for the value
-        :type code: str
+        :param str value: The value.
+        :param str code: The code for the value.
         """
         if value is None or value == '':
             self.inactive = True
@@ -1165,16 +1049,17 @@ class TagDefinitionParsingContainer(ExcelParsingContainer):
         """
         Returns the tag value encrypted by the code.
 
-        :param code: tag value code (string of pattern-color-definition)
-        :return: associated tag value (if any; string)
+        :param code: Tag value code (string of pattern-color-definition).
+        :returns: associated tag value (if any; string)
         """
         try:
-            return self.__code_map[code]
+            result = self.__code_map[code]
         except KeyError:
             msg = 'Tag value (level) code "%s" not found for factor "%s".' \
                    % (get_trimmed_string(code), self.predicate)
             self._create_error(msg)
-            return None
+            result = None
+        return result
 
     def __eq__(self, other):
         return self.predicate == other.predicate
@@ -1191,23 +1076,18 @@ class TagDefinitionParsingContainer(ExcelParsingContainer):
 
 class TagParsingContainer(ExcelParsingContainer):
     """
-    A simple parsing container storing a tag predicate and value.
+    Simple parsing container storing a tag predicate and value.
     """
     _PARSER_CLS = BaseParser
 
     def __init__(self, parser, predicate, value):
         """
-        Constructor:
+        Constructor.
 
-        :param parser: The parser this container belongs to.
-        :type parser: :class:`ExcelLayoutFileParser`
-
-        :param predicate: The tag predicate is the factor name.
-        :type predicate: :class:`str`
-
+        :param str predicate: The tag predicate is the factor name.
         :param value: The tag value is the level.
         """
-        ExcelParsingContainer.__init__(self, parser=parser)
+        ExcelParsingContainer.__init__(self, parser)
         #: The tag predicate is the factor name.
         self.predicate = predicate
         #: The tag value is the level.
@@ -1233,19 +1113,19 @@ class TagParsingContainer(ExcelParsingContainer):
 
 class RackParsingContainer(ExcelParsingContainer):
     """
-    A parsing container representing a rack or design rack. The content
-    of the rack is defined by layouts
+    Parsing container representing a rack or design rack.
+
+    The content of the rack is defined by layouts
     (stored in :class:LayoutParsingContainers).
     """
     _PARSER_CLS = ExcelLayoutFileParser
 
     def __init__(self, parser, rack_label):
         """
-        :param parser: parser the data shall be passed to
-        :type parser: :class:`ExcelFileLayoutParser`
+        Constructor.
 
-        :param rack_label: number or barcode of the design_rack (string);
-                also serves as key
+        :param str rack_label: Number or barcode of the design_rack; also
+            serves as key.
         """
         ExcelParsingContainer.__init__(self, parser)
         #: barcode or number of the rack, also serves as key
@@ -1281,21 +1161,18 @@ class RackParsingContainer(ExcelParsingContainer):
         return str_format % params
 
 
-#pylint: disable=W0223
-class ExcelMoleculeDesignPoolLayoutParser(ExcelLayoutFileParser):
+class ExcelMoleculeDesignPoolLayoutParser(ExcelLayoutFileParser): #pylint: disable=W0223
     """
-    This is a excel layout parser for files that might contain molecule
-    design pool layouts (floating positions must be replaced by markers
-    depending on the position).
+    Excel layout parser for files that might contain molecule design pool
+    layouts (floating positions must be replaced by markers depending on the
+    position).
     """
-
-    #: A marker used in files to indicate (customized) molecule design pool IDs
+    #: A marker used in files to indicate (customized) molecule design pool ID
     #: placeholders.
     FLOATING_MARKER = 'sample'
 
-    def __init__(self, stream, log):
-        ExcelLayoutFileParser.__init__(self, stream, log)
-
+    def __init__(self, stream, parent=None):
+        ExcelLayoutFileParser.__init__(self, stream, parent=parent)
         #: Aliases for molecule design predicates.
         self.molecule_design_id_predicates = []
         #: Counts the molecule designs for floating positions.
@@ -1304,7 +1181,6 @@ class ExcelMoleculeDesignPoolLayoutParser(ExcelLayoutFileParser):
         self.floating_map = {}
         #: Indicator for molecule design tag values of floating positions.
         self.no_id_indicator = None
-
         #: This is the tag defintion container for molecule design pools.
         self.pool_tag_definition = None
 
@@ -1328,35 +1204,36 @@ class ExcelMoleculeDesignPoolLayoutParser(ExcelLayoutFileParser):
         by an own molecule design pool placeholder.
         """
         pool_predicate = self.pool_tag_definition.predicate
-
         for layout_container in self.layout_map.values():
             pool_tag = None
             for tag_container in layout_container.tag_data.keys():
-                if not tag_container.predicate == pool_predicate: continue
-                if not isinstance(tag_container.value, str): continue
-                if self.no_id_indicator in tag_container.value:
+                if not tag_container.predicate == pool_predicate:
+                    continue
+                elif not isinstance(tag_container.value, str):
+                    continue
+                elif self.no_id_indicator in tag_container.value:
                     pool_tag = tag_container
                     break
-            if pool_tag is None: continue
+            if pool_tag is None:
+                continue
             positions = layout_container.tag_data[pool_tag]
             del layout_container.tag_data[pool_tag]
             counter = 0
             for pos_container in layout_container.shape.position_containers:
-                if not pos_container in positions: continue
+                if not pos_container in positions:
+                    continue
                 counter += 1
                 placeholder = '%s%03i' % (self.no_id_indicator, counter)
                 new_tag = TagParsingContainer(parser=self,
                                 predicate=pool_predicate, value=placeholder)
                 layout_container.tag_data[new_tag] = [pos_container]
-#pylint: enable=W0223
 
 
-#pylint: disable=W0223
-class ExcelMoleculeDesignPoolLayoutParsingContainer(
+class ExcelMoleculeDesignPoolLayoutParsingContainer(#pylint: disable=W0223
                                             ExcelLayoutSheetParsingContainer):
     """
-    This is a excel layout sheet parsing container for sheets that might
-    contain molecule design pool layouts (floating positions must be replaced
+    Excel layout sheet parsing container for sheets that might contain
+    molecule design pool layouts (floating positions must be replaced
     by markers depending on the position).
     """
     _PARSER_CLS = ExcelMoleculeDesignPoolLayoutParser
@@ -1368,23 +1245,22 @@ class ExcelMoleculeDesignPoolLayoutParsingContainer(
         """
         container = ExcelLayoutSheetParsingContainer.\
                         _init_tag_definition_container(self, predicate)
-        if container is None: return None
-
-        conv_predicate = self._convert_keyword(predicate)
-        for alias in self._parser.molecule_design_id_predicates:
-            md_alias = self._convert_keyword(alias)
-            if md_alias == conv_predicate:
-                if self._parser.pool_tag_definition is not None:
-                    msg = 'There are 2 different molecule design pool ' \
-                          'tag definitions ("%s" and "%s")!' \
-                           % (self._parser.pool_tag_definition.predicate,
-                              predicate)
-                    self._create_error(msg)
-                    return None
-                self._parser.pool_tag_definition = container
-                break
-
-        return container
+        result = container
+        if not container is None:
+            conv_predicate = self._convert_keyword(predicate)
+            for alias in self._parser.molecule_design_id_predicates:
+                md_alias = self._convert_keyword(alias)
+                if md_alias == conv_predicate:
+                    if not self._parser.pool_tag_definition is None:
+                        result = None
+                        msg = 'There are 2 different molecule design pool ' \
+                              'tag definitions ("%s" and "%s")!' \
+                               % (self._parser.pool_tag_definition.predicate,
+                                  predicate)
+                        self._create_error(msg)
+                    self._parser.pool_tag_definition = container
+                    break
+        return result
 
     def _get_tag_value_for_code(self, tag_definition, code):
         """
@@ -1393,25 +1269,25 @@ class ExcelMoleculeDesignPoolLayoutParsingContainer(
         """
         tag_value = ExcelLayoutSheetParsingContainer._get_tag_value_for_code(
                                                     self, tag_definition, code)
-        if self._parser.pool_tag_definition is None: return tag_value
-
-        if not (tag_definition == self._parser.pool_tag_definition and \
-                self._parser.FLOATING_MARKER in str(tag_value).lower()):
-            return tag_value
-
-        return self.__get_floating_md_tag_value(code)
+        if self._parser.pool_tag_definition is None:
+            result = tag_value
+        elif not (tag_definition == self._parser.pool_tag_definition and
+                  self._parser.FLOATING_MARKER in str(tag_value).lower()):
+            result = tag_value
+        else:
+            result = self.__get_floating_md_tag_value(code)
+        return result
 
     def __get_floating_md_tag_value(self, code):
         """
         Derives a sample_marker for FloatingIsoPositions.
         """
         if code in self._parser.floating_map:
-            return self._parser.floating_map[code]
+            result = self._parser.floating_map[code]
         else:
             self._parser.floating_counter += 1
             tag_value = self._parser.no_id_indicator + \
                                 '%03i' % (self._parser.floating_counter)
             self._parser.floating_map[code] = tag_value
-            return tag_value
-
-#pylint: enable=W0223
+            result = tag_value
+        return result

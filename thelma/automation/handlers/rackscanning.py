@@ -33,20 +33,10 @@ class _RackScanningParserHandler(BaseParserHandler):
 
     _PARSER_CLS = RackScanningParser
 
-    def __init__(self, log, stream):
-        """
-        Constructor:
-
-        :param stream: stream of the file to parse.
-
-        :param log: The ThelmaLog to write into.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        BaseParserHandler.__init__(self, log=log, stream=stream)
-
+    def __init__(self, stream, parent=None):
+        BaseParserHandler.__init__(self, stream=stream, parent=parent)
         #: The rack scanning layout.
         self.__rs_layout = None
-
         #: Intermediate error storage.
         self.__invalid_labels = None
         self.__position_out_of_range = None
@@ -68,7 +58,7 @@ class _RackScanningParserHandler(BaseParserHandler):
         """
         Initialises the parser.
         """
-        self.parser = RackScanningParser(stream=self.stream, log=self.log)
+        self.parser = RackScanningParser(self.stream, parent=self)
 
     def _check_rack_barcode(self):
         """
@@ -76,7 +66,7 @@ class _RackScanningParserHandler(BaseParserHandler):
         """
         raise NotImplementedError('Abstract method.')
 
-    def _convert_results_to_model_entity(self):
+    def _convert_results_to_entity(self):
         """
         Converts the parsing results into a :class:`RackScanningLayout`
         (no model class).

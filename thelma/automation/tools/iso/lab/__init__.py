@@ -160,7 +160,7 @@ def __get_writer_executor(mode, entity, user=None, **kw):
 def get_stock_transfer_reporter(executor, **kw):
     """
     Factory method generating a :class:`LabIsoStockTransferReporter`. This
-    tool log a stock transfers at the trac ticket.
+    tool logs stock transfers in the trac ticket.
 
     :param executor: The executor tool (after run has been completed).
     :type executor: :class:`_LabIsoWriterExecutorTool`

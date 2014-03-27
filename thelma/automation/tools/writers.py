@@ -6,7 +6,7 @@ This is an abstract super class for CSV stream generators.
 """
 
 from StringIO import StringIO
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from zipfile import BadZipfile
 import zipfile
 
@@ -26,7 +26,7 @@ __all__ = ['LINEBREAK_CHAR',
 LINEBREAK_CHAR = '\r\n'
 
 
-class CsvWriter(BaseAutomationTool):
+class CsvWriter(BaseTool):
     """
     A base tool to generate CSV file streams.
 
@@ -43,7 +43,7 @@ class CsvWriter(BaseAutomationTool):
         :param log: The ThelmaLog you want to write into.
         :type log: :class:`thelma.ThelmaLog`
         """
-        BaseAutomationTool.__init__(self, log, depending=depending)
+        BaseTool.__init__(self, log, depending=depending)
         #: The stream to be generated.
         self.__stream = None
         #: Maps :class:`CsvColumnDictionary`s onto column indices.
@@ -58,7 +58,7 @@ class CsvWriter(BaseAutomationTool):
         """
         Resets all attributes except for the user input.
         """
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self.__stream = None
         self._column_map_list = None
         self._index_map = None
@@ -311,21 +311,15 @@ class CsvColumnParameters(object):
         return str_format % params
 
 
-class TxtWriter(BaseAutomationTool):
+class TxtWriter(BaseTool):
     """
     A base tool to generate TXT file streams.
 
     **Return Value:** a file stream (TXT format)
     """
 
-    def __init__(self, log=None, depending=True):
-        """
-        Constructor:
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        BaseAutomationTool.__init__(self, log, depending=depending)
+    def __init__(self, parent=None):
+        BaseTool.__init__(self, parent=parent)
         #: The stream to be generated.
         self._stream = None
 
@@ -333,7 +327,7 @@ class TxtWriter(BaseAutomationTool):
         """
         Resets all values except for the initialization values.
         """
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self._stream = None
 
     def run(self):

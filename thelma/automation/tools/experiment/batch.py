@@ -5,7 +5,7 @@ AAB
 """
 from StringIO import StringIO
 from thelma.automation.semiconstants import ITEM_STATUS_NAMES
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.tools.experiment.manual import ExperimentManualExecutor
 from thelma.automation.tools.experiment.mastermix import get_experiment_executor
 from thelma.automation.tools.experiment.mastermix import get_experiment_writer
@@ -22,31 +22,30 @@ __all__ = ['ExperimentBatchTool',
            'ExperimentBatchExecutor']
 
 
-class ExperimentBatchTool(BaseAutomationTool):
+class ExperimentBatchTool(BaseTool):
     """
     An abstract base tool for experiment batch operations.
 
     **Return Value:** None (depending on the subclass).
     """
 
-    def __init__(self, experiments, **kw):
+    def __init__(self, experiments, parent=None):
         """
-        Constructor:
+        Constructor.
 
-        :param experiment_jobs: A list of experiments that all belong
+        :param experiments: A list of experiments that all belong
             to the same experiment design.
-        :type experiment_jobs: :class:`list` of
-            :class:`thelma.models.job.Experiment`
+        :type experiments: :class:`list` of
+            :class:`thelma.models.experiment.Experiment`
         """
-        BaseAutomationTool.__init__(self, log=None, depending=False, **kw)
-
+        BaseTool.__init__(self, parent=parent)
         #: A list of experiments that all belong to the same experiment design.
         self.experiments = experiments
         #: The experiment type of the experiment metadata.
         self._experiment_type = None
 
     def reset(self):
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self._experiment_type = None
 
     def run(self):
@@ -152,8 +151,8 @@ class ExperimentBatchManualExecutor(ExperimentBatchTool):
 
         updated_experiments = []
         for experiment in self.experiments:
-            executor = ExperimentManualExecutor(experiment=experiment,
-                                                user=self.user, log=self.log)
+            executor = ExperimentManualExecutor(experiment, self.user,
+                                                parent=self)
             updated_experiment = executor.get_result()
             if updated_experiment is None:
                 msg = 'Error when trying to update experiment "%s".' \
@@ -213,13 +212,13 @@ class ExperimentBatchWorklistWriter(ExperimentBatchTool):
         self.add_debug('Write streams ...')
 
         for experiment in self.experiments:
-            kw = dict(experiment=experiment)
+            kw = dict(experiment=experiment, parent=self)
             writer = self._run_and_record_error(get_experiment_writer,
                     base_msg='Error when trying to fetch writer for ' \
                              'experiment "%s": ' % (experiment.label),
                     error_types=TypeError, **kw)
-            if writer is None: continue
-            writer.log = self.log
+            if writer is None:
+                continue
             zip_stream = writer.get_result()
             if zip_stream is None:
                 msg = 'Error when trying to generate worklists for ' \
@@ -279,19 +278,16 @@ class ExperimentBatchExecutor(ExperimentBatchTool):
         Runs the executors for the :attr:`experiments`.
         """
         self.add_debug('Run executors ...')
-
         updated_experiments = []
-
         if not self.has_errors():
-
             for experiment in self.experiments:
-                kw = dict(experiment=experiment, user=self.user)
+                kw = dict(experiment=experiment, user=self.user, parent=self)
                 executor = self._run_and_record_error(get_experiment_executor,
                         base_msg='Error when trying to fetch executor for ' \
                         'experiment "%s": ' % (experiment.label),
                         error_types=TypeError, **kw)
-                if executor is None: continue
-                executor.log = self.log
+                if executor is None:
+                    continue
                 updated_experiment = executor.get_result()
                 if updated_experiment is None:
                     msg = 'Error when trying to update experiment "%s".' \
@@ -300,7 +296,6 @@ class ExperimentBatchExecutor(ExperimentBatchTool):
                     break
                 else:
                     updated_experiments.append(experiment)
-
         if not self.has_errors():
             self.return_value = updated_experiments
             self.add_info('Execution runs completed.')

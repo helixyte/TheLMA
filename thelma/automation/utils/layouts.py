@@ -4,7 +4,7 @@ Base classes for layout handling.
 AAB
 """
 from thelma.automation.semiconstants import get_positions_for_shape
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import get_converted_number
@@ -204,33 +204,28 @@ class WorkingPosition(object):
 
     **Equality condition**: must be implemented by subclasses
     """
-
     #: The parameter set this working position is associated with
     #: (subclass of :class:`ParameterSet`).
     PARAMETER_SET = ParameterSet
-
     #: String that is used for a tag if a value is *None*
     NONE_REPLACER = 'None'
-
     #: If *False* boolean parameters with a false value are not converted
     #: into tags (default: *True*).
     RECORD_FALSE_VALUES = True
 
     def __init__(self, rack_position):
         """
-        Constructor:
+        Constructor.
 
         :param rack_position: The rack position in the rack.
         :type rack_position: :class:`thelma.models.rack.RackPosition`
         """
-        if self.__class__ == WorkingPosition:
+        if self.__class__ is WorkingPosition:
             raise NotImplementedError('Abstract class.')
-
         if not isinstance(rack_position, RackPosition):
             msg = 'The rack position must be a RackPosition object ' \
                   '(obtained type: %s).' % (rack_position.__class__)
             raise TypeError(msg)
-
         #: The rack position (:class:`thelma.models.rack.RackPosition`).
         self.rack_position = rack_position
 
@@ -991,7 +986,7 @@ class MoleculeDesignPoolPosition(WorkingPosition):
 
 class MoleculeDesignPoolLayout(WorkingLayout):
     """
-    An abstract base class for designs that store molecule design pool
+    Abstract base class for designs that store molecule design pool
     data.
     """
     POSITION_CLS = MoleculeDesignPoolPosition
@@ -1131,19 +1126,17 @@ class TransferTarget(object):
     #: string.
     INFO_DELIMITER = ':'
 
-    def __init__(self, rack_position, transfer_volume, target_rack_marker=None):
+    def __init__(self, rack_position, transfer_volume,
+                 target_rack_marker=None):
         """
-        Constructor:
+        Constructor.
 
         :param rack_position: The target position the liquid shall be added to.
         :type rack_position: :class:`thelma.models.rack.RackPosition` or
             (:class:`str`).
-
-        :param transfer_volume: The volume to be transferred.
-        :type transfer_volume: A number.
-
-        :param target_rack_marker: A marker for the target plate (optional).
-        :type target_rack_marker: :class:`str`
+        :param float transfer_volume: The volume to be transferred.
+        :param str target_rack_marker: A marker for the target plate
+            (optional).
         :default target_rack_marker: *None*
         """
         if isinstance(rack_position, RackPosition):
@@ -1295,9 +1288,10 @@ class TransferPosition(MoleculeDesignPoolPosition):
             lookup of the :attr:`PARAMETER_SET`.
         :type transfer_targets: list of :class:`TransferTarget` objects
         """
-        if self.__class__ == TransferPosition:
+        if self.__class__ is TransferPosition:
             raise NotImplementedError('Abstract class')
-        MoleculeDesignPoolPosition.__init__(self, rack_position=rack_position,
+        MoleculeDesignPoolPosition.__init__(
+                                    self, rack_position,
                                     molecule_design_pool=molecule_design_pool,
                                     position_type=position_type)
         #: The target positions and transfer volumes. Some subclasses require
@@ -1498,15 +1492,9 @@ class TransferLayout(MoleculeDesignPoolLayout):
                                     TRANSFER_TARGETS : False}
 
     def __init__(self, shape):
-        """
-        Constructor:
-
-        :param shape: The rack shape.
-        :type shape: :class:`thelma.models.rack.RackShape`
-        """
         if self.__class__ == TransferLayout:
             raise NotImplementedError('Abstract class')
-        MoleculeDesignPoolLayout.__init__(self, shape=shape)
+        MoleculeDesignPoolLayout.__init__(self, shape)
         #: The transfer targets for each transfer target parameter mapped
         #: onto rack positions.
         self._transfer_target_map = dict()
@@ -1676,7 +1664,7 @@ class LibraryLayout(WorkingLayout):
         return WorkingLayout.create_rack_layout(self)
 
 
-class BaseRackVerifier(BaseAutomationTool):
+class BaseRackVerifier(BaseTool):
     """
     An abstract base class for the comparison of racks and molecule design
     pool layouts.
@@ -1684,7 +1672,6 @@ class BaseRackVerifier(BaseAutomationTool):
 
     **Return Value:** boolean
     """
-
     #: The expected rack class (TubeRack, Plate or Rack).
     _RACK_CLS = Rack
     #: The expected class of the reference layout.
@@ -1692,34 +1679,23 @@ class BaseRackVerifier(BaseAutomationTool):
     #: Shall the volumes be checked, too? (Default: False).
     _CHECK_VOLUMES = False
 
-    def __init__(self, log, reference_layout=None):
+    def __init__(self, reference_layout=None, parent=None):
         """
-        Constructor:
-
-        :param log: The log the write in.
-        :type log: :class:`thelma.ThelmaLog`
+        Constructor.
 
         :param reference_layout: The layout containing the molecule design
             data. Can be set here or derived during the run.
         :type reference_layout:
             :class:`thelma.automation.tools.base.MoleculeDesignPoolLayout`
         :default reference_layout: *None*
-
-        :param check_volumes: Shall the volumes be checked, too?
-        :type check_volumes: :class:`bool`
-        :default check_volumes: *False*
         """
-        BaseAutomationTool.__init__(self, log=log)
-
+        BaseTool.__init__(self, parent=parent)
         #: The layout containing the molecule design data. Can be set here or
         #: derived during the run.
         self.reference_layout = reference_layout
-
         #: Indicates whether the rack-layout combination is a valid one
         #: (required to distinguish run time errors from verification errors).
         self.__is_compatible = None
-
-
         #: The rack to be checked.
         self._rack = None
         #: The expected layout as working layout.
@@ -1728,7 +1704,6 @@ class BaseRackVerifier(BaseAutomationTool):
         self._rack_md_map = None
         #: Maps current sample volumes onto rack positions.
         self._rack_volume_map = None
-
         #: Stores positions that are empty in the stock rack but not in the
         #: layout.
         self.__missing_positions = None
@@ -1745,7 +1720,7 @@ class BaseRackVerifier(BaseAutomationTool):
         """
         Resets all values except for initialisation values.
         """
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self.__is_compatible = True
         self._rack = None
         self._expected_layout = None

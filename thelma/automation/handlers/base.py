@@ -2,68 +2,49 @@
 :Date: 2011-05
 :Author: AAB, berger at cenix-bioscience dot com
 
-
 Parser handler base classes. Handlers initializes and run parsers and transform
 their results into model entities, if the parser was completed successfully.
-Handlers can also access the parsing logs.
+Handlers can also access the parsing message recordings.
 """
 
 from everest.entities.utils import get_root_aggregate
-from thelma.automation.errors import EventRecording
 from thelma.automation.semiconstants import get_384_rack_shape
 from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_rack_position_from_indices
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
 from thelma.interfaces import IRackShape
 from thelma.models.rack import RackPositionSet
 from thelma.models.tagging import Tag
 
-__docformat__ = 'reStructuredText en'
 
+__docformat__ = 'reStructuredText en'
 __all__ = ['BaseParserHandler',
            'LayoutParserHandler',
            'MoleculeDesignPoolLayoutParserHandler']
 
 
-class BaseParserHandler(EventRecording):
+class BaseParserHandler(BaseTool):
     """
-    This is an abstract base class for all parser handlers integrated into
-    Thelma. Handlers initializes and run parsers and transform
-    their results into model entities, if the parser was completed successfully.
+    Abstract base class for all parser handlers in TheLMA.
+
+    Handlers initializes and run parsers and transform their results into
+    model entities, if the parser was completed successfully.
     """
-
-    """
-    Available options are:
-
-        + logging.CRITICAL  :       severity 50
-        + logging.ERROR     :       severity 40
-        + logging.WARNING   :       severity 30
-        + logging.INFO      :       severity 20
-        + logging.DEBUG     :       severity 10
-        + logging.NOTSET    :
-          (parent logger level or all events (if no parent available))
-
-        All log events having at least the given severity will be logged.
-        It can be adjusted with the :func:`set_log_recording_level` function.
-    """ #pylint: disable=W0105
-
     _PARSER_CLS = None
 
-    def __init__(self, log=None, stream=None):
+    def __init__(self, stream=None, parent=None):
         """
-        :param log: The ThelmaLog you want to write in.
-        :type log: :class:`thelma.ThelmaLog`
+        Constructor.
 
         :param stream: the opened file to parse
         :type stream: a file stream
         """
-        EventRecording.__init__(self, log)
-
+        BaseTool.__init__(self, parent=parent)
         #: The stream for the parser.
         self.stream = stream
         #: The parser handled by the parser handler.
         self.parser = None
-
         #: The object to be passed as result.
         self.return_value = None
 
@@ -74,28 +55,21 @@ class BaseParserHandler(EventRecording):
         self.return_value = None
         self.parser = None
 
-    def get_result(self, run=True):
+    def run(self):
         """
-        Returns the return value.
-
-        :param run: Determines whether the handler shall call the
-                :func:`run_parser` method (it can also be called separately).
-        :type run: :class:`boolean`
-        :default run: *True*
+        Initializes and runs the parser; if successful, creates a result
+        entity.
         """
-        if run == True:
-            self.reset()
-            self._initialize_parser()
-            self.parser.parse()
+        self._initialize_parser()
+        self.parser.run()
         if self.parsing_completed():
-            self._convert_results_to_model_entity()
-        return self.return_value
+            self._convert_results_to_entity()
 
     def _initialize_parser(self):
         """
         Initialises the parser.
         """
-        kw = dict(stream=self.stream, log=self.log)
+        kw = dict(stream=self.stream, parent=self._root_recorder)
         self.parser = self._PARSER_CLS(**kw) #pylint: disable=E1102
         self._initialize_parser_keys()
 
@@ -111,10 +85,13 @@ class BaseParserHandler(EventRecording):
 
         :rtype: :class:`boolean`
         """
-        if self.parser is None: return False
-        return self.parser.has_run and not self.parser.has_errors()
+        if self.parser is None:
+            result = False
+        else:
+            result = self.parser.has_run and not self.parser.has_errors()
+        return result
 
-    def _convert_results_to_model_entity(self):
+    def _convert_results_to_entity(self):
         """
         Converts the parsing results into a model entity of the model class.
         """
@@ -127,33 +104,33 @@ class BaseParserHandler(EventRecording):
         sure the value is only return if the :attr:`return_value` of the tool
         is not none (i.e. the tool has run and completed without errors).
         """
-        if self.return_value is None: return None
-        return value
+        if self.return_value is None:
+            result = None
+        else:
+            result = value
+        return result
 
     def __str__(self):
         return '<Parser Handler %s, errors: %i>' % (self.NAME,
-                                                    self.log.error_count)
+                                                    self.error_count)
 
 
 class LayoutParserHandler(BaseParserHandler): #pylint: disable=W0223
     """
-    A special handler for parsers that involve plate layouts (providing some
+    Special handler for parsers that involve plate layouts (providing some
     utility functions).
     """
-
     #: The domain for the layout tags.
     TAG_DOMAIN = None
 
-    def __init__(self, stream, log):
+    def __init__(self, stream, parent=None):
         """
-        :param log: The ThelmaLog you want to write in.
-        :type log: :class:`thelma.ThelmaLog`
+        Constructor.
 
-        :param stream: the opened file to parse
+        :param stream: The opened file to parse.
         :type stream: a file stream
         """
-        BaseParserHandler.__init__(self, log=log, stream=stream)
-
+        BaseParserHandler.__init__(self, stream=stream, parent=parent)
         #: The rack shape of the experiment design racks.
         self._rack_shape = None
 
@@ -162,12 +139,10 @@ class LayoutParserHandler(BaseParserHandler): #pylint: disable=W0223
         Creates a Rack Shape from a RackShapeParsingContainer (using
         the RackShapeFactory).
         """
-        self.add_debug('Determine rack shape ...')
-
+        self.add_debug('Determining rack shape ...')
         if self.parser.shape is None:
             msg = 'There were no layouts in the uploaded file!'
             self.add_error(msg)
-
         else:
             self._rack_shape = self._convert_to_rack_shape(self.parser.shape)
 
@@ -177,12 +152,11 @@ class LayoutParserHandler(BaseParserHandler): #pylint: disable=W0223
         :class:`thelma.models.rack.RackShape`.
         """
         rack_shape_aggregate = get_root_aggregate(IRackShape)
-        rack_shape = rack_shape_aggregate.get_by_slug(rack_shape_container.name)
-
+        rack_shape = \
+            rack_shape_aggregate.get_by_slug(rack_shape_container.name)
         if rack_shape is None:
             msg = 'Unable to fetch rack shape for shape label "%s"!'
             self.add_error(msg)
-
         return rack_shape
 
     def _convert_to_tag(self, tag_container):
@@ -212,23 +186,16 @@ class LayoutParserHandler(BaseParserHandler): #pylint: disable=W0223
             positions.append(rack_pos)
         return RackPositionSet.from_positions(positions)
 
-#pylint: disable=W0223
-class MoleculeDesignPoolLayoutParserHandler(LayoutParserHandler):
+
+class MoleculeDesignPoolLayoutParserHandler(LayoutParserHandler): #pylint: disable=W0223
     """
-    A abstract handler for :class:`ExcelMoleculeDesignPoolLayoutParser`s
-    (excel file having layout that potentially contain molecule design
-    pools - floating positions mus be treated in a special way).
+    Abstract handler for :class:`ExcelMoleculeDesignPoolLayoutParser`s
+    for Excel file having layout that potentially contain molecule design
+    pools - floating positions must be treated in a special way.
     """
 
-    def __init__(self, stream, log):
-        """
-        :param log: The ThelmaLog you want to write in.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param stream: the opened file to parse
-        :type stream: a file stream
-        """
-        LayoutParserHandler.__init__(self, log=log, stream=stream)
+    def __init__(self, stream, parent=None):
+        LayoutParserHandler.__init__(self, stream, parent=parent)
 
     def _initialize_parser_keys(self):
         """
@@ -246,6 +213,3 @@ class MoleculeDesignPoolLayoutParserHandler(LayoutParserHandler):
         self.parser.allowed_rack_dimensions = [
                     (shape96.number_rows, shape96.number_columns),
                     (shape384.number_rows, shape384.number_columns)]
-
-
-#pylint: enable=W0223

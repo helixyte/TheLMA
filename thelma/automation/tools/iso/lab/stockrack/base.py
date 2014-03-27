@@ -6,7 +6,7 @@ AAB
 from everest.entities.utils import get_root_aggregate
 from thelma.automation.semiconstants import get_pipetting_specs_biomek_stock
 from thelma.automation.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.tools.iso.base import IsoRackContainer
 from thelma.automation.tools.iso.lab.base import FinalLabIsoLayout
 from thelma.automation.tools.iso.lab.base import FinalLabIsoLayoutConverter
@@ -33,7 +33,7 @@ __all__ = ['_StockRackAssigner',
            'StockTubeContainer']
 
 
-class _StockRackAssigner(BaseAutomationTool):
+class _StockRackAssigner(BaseTool):
     """
     Abstract base tool for tools that assign stock racks to lab ISOs or ISO
     jobs.
@@ -55,7 +55,7 @@ class _StockRackAssigner(BaseAutomationTool):
         :param rack_barcodes: The barcodes for the racks to be assigned.
         :type rack_barcodes: list of barcodes (:class:`basestring`)
         """
-        BaseAutomationTool.__init__(self, depending=False, **kw)
+        BaseTool.__init__(self, depending=False, **kw)
 
         #: The ISO or the ISO job to which to assign the racks.
         self.entity = entity
@@ -89,7 +89,7 @@ class _StockRackAssigner(BaseAutomationTool):
         self.__stock_transfer_series = None
 
     def reset(self):
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self._iso_request = None
         self._barcode_map = dict()
         self._processing_order = None
@@ -434,8 +434,9 @@ class _StockRackAssignerIsoJob(_StockRackAssigner): #pylint: disable=W0223
         For job preparation plates, we store layout and rack.
         """
         for prep_plate in self.entity.iso_job_preparation_plates:
-            converter = LabIsoPrepLayoutConverter(log=self.log,
-                                            rack_layout=prep_plate.rack_layout)
+            converter = LabIsoPrepLayoutConverter(
+                                            rack_layout=prep_plate.rack_layout,
+                                            parent=self)
             plate_label = prep_plate.rack.label
             error_label = 'job preparation plate "%s"' % (prep_plate.rack.label)
             self._store_plate_layout(plate_label, converter, error_label)
@@ -444,8 +445,9 @@ class _StockRackAssignerIsoJob(_StockRackAssigner): #pylint: disable=W0223
 
         final_layouts = dict()
         for iso in self.entity.isos:
-            converter = FinalLabIsoLayoutConverter(log=self.log,
-                                            rack_layout=iso.rack_layout)
+            converter = FinalLabIsoLayoutConverter(
+                                            rack_layout=iso.rack_layout,
+                                            parent=self)
             error_label = 'final plate layout for ISO "%s"' % (iso.label)
             self._store_plate_layout(iso.label, converter, error_label)
             if self.has_errors(): continue
@@ -510,8 +512,9 @@ class _StockRackAssignerIsoJob(_StockRackAssigner): #pylint: disable=W0223
                 rack_marker = value_parts[LABELS.MARKER_RACK_MARKER]
                 self._store_rack_container(rack=plate, label=plate_label,
                       rack_marker=rack_marker, role=LABELS.ROLE_PREPARATION_ISO)
-                converter = LabIsoPrepLayoutConverter(log=self.log,
-                                        rack_layout=ipp.rack_layout)
+                converter = LabIsoPrepLayoutConverter(
+                                        rack_layout=ipp.rack_layout,
+                                        parent=self)
                 layout = converter.get_result()
                 if layout is None:
                     msg = 'Error when trying to convert ISO preparation ' \
@@ -591,16 +594,19 @@ class _StockRackAssignerLabIso(_StockRackAssigner): #pylint: disable=W0223
         as well.
         """
         for prep_plate in self.entity.iso_preparation_plates:
-            converter = LabIsoPrepLayoutConverter(log=self.log,
-                                            rack_layout=prep_plate.rack_layout)
+            converter = LabIsoPrepLayoutConverter(
+                                        rack_layout=prep_plate.rack_layout,
+                                        parent=self)
             plate_label = prep_plate.rack.label
-            error_label = 'ISO preparation plate "%s"' % (prep_plate.rack.label)
+            error_label = \
+                'ISO preparation plate "%s"' % (prep_plate.rack.label)
             self._store_plate_layout(plate_label, converter, error_label)
             self._store_rack_container(prep_plate.rack,
-                                       LABELS.ROLE_PREPARATION_ISO, plate_label)
-
-        converter = FinalLabIsoLayoutConverter(log=self.log,
-                                            rack_layout=self.entity.rack_layout)
+                                       LABELS.ROLE_PREPARATION_ISO,
+                                       plate_label)
+        converter = FinalLabIsoLayoutConverter(
+                                        rack_layout=self.entity.rack_layout,
+                                        parent=self)
         self._store_plate_layout(LABELS.ROLE_FINAL, converter,
                                  'final ISO plate layout')
         self._store_final_plate_data(self.entity)

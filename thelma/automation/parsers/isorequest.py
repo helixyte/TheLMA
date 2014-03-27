@@ -219,47 +219,33 @@ class IsoRequestParser(ExcelMoleculeDesignPoolLayoutParser):
     """
     This is the actual parser class for parsing ISO excel files.
     """
-
     #: name of the parser (requested by logs)
     NAME = 'ISO Parser'
     #: name of the sheet containing the ISO layout
     SHEET_NAME = 'ISO'
-
     #: Values in the metadata which can be ignored (because they only
     #: serve the purpose to mark filed to fill in).
     METADATA_IGNORE_VALUES = ['optional', 'dd.mm.yyyy', '']
 
-    def __init__(self, stream, log):
-        """
-        :param stream: open Excel file to be parsed
-
-        :param log: The parsing log recording the parsing events.
-        :type log: :class:`thelma.parsers.errors.ParsingLog`
-        """
-        ExcelMoleculeDesignPoolLayoutParser.__init__(self, stream, log)
+    def __init__(self, stream, parent=None):
+        ExcelMoleculeDesignPoolLayoutParser.__init__(self, stream,
+                                                     parent=parent)
         self.layouts_have_specifiers = False
-
         # I. Tag-related values.
-
         #: The tag predicate for molecule design tags (set by the handler).
         self.molecule_design_parameter = None
-
         #: The parameters that might be specified by layouts (with their
         #: predicates and aliases mapped onto the parameter name).
         self.layout_parameters = None
         #: List of optional parameters that do not have to be specified
         #: (set by the handler).
         self.optional_parameters = None
-
         # II. Metadata-related values (set by the handler).
-
         #: List of valid meta data specifiers (list of :class:`string`).
         self.allowed_metadata = None
         #: List of required meta data specifiers
         self.required_metadata = None
-
         # III. Storage of the parsed data
-
         #: Stores the values for the ISO metadata.
         self.metadata_value_map = dict()
         #: Stores the :class:`_ParameterContainer` for each allowed parameter.
@@ -273,25 +259,29 @@ class IsoRequestParser(ExcelMoleculeDesignPoolLayoutParser):
         self.metadata_value_map = None
         self.parameter_map = None
 
-    def parse(self):
+    def run(self):
         """
         Parses the ISO sheet.
         """
         self.reset()
-        self.log.add_debug('Start ISO parsing ...')
-        if self.has_errors(): return None
-        wb = self.open_workbook()
-        self.sheet = self.__get_sheet(wb)
+        self.add_debug('Start ISO parsing ...')
         if not self.has_errors():
-            sheet_container = _IsoSheetParsingContainer(self)
-            self.metadata_value_map = sheet_container.parse_iso_meta_data()
-        if not self.has_errors(): sheet_container.parse_tag_definitions()
-        if not self.has_errors(): sheet_container.find_layouts()
-        if not self.has_errors():
-            self._check_and_replace_floatings()
-            self.parameter_map = sheet_container.update_parameter_containers()
-
-        if not self.has_errors(): self.add_info('Parsing completed.')
+            wb = self.open_workbook()
+            self.sheet = self.__get_sheet(wb)
+            if not self.has_errors():
+                sheet_container = _IsoSheetParsingContainer(self)
+                self.metadata_value_map = \
+                        sheet_container.parse_iso_meta_data()
+            if not self.has_errors():
+                sheet_container.parse_tag_definitions()
+            if not self.has_errors():
+                sheet_container.find_layouts()
+            if not self.has_errors():
+                self._check_and_replace_floatings()
+                self.parameter_map = \
+                    sheet_container.update_parameter_containers()
+            if not self.has_errors():
+                self.add_info('Parsing completed.')
 
     def has_shape(self):
         """
@@ -316,7 +306,7 @@ class IsoRequestParser(ExcelMoleculeDesignPoolLayoutParser):
                 return sheet
 
         if sheet is None:
-            self.abort_parsing = True
+            self.abort_execution = True
             return None
 
 

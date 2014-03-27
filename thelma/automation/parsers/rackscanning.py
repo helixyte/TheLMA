@@ -80,17 +80,8 @@ class RackScanningParser(TxtFileParser):
     #: The character used to separate the values of a barcode position line.
     SEPARATOR = ';'
 
-    def __init__(self, stream, log):
-        """
-        Constructor:
-
-        :param stream: stream of the file to parse.
-
-        :param log: The ThelmaLog to write into.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        TxtFileParser.__init__(self, stream=stream, log=log)
-
+    def __init__(self, stream, parent=None):
+        TxtFileParser.__init__(self, stream, parent=parent)
         #: The timestamp parsed from the file.
         self.timestamp = None
         #: The barcode of the rack to parse.
@@ -109,7 +100,7 @@ class RackScanningParser(TxtFileParser):
         self.rack_barcode = None
         self.position_map = dict()
 
-    def parse(self):
+    def run(self):
         """
         Runs the parser.
         """

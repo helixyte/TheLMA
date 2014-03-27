@@ -8,6 +8,7 @@ from thelma import ThelmaLog
 from thelma.automation.semiconstants import clear_semiconstant_caches
 from thelma.automation.semiconstants import initialize_semiconstant_caches
 from tractor import create_wrapper_for_ticket_creation
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.tools.metadata.generation \
     import ExperimentMetadataGenerator
 from thelma.automation.tools.writers import LINEBREAK_CHAR
@@ -31,13 +32,14 @@ import zipfile
 CONF_FILE = 'thelma:tests/tools/logging.conf'
 
 
-class TestingLog(ThelmaLog):
+class TestingTool(BaseTool):
     """
-    A log that directs all messages to the console.
+    Tool to use as a parent tool for testing.
     """
+    NAME = 'test_tool'
 
-    def __init__(self):
-        ThelmaLog.__init__(self, 'tool_tester', log_level=logging.WARNING)
+    def run(self):
+        pass
 
 
 class SilentLog(ThelmaLog):
@@ -338,14 +340,6 @@ class ParsingTestCase(FileReadingTestCase):
 
     _PARSER_CLS = None
 
-    def set_up(self):
-        ToolsAndUtilsTestCase.set_up(self)
-        self.log = TestingLog()
-
-    def tear_down(self):
-        FileReadingTestCase.tear_down(self)
-        del self.log
-
     def _continue_setup(self, file_name=None):
         FileReadingTestCase._continue_setup(self, file_name)
         self._create_tool()
@@ -362,7 +356,6 @@ class ParsingTestCase(FileReadingTestCase):
 
 
 class ExperimentMetadataReadingTestCase(FileReadingTestCase):
-
     def set_up(self):
         FileReadingTestCase.set_up(self)
         self.experiment_metadata = None
@@ -395,7 +388,6 @@ class ExperimentMetadataReadingTestCase(FileReadingTestCase):
 
 
 class TracToolTestCase(ToolsAndUtilsTestCase):
-
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
         self.tractor_api = None

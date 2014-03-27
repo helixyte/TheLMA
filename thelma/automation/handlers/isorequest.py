@@ -64,18 +64,14 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
     **Return Value:** ISO request (:class:`thelma.models.iso.IsoRequest`).
     """
     NAME = 'ISO Request Parser Handler'
-
     _PARSER_CLS = IsoRequestParser
-
     TAG_DOMAIN = TransfectionParameters.DOMAIN
-
     #: The experiment scenario supported by this class (display name).
     SUPPORTED_SCENARIO = None
     #: This placeholder is used if the user did not specify a plate set label
     #: (ISO request label). The label is replaced by the experiment metadata
     #: label later.
     NO_LABEL_PLACEHOLDER = 'default'
-
     #: The separator for date tokens (day-month-year)
     DATE_SEPARATOR = '.'
     #: Keyword indicating a delivery date specification.
@@ -88,10 +84,8 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
     NUMBER_ALIQUOT_KEY = 'number_of_aliquots'
     #: Keyword indicating a library name (library screenings only).
     LIBRARY_KEY = 'molecule_design_library'
-
     #: By default, only fixed and empty position types are allowed.
     ALLOWED_POSITION_TYPES = {FIXED_POSITION_TYPE, EMPTY_POSITION_TYPE}
-
     #: A list of parameters that do not need to specified at all.
     OPTIONAL_PARAMETERS = None
     #: A list of the metadata values that have be specified (as metadata).
@@ -103,65 +97,48 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
                         TransfectionParameters.FINAL_CONCENTRATION,
                         TransfectionParameters.REAGENT_NAME,
                         TransfectionParameters.REAGENT_DIL_FACTOR}
-
     #: The ISO request parameters that might be specified in a layout as list.
     ISO_REQUEST_LAYOUT_PARAMETERS = None
     #: The transfection parameters that might be specified in a layout as list.
     TRANSFECTION_LAYOUT_PARAMETERS = None
-
     #: A list of numerical parameter values.
     _NUMERICAL_PARAMETERS = {IsoRequestParameters.ISO_VOLUME,
                              IsoRequestParameters.ISO_CONCENTRATION,
                              TransfectionParameters.FINAL_CONCENTRATION,
                              TransfectionParameters.REAGENT_DIL_FACTOR}
 
-
-    def __init__(self, stream, requester, log):
+    def __init__(self, stream, requester, parent=None):
         """
-        Constructor:
-
-        :param stream: The opened file to be parsed.
+        Constructor.
 
         :param requester: the user requesting the ISO
         :type requester: :class:`thelma.models.user.User`
-
-        :param log: The ThelmaLog you want to write in.
-        :type log: :class:`thelma.ThelmaLog`
         """
-        MoleculeDesignPoolLayoutParserHandler.__init__(self, log=log,
-                                                       stream=stream)
-
+        MoleculeDesignPoolLayoutParserHandler.__init__(self, stream,
+                                                       parent=parent)
         #: The requester for the ISO request.
         self.requester = requester
-
         #: The transfection layout used to create the ISO rack layout
         self.transfection_layout = None
-
         #: If there is only one distinct floating position placeholder, this
         #: field will count the number of different floating wells (the numbers
         #: will serve as part of the placeholder).
         self._float_well_counter = 0
-
-
         #: Stores the molecule design pools for molecule design set IDs.
         self._pool_map = dict()
         # The molecule design pool aggregate
         # (see :class:`thelma.models.aggregates.Aggregate`)
         # used to obtain check the validity of molecule design pool IDs.
         self._pool_aggregate = get_root_aggregate(IMoleculeDesignPool)
-
         #: The tagged rack position sets for tags that are not part of the
         #: transfection layout mapped onto their rack position set hash values.
         self.__additional_trps = dict()
         #: The transfection layout as rack layout.
         self.__rack_layout = None
-
         #: The name of the transfection reagent (metadata value).
         self._reagent_name_metadata = None
-
         #: Stores distinct ISO concentration for screening cases.
         self._iso_concentrations = dict()
-
         # List for error collection.
         self.__missing_pool = dict()
         self._invalid_vol = []
@@ -175,7 +152,6 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         self._has_reagent_df_layout = False
         self.__invalid_position_type = dict()
         self.__unknown_position_type = dict()
-
         # lookups for numerical values
         self.__invalid_lookup = {
             IsoRequestParameters.ISO_VOLUME : self._invalid_vol,
@@ -187,17 +163,14 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
             IsoRequestParameters.ISO_CONCENTRATION : None,
             TransfectionParameters.FINAL_CONCENTRATION : None,
             TransfectionParameters.REAGENT_DIL_FACTOR : None}
-
         #: Stores additional layout occurrence of parameters (that is invalid
         #: occurrences that have not been expected).
         self.__forbidden_add_tag_params = dict()
         #: Validators for the :attr:`__forbidden_add_tag_params`.
         self.__forbidden_add_tag_validators = dict()
-
         #: Stores the validators for all transfection layout parameters
         #: (used to identify additional tags).
         self.__all_validators = TransfectionParameters.create_all_validators()
-
         #: Must the ISO job be processed before the specific ISO (if there
         #: something do be done in the job - default: *True*)?
         self._process_job_first = True
@@ -205,11 +178,11 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         self.__association_data = None
 
     @classmethod
-    def create(cls, experiment_type_id, stream, requester, log):
+    def create(cls, experiment_type_id, stream, requester, parent):
         """
         Factory method creating a handler for the passed experiment type.
         """
-        kw = dict(stream=stream, requester=requester, log=log)
+        kw = dict(stream=stream, requester=requester, parent=parent)
         cls = _HANDLER_CLASSES[experiment_type_id]
         return cls(**kw)
 
@@ -248,7 +221,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         experiment design.
         """
 
-        if self.parser.abort_parsing:
+        if self.parser.abort_execution:
             return False
         else:
             return True
@@ -285,7 +258,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
 
         return valid_parameters
 
-    def _convert_results_to_model_entity(self):
+    def _convert_results_to_entity(self):
         """
         Retrieves an ISO request from an ISO sheet.
         """
@@ -779,8 +752,8 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         The association data always covers floating positions but might
         cover fixed positions, too. Assumes a 384-well layout.
         """
-        association_data, regard_controls = TransfectionAssociationData.find(
-                                log=self.log, layout=self.transfection_layout)
+        association_data, regard_controls = \
+            TransfectionAssociationData.find(self, self.transfection_layout)
         if association_data is None:
             msg = 'Error when trying to associated rack sectors! The ' \
                   'floating positions in 384-well ISO request layouts must ' \
@@ -1160,27 +1133,15 @@ class IsoRequestParserHandlerScreen(IsoRequestParserHandler):
     TRANSFECTION_LAYOUT_PARAMETERS = [
                                     TransfectionParameters.FINAL_CONCENTRATION]
 
-    def __init__(self, stream, requester, log):
-        """
-        Constructor:
-
-        :param stream: The opened file to be parsed.
-
-        :param requester: the user requesting the ISO
-        :type requester: :class:`thelma.models.user.User`
-
-        :param log: The ThelmaLog you want to write in.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        IsoRequestParserHandler.__init__(self, stream=stream, log=log,
-                                         requester=requester)
-
     def get_iso_volume(self):
         """
         Returns the ISO volume from the sheet (there is only a metadata value).
         """
-        if self.return_value is None: return None
-        return self._metadata_lookup[IsoRequestParameters.ISO_VOLUME]
+        if self.return_value is None:
+            result = None
+        else:
+            result = self._metadata_lookup[IsoRequestParameters.ISO_VOLUME]
+        return result
 
     def _create_positions(self):
         self.add_debug('Create transfection positions ...')
@@ -1257,21 +1218,9 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
     _NUMERICAL_PARAMETERS = [TransfectionParameters.FINAL_CONCENTRATION,
                              TransfectionParameters.REAGENT_DIL_FACTOR]
 
-    def __init__(self, stream, requester, log):
-        """
-        Constructor:
-
-        :param stream: The opened file to be parsed.
-
-        :param requester: the user requesting the ISO
-        :type requester: :class:`thelma.models.user.User`
-
-        :param log: The ThelmaLog you want to write in.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        IsoRequestParserHandler.__init__(self, stream=stream, log=log,
-                                         requester=requester)
-
+    def __init__(self, stream, requester, parent=None):
+        IsoRequestParserHandler.__init__(self, stream, requester,
+                                         parent=parent)
         #: The molecule design library used
         #: (:class:`thelma.models.library.MoleculeDesignLibrary`)
         self.__library = None
@@ -1336,10 +1285,9 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
         must contain samples and which are allowed to take up other
         ISO request position types).
         """
-        converter = LibraryLayoutConverter(log=self.log,
-                    rack_layout=self.__library.rack_layout)
+        converter = LibraryLayoutConverter(self.__library.rack_layout,
+                                           parent=self)
         self.__lib_base_layout = converter.get_result()
-
         if self.__lib_base_layout is None:
             msg = 'Unable to convert library base layout.'
             self.add_error(msg)

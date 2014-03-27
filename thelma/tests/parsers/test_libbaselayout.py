@@ -38,13 +38,13 @@ class LibraryBaseLayoutParserTestCase(LibraryBaseLayoutInputTestCase):
 
     def _test_invalid_file(self, file_name, msg):
         self._continue_setup(file_name)
-        self.tool.parse()
+        self.tool.run()
         self.assert_true(self.tool.has_errors())
         self._check_error_messages(msg)
 
     def test_result(self):
         self._continue_setup()
-        self.tool.parse()
+        self.tool.run()
         self.assert_false(self.tool.has_errors())
         tool_shape = self.tool.shape
         exp_shape = self._get_expected_rack_shape()

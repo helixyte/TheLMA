@@ -4,6 +4,7 @@ This module deals with the creation of worklist files for the Biomek.
 AAB
 """
 from math import ceil
+
 from thelma.automation.semiconstants import get_pipetting_specs_biomek
 from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.tools.worklists.base import EmptyPositionManager
@@ -18,6 +19,7 @@ from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.rack import Plate
 from thelma.models.rack import Rack
 
+
 __docformat__ = 'reStructuredText en'
 
 __all__ = ['BiomekWorklistWriter',
@@ -30,7 +32,6 @@ class BiomekWorklistWriter(WorklistWriter):
     A base tool to generate Biomek worklists from planned worklists
     These worklists however might also be used for manual pipetting.
     """
-
     #: The header for the source rack column.
     SOURCE_RACK_HEADER = 'SourcePlateBarcode'
     #: The header for the source position column.
@@ -41,7 +42,6 @@ class BiomekWorklistWriter(WorklistWriter):
     TARGET_POS_HEADER = 'DestinationPlateWell'
     #: The header for the transfer volume.
     TRANSFER_VOLUME_HEADER = 'Volume'
-
     #: The index for the source rack column.
     SOURCE_RACK_INDEX = 0
     #: The index for the source position column.
@@ -53,41 +53,14 @@ class BiomekWorklistWriter(WorklistWriter):
     #: The index for the transfer volume.
     TRANSFER_VOLUME_INDEX = 4
 
-    def __init__(self, planned_worklist, target_rack, log,
-                 pipetting_specs=None, ignored_positions=None):
-        """
-        Constructor:
-
-        :param planned_worklist: The worklist for which to create a
-            worklist file.
-        :type planned_worklist:
-            :class:`thelma.models.liquidtransfer.PlannedWorklist
-
-        :param target_rack: The rack into which the volumes will be dispensed.
-        :type target_rack: :class:`thelma.models.rack.Rack`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param ignored_positions: A list of positions (target
-            for dilutions and source for transfers) that are not included
-            in the worklist file.
-        :type ignored_positions: :class:`list` of :class:`RackPosition`
-
-        :param pipetting_specs: Pipetting specs define transfer properties and
-            conditions like the transfer volume range.
-        :type pipetting_specs:
-            :class:`thelma.models.liquidtransfer.PipettingSpecs`
-        :default pipetting_specs: None (BIOMEK)
-        """
-        WorklistWriter.__init__(self, planned_worklist=planned_worklist,
-                                target_rack=target_rack, log=log,
+    def __init__(self, planned_worklist, target_rack,
+                 pipetting_specs=None, ignored_positions=None, parent=None):
+        WorklistWriter.__init__(self, planned_worklist, target_rack,
+                                pipetting_specs,
                                 ignored_positions=ignored_positions,
-                                pipetting_specs=pipetting_specs)
-
+                                parent=parent)
         if self.pipetting_specs is None:
             self.pipetting_specs = get_pipetting_specs_biomek()
-
         # These are the CsvColumnParameters for the worklists.
         self._source_rack_values = None
         self._source_pos_values = None
@@ -143,41 +116,18 @@ class SampleTransferWorklistWriter(BiomekWorklistWriter):
 
     TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_TRANSFER
 
-    def __init__(self, planned_worklist, target_rack, source_rack, log,
-                 ignored_positions=None, pipetting_specs=None):
+    def __init__(self, planned_worklist, target_rack, source_rack,
+                 pipetting_specs=None, ignored_positions=None, parent=None):
         """
-        Constructor:
-
-        :param planned_worklist: The worklist for which to create a
-            worklist file.
-        :type planned_worklist:
-            :class:`thelma.models.liquidtransfer.PlannedWorklist
-
-        :param target_rack: The rack into which the volumes will be dispensed.
-        :type target_rack: :class:`thelma.models.rack.Rack`
+        Constructor.
 
         :param source_rack: The rack from which to take the volumes.
         :type source_rack: :class:`thelma.models.rack.Rack`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param ignore_positions: A list of source positions that are not
-            included in the worklist file.
-        :type ignore_positions: :class:`list` of :class:`RackPosition`
-
-        :param pipetting_specs: Pipetting specs define transfer properties and
-            conditions like the transfer volume range.
-        :type pipetting_specs:
-            :class:`thelma.models.liquidtransfer.PipettingSpecs`
-        :default pipetting_specs: None (BIOMEK)
         """
-        BiomekWorklistWriter.__init__(self, planned_worklist=planned_worklist,
-                                target_rack=target_rack, log=log,
-                                ignored_positions=ignored_positions,
-                                pipetting_specs=pipetting_specs)
-
-
+        BiomekWorklistWriter.__init__(self, planned_worklist,
+                                      target_rack, pipetting_specs,
+                                      ignored_positions=ignored_positions,
+                                      parent=parent)
         #: The rack from which to take the volumes.
         self.source_rack = source_rack
 
@@ -200,7 +150,6 @@ class SampleTransferWorklistWriter(BiomekWorklistWriter):
             else:
                 volume = container.sample.volume * VOLUME_CONVERSION_FACTOR
                 self._source_volumes[rack_pos] = volume
-
         if isinstance(self.source_rack, Plate):
             well_specs = self.source_rack.specs.well_specs
             self._source_dead_volume = well_specs.dead_volume \
@@ -212,11 +161,10 @@ class SampleTransferWorklistWriter(BiomekWorklistWriter):
         """
         source_rack_barcode = self.source_rack.barcode
         target_rack_barcode = self.target_rack.barcode
-
         sorted_transfers = self.__get_sorted_transfers()
         for pt in sorted_transfers:
-            if pt.source_position in self.ignored_positions: continue
-
+            if pt.source_position in self.ignored_positions:
+                continue
             if not self._check_transfer_volume(pt.volume, pt.target_position,
                                                pt.source_position):
                 continue
@@ -237,7 +185,6 @@ class SampleTransferWorklistWriter(BiomekWorklistWriter):
             if not source_positions.has_key(source_pos):
                 source_positions[source_pos] = []
             source_positions[source_pos].append(plt)
-
         sorted_source_positions = sort_rack_positions(source_positions.keys())
         sorted_transfers = []
         for source_pos in sorted_source_positions:
@@ -253,7 +200,6 @@ class SampleTransferWorklistWriter(BiomekWorklistWriter):
                                                         target_positions.keys())
                 for target_pos in sorted_target_positions:
                     sorted_transfers.append(target_positions[target_pos])
-
         return sorted_transfers
 
 
@@ -263,79 +209,43 @@ class SampleDilutionWorklistWriter(BiomekWorklistWriter):
 
     **Return Value:** Stream for an CSV file.
     """
-
     NAME = 'Biomek Dilution Worklist Writer'
-
     TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_DILUTION
-
     #: The name of the optional diluent info column.
     DILUENT_INFO_HEADER = 'DiluentInformation'
     #: The index of the optional diluent info column.
     DILUENT_INFO_INDEX = 5
 
     def __init__(self, planned_worklist, target_rack, source_rack_barcode,
-                 reservoir_specs, log,
-                 ignored_positions=None, pipetting_specs=None):
+                 reservoir_specs, pipetting_specs=None,
+                 ignored_positions=None, parent=None):
         """
-        Constructor:
+        Constructor.
 
-        :param planned_worklist: The worklist for which to create a
-            worklist file.
-        :type planned_worklist:
-            :class:`thelma.models.liquidtransfer.PlannedWorklist
-
-        :param target_rack: The rack into which the volumes will be dispensed.
-        :type target_rack: :class:`thelma.models.rack.Rack`
-
-        :param source_rack_barcode: The barcode for the source rack or
+        :param str source_rack_barcode: The barcode for the source rack or
             reservoir.
         :type source_rack_barcode: :class:`str`
-
-        :param reservoir_specs: The specs for the source rack or reservoir.
-        :type reservoir_specs:
-            :class:`thelma.models.liquidtransfer.ReservoirSpecs`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param ignored_positions: A list of positions (target
-            for dilutions and source for transfers) that are not included
-            in the worklist file.
-        :type ignored_positions: :class:`list` of :class:`RackPosition`
-
-        :param pipetting_specs: Pipetting specs define transfer properties and
-            conditions like the transfer volume range.
-        :type pipetting_specs:
-            :class:`thelma.models.liquidtransfer.PipettingSpecs`
-        :default pipetting_specs: None (BIOMEK)
         """
-        BiomekWorklistWriter.__init__(self, planned_worklist=planned_worklist,
-                                      target_rack=target_rack,
+        BiomekWorklistWriter.__init__(self, planned_worklist, target_rack,
+                                      pipetting_specs=pipetting_specs,
                                       ignored_positions=ignored_positions,
-                                      log=log,
-                                      pipetting_specs=pipetting_specs)
-
+                                      parent=self)
         #: The barcode for the source rack or reservoir.
         self.source_rack_barcode = source_rack_barcode
         #: The specs for the source rack or reservoir.
         self.reservoir_specs = reservoir_specs
-
         #: The maximum volume of source rack container.
         self._source_max_volume = None
-
         #: Values for a column presenting diluent information.
         self._diluent_info_values = None
-
         #: Maps source position amounts (volumes) onto diluents.
         self._diluent_map = None
         #: Maps total diluent amounts (volumes) onto diluents.
         self._amount_map = None
-
         #: The last used source rack position.
         self.__last_source_rack_pos = None
         #: Stores and return empty positions in the source rack.
         self.__emtpy_pos_manager = None
-
         # If True, some dilution had to be split because they exceeded the
         # maximum allowed transfer volume.
         self.__has_split_volumes = False
@@ -374,12 +284,10 @@ class SampleDilutionWorklistWriter(BiomekWorklistWriter):
         """
         for rack_pos in get_positions_for_shape(self.reservoir_specs.rack_shape):
             self._source_volumes[rack_pos] = 0
-
         self._source_dead_volume = self.reservoir_specs.min_dead_volume \
                                    * VOLUME_CONVERSION_FACTOR
         self._source_max_volume = self.reservoir_specs.max_volume \
                                    * VOLUME_CONVERSION_FACTOR
-
         self.__emtpy_pos_manager = EmptyPositionManager(
                                     rack_shape=self.reservoir_specs.rack_shape)
 
@@ -388,27 +296,25 @@ class SampleDilutionWorklistWriter(BiomekWorklistWriter):
         This method generates the value lists for the CSV columns.
         """
         target_rack_barcode = self.target_rack.barcode
-
         sorted_transfers = self.__get_sorted_transfers()
         for pt in sorted_transfers:
-            if pt.target_position in self.ignored_positions: continue
+            if pt.target_position in self.ignored_positions:
+                continue
             if not self._check_transfer_volume(pt.volume, pt.target_position):
                 continue
-
             split_volumes = self.__split_into_transferable_amounts(pt)
             for i in range(len(split_volumes)):
-
                 volume = round(split_volumes[i], 1)
                 source_pos = self.__get_and_adjust_source_position(
                                                 pt.diluent_info, volume, i)
-                if self.has_errors(): break
+                if self.has_errors():
+                    break
                 self._source_rack_values.append(self.source_rack_barcode)
                 self._source_pos_values.append(source_pos.label)
                 self._volume_values.append(get_trimmed_string(volume))
                 self._target_rack_values.append(target_rack_barcode)
                 self._target_pos_values.append(pt.target_position.label)
                 self._diluent_info_values.append(pt.diluent_info)
-
         if self.__has_split_volumes:
             msg = 'Some dilution volumes exceed the allowed maximum transfer ' \
                   'volume of %s ul. The dilution volumes have been distributed ' \
@@ -416,7 +322,6 @@ class SampleDilutionWorklistWriter(BiomekWorklistWriter):
                   'worklist file for details, please.' \
                    % (get_trimmed_string(self._max_transfer_volume))
             self.add_warning(msg)
-
         if len(self.__split_sources) > 0:
             msg = 'The source for the following diluents has been split ' \
                   'and distributed over several containers because one ' \
@@ -432,9 +337,7 @@ class SampleDilutionWorklistWriter(BiomekWorklistWriter):
             self.add_warning(msg)
 
     def __get_sorted_transfers(self):
-        """
-        Sorts the planned transfers of the worklist by source position.
-        """
+        # Sorts the planned transfers of the worklist by source position.
         target_positions = dict()
         for plt in self.planned_worklist:
             target_pos = plt.target_position
@@ -449,17 +352,14 @@ class SampleDilutionWorklistWriter(BiomekWorklistWriter):
         return sorted_transfers
 
     def __split_into_transferable_amounts(self, planned_transfer):
-        """
-        Checks whether the volume is larger than the allowed maximum
-        transfer volume and splits it into transferable amounts.
-        """
+        # Checks whether the volume is larger than the allowed maximum
+        # transfer volume and splits it into transferable amounts.
         volume = round(planned_transfer.volume * VOLUME_CONVERSION_FACTOR, 1)
-        if volume <= self._max_transfer_volume: return [volume]
-
+        if volume <= self._max_transfer_volume:
+            return [volume]
         self.__has_split_volumes = True
         no_volumes = ceil(volume / self._max_transfer_volume)
         amounts = []
-
         partial_vol = round_up((volume / no_volumes), 1)
         while volume > 0:
             if volume < partial_vol:
@@ -468,16 +368,12 @@ class SampleDilutionWorklistWriter(BiomekWorklistWriter):
             else:
                 amounts.append(partial_vol)
                 volume = volume - partial_vol
-
         amounts.sort()
         return amounts
 
     def __get_and_adjust_source_position(self, diluent_info, volume, i):
-        """
-        Returns the source position for the diluent.
-        """
+        # Returns the source position for the diluent.
         diluent_marker = '%s#%i' % (diluent_info, i)
-
         if not self._diluent_map.has_key(diluent_marker):
             self.__init_new_diluent_source(diluent_marker, volume)
         else:
@@ -489,14 +385,10 @@ class SampleDilutionWorklistWriter(BiomekWorklistWriter):
                 self.__init_new_diluent_source(diluent_marker, volume)
             else:
                 self._amount_map[source_pos] = new_amount
-
         return self._diluent_map[diluent_marker]
 
     def __init_new_diluent_source(self, diluent_marker, volume):
-        """
-        Initialises a new source volume container in the source reservoir.
-        """
-
+        # Initialises a new source volume container in the source reservoir.
         try:
             source_pos = self.__emtpy_pos_manager.get_empty_position()
         except ValueError:
@@ -504,7 +396,6 @@ class SampleDilutionWorklistWriter(BiomekWorklistWriter):
                   'in the source rack or reservoir!'
             self.add_error(msg)
             source_pos = None
-
         self._diluent_map[diluent_marker] = source_pos
         if not source_pos is None:
             self._amount_map[source_pos] = volume + self._source_dead_volume
@@ -515,8 +406,8 @@ class SampleDilutionWorklistWriter(BiomekWorklistWriter):
         :attr:`_column_map_list`.
         """
         BiomekWorklistWriter._init_column_maps(self)
-
-        diluent_info_column = CsvColumnParameters.create_csv_parameter_map(
+        diluent_info_column = \
+            CsvColumnParameters.create_csv_parameter_map(
                         self.DILUENT_INFO_INDEX, self.DILUENT_INFO_HEADER,
                         self._diluent_info_values)
         self._column_map_list.append(diluent_info_column)

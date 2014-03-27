@@ -44,26 +44,22 @@ class IsoStockTransferReporter(BaseTracTool):
     #: Shall existing replacements with the same name be overwritten?
     REPLACE_EXISTING_ATTACHMENTS = False
 
-    def __init__(self, executor, **kw):
+    def __init__(self, executor, parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param executor: The executor tool (after run has been completed).
         :type executor: :class:`StockTransferWriterExecutor` subclass
         """
-        BaseTracTool.__init__(self, **kw)
-
+        BaseTracTool.__init__(self, parent=parent)
         #: The tool that has conducted the execution.
         self.executor = executor
-
         #: The executed stock transfer worklists (for reporting).
         self._executed_stock_worklists = None
-
         #: The stream for the log file.
         self.__log_file_stream = None
         #: The attachment for the ticket (for the log file).
         self._log_file_attachment = None
-
         #: The completed ticket comment.
         self._comment = None
         #: The ticket number.

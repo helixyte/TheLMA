@@ -375,21 +375,21 @@ class _IsoRequestRackSectorToolTestCase(RackSectorTestCase):
         self.position_data['C6'] = [1, 5, 70]
 
     def _create_value_determiner(self):
-        self.tool = IsoRequestValueDeterminer(log=self.log,
-                            iso_request_layout=self.layout,
-                            regard_controls=self.regard_controls,
-                            attribute_name=self.attribute_name,
-                            number_sectors=self.number_sectors)
+        self.tool = IsoRequestValueDeterminer(self.layout,
+                                              self.attribute_name,
+                                              self.number_sectors,
+                                              self.regard_controls)
 
     def _create_sector_associator(self):
-        self.tool = IsoRequestSectorAssociator(layout=self.layout, log=self.log,
-                                    regard_controls=self.regard_controls,
-                                    number_sectors=self.number_sectors)
+        self.tool = IsoRequestSectorAssociator(self.layout,
+                                               self.regard_controls,
+                                               number_sectors=
+                                                    self.number_sectors)
 
     def _create_association_data(self):
-        return IsoRequestAssociationData(layout=self.layout,
-                                         regard_controls=self.regard_controls,
-                                         log=self.log)
+        return IsoRequestAssociationData(self.layout,
+                                         self.regard_controls,
+                                         self.tool)
 
     def _adjust_96_layout_for_association_data_test(self):
         iso_vol = 10
@@ -527,31 +527,33 @@ class IsoRequestAssociationDataTestCase(_IsoRequestRackSectorToolTestCase):
         self._continue_setup()
         self._expect_error(ValueError, self._create_association_data,
                            'Error when trying to find rack sector association.')
-        self.assert_equal(len(self.log.get_messages(logging.ERROR)), 0)
+        self.assert_equal(len(self.tool.get_messages(logging.ERROR)), 0)
         self.regard_controls = False
         self._check_association_data_384()
 
     def test_failure(self):
         self._adjust_pos_data_for_regard_control_test()
         self._continue_setup()
-        self._expect_error(ValueError, self._create_association_data,
-                           'Error when trying to find rack sector association.')
-        self.assert_equal(len(self.log.get_messages(logging.ERROR)), 0)
+        self._expect_error(
+                    ValueError, self._create_association_data,
+                    'Error when trying to find rack sector association.')
+        self.assert_equal(len(self.tool.get_messages(logging.ERROR)), 0)
 
     def test_find(self):
         self._continue_setup()
-        ad, regard_controls = IsoRequestAssociationData.find(log=self.log,
-                                       layout=self.layout)
+        ad, regard_controls = IsoRequestAssociationData.find(self.layout,
+                                                             self.tool)
         self.assert_is_not_none(ad)
         self.assert_true(regard_controls)
         self._adjust_pos_data_for_regard_control_test()
         self._continue_setup()
-        ad, regard_controls = IsoRequestAssociationData.find(log=self.log,
-                                       layout=self.layout)
+        ad, regard_controls = IsoRequestAssociationData.find(self.layout,
+                                                             self.tool)
         self.assert_is_not_none(ad)
         self.assert_false(regard_controls)
         rack_pos = get_rack_position_from_label('E3')
         ir_pos = self.layout.get_working_position(rack_pos)
         ir_pos.iso_volume = 1000
         self.assert_equal((None, None), IsoRequestAssociationData.find(
-                                        log=self.log, layout=self.layout))
+                                                                self.layout,
+                                                                self.tool))

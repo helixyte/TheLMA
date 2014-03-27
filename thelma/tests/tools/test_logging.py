@@ -1,15 +1,10 @@
-"""
-Testing the thelma log.
-
-AAB
-"""
-from thelma.automation.errors import EventRecording
-from thelma.testing import ThelmaModelTestCase
-from thelma.tests.tools.tooltestingutils import TestingLog
 import logging
 
+from thelma.automation.errors import MessageRecorder
+from thelma.testing import ThelmaModelTestCase
 
-class _EventRecordingExampleClass(EventRecording):
+
+class _MessageRecorderExampleClass(MessageRecorder):
 
     NAME = 'testtool'
 
@@ -26,8 +21,8 @@ class _EventRecordingExampleClass(EventRecording):
     CRIT_MSG_OUT = '%s - %s' % (NAME, CRIT_MSG_IN)
 
 
-    def __init__(self):
-        EventRecording.__init__(self, TestingLog())
+    def __init__(self, parent=None):
+        MessageRecorder.__init__(self, parent=parent)
         self.nested = None
 
     def run(self):
@@ -41,39 +36,39 @@ class _EventRecordingExampleClass(EventRecording):
         return self._error_count
 
 
-class _NestedEventRecordingExampleClass(EventRecording):
+class _NestedMessageRecorderExampleClass(MessageRecorder):
 
     NAME = 'nestedtesttool'
 
-    WARN_MSG_OUT = '%s - %s' % (NAME, _EventRecordingExampleClass.WARN_MSG_IN)
-    ERR_MSG_OUT = '%s - %s' % (NAME, _EventRecordingExampleClass.ERR_MSG_IN)
-    CRIT_MSG_OUT = '%s - %s' % (NAME, _EventRecordingExampleClass.CRIT_MSG_IN)
+    WARN_MSG_OUT = '%s - %s' % (NAME, _MessageRecorderExampleClass.WARN_MSG_IN)
+    ERR_MSG_OUT = '%s - %s' % (NAME, _MessageRecorderExampleClass.ERR_MSG_IN)
+    CRIT_MSG_OUT = '%s - %s' % (NAME, _MessageRecorderExampleClass.CRIT_MSG_IN)
 
-    def __init__(self, log):
-        EventRecording.__init__(self, log)
+    def __init__(self, parent=None):
+        MessageRecorder.__init__(self, parent=parent)
 
     def run(self):
-        self.add_warning(_EventRecordingExampleClass.WARN_MSG_IN)
-        self.add_error(_EventRecordingExampleClass.ERR_MSG_IN)
-        self.add_critical_error(_EventRecordingExampleClass.CRIT_MSG_IN)
+        self.add_warning(_MessageRecorderExampleClass.WARN_MSG_IN)
+        self.add_error(_MessageRecorderExampleClass.ERR_MSG_IN)
+        self.add_critical_error(_MessageRecorderExampleClass.CRIT_MSG_IN)
 
 
 class EventRecordingTestCase(ThelmaModelTestCase):
 
     def set_up(self):
         ThelmaModelTestCase.set_up(self)
-        self.test_tool = _EventRecordingExampleClass()
+        self.test_tool = _MessageRecorderExampleClass()
         self.test_tool.run()
-        self.DEBUG_MSG_IN = _EventRecordingExampleClass.DEBUG_MSG_IN
-        self.DEBUG_MSG_OUT = _EventRecordingExampleClass.DEBUG_MSG_OUT
-        self.INFO_MSG_IN = _EventRecordingExampleClass.INFO_MSG_IN
-        self.INFO_MSG_OUT = _EventRecordingExampleClass.INFO_MSG_OUT
-        self.WARN_MSG_IN = _EventRecordingExampleClass.WARN_MSG_IN
-        self.WARN_MSG_OUT = _EventRecordingExampleClass.WARN_MSG_OUT
-        self.ERR_MSG_IN = _EventRecordingExampleClass.ERR_MSG_IN
-        self.ERR_MSG_OUT = _EventRecordingExampleClass.ERR_MSG_OUT
-        self.CRIT_MSG_IN = _EventRecordingExampleClass.CRIT_MSG_IN
-        self.CRIT_MSG_OUT = _EventRecordingExampleClass.CRIT_MSG_OUT
+        self.DEBUG_MSG_IN = _MessageRecorderExampleClass.DEBUG_MSG_IN
+        self.DEBUG_MSG_OUT = _MessageRecorderExampleClass.DEBUG_MSG_OUT
+        self.INFO_MSG_IN = _MessageRecorderExampleClass.INFO_MSG_IN
+        self.INFO_MSG_OUT = _MessageRecorderExampleClass.INFO_MSG_OUT
+        self.WARN_MSG_IN = _MessageRecorderExampleClass.WARN_MSG_IN
+        self.WARN_MSG_OUT = _MessageRecorderExampleClass.WARN_MSG_OUT
+        self.ERR_MSG_IN = _MessageRecorderExampleClass.ERR_MSG_IN
+        self.ERR_MSG_OUT = _MessageRecorderExampleClass.ERR_MSG_OUT
+        self.CRIT_MSG_IN = _MessageRecorderExampleClass.CRIT_MSG_IN
+        self.CRIT_MSG_OUT = _MessageRecorderExampleClass.CRIT_MSG_OUT
 
         self.ALL = [self.DEBUG_MSG_OUT, self.INFO_MSG_OUT, self.WARN_MSG_OUT,
                     self.ERR_MSG_OUT, self.CRIT_MSG_OUT]
@@ -123,7 +118,7 @@ class EventRecordingTestCase(ThelmaModelTestCase):
         self.assert_true(self.test_tool.has_errors())
         messages1 = self.test_tool.get_messages(logging.WARNING)
         self.assert_equal(len(messages1), 3)
-        self.test_tool.reset_log()
+        self.test_tool.reset()
         self.assert_false(self.test_tool.has_errors())
         messages2 = self.test_tool.get_messages(logging.WARNING)
         self.assert_equal(len(messages2), 0)
@@ -139,7 +134,7 @@ class EventRecordingTestCase(ThelmaModelTestCase):
         self.assert_true(self.test_tool.has_errors())
         self.assert_equal(len(messages2), 2)
         self.assert_true(self.CRIT_MSG_OUT in messages2)
-        event_msg = '%s - %s' % (_EventRecordingExampleClass.NAME, msg2)
+        event_msg = '%s - %s' % (_MessageRecorderExampleClass.NAME, msg2)
         self.assert_true(event_msg in messages2)
 
     def test_add_error(self):
@@ -153,7 +148,7 @@ class EventRecordingTestCase(ThelmaModelTestCase):
         self.assert_true(self.test_tool.has_errors())
         self.assert_equal(len(messages2), 3)
         self.assert_true(self.ERR_MSG_OUT in messages2)
-        event_msg = '%s - %s' % (_EventRecordingExampleClass.NAME, msg2)
+        event_msg = '%s - %s' % (_MessageRecorderExampleClass.NAME, msg2)
         self.assert_true(event_msg in messages2)
 
     def test_add_warning(self):
@@ -167,7 +162,7 @@ class EventRecordingTestCase(ThelmaModelTestCase):
         self.assert_true(self.test_tool.has_errors())
         self.assert_equal(len(messages2), 4)
         self.assert_true(self.WARN_MSG_OUT in messages2)
-        event_msg = '%s - %s' % (_EventRecordingExampleClass.NAME, msg2)
+        event_msg = '%s - %s' % (_MessageRecorderExampleClass.NAME, msg2)
         self.assert_true(event_msg in messages2)
 
     def test_add_info(self):
@@ -181,7 +176,7 @@ class EventRecordingTestCase(ThelmaModelTestCase):
         self.assert_true(self.test_tool.has_errors())
         self.assert_equal(len(messages2), 5)
         self.assert_true(self.INFO_MSG_OUT in messages1)
-        event_msg = '%s - %s' % (_EventRecordingExampleClass.NAME, msg2)
+        event_msg = '%s - %s' % (_MessageRecorderExampleClass.NAME, msg2)
         self.assert_true(event_msg in messages2)
 
     def test_add_debug(self):
@@ -195,18 +190,18 @@ class EventRecordingTestCase(ThelmaModelTestCase):
         self.assert_true(self.test_tool.has_errors())
         self.assert_equal(len(messages2), 6)
         self.assert_true(self.DEBUG_MSG_OUT in messages2)
-        event_msg = '%s - %s' % (_EventRecordingExampleClass.NAME, msg2)
+        event_msg = '%s - %s' % (_MessageRecorderExampleClass.NAME, msg2)
         self.assert_true(event_msg in messages2)
 
     def test_nested_errors(self):
         m1 = self.test_tool.get_messages(logging.WARNING)
         self.assert_true(self.test_tool.has_errors())
         self.assert_equal(len(m1), 3)
-        self.test_tool.reset_log()
+        self.test_tool.reset()
         m2 = self.test_tool.get_messages(logging.WARNING)
         self.assert_false(self.test_tool.has_errors())
         self.assert_equal(len(m2), 0)
-        nested = _NestedEventRecordingExampleClass(self.test_tool.log)
+        nested = _NestedMessageRecorderExampleClass(parent=self.test_tool)
         m3 = self.test_tool.get_messages(logging.WARNING)
         self.assert_false(self.test_tool.has_errors())
         self.assert_equal(len(m3), 0)
@@ -226,7 +221,7 @@ class EventRecordingTestCase(ThelmaModelTestCase):
     def test_disable_error_and_warning_recording(self):
         self.assert_true(self.test_tool.has_errors())
         self.assert_equal(self.test_tool.get_error_count(), 2)
-        self.test_tool.reset_log()
+        self.test_tool.reset()
         self.assert_false(self.test_tool.has_errors())
         self.assert_equal(self.test_tool.get_error_count(), 0)
         self.test_tool.disable_error_and_warning_recording()

@@ -29,33 +29,20 @@ class LibraryBaseLayoutParser(ExcelFileParser):
     Parses a excel sheet that provides the base layout for a library
     creation ISO request.
     """
-
     NAME = 'Library Base Layout Parser'
-
     #: The name of the sheet containing the layout
     SHEET_NAME = 'Base Layout'
-
     #: list of valid rack dimensions
     RACK_SHAPES = [(8, 12), (16, 24), (32, 48)]
-
     #: The cell in the sheet that holds the A1 position of the layout.
     TOP_LEFT_POSITION = (0, 0)
 
-    def __init__(self, stream, log):
-        """
-        :param stream: open Excel file to be parsed
-
-        :param log: The log to write into.
-        :type log: :class:`thelma.parsers.errors.ThelmaLog`
-        """
-        ExcelFileParser.__init__(self, stream=stream, log=log)
-
+    def __init__(self, stream, parent=None):
+        ExcelFileParser.__init__(self, stream, parent=parent)
         #: The sheet to be parsed.
         self.sheet = None
-
         #: The rack shape of the layout as rack shape container.
         self.shape = None
-
         #: Lists the wells that contain characters (positive wells)
         #: as :class:`RackPositionParsingContainers`.
         self.contained_wells = None
@@ -65,15 +52,15 @@ class LibraryBaseLayoutParser(ExcelFileParser):
         self.shape = None
         self.contained_wells = []
 
-    def parse(self):
+    def run(self):
         self.reset()
         self.add_info('Start parsing ...')
-
         wb = self.open_workbook()
         self.sheet = self.get_sheet_by_name(wb, self.SHEET_NAME)
-
-        if not self.has_errors(): self.__determine_layout_dimension()
-        if not self.has_errors(): self.__find_sample_wells()
+        if not self.has_errors():
+            self.__determine_layout_dimension()
+        if not self.has_errors():
+            self.__find_sample_wells()
         if not self.has_errors():
             self.add_info('Parsing completed.')
 

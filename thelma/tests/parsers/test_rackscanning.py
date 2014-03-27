@@ -61,12 +61,12 @@ class RackScanningParserTestCase(RackScanningTestCase):
 
     def __test_and_expect_errors(self, file_name, msg):
         self._continue_setup(file_name)
-        self.tool.parse()
+        self.tool.run()
         self.assert_true(self.tool.has_errors())
         self._check_error_messages(msg)
 
     def __check_result(self):
-        self.tool.parse()
+        self.tool.run()
         self.assert_false(self.tool.has_errors())
         self.assert_equal(self.tool.rack_barcode, self._get_expected_barcode())
         self.assert_equal(self.tool.timestamp, self._get_expected_timestamp())
@@ -97,7 +97,7 @@ class RackScanningParserTestCase(RackScanningTestCase):
         self._continue_setup()
         self.stream = 123
         self._create_tool()
-        self.tool.parse()
+        self.tool.run()
         self.assert_true(self.tool.has_errors())
         self._check_error_messages('Unknown type for stream')
 
