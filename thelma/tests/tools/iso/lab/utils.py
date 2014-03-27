@@ -2792,6 +2792,7 @@ class LabIsoTestCase2(LabIsoTestCase1):
                     for lib_plate in lib_plates:
                         if lib_plate.rack.label in final_plate_labels:
                             lib_plate.lab_iso = iso
+                            lib_plate.has_been_used = True
             else:
                 for label in final_plate_labels:
                     plate = self.rack_generator.get_plate(ps, label)
