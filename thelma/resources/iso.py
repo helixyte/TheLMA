@@ -180,15 +180,7 @@ class LabIsoRequestMember(IsoRequestMember):
         return result
 
     def update(self, data):
-        if IEntity.providedBy(data): # pylint: disable=E1101
-            raise SyntaxError('Remove this.')
-#            IsoRequestMember.update(self, data)
-#            self.get_entity().iso_layout = new_entity.iso_layout
-#            self.delivery_date = new_entity.delivery_date
-#            self.label = new_entity.label
-#            self.expected_number_isos = new_entity.expected_number_isos
-#            self.number_aliquots = new_entity.number_aliquots
-        else:
+        if not IEntity.providedBy(data): # pylint: disable=E1101
             prx = DataElementAttributeProxy(data)
             try:
                 new_owner = prx.owner
