@@ -722,35 +722,28 @@ class ExperimentMetadataGenerator(BaseAutomationTool):
         """
         Generates the metadata entity.
         """
-        self.add_debug('Generate metadata entity ...')
+        self.add_debug('Update metadata entity ...')
 
-        if self._iso_request is not None:
-            self._iso_request.rack_layout = self._source_layout.\
-                            create_merged_rack_layout(self._additional_trps,
-                                                      self.requester)
-            self._iso_request.iso_plate_reservoir_specs = self._iso_plate_specs
-            # The ISO request owner must be maintained (important for running
-            # ISO processing).
-            former_ir = self.experiment_metadata.lab_iso_request
-            if not former_ir is None:
-                self._iso_request.owner = former_ir.owner
-                self._iso_request.isos = former_ir.isos
-            if self._iso_request.label == IsoRequestParserHandler.\
-                                                        NO_LABEL_PLACEHOLDER:
-                self._iso_request.label = self.experiment_metadata.label
-            self._iso_request.molecule_design_pool_set = self._pool_set
-
-        new_em = ExperimentMetadata(
-                    label=self.experiment_metadata.label,
-                    subproject=self.experiment_metadata.subproject,
-                    number_replicates=
-                            self.experiment_metadata.number_replicates,
-                    experiment_design=self._experiment_design,
-                    ticket_number=self._ticket_number,
-                    lab_iso_request=self._iso_request,
-                    experiment_metadata_type=\
-                            self.experiment_metadata.experiment_metadata_type)
-        self.experiment_metadata = new_em
+        self.experiment_metadata.experiment_design = self._experiment_design
+        if not self._iso_request is None:
+            new_iso_rack_layout = \
+                self._source_layout.create_merged_rack_layout(
+                                                        self._additional_trps,
+                                                        self.requester)
+            if self.experiment_metadata.lab_iso_request is None:
+                self._iso_request.iso_plate_reservoir_specs = \
+                                                    self._iso_plate_specs
+                self._iso_request.molecule_design_pool_set = self._pool_set
+                self._iso_request.rack_layout = new_iso_rack_layout
+                if self._iso_request.label == \
+                            IsoRequestParserHandler.NO_LABEL_PLACEHOLDER:
+                    self._iso_request.label = self.experiment_metadata.label
+                self.experiment_metadata.lab_iso_request = self._iso_request
+            else:
+                # If we already have an ISO request, it was checked for
+                # compliance already; we only need to update the layout.
+                self.experiment_metadata.lab_iso_request.rack_layout = \
+                                                        new_iso_rack_layout
 
 
 class ExperimentMetadataGeneratorOpti(ExperimentMetadataGenerator):
