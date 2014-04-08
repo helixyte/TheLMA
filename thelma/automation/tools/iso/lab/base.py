@@ -771,12 +771,16 @@ class LabIsoLayout(TransferLayout):
         raised.
         """
         tmp_value = self.POSITION_CLS.TEMP_STOCK_DATA
-        for plate_pos in self._position_map.values():
-            if not plate_pos.is_starting_well: continue
-            if plate_pos.stock_tube_barcode == tmp_value or \
-                                plate_pos.stock_rack_marker == tmp_value:
-                raise AttributeError('There are still starting wells without ' \
-                                     'stock data in the layout!')
+        tmp_wells = [pp.rack_position.label
+                     for pp in self._position_map.values()
+                     if pp.is_starting_well and \
+                        (pp.stock_tube_barcode == tmp_value or
+                         pp.stock_rack_marker == tmp_value)
+                     ]
+        if len(tmp_wells) > 0:
+            raise AttributeError('There are still starting wells without '
+                                 'stock data in the layout (positions: '
+                                 '%s)!' % tmp_wells)
 
 
 class LabIsoLayoutConverter(TransferLayoutConverter):
