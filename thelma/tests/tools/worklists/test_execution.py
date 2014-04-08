@@ -46,7 +46,6 @@ from thelma.models.rack import TubeRackSpecs
 from thelma.models.sample import Molecule
 from thelma.models.sample import Sample
 from thelma.models.sample import SampleMolecule
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 
@@ -367,7 +366,6 @@ class _LiquidTransferExecutorTestCase(ToolsAndUtilsTestCase):
 
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
-        self.log = TestingLog()
         self.executor_user = self._get_entity(IUser, 'it')
         self.target_rack = None
         self.target_plate = None
@@ -395,7 +393,6 @@ class _LiquidTransferExecutorTestCase(ToolsAndUtilsTestCase):
 
     def tear_down(self):
         ToolsAndUtilsTestCase.tear_down(self)
-        del self.log
         del self.target_rack
         del self.target_plate
         del self.target_tube_rack
@@ -597,13 +594,12 @@ class SampleDilutionWorklistExecutorTestCase(_WorklistExecutorTestCase):
 
     def _create_tool(self):
         self.tool = SampleDilutionWorklistExecutor(
-                      planned_worklist=self.worklist,
-                      target_rack=self.target_rack,
-                      user=self.executor_user,
-                      reservoir_specs=self.reservoir_specs,
-                      pipetting_specs=self.pipetting_specs,
-                      log=self.log,
-                      ignored_positions=self.ignored_positions)
+                                    self.worklist,
+                                    self.target_rack,
+                                    self.executor_user,
+                                    self.reservoir_specs,
+                                    self.pipetting_specs,
+                                    ignored_positions=self.ignored_positions)
 
     def _create_test_worklist(self):
         self.worklist = PlannedWorklist(label='sample dilution worklist',
@@ -819,14 +815,13 @@ class SampleTransferWorklistExecutorTestCase(_WorklistExecutorTestCase):
         del self.target_data
 
     def _create_tool(self):
-        self.log = TestingLog()
-        self.tool = SampleTransferWorklistExecutor(log=self.log,
-                            planned_worklist=self.worklist,
-                            target_rack=self.target_rack,
-                            user=self.executor_user,
-                            source_rack=self.source_rack,
-                            ignored_positions=self.ignored_positions,
-                            pipetting_specs=self.pipetting_specs)
+        self.tool = SampleTransferWorklistExecutor(
+                                self.worklist,
+                                self.executor_user,
+                                self.target_rack,
+                                self.source_rack,
+                                self.pipetting_specs,
+                                ignored_positions=self.ignored_positions)
 
     def _create_test_worklist(self):
         self.worklist = PlannedWorklist(label='sample transfer worklist',
@@ -1183,10 +1178,12 @@ class RackSampleTransferExecutorTestCase(_LiquidTransferExecutorTestCase):
         del self.use_plates
 
     def _create_tool(self):
-        self.tool = RackSampleTransferExecutor(log=self.log,
-                planned_rack_sample_transfer=self.planned_rack_sample_transfer,
-                target_rack=self.target_rack, source_rack=self.source_rack,
-                user=self.executor_user, pipetting_specs=self.pipetting_specs)
+        self.tool = RackSampleTransferExecutor(
+                                        self.planned_rack_sample_transfer,
+                                        self.target_rack,
+                                        self.source_rack,
+                                        self.executor_user,
+                                        pipetting_specs=self.pipetting_specs)
 
     def _set_one_to_one_data(self):
         self.sector_number = 1

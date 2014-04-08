@@ -11,6 +11,7 @@ The tools are components of the :class:`ExperimentMetadataGenerator`.
 
 """
 from datetime import date
+
 from everest.entities.utils import get_root_aggregate
 from thelma.automation.handlers.base \
     import MoleculeDesignPoolLayoutParserHandler
@@ -44,6 +45,7 @@ from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.iso import LabIsoRequest
 from thelma.models.tagging import TaggedRackPositionSet
 from thelma.models.user import User
+
 
 __docformat__ = 'reStructuredText en'
 
@@ -209,8 +211,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         """
         Return the association data.
         """
-        if self.return_value is None: return None
-        return self.__association_data
+        return None if self.return_value is None else self.__association_data
 
     def has_iso_sheet(self):
         """
@@ -220,11 +221,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         superior tool shall try to extract an ISO request layout from the
         experiment design.
         """
-
-        if self.parser.abort_execution:
-            return False
-        else:
-            return True
+        return not self.parser.sheet is None
 
     def _initialize_parser_keys(self):
         """
@@ -753,7 +750,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         cover fixed positions, too. Assumes a 384-well layout.
         """
         association_data, regard_controls = \
-            TransfectionAssociationData.find(self, self.transfection_layout)
+            TransfectionAssociationData.find(self.transfection_layout, self)
         if association_data is None:
             msg = 'Error when trying to associated rack sectors! The ' \
                   'floating positions in 384-well ISO request layouts must ' \

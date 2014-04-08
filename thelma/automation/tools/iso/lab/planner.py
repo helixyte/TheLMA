@@ -1053,7 +1053,7 @@ class LabIsoPlanner(IsoProvider):
         """
         self.add_debug('Assign ISO rack positions ...')
         regard_controls = True
-        if self.__controls_in_quadrants: regard_controls = False
+        if self.__controls_in_quadrants : regard_controls = False
         if self._has_floatings:
             shape_size = self._iso_request_layout.shape.size
             if self.__association_data is None and shape_size == 96:
@@ -1061,6 +1061,11 @@ class LabIsoPlanner(IsoProvider):
                 self.__cybio_use_aborted = True
             else:
                 regard_controls = False
+        elif self.__cybio_use_aborted:
+            # This is catching the case of an all-control ISO that aborted
+            # CyBio use. If we process controls in this case, we end up with
+            # duplicate transfers.
+            regard_controls = False
         if regard_controls or self.__cybio_use_aborted:
             containers = []
             for pool_container in self.__pool_containers:
@@ -1070,8 +1075,7 @@ class LabIsoPlanner(IsoProvider):
                     containers.append(pool_container)
                 elif regard_controls and pos_type == FIXED_POSITION_TYPE:
                     containers.append(pool_container)
-
-            if len(containers) > 1:
+            if len(containers) > 0:
                 planner = RackPositionPlanner(self.iso_request, self._builder,
                                               containers)
                 self._builder = planner.get_result()

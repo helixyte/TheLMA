@@ -3,8 +3,8 @@ Deals with tube picking optimisation for pool stock sample creations.
 
 AAB
 """
-from thelma.automation.semiconstants import get_rack_position_from_label
 from everest.repositories.rdb.testing import RdbContextManager
+from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.iso.poolcreation.tubepicking \
     import StockSampleCreationTubePicker
 from thelma.automation.tools.iso.poolcreation.tubepicking import PoolCandidate
@@ -12,8 +12,8 @@ from thelma.automation.tools.stock.tubepicking import TubeCandidate
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeDesign
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
+
 
 class PoolCandidateTestCase(ToolsAndUtilsTestCase):
 
@@ -81,7 +81,6 @@ class StockSampleCreationTubePickerTestCase(ToolsAndUtilsTestCase):
 
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
-        self.log = TestingLog()
         self.molecule_design_pools = []
         self.single_design_concentration = 50000 # 50 mM
         self.take_out_volume = 1
@@ -93,7 +92,6 @@ class StockSampleCreationTubePickerTestCase(ToolsAndUtilsTestCase):
 
     def tear_down(self):
         ToolsAndUtilsTestCase.tear_down(self)
-        del self.log
         del self.molecule_design_pools
         del self.single_design_concentration
         del self.take_out_volume
@@ -102,12 +100,12 @@ class StockSampleCreationTubePickerTestCase(ToolsAndUtilsTestCase):
         del self.pool_data
 
     def _create_tool(self):
-        self.tool = StockSampleCreationTubePicker(log=self.log,
-                  molecule_design_pools=self.molecule_design_pools,
-                  single_design_concentration=self.single_design_concentration,
-                  take_out_volume=self.take_out_volume,
-                  excluded_racks=self.excluded_racks,
-                  requested_tubes=self.requested_tubes)
+        self.tool = StockSampleCreationTubePicker(
+                                        self.molecule_design_pools,
+                                        self.single_design_concentration,
+                                        self.take_out_volume,
+                                        excluded_racks=self.excluded_racks,
+                                        requested_tubes=self.requested_tubes)
 
     def __continue_setup(self):
         self.__create_pools()

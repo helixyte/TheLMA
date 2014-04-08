@@ -20,15 +20,12 @@ from thelma.automation.tools.metadata.generation import WellAssociatorManual
 from thelma.models.racklayout import RackLayout
 from thelma.models.utils import get_user
 from thelma.tests.tools.tooltestingutils import FileReadingTestCase
-from thelma.tests.tools.tooltestingutils import SilentLog
-from thelma.tests.tools.tooltestingutils import TestingLog
+
 
 class _WellAssociatorTestCase(FileReadingTestCase):
 
     def set_up(self):
         FileReadingTestCase.set_up(self)
-        self.log = TestingLog()
-        self.silent_log = SilentLog()
         self.TEST_FILE_PATH = 'thelma:tests/tools/metadata/associator/'
         self.VALID_FILE = None
         # ini values
@@ -48,8 +45,6 @@ class _WellAssociatorTestCase(FileReadingTestCase):
 
     def tear_down(self):
         FileReadingTestCase.tear_down(self)
-        del self.log
-        del self.silent_log
         del self.experiment_design
         del self.source_layout
         del self.design_rack_layouts
@@ -70,24 +65,24 @@ class _WellAssociatorTestCase(FileReadingTestCase):
 
     def __parse_experiment_design(self):
         em_type = get_experiment_metadata_type(self.experiment_type_id)
-        ed_handler = ExperimentDesignParserHandler(stream=self.stream,
-                            requester=self.user, scenario=em_type,
-                            log=self.silent_log)
+        ed_handler = ExperimentDesignParserHandler(self.stream,
+                                                   self.user, em_type)
         self.experiment_design = ed_handler.get_result()
 
     def __parse_iso_request(self):
-        iso_handler = IsoRequestParserHandler.create(stream=self.stream,
-                            experiment_type_id=self.experiment_type_id,
-                            requester=self.user, log=self.silent_log)
+        iso_handler = IsoRequestParserHandler.create(self.experiment_type_id,
+                                                     self.stream,
+                                                     self.user,
+                                                     None)
         iso_request = iso_handler.get_result() #pylint: disable=W0612
         self.source_layout = iso_handler.get_transfection_layout()
 
     def __generate_design_rack_layouts(self):
         self.design_rack_layouts = dict()
         for design_rack in self.experiment_design.experiment_design_racks:
-            converter = TransfectionLayoutConverter(log=self.silent_log,
-                                    rack_layout=design_rack.rack_layout,
-                                    is_iso_request_layout=False)
+            converter = \
+                TransfectionLayoutConverter(design_rack.rack_layout,
+                                            is_iso_request_layout=False)
             tf_layout = converter.get_result()
             self.design_rack_layouts[design_rack.label] = tf_layout
 
@@ -169,10 +164,10 @@ class WellAssociatorTestCaseManual(_WellAssociatorTestCase):
                     D2=['C2', 'C3', 'C4', 'G2', 'G3', 'G4'])
 
     def _create_tool(self):
-        self.tool = WellAssociatorManual(log=self.log,
-                                source_layout=self.source_layout,
-                                experiment_design=self.experiment_design,
-                                design_rack_layouts=self.design_rack_layouts)
+        self.tool = \
+            WellAssociatorManual(self.experiment_design,
+                                 self.source_layout,
+                                 design_rack_layouts=self.design_rack_layouts)
 
     def test_result(self):
         self._continue_setup()
@@ -219,10 +214,10 @@ class WellAssociatorTestCaseOpti(_WellAssociatorTestCase):
         self.mock_labels = ['B8', 'B9', 'C8', 'C9']
 
     def _create_tool(self):
-        self.tool = WellAssociatorOptimisation(log=self.log,
-                                source_layout=self.source_layout,
-                                experiment_design=self.experiment_design,
-                                design_rack_layouts=self.design_rack_layouts)
+        self.tool = WellAssociatorOptimisation(self.experiment_design,
+                                               self.source_layout,
+                                               design_rack_layouts=
+                                                    self.design_rack_layouts)
 
     def _check_result(self):
         _WellAssociatorTestCase._check_result(self)

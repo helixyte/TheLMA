@@ -413,7 +413,7 @@ class _SeriesTool(BaseTool):
         """
         Executes a transfer job.
         """
-        executor = transfer_job.get_executor(user=self.user, parent=self)
+        executor = transfer_job.get_executor(self, self.user)
         executed_item = executor.get_result()
         if executed_item is None:
             msg = 'Error when trying to execute transfer job: %s.' \
@@ -529,7 +529,7 @@ class _SeriesWorklistWriter(_SeriesTool):
 
     def __get_writer(self, transfer_job):
         # Returns the writer for the given transfer job.
-        return transfer_job.get_worklist_writer(parent=self)
+        return transfer_job.get_worklist_writer(self)
 
     def __write_rack_transfer_section(self, rack_transfer_job):
         # Writes a section for the rack transfer stream (and initialises it
@@ -913,8 +913,7 @@ class SerialWriterExecutorTool(BaseTool):
 
     def __run_serial_writer(self):
         # Runs the seiral worklist writer.
-        writer = _SeriesWorklistWriter(transfer_jobs=self._transfer_jobs,
-                                       parent=self)
+        writer = _SeriesWorklistWriter(self._transfer_jobs, parent=self)
         stream_map = writer.get_result()
         if stream_map is None:
             msg = 'Error when running serial worklist printer.'

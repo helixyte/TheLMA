@@ -789,10 +789,7 @@ class ExperimentMetadataReportUploader(BaseTracTool):
         self.__assign_stream = None
         self.__attachments = []
 
-    def send_request(self):
-        """
-        Runs the tool.
-        """
+    def run(self):
         self.add_info('Start upload report generation ...')
         self.reset()
         self.__check_input()

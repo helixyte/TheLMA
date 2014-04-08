@@ -4,8 +4,9 @@ tests the ISO layout finder tool
 AAB Aug 03, 2011
 """
 
-from everest.repositories.rdb.testing import check_attributes
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
+
+from everest.repositories.rdb.testing import check_attributes
 from thelma.automation.handlers.experimentdesign import \
         ExperimentDesignParserHandler
 from thelma.automation.semiconstants \
@@ -25,8 +26,6 @@ from thelma.automation.tools.metadata.transfectionlayoutfinder \
     import _TransfectionTransferItem
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.utils import get_user
-from thelma.tests.tools.tooltestingutils import SilentLog
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 
@@ -86,8 +85,6 @@ class TransfectionLayoutFinderBaseTestCase(ToolsAndUtilsTestCase):
         self.FILE_PATH = 'thelma:tests/tools/metadata/iso_finder/'
         self.valid_file = 'valid_file.xls'
         self.experiment_design = None
-        self.log = TestingLog()
-        self.silent_log = SilentLog()
         self.user = get_user('it')
         # pos label - md pool, reagent name, reagent dil factor, final conc
         self.result_data = dict(
@@ -120,9 +117,10 @@ class TransfectionLayoutFinderBaseTestCase(ToolsAndUtilsTestCase):
         try:
             stream = open(f, 'rb')
             source = stream.read()
-            handler = ExperimentDesignParserHandler(stream=source,
-                            requester=self.user, log=self.silent_log,
-                            scenario=get_experiment_type_robot_optimisation())
+            handler = ExperimentDesignParserHandler(
+                                source,
+                                self.user,
+                                get_experiment_type_robot_optimisation())
             self.experiment_design = handler.get_result()
         finally:
             stream.close()
@@ -147,8 +145,7 @@ class TransfectionLayoutFinderBaseTestCase(ToolsAndUtilsTestCase):
 class TransfectionLayoutFinderTestCase(TransfectionLayoutFinderBaseTestCase):
 
     def _create_tool(self):
-        self.tool = TransfectionLayoutFinder(log=self.log,
-                                    experiment_design=self.experiment_design)
+        self.tool = TransfectionLayoutFinder(self.experiment_design)
 
     def _test_and_expect_errors(self, msg=None):
         TransfectionLayoutFinderBaseTestCase._test_and_expect_errors(self,
@@ -211,8 +208,7 @@ class TransfectionLayoutOptimizerTestCase(TransfectionLayoutFinderBaseTestCase):
         del self.placeholders
 
     def _create_tool(self):
-        self.tool = _TransfectionLayoutOptimizer(log=self.log,
-                                design_rack_layouts=self.design_rack_layouts)
+        self.tool = _TransfectionLayoutOptimizer(self.design_rack_layouts)
 
     def _continue_setup(self, file_name=None):
         if file_name is None: file_name = self.valid_file
@@ -223,10 +219,10 @@ class TransfectionLayoutOptimizerTestCase(TransfectionLayoutFinderBaseTestCase):
 
     def __convert_layouts(self):
         for design_rack in self.experiment_design.experiment_design_racks:
-            converter = TransfectionLayoutConverter(log=self.silent_log,
-                                        rack_layout=design_rack.rack_layout,
-                                        is_iso_request_layout=False,
-                                        is_mastermix_template=True)
+            converter = TransfectionLayoutConverter(
+                                            design_rack.rack_layout,
+                                            is_iso_request_layout=False,
+                                            is_mastermix_template=True)
             self.design_rack_layouts[design_rack.label] = converter.get_result()
 
     def __sort_floatings(self):

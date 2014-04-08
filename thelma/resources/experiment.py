@@ -9,7 +9,6 @@ import logging
 
 from pyramid.httpexceptions import HTTPBadRequest
 
-from everest.entities.interfaces import IEntity
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.querying.specifications import DescendingOrderSpecification
 from everest.querying.specifications import cntd
@@ -103,27 +102,6 @@ class ExperimentDesignMember(Member):
     experiments = collection_attribute(IExperiment, 'experiments')
     experiment_metadata = member_attribute(IExperimentMetadata,
                                            'experiment_metadata')
-
-
-    def update(self, data):
-        if IEntity.providedBy(data): # pylint:disable=E1101
-            entity = self.get_entity()
-            while entity.design_racks:
-                entity.design_racks.pop()
-            while data.design_racks:
-                new_rack = data.design_racks.pop()
-                entity.design_racks.append(new_rack)
-#                ws = rack.worklist_series
-#                rack.worklist_series = None
-#                # remove the back reference to avoid conflicts
-#                new_rack = ExperimentDesignRack(rack.label,
-#                                                rack.layout,
-#                                                worklist_series=ws)
-#                entity.design_racks.append(new_rack)
-            entity.rack_shape = data.rack_shape
-            entity.worklist_series = data.worklist_series
-        else:
-            Member.update(self, data)
 
 
 class ExperimentDesignCollection(Collection):
@@ -262,9 +240,9 @@ class ExperimentMetadataMember(Member):
 
     @classmethod
     def __run_trac_tool(cls, tool, error_msg_text):
-        tool.send_request()
+        tool.run()
         if not tool.transaction_completed():
-            exc_msg = str(tool.get_messages(logging.ERROR))
+            exc_msg = str(tool.get_messages(logging_level=logging.ERROR))
             raise HTTPBadRequest(error_msg_text % exc_msg).exception
         return tool.return_value
 

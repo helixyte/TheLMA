@@ -19,7 +19,8 @@ class BaseTool(MessageRecorder):
     """
     Abstract base class for all tools.
 
-    Its main purpose is to provide logging and parameter checking amenities.
+    Its main purpose is to provide message recording and parameter checking
+    amenities.
     """
     def __init__(self, parent=None):
         MessageRecorder.__init__(self, parent=parent)
@@ -113,7 +114,7 @@ class BaseTool(MessageRecorder):
             is_valid = all([self._check_input_class(item_name, item, item_cls)
                             for item in list_obj])
         if is_valid:
-            is_valid = len(list_obj) < 1 and not may_be_empty
+            is_valid = len(list_obj) > 0 or may_be_empty
             if not is_valid:
                 msg = 'The %s is empty!' % (list_name)
                 self.add_error(msg)
@@ -160,7 +161,7 @@ class BaseTool(MessageRecorder):
                     is_valid = False
                     break
         if is_valid:
-            is_valid = len(map_obj) < 1 and not may_be_empty
+            is_valid = len(map_obj) > 0 or may_be_empty
             if not is_valid:
                 msg = 'The %s is empty!' % (map_name)
                 self.add_error(msg)

@@ -43,8 +43,10 @@ class _LabIsoJobCreatorDummy(LabIsoJobCreator):
     This dummy only reduces the number of transfers required for a CyBio
     to simplify sector testing.
     """
-    def __init__(self, use_library_planner, **kw):
-        LabIsoJobCreator.__init__(self, **kw)
+    def __init__(self, use_library_planner, iso_request, job_owner,
+                 number_isos, **kw):
+        LabIsoJobCreator.__init__(self, iso_request, job_owner, number_isos,
+                                  **kw)
         self.use_library_planner = use_library_planner
 
     def _get_planner_class(self):
@@ -72,12 +74,13 @@ class LabIsoJobCreatorTestCase(LabIsoTestCase1):
         del self.use_library_planner
 
     def _create_tool(self):
-        self.tool = _LabIsoJobCreatorDummy(iso_request=self.iso_request,
-                     job_owner=self.user,
-                     number_isos=self.number_isos,
-                     excluded_racks=self.excluded_racks,
-                     requested_tubes=self.requested_tubes,
-                     use_library_planner=self.use_library_planner)
+        self.tool = \
+            _LabIsoJobCreatorDummy(self.use_library_planner,
+                                   self.iso_request,
+                                   self.user,
+                                   self.number_isos,
+                                   excluded_racks=self.excluded_racks,
+                                   requested_tubes=self.requested_tubes)
 
     def _continue_setup(self, file_name=None):
         LabIsoTestCase1._continue_setup(self, file_name=file_name)

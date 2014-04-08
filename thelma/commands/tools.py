@@ -245,7 +245,7 @@ class ToolCommand(Command):
             raise
         else:
             if tool.has_errors():
-                err_msgs = tool.log.get_messages()
+                err_msgs = tool.get_messages()
                 msg = 'Errors occurred during the tool run. Error messages:\n'
                 raise RuntimeError(msg + os.linesep.join(err_msgs))
             warn_msgs = tool.get_messages(logging_level=logging.WARNING)
@@ -782,7 +782,7 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #            uploader = LibraryCreationTicketWorklistUploader(
 #                        library_creation_iso=tool.library_creation_iso,
 #                        file_map=tool.return_value)
-#            uploader.send_request()
+#            uploader.run()
 #            if not uploader.transaction_completed():
 #                msg = 'Error during transmission to Trac!'
 #                print msg
@@ -826,15 +826,15 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
 #        if not tool.has_errors() and not options.simulate:
 #            reporter = LibraryCreationStockTransferReporter(
 #                        executor=tool)
-#            reporter.send_request()
+#            reporter.run()
 #            if not reporter.transaction_completed():
 #                msg = 'Error during transmission to Trac!'
 #                print msg
 
 
-class PoolGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
+class StockSampleCreationIsoRequestGenerator(ToolCommand): # no __init__ pylint: disable=W0232
     """
-    Runs the pool stock sample creator tool.
+    Runs the stock sample ISO Request Generator tool.
     """
     _excel_file_callback = LazyOptionCallback(lambda cls, value, options:
                                             open(value, 'rb').read())
@@ -842,7 +842,7 @@ class PoolGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
             LazyOptionCallback(lambda cls, value, options:
                             get_root_aggregate(IUser).get_by_slug(value))
 
-    name = 'poolcreationlibrarygenerator'
+    name = 'stocksamplecreationisorequestgenerator'
     tool = 'thelma.automation.tools.iso.poolcreation.generation:StockSampleCreationIsoRequestGenerator'
     option_defs = [('--iso-request-label',
                     'iso_request_label',
@@ -856,14 +856,6 @@ class PoolGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
                          type='string',
                          callback=_excel_file_callback)
                     ),
-                   ('--requester',
-                    'requester',
-                    dict(help='User name to use as the owner of the Trac '
-                              'ticket.',
-                         action='callback',
-                         type='string',
-                         callback=_user_callback),
-                   ),
                    ('--target-volume',
                     'target_volume',
                     dict(help='The final volume for the new pool stock '
@@ -885,7 +877,12 @@ class PoolGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
             ir_agg.add(tool.return_value)
 
 
-class PoolCreationIsoGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
+def _ticket_numbers_callback(option, name, value, parser): # pylint: disable=W0613
+    nums = [int(num) for num in value.split(',')]
+    setattr(parser.values, option.dest, nums)
+
+
+class StockSampleCreationIsoGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
     """
     Creates ISOs for a pool stock sample creation ISO request.
     """
@@ -897,36 +894,43 @@ class PoolCreationIsoGeneratorToolCommand(ToolCommand): # no __init__ pylint: di
         return list(ir_agg.iterator())[0]
 
     _iso_request_callback = LazyOptionCallback(lambda cls, value, options: # pylint: disable=W0108
-                    PoolCreationIsoGeneratorToolCommand.get_iso_request(value))
+                    StockSampleCreationIsoGeneratorToolCommand.get_iso_request(value))
 
-    name = 'poolcreationisogenerator'
-    tool = 'thelma.automation.tools.iso.poolcreation.ticket:StockSampleCreationIsoCreator'
+    name = 'stocksamplecreationisocreator'
+    tool = 'thelma.automation.tools.iso.poolcreation.generation:StockSampleCreationIsoCreator'
     option_defs = [('--iso-request-label',
                     'iso_request',
-                    dict(help='The label of the ISO request whose ISOs to ' \
-                              'create.',
+                    dict(help='The label of the ISO request for which ISOs ' \
+                               'will be created.',
                         action='callback',
                         type='string',
                         callback=_iso_request_callback),
-                    )
+                    ),
+                   ('--ticket-numbers',
+                    'ticket_numbers',
+                    dict(help='The ticket numbers for the ISOs to generate',
+                         action='callback',
+                         type='string',
+                         callback=_ticket_numbers_callback),
+                    ),
+                   ('--reporter',
+                    'reporter',
+                    dict(help='Reporter of the tickets, if tickets should ' \
+                              'be created for the new ISOs.',
+                         type='string'),
+                    ),
                    ]
 
-class PoolCreationIsoJobCreatorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
-
-    @classmethod
-    def get_iso_request(cls, value):
-        ir_agg = get_root_aggregate(IStockSampleCreationIsoRequest)
-        ir_agg.filter = eq(label=value)
-        return list(ir_agg.iterator())[0]
+class StockSampleCreationIsoJobGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
 
     _iso_request_callback = LazyOptionCallback(lambda cls, value, options: # pylint: disable=W0108
-                    PoolCreationIsoGeneratorToolCommand.get_iso_request(value))
+                    StockSampleCreationIsoGeneratorToolCommand.get_iso_request(value))
 
     _user_callback = \
             LazyOptionCallback(lambda cls, value, options:
                             get_root_aggregate(IUser).get_by_slug(value))
 
-    name = 'poolcreationisogenerator'
+    name = 'stocksamplecreationisojobcreator'
     tool = 'thelma.automation.tools.iso.poolcreation.jobcreator:StockSampleCreationIsoJobCreator'
 
     option_defs = [('--iso-request-label',
@@ -958,7 +962,7 @@ class PoolCreationIsoJobCreatorToolCommand(ToolCommand): # no __init__ pylint: d
             ij_agg.add(tool.return_value)
 
 
-class PoolCreationWorklistWriterToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
+class StockSampleCreationWorklistWriterToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
 
     @classmethod
     def get_iso(cls, value):
@@ -967,12 +971,12 @@ class PoolCreationWorklistWriterToolCommand(ToolCommand): # no __init__ pylint: 
         return list(agg.iterator())[0]
 
     _iso_callback = LazyOptionCallback(lambda cls, value, options: # pylint: disable=W0108
-                    PoolCreationWorklistWriterToolCommand.get_iso(value))
+                    StockSampleCreationWorklistWriterToolCommand.get_iso(value))
 
     _tube_destination_racks_callback = LazyOptionCallback(lambda cls, value, options:
                                                   value.split(','))
 
-    name = 'poolcreationworklistwriter'
+    name = 'stocksamplecreationworklistwriter'
     tool = 'thelma.automation.tools.iso.poolcreation.writer:StockSampleCreationWorklistWriter'
     option_defs = [('--iso',
                     'iso',
@@ -1004,7 +1008,8 @@ class PoolCreationWorklistWriterToolCommand(ToolCommand): # no __init__ pylint: 
                     'use_single_source_rack',
                     dict(help='If there are only few pools to be created the ' \
                               'user might want to use a single stock rack.',
-                         type='string')
+                         action='store_true',
+                         default=False)
                    )]
 
     @classmethod
@@ -1012,13 +1017,13 @@ class PoolCreationWorklistWriterToolCommand(ToolCommand): # no __init__ pylint: 
         if not tool.has_errors() and not options.simulate:
             uploader = StockSampleCreationTicketWorklistUploader(
                         writer=tool)
-            uploader.send_request()
+            uploader.run()
             if not uploader.transaction_completed():
                 msg = 'Error during transmission to Trac!'
                 print msg
 
 
-class PoolCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
+class StockSampleCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
 
     @classmethod
     def get_iso(cls, value):
@@ -1028,12 +1033,12 @@ class PoolCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: disabl
 
     _iso_callback = \
         LazyOptionCallback(lambda cls, value, options: # pylint: disable=W0108
-                   PoolCreationExecutorToolCommand.get_iso(value))
+                   StockSampleCreationExecutorToolCommand.get_iso(value))
     _user_callback = \
         LazyOptionCallback(lambda cls, value, options:
                         get_root_aggregate(IUser).get_by_slug(value))
 
-    name = 'poolcreationexecutor'
+    name = 'stocksamplecreationexecutor'
     tool = 'thelma.automation.tools.iso.poolcreation.execution:StockSampleCreationExecutor'
     option_defs = [('--iso',
                     'iso',
@@ -1057,7 +1062,7 @@ class PoolCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: disabl
         if not tool.has_errors() and not options.simulate:
             reporter = StockSampleCreationStockTransferReporter(
                         executor=tool)
-            reporter.send_request()
+            reporter.run()
             if not reporter.transaction_completed():
                 msg = 'Error during transmission to Trac!'
                 print msg

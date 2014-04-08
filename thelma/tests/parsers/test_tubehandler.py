@@ -4,9 +4,12 @@ Tests for classes involved in tubehandler output file parsing.
 AAB
 """
 from datetime import datetime
+
+from pkg_resources import resource_filename # pylint: disable=E0611,F0401
+import pytz
+
 from everest.repositories.rdb.testing import RdbContextManager
 from everest.repositories.rdb.testing import check_attributes
-from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 from thelma.automation.handlers.tubehandler import XL20OutputParserHandler
 from thelma.automation.parsers.tubehandler import XL20OutputParser
 from thelma.automation.parsers.tubehandler import XL20TransferParsingContainer
@@ -18,9 +21,7 @@ from thelma.models.container import ContainerLocation
 from thelma.models.container import Tube
 from thelma.models.rack import TubeRack
 from thelma.tests.tools.tooltestingutils import ParsingTestCase
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
-import pytz
 
 
 class XL20TransferParsingContainerTestCase(ToolsAndUtilsTestCase):
@@ -36,7 +37,7 @@ class XL20TransferParsingContainerTestCase(ToolsAndUtilsTestCase):
 
     def __get_init_data(self):
         line_values = self.line.split(XL20OutputParser.SEPARATOR)
-        return dict(parser=XL20OutputParser(stream=None, log=TestingLog()),
+        return dict(parser=XL20OutputParser(stream=None),
                     line_index=3, line_values=line_values)
 
     def __get_expected_attributes(self):
@@ -97,7 +98,7 @@ class XL20OutputTestCase(ParsingTestCase):
 class XL20OutputParserTestCase(XL20OutputTestCase):
 
     def _create_tool(self):
-        self.tool = XL20OutputParser(stream=self.stream, log=self.log)
+        self.tool = XL20OutputParser(self.stream)
 
     def __continue_setup(self, file_name=None, as_stream=True):
         if file_name is None: file_name = self.VALID_FILE
@@ -185,7 +186,7 @@ class XL20OutputParserHandlerTestCase(XL20OutputTestCase):
         del self.racks
 
     def _create_tool(self):
-        self.tool = XL20OutputParserHandler(log=self.log, stream=self.stream)
+        self.tool = XL20OutputParserHandler(self.stream)
 
     def __continue_setup(self, session, file_name=None):
         if file_name is None: file_name = self.VALID_FILE

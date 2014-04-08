@@ -138,18 +138,15 @@ class ExperimentManualExecutor(ExperimentTool):
         """
         Fetches the transfection layouts for each design rack.
         """
-        converter = TransfectionLayoutConverter(
-                                        rack_layout=design_rack.rack_layout,
-                                        is_iso_request_layout=False,
-                                        parent=self)
+        converter = TransfectionLayoutConverter(design_rack.rack_layout,
+                                                is_iso_request_layout=False,
+                                                parent=self)
         tf_layout = converter.get_result()
         if tf_layout is None:
             msg = 'Could not get layout for design rack "%s"!' \
                   % (design_rack.label)
             self.add_error(msg)
-            return None
-        else:
-            return tf_layout
+        return tf_layout
 
     def __create_rack_samples(self, layout, design_rack):
         """

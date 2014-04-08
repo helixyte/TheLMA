@@ -36,7 +36,7 @@
 #class LibraryMemberParserTestCase(LibraryMemberTestCase):
 #
 #    def _create_tool(self):
-#        self.tool = LibraryMemberParser(stream=self.stream, log=self.log)
+#        self.tool = LibraryMemberParser(self.stream)
 #
 #    def _test_invalid_file(self, file_name, msg):
 #        self._continue_setup(file_name)
@@ -81,10 +81,9 @@
 #        del self.molecule_type
 #
 #    def _create_tool(self):
-#        self.tool = LibraryMemberParserHandler(log=self.log,
-#                                   stream=self.stream,
-#                                   number_molecule_designs=self.number_designs,
-#                                   molecule_type=self.molecule_type)
+#        self.tool = LibraryMemberParserHandler(self.stream,
+#                                               self.number_designs,
+#                                               self.molecule_type)
 #
 #    def test_result(self):
 #        self._continue_setup()

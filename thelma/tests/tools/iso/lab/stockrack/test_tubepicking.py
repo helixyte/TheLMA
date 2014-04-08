@@ -15,14 +15,13 @@ from thelma.automation.tools.stock.tubepicking import SinglePoolQuery
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
 from thelma.interfaces import ITube
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
+
 
 class LabIsoXL20TubePickerTestCase(ToolsAndUtilsTestCase):
 
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
-        self.log = TestingLog()
         self.session = None
         self.stock_tube_containers = dict()
         self.excluded_racks = []
@@ -49,10 +48,9 @@ class LabIsoXL20TubePickerTestCase(ToolsAndUtilsTestCase):
         del self.rack_map
 
     def _create_tool(self):
-        self.tool = LabIsoXL20TubePicker(log=self.log,
-                            stock_tube_containers=self.stock_tube_containers,
-                            excluded_racks=self.excluded_racks,
-                            requested_tubes=self.requested_tubes)
+        self.tool = LabIsoXL20TubePicker(self.stock_tube_containers,
+                                         excluded_racks=self.excluded_racks,
+                                         requested_tubes=self.requested_tubes)
 
     def _continue_setup(self):
         self.__create_stock_tube_containers()

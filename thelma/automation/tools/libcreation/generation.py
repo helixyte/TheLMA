@@ -168,11 +168,10 @@
 #        """
 #        self.add_debug('Create worklist series ...')
 #
-#        generator = LibraryCreationWorklistGenerator(
-#                                base_layout=self.__base_layout,
-#                                stock_concentration=self.__stock_concentration,
-#                                library_name=self.library_name,
-#                                parent=self)
+#        generator = LibraryCreationWorklistGenerator(self.__base_layout,
+#                                                     self.__stock_concentration,
+#                                                     self.library_name,
+#                                                     parent=self)
 #        self.__worklist_series = generator.get_result()
 #
 #        if self.__worklist_series is None:

@@ -249,7 +249,7 @@ class ConverterTestCase(ToolsAndUtilsTestCase):
             self.tag_data[k].insert(i, None)
 
     def _get_kw(self):
-        return dict(rack_layout=self.rack_layout, parent=self)
+        return dict(rack_layout=self.rack_layout)
 
     def _test_result(self, continue_setup=True):
         if continue_setup: self._continue_setup()

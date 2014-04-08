@@ -60,6 +60,7 @@ class BaseParserHandler(BaseTool):
         Initializes and runs the parser; if successful, creates a result
         entity.
         """
+        self.reset()
         self._initialize_parser()
         self.parser.run()
         if self.parsing_completed():
@@ -180,12 +181,9 @@ class LayoutParserHandler(BaseParserHandler): #pylint: disable=W0223
         Create a rack position set from a set of rack position
         parsing containers.
         """
-        positions = []
-        for position_container in position_containers:
-            rack_pos = self._convert_to_rack_position(position_container)
-            positions.append(rack_pos)
-        return RackPositionSet.from_positions(positions)
-
+        return RackPositionSet.from_positions(
+                                    [self._convert_to_rack_position(pos)
+                                     for pos in position_containers])
 
 class MoleculeDesignPoolLayoutParserHandler(LayoutParserHandler): #pylint: disable=W0223
     """

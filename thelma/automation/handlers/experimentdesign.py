@@ -114,7 +114,7 @@ class ExperimentDesignParserHandler(MoleculeDesignPoolLayoutParserHandler):
         :type scenario: :class:`thelma.models.experiment.ExperimentMetadataType`
         """
         MoleculeDesignPoolLayoutParserHandler.__init__(self, stream,
-                                                       stream=stream)
+                                                       parent=parent)
         #: The user uploading the file.
         self.requester = requester
         #: A :class:`ExperimentMetadataType` supported by this handler subclass.

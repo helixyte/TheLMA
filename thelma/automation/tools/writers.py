@@ -36,14 +36,8 @@ class CsvWriter(BaseTool):
     #: The delimiter used to separate columns.
     DELIMITER = ','
 
-    def __init__(self, log=None, depending=True):
-        """
-        Constructor:
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        BaseTool.__init__(self, log, depending=depending)
+    def __init__(self, parent=None):
+        BaseTool.__init__(self, parent=parent)
         #: The stream to be generated.
         self.__stream = None
         #: Maps :class:`CsvColumnDictionary`s onto column indices.

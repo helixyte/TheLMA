@@ -42,15 +42,14 @@ from thelma.tests.tools.iso.lab.utils import LabIsoTestCase2
 from thelma.tests.tools.iso.lab.utils import TestLibraryGenerator
 from thelma.tests.tools.iso.lab.utils import TestTubeGenerator
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.utils.utils import VerifierTestCase
+
 
 class LabIsoPlateVerifierTestCase(VerifierTestCase):
 
     def set_up(self):
         VerifierTestCase.set_up(self)
         self.plate_type = RACK_TYPES.PLATE
-        self.log = TestingLog()
         self.lab_iso_plate = None
         self.for_job = False
         self.lab_iso_layout = None
@@ -73,9 +72,7 @@ class LabIsoPlateVerifierTestCase(VerifierTestCase):
         del self.test_final_layout
 
     def _create_tool(self):
-        self.tool = LabIsoPlateVerifier(log=self.log,
-                                        lab_iso_plate=self.lab_iso_plate,
-                                        for_job=self.for_job,
+        self.tool = LabIsoPlateVerifier(self.lab_iso_plate, self.for_job,
                                         lab_iso_layout=self.lab_iso_layout)
 
     def _init_layout(self):

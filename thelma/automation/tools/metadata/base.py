@@ -778,16 +778,11 @@ class TransfectionLayout(IsoRequestLayout):
         :type iso_request_rack_layout:
             :class:`thelma.models.racklayout.RackLayout`
         """
-
-        trps_map = dict()
-
-        for trps in exp_rack_layout.tagged_rack_position_sets:
-            hash_value = trps.rack_position_set.hash_value
-            trps_map[hash_value] = trps
-
+        trps_map = \
+                dict([(trps.rack_position_set.hash_value, trps)
+                      for trps in exp_rack_layout.tagged_rack_position_sets])
         excluded_parameters = [IsoRequestParameters.ISO_VOLUME,
                                IsoRequestParameters.ISO_CONCENTRATION]
-
         for trps in iso_request_rack_layout.tagged_rack_position_sets:
             hash_value = trps.rack_position_set
             tags = []
@@ -807,7 +802,6 @@ class TransfectionLayout(IsoRequestLayout):
                 trps = TaggedRackPositionSet(set(tags), trps.rack_position_set,
                                              user)
                 trps_map[hash_value] = trps
-
         return RackLayout(shape=exp_rack_layout.shape,
                           tagged_rack_position_sets=trps_map.values())
 
@@ -1173,9 +1167,9 @@ class TransfectionAssociationData(IsoRequestAssociationData):
     """
     ASSOCIATOR_CLS = TransfectionSectorAssociator
 
-    def __init__(self, layout, regard_controls, tool):
-        IsoRequestAssociationData.__init__(self, layout, regard_controls,
-                                           tool)
+    def __init__(self, layout, tool, regard_controls):
+        IsoRequestAssociationData.__init__(self, layout, tool,
+                                           regard_controls)
         self.__iso_concentrations = None
         self.__find_iso_concentrations(layout, regard_controls)
 

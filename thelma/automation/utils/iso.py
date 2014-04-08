@@ -517,7 +517,7 @@ class IsoRequestAssociationData(AssociationData):
     #: :class:`IsoRequestSectorAssociator`).
     ASSOCIATOR_CLS = IsoRequestSectorAssociator
 
-    def __init__(self, layout, regard_controls, tool):
+    def __init__(self, layout, tool, regard_controls):
         """
         Constructor.
 
@@ -559,21 +559,23 @@ class IsoRequestAssociationData(AssociationData):
                 concentrations.add(conc)
         return concentrations
 
-    def _init_value_determiner(self, layout, log):
+    def _init_value_determiner(self, layout, tool):
         """
         The name of the concentration attribute is derived from the
         :attr:`ASSOCIATOR_CLS`.
         """
-        value_determiner = IsoRequestValueDeterminer(iso_request_layout=layout,
-                         regard_controls=self.__regard_controls,
-                         attribute_name=self.ASSOCIATOR_CLS.SECTOR_ATTR_NAME,
-                         log=log, number_sectors=self._number_sectors)
+        value_determiner = \
+            IsoRequestValueDeterminer(layout,
+                                      self.ASSOCIATOR_CLS.SECTOR_ATTR_NAME,
+                                      self._number_sectors,
+                                      self.__regard_controls,
+                                      parent=tool)
         return value_determiner
 
-    def _init_associator(self, layout, log):
-        kw = dict(layout=layout, log=log,
-                  regard_controls=self.__regard_controls)
-        associator = self.ASSOCIATOR_CLS(**kw)
+    def _init_associator(self, layout, tool):
+        args = (layout, self.__regard_controls)
+        kw = dict(parent=tool)
+        associator = self.ASSOCIATOR_CLS(*args, **kw)
         return associator
 
     def __find_volumes(self, layout, tool):
@@ -610,7 +612,7 @@ class IsoRequestAssociationData(AssociationData):
         """
         regard_controls = True
         kw = dict(layout=layout,
-                  parent=tool,
+                  tool=tool,
                   regard_controls=regard_controls)
         try:
             ad = cls(**kw)

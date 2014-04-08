@@ -30,7 +30,6 @@ from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from thelma.tests.tools.tooltestingutils \
     import ExperimentMetadataReadingTestCase
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 from thelma.tests.tools.tooltestingutils import TracToolTestCase
 from tractor.ticket import RESOLUTION_ATTRIBUTE_VALUES
@@ -100,7 +99,6 @@ class IsoTicketDescriptionBuilderTestCase(FileCreatorTestCase):
 
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
-        self.log = TestingLog()
         self.experiment_metadata = None
         self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
         self.em_link = 'http://em_test_link.lnk'
@@ -127,7 +125,6 @@ class IsoTicketDescriptionBuilderTestCase(FileCreatorTestCase):
 
     def tear_down(self):
         ToolsAndUtilsTestCase.tear_down(self)
-        del self.log
         del self.experiment_metadata
         del self.experiment_type_id
         del self.em_link
@@ -139,10 +136,9 @@ class IsoTicketDescriptionBuilderTestCase(FileCreatorTestCase):
         del self.subproject
 
     def _create_tool(self):
-        self.tool = IsoRequestTicketDescriptionBuilder(log=self.log,
-                            experiment_metadata=self.experiment_metadata,
-                            experiment_metadata_link=self.em_link,
-                            iso_request_link=self.ir_link)
+        self.tool = IsoRequestTicketDescriptionBuilder(self.experiment_metadata,
+                                                       self.em_link,
+                                                       self.ir_link)
 
     def __continue_setup(self):
         self.__create_test_experiment_metadata()
@@ -294,7 +290,7 @@ class IsoRequestTicketDescriptionRemoverTestCase(
                            changed_em_type=self.changed_em_type)
 
     def __check_result(self):
-        self.tool.send_request()
+        self.tool.run()
         self.assert_true(self.tool.transaction_completed())
         updated_ticket = self.tool.return_value
         self.assert_equal(updated_ticket.ticket_id, self.ticket_id)
@@ -354,7 +350,7 @@ class IsoRequestTicketDescriptionUpdaterTestCase(
 
     def __check_result(self):
         self._continue_setup()
-        self.tool.send_request()
+        self.tool.run()
         self.assert_true(self.tool.transaction_completed())
         update_ticket = self.tool.return_value
         self.assert_equal(update_ticket.ticket_id, self.ticket_id)
@@ -402,7 +398,7 @@ class IsoRequestTicketActivatorTestCase(_IsoRequestTicketUpdateToolTestCase):
 
     def test_result(self):
         self._continue_setup()
-        self.tool.send_request()
+        self.tool.run()
         self.assert_true(self.tool.transaction_completed())
         updated_ticket = self.tool.return_value
         self.assert_equal(updated_ticket.ticket_id, self.ticket_id)
@@ -434,7 +430,7 @@ class IsoRequestTicketAccepterTestCase(_IsoRequestTicketUpdateToolTestCase):
 
     def test_result(self):
         self._continue_setup()
-        self.tool.send_request()
+        self.tool.run()
         self.assert_true(self.tool.transaction_completed())
         updated_ticket = self.tool.return_value
         self.assert_equal(updated_ticket.ticket_id, self.ticket_id)
@@ -472,9 +468,9 @@ class IsoRequestTicketReassignerTestCase(_IsoRequestTicketUpdateToolTestCase,
 
     def test_result_without_closing(self):
         self._continue_setup()
-        self.tool.send_request()
+        self.tool.run()
         self.assert_true(self.tool.transaction_completed())
-        updated_ticket, comment, tool_stream = self.tool.return_value
+        updated_ticket, comment, tool_stream = self.tool.return_value # pylint:disable=W0633
         self.assert_equal(updated_ticket.ticket_id, self.ticket_id)
         self.assert_equal(updated_ticket.owner,
                           self.iso_request.requester.directory_user_id)
@@ -490,9 +486,9 @@ class IsoRequestTicketReassignerTestCase(_IsoRequestTicketUpdateToolTestCase,
         md_set = self.experiment_metadata.molecule_design_pool_set
         self._create_lab_iso(label='test_iso', iso_request=self.iso_request,
             molecule_design_pool_set=md_set, status=ISO_STATUS.DONE)
-        self.tool.send_request()
+        self.tool.run()
         self.assert_true(self.tool.transaction_completed())
-        updated_ticket, comment, tool_stream = self.tool.return_value
+        updated_ticket, comment, tool_stream = self.tool.return_value # pylint:disable=W0633
         self.assert_equal(updated_ticket.ticket_id, self.ticket_id)
         self.assert_equal(updated_ticket.owner,
                           self.iso_request.requester.directory_user_id)
@@ -520,9 +516,9 @@ class IsoRequestTicketReassignerTestCase(_IsoRequestTicketUpdateToolTestCase,
             molecule_design_pool_set=iso_set, status=ISO_STATUS.DONE)
         self._create_lab_iso(label='queued_iso', iso_request=self.iso_request,
             molecule_design_pool_set=pool_set, status=ISO_STATUS.QUEUED)
-        self.tool.send_request()
+        self.tool.run()
         self.assert_true(self.tool.transaction_completed())
-        updated_ticket, comment, tool_stream = self.tool.return_value
+        updated_ticket, comment, tool_stream = self.tool.return_value # pylint:disable=W0633
         self.assert_equal(updated_ticket.ticket_id, self.ticket_id)
         self.assert_equal(updated_ticket.owner,
                           self.iso_request.requester.directory_user_id)
@@ -565,13 +561,13 @@ class IsoRequestTicketReopenerTestCase(_IsoRequestTicketUpdateToolTestCase):
         _IsoRequestTicketUpdateToolTestCase._continue_setup(self)
         closer = IsoRequestTicketReassigner(iso_request=self.iso_request,
                                             completed=True)
-        closer.send_request()
+        closer.run()
         self.assert_equal(closer.return_value[0].status,
                           STATUS_ATTRIBUTE_VALUES.CLOSED)
 
     def test_result(self):
         self._continue_setup()
-        self.tool.send_request()
+        self.tool.run()
         self.assert_true(self.tool.transaction_completed())
         updated_ticket = self.tool.return_value
         self.assert_equal(updated_ticket.ticket_id, self.ticket_id)

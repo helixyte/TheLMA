@@ -50,7 +50,7 @@ class PoolCreationSetParsingTestCase(ParsingTestCase):
 class PoolCreationSetParserTestCase(PoolCreationSetParsingTestCase):
 
     def _create_tool(self):
-        self.tool = PoolCreationSetParser(stream=self.stream, log=self.log)
+        self.tool = PoolCreationSetParser(self.stream)
 
     def __check_result(self, file_name=None, exp_md_lists=None, exp_pools=None):
         self._continue_setup(file_name)
@@ -117,8 +117,7 @@ class PoolCreationSetParserTestCase(PoolCreationSetParsingTestCase):
 class PoolCreationSetParserHandlerTestCase(PoolCreationSetParsingTestCase):
 
     def _create_tool(self):
-        self.tool = PoolCreationSetParserHandler(log=self.log,
-                                                 stream=self.stream)
+        self.tool = PoolCreationSetParserHandler(self.stream)
 
     def __get_expected_number_designs(self):
         return 3

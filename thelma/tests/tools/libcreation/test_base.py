@@ -21,7 +21,6 @@
 #from thelma.interfaces import IMoleculeDesignPool
 #from thelma.models.racklayout import RackLayout
 #from thelma.models.tagging import Tag
-#from thelma.tests.tools.tooltestingutils import TestingLog
 #from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 #
 #
@@ -210,7 +209,6 @@
 #        ToolsAndUtilsTestCase.set_up(self)
 #        self.shape = get_96_rack_shape()
 #        self.rack_layout = None
-#        self.log = TestingLog()
 #        self.a1_pos = get_rack_position_from_label('A1')
 #        self.b1_pos = get_rack_position_from_label('B1')
 #        self.c1_pos = get_rack_position_from_label('C1')
@@ -224,7 +222,6 @@
 #        ToolsAndUtilsTestCase.tear_down(self)
 #        del self.shape
 #        del self.rack_layout
-#        del self.log
 #        del self.a1_pos
 #        del self.b1_pos
 #        del self.c1_pos
@@ -233,8 +230,7 @@
 #        del self.other_tag
 #
 #    def _create_tool(self):
-#        self.tool = LibraryBaseLayoutConverter(rack_layout=self.rack_layout,
-#                                               log=self.log)
+#        self.tool = LibraryBaseLayoutConverter(self.rack_layout)
 #
 #    def __test_and_expect_errors(self, msg=None):
 #        self.__create_test_layout()
@@ -541,7 +537,6 @@
 #        ToolsAndUtilsTestCase.set_up(self)
 #        self.shape = get_96_rack_shape()
 #        self.rack_layout = None
-#        self.log = TestingLog()
 #        self.a1_pos = get_rack_position_from_label('A1')
 #        self.b1_pos = get_rack_position_from_label('B1')
 #        self.pool_tag1 = Tag(LibraryParameters.DOMAIN, LibraryParameters.POOL,
@@ -566,7 +561,6 @@
 #        ToolsAndUtilsTestCase.tear_down(self)
 #        del self.shape
 #        del self.rack_layout
-#        del self.log
 #        del self.a1_pos
 #        del self.b1_pos
 #        del self.pool_tag1
@@ -578,8 +572,7 @@
 #        del self.other_tag
 #
 #    def _create_tool(self):
-#        self.tool = LibraryLayoutConverter(rack_layout=self.rack_layout,
-#                                           log=self.log)
+#        self.tool = LibraryLayoutConverter(self.rack_layout)
 #
 #    def __test_and_expect_errors(self, msg):
 #        self.__create_test_layout()

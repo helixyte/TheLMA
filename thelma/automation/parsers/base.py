@@ -633,15 +633,17 @@ class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
                 self._create_error(self.__INVALID_FACTOR_DEF_MSG, cell_name)
                 result = False
             else:
-                level_cell_value = \
-                    self._get_cell_value(self._current_row + 1, 0).lower()
-                if not isinstance(level_cell_value, str) \
-                   or not level_cell_value.startswith(self._LEVEL_MARKER):
+                lc_value = self._get_cell_value(self._current_row + 1, 0)
+                if not isinstance(lc_value, str) \
+                   or not lc_value.lower().startswith(self._LEVEL_MARKER):
                     cell_name = self._get_cell_name(self._current_row + 1, 0)
                     self._create_error(self.__INVALID_FACTOR_DEF_MSG,
                                        cell_name)
-                result = False
-            return result
+                    result = False
+                else:
+                    # Success!
+                    result = True
+        return result
 
     def _get_tag_label(self, column_index):
         """
@@ -850,27 +852,26 @@ class ExcelLayoutSheetParsingContainer(ExcelSheetParsingContainer):
             if col_value != rack_col + 1:
                 break
             rack_col += 1
-        result = None
         if not (rack_row, rack_col) in self._parser.allowed_rack_dimensions:
             msg = 'Invalid layout block shape (%ix%i). Make sure you ' \
                   'have placed an "%s" maker, too.' % (rack_row, rack_col,
                                                        self._END_MARKER)
             self._create_error(msg, self._get_cell_name(start_row, start_col))
+            result = None
         else:
             shape = RackShapeParsingContainer(self._parser, rack_row,
                                               rack_col)
+            result = shape
             if self._parser.HAS_COMMON_LAYOUT_DIMENSION:
-                if not shape == self._parser.shape:
+                if self._parser.shape is None:
+                    self._parser.shape = shape
+                elif not shape == self._parser.shape:
                     msg = 'There are 2 different layout shapes in the file ' \
                           '(%s and %s). For this parser, all layout ' \
                           'dimensions have to be the same.' \
                           % (shape, self._parser.shape)
                     self._create_error(msg)
-                else:
-                    if self._parser.shape is None:
-                        self._parser.shape = shape
-                    # Success!
-                    result = shape
+                    result = None
         return result
 
     def _parse_layout_specifiers(self, layout_specifier, layout_container):

@@ -34,7 +34,7 @@ class LibraryBaseLayoutInputTestCase(ParsingTestCase):
 class LibraryBaseLayoutParserTestCase(LibraryBaseLayoutInputTestCase):
 
     def _create_tool(self):
-        self.tool = LibraryBaseLayoutParser(stream=self.stream, log=self.log)
+        self.tool = LibraryBaseLayoutParser(self.stream)
 
     def _test_invalid_file(self, file_name, msg):
         self._continue_setup(file_name)
@@ -74,8 +74,7 @@ class LibraryBaseLayoutParserTestCase(LibraryBaseLayoutInputTestCase):
 class LibraryBaseLayoutParserHandlerTestCase(LibraryBaseLayoutInputTestCase):
 
     def _create_tool(self):
-        self.tool = LibraryBaseLayoutParserHandler(log=self.log,
-                                                   stream=self.stream)
+        self.tool = LibraryBaseLayoutParserHandler(self.stream)
 
     def test_result(self):
         self._continue_setup()

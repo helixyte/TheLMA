@@ -5,11 +5,11 @@ AAB
 """
 from StringIO import StringIO
 from datetime import datetime
+
 from thelma.automation.parsers.tubehandler import XL20OutputParser
 from thelma.automation.tools.dummies import XL20Dummy
-from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 from thelma.automation.tools.writers import LINEBREAK_CHAR
-from thelma.tests.tools.tooltestingutils import TestingLog
+from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 
 class XL20OutputFileCreatorTestCase(ToolsAndUtilsTestCase):
@@ -17,7 +17,6 @@ class XL20OutputFileCreatorTestCase(ToolsAndUtilsTestCase):
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
         self.WL_PATH = 'thelma:tests/tools/worklists/xl20outputwriter/'
-        self.log = TestingLog()
         self.worklist_stream = None
         self.worklist = \
         '''"Source Rack";"Source Position";"Tube Barcode";"Destination Rack";"Destination Position"
@@ -37,8 +36,7 @@ class XL20OutputFileCreatorTestCase(ToolsAndUtilsTestCase):
         del self.exp_output
 
     def _create_tool(self):
-        self.tool = XL20Dummy(xl20_worklist_stream=self.worklist_stream,
-                              log=self.log)
+        self.tool = XL20Dummy(self.worklist_stream)
 
     def __continue_setup(self):
         self.worklist_stream = StringIO(self.worklist)

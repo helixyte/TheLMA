@@ -73,15 +73,18 @@ class IsoStockTransferReporter(BaseTracTool):
         self._comment = None
         self._ticket_number = None
 
-    def send_request(self):
+    def run(self):
         self.reset()
         self.add_info('Start report generation ...')
-
         self.__check_input()
-        if not self.has_errors(): self._fetch_executor_data()
-        if not self.has_errors(): self.__generate_log_file_stream()
-        if not self.has_errors(): self.__prepare()
-        if not self.has_errors(): self.__submit_request()
+        if not self.has_errors():
+            self._fetch_executor_data()
+        if not self.has_errors():
+            self.__generate_log_file_stream()
+        if not self.has_errors():
+            self.__prepare()
+        if not self.has_errors():
+            self.__submit_request()
 
     def __check_input(self):
         """

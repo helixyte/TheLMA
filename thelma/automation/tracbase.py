@@ -4,13 +4,13 @@ Base classes for trac support (via tractor integration).
 AAB
 """
 
-
-
-from pyramid.threadlocal import get_current_registry
-from thelma.interfaces import ITractor
 from xmlrpclib import Fault
 from xmlrpclib import ProtocolError
+
+from pyramid.threadlocal import get_current_registry
+
 from thelma.automation.tools.base import BaseTool
+from thelma.interfaces import ITractor
 
 
 __docformat__ = 'reStructuredText en'
@@ -18,7 +18,7 @@ __all__ = ['BaseTracTool',
            ]
 
 
-class BaseTracTool(BaseTool):
+class BaseTracTool(BaseTool): # still abstract pylint:disable=W0223
     """
     A base class for tools that send trac requests.
     """
@@ -27,18 +27,6 @@ class BaseTracTool(BaseTool):
     NOTIFY = True
 
     def __init__(self, parent=None):
-        """
-        Constructor:
-
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
-        :param depending: Defines whether a tool can be initialized directly
-            (*False*) of if it is always called by other tools (*True*).
-            Depending tools cannot initialize and reset logs but must
-            return a external one.
-        :type depending: :class:`bool`
-        :default depending: *True*
-        """
         BaseTool.__init__(self, parent=parent)
         reg = get_current_registry()
         self.tractor_api = reg.getUtility(ITractor)
@@ -54,12 +42,6 @@ class BaseTracTool(BaseTool):
         """
         BaseTool.reset(self)
         self.was_successful = False
-
-    def send_request(self):
-        """
-        Sends the request the trac tool is designed for.
-        """
-        raise NotImplementedError('Abstract method.')
 
     def _submit(self, tractor_method, kw):
         """

@@ -527,7 +527,8 @@ class IsoRequestAssociationDataTestCase(_IsoRequestRackSectorToolTestCase):
         self._continue_setup()
         self._expect_error(ValueError, self._create_association_data,
                            'Error when trying to find rack sector association.')
-        self.assert_equal(len(self.tool.get_messages(logging.ERROR)), 0)
+        self.assert_equal(
+                len(self.tool.get_messages(logging_level=logging.ERROR)), 0)
         self.regard_controls = False
         self._check_association_data_384()
 
@@ -537,7 +538,8 @@ class IsoRequestAssociationDataTestCase(_IsoRequestRackSectorToolTestCase):
         self._expect_error(
                     ValueError, self._create_association_data,
                     'Error when trying to find rack sector association.')
-        self.assert_equal(len(self.tool.get_messages(logging.ERROR)), 0)
+        self.assert_equal(
+                len(self.tool.get_messages(logging_level=logging.ERROR)), 0)
 
     def test_find(self):
         self._continue_setup()

@@ -1175,16 +1175,14 @@ class StockSampleCreationTicketWorklistUploader(BaseTracTool):
         self.__iso = None
         self.__file_map = None
 
-    def send_request(self):
-        """
-        Sends the request.
-        """
+    def run(self):
         self.reset()
         self.add_info('Prepare request ...')
-
         self.__check_input()
-        if not self.has_errors(): self.__fetch_writer_data()
-        if not self.has_errors(): self.__prepare_and_submit()
+        if not self.has_errors():
+            self.__fetch_writer_data()
+        if not self.has_errors():
+            self.__prepare_and_submit()
 
     def __check_input(self):
         # Checks the initialisation values.

@@ -272,9 +272,9 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
                     self.__plate_layouts[plate.label] = layout
 
         elif verify:
-            verifier = LabIsoPlateVerifier(layout,
-                                           lab_iso_plate=iso_plate,
-                                           for_job=(self.ENTITY_CLS == IsoJob),
+            verifier = LabIsoPlateVerifier(iso_plate,
+                                           self.ENTITY_CLS == IsoJob,
+                                           lab_iso_layout=layout,
                                            parent=self)
             compatible = verifier.get_result()
             if compatible is None:
@@ -814,7 +814,8 @@ class LabIsoPlateVerifier(BaseRackVerifier):
     def __init__(self, lab_iso_plate, for_job, lab_iso_layout=None,
                  parent=None):
         """
-        Constructor:
+        Constructor.
+
         :param lab_iso_plate: The lab ISO plate to be checked.
         :type lab_iso_plate: :class:`IsoPlate` or
             :class:`IsoJobPreparationPlate`

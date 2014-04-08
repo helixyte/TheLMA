@@ -28,7 +28,6 @@ from thelma.models.liquidtransfer import ReservoirSpecs
 from thelma.models.rack import PlateSpecs
 from thelma.models.rack import TubeRackSpecs
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-from thelma.tests.tools.tooltestingutils import TestingLog
 
 
 
@@ -37,7 +36,6 @@ class _BiomekWorklistWriterTestCase(FileCreatorTestCase):
     def set_up(self):
         FileCreatorTestCase.set_up(self)
         self.WL_PATH = 'thelma:tests/tools/worklists/biomek/'
-        self.log = TestingLog()
         self.target_rack = None
         self.worklist = None
         self.ignored_positions = []
@@ -53,7 +51,6 @@ class _BiomekWorklistWriterTestCase(FileCreatorTestCase):
 
     def tear_down(self):
         FileCreatorTestCase.tear_down(self)
-        del self.log
         del self.target_rack
         del self.worklist
         del self.ignored_positions
@@ -128,12 +125,12 @@ class SampleTransferWorklistWriterTestCase(_BiomekWorklistWriterTestCase):
         del self.target_container_volume
 
     def _create_tool(self):
-        self.tool = SampleTransferWorklistWriter(log=self.log,
-                            planned_worklist=self.worklist,
-                            target_rack=self.target_rack,
-                            source_rack=self.source_rack,
-                            ignored_positions=self.ignored_positions,
-                            pipetting_specs=self.pipetting_specs)
+        self.tool = SampleTransferWorklistWriter(
+                                self.worklist,
+                                self.target_rack,
+                                self.source_rack,
+                                pipetting_specs=self.pipetting_specs,
+                                ignored_positions=self.ignored_positions)
 
     def __continue_setup(self):
         self.__create_worklist()
@@ -325,13 +322,13 @@ class SampleDilutionWorklistWriterTestCase(_BiomekWorklistWriterTestCase):
         del self.reservoir_max_dead_volume
 
     def _create_tool(self):
-        self.tool = SampleDilutionWorklistWriter(log=self.log,
-                                planned_worklist=self.worklist,
-                                target_rack=self.target_rack,
-                                source_rack_barcode=self.source_rack_barcode,
-                                reservoir_specs=self.reservoir_specs,
-                                ignored_positions=self.ignored_positions,
-                                pipetting_specs=self.pipetting_specs)
+        self.tool = SampleDilutionWorklistWriter(
+                                    self.worklist,
+                                    self.target_rack,
+                                    self.source_rack_barcode,
+                                    self.reservoir_specs,
+                                    pipetting_specs=self.pipetting_specs,
+                                    ignored_positions=self.ignored_positions)
 
     def __continue_setup(self):
         self.__create_worklist()

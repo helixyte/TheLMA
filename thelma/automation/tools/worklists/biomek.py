@@ -229,7 +229,7 @@ class SampleDilutionWorklistWriter(BiomekWorklistWriter):
         BiomekWorklistWriter.__init__(self, planned_worklist, target_rack,
                                       pipetting_specs=pipetting_specs,
                                       ignored_positions=ignored_positions,
-                                      parent=self)
+                                      parent=parent)
         #: The barcode for the source rack or reservoir.
         self.source_rack_barcode = source_rack_barcode
         #: The specs for the source rack or reservoir.

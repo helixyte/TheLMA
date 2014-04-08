@@ -139,7 +139,8 @@ class SampleRegistrationWithInvalidLocationTestCase(
         dlv_reg = self._make_registrar()
         dlv_reg.run()
         self.assert_true(dlv_reg.has_errors())
-        err_msg = os.linesep.join(dlv_reg.get_messages(logging.ERROR))
+        err_msg = os.linesep.join(
+                        dlv_reg.get_messages(logging_level=logging.ERROR))
         msg = '@A1) differs from actual location'
         self.assert_not_equal(err_msg.find(msg), -1)
 
@@ -205,7 +206,8 @@ class SampleRegistrationWithInvalidScanfileTestCase(
         dlv_reg = self._make_registrar()
         dlv_reg.run()
         self.assert_true(dlv_reg.has_errors())
-        err_msg = os.linesep.join(dlv_reg.get_messages(logging.ERROR))
+        err_msg = os.linesep.join(
+                        dlv_reg.get_messages(logging_level=logging.ERROR))
         self.assert_not_equal(
                 err_msg.find('expected 9999999998, found 9999999999'), -1)
 

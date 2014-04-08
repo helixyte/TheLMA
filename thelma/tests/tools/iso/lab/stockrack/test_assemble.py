@@ -43,7 +43,6 @@ from thelma.tests.tools.iso.lab.utils import LAB_ISO_TEST_CASES
 from thelma.tests.tools.iso.lab.utils import TestTubeGenerator
 from thelma.tests.tools.tooltestingutils import FileComparisonUtils
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-from thelma.tests.tools.tooltestingutils import TestingLog
 
 
 class _AssemblerTestCaseWithStockTubeContainers(LabIsoStockRackTestCase):
@@ -107,7 +106,6 @@ class LabIsoXL20WorklistWriterTestCase(LabIsoStockRackTestCase,
 
     def set_up(self):
         LabIsoStockRackTestCase.set_up(self)
-        self.log = TestingLog()
         self.case = LAB_ISO_TEST_CASES.CASE_ORDER_ONLY
         self.rack_barcode = '09876543'
         self.stock_rack_layout = None
@@ -122,10 +120,9 @@ class LabIsoXL20WorklistWriterTestCase(LabIsoStockRackTestCase,
         del self.stock_tube_containers
 
     def _create_tool(self):
-        self.tool = LabIsoXL20WorklistWriter(log=self.log,
-                        rack_barcode=self.rack_barcode,
-                        stock_rack_layout=self.stock_rack_layout,
-                        stock_tube_containers=self.stock_tube_containers)
+        self.tool = LabIsoXL20WorklistWriter(self.rack_barcode,
+                                             self.stock_rack_layout,
+                                             self.stock_tube_containers)
 
     def _continue_setup(self, file_name=None):
         self.stock_rack_layout = self._generate_stock_rack_layout(
@@ -186,7 +183,6 @@ class LabIsoXL20SummaryWriterTestCase(_AssemblerTestCaseWithStockTubeContainers,
     def set_up(self):
         _AssemblerTestCaseWithStockTubeContainers.set_up(self)
         self.case = LAB_ISO_TEST_CASES.CASE_ASSOCIATION_JOB_LAST
-        self.log = TestingLog()
         self.entity = None
         self.stock_rack_layouts = dict()
         self.excluded_racks = ['033333333', '03333334']
@@ -216,12 +212,11 @@ class LabIsoXL20SummaryWriterTestCase(_AssemblerTestCaseWithStockTubeContainers,
         self._create_tool()
 
     def _create_tool(self):
-        self.tool = LabIsoXL20SummaryWriter(log=self.log,
-                entity=self.entity,
-                stock_tube_containers=self.stock_tube_containers,
-                stock_rack_layouts=self.stock_rack_layouts,
-                excluded_racks=self.excluded_racks,
-                requested_tubes=self.requested_tubes)
+        self.tool = LabIsoXL20SummaryWriter(self.entity,
+                                            self.stock_tube_containers,
+                                            self.stock_rack_layouts,
+                                            self.excluded_racks,
+                                            self.requested_tubes)
 
     def __create_stock_layouts(self):
         stock_rack_labels = LAB_ISO_TEST_CASES.get_stock_rack_labels(self.case)
@@ -300,7 +295,6 @@ class LabIsoStockRackOptimizerTestCase(
     def set_up(self):
         _AssemblerTestCaseWithStockTubeContainers.set_up(self)
         self.case = LAB_ISO_TEST_CASES.CASE_NO_JOB_COMPLEX
-        self.log = TestingLog()
         self.target_rack_shape = get_96_rack_shape()
         self.rack_marker_map = dict()
         # pos_label - pool, tube barcode, transfer_targets
@@ -314,10 +308,9 @@ class LabIsoStockRackOptimizerTestCase(
         del self.exp_layout_data
 
     def _create_tool(self):
-        self.tool = LabIsoStockRackOptimizer(log=self.log,
-                            stock_tube_containers=self.stock_tube_containers,
-                            target_rack_shape=self.target_rack_shape,
-                            rack_marker_map=self.rack_marker_map)
+        self.tool = LabIsoStockRackOptimizer(self.stock_tube_containers,
+                                             self.target_rack_shape,
+                                             self.rack_marker_map)
 
     def _continue_setup(self, file_name=None):
         _AssemblerTestCaseWithStockTubeContainers._continue_setup(self,

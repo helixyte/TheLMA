@@ -22,7 +22,6 @@ from thelma.tests.tools.iso.poolcreation.utils \
 from thelma.tests.tools.iso.poolcreation.utils \
     import StockSampleCreationTestCase2
 from thelma.tests.tools.iso.poolcreation.utils import SSC_TEST_DATA
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import TracToolTestCase
 
 
@@ -121,26 +120,23 @@ class StockSampleCreationWorklistGeneratorTestCase(
 
     def set_up(self):
         StockSampleCreationTestCase1.set_up(self)
-        self.log = TestingLog()
         self.volume_calculator = None
 
     def tear_down(self):
         StockSampleCreationTestCase1.tear_down(self)
-        del self.log
         del self.volume_calculator
 
     def _continue_setup(self, file_name=None):
-        self.volume_calculator = VolumeCalculator(
-                             target_volume=self.target_volume,
-                             target_concentration=self.target_concentration,
-                             number_designs=3,
-                             stock_concentration=50000)
+        self.volume_calculator = VolumeCalculator(self.target_volume,
+                                                  self.target_concentration,
+                                                  3,
+                                                  50000)
         self._create_tool()
 
     def _create_tool(self):
-        self.tool = StockSampleCreationWorklistGenerator(log=self.log,
-                        volume_calculator=self.volume_calculator,
-                        iso_request_label=self.iso_request_label)
+        self.tool = \
+            StockSampleCreationWorklistGenerator(self.volume_calculator,
+                                                 self.iso_request_label)
 
     def test_result(self):
         self._continue_setup()
@@ -175,22 +171,20 @@ class StockSampleCreationTicketGeneratorTestCase(TracToolTestCase):
 
     def set_up(self):
         TracToolTestCase.set_up(self)
-        self.log = TestingLog()
         self.requester = get_user('tondera')
         self.iso_label = 'ssgen_test_4'
         self.layout_number = 4
 
     def tear_down(self):
         TracToolTestCase.tear_down(self)
-        del self.log
         del self.requester
         del self.iso_label
         del self.layout_number
 
     def _create_tool(self):
-        self.tool = _StockSampleCreationTicketGenerator(
-                            requester=self.requester, iso_label=self.iso_label,
-                            layout_number=self.layout_number, log=self.log)
+        self.tool = _StockSampleCreationTicketGenerator(self.requester,
+                                                        self.iso_label,
+                                                        self.layout_number)
 
     def test_result(self):
         self._create_tool()

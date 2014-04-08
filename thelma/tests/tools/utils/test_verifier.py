@@ -15,7 +15,7 @@
 #from thelma.automation.tools.utils.iso import IsoParameters
 #from thelma.automation.tools.utils.iso import IsoPosition
 #from thelma.automation.tools.utils.verifier import IsoRackVerifier
-#from thelma.automation.tools.utils.verifier import SourceRackVerifier
+#from thelma.automation.tools.experiment.base import SourceRackVerifier
 #from thelma.interfaces import IMoleculeDesignPool
 #from thelma.interfaces import IRackShape
 #from thelma.interfaces import IUser
@@ -28,7 +28,6 @@
 #from thelma.models.racklayout import RackLayout
 #from thelma.models.sample import Molecule
 #from thelma.models.sample import Sample
-#from thelma.tests.tools.tooltestingutils import TestingLog
 #from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 #
 #
@@ -38,7 +37,6 @@
 #
 #    def set_up(self):
 #        ToolsAndUtilsTestCase.set_up(self)
-#        self.log = TestingLog()
 #        self.expected_layout = None
 #        self.shape = get_96_rack_shape()
 #        self.user = self._get_entity(IUser, 'it')
@@ -51,7 +49,6 @@
 #
 #    def tear_down(self):
 #        ToolsAndUtilsTestCase.tear_down(self)
-#        del self.log
 #        del self.expected_layout
 #        del self.shape
 #        del self.status
@@ -230,8 +227,8 @@
 #                sample.make_sample_molecule(mol, 0.000100)
 #
 #    def _create_tool(self):
-#        self.tool = IsoRackVerifier(plate=self.rack, iso=self.iso,
-#                            record_success=self.record_success, log=self.log)
+#        self.tool = IsoRackVerifier(self.rack, elf.iso,
+#                                    record_success=self.record_success)
 #
 #    def test_compliant_without_floatings(self):
 #        self.__continue_setup(with_floatings=False)
@@ -458,8 +455,7 @@
 #        return prep_layout.create_rack_layout()
 #
 #    def _create_tool(self):
-#        self.tool = SourceRackVerifier(source_plate=self.rack, log=self.log,
-#            iso_request=self.iso_request, record_success=self.record_success)
+#        self.tool = SourceRackVerifier(self.rack, self.iso_request)
 #
 #    def test_compliance_without_floatings(self):
 #        self.__continue_setup(with_floatings=False)

@@ -57,7 +57,7 @@ class RackScanningTestCase(ParsingTestCase):
 class RackScanningParserTestCase(RackScanningTestCase):
 
     def _create_tool(self):
-        self.tool = RackScanningParser(stream=self.stream, log=self.log)
+        self.tool = RackScanningParser(self.stream)
 
     def __test_and_expect_errors(self, file_name, msg):
         self._continue_setup(file_name)
@@ -132,8 +132,7 @@ class RackScanningParserTestCase(RackScanningTestCase):
 class CenixRackScanningParserHandlerTestCase(RackScanningTestCase):
 
     def _create_tool(self):
-        self.tool = CenixRackScanningParserHandler(log=self.log,
-                                                   stream=self.stream)
+        self.tool = CenixRackScanningParserHandler(self.stream)
 
     def test_result(self):
         self._continue_setup()

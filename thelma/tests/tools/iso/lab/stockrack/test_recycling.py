@@ -197,8 +197,7 @@ class StockRackRecyclerLabIsoTestCase(_StockRackRecyclerTestCase):
     FOR_JOB = False
 
     def _create_tool(self):
-        self.tool = StockRackRecyclerLabIso(entity=self.entity,
-                                            rack_barcodes=self.rack_barcodes)
+        self.tool = StockRackRecyclerLabIso(self.entity, self.rack_barcodes)
 
     def _get_entity_stock_racks(self):
         return self.entity.iso_stock_racks + self.entity.iso_sector_stock_racks
@@ -423,8 +422,7 @@ class StockRackRecyclerIsoJobTestCase(_StockRackRecyclerTestCase):
     FOR_JOB = True
 
     def _create_tool(self):
-        self.tool = StockRackRecyclerIsoJob(entity=self.entity,
-                                            rack_barcodes=self.rack_barcodes)
+        self.tool = StockRackRecyclerIsoJob(self.entity, self.rack_barcodes)
 
     def _get_entity_stock_racks(self):
         return self.entity.iso_job_stock_racks

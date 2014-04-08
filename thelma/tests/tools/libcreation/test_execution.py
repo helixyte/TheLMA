@@ -69,8 +69,6 @@
 #from thelma.models.sample import Molecule
 #from thelma.models.sample import Sample
 #from thelma.models.utils import get_user
-#from thelma.tests.tools.tooltestingutils import SilentLog
-#from thelma.tests.tools.tooltestingutils import TestingLog
 #from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 #
 #
@@ -215,9 +213,9 @@
 #                self.library_layout.add_position(lib_pos)
 #
 #    def __create_worklist_series(self):
-#        generator = LibraryCreationWorklistGenerator(log=SilentLog(),
-#                    base_layout=self.base_layout, library_name=self.libname,
-#                    stock_concentration=self.stock_conc)
+#        generator = LibraryCreationWorklistGenerator(self.base_layout,
+#                                                     self.stock_conc,
+#                                                     self.libname)
 #        self.worklist_series = generator.get_result()
 #
 #    def __create_iso_request(self):
@@ -352,10 +350,9 @@
 #
 #    def _create_tool(self):
 #        self.tool = LibraryCreationBufferWorklistTransferJobCreator(
-#                                log=TestingLog(),
-#                                library_creation_iso=self.library_iso,
-#                                pool_stock_racks=self.pool_stock_racks,
-#                                ignored_positions=self.ignored_positions)
+#                                           self.library_iso,
+#                                           self.pool_stock_racks,
+#                                           self.ignored_positions)
 #
 #    def test_result(self):
 #        self._continue_setup()
@@ -732,10 +729,8 @@
 #                                    LibraryCreationExecutorBaseTestCase):
 #
 #    def _create_tool(self):
-#        self.tool = LibraryCreationStockRackVerifier(
-#                            library_layout=self.library_layout,
-#                            stock_racks=self.single_stock_racks,
-#                            log=TestingLog())
+#        self.tool = LibraryCreationStockRackVerifier(self.library_layout,
+#                                                     self.single_stock_racks)
 #
 #    def _test_and_expect_failure(self, msg):
 #        self._create_tool()
