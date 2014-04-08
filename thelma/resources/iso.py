@@ -155,22 +155,12 @@ class LabIsoRequestMember(IsoRequestMember):
 
     def __getitem__(self, name):
         if name == 'completed-iso-plates' and self.iso_type == ISO_TYPES.LAB:
+            # These are the plates that can be used as input for experiment
+            # job scheduling.
             iso_plate_bcs = []
-            if self.experiment_metadata.experiment_metadata_type.id == \
-                                          EXPERIMENT_METADATA_TYPES.MANUAL:
-                # For standard, manual ISOs, the preparation plates are used
-                # to schedule the experiment jobs.
-                func = lambda iso: [pp for pp in iso.preparation_plates]
-            elif self.experiment_metadata.experiment_metadata_type.id == \
-                                            EXPERIMENT_METADATA_TYPES.LIBRARY:
-                func = lambda iso: [lp.rack for lp in iso.library_plates]
-            else:
-                # In all other cases the aliquot plates are used to schedule
-                # experiment jobs.
-                func = lambda iso: [ap for ap in iso.aliquot_plates]
             for iso in self.isos:
                 if iso.status == ISO_STATUS.DONE:
-                    for plt in func(iso):
+                    for plt in self.__get_completed_iso_plates_for_iso(iso):
                         iso_plate_bcs.append(plt.barcode)
             iso_plates = get_root_collection(IPlate)
             iso_plates.filter = cntd(barcode=iso_plate_bcs)
@@ -178,6 +168,19 @@ class LabIsoRequestMember(IsoRequestMember):
         else:
             result = Member.__getitem__(self, name)
         return result
+
+    def __get_completed_iso_plates_for_iso(self, iso):
+        if self.experiment_metadata.experiment_metadata_type.id == \
+                                        EXPERIMENT_METADATA_TYPES.LIBRARY:
+            racks = [lp.rack for lp in iso.library_plates]
+        else:
+            # If we have aliquot plates, use them; if not, use the
+            # preparation plates.
+            if len(iso.aliquot_plates) > 0:
+                racks = [ap for ap in iso.aliquot_plates]
+            else:
+                racks = [pp for pp in iso.preparation_plates]
+        return racks
 
     def update(self, data):
         if not IEntity.providedBy(data): # pylint: disable=E1101
