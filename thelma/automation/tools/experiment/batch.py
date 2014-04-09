@@ -28,7 +28,6 @@ class ExperimentBatchTool(BaseTool):
 
     **Return Value:** None (depending on the subclass).
     """
-
     def __init__(self, experiments, parent=None):
         """
         Constructor.
@@ -54,10 +53,11 @@ class ExperimentBatchTool(BaseTool):
         """
         self.reset()
         self.add_info('Start batch operation ...')
-
         self._check_input()
-        if not self.has_errors(): self.__fetch_experiments()
-        if not self.has_errors(): self._execute_experiment_task()
+        if not self.has_errors():
+            self.__fetch_experiments()
+        if not self.has_errors():
+            self._execute_experiment_task()
 
     def _check_input(self):
         """
@@ -73,12 +73,9 @@ class ExperimentBatchTool(BaseTool):
         that have already been updated are ignored.
         """
         self.add_debug('Fetch experiments ...')
-
         already_updated = []
         experiment_design = None
-
         for experiment in self.experiments:
-
             if experiment_design is None:
                 experiment_design = experiment.experiment_design
             elif not experiment.experiment_design == experiment_design:
@@ -86,7 +83,6 @@ class ExperimentBatchTool(BaseTool):
                       'designs!' # there is no technical reason against
                 self.add_error(msg)
                 break
-
             has_been_updated = False
             for exp_rack in experiment.experiment_racks:
                 if exp_rack.rack.status.name == ITEM_STATUS_NAMES.MANAGED:
@@ -94,7 +90,6 @@ class ExperimentBatchTool(BaseTool):
                     break
             if has_been_updated:
                 already_updated.append(experiment.label)
-
         if not self.has_errors():
             self._experiment_type = experiment_design.experiment_metadata.\
                                     experiment_metadata_type
@@ -120,22 +115,16 @@ class ExperimentBatchManualExecutor(ExperimentBatchTool):
 
     Return Value: list of updated experiments
     """
-
     NAME = 'Experiment Batch Manual Updater'
 
-    def __init__(self, experiments, user, **kw):
+    def __init__(self, experiments, user, parent=None):
         """
-        Constructor:
-
-        :param experiment_jobs: A list of experiments that all belong
-            to the same experiment design.
-        :type experiment_jobs: :class:`list` of :class:`thelma.models.job.Experiment`
+        Constructor.
 
         :param user: The user who has committed the update.
         :type user: :class:`thelma.models.user.User`
         """
-        ExperimentBatchTool.__init__(self, experiments=experiments, **kw)
-
+        ExperimentBatchTool.__init__(self, experiments, parent=parent)
         #: The user who has committed the update.
         self.user = user
 
@@ -148,7 +137,6 @@ class ExperimentBatchManualExecutor(ExperimentBatchTool):
         Runs the :class:`ExperimentManualExecutor` for :attr:`experiments`.
         """
         self.add_debug('Run manual updaters ...')
-
         updated_experiments = []
         for experiment in self.experiments:
             executor = ExperimentManualExecutor(experiment, self.user,
@@ -161,7 +149,6 @@ class ExperimentBatchManualExecutor(ExperimentBatchTool):
                 break
             else:
                 updated_experiments.append(updated_experiment)
-
         if not self.has_errors():
             self.return_value = updated_experiments
             self.add_info('Update runs completed.')
@@ -176,16 +163,8 @@ class ExperimentBatchWorklistWriter(ExperimentBatchTool):
     """
     NAME = 'Experiment Batch Worklist Writer'
 
-    def __init__(self, experiments, **kw):
-        """
-        Constructor:
-
-        :param experiments: A list of experiments that all belong
-            to the same experiment design.
-        :type experiments: :class:`list` of :class:`thelma.models.job.Experiment`
-        """
-        ExperimentBatchTool.__init__(self, experiments=experiments, **kw)
-
+    def __init__(self, experiments, parent=None):
+        ExperimentBatchTool.__init__(self, experiments, parent=parent)
         #: Collects the zip streams for the experiments.
         self.__zip_streams = None
 
@@ -206,11 +185,8 @@ class ExperimentBatchWorklistWriter(ExperimentBatchTool):
             self.add_info('Worklists writing completed.')
 
     def __write_streams(self):
-        """
-        Writes the zip streams for the :attr:`experiments`.
-        """
+        # Writes the zip streams for the :attr:`experiments`.
         self.add_debug('Write streams ...')
-
         for experiment in self.experiments:
             kw = dict(experiment=experiment, parent=self)
             writer = self._run_and_record_error(get_experiment_writer,
@@ -229,9 +205,7 @@ class ExperimentBatchWorklistWriter(ExperimentBatchTool):
                 self.__zip_streams.append(zip_stream)
 
     def __summarize_streams(self):
-        """
-        Reads the zip streams and generates a new common archive.
-        """
+        # Reads the zip streams and generates a new common archive.
         self.add_debug('Summarize zip archives ...')
 
         zip_map = dict()
@@ -250,22 +224,16 @@ class ExperimentBatchExecutor(ExperimentBatchTool):
 
     Return Value: list of updated experiments
     """
-
     NAME = 'Experiment Batch Executor'
 
-    def __init__(self, experiments, user, **kw):
+    def __init__(self, experiments, user, parent=None):
         """
-        Constructor:
-
-        :param experiments: A list of experiments that all belong
-            to the same experiment design.
-        :type experiments: :class:`list` of :class:`thelma.models.job.Experiment`
+        Constructor.
 
         :param user: The user who has committed the update.
         :type user: :class:`thelma.models.user.User`
         """
-        ExperimentBatchTool.__init__(self, experiments=experiments, **kw)
-
+        ExperimentBatchTool.__init__(self, experiments, parent=parent)
         #: The user who has committed the update.
         self.user = user
 

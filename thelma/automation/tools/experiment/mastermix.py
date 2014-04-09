@@ -110,16 +110,16 @@ class ExperimentOptimisationWriterExecutor(ExperimentTool):
         counter = len(self._transfer_jobs)
         for experiment_rack in self._experiment_racks[design_rack_label]:
             plate = experiment_rack.rack
-
-            transfer_job = SampleTransferJob(index=counter,
-                    planned_worklist=transfer_worklist,
-                    target_rack=plate,
-                    source_rack=self._source_plate,
-                    ignored_positions=self._ignored_positions)
+            transfer_job = \
+                SampleTransferJob(counter,
+                                  transfer_worklist,
+                                  plate,
+                                  self._source_plate,
+                                  ignored_positions=self._ignored_positions)
             self._transfer_jobs[counter] = transfer_job
             counter += 1
-
-            if not add_cell_worklists: continue
+            if not add_cell_worklists:
+                continue
             counter = self._add_cell_suspension_job(cell_worklist, counter,
                                              plate, cell_ignored_positions)
 

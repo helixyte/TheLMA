@@ -314,6 +314,7 @@ class RackSampleTransferJob(_LiquidTransferJob):
         """
         kw = _LiquidTransferJob._get_kw_for_executor(self, tool, user)
         kw['planned_rack_sample_transfer'] = self.planned_rack_sample_transfer
+        kw['pipetting_specs'] = self.pipetting_specs
         kw['source_rack'] = self.source_rack
         return kw
 

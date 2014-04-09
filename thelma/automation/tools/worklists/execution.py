@@ -5,7 +5,6 @@ AAB
 """
 from thelma.automation.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.semiconstants import get_item_status_managed
-from thelma.automation.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.tools.base import BaseTool
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
@@ -61,7 +60,7 @@ class LiquidTransferExecutor(BaseTool):
     #: (see :class:`thelma.models.liquidtransfer.TRANSFER_TYPES`).
     TRANSFER_TYPE = None
 
-    def __init__(self, target_rack, user, pipetting_specs, parent=None):
+    def __init__(self, target_rack, pipetting_specs, user, parent=None):
         """
         Constructor.
 
@@ -77,11 +76,12 @@ class LiquidTransferExecutor(BaseTool):
         BaseTool.__init__(self, parent=parent)
         #: The rack into which the volumes will be dispensed.
         self.target_rack = target_rack
-        #: The user who has launched the execution.
-        self.user = user
         #: Pipetting specs define transfer properties and conditions like
         #: the transfer volume range.
         self.pipetting_specs = pipetting_specs
+        #: The user who has launched the execution.
+        self.user = user
+        #: Execution time stamp.
         self.now = get_utc_time()
         #: Maps the containers of the source rack onto rack position.
         self._source_containers = None
@@ -403,7 +403,7 @@ class WorklistExecutor(LiquidTransferExecutor):
         (:class:`thelma.models.liquidtransfer.ExecutedWorklist`).
     """
 
-    def __init__(self, planned_worklist, target_rack, user, pipetting_specs,
+    def __init__(self, planned_worklist, target_rack, pipetting_specs, user,
                  ignored_positions=None, parent=None):
         """
         Constructor.
@@ -416,8 +416,8 @@ class WorklistExecutor(LiquidTransferExecutor):
             in the DB execution.
         :type ignored_positions: :class:`list` of :class:`RackPosition`
         """
-        LiquidTransferExecutor.__init__(self, target_rack, user,
-                                        pipetting_specs, parent=parent)
+        LiquidTransferExecutor.__init__(self, target_rack, pipetting_specs,
+                                        user, parent=parent)
         #: The planned worklist to execute.
         self.planned_worklist = planned_worklist
         if ignored_positions is None:
@@ -510,8 +510,8 @@ class SampleDilutionWorklistExecutor(WorklistExecutor):
     NAME = 'Container Dilution Worklist Executor'
     TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_DILUTION
 
-    def __init__(self, planned_worklist, target_rack, user, reservoir_specs,
-                 pipetting_specs, ignored_positions=None, parent=None):
+    def __init__(self, planned_worklist, target_rack, pipetting_specs, user,
+                 reservoir_specs, ignored_positions=None, parent=None):
         """
         Constructor.
 
@@ -519,8 +519,8 @@ class SampleDilutionWorklistExecutor(WorklistExecutor):
         :type reservoir_specs:
             :class:`thelma.models.liquidtransfer.ReservoirSpecs`
         """
-        WorklistExecutor.__init__(self, planned_worklist, target_rack, user,
-                                  pipetting_specs,
+        WorklistExecutor.__init__(self, planned_worklist, target_rack,
+                                  pipetting_specs, user,
                                   ignored_positions=ignored_positions,
                                   parent=parent)
         #: The specs for the source rack or reservoir.
@@ -582,8 +582,8 @@ class SampleTransferWorklistExecutor(WorklistExecutor):
     NAME = 'Container Transfer Worklist Executor'
     TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_TRANSFER
 
-    def __init__(self, planned_worklist, user, target_rack, source_rack,
-                 pipetting_specs, ignored_positions=None, parent=None):
+    def __init__(self, planned_worklist, target_rack, pipetting_specs, user,
+                 source_rack, ignored_positions=None, parent=None):
         """
         Constructor.
 
@@ -591,7 +591,7 @@ class SampleTransferWorklistExecutor(WorklistExecutor):
         :type source_rack: :class:`thelma.models.rack.Rack`
         """
         WorklistExecutor.__init__(self, planned_worklist, target_rack,
-                                  user, pipetting_specs,
+                                  pipetting_specs, user,
                                   ignored_positions=ignored_positions,
                                   parent=parent)
         #: The source from which to take the volumes.
@@ -674,8 +674,8 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
     NAME = 'Rack Transfer Executor'
     TRANSFER_TYPE = TRANSFER_TYPES.RACK_SAMPLE_TRANSFER
 
-    def __init__(self, planned_rack_sample_transfer, target_rack, source_rack,
-                 user, pipetting_specs=None, parent=None):
+    def __init__(self, target_rack, pipetting_specs, user,
+                 planned_rack_sample_transfer, source_rack, parent=None):
         """
         Constructor.
 
@@ -692,8 +692,6 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
         self.planned_rack_sample_transfer = planned_rack_sample_transfer
         #: The source from which to take the volumes.
         self.source_rack = source_rack
-        if self.pipetting_specs is None:
-            self.pipetting_specs = get_pipetting_specs_cybio()
         #: Translates the rack positions of one rack into another.
         self._translator = None
         #: The translation behaviour in case of sectors (see
