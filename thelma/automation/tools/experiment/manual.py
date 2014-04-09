@@ -206,6 +206,12 @@ class ExperimentManualExecutor(ExperimentTool):
             tf_pos = layout.get_working_position(rack_pos)
             if tf_pos is None: continue
             if tf_pos.is_empty: continue
+            if self._scenario.id == EXPERIMENT_SCENARIOS.MANUAL \
+               and not tf_pos.is_fixed:
+                # For manual experiments, we allow only fixed and empty
+                # positions in the ISO layout, but we should not restrict
+                # the transfection layout.
+                continue
             pool = tf_pos.molecule_design_pool
             if tf_pos.is_library:
                 pool = rack_pos.label
