@@ -19,6 +19,7 @@ from thelma.models.liquidtransfer import PlannedSampleDilution
 from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.tests.tools.tooltestingutils import ParsingTestCase
 
+
 class GenericSampleTransferParserTestCase(ParsingTestCase):
 
     _PARSER_CLS = GenericSampleTransferPlanParser
@@ -75,8 +76,10 @@ class GenericSampleTransferParserTestCase(ParsingTestCase):
         del self.rack_data
 
     def _create_tool(self):
-        self.tool = GenericSampleTransferPlanParserHandler(stream=self.stream,
-                   log=self.log, allow_rack_creation=self.allow_rack_creation)
+        self.tool = \
+            GenericSampleTransferPlanParserHandler(self.stream,
+                                                   allow_rack_creation=
+                                                    self.allow_rack_creation)
 
     def _continue_setup(self, file_name=None):
         ParsingTestCase._continue_setup(self, file_name=file_name)

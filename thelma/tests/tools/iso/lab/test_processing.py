@@ -42,15 +42,14 @@ from thelma.tests.tools.iso.lab.utils import LabIsoTestCase2
 from thelma.tests.tools.iso.lab.utils import TestLibraryGenerator
 from thelma.tests.tools.iso.lab.utils import TestTubeGenerator
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.utils.utils import VerifierTestCase
+
 
 class LabIsoPlateVerifierTestCase(VerifierTestCase):
 
     def set_up(self):
         VerifierTestCase.set_up(self)
         self.plate_type = RACK_TYPES.PLATE
-        self.log = TestingLog()
         self.lab_iso_plate = None
         self.for_job = False
         self.lab_iso_layout = None
@@ -73,9 +72,7 @@ class LabIsoPlateVerifierTestCase(VerifierTestCase):
         del self.test_final_layout
 
     def _create_tool(self):
-        self.tool = LabIsoPlateVerifier(log=self.log,
-                                        lab_iso_plate=self.lab_iso_plate,
-                                        for_job=self.for_job,
+        self.tool = LabIsoPlateVerifier(self.lab_iso_plate, self.for_job,
                                         lab_iso_layout=self.lab_iso_layout)
 
     def _init_layout(self):
@@ -457,9 +454,8 @@ class _LabIsoWriterExecutorToolTestCase(LabIsoTestCase2,
             self.__check_final_prep_plate_state(ipp.rack, False, 1)
         # library plates status
         if LAB_ISO_TEST_CASES.is_library_case(self.case) and self.FOR_JOB:
-            for iso in self.isos.values():
-                for lib_plate in iso.library_plates:
-                    self.assert_true(lib_plate.has_been_used)
+            for lib_plate in iso.library_plates:
+                self.assert_true(lib_plate.has_been_used)
 
     def __check_final_iso_plate(self, plate, iso_label):
         ir_data = LAB_ISO_TEST_CASES.get_iso_request_layout_data(self.case)

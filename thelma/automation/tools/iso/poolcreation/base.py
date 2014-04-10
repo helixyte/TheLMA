@@ -556,19 +556,9 @@ class StockSampleCreationLayoutConverter(MoleculeDesignPoolLayoutConverter):
     LAYOUT_CLS = StockSampleCreationLayout
     POSITION_CLS = StockSampleCreationPosition
 
-    def __init__(self, rack_layout, log):
-        """
-        Constructor:
-
-        :param rack_layout: The rack layout containing the ISO data.
-        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
-
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        MoleculeDesignPoolLayoutConverter.__init__(self, rack_layout, log=log)
-
+    def __init__(self, rack_layout, parent=None):
+        MoleculeDesignPoolLayoutConverter.__init__(self, rack_layout,
+                                                   parent=parent)
         # intermediate storage of invalid rack positions
         self.__mismatching_mds = None
         self.__missing_tubes = None
@@ -581,50 +571,53 @@ class StockSampleCreationLayoutConverter(MoleculeDesignPoolLayoutConverter):
         self.__mismatching_tube_num = []
 
     def _get_position_init_values(self, parameter_map, rack_pos):
-        kw = MoleculeDesignPoolLayoutConverter._get_position_init_values(self,
-                                                        parameter_map, rack_pos)
-        if kw is None: return None
-
-        invalid = False
-        pos_label = rack_pos.label
-
-        pool = kw['molecule_design_pool']
-        md_str = parameter_map[self.PARAMETER_SET.MOLECULE_DESIGNS]
-        if not self.POSITION_CLS.validate_molecule_designs(pool, md_str):
-            exp_mds = [md.id for md in pool]
-            info = '%s (pool %s, found: %s, expected: %s)' \
-                    % (pos_label, pool.id, md_str, self._get_joined_str(
-                                        exp_mds, is_strs=False, separator='-'))
-            self.__mismatching_mds.append(info)
-            invalid = True
-
-        tube_str = parameter_map[self.PARAMETER_SET.STOCK_TUBE_BARCODES]
-        if tube_str is None:
-            self.__missing_tubes.append(pos_label)
-            return None
-        tubes = self.POSITION_CLS.get_tube_barcodes_from_tag_value(tube_str)
-        if not len(tubes) == len(pool):
-            info = '%s (%s, number mds: %i)' % (pos_label, tube_str, len(pool))
-            self.__mismatching_tube_num.append(info)
-            invalid = True
-
-        if invalid: return None
-        kw['stock_tube_barcodes'] = tubes
-        return kw
+        kw = MoleculeDesignPoolLayoutConverter._get_position_init_values(
+                                                    self,
+                                                    parameter_map, rack_pos)
+        result = None
+        if not kw is None:
+            invalid = False
+            pos_label = rack_pos.label
+            pool = kw['molecule_design_pool']
+            md_str = parameter_map[self.PARAMETER_SET.MOLECULE_DESIGNS]
+            if not self.POSITION_CLS.validate_molecule_designs(pool, md_str):
+                exp_mds = [md.id for md in pool]
+                info = '%s (pool %s, found: %s, expected: %s)' \
+                        % (pos_label, pool.id, md_str,
+                           self._get_joined_str(
+                                    exp_mds, is_strs=False, separator='-'))
+                self.__mismatching_mds.append(info)
+                invalid = True
+            tube_str = parameter_map[self.PARAMETER_SET.STOCK_TUBE_BARCODES]
+            if tube_str is None:
+                self.__missing_tubes.append(pos_label)
+                result = None
+            else:
+                tubes = self.POSITION_CLS.get_tube_barcodes_from_tag_value(
+                                                                    tube_str)
+                if not len(tubes) == len(pool):
+                    info = '%s (%s, number mds: %i)' \
+                           % (pos_label, tube_str, len(pool))
+                    self.__mismatching_tube_num.append(info)
+                    invalid = True
+                if invalid:
+                    result = None
+                else:
+                    kw['stock_tube_barcodes'] = tubes
+                    # Success!
+                    result = kw
+        return result
 
     def _record_errors(self):
         MoleculeDesignPoolLayoutConverter._record_errors(self)
-
         if len(self.__mismatching_mds) > 0:
             msg = 'The molecule designs IDs for some pools do not match: %s.' \
                   % (self._get_joined_str(self.__mismatching_mds))
             self.add_error(msg)
-
         if len(self.__missing_tubes) > 0:
             msg = 'The following rack positions do not contain stock tube ' \
                   'barcodes: %s.' % (self._get_joined_str(self.__missing_tubes))
             self.add_error(msg)
-
         if len(self.__mismatching_tube_num) > 0:
             msg = 'For some positions the number of tubes does not match ' \
                   'the number of molecule designs: %s.' \
@@ -639,7 +632,8 @@ class PoolCreationParameters(StockRackParameters):
     generated. Unlike normal :class:`StockRackParameters` the
     positions do not need to have transfer targets.
     """
-    MUST_HAVE_TRANSFER_TARGETS = {StockRackParameters.TRANSFER_TARGETS : False}
+    MUST_HAVE_TRANSFER_TARGETS = \
+        {StockRackParameters.TRANSFER_TARGETS : False}
 
 
 class PoolCreationStockRackPosition(StockRackPosition):
@@ -653,27 +647,8 @@ class PoolCreationStockRackPosition(StockRackPosition):
 
     def __init__(self, rack_position, molecule_design_pool, tube_barcode,
                  transfer_targets=None):
-        """
-        Constructor:
-
-        :param rack_position: The position within the rack.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`
-
-        :param molecule_design_pool: The molecule design pool for this position.
-        :type molecule_design_pool:  placeholder or
-            :class:`thelma.models.moleculedesign.MoleculeDesignPool`
-
-        :param tube_barcode: The tube expected at the given position.
-        :type tube_barcode: :class:`basestring`
-
-        :param transfer_targets: The volume required to supply all child wells
-            and the volume for the transfer to the ISO plate.
-        :type transfer_targets: :class:`list` of :class:`TransferTarget` objects
-        """
-        StockRackPosition.__init__(self, rack_position=rack_position,
-                                   tube_barcode=tube_barcode,
-                                   molecule_design_pool=molecule_design_pool,
-                                   transfer_targets=transfer_targets)
+        StockRackPosition.__init__(self, rack_position, tube_barcode,
+                                   molecule_design_pool, transfer_targets)
 
 class PoolCreationStockRackLayoutConverter(StockRackLayoutConverter):
     """
@@ -681,10 +656,9 @@ class PoolCreationStockRackLayoutConverter(StockRackLayoutConverter):
     Unlike normal with normal stock racks these positions do not need to have
     transfer targets.
     """
+    NAME = 'Pool Creation Stock Rack Layout Converter'
     PARAMETER_SET = PoolCreationParameters
     POSITION_CLS = PoolCreationStockRackPosition
-
-    NAME = 'Pool Creation Stock Rack Layout Converter'
 
 
 class SingleDesignStockRackLayout(StockRackLayout):
@@ -693,9 +667,8 @@ class SingleDesignStockRackLayout(StockRackLayout):
     Unlike normal :class:`StockRackPosition` objects the positions within
     the layout might have the same transfer targets.
     """
-
-    ALLOW_DUPLICATE_TARGET_WELLS = {StockRackLayout.POSITION_CLS.\
-                                    PARAMETER_SET.TRANSFER_TARGETS : True}
+    ALLOW_DUPLICATE_TARGET_WELLS = \
+        {StockRackLayout.POSITION_CLS.PARAMETER_SET.TRANSFER_TARGETS : True}
 
 
 class SingleDesignStockRackLayoutConverter(StockRackLayoutConverter):
@@ -704,6 +677,5 @@ class SingleDesignStockRackLayoutConverter(StockRackLayoutConverter):
     Unlike normal with normal stock racks there might be several transfers
     targets with the same target.
     """
-    LAYOUT_CLS = SingleDesignStockRackLayout
-
     NAME = 'Single Design Stock Rack Layout Converter'
+    LAYOUT_CLS = SingleDesignStockRackLayout

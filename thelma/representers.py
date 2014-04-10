@@ -1,7 +1,6 @@
 """
 Created on Apr 23, 2013.
 """
-from StringIO import StringIO
 from everest.interfaces import IUserMessageNotifier
 from everest.representers.base import ResourceRepresenter
 from everest.resources.utils import get_member_class
@@ -26,6 +25,8 @@ class ExternalParserResourceRepresenter(ResourceRepresenter):
     parser_factory = None
     def __init__(self, resource_class, parser_factory):
         """
+        Constructor.
+
         :param resource_class: the class of the resource to generate from
             incoming representations
         :param parser_factory: a callable that generates a new parser. All
@@ -40,29 +41,23 @@ class ExternalParserResourceRepresenter(ResourceRepresenter):
     def create_from_resource_class(cls, resource_class):
         return cls(get_member_class(resource_class), cls.parser_factory)
 
-    def from_stream(self, stream):
-        data_el = self.data_from_stream(stream)
-        return self.resource_from_data(data_el)
-
     def data_from_stream(self, stream):
         parser = self.__parser_factory(stream, **self.__parser_options)
         result = parser.get_result()
-        errors = parser.get_messages(logging.ERROR)
+        errors = parser.get_messages(logging_level=logging.ERROR)
         if len(errors) > 0:
             msg = '--'.join(errors)
             raise HTTPBadRequest('Could not parse file:\n%s' % msg).exception
-        warnings = parser.get_messages(logging.WARNING)
+        warnings = parser.get_messages(logging_level=logging.WARNING)
         if len(warnings) > 0:
             reg = get_current_registry()
             msg_notifier = reg.get_utility(IUserMessageNotifier)
             msg_notifier.notify(" -- ".join(warnings))
         return result
 
-    def data_from_representation(self, representation):
-        stream = StringIO(representation)
-        return self.data_from_stream(stream)
-
-    def resource_from_data(self, data):
+    def resource_from_data(self, data, resource=None):
+        if not resource is None:
+            raise NotImplementedError('Updating not implemented.')
         return self.resource_class.create_from_entity(data)
 
     def configure(self, options=None):
@@ -73,11 +68,8 @@ class ExternalParserResourceRepresenter(ResourceRepresenter):
     # not implemented. We call the base class methods to raise a
     # NotImplementedError while faking implementations to trick pylint.
 
-    def to_stream(self, resource, stream):
-        ResourceRepresenter.to_stream(self, resource, stream)
-
-    def representation_from_data(self, data):
-        ResourceRepresenter.representation_from_data(self, data)
+    def data_to_stream(self, resource, stream):
+        ResourceRepresenter.data_to_stream(self, resource, stream)
 
     def data_from_resource(self, resource):
         ResourceRepresenter.data_from_resource(self, resource)

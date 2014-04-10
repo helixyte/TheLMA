@@ -86,8 +86,10 @@ class CustomLiquidTransferTool(SerialWriterExecutorTool):
         """
         self.add_debug('Parse file ...')
 
-        handler = GenericSampleTransferPlanParserHandler(stream=self.stream,
-                                     log=self.log, allow_rack_creation=False)
+        handler = GenericSampleTransferPlanParserHandler(
+                                            self.stream,
+                                            allow_rack_creation=False,
+                                            parent=self)
         self._worklist_series = handler.get_result()
         if self._worklist_series is None:
             msg = 'Error when trying to parse file!'
@@ -96,11 +98,8 @@ class CustomLiquidTransferTool(SerialWriterExecutorTool):
             self.__rors = handler.get_racks_and_reservoir_items()
 
     def __sort_transfer_roles(self):
-        """
-        Obtains the source and target for each worklist.
-        """
+        # Obtains the source and target for each worklist.
         self.add_debug('Sort source and targets for worklists ...')
-
         for ror in self.__rors:
             source_worklists = ror.get_worklists_for_source()
             for worklist in source_worklists:
@@ -112,25 +111,19 @@ class CustomLiquidTransferTool(SerialWriterExecutorTool):
                                             ror)
 
     def __store_worklist_roles(self, worklist, role, ror):
-        """
-        Sets the passed RackOrReservoirItem as source or target for the
-        given worklist.
-        """
+        # Sets the passed RackOrReservoirItem as source or target for the
+        # given worklist.
         if self.__transfer_roles.has_key(worklist.label):
             role_map = self.__transfer_roles[worklist.label]
         else:
             role_map = dict()
             self.__transfer_roles[worklist.label] = role_map
-
         add_list_map_element(role_map, role, ror)
 
     def __generate_transfer_jobs(self):
-        """
-        The type of the worklist is derived from its first planned liquid
-        transfer.
-        """
+        # The type of the worklist is derived from its first planned liquid
+        # transfer.
         self.add_debug('Create transfer jobs ...')
-
         self._transfer_jobs = dict()
         for worklist in self._worklist_series.get_sorted_worklists():
             role_map = self.__transfer_roles[worklist.label]
@@ -141,13 +134,10 @@ class CustomLiquidTransferTool(SerialWriterExecutorTool):
                     self.__create_transfer_job(worklist, src_ror, trg_ror)
 
     def __create_transfer_job(self, worklist, src_ror, trg_ror):
-        """
-        Helper function creating a new transfer job. The job indices are
-        sequential.
-        """
+        # Helper function creating a new transfer job. The job indices are
+        # sequential.
         job_index = len(self._transfer_jobs)
         transfer_type = worklist.planned_liquid_transfers[0].transfer_type
-
         if transfer_type == TRANSFER_TYPES.SAMPLE_DILUTION:
             job = SampleDilutionJob(index=job_index,
                             planned_worklist=worklist,
@@ -159,7 +149,6 @@ class CustomLiquidTransferTool(SerialWriterExecutorTool):
                             planned_worklist=worklist,
                             target_rack=trg_ror.rack,
                             source_rack=src_ror.rack)
-
         self._transfer_jobs[job_index] = job
 
     def _get_file_map(self, merged_stream_map, rack_transfer_stream):

@@ -5,7 +5,7 @@
 #"""
 #from everest.repositories.rdb import Session
 #from sqlalchemy.orm.collections import InstrumentedSet
-#from thelma.automation.tools.base import BaseAutomationTool
+#from thelma.automation.tools.base import BaseTool
 #from thelma.automation.tools.iso.optimizer import IsoCandidate
 #from thelma.automation.tools.iso.optimizer import OPTIMIZATION_QUERY
 #from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
@@ -25,7 +25,7 @@
 #           'LIBRARY_OPTIMIZATION_QUERY']
 #
 #
-#class LibraryCreationTubePicker(BaseAutomationTool):
+#class LibraryCreationTubePicker(BaseTool):
 #    """
 #    Runs the optimization query for the given set of molecule designs.
 #    The tool also picks tubes.
@@ -36,36 +36,26 @@
 #    NAME = 'Library Creation Optimizer'
 #
 #    def __init__(self, molecule_design_pools, stock_concentration,
-#                 take_out_volume, log,
-#                 excluded_racks=None, requested_tubes=None):
+#                 take_out_volume,
+#                 excluded_racks=None, requested_tubes=None, parent=None):
 #        """
-#        Constructor:
+#        Constructor.
 #
 #        :param molecule_design_pools: The molecule design pool IDs for which
 #            to run the query.
 #        :type molecule_design_pools: :class:`set` of molecule design pool IDs
-#
-#        :param stock_concentration: The stock concentration of the single
-#            molecule design pools for the library in nM.
-#        :type stock_concentration: :class:`int` (positive number)
-#
-#        :param take_out_volume: The volume that shall be removed from the
-#            single molecule design stock in ul.
-#        :type take_out_volume: :class:`int`
-#
-#        :param log: The log to record events.
-#        :type log: :class:`thelma.ThelmaLog`
-#
+#        :param int stock_concentration: The stock concentration of the single
+#            molecule design pools for the library in nM (positive number).
+#        :param int take_out_volume: The volume that shall be removed from the
+#            single molecule design stock in ul (positive number).
 #        :param requested_tubes: A list of barcodes from stock tubes that are
 #            supposed to be used.
 #        :type requested_tubes: A list of tube barcodes.
-#
 #        :param excluded_racks: A list of barcodes from stock racks that shall
 #            not be used for molecule design picking.
 #        :type excluded_racks: A list of rack barcodes
 #        """
-#        BaseAutomationTool.__init__(self, log=log)
-#
+#        BaseAutomationTool.__init__(self, parent=parent)
 #        #: The molecule design pool IDs for which to run the query.
 #        self.molecule_design_pools = molecule_design_pools
 #        #: The stock concentration of the single molecule design pools for
@@ -74,27 +64,22 @@
 #        #: The volume that shall be removed from the single molecule design
 #        #: stock in ul.
 #        self.take_out_volume = take_out_volume
-#
 #        if excluded_racks is None: excluded_racks = []
 #        #: A list of barcodes from stock racks that shall not be used for
 #        #: molecule design picking.
 #        self.excluded_racks = excluded_racks
-#
 #        if requested_tubes is None: requested_tubes = []
 #        #: A list of barcodes from stock tubes that are supposed to be used
 #        #: (for fixed positions).
 #        self.requested_tubes = requested_tubes
-#
 #        #: The DB session used for the queries.
 #        self.__session = None
-#
 #        #: The library candidated mapped onto pool IDs.
 #        self.__library_candidates = None
 #        #: Maps library pool IDs onto molecule design IDs. ATTENTION: a molecule
 #        #: design pool can point to several library pools! For this reason,
 #        #: library pool IDs are stored in lists.
 #        self.__md_map = None
-#
 #        #: Maps molecule design IDs onto single molecule design pool IDs.
 #        self.__single_pool_map = None
 #        #: Stores the suitable stock sample IDs for the single molecule

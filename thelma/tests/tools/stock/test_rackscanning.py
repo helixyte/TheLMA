@@ -6,6 +6,7 @@ AAB
 from StringIO import StringIO
 from datetime import datetime
 from datetime import timedelta
+
 from everest.entities.utils import get_root_aggregate
 from everest.repositories.rdb.testing import RdbContextManager
 from thelma.automation.parsers.rackscanning import RackScanningParser
@@ -28,7 +29,6 @@ from thelma.models.container import Tube
 from thelma.models.rack import TubeRack
 from thelma.models.utils import get_user
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-from thelma.tests.tools.tooltestingutils import TestingLog
 
 
 class RackScanningReportWriterTestCase(FileCreatorTestCase):
@@ -38,7 +38,6 @@ class RackScanningReportWriterTestCase(FileCreatorTestCase):
         self.WL_PATH = 'thelma:tests/tools/stock/rackscanning/'
         self.rack_barcodes = []
         self.tube_transfers = []
-        self.log = TestingLog()
         # tube barcode - src rack barcode, src pos, trg rack barcode, trg pos
         self.transfer_data = {'1001' : ('09999991', 'A1', '09999991', 'A2'),
                               '1002' : ('09999991', 'B1', '09999992', 'B1'),
@@ -49,12 +48,11 @@ class RackScanningReportWriterTestCase(FileCreatorTestCase):
         FileCreatorTestCase.tear_down(self)
         del self.rack_barcodes
         del self.tube_transfers
-        del self.log
         del self.transfer_data
 
     def _create_tool(self):
-        self.tool = RackScanningReportWriter(rack_barcodes=self.rack_barcodes,
-                            tube_transfers=self.tube_transfers, log=self.log)
+        self.tool = RackScanningReportWriter(self.rack_barcodes,
+                                             self.tube_transfers)
 
     def __continue_setup(self):
         self.__create_tube_transfer_data()

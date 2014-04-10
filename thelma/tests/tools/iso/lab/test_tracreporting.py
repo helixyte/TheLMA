@@ -6,18 +6,17 @@ AAB
 from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.iso.base import StockRackLayout
 from thelma.automation.tools.iso.base import StockRackPosition
-from thelma.automation.tools.iso.tracreporting import IsoStockTransferReporter
 from thelma.automation.tools.iso.lab.tracreporting \
     import LabIsoStockTransferLogFileWriter
 from thelma.automation.tools.iso.lab.tracreporting \
     import LabIsoStockTransferReporter
+from thelma.automation.tools.iso.tracreporting import IsoStockTransferReporter
 from thelma.automation.utils.layouts import TransferTarget
 from thelma.models.iso import ISO_STATUS
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.tests.tools.iso.lab.test_processing \
     import _LabIsoWriterExecutorToolTestCase
 from thelma.tests.tools.iso.lab.utils import LAB_ISO_TEST_CASES
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import TracToolTestCase
 
 
@@ -75,15 +74,9 @@ class _LabIsoStockTransferTracReportingTestCase(
 
 class _LabIsoProcessingStockTransferLogFileWriterTestCase(
                                 _LabIsoStockTransferTracReportingTestCase):
-
-    def set_up(self):
-        _LabIsoStockTransferTracReportingTestCase.set_up(self)
-        self.log = TestingLog()
-
     def _create_tool(self):
-        self.tool = LabIsoStockTransferLogFileWriter(log=self.log,
-                                    stock_rack_data=self.stock_rack_data,
-                                    executed_worklists=self.executed_worklists)
+        self.tool = LabIsoStockTransferLogFileWriter(self.stock_rack_data,
+                                                     self.executed_worklists)
 
     def _check_result(self):
         tool_stream = self.tool.get_result()
@@ -336,7 +329,7 @@ class _LabIsoProcessingStockTransferReporterTestCase(TracToolTestCase,
         self.iso_request.experiment_metadata.ticket_number = ticket_number
 
     def _check_result(self):
-        self.tool.send_request()
+        self.tool.run()
         self.assert_true(self.tool.transaction_completed())
         tool_stream, comment = self.tool.return_value # unpack non-sequence pylint: disable=W0633
         self._check_tool_stream(tool_stream)

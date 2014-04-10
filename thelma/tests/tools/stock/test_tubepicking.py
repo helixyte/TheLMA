@@ -15,8 +15,8 @@ from thelma.automation.tools.stock.tubepicking import TubePicker
 from thelma.automation.tools.stock.tubepicking import TubePoolQuery
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
+
 
 class StockSampleQueryTestCase(ToolsAndUtilsTestCase):
 
@@ -129,7 +129,6 @@ class TubePickerTestCase(ToolsAndUtilsTestCase):
 
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
-        self.log = TestingLog()
         self.pools = [self._get_pool(1056000), self._get_pool(330001)]
         self.stock_concentration = 10000
         self.takeoutvol = 5
@@ -138,7 +137,6 @@ class TubePickerTestCase(ToolsAndUtilsTestCase):
 
     def tear_down(self):
         ToolsAndUtilsTestCase.tear_down(self)
-        del self.log
         del self.pools
         del self.stock_concentration
         del self.takeoutvol
@@ -146,8 +144,8 @@ class TubePickerTestCase(ToolsAndUtilsTestCase):
         del self.requested_tubes
 
     def _create_tool(self):
-        self.tool = TubePicker(log=self.log, molecule_design_pools=self.pools,
-                               stock_concentration=self.stock_concentration,
+        self.tool = TubePicker(self.pools,
+                               self.stock_concentration,
                                take_out_volume=self.takeoutvol,
                                excluded_racks=self.excluded_racks,
                                requested_tubes=self.requested_tubes)

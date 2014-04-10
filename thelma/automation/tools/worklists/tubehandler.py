@@ -2,8 +2,9 @@
 Classes for tubehandler (XL20) related tasks.
 """
 from StringIO import StringIO
+
 from thelma.automation.handlers.tubehandler import XL20OutputParserHandler
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.tools.writers import CsvColumnParameters
 from thelma.automation.tools.writers import CsvWriter
 from thelma.automation.utils.base import add_list_map_element
@@ -32,20 +33,13 @@ class TubeTransferData(object):
     def __init__(self, tube_barcode, src_rack_barcode, src_pos,
                  trg_rack_barcode, trg_pos):
         """
-        Constructor:
+        Constructor.
 
-        :param tube_barcode: The barcode of the tube to be moved.
-        :type tube_barcode: :class:`str`
-
-        :param src_rack_barcode: The barcode of the donor rack.
-        :type src_rack_barcode: :class:`str`
-
+        :param str tube_barcode: The barcode of the tube to be moved.
+        :param str src_rack_barcode: The barcode of the donor rack.
         :param src_pos: The rack position of the tube in the source rack.
         :type src_pos: :class:`thelma.models.rack.RackPosition`
-
-        :param trg_rack_barcode: The barcode of the receiver rack.
-        :type trg_rack_barcode: :class:`str`
-
+        :param str trg_rack_barcode: The barcode of the receiver rack.
         :param trg_pos: The rack position of the tube in the target rack.
         :type trg_pos: :class:`thelma.models.rack.RackPosition`
         """
@@ -71,11 +65,11 @@ class TubeTransferData(object):
         :type tube_transfer: :class:`thelma.models.tubetransfer.TubeTransfer`
         :rtype: :class:`TubeTransferData`
         """
-        return TubeTransferData(tube_barcode=tube_transfer.tube.barcode,
-                        src_rack_barcode=tube_transfer.source_rack.barcode,
-                        src_pos=tube_transfer.source_position,
-                        trg_rack_barcode=tube_transfer.target_rack.barcode,
-                        trg_pos=tube_transfer.target_position)
+        return TubeTransferData(tube_transfer.tube.barcode,
+                                tube_transfer.source_rack.barcode,
+                                tube_transfer.source_position,
+                                tube_transfer.target_rack.barcode,
+                                tube_transfer.target_position)
 
     def __str__(self):
         return self.tube_barcode
@@ -95,41 +89,29 @@ class BaseXL20WorklistWriter(CsvWriter):
 
     **Return Value:** the XL20 worklist as stream
     """
-
     #: The index of the source rack column.
     SOURCE_RACK_INDEX = 0
     #: The header for the source rack column.
     SOURCE_RACK_HEADER = 'Source Rack'
-
     #: The index of the source position column.
     SOURCE_POSITION_INDEX = 1
     #: The header of the source position column.
     SOURCE_POSITION_HEADER = 'Source Position'
-
     #: The index for the tube barcode column.
     TUBE_BARCODE_INDEX = 2
     #: The header for the tube barcode column.
     TUBE_BARCODE_HEADER = 'Tube Barcode'
-
     #: The index for the destination rack column.
     DEST_RACK_INDEX = 3
     #: The header for the destination rack column.
     DEST_RACK_HEADER = 'Destination Rack'
-
     #: The index for the destination position column.
     DEST_POSITION_INDEX = 4
     #: The header for the destination position column.
     DEST_POSITION_HEADER = 'Destination Position'
 
-    def __init__(self, log):
-        """
-        Constructor:
-
-        :param log: The log to write into.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        CsvWriter.__init__(self, log=log)
-
+    def __init__(self, parent=None):
+        CsvWriter.__init__(self, parent=parent)
         #: The values for the source rack column.
         self._source_rack_values = None
         #: The values for the source position column.
@@ -157,8 +139,10 @@ class BaseXL20WorklistWriter(CsvWriter):
         Creates the :attr:`_column_map_list`
         """
         self._check_input()
-        if not self.has_errors(): self._store_column_values()
-        if not self.has_errors(): self.__generate_columns()
+        if not self.has_errors():
+            self._store_column_values()
+        if not self.has_errors():
+            self.__generate_columns()
 
     def _check_input(self):
         """
@@ -177,7 +161,6 @@ class BaseXL20WorklistWriter(CsvWriter):
         Generates the columns for the report.
         """
         self.add_debug('Generate columns ...')
-
         src_rack_column = CsvColumnParameters.create_csv_parameter_map(
                     self.SOURCE_RACK_INDEX, self.SOURCE_RACK_HEADER,
                     self._source_rack_values)
@@ -208,18 +191,14 @@ class XL20WorklistWriter(BaseXL20WorklistWriter):
     """
     NAME = 'XL20 Worklist Writer'
 
-    def __init__(self, log, tube_transfers):
+    def __init__(self, tube_transfers, parent=None):
         """
-        Constructor:
-
-        :param log: The log to write into.
-        :type log: :class:`thelma.ThelmaLog`
+        Constructor.
 
         :param tube_transfer: A list of :class:`TubeTransfer` instances.
         :type tube_transfer: :class:`list`
         """
-        BaseXL20WorklistWriter.__init__(self, log=log)
-
+        BaseXL20WorklistWriter.__init__(self, parent=parent)
         #: A list of :class:`TubeTransfer` or :class:`TubeTransferData`
         #: instances.
         self.tube_transfers = tube_transfers
@@ -228,7 +207,7 @@ class XL20WorklistWriter(BaseXL20WorklistWriter):
 
     def _check_input(self):
         """
-        Checks the initialisation values.
+        Checks the initialization values.
         """
         if self._check_input_class('tube transfer list', self.tube_transfers,
                                    list):
@@ -252,15 +231,12 @@ class XL20WorklistWriter(BaseXL20WorklistWriter):
         Stores the column values.
         """
         self.add_debug('Store column values ...')
-
         src_rack_map = dict()
         for tube_transfer in self._tube_transfer_data:
             add_list_map_element(src_rack_map, tube_transfer.src_rack_barcode,
                                  tube_transfer)
-
         src_racks = sorted(src_rack_map.keys())
         for src_rack in src_racks:
-
             tube_barcodes = sorted(src_rack_map[src_rack],
                                    cmp=lambda tt1, tt2: cmp(tt1.tube_barcode,
                                                             tt2.tube_barcode))
@@ -272,55 +248,47 @@ class XL20WorklistWriter(BaseXL20WorklistWriter):
                 self._dest_position_values.append(tube_transfer.trg_pos.label)
 
 
-class TubeTransferExecutor(BaseAutomationTool):
+class TubeTransferExecutor(BaseTool):
     """
     Executes passed tube transfers.
 
     **Return Value:** The executed :class:`TubeTransferWorklist`
     """
-
     NAME = 'Tube Transfer Executor'
 
-    def __init__(self, tube_transfers, user, log):
+    def __init__(self, tube_transfers, user, parent=None):
         """
-        Constructor:
+        Constructor.
 
-        :param log: The log to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param tube_transfer: A list of :class:`TubeTransfer` entities to
-            execute.
+        :param list tube_transfer: A list of :class:`TubeTransfer` entities
+            to execute.
         :type tube_transfer: :class:`list`
-
         :param user: The user conducting the update.
         :type user: :class:`thelma.models.user.User`
         """
-        BaseAutomationTool.__init__(self, log=log)
-
+        BaseTool.__init__(self, parent=parent)
         #: The tube transfer entities to execute.
         self.tube_transfers = tube_transfers
         #: The user conducting the update.
         self.user = user
-
         #: The tubes of each rack mapped onto rack positions (racks as
         #: barcodes).
         self.__rack_containers = None
 
     def reset(self):
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self.__rack_containers = dict()
 
     def run(self):
-        """
-        Runs the tool.
-        """
         self.reset()
         self.add_info('Start tube transfer execution ...')
-
         self.__check_input()
-        if not self.has_errors(): self.__scan_racks()
-        if not self.has_errors(): self.__check_transfers()
-        if not self.has_errors(): self.__update_tube_locations()
+        if not self.has_errors():
+            self.__scan_racks()
+        if not self.has_errors():
+            self.__check_transfers()
+        if not self.has_errors():
+            self.__update_tube_locations()
         if not self.has_errors():
             self.return_value = TubeTransferWorklist(user=self.user,
                                         tube_transfers=self.tube_transfers,
@@ -328,26 +296,19 @@ class TubeTransferExecutor(BaseAutomationTool):
             self.add_info('Tube transfer executor run completed.')
 
     def __check_input(self):
-        """
-        Checks the initialisation values.
-        """
+        # Checks the initialization values.
         self.add_debug('Check input values ...')
-
         if self._check_input_class('tube transfer list', self.tube_transfers,
                                    list):
             for tt in self.tube_transfers:
                 if not self._check_input_class('tube transfer', tt,
                                                TubeTransfer): break
-
         self._check_input_class('user', self.user, User)
 
     def __scan_racks(self):
-        """
-        Maps the tube of each rack onto its rack position (to simplify access
-        at later stage).
-        """
+        # Maps the tube of each rack onto its rack position (to simplify
+        # access at later stage).
         self.add_debug('Scan involved racks ...')
-
         racks = set()
         for tt in self.tube_transfers:
             racks.add(tt.source_rack)
@@ -355,9 +316,7 @@ class TubeTransferExecutor(BaseAutomationTool):
         for rack in racks: self.__search_rack_tubes(rack)
 
     def __search_rack_tubes(self, rack):
-        """
-        Searches the tubes of the given rack and stores them.
-        """
+        # Searches the tubes of the given rack and stores them.
         barcode = rack.barcode
         if not isinstance(rack, TubeRack):
             msg = 'Rack %s is not a tube rack (but a %s).' \
@@ -370,17 +329,12 @@ class TubeTransferExecutor(BaseAutomationTool):
             self.__rack_containers[barcode] = tube_map
 
     def __check_transfers(self):
-        """
-        Makes sure that each transfer is executable.
-        """
+        # Makes sure that each transfer is executable.
         self.add_debug('Check transfers ...')
-
         occupied_trg_position = []
         deviating_src_position = []
-
         for tt in self.tube_transfers:
             tube_barcode = tt.tube.barcode
-
             src_pos = tt.source_position
             src_rack_barcode = tt.source_rack.barcode
             src_tube_map = self.__rack_containers[src_rack_barcode]
@@ -395,7 +349,6 @@ class TubeTransferExecutor(BaseAutomationTool):
                            % (src_pos.label, src_rack_barcode, tube_barcode,
                               found_src_tube.barcode)
                     deviating_src_position.append(info)
-
             trg_pos = tt.target_position
             trg_rack_barcode = tt.target_rack.barcode
             trg_tube_map = self.__rack_containers[trg_rack_barcode]
@@ -405,14 +358,12 @@ class TubeTransferExecutor(BaseAutomationTool):
                         % (trg_pos.label, trg_rack_barcode, tube_barcode,
                            found_trg_tube.barcode)
                 occupied_trg_position.append(info)
-
         if len(deviating_src_position) > 0:
             deviating_src_position.sort()
             msg = 'Some rack positions did not contain the expected tubes: ' \
                   '%s.' % (self._get_joined_str(deviating_src_position,
                                                 separator=' - '))
             self.add_error(msg)
-
         if len(occupied_trg_position) > 0:
             occupied_trg_position.sort()
             msg = 'Some transfer target positions are not empty: %s.' \
@@ -421,14 +372,10 @@ class TubeTransferExecutor(BaseAutomationTool):
             self.add_error(msg)
 
     def __update_tube_locations(self):
-        """
-        Updates the container locations and the container lists of the
-        affected tubes and racks.
-        """
+        # Updates the container locations and the container lists of the
+        # affected tubes and racks.
         self.add_debug('Update tube locations ...')
-
         non_empty = []
-
         for tt in self.tube_transfers:
             tube = tt.tube
             # we do not need to check the source rack and positions
@@ -441,7 +388,6 @@ class TubeTransferExecutor(BaseAutomationTool):
                          trg_rack.container_locations[trg_pos].barcode)
                 non_empty.append(info)
                 continue
-
         if len(non_empty) > 0:
             msg = 'Some tube target positions are not empty: %s!' \
                   % (', '.join(sorted(non_empty)))
@@ -453,7 +399,7 @@ class TubeTransferExecutor(BaseAutomationTool):
                 tt.target_rack.add_tube(tube=tube, position=tt.target_position)
 
 
-class XL20Executor(BaseAutomationTool):
+class XL20Executor(BaseTool):
     """
     This tools update the location of tubes using an XL20 output file to
     generate the required :class:`TubeTransfer` entities.
@@ -462,22 +408,20 @@ class XL20Executor(BaseAutomationTool):
     """
     NAME = 'XL20 Executor'
 
-    def __init__(self, output_file_stream, user):
+    def __init__(self, output_file_stream, user, parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param output_file_stream: The content of the XL20 output file, as
             :class:`basestring`, file or :class:`StringIO`.
         :param user: The user who wants to update the DB.
         :type user: :class:`thelma.models.user.User`
         """
-        BaseAutomationTool.__init__(self, depending=False)
-
+        BaseTool.__init__(self, parent=parent)
         #: The XL20 output file.
         self.output_file_stream = output_file_stream
         #: The user who wants to update the DB.
         self.user = user
-
         #: The tube transfers for the DB adjustment.
         self.__tube_transfers = None
         #: The tube transfer worklist (only for *True* :attr:`adjust_database`).
@@ -486,31 +430,26 @@ class XL20Executor(BaseAutomationTool):
         self.__timestamp = None
 
     def reset(self):
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self.__tube_transfers = None
         self.__tube_transfer_worklist = None
         self.__timestamp = None
 
     def run(self):
-        """
-        Runs the tool.
-        """
         self.reset()
         self.add_info('Start run ...')
-
         self.__check_input()
-        if not self.has_errors(): self.__parse_file()
-        if not self.has_errors(): self.__execute_transfers()
+        if not self.has_errors():
+            self.__parse_file()
+        if not self.has_errors():
+            self.__execute_transfers()
         if not self.has_errors():
             self.return_value = self.__tube_transfer_worklist
             self.add_info('Update completed.')
 
     def __check_input(self):
-        """
-        Checks the initialisation values ...
-        """
+        # Checks the initialisation values ...
         self.add_debug('Check input values ...')
-
         if not isinstance(self.output_file_stream,
                           (file, basestring, StringIO)):
             msg = 'The XL20 output file must be passed as file, basestring ' \
@@ -521,16 +460,12 @@ class XL20Executor(BaseAutomationTool):
         self._check_input_class('user', self.user, User)
 
     def __parse_file(self):
-        """
-        Parses the output file. The parser handler returns a list of
-        :class:`TubeTransfer` entities.
-        """
+        # Parses the output file. The parser handler returns a list of
+        # :class:`TubeTransfer` entities.
         self.add_debug('Parse file ...')
-
-        parser_handler = XL20OutputParserHandler(log=self.log,
-                                                 stream=self.output_file_stream)
+        parser_handler = XL20OutputParserHandler(self.output_file_stream,
+                                                 parent=self)
         self.__tube_transfers = parser_handler.get_result()
-
         if self.__tube_transfers is None:
             msg = 'Error when trying to parser XL20 output file.'
             self.add_error(msg)
@@ -538,16 +473,12 @@ class XL20Executor(BaseAutomationTool):
             self.__timestamp = parser_handler.get_timestamp()
 
     def __execute_transfers(self):
-        """
-        Makes use of the :class:`TubeTransferExecutor.` The timestamp of the
-        generated worklist is overwritten by the file timestamp.
-        """
+        # Makes use of the :class:`TubeTransferExecutor.` The timestamp of the
+        # generated worklist is overwritten by the file timestamp.
         self.add_debug('Update tube positions ...')
-
-        executor = TubeTransferExecutor(tube_transfers=self.__tube_transfers,
-                                        user=self.user, log=self.log)
+        executor = TubeTransferExecutor(self.__tube_transfers, self.user,
+                                        parent=self)
         self.__tube_transfer_worklist = executor.get_result()
-
         if self.__tube_transfer_worklist is None:
             msg = 'Error when trying to update tube positions.'
             self.add_error(msg)

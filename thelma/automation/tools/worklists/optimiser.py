@@ -7,7 +7,7 @@ from thelma.automation.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.semiconstants import get_384_rack_shape
 from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_rack_position_from_indices
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.layouts import WorkingLayout
 
@@ -72,7 +72,7 @@ class TransferItem(object):
         return str_format % params
 
 
-class BiomekLayoutOptimizer(BaseAutomationTool):
+class BiomekLayoutOptimizer(BaseTool):
     """
     Tries to generate an speed-otimised source plate layout for a Biomek
     transfer. The sorting is based on working position hash values.
@@ -91,32 +91,18 @@ class BiomekLayoutOptimizer(BaseAutomationTool):
     #: The used :class:`TransferItem` subclass.
     TRANSFER_ITEM_CLASS = TransferItem
 
-    def __init__(self, log):
-        """
-        Constructor:
-
-        :param design_rack_layouts: The transfection layout for each design rack.
-        :type design_rack_layouts: :class:`dict`
-
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        BaseAutomationTool.__init__(self, log=log)
-
+    def __init__(self, parent=None):
+        BaseTool.__init__(self, parent=parent)
         #: The source layout.
         self._source_layout = None
-
         #: A set of all hash values.
         self._hash_values = None
         #: The column maps for the different target layouts (working positions
         #: mapped onto column indices) - the keys of this dictionary should
         #: be suitable for sorting. Otherwise there are irrelevant.
         self._column_maps = None
-
         #: The rack shape of the source layout.
         self.__source_rack_shape = None
-
         #: The minimum distance in rows two well of a column must have for
         #: the Biomek to pipet them together. The value is 1 for 384-well
         #: plates and 0 (=no distance) for 96-well plates.
@@ -125,18 +111,16 @@ class BiomekLayoutOptimizer(BaseAutomationTool):
         #: the Biomek to pipet them together. The value is 1 for 384-well
         #: plates and 0 (=no distance) for 96-well plates.
         self.__src_min_row_distance = None
-
         #: The transfer items that are already part of a subcolumn.
         self.__subcolumn_tids = None
         #: All :class:`TransferSubcolumn` objects mapped onto their length.
         self.__subcolumn_lengths = None
-
         #: Stores :class:`SourceSubcolumn` objects managing the remaining free
         #: positions for the source transfection layout.
         self.__free_positions = None
 
     def reset(self):
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self._source_layout = None
         self._hash_values = set()
         self._column_maps = dict()

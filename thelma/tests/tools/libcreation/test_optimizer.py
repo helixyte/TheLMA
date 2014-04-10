@@ -18,7 +18,6 @@
 #from thelma.interfaces import IMoleculeDesign
 #from thelma.models.moleculedesign import MoleculeDesignPool
 #from thelma.models.moleculetype import MOLECULE_TYPE_IDS
-#from thelma.tests.tools.tooltestingutils import TestingLog
 #from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 #
 #
@@ -114,7 +113,6 @@
 #
 #    def set_up(self):
 #        ToolsAndUtilsTestCase.set_up(self)
-#        self.log = TestingLog()
 #        self.molecule_design_pools = []
 #        self.stock_concentration = get_default_stock_concentration(
 #                                                    MOLECULE_TYPE_IDS.SIRNA)
@@ -134,7 +132,6 @@
 #
 #    def tear_down(self):
 #        ToolsAndUtilsTestCase.tear_down(self)
-#        del self.log
 #        del self.molecule_design_pools
 #        del self.stock_concentration
 #        del self.take_out_volume
@@ -146,12 +143,11 @@
 #        del self.query_pool_id
 #
 #    def _create_tool(self):
-#        self.tool = LibraryCreationTubePicker(log=self.log,
-#                        molecule_design_pools=self.molecule_design_pools,
-#                        stock_concentration=self.stock_concentration,
-#                        take_out_volume=self.take_out_volume,
-#                        excluded_racks=self.excluded_racks,
-#                        requested_tubes=self.requested_tubes)
+#        self.tool = LibraryCreationTubePicker(self.molecule_design_pools,
+#                                              self.stock_concentration,
+#                                              self.take_out_volume,
+#                                              excluded_racks=self.excluded_racks,
+#                                              requested_tubes=self.requested_tubes)
 #
 #    def __continue_setup(self):
 #        self.__create_pools()

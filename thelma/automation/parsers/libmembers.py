@@ -38,19 +38,13 @@
 #    #: Separates the molecule designs in one cell.
 #    DELIMITER = ','
 #
-#    def __init__(self, stream, log):
-#        """
-#        :param stream: open Excel file to be parsed
-#        """
-#        ExcelFileParser.__init__(self, stream=stream, log=log)
-#
+#    def __init__(self, stream, parent=None):
+#        ExcelFileParser.__init__(self, stream, parent=parent)
 #        #: The Excel sheet containing the data.
 #        self.sheet = None
-#
 #        #: The molecule design lists founds (each record is a list
 #        #: molecule design IDs).
 #        self.molecule_design_lists = None
-#
 #        #: The index of the column containing the molecule design IDs.
 #        self.__column_index = None
 #
@@ -59,15 +53,15 @@
 #        self.__column_index = None
 #        self.molecule_design_lists = []
 #
-#    def parse(self):
+#    def run(self):
 #        self.reset()
 #        self.add_info('Start parsing ...')
-#
 #        wb = self.open_workbook()
 #        self.sheet = self.get_sheet_by_name(wb, self.SHEET_NAME)
-#
-#        if not self.has_errors(): self.__determine_column_index()
-#        if not self.has_errors(): self.__parse_column()
+#        if not self.has_errors():
+#            self.__determine_column_index()
+#        if not self.has_errors():
+#            self.__parse_column()
 #        if not self.has_errors():
 #            self.add_info('Parsing completed.')
 #

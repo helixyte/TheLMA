@@ -169,19 +169,6 @@ class LabIsoRequestMember(IsoRequestMember):
             result = Member.__getitem__(self, name)
         return result
 
-    def __get_completed_iso_plates_for_iso(self, iso):
-        if self.experiment_metadata.experiment_metadata_type.id == \
-                                        EXPERIMENT_METADATA_TYPES.LIBRARY:
-            racks = [lp.rack for lp in iso.library_plates]
-        else:
-            # If we have aliquot plates, use them; if not, use the
-            # preparation plates.
-            if len(iso.aliquot_plates) > 0:
-                racks = [ap for ap in iso.aliquot_plates]
-            else:
-                racks = [pp for pp in iso.preparation_plates]
-        return racks
-
     def update(self, data):
         if not IEntity.providedBy(data): # pylint: disable=E1101
             prx = DataElementAttributeProxy(data)
@@ -402,6 +389,19 @@ class LabIsoRequestMember(IsoRequestMember):
                    for iso_job in self.get_entity().iso_jobs
                    if iso_job.id == iso_job_id]
         return result
+
+    def __get_completed_iso_plates_for_iso(self, iso):
+        if self.experiment_metadata.experiment_metadata_type.id == \
+                                        EXPERIMENT_METADATA_TYPES.LIBRARY:
+            racks = [lp.rack for lp in iso.library_plates]
+        else:
+            # If we have aliquot plates, use them; if not, use the
+            # preparation plates.
+            if len(iso.aliquot_plates) > 0:
+                racks = [ap for ap in iso.aliquot_plates]
+            else:
+                racks = [pp for pp in iso.preparation_plates]
+        return racks
 
 
 class StockSampleCreationIsoRequestMember(IsoRequestMember):

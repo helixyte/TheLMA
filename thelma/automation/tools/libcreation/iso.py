@@ -229,16 +229,12 @@
 #            self.add_error(msg)
 #
 #    def __get_base_layout(self):
-#        """
-#        The base layout defines which positions might be taken by library
-#        positions.
-#        """
+#        # The base layout defines which positions might be taken by library
+#        # positions.
 #        self.add_debug('Fetch base layout ...')
-#
-#        converter = LibraryBaseLayoutConverter(log=self.log,
-#                                    rack_layout=self._iso_request.iso_layout)
+#        converter = LibraryBaseLayoutConverter(
+#                                self._iso_request.iso_layout, parent=self)
 #        self.__base_layout = converter.get_result()
-#
 #        if self.__base_layout is None:
 #            msg = 'Error when trying to fetch library base layout.'
 #            self.add_error(msg)
@@ -248,19 +244,17 @@
 #                                            number_sectors=NUMBER_SECTORS)
 #
 #    def __pick_library_candidates(self):
-#        """
-#        Runs the library optimizer. The optimizer returns a list of
-#        :class:`LibraryCandidate` objects (in order of the optimizing
-#        completion).
-#        """
-#        optimizer = LibraryCreationTubePicker(log=self.log,
-#                                molecule_design_pools=self._queued_pools,
-#                                stock_concentration=self.__stock_concentration,
-#                                take_out_volume=MOLECULE_DESIGN_TRANSFER_VOLUME,
-#                                excluded_racks=self.excluded_racks,
-#                                requested_tubes=self.requested_tubes)
+#        # Runs the library optimizer. The optimizer returns a list of
+#        # :class:`LibraryCandidate` objects (in order of the optimizing
+#        # completion).
+#        optimizer = LibraryCreationTubePicker(
+#                            self._queued_pools,
+#                            self.__stock_concentration,
+#                            take_out_volume=MOLECULE_DESIGN_TRANSFER_VOLUME,
+#                            excluded_racks=self.excluded_racks,
+#                            requested_tubes=self.requested_tubes,
+#                            parent=self)
 #        self._library_candidates = optimizer.get_result()
-#
 #        if self._library_candidates is None:
 #            msg = 'Error when trying to pick tubes.'
 #            self.add_error(msg)
@@ -427,11 +421,8 @@
 #            self.__generate_columns()
 #
 #    def __store_values(self):
-#        """
-#        Fetches and stores the values for the columns.
-#        """
+#        # Fetches and stores the values for the columns.
 #        self.add_debug('Store column values ...')
-#
 #        lib_layout = self.__get_library_layout()
 #        if not lib_layout is None:
 #            for lib_pos in lib_layout.get_sorted_working_positions():
@@ -443,15 +434,12 @@
 #                                lib_pos.get_stock_barcodes_tag_value())
 #
 #    def __get_library_layout(self):
-#        """
-#        Converts the library layout from the ISO.
-#        """
+#        # Converts the library layout from the ISO.
 #        self.add_debug('Get library layout ...')
 #
-#        converter = LibraryLayoutConverter(log=self.log,
-#                            rack_layout=self.library_creation_iso.rack_layout)
+#        converter = LibraryLayoutConverter(
+#                        self.library_creation_iso.rack_layout, parent=self)
 #        lib_layout = converter.get_result()
-#
 #        if lib_layout is None:
 #            msg = 'Error when trying to convert library layout!'
 #            self.add_error(msg)
@@ -459,9 +447,7 @@
 #        return lib_layout
 #
 #    def __generate_columns(self):
-#        """
-#        Generates the :attr:`_column_map_list`
-#        """
+#        # Generates the :attr:`_column_map_list`
 #        pos_column = CsvColumnParameters(self.POSITION_INDEX,
 #                                self.POSITION_HEADER, self.__position_values)
 #        pool_column = CsvColumnParameters(self.POOL_INDEX, self.POOL_HEADER,

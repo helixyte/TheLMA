@@ -39,9 +39,8 @@ class ExperimentDesignParserHandlerTestCase(ParsingTestCase):
         del self.scenario
 
     def _create_tool(self):
-        self.tool = ExperimentDesignParserHandler(stream=self.stream,
-                            requester=self.user, scenario=self.scenario,
-                            log=self.log)
+        self.tool = ExperimentDesignParserHandler(self.stream,
+                                                  self.user, self.scenario)
 
     def _continue_setup(self, file_name=None):
         if self.scenario is None: self._set_opti_values()

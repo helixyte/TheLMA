@@ -2,6 +2,8 @@
 Tests for metadata report tools.
 """
 
+from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.automation.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketCreator
 from thelma.automation.tools.metadata.uploadreport \
     import ExperimentMetadataAssignmentWriter
@@ -15,8 +17,6 @@ from thelma.automation.tools.metadata.uploadreport \
     import ExperimentMetadataIsoPlateWriter
 from thelma.automation.tools.metadata.uploadreport \
     import ExperimentMetadataReportUploader
-from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.semiconstants import get_experiment_metadata_type
 from thelma.automation.tools.worklists.base import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.worklists.base import get_reservoir_spec
 from thelma.interfaces import ISubproject
@@ -25,7 +25,6 @@ from thelma.models.utils import get_user
 from thelma.tests.tools.tooltestingutils \
     import ExperimentMetadataReadingTestCase
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import TracToolTestCase
 
 
@@ -43,7 +42,6 @@ class _ExperimentMetadataReportTestCase(FileCreatorTestCase,
                     EXPERIMENT_SCENARIOS.MANUAL : 'valid_manual.xls',
                     EXPERIMENT_SCENARIOS.ISO_LESS : 'valid_isoless.xls',
                     EXPERIMENT_SCENARIOS.ORDER_ONLY : 'valid_order.xls'}
-        self.log = TestingLog()
         self.experiment_type_id = EXPERIMENT_SCENARIOS.OPTIMISATION
         self.generator = None
         self.experiment_metadata = None
@@ -56,7 +54,6 @@ class _ExperimentMetadataReportTestCase(FileCreatorTestCase,
     def tear_down(self):
         ExperimentMetadataReadingTestCase.tear_down(self)
         del self.WL_PATH
-        del self.log
         del self.experiment_type_id
         del self.generator
         del self.VALID_FILES
@@ -105,8 +102,7 @@ class ExperimentMetadataAssignmentWriterTestCase(
                                             _ExperimentMetadataReportTestCase):
 
     def _create_tool(self):
-        self.tool = ExperimentMetadataAssignmentWriter(log=self.log,
-                                                generator=self.generator)
+        self.tool = ExperimentMetadataAssignmentWriter(self.generator)
 
     def test_result_opti(self):
         self._continue_setup()
@@ -132,8 +128,7 @@ class ExperimentMetadataIsoPlateWriterTestCase(_ExperimentMetadataReportTestCase
 
 
     def _create_tool(self):
-        self.tool = ExperimentMetadataIsoPlateWriter(log=self.log,
-                                        generator=self.generator)
+        self.tool = ExperimentMetadataIsoPlateWriter(self.generator)
 
     def __check_result(self, reference_file_name):
         self._continue_setup()
@@ -179,11 +174,10 @@ class ExperimentMetadataInfoWriterTestCase(_ExperimentMetadataReportTestCase):
         del self.number_replicates
 
     def _create_tool(self):
-        self.tool = ExperimentMetadataInfoWriter(em_log=self.generator.log,
-                            number_replicates=self.number_replicates,
-                            supports_mastermix=self.supports_mastermix,
-                            reservoir_specs=self.reservoir_specs,
-                            log=self.log)
+        self.tool = ExperimentMetadataInfoWriter(self.generator,
+                                                 self.number_replicates,
+                                                 self.supports_mastermix,
+                                                 self.reservoir_specs)
 
     def test_result_supports_mastermix(self):
         self._continue_setup()
@@ -202,11 +196,6 @@ class ExperimentMetadataInfoWriterTestCase(_ExperimentMetadataReportTestCase):
 
     def test_info_writer_failed_generator(self):
         self._test_failed_generator('generator did not complete its run')
-
-    def test_invalid_log(self):
-        self._continue_setup()
-        self.generator.log = None
-        self._test_and_expect_errors('log must be a ThelmaLog')
 
     def test_invalid_number_replicates(self):
         self._continue_setup()
@@ -233,9 +222,9 @@ class ExperimentMetadataInfoWriterWarningOnlyTestCase(
         self.experiment_type_id = EXPERIMENT_SCENARIOS.ISO_LESS
 
     def _create_tool(self):
-        self.tool = ExperimentMetadataInfoWriterWarningOnly(log=self.log,
-                            em_log=self.generator.log,
-                            em_label=self.experiment_metadata_label)
+        self.tool = ExperimentMetadataInfoWriterWarningOnly(
+                                            self.generator,
+                                            self.experiment_metadata_label)
 
     def __check_result(self):
         self._continue_setup()
@@ -268,8 +257,6 @@ class ExperimentMetadataInfoWriterWarningOnlyTestCase(
         self._test_and_expect_errors('The experiment metadata label must be ' \
                                      'a basestring')
         self.experiment_metadata_label = ori_em_label
-        self.generator.log = None
-        self._test_and_expect_errors('The log must be a ThelmaLog')
 
 
 class ExperimentMetadataInfoWriterLibraryTestCase(
@@ -280,8 +267,7 @@ class ExperimentMetadataInfoWriterLibraryTestCase(
         self.experiment_type_id = EXPERIMENT_SCENARIOS.LIBRARY
 
     def _create_tool(self):
-        self.tool = ExperimentMetadataInfoWriterLibrary(log=self.log,
-                                                generator=self.generator)
+        self.tool = ExperimentMetadataInfoWriterLibrary(self.generator)
 
     def test_result(self):
         self._continue_setup()
@@ -349,7 +335,7 @@ class ExperimentMetadataReportUploaderTestCase(TracToolTestCase,
 
     def __check_result(self, number_files):
         self._continue_setup()
-        self.tool.send_request()
+        self.tool.run()
         self.assert_true(self.tool.transaction_completed())
         self.assert_equal(len(self.tool.return_value), number_files)
 

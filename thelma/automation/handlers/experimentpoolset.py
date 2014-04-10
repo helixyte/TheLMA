@@ -17,6 +17,7 @@ from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 
+
 __docformat__ = 'reStructuredText en'
 
 __all__ = ['ExperimentPoolSetParserHandler',
@@ -31,17 +32,8 @@ class ExperimentPoolSetParserHandler(BaseParserHandler):
     MODEL_CLASS = MoleculeDesignPoolSet
     _PARSER_CLS = ExperimentPoolSetParser
 
-    def __init__(self, stream, log):
-        """
-        Constructor:
-
-        :param stream: stream of the file to be parsed
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
-        """
-
-        BaseParserHandler.__init__(self, log, stream=stream)
-
+    def __init__(self, stream, parent=None):
+        BaseParserHandler.__init__(self, stream=stream, parent=parent)
         #: The molecule type of the molecule design pools.
         self.__molecule_type = None
         #: The stock concentration for the pools (must all be the same).
@@ -54,7 +46,7 @@ class ExperimentPoolSetParserHandler(BaseParserHandler):
         if self.return_value is None: return None
         return self.__stock_concentration
 
-    def _convert_results_to_model_entity(self):
+    def _convert_results_to_entity(self):
         """
         Creates the MoleculeDesignSet object used as output value.
         """

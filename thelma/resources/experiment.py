@@ -240,9 +240,9 @@ class ExperimentMetadataMember(Member):
 
     @classmethod
     def __run_trac_tool(cls, tool, error_msg_text):
-        tool.send_request()
+        tool.run()
         if not tool.transaction_completed():
-            exc_msg = str(tool.get_messages(logging.ERROR))
+            exc_msg = str(tool.get_messages(logging_level=logging.ERROR))
             raise HTTPBadRequest(error_msg_text % exc_msg).exception
         return tool.return_value
 

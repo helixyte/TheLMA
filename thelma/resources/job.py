@@ -113,7 +113,7 @@ class ExperimentJobMember(JobMember):
                 exp_ent.source_rack = new_experiment.source_rack
                 exp_ent.experiment_racks = new_experiment.experiment_racks
             if tool.has_errors():
-                exc_msg = str(tool.get_messages(logging.ERROR))
+                exc_msg = str(tool.get_messages(logging_level=logging.ERROR))
                 raise HTTPBadRequest('Could not update Database: %s' % exc_msg
                                      ).exception
 

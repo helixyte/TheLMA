@@ -34,24 +34,19 @@
 #
 #    _PARSER_CLS = LibraryMemberParser
 #
-#    def __init__(self, log, stream, number_molecule_designs, molecule_type):
+#    def __init__(self, stream, number_molecule_designs, molecule_type,
+#                 parent=None):
 #        """
 #        Constructor:
 #
-#        :param log: The ThelmaLog to write into.
-#        :type log: :class:`thelma.ThelmaLog`
-#
-#        :param stream: stream of the file to parse.
-#
 #        :param number_molecule_designs: The number of molecule designs
 #            per cell (list).
-#        :type number_molecule_designs: :class:`int`
-#
+#        :type number_molecule_designs: :class:`int`#
 #        :param molecule_type: The expected molecule type for all molecule
 #            designs in the library.
 #        :type molecule_type: :class:`thelma.models.moleculetype.MoleculeType`
 #        """
-#        BaseParserHandler.__init__(self, log=log, stream=stream)
+#        BaseParserHandler.__init__(self, stream=stream, parent=parent)
 #        #: The number of molecule designs per cell (list).
 #        self.number_molecule_designs = number_molecule_designs
 #        #: The expected molecule type for all molecule designs in the library.

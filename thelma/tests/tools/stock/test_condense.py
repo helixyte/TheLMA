@@ -21,7 +21,6 @@ from thelma.models.rack import RACK_TYPES
 from thelma.testing import ThelmaModelTestCase
 from thelma.tests.tools.tooltestingutils import FileComparisonUtils
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-from thelma.tests.tools.tooltestingutils import TestingLog
 
 
 class StockCondenseRackTestCase(ThelmaModelTestCase):
@@ -202,7 +201,6 @@ class StockCondenseReportWriterTestCase(FileCreatorTestCase):
 
     def set_up(self):
         FileCreatorTestCase.set_up(self)
-        self.log = TestingLog()
         self.WL_PATH = 'thelma:tests/tools/stock/condense/'
         self.donor_racks = dict()
         self.receiver_racks = dict()
@@ -219,17 +217,15 @@ class StockCondenseReportWriterTestCase(FileCreatorTestCase):
 
     def tear_down(self):
         FileCreatorTestCase.tear_down(self)
-        del self.log
         del self.donor_racks
         del self.excluded_racks
         del self.racks_to_empty
 
     def _create_tool(self):
-        self.tool = StockCondenseReportWriter(log=self.log,
-                                        donor_racks=self.donor_racks,
-                                        receiver_racks=self.receiver_racks,
-                                        excluded_racks=self.excluded_racks,
-                                        racks_to_empty=self.racks_to_empty)
+        self.tool = StockCondenseReportWriter(self.donor_racks,
+                                              self.receiver_racks,
+                                              self.excluded_racks,
+                                              self.racks_to_empty)
 
     def __continue_setup(self):
         self.__create_receiver_racks()

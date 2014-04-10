@@ -31,7 +31,6 @@ from thelma.models.tagging import Tag
 from thelma.tests.tools.iso.lab.utils import LAB_ISO_TEST_CASES
 from thelma.tests.tools.iso.lab.utils import LabIsoTestCase2
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 from thelma.tests.tools.utils.utils import ConverterTestCase
 from thelma.tests.tools.utils.utils import MoleculeDesignPoolBaseTestCase
@@ -1071,7 +1070,6 @@ class _InstructionWriterTestCase(LabIsoTestCase2, FileCreatorTestCase):
 
     def set_up(self):
         LabIsoTestCase2.set_up(self)
-        self.log = TestingLog()
         self.rack_containers = []
         self.WL_PATH = LAB_ISO_TEST_CASES.INSTRUCTIONS_FILE_PATH
 
@@ -1080,9 +1078,9 @@ class _InstructionWriterTestCase(LabIsoTestCase2, FileCreatorTestCase):
         del self.rack_containers
 
     def _create_tool(self):
-        self.tool = create_instructions_writer(log=self.log, entity=self.entity,
-                        iso_request=self.iso_request,
-                        rack_containers=self.rack_containers)
+        self.tool = create_instructions_writer(self.entity,
+                                               self.iso_request,
+                                               self.rack_containers)
 
     def _continue_setup(self, file_name=None):
         LabIsoTestCase2._continue_setup(self, file_name=file_name)

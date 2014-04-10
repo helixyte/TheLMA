@@ -9,24 +9,20 @@ from thelma.models.racklayout import RackLayout
 from thelma.models.utils import get_user
 from thelma.tests.tools.experiment.utils import EXPERIMENT_TEST_DATA
 from thelma.tests.tools.experiment.utils import ExperimentTestCase
-from thelma.tests.tools.tooltestingutils import SilentLog
-from thelma.tests.tools.tooltestingutils import TestingLog
 
 
 class ExperimentManualExecutorTestCase(ExperimentTestCase):
 
     def set_up(self):
         ExperimentTestCase.set_up(self)
-        self.log = TestingLog()
         self.executor_user = get_user('tondera')
 
     def tear_down(self):
         ExperimentTestCase.tear_down(self)
-        del self.log
 
     def _create_tool(self):
-        self.tool = ExperimentManualExecutor(experiment=self.experiment,
-                                 user=self.executor_user, log=self.log)
+        self.tool = ExperimentManualExecutor(self.experiment,
+                                             self.executor_user)
 
     def __check_result(self, case_name):
         self._load_scenario(case_name)
@@ -110,9 +106,11 @@ class ExperimentManualExecutorTestCase(ExperimentTestCase):
         self._load_scenario(EXPERIMENT_TEST_DATA.CASE_OPTI_NO)
         for edr in self.experiment.experiment_racks:
             dr = edr.design_rack
-            if not dr.label == '1': continue
-            converter = TransfectionLayoutConverter(rack_layout=dr.rack_layout,
-                                log=SilentLog(), is_iso_request_layout=False)
+            if not dr.label == '1':
+                continue
+            converter = \
+                TransfectionLayoutConverter(dr.rack_layout,
+                                            is_iso_request_layout=False)
             layout = converter.get_result()
             for tf_pos in layout.working_positions():
                 tf_pos.molecule_design_pool = self._get_pool(330001)

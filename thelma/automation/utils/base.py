@@ -192,7 +192,7 @@ def get_converted_number(value, is_integer=False):
 
 def get_trimmed_string(value):
     """
-    Returns a string of value (free of \'.0\' at the end). Float values
+    Returns a string of value (stripped of \'.0\' at the end). Float values
     are limited to 1 decimal place.
     """
     if isinstance(value, float):

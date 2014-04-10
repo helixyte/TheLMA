@@ -539,39 +539,30 @@ class TubePicker(SessionTool):
     """
     NAME = 'Tube Picker'
 
-    def __init__(self, log, molecule_design_pools, stock_concentration,
+    def __init__(self, molecule_design_pools, stock_concentration,
                  take_out_volume=None, excluded_racks=None,
-                 requested_tubes=None):
+                 requested_tubes=None, parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param molecule_design_pools: The molecule design pools for which
             to run the query.
         :type molecule_design_pools: :class:`set` of molecule design pools
             (:class:`thelma.models.moleculedesign.MoleculeDesignPool`)
 
-        :param stock_concentration: The stock concentration for the pools
-            *in nM*.
-        :type stock_concentration: :class:`int` (positive number)
-
-        :param log: The log to record events.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param take_out_volume: The volume that shall be removed from the
-            stock sample *in ul* - may be *None* (in this case we do not
-            filter for at least stock dead volume).
-        :type take_out_volume: :class:`int`
-
+        :param int stock_concentration: The stock concentration for the pools
+            in nM (positive number).
+        :param int take_out_volume: The volume that shall be removed from the
+            stock sample *in ul* (positive number; may be *None*, in which
+            case we do not filter for at least stock dead volume).
         :param requested_tubes: A list of barcodes from stock tubes that are
             supposed to be used.
         :type requested_tubes: A list of tube barcodes.
-
         :param excluded_racks: A list of barcodes from stock racks that shall
             not be used for molecule design picking.
         :type excluded_racks: A list of rack barcodes
         """
-        SessionTool.__init__(self, log=log)
-
+        SessionTool.__init__(self, parent=parent)
         #: The molecule design pool IDs for which to run the query.
         self.molecule_design_pools = molecule_design_pools
         #: The stock concentration for the pools in nM.
@@ -580,23 +571,21 @@ class TubePicker(SessionTool):
         #: - may be *None* (in this case we do not filter for at least stock
         #: dead volume).
         self.take_out_volume = take_out_volume
-
-        if excluded_racks is None: excluded_racks = []
+        if excluded_racks is None:
+            excluded_racks = []
         #: A list of barcodes from stock racks that shall not be used for
         #: molecule design picking.
         self.excluded_racks = excluded_racks
-
-        if requested_tubes is None: requested_tubes = []
+        if requested_tubes is None:
+            requested_tubes = []
         #: A list of barcodes from stock tubes that are supposed to be used
         #: (for fixed positions).
         self.requested_tubes = requested_tubes
-
         #: The pools mapped onto their IDs.
         self._pool_map = None
         #: Stores the suitable stock sample IDs for the pools. The results are
         #: determined by the :class:`SINGLE_POOL_QUERY`.
         self._stock_samples = None
-
         #: Returns all candidates in the same order as in the query result.
         #: Use :func:`get_unsorted_candidates` to access this list.
         self._unsorted_candidates = None
@@ -619,15 +608,15 @@ class TubePicker(SessionTool):
     def run(self):
         self.reset()
         self.add_info('Start tube picking ...')
-
         self._check_input()
-        if not self.has_errors(): self._create_pool_map()
-        if not self.has_errors(): self._get_stock_samples()
+        if not self.has_errors():
+            self._create_pool_map()
+        if not self.has_errors():
+            self._get_stock_samples()
         if not self.has_errors() and len(self._stock_samples) > 0:
             self._run_optimizer()
         if not self.has_errors():
             self._look_for_missing_candidates()
-
         if not self.has_errors():
             self.return_value = self._picked_candidates
             self.add_info('Tube picker run completed.')
@@ -637,7 +626,6 @@ class TubePicker(SessionTool):
         Checks the input values.
         """
         self.add_debug('Check input values ...')
-
         if isinstance(self.molecule_design_pools, (InstrumentedSet, list)):
             for pool in self.molecule_design_pools:
                 self._check_input_class('molecule design pool', pool,
@@ -650,18 +638,15 @@ class TubePicker(SessionTool):
                   '(obtained: %s).' % \
                   (self.molecule_design_pools.__class__.__name__)
             self.add_error(msg)
-
         if not self.take_out_volume is None and \
                                 not is_valid_number(self.take_out_volume):
             msg = 'The stock take out volume must be a positive number ' \
                   '(obtained: %s) or None.' % (self.take_out_volume)
             self.add_error(msg)
-
         if not is_valid_number(self.stock_concentration):
             msg = 'The stock concentration must be a positive number ' \
                   '(obtained: %s).' % (self.stock_concentration)
             self.add_error(msg)
-
         self._check_input_list_classes('excluded rack', self.excluded_racks,
                                        basestring, may_be_empty=True)
         if self._check_input_list_classes('requested tube',
@@ -681,12 +666,10 @@ class TubePicker(SessionTool):
         and have the requested :attr:`stock_concentration`.
         """
         self.add_debug('Get stock samples ...')
-
         query = StockSampleQuery(pool_ids=self._pool_map.keys(),
                                  concentration=self.stock_concentration,
                                  minimum_volume=self.take_out_volume)
         self._run_query(query, 'Error when trying to query stock samples: ')
-
         if not self.has_errors():
             sample_map = query.get_query_results()
             found_pools = set()
@@ -714,16 +697,13 @@ class TubePicker(SessionTool):
         :class:`OptimizingQuery`).
         """
         self.add_debug('Run optimizing query ...')
-
         query = OptimizingQuery(sample_ids=self._stock_samples)
         self._run_query(query, 'Error when trying to run optimizing query: ')
-
         if not self.has_errors():
             self._unsorted_candidates = query.get_query_results()
             for candidate in self._unsorted_candidates:
                 if candidate.rack_barcode in self.excluded_racks: continue
                 self._store_candidate_data(candidate)
-
         if len(self._picked_candidates) < 1 and not self.has_errors():
             msg = 'Did not find any candidate!'
             self.add_error(msg)
@@ -752,10 +732,8 @@ class TubePicker(SessionTool):
                                                     self._picked_candidates)
 
     def __sort_candidate_list(self, candidates):
-        """
-        Helper method sorting the given list of candidates.
-        Requested tubes come first. The remaining tubes are sorted by volume.
-        """
+        # Helper method sorting the given list of candidates.
+        # Requested tubes come first. The remaining tubes are sorted by volume.
         requested = []
         not_requested = []
         for candidate in candidates:
@@ -769,9 +747,7 @@ class TubePicker(SessionTool):
         return sorted_candidates
 
     def __sort_by_volume(self, candidate_list):
-        """
-        Sorts the given candidates by volume (largest first).
-        """
+        # Sorts the given candidates by volume (largest first).
         sorted_candidates = []
         volume_map = dict()
         for candidate in candidate_list:

@@ -168,26 +168,18 @@ class GenericSampleTransferPlanParser(ExcelLayoutFileParser):
     #: Part of a rack specifier. Marks a reservoir.
     RESERVOIR_MARKER = 'reservoir'
 
-    def __init__(self, stream, log):
-        """
-        :param stream: open Excel file to be parsed
+    def __init__(self, stream, parent=None):
 
-        :param log: The parsing log recording the parsing events.
-        :type log: :class:`thelma.parsers.errors.ParsingLog`
-        """
-        ExcelLayoutFileParser.__init__(self, stream, log)
-
+        ExcelLayoutFileParser.__init__(self, stream, parent=parent)
         #: Used to recognise transfer volume tag definitions.
         self.transfer_volume_validator = ParameterAliasValidator(
                                          self.TRANSFER_VOLUME_MARKER)
         #: User to recognise diluent tag definitions.
         self.diluent_validator = ParameterAliasValidator(self.DILUENT_MARKER)
-
         #: Is set by the handler.
         self.source_role_marker = None
         #: Is set by the handler.
         self.target_role_marker = None
-
         #: Is used to generate the label of the resulting worklists.
         self.worklist_prefix = None
         #: Maps the racks and reservoirs found onto their identifiers
@@ -203,20 +195,24 @@ class GenericSampleTransferPlanParser(ExcelLayoutFileParser):
         self.rack_containers = dict()
         self.step_containers = dict()
 
-    def parse(self):
+    def run(self):
         self.reset()
         self.add_info('Start parsing ...')
-
         wb = self.open_workbook()
         self.sheet = self.get_sheet_by_name(wb, self.SHEET_NAME,
                                             raise_error=True)
         if not self.has_errors():
             parsing_container = _GenericSampleTransferParsingContainer(self)
-        if not self.has_errors(): parsing_container.find_worklist_prefix()
-        if not self.has_errors(): parsing_container.parse_rack_definitions()
-        if not self.has_errors(): parsing_container.parse_steps()
-        if not self.has_errors(): parsing_container.find_layouts()
-        if not self.has_errors(): parsing_container.check_transfers()
+        if not self.has_errors():
+            parsing_container.find_worklist_prefix()
+        if not self.has_errors():
+            parsing_container.parse_rack_definitions()
+        if not self.has_errors():
+            parsing_container.parse_steps()
+        if not self.has_errors():
+            parsing_container.find_layouts()
+        if not self.has_errors():
+            parsing_container.check_transfers()
         if not self.has_errors():
             self.add_info('Parsing completed.')
 

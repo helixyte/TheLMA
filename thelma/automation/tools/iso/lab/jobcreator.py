@@ -4,7 +4,7 @@ Tools involved in lab ISO generation.
 """
 from thelma.automation.semiconstants import get_pipetting_specs_biomek
 from thelma.automation.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.tools.iso.jobcreator import IsoJobCreator
 from thelma.automation.tools.iso.lab.base import LABELS
 from thelma.automation.tools.iso.lab.planner import LabIsoBuilder
@@ -72,10 +72,11 @@ class LabIsoJobCreator(IsoJobCreator):
         plates.
         The planner also runs the optimizer that picks tube candidates.
         """
-        kw = dict(log=self.log, iso_request=self.iso_request,
-                   number_isos=self.number_isos,
-                   excluded_racks=self.excluded_racks,
-                   requested_tubes=self.requested_tubes)
+        kw = dict(iso_request=self.iso_request,
+                  number_isos=self.number_isos,
+                  excluded_racks=self.excluded_racks,
+                  requested_tubes=self.requested_tubes,
+                  parent=self)
         planner_cls = self._get_planner_class()
         if not self.iso_request.molecule_design_library is None:
             # The library planner needs the requested library plates
@@ -133,8 +134,8 @@ class LabIsoJobCreator(IsoJobCreator):
         # If the worklist series is empty (happens if all ISO request
         # positions can directly be derived from the stock) it is not attached
         # to the ISO request.
-        generator = _LabIsoWorklistSeriesGenerator(log=self.log,
-                                                   builder=self.__builder)
+        generator = _LabIsoWorklistSeriesGenerator(builder=self.__builder,
+                                                   parent=self)
         series_map = generator.get_result()
         if series_map is None:
             msg = 'Error when trying to generate worklist series.'
@@ -149,7 +150,7 @@ class LabIsoJobCreator(IsoJobCreator):
                 self.__job_worklist_series = job_series
 
 
-class _LabIsoWorklistSeriesGenerator(BaseAutomationTool):
+class _LabIsoWorklistSeriesGenerator(BaseTool):
 
     """
     Uses a :class:`LabIsoBuilder` to generate worklist series for a
@@ -160,7 +161,6 @@ class _LabIsoWorklistSeriesGenerator(BaseAutomationTool):
         for ISO processing and ISO job
     """
     NAME = 'Lab ISO Worklist Series Generator'
-
     #: Addresses the worklist series for the ISO-specific preparation
     #: (this worklist series will be attached to the ISO request).
     ISO_KEY = 'iso'
@@ -168,14 +168,14 @@ class _LabIsoWorklistSeriesGenerator(BaseAutomationTool):
     #: (this worklist series will be attached to the ISO job).
     JOB_KEY = 'job'
 
-    def __init__(self, log, builder):
+    def __init__(self, builder, parent=None):
         """
         Constructor.
 
         :param builder: The builder contains all ISO plate layouts.
-        :type builder: :class:`LabIsoBuilder`
+        :type builder: :class:`LabIsoBuilder`.
         """
-        BaseAutomationTool.__init__(self, log=log)
+        BaseTool.__init__(self, parent=parent)
         #: The builder contains all ISO plate layouts.
         self.builder = builder
         #: The ticket number is part of worklist labels.
@@ -193,7 +193,7 @@ class _LabIsoWorklistSeriesGenerator(BaseAutomationTool):
         self.__process_job_first = None
 
     def reset(self):
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self.__ticket_number = None
         self.__series_map = dict()
         self.__worklist_counter = 0

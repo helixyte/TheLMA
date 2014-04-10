@@ -64,9 +64,9 @@ class _IsoRequestParserTestCase(ParsingTestCase):
         del self.num_add_other_tags
 
     def _create_tool(self):
-        self.tool = IsoRequestParserHandler.create(stream=self.stream,
-                                requester=self.user, log=self.log,
-                                experiment_type_id=self.experiment_type_id)
+        self.tool = IsoRequestParserHandler.create(self.experiment_type_id,
+                                                   self.stream, self.user,
+                                                   None)
 
     def _check_result(self):
         self._continue_setup()
@@ -170,9 +170,9 @@ class _IsoRequestParserTestCase(ParsingTestCase):
         self.user = None
         self._test_and_expect_errors('The requester must be a User object')
 
-    def _test_invalid_file(self, file_name, msg):
-        self.log.reset()
-        ParsingTestCase._test_invalid_file(self, file_name, msg)
+#    def _test_invalid_file(self, file_name, msg):
+#        self.tool.reset()
+#        ParsingTestCase._test_invalid_file(self, file_name, msg)
 
 
 class _IsoRequestParserHandlerUnspecificErrorsDummy(IsoRequestParserHandler):
@@ -258,8 +258,8 @@ class IsoRequestUnspecificErrorsTestCase(_IsoRequestParserTestCase):
         self.num_add_other_tags = 8
 
     def _create_tool(self):
-        self.tool = _IsoRequestParserHandlerUnspecificErrorsDummy(
-                        stream=self.stream, log=self.log, requester=self.user)
+        self.tool = _IsoRequestParserHandlerUnspecificErrorsDummy(self.stream,
+                                                                  self.user)
 
     def test_if_result(self):
         self._test_if_result()
@@ -777,11 +777,13 @@ class IsoRequestParserLibraryTestCase(_IsoRequestParserTestCase):
                      'I3', 'K3', 'M3', 'O3', 'I10', 'K10', 'M10', 'O10',
                      'I16', 'K16', 'M16', 'O16', 'I22', 'K22', 'M22', 'O22'):
                 continue
-            tf_pos = TransfectionPosition(rack_position=rack_pos,
+            tf_pos = TransfectionPosition(
+                            rack_pos,
                             molecule_design_pool=LIBRARY_POSITION_TYPE,
+                            reagent_name='mix1', reagent_dil_factor=140,
                             iso_volume=None, iso_concentration=None,
-                            final_concentration=10,
-                            reagent_name='mix1', reagent_dil_factor=140)
+                            final_concentration=10
+                            )
             exp_layout.add_position(tf_pos)
         return exp_layout
 

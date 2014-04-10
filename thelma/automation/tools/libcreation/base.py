@@ -219,20 +219,8 @@
 #    PARAMETER_SET = LibraryBaseLayoutParameters
 #    WORKING_LAYOUT_CLASS = LibraryBaseLayout
 #
-#    def __init__(self, rack_layout, log):
-#        """
-#        Constructor:
-#
-#        :param rack_layout: The rack layout containing the ISO data.
-#        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
-#
-#        :param log: The ThelmaLog you want to write in. If the
-#            log is None, the object will create a new log.
-#        :type log: :class:`thelma.ThelmaLog`
-#        """
-#
-#        BaseLayoutConverter.__init__(self, rack_layout, log=log)
-#
+#    def __init__(self, rack_layout, parent=None):
+#        BaseLayoutConverter.__init__(self, rack_layout, parent=parent)
 #        # intermediate storage of invalid rack positions
 #        self.__invalid_flag = None
 #

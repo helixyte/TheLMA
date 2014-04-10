@@ -133,11 +133,8 @@
 #        The layout contains the positions for the library samples.
 #        """
 #        self.add_debug('Obtain base layout ...')
-#
-#        handler = LibraryBaseLayoutParserHandler(log=self.log,
-#                                                 stream=self.stream)
+#        handler = LibraryBaseLayoutParserHandler(self.stream, parent=self)
 #        self.__base_layout = handler.get_result()
-#
 #        if self.__base_layout is None:
 #            msg = 'Error when trying to obtain library base layout.'
 #            self.add_error(msg)
@@ -152,10 +149,10 @@
 #        md_type = agg.get_by_id(MOLECULE_TYPE)
 #        self.__stock_concentration = get_default_stock_concentration(md_type)
 #
-#        handler = LibraryMemberParserHandler(log=self.log,
-#                            stream=self.stream,
+#        handler = LibraryMemberParserHandler(self.stream,
 #                            number_molecule_designs=NUMBER_MOLECULE_DESIGNS,
-#                            molecule_type=md_type)
+#                            molecule_type=md_type,
+#                                parent=self)
 #        self.__pool_set = handler.get_result()
 #
 #        if self.__pool_set is None:
@@ -171,10 +168,10 @@
 #        """
 #        self.add_debug('Create worklist series ...')
 #
-#        generator = LibraryCreationWorklistGenerator(log=self.log,
-#                                base_layout=self.__base_layout,
-#                                stock_concentration=self.__stock_concentration,
-#                                library_name=self.library_name)
+#        generator = LibraryCreationWorklistGenerator(self.__base_layout,
+#                                                     self.__stock_concentration,
+#                                                     self.library_name,
+#                                                     parent=self)
 #        self.__worklist_series = generator.get_result()
 #
 #        if self.__worklist_series is None:
@@ -257,27 +254,19 @@
 #    DILUTION_INFO = 'annealing buffer'
 #
 #
-#    def __init__(self, log, base_layout, stock_concentration, library_name):
+#    def __init__(self, base_layout, stock_concentration, library_name,
+#                 parent=None):
 #        """
-#        Constructor:
-#
-#        :param log: The ThelmaLog you want to write in. If the
-#            log is None, the object will create a new log.
-#        :type log: :class:`thelma.ThelmaLog`
+#        Constructor.
 #
 #        :param base_layout: The layout defining which positions of the layout
 #            are allowed to take up library samples.
 #        :type base_layout: :class:`LibraryBaseLayout`
-#
-#        :param stock_concentration: The concentration of the single source
-#            molecule designs in the stock in nM.
-#        :type stock_concentration: positive number
-#
-#        :param library_name: The name of the library to be created.
-#        :type library_name: :class:`str`
+#        :param int stock_concentration: The concentration of the single
+#            source molecule designs in the stock in nM (positive number).
+#        :param str library_name: The name of the library to be created.
 #        """
-#        BaseAutomationTool.__init__(self, log=log)
-#
+#        BaseAutomationTool.__init__(self, parent=parent)
 #        #: Defines which positions of the layout are allowed to take up
 #        #: library samples.
 #        self.base_layout = base_layout
@@ -286,13 +275,10 @@
 #        self.stock_concentration = stock_concentration
 #        #: The name of the library to be created.
 #        self.library_name = library_name
-#
 #        #: The worklist series for the ISO request.
 #        self.__worklist_series = None
-#
 #        #: The last used worklist index (within the series).
 #        self.__last_worklist_index = None
-#
 #        #: The base layout for each quadrant.
 #        self.__quadrant_layouts = None
 #        #: The volume transferred from the pool stock rack to the preparation
@@ -307,12 +293,8 @@
 #        self.__stock_to_prep_vol = None
 #
 #    def run(self):
-#        """
-#        Runs the tool.
-#        """
 #        self.reset()
 #        self.add_info('Start worklist generation ...')
-#
 #        self.__check_input()
 #        if not self.has_errors(): self.__sort_into_sectors()
 #        if not self.has_errors():
@@ -326,15 +308,11 @@
 #            self.add_info('Worklist generation completed.')
 #
 #    def __check_input(self):
-#        """
-#        Checks the initialisation values.
-#        """
+#        # Checks the initialisation values.
 #        self.add_debug('Check input ...')
-#
 #        self._check_input_class('base library layout', self.base_layout,
 #                                LibraryBaseLayout)
 #        self._check_input_class('library name', self.library_name, basestring)
-#
 #        if not is_valid_number(self.stock_concentration):
 #            msg = 'The stock concentration for the single source molecules ' \
 #                  'must be a positive number (obtained: %s).' \
@@ -342,15 +320,11 @@
 #            self.add_error(msg)
 #
 #    def __sort_into_sectors(self):
-#        """
-#        Create a rack layout for each quadrant.
-#        """
+#        # Create a rack layout for each quadrant.
 #        self.add_debug('Sort positions into sectors ...')
-#
 #        quadrant_positions = QuadrantIterator.sort_into_sectors(
 #                                        self.base_layout, NUMBER_SECTORS)
 #        rack_shape_96 = get_96_rack_shape()
-#
 #        for sector_index, positions in quadrant_positions.iteritems():
 #            if len(positions) < 1: continue
 #            base_layout = LibraryBaseLayout(shape=rack_shape_96)
@@ -358,7 +332,6 @@
 #                base_layout.add_position(pos)
 #            if len(base_layout) > 0:
 #                self.__quadrant_layouts[sector_index] = base_layout
-#
 #        if len(self.__quadrant_layouts) < NUMBER_SECTORS:
 #            missing_sectors = []
 #            for sector_index in range(NUMBER_SECTORS):
@@ -369,14 +342,10 @@
 #            self.add_warning(msg)
 #
 #    def __create_stock_rack_buffer_worklists(self):
-#        """
-#        These worklists are responsible for the addition of annealing buffer
-#        to the pool stock rack. There is 1 worklist for each quadrant.
-#        """
+#        # These worklists are responsible for the addition of annealing buffer
+#        # to the pool stock rack. There is 1 worklist for each quadrant.
 #        self.add_debug('Create stock rack buffer worklists ...')
-#
 #        buffer_volume = get_stock_pool_buffer_volume()
-#
 #        for sector_index, base_layout in self.__quadrant_layouts.iteritems():
 #            label = self.LIBRARY_STOCK_BUFFER_WORKLIST_LABEL % (
 #                                        self.library_name, (sector_index + 1))
@@ -384,15 +353,12 @@
 #                                          sector_index)
 #
 #    def __create_source_plate_buffer_worklists(self):
-#        """
-#        These worklists are responsible for the addition of annealing buffer
-#        to the pool preparation plate. There is 1 worklist for each quadrant.
-#        """
+#        # These worklists are responsible for the addition of annealing
+#        # buffer to the pool preparation plate. There is 1 worklist for each
+#        # quadrant.
 #        self.add_debug('Create preparation plate buffer worklist ...')
-#
 #        self.__stock_to_prep_vol = get_source_plate_transfer_volume()
 #        buffer_volume = PREPARATION_PLATE_VOLUME - self.__stock_to_prep_vol
-#
 #        for sector_index, base_layout in self.__quadrant_layouts.iteritems():
 #            label = self.LIBRARY_PREP_BUFFER_WORKLIST_LABEL % (
 #                                        self.library_name, (sector_index + 1))
@@ -401,13 +367,10 @@
 #
 #    def __create_buffer_worklist(self, quadrant_layout, buffer_volume, label,
 #                                 sector_index):
-#        """
-#        Creates buffer dilutions worklist for a particular quadrant
-#        and adds it to the worklist series.
-#        """
+#        # Creates buffer dilutions worklist for a particular quadrant
+#        # and adds it to the worklist series.
 #        volume = buffer_volume / VOLUME_CONVERSION_FACTOR
 #        planned_transfers = []
-#
 #        translator = RackSectorTranslator(number_sectors=NUMBER_SECTORS,
 #                        source_sector_index=sector_index,
 #                        target_sector_index=0,
@@ -419,7 +382,6 @@
 #                                                target_position=rack_pos_96,
 #                                                diluent_info=self.DILUTION_INFO)
 #            planned_transfers.append(planned_transfer)
-#
 #        worklist = PlannedWorklist(label=label,
 #                                   planned_transfers=planned_transfers)
 #        self.__last_worklist_index += 1
@@ -427,13 +389,11 @@
 #                                            worklist)
 #
 #    def __create_stock_to_prep_worklists(self):
-#        """
-#        This rack transfer worklist (transfer from pool stock rack to
-#        preparation plate) is executed once for each quadrant.
-#        """
+#        # This rack transfer worklist (transfer from pool stock rack to
+#        # preparation plate) is executed once for each quadrant.
 #        self.add_debug('Add worklist for transfer to preparation plate ...')
-#
-#        label = self.STOCK_TO_PREP_TRANSFER_WORKLIST_LABEL % (self.library_name)
+#        label = self.STOCK_TO_PREP_TRANSFER_WORKLIST_LABEL \
+#                % (self.library_name)
 #        volume = self.__stock_to_prep_vol / VOLUME_CONVERSION_FACTOR
 #        rack_transfer = PlannedRackTransfer.create_one_to_one(volume)
 #        worklist = PlannedWorklist(label=label,
@@ -443,12 +403,9 @@
 #                                            worklist)
 #
 #    def __create_prep_to_aliquot_worklist(self):
-#        """
-#        There is one rack transfer for each sector (many-to-one transfer).
-#        Each transfer is executed once per aliquot plate.
-#        """
+#        # There is one rack transfer for each sector (many-to-one transfer).
+#        # Each transfer is executed once per aliquot plate.
 #        self.add_debug('Add worklist for transfer into aliquot plates ...')
-#
 #        volume = ALIQUOT_PLATE_VOLUME / VOLUME_CONVERSION_FACTOR
 #        rack_transfers = []
 #        for sector_index in self.__quadrant_layouts.keys():

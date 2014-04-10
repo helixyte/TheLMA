@@ -29,6 +29,7 @@ from thelma.models.job import IsoJob
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.moleculedesign import MoleculeDesignPool
 
+
 __all__ = ['get_stock_takeout_volume',
            'LABELS',
            'LabIsoParameters',
@@ -788,24 +789,12 @@ class LabIsoLayoutConverter(TransferLayoutConverter):
     Converts a :class:`RackLayout` into a :class:`LabIsoLayout`.
     """
     NAME = 'ISO Plate Layout Converter'
-
     PARAMETER_SET = LabIsoParameters
     LAYOUT_CLS = LabIsoLayout
     POSITION_CLS = LabIsoPosition
 
-    def __init__(self, rack_layout, log):
-        """
-        Constructor:
-
-        :param rack_layout: The rack layout containing the plate data.
-        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
-
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        TransferLayoutConverter.__init__(self, rack_layout=rack_layout, log=log)
-
+    def __init__(self, rack_layout, parent=None):
+        TransferLayoutConverter.__init__(self, rack_layout, parent=parent)
         # intermediate storage of invalid rack positions
         self.__invalid_conc = None
         self.__invalid_vol = None
@@ -1100,24 +1089,12 @@ class FinalLabIsoLayoutConverter(LabIsoLayoutConverter):
     Converts a :class:`RackLayout` into a :class:`FinalLabIsoLayout`.
     """
     NAME = 'ISO Final Plate Layout Converter'
-
     PARAMETER_SET = FinalLabIsoParameters
     LAYOUT_CLS = FinalLabIsoLayout
     POSITION_CLS = FinalLabIsoPosition
 
-    def __init__(self, rack_layout, log):
-        """
-        Constructor:
-
-        :param rack_layout: The rack layout containing the plate data.
-        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
-
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        LabIsoLayoutConverter.__init__(self, rack_layout=rack_layout, log=log)
-
+    def __init__(self, rack_layout, parent=None):
+        LabIsoLayoutConverter.__init__(self, rack_layout, parent=parent)
         # intermediate error storage
         self.__invalid_from_job = None
         self.__true_not_allowed = None
@@ -1160,12 +1137,9 @@ class LabIsoPrepParameters(LabIsoParameters):
     ISO plates, these plates have transfer targets on a different plate
     (the final ISO plate).
     """
-
     DOMAIN = 'iso_prep_plate'
-
     ALLOWED_POSITION_TYPES = [FIXED_POSITION_TYPE, FLOATING_POSITION_TYPE,
                               EMPTY_POSITION_TYPE]
-
     #: The transfer targets *on the final ISO plate*.
     EXTERNAL_TRANSFER_TARGETS = 'external_targets'
     TRANSFER_TARGET_PARAMETERS = LabIsoParameters.TRANSFER_TARGET_PARAMETERS \
@@ -1173,10 +1147,8 @@ class LabIsoPrepParameters(LabIsoParameters):
     MUST_HAVE_TRANSFER_TARGETS = \
                             dict(LabIsoParameters.MUST_HAVE_TRANSFER_TARGETS,
                                  **{EXTERNAL_TRANSFER_TARGETS : False})
-
     REQUIRED = LabIsoParameters.REQUIRED + [EXTERNAL_TRANSFER_TARGETS]
     ALL = LabIsoParameters.ALL + [EXTERNAL_TRANSFER_TARGETS]
-
     ALIAS_MAP = dict(LabIsoParameters.ALIAS_MAP, **{
                     EXTERNAL_TRANSFER_TARGETS : []})
     DOMAIN_MAP = dict(LabIsoParameters.DOMAIN_MAP, **{
@@ -1198,44 +1170,27 @@ class LabIsoPrepPosition(LabIsoPosition):
 
         :param rack_position: The position within the rack.
         :type rack_position: :class:`thelma.models.rack.RackPosition`
-
         :param molecule_design_pool: The molecule design pool for this position.
         :type molecule_design_pool:  placeholder or
             :class:`thelma.models.moleculedesign.MoleculeDesignPool`
-
-        :param position_type: The position type (fixed, floating or mock).
-        :type position_type: :class:`str`
-
-        :param concentration: The target concentration in the plate after
-            all additions and dilutions.
-        :type concentration: positive number, unit nM
-
-        :param volume: The maximum volume in the plate (after all dilutions
-            but before usage as source well).
-        :type volume: positive number, unit ul
-
+        :param str position_type: The position type (fixed, floating or mock).
+        :param float concentration: The target concentration in the plate after
+            all additions and dilutions (positive number in nM).
+        :param float volume: The maximum volume in the plate (after all
+            dilutions but before usage as source well; positive number in ul).
         :param external_targets: The transfer targets on a different
             (= final ISO) plate. There must be at least one.
         :type external_targets: List of :class:`TransferTarget` objects
-
         :param transfer_targets: The transfer targets *within the same plate*.
         type transfer_targets: List of :class:`TransferTarget` objects
-
-        :param stock_tube_barcode: The barcode of the stock tube of the prime
-            hit of the optimisation query.
-        :type stock_tube_barcode: :class:`str`
-
-        :param stock_rack_barcode: The barcode of the stock rack of the prime
-            hit of the optimisation query.
-        :type stock_rack_barcode: :class:`str`
-
-        :param sector_index: The sector index within in the plate (only for
-            samples that are transferred via the CyBio).
-        :type sector_index: non-negative integer
-
-        :param stock_rack_marker: The plate marker (see :class:`LABELS`) for
-            the source stock rack (only for starting wells).
-        :type stock_rack_marker: :class:`str`
+        :param str stock_tube_barcode: The barcode of the stock tube of the
+            prime hit of the optimisation query.
+        :param str stock_rack_barcode: The barcode of the stock rack of the
+            prime hit of the optimisation query.
+        :param int sector_index: The sector index within in the plate (only
+            for samples that are transferred via the CyBio; non-negative).
+        :param str stock_rack_marker: The plate marker (see :class:`LABELS`)
+            for the source stock rack (only for starting wells).
         """
         LabIsoPosition.__init__(self, rack_position=rack_position,
                                   molecule_design_pool=molecule_design_pool,
@@ -1247,12 +1202,10 @@ class LabIsoPrepPosition(LabIsoPosition):
                                   stock_rack_barcode=stock_rack_barcode,
                                   sector_index=sector_index,
                                   stock_rack_marker=stock_rack_marker)
-
         #: The transfer targets on the final ISO plate.
         self.external_targets = self._check_transfer_targets(
                                 self.PARAMETER_SET.EXTERNAL_TRANSFER_TARGETS,
                                 external_targets, 'external plate target')
-
         if len(self.transfer_targets) < 1 and len(self.external_targets) < 1 \
                 and not self.is_empty:
             msg = 'A %s must have at least on transfer target or external ' \
@@ -1512,26 +1465,20 @@ class _InstructionsWriter(TxtWriter):
     #: The header for the prepration plate section.
     __PREP_PLATE_HEADER = 'Preparation Plates'
 
-    def __init__(self, log, entity, iso_request, rack_containers):
+    def __init__(self, entity, iso_request, rack_containers, parent=None):
         """
-        Constructor:
-
-        :param log: The log to write into.
-        :type log: :class:`thelma.ThelmaLog`
+        Constructor.
 
         :param entity: The ISO or the ISO job for which to generate the summary.
         :type entity: :class:`LabIso` or :class:`IsoJob`
             (see :attr:`_ENTITY_CLS).
-
         :param iso_request: The lab ISO request the job belongs to.
         :type iso_request: :class:`thelma.models.iso.LabIsoRequest`
-
         :param rack_containers: The :class:`IsoRackContainer` objects for all
             racks and plates involved in the processing of the entity.
         :type rack_containers: list of :class:`IsoRackContainer`
         """
-        TxtWriter.__init__(self, log=log)
-
+        TxtWriter.__init__(self, parent=parent)
         #: The ISO or the ISO job for which to generate the summary.
         self.entity = entity
         #: The lab ISO request the job belongs to.
@@ -1539,13 +1486,11 @@ class _InstructionsWriter(TxtWriter):
         #: The :class:`IsoRackContainer` objects for all racks and plates
         #: involved in the processing of the entity.
         self.rack_containers = rack_containers
-
         #: The order of the ISO and job processing (see also:
         #: :class:`LAB_ISO_ORDERS`).
         self._processing_order = None
         #: The worklists in the ISO request worklist series ordered by index.
         self.__sorted_worklists = None
-
         #: Counts the steps.
         self.__step_counter = None
         #: The rack containers mapped onto rack markers - does not contain
@@ -1915,25 +1860,22 @@ class _LabIsoInstructionsWriter(_InstructionsWriter):
                                        processing_order=self._processing_order)
 
 
-def create_instructions_writer(log, entity, iso_request, rack_containers):
+def create_instructions_writer(entity, iso_request, rack_containers,
+                               parent=None):
     """
     Factory method returning the :class:`_InstructionsWriter` for the passed
     entity.
 
-    :param log: The log to write into.
-    :type log: :class:`thelma.ThelmaLog`
-
     :param entity: The ISO or the ISO job for which to generate the summary.
     :type entity: :class:`LabIso` or :class:`IsoJob`
         (see :attr:`_ENTITY_CLS).
-
     :param iso_request: The lab ISO request the job belongs to.
     :type iso_request: :class:`thelma.models.iso.LabIsoRequest`
-
     :param rack_containers: The :class:`IsoRackContainer` objects for all
         racks and plates involved in the processing of the entity.
     :type rack_containers: list of :class:`IsoRackContainer`
-
+    :param parent: The parent tool.
+    :type parent: :class:`thelma.automation.tools.base.BaseTool`
     :raises TypeError: if the entity has an unexpected class.
     """
 
@@ -1945,8 +1887,6 @@ def create_instructions_writer(log, entity, iso_request, rack_containers):
         msg = 'Unexpected entity class (%s). The entity must be a %s or a %s!' \
               % (entity.__class__.__name__, LabIso.__name__, IsoJob.__name__)
         raise TypeError(msg)
-
-    kw = dict(log=log, entity=entity, iso_request=iso_request,
-              rack_containers=rack_containers)
+    kw = dict(entity=entity, iso_request=iso_request,
+              rack_containers=rack_containers, parent=parent)
     return writer_cls(**kw)
-

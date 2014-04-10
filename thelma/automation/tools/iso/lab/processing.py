@@ -172,7 +172,8 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
 
         isos = self._get_isos()
         for iso in isos:
-            converter = FinalLabIsoLayoutConverter(iso.rack_layout, self.log)
+            converter = FinalLabIsoLayoutConverter(iso.rack_layout,
+                                                   parent=self)
             layout = converter.get_result()
             if layout is None:
                 msg = 'Error when trying to convert final layout for ISO ' \
@@ -259,8 +260,8 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
                 self.add_error(msg)
                 return None
             if not isinstance(iso_plate, (IsoAliquotPlate, LibraryPlate)):
-                converter = LabIsoPrepLayoutConverter(log=self.log,
-                                  rack_layout=iso_plate.rack_layout)
+                converter = LabIsoPrepLayoutConverter(iso_plate.rack_layout,
+                                                      parent=self)
                 layout = converter.get_result()
                 if layout is None:
                     msg = 'Error when trying to convert layout of plate "%s"!' \
@@ -271,9 +272,10 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
                     self.__plate_layouts[plate.label] = layout
 
         elif verify:
-            verifier = LabIsoPlateVerifier(log=self.log, lab_iso_layout=layout,
-                                           lab_iso_plate=iso_plate,
-                                           for_job=(self.ENTITY_CLS == IsoJob))
+            verifier = LabIsoPlateVerifier(iso_plate,
+                                           self.ENTITY_CLS == IsoJob,
+                                           lab_iso_layout=layout,
+                                           parent=self)
             compatible = verifier.get_result()
             if compatible is None:
                 msg = 'Error when trying to verify plate %s!' % (rack_name)
@@ -319,7 +321,7 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         self.add_debug('Verify stock racks ..')
 
         for stock_rack in self._stock_racks.values():
-            verifier = StockRackVerifier(log=self.log, stock_rack=stock_rack)
+            verifier = StockRackVerifier(stock_rack, parent=self)
             compatible = verifier.get_result()
             rack_name = '%s (%s)' % (stock_rack.rack.barcode, stock_rack.label)
             if compatible is None:
@@ -640,13 +642,12 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
                         rack_marker=rack_marker, label=sr_label,
                         role=LABELS.ROLE_STOCK)
             rack_containers.append(container)
-
-        kw = dict(log=self.log, entity=self.entity,
+        kw = dict(entity=self.entity,
                   iso_request=self._iso_request,
-                  rack_containers=rack_containers)
+                  rack_containers=rack_containers,
+                  parent=self)
         writer = create_instructions_writer(**kw)
         instructions_stream = writer.get_result()
-
         if instructions_stream is None:
             msg = 'Error when trying to generate instructions file.'
             self.add_error(msg)
@@ -807,37 +808,31 @@ class LabIsoPlateVerifier(BaseRackVerifier):
     progress).
     """
     NAME = 'Lab ISO Plate Verifier'
-
     _RACK_CLS = Plate
     _LAYOUT_CLS = LabIsoLayout
 
-    def __init__(self, log, lab_iso_plate, for_job, lab_iso_layout=None):
+    def __init__(self, lab_iso_plate, for_job, lab_iso_layout=None,
+                 parent=None):
         """
-        Constructor:
-
-        :param log: The log the write in.
-        :type log: :class:`thelma.ThelmaLog`
+        Constructor.
 
         :param lab_iso_plate: The lab ISO plate to be checked.
         :type lab_iso_plate: :class:`IsoPlate` or
             :class:`IsoJobPreparationPlate`
-
         :param for_job: Do we check the job processing (*True*) or the ISO?
         :type for_job: :class:`bool`
-
         :param lab_iso_layout: The layout containing the molecule design
             data. Must not be None for :class:`IsoAliquotPlate` or
             :class:`LibraryPlate` objects.
         :type lab_iso_layout: :class:`LabIsoLayout`
         """
-        BaseRackVerifier.__init__(self, log=log,
-                                  reference_layout=lab_iso_layout)
-
+        BaseRackVerifier.__init__(self,
+                                  reference_layout=lab_iso_layout,
+                                  parent=parent)
         #: The lab ISO plate to be checked.
         self.lab_iso_plate = lab_iso_plate
         #: Do we check the job processing (*True*) or the ISO (*False*)?
         self.for_job = for_job
-
         #: In aliquot and (for controls positions) preparation plates,
         #: we can ignore positions that are derived from another position
         #: at the same plate because the intraplate transfers might be
@@ -879,8 +874,9 @@ class LabIsoPlateVerifier(BaseRackVerifier):
             self.add_error(msg)
         elif isinstance(self.lab_iso_plate, (IsoPreparationPlate,
                                              IsoJobPreparationPlate)):
-            converter = LabIsoPrepLayoutConverter(log=self.log,
-                                    rack_layout=self.lab_iso_plate.rack_layout)
+            converter = LabIsoPrepLayoutConverter(
+                                    self.lab_iso_plate.rack_layout,
+                                    parent=self)
             self._expected_layout = converter.get_result()
             if self._expected_layout is None:
                 msg = 'Error when trying to convert preparation plate layout!'

@@ -20,7 +20,6 @@
 #from thelma.models.moleculedesign import MoleculeDesignPoolSet
 #from thelma.models.racklayout import RackLayout
 #from thelma.models.utils import get_user
-#from thelma.tests.tools.tooltestingutils import TestingLog
 #from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 #
 #
@@ -146,8 +145,7 @@
 #                          sorted(iap_numbers))
 #
 #    def __check_layout(self, lci, found_pools):
-#        converter = LibraryLayoutConverter(rack_layout=lci.rack_layout,
-#                                           log=TestingLog())
+#        converter = LibraryLayoutConverter(lci.rack_layout)
 #        lib_layout = converter.get_result()
 #        exp_positions = []
 #        for labels in self.pos_sectors.values():

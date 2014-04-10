@@ -23,6 +23,7 @@ from thelma.automation.parsers.base import ExcelFileParser
 from thelma.automation.parsers.base import ExcelSheetParsingContainer
 from thelma.automation.utils.base import is_valid_number
 
+
 __docformat__ = "reStructuredText en"
 
 __all__ = ['PoolCreationSetParser',
@@ -48,12 +49,8 @@ class PoolCreationSetParser(ExcelFileParser):
     #: Separates the molecule designs in one cell.
     DELIMITER = ','
 
-    def __init__(self, stream, log):
-        """
-        :param stream: open Excel file to be parsed
-        """
-        ExcelFileParser.__init__(self, stream=stream, log=log)
-
+    def __init__(self, stream, parent=None):
+        ExcelFileParser.__init__(self, stream, parent=parent)
         #: The molecule design pool IDs mapped onto row index.
         self.pool_ids = None
         #: The molecule design lists founds (each record is a list
@@ -65,10 +62,9 @@ class PoolCreationSetParser(ExcelFileParser):
         self.pool_ids = dict()
         self.molecule_design_lists = dict()
 
-    def parse(self):
+    def run(self):
         self.reset()
         self.add_info('Start parsing ...')
-
         wb = self.open_workbook()
         self.sheet = self.get_sheet_by_name(wb, self.SHEET_NAME,
                                             raise_error=True)
@@ -76,7 +72,8 @@ class PoolCreationSetParser(ExcelFileParser):
             parsing_container = _PoolCreationSetParsingContainer(parser=self,
                                                             sheet=self.sheet)
             parsing_container.determine_column_indeces()
-        if not self.has_errors(): parsing_container.parse_columns()
+        if not self.has_errors():
+            parsing_container.parse_columns()
         if not self.has_errors():
             self.add_info('Parsing completed.')
 

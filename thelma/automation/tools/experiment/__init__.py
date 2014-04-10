@@ -102,5 +102,4 @@ def get_batch_executor(experiments, user, **kw):
     :param user: The user who has committed the update.
     :type user: :class:`thelma.models.user.User`
     """
-    kw.update(dict(experiments=experiments, user=user))
-    return ExperimentBatchExecutor(**kw)
+    return ExperimentBatchExecutor(experiments, user, **kw)

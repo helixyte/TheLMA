@@ -36,43 +36,36 @@ class LabIsoXL20TubePicker(SessionTool):
     """
     NAME = 'Lab ISO Tube Finder'
 
-    def __init__(self, log, stock_tube_containers, excluded_racks=None,
-                 requested_tubes=None):
+    def __init__(self, stock_tube_containers, excluded_racks=None,
+                 requested_tubes=None, parent=None):
         """
-        Constructor:
-
-        :param log: The log to record events.
-        :type log: :class:`thelma.ThelmaLog`
+        Constructor.
 
         :param stock_tube_containers: The container items should contain all
             target positions for the stock transfer. They must be mapped on
             the pool.
         :type stock_tube_containers: map of :class:`StockTubeContainer`
-
         :param excluded_racks: A list of barcodes from stock racks that shall
             not be used for molecule design picking.
         :type excluded_racks: A list of rack barcodes
-
         :param requested_tubes: A list of barcodes from stock tubes that are
             supposed to be used.
         :type requested_tubes: A list of tube barcodes.
         """
-        SessionTool.__init__(self, log=log)
-
+        SessionTool.__init__(self, parent=parent)
         #: The container items should contain all target positions for the
         #: stock transfer.
         self.stock_tube_containers = stock_tube_containers
-
-        if excluded_racks is None: excluded_racks = []
+        if excluded_racks is None:
+            excluded_racks = []
         #: A list of barcodes from stock racks that shall not be used for
         #: molecule design picking.
         self.excluded_racks = excluded_racks
-
-        if requested_tubes is None: requested_tubes = []
+        if requested_tubes is None:
+            requested_tubes = []
         #: A list of barcodes from stock tubes that are supposed to be used
         #: (for fixed positions).
         self.requested_tubes = requested_tubes
-
         #: The tube aggregate is used to check tubes for specified tube
         #: barcodes.
         self.__tube_agg = None
@@ -82,10 +75,8 @@ class LabIsoXL20TubePicker(SessionTool):
         self.__requested_tube_map = None
         #: The required volume for each pool *in ul* without stock dead volume.
         self.__volume_map = None
-
         #: Stores stock tube containers for tubes that need to be replaced.
         self.__replaced_tube_containers = None
-
         #: Stores message infos for tubes that have been replaced because the
         #: original rack has been excluded mapped onto pool IDs.
         self.__excluded_tubes = None
@@ -93,7 +84,6 @@ class LabIsoXL20TubePicker(SessionTool):
         self.__tube_map = None
         #: Contains pools for which no tube has been found.
         self.__missing_pools = None
-
         # Intermediate warning and error messages
         self.__insuffient_volume_requested = None
         self.__insuffient_volume_scheduled = None
@@ -118,11 +108,13 @@ class LabIsoXL20TubePicker(SessionTool):
     def run(self):
         self.reset()
         self.add_info('Start tube verification for lab ISO ...')
-
         self.__check_input()
-        if not self.has_errors(): self.__create_pool_and_volume_map()
-        if not self.has_errors(): self.__check_requested_tubes()
-        if not self.has_errors(): self.__check_scheduled_tubes()
+        if not self.has_errors():
+            self.__create_pool_and_volume_map()
+        if not self.has_errors():
+            self.__check_requested_tubes()
+        if not self.has_errors():
+            self.__check_scheduled_tubes()
         if not self.has_errors() and len(self.__replaced_tube_containers) > 0:
             self.__find_new_tubes()
         if not self.has_errors():

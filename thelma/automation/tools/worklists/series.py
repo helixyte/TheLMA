@@ -4,9 +4,10 @@ Class for worklist series support.
 AAB
 """
 from StringIO import StringIO
+
 from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.semiconstants import get_pipetting_specs
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.tools.worklists.biomek \
     import SampleDilutionWorklistWriter
 from thelma.automation.tools.worklists.biomek \
@@ -28,7 +29,6 @@ from thelma.models.user import User
 from thelma.models.utils import get_user
 
 
-
 __docformat__ = 'reStructuredText en'
 
 __all__ = ['_LiquidTransferJob',
@@ -43,116 +43,102 @@ __all__ = ['_LiquidTransferJob',
 
 class _LiquidTransferJob(object):
     """
-    A helper class storing target and source data for a worklist file generation
+    Helper class storing target and source data for a worklist file generation
     or a transfer execution (to provide data for serial executors or
     file generators).
 
     :Note: There are no checks carried out here.
     """
-
     #: The transfer type supported by this class
     #: (see :class:`thelma.models.liquidtransfer.TRANSFER_TYPES`).
     SUPPORTED_TRANSFER_TYPE = None
-
     #: The executor class supported by this transfer job class.
     EXECUTOR_CLS = None
-
     #: The writer classes for the different pipetting techniques.
     WRITER_CLASSES = dict()
 
     def __init__(self, index, target_rack, pipetting_specs):
         """
-        Constructor:
+        Constructor.
 
         :param index: The index of the transfer job within the series.
         :type index: :class:`int`
-
         :param target_rack: The rack taking up the volumes.
         :type target_rack: :class:`thelma.models.rack.Rack`
-
         :param pipetting_specs: Defines the properties (like the
             transfer volume range, etc.)
         :type pipetting_specs: :class:`basestring` (pipetting specs name) or
             :class:`thelma.models.liquidtransfer.PipettingSpecs`
         """
-
         #: The index of the transfer job within the series.
         self.index = index
         #: The rack into which the volumes will be dispensed.
         self.target_rack = target_rack
-
         if isinstance(pipetting_specs, basestring):
             pipetting_specs = get_pipetting_specs(pipetting_specs)
         #: The :class:`PipettingSpecs` to be used for this transfer.
         self.pipetting_specs = pipetting_specs
 
-    def get_executor(self, log, user):
+    def get_executor(self, tool, user):
         """
         Returns an configured :class:`LiquidTransferExecutor`.
 
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
+        :param tool: The parent tool.
+        :type tool: :class:`thelma.automation.tools.base.BaseTool`
         :param user: The DB user executing the transfers.
         :type user: :class:`thelma.models.user.User`
-
         :return: configured :class:`LiquidTransferExecutor`
         """
-        kw = self._get_kw_for_executor(log, user)
+        kw = self._get_kw_for_executor(tool, user)
         return self.EXECUTOR_CLS(**kw) #pylint: disable=E1102
 
-    def _get_kw_for_executor(self, log, user):
+    def _get_kw_for_executor(self, tool, user):
         """
         Returns a keywords map that can be used to initialise an executor.
         """
         kw = dict()
-
         kw['user'] = user
-        kw['log'] = log
+        kw['parent'] = tool
         kw['target_rack'] = self.target_rack
         kw['pipetting_specs'] = self.pipetting_specs
         return kw
 
-    def get_worklist_writer(self, log):
+    def get_worklist_writer(self, tool):
         """
         Returns an configured :class:`WorklistWriter` (or *None* if there is
         no writer class registered for the used :attr:`pipetting_specs`).
 
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param user: The DB user executing the transfers.
-        :type user: :class:`thelma.models.user.User`
-
+        :param tool: The parent tool.
+        :type tool: :class:`thelma.automation.tools.base.BaseTool`
         :return: configured :class:`WorklistWriter`
         """
         ps_name = self.pipetting_specs.name
-        if not self.WRITER_CLASSES.has_key(ps_name): return None
-        writer_cls = self.WRITER_CLASSES[ps_name]
-        if writer_cls is None: return None
+        result = None
+        if self.WRITER_CLASSES.has_key(ps_name):
+            writer_cls = self.WRITER_CLASSES[ps_name]
+            if not writer_cls is None:
+                kw = self._get_kw_for_worklist_writer(tool)
+                result = writer_cls(**kw)
+        return result
 
-        kw = self._get_kw_for_worklist_writer(log)
-        return writer_cls(**kw)
-
-    def _get_kw_for_worklist_writer(self, log):
+    def _get_kw_for_worklist_writer(self, tool):
         """
-        Returns a keywords map that can be used to initialise a worklist writer.
+        Returns a keywords map that can be used to initialise a worklist
+        writer.
         """
         kw = dict()
-
         kw['target_rack'] = self.target_rack
-        kw['log'] = log
+        kw['parent'] = tool
         kw['pipetting_specs'] = self.pipetting_specs
         return kw
 
 
 class SampleDilutionJob(_LiquidTransferJob):
     """
-    A transfer job for a planned sample dilutions.
+    Transfer job for a planned sample dilutions.
 
     :Note: There are no checks carried out here.
     """
-
     SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_DILUTION
     EXECUTOR_CLS = SampleDilutionWorklistExecutor
     WRITER_CLASSES = {
@@ -164,34 +150,24 @@ class SampleDilutionJob(_LiquidTransferJob):
     def __init__(self, index, planned_worklist, target_rack, reservoir_specs,
                  source_rack_barcode=None, ignored_positions=None):
         """
-        Constructor:
-
-        :param index: The index of the transfer job within the series.
-        :type index: :class:`int`
+        Constructor.
 
         :param planned_worklist: The worklist containing the planned liquid
             transfers.
         :type planned_worklist:
             :class:`thelma.models.liquidtransfer.PlannedWorklist`
-
-        :param target_rack: The rack taking up the volumes.
-        :type target_rack: :class:`thelma.models.rack.Rack`
-
         :param reservoir_specs: The specs for the source reservoir or rack.
         :type reservoir_specs:
             :class:`thelma.models.liquidtransfer.ResevoirSpecs`
-
         :param source_rack_barcode: The barcode of the source reservoir or
             rack (only required for worklist file generation.
         :type source_rack_barcode: :class:`basestring`
-
         :param ignored_positions: A list of rack positions whose planned
             transfers should be ignored (refers to target positions).
         :type ignored_positions: :class:`list` of :class:`RackPosition`
         """
-        _LiquidTransferJob.__init__(self, index=index, target_rack=target_rack,
-                               pipetting_specs=planned_worklist.pipetting_specs)
-
+        _LiquidTransferJob.__init__(self, index, target_rack,
+                                    planned_worklist.pipetting_specs)
         #: The worklist containing the planned liquid transfers.
         self.planned_worklist = planned_worklist
         #: The specs for the source reservoir or rack.
@@ -202,29 +178,26 @@ class SampleDilutionJob(_LiquidTransferJob):
         #: ignored (refers to target positions).
         self.ignored_positions = ignored_positions
 
-    def _get_kw_for_worklist_writer(self, log):
+    def _get_kw_for_worklist_writer(self, tool):
         """
-        Returns a keywords map that can be used to initialise a worklist writer.
+        Returns a keywords map that can be used to initialise a worklist
+        writer.
         """
-        kw = _LiquidTransferJob._get_kw_for_worklist_writer(self, log=log)
-
+        kw = _LiquidTransferJob._get_kw_for_worklist_writer(self, tool)
         kw['planned_worklist'] = self.planned_worklist
         kw['reservoir_specs'] = self.reservoir_specs
         kw['source_rack_barcode'] = self.source_rack_barcode
         kw['ignored_positions'] = self.ignored_positions
-
         return kw
 
-    def _get_kw_for_executor(self, log, user):
+    def _get_kw_for_executor(self, tool, user):
         """
         Returns a keywords map that can be used to initialise an executor.
         """
-        kw = _LiquidTransferJob._get_kw_for_executor(self, log=log, user=user)
-
+        kw = _LiquidTransferJob._get_kw_for_executor(self, tool, user)
         kw['planned_worklist'] = self.planned_worklist
         kw['reservoir_specs'] = self.reservoir_specs
         kw['ignored_positions'] = self.ignored_positions
-
         return kw
 
     def __repr__(self):
@@ -238,11 +211,10 @@ class SampleDilutionJob(_LiquidTransferJob):
 
 class SampleTransferJob(_LiquidTransferJob):
     """
-    A transfer job for a planned sample transfers.
+    Transfer job for a planned sample transfers.
 
     :Note: There are no checks carried out here.
     """
-
     SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_TRANSFER
     EXECUTOR_CLS = SampleTransferWorklistExecutor
     WRITER_CLASSES = {
@@ -254,29 +226,20 @@ class SampleTransferJob(_LiquidTransferJob):
     def __init__(self, index, planned_worklist, target_rack, source_rack,
                  ignored_positions=None):
         """
-        Constructor:
-
-        :param index: The index of the transfer job within the series.
-        :type index: :class:`int`
+        Constructor.
 
         :param planned_worklist: The worklist containing the planned liquid
             transfers.
         :type planned_worklist:
             :class:`thelma.models.liquidtransfer.PlannedWorklist`
-
-        :param target_rack: The rack taking up the volumes.
-        :type target_rack: :class:`thelma.models.rack.Rack`
-
         :param source_rack: The rack providing the volumes.
         :type source_rack: :class:`thelma.models.rack.Rack`
-
         :param ignored_positions: A list of rack positions whose planned
             transfers should be ignored (refers to target positions).
         :type ignored_positions: :class:`list` of :class:`RackPosition`
         """
-        _LiquidTransferJob.__init__(self, index=index, target_rack=target_rack,
-                               pipetting_specs=planned_worklist.pipetting_specs)
-
+        _LiquidTransferJob.__init__(self, index, target_rack,
+                                    planned_worklist.pipetting_specs)
          #: The worklist containing the planned liquid transfers.
         self.planned_worklist = planned_worklist
         #: The rack providing the volumes.
@@ -285,28 +248,25 @@ class SampleTransferJob(_LiquidTransferJob):
         #: ignored (refers to target positions).
         self.ignored_positions = ignored_positions
 
-    def _get_kw_for_worklist_writer(self, log):
+    def _get_kw_for_worklist_writer(self, tool):
         """
-        Returns a keywords map that can be used to initialise a worklist writer.
+        Returns a keywords map that can be used to initialise a worklist
+        writer.
         """
-        kw = _LiquidTransferJob._get_kw_for_worklist_writer(self, log=log)
-
+        kw = _LiquidTransferJob._get_kw_for_worklist_writer(self, tool)
         kw['planned_worklist'] = self.planned_worklist
         kw['source_rack'] = self.source_rack
         kw['ignored_positions'] = self.ignored_positions
-
         return kw
 
-    def _get_kw_for_executor(self, log, user):
+    def _get_kw_for_executor(self, tool, user):
         """
         Returns a keywords map that can be used to initialise an executor.
         """
-        kw = _LiquidTransferJob._get_kw_for_executor(self, log=log, user=user)
-
+        kw = _LiquidTransferJob._get_kw_for_executor(self, tool, user)
         kw['planned_worklist'] = self.planned_worklist
         kw['source_rack'] = self.source_rack
         kw['ignored_positions'] = self.ignored_positions
-
         return kw
 
     def __repr__(self):
@@ -325,7 +285,6 @@ class RackSampleTransferJob(_LiquidTransferJob):
 
     :Note: There are no checks carried out here.
     """
-
     SUPPORTED_TRANSFER_TYPE = TRANSFER_TYPES.RACK_SAMPLE_TRANSFER
     EXECUTOR_CLS = RackSampleTransferExecutor
     # no writer support
@@ -333,49 +292,40 @@ class RackSampleTransferJob(_LiquidTransferJob):
     def __init__(self, index, planned_rack_sample_transfer, target_rack,
                  source_rack):
         """
-        Constructor:
-
-        :param index: The index of the transfer job within the series.
-        :type index: :class:`int`
+        Constructor.
 
         :param planned_rack_sample_transfer: The data for the planned liquid
             transfer.
         :type planned_rack_sample_transfer:
             :class:`thelma.models.liquidtransfer.PlannedRackSampleTransfer`
-
-        :param target_rack: The rack taking up the volumes.
-        :type target_rack: :class:`thelma.models.rack.Rack`
-
         :param source_rack: The rack providing the volumes.
         :type source_rack: :class:`thelma.models.rack.Rack`
         """
-        _LiquidTransferJob.__init__(self, index=index, target_rack=target_rack,
-                                   pipetting_specs=PIPETTING_SPECS_NAMES.CYBIO)
-
+        _LiquidTransferJob.__init__(self, index, target_rack,
+                                   PIPETTING_SPECS_NAMES.CYBIO)
          #: The worklist containing the planned liquid transfers.
         self.planned_rack_sample_transfer = planned_rack_sample_transfer
         #: The rack providing the volumes.
         self.source_rack = source_rack
 
-    def _get_kw_for_executor(self, log, user):
+    def _get_kw_for_executor(self, tool, user):
         """
         Returns a keywords map that can be used to initialise an executor.
         """
-        kw = _LiquidTransferJob._get_kw_for_executor(self, log=log, user=user)
-
+        kw = _LiquidTransferJob._get_kw_for_executor(self, tool, user)
         kw['planned_rack_sample_transfer'] = self.planned_rack_sample_transfer
+        kw['pipetting_specs'] = self.pipetting_specs
         kw['source_rack'] = self.source_rack
-
         return kw
 
-    def _get_kw_for_worklist_writer(self, log):
+    def _get_kw_for_worklist_writer(self, tool):
         """
         They are no real worklist files for rack transfers but only sections
         in instruction files (which are handled separately).
         """
         raise NotImplementedError('No worklists for rack transfers.')
 
-    def get_worklist_writer(self, log):
+    def get_worklist_writer(self, tool):
         """
         They are no real worklist files for rack transfers but only sections
         in instruction files (which are handled separately).
@@ -389,7 +339,7 @@ class RackSampleTransferJob(_LiquidTransferJob):
         return str_format % params
 
 
-class _SeriesTool(BaseAutomationTool):
+class _SeriesTool(BaseTool):
     """
     This abstract tool is the base for all worklist series tools (serial
     generation of worklist files and serial execution).
@@ -400,29 +350,21 @@ class _SeriesTool(BaseAutomationTool):
     The tool take a list of :class:`_LiquidTransferJob` objects.
     """
 
-    def __init__(self, transfer_jobs, log, user=None):
+    def __init__(self, transfer_jobs, user=None, parent=None):
         """
-        Constructor:
+        Constructor.
 
-        :param transfer_jobs: :class:`LiquidTransferJob` objects mapped onto
-            job indices.
-        :type transfer_jobs: :class:`dict`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
+        :param dict transfer_jobs: maps job indices to
+            :class:`LiquidTransferJob` objects.
         :param user: The user used for the simulated executions.
         :type user: :class:`thelma.models.user.User`
         :default user: None
         """
-        BaseAutomationTool.__init__(self, log=log)
-
+        BaseTool.__init__(self, parent=parent)
         #: :class:`LiquidTransferJob` objects mapped onto job indices.
         self.transfer_jobs = transfer_jobs
-
         #: Stores all involved real racks (mapped onto their barcode).
         self._barcode_map = None
-
         #: The user used for the simulated executions.
         self.user = user
 
@@ -430,27 +372,24 @@ class _SeriesTool(BaseAutomationTool):
         """
         Resets all attributes except for initialisation values.
         """
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self._barcode_map = dict()
 
     def run(self):
-        """
-        Runs the tool.
-        """
         self.reset()
-
         self._check_input()
-        if not self.has_errors(): self._execute_task()
+        if not self.has_errors():
+            self._execute_task()
 
     def _check_input(self):
         """
         Checks the input values.
         """
         self.add_debug('Check input ...')
-
         self._check_input_class('user', self.user, User)
         self._check_input_map_classes(self.transfer_jobs, 'transfer job map',
-                    'job index', int, 'transfer job', _LiquidTransferJob)
+                                      'job index', int, 'transfer job',
+                                      _LiquidTransferJob)
 
     def _execute_task(self):
         """
@@ -465,26 +404,23 @@ class _SeriesTool(BaseAutomationTool):
         target_barcode = transfer_job.target_rack.barcode
         if self._barcode_map.has_key(target_barcode):
             transfer_job.target_rack = self._barcode_map[target_barcode]
-
         if isinstance(transfer_job, (SampleTransferJob, RackSampleTransferJob)):
             source_barcode = transfer_job.source_rack.barcode
             if self._barcode_map.has_key(source_barcode):
                 transfer_job.source_rack = self._barcode_map[source_barcode]
-
         return transfer_job
 
     def _execute_job(self, transfer_job):
         """
         Executes a transfer job.
         """
-        executor = transfer_job.get_executor(log=self.log, user=self.user)
-
+        executor = transfer_job.get_executor(self, self.user)
         executed_item = executor.get_result()
         if executed_item is None:
             msg = 'Error when trying to execute transfer job: %s.' \
                    % (transfer_job)
             self.add_error(msg)
-            return None
+            result = None
         else:
             target_rack = executor.target_rack
             self._barcode_map[target_rack.barcode] = target_rack
@@ -494,12 +430,14 @@ class _SeriesTool(BaseAutomationTool):
                 pass
             else:
                 self._barcode_map[source_rack] = source_rack
-            return executed_item
+            result = executed_item
+        return result
 
 
 class _SeriesWorklistWriter(_SeriesTool):
     """
-    This tool creates worklist files for a whole series of planned worklists.
+    Tool that creates worklist files for a whole series of planned worklists.
+
     It is required to use (in contrast to the use of single worklist writers)
     if the worklist of a series depend on one another, e.g. because the volumes
     for a later source well must be provided first.
@@ -516,20 +454,8 @@ class _SeriesWorklistWriter(_SeriesTool):
 
     NAME = 'Series Worklist Writer'
 
-    def __init__(self, transfer_jobs, log):
-        """
-        Constructor:
-
-        :param transfer_jobs: :class:`LiquidTransferJob` objects mapped onto
-            job indices.
-        :type transfer_jobs: :class:`dict`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        _SeriesTool.__init__(self, transfer_jobs=transfer_jobs, user=None,
-                             log=log)
-
+    def __init__(self, transfer_jobs, parent=None):
+        _SeriesTool.__init__(self, transfer_jobs, user=None, parent=parent)
         #: Stores the generated streams (mapped onto indices).
         self._stream_map = None
         #: The stream for the rack transfers (if there are any).
@@ -539,7 +465,6 @@ class _SeriesWorklistWriter(_SeriesTool):
         self._rack_transfer_index = None
         #: The number of rack transfer that have occurred so far.
         self._rack_transfer_count = None
-
         #: The user used for the simulated executions.
         self.user = get_user('it')
 
@@ -558,7 +483,6 @@ class _SeriesWorklistWriter(_SeriesTool):
         The tasks performed by the specific tool (worklist generation).
         """
         self.add_info('Start series worklist file generation ...')
-
         self.__write_worklists()
         if not self.has_errors():
             if not self._rack_transfer_stream is None:
@@ -569,17 +493,13 @@ class _SeriesWorklistWriter(_SeriesTool):
             self.add_info('Series worklist generation completed.')
 
     def __write_worklists(self):
-        """
-        Writes the worklists files for the passed jobss (in the right order;
-        execution is carried out after each worklist stream creation).
-        """
+        # Writes the worklists files for the passed jobss (in the right order;
+        # execution is carried out after each worklist stream creation).
         self.add_debug('Write Worklists ...')
-
         last_index = max(self.transfer_jobs.keys())
         for job_index in sorted(self.transfer_jobs.keys()):
             transfer_job = self.transfer_jobs[job_index]
             transfer_job = self._update_racks(transfer_job)
-
             # Write worklist
             writer = self.__get_writer(transfer_job)
             if writer is None and isinstance(transfer_job,
@@ -601,32 +521,27 @@ class _SeriesWorklistWriter(_SeriesTool):
                     self._stream_map[job_index] = stream
             # Even if there is no worklist writer for this case, it might
             # be that we have to execute the transfer as part of the series.
-
             # Execute changes (to prepare for the next worklist).
-            if job_index == last_index: break # no execution necessary
+            if job_index == last_index:
+                break # no execution necessary
             executed_item = self._execute_job(transfer_job)
-            if executed_item is None: break
+            if executed_item is None:
+                break
 
     def __get_writer(self, transfer_job):
-        """
-        Returns the writer for the given transfer job.
-        """
-        writer = transfer_job.get_worklist_writer(log=self.log)
-        return writer
+        # Returns the writer for the given transfer job.
+        return transfer_job.get_worklist_writer(self)
 
     def __write_rack_transfer_section(self, rack_transfer_job):
-        """
-        Writes a section for the rack transfer stream (and initialises it
-        if necessary).
-        """
+        # Writes a section for the rack transfer stream (and initialises it
+        # if necessary).
         if self._rack_transfer_stream is None:
             self._rack_transfer_stream = StringIO()
             self._rack_transfer_index = rack_transfer_job.index
-
         self._rack_transfer_count += 1
-        writer = RackSampleTransferSectionWriter(log=self.log,
-                                    step_number=self._rack_transfer_count,
-                                    rack_transfer_job=rack_transfer_job)
+        writer = RackSampleTransferSectionWriter(self._rack_transfer_count,
+                                                 rack_transfer_job,
+                                                 parent=self)
         paragraph = writer.get_result()
         if paragraph is None:
             msg = 'Error when trying to generate section for rack ' \
@@ -638,8 +553,10 @@ class _SeriesWorklistWriter(_SeriesTool):
 
 class _SeriesExecutor(_SeriesTool):
     """
-    This tool executes for a whole series of worklists and/or planned liquid
-    transfers (rack transfers). It is required to use (in contrast to the use
+    Tool that executes a whole series of worklists and/or planned liquid
+    transfers (rack transfers).
+
+    It is required to use (in contrast to the use
     of single executor) if the worklist of a series depend on one another,
     e.g. because the volumes for a later source well must be provided first.
 
@@ -648,26 +565,10 @@ class _SeriesExecutor(_SeriesTool):
 
     **Return Value:** A map with key = job index, value = executed item.
     """
-
     NAME = 'Series Executor'
 
-    def __init__(self, transfer_jobs, user, log):
-        """
-        Constructor:
-
-        :param transfer_jobs: :class:`LiquidTransferJob` objects mapped onto
-            job indices.
-        :type transfer_jobs: :class:`dict`
-
-        :param user: The user used for the simulated executions.
-        :type user: :class:`thelma.models.user.User`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        _SeriesTool.__init__(self, transfer_jobs=transfer_jobs,
-                             log=log, user=user)
-
+    def __init__(self, transfer_jobs, user, parent=None):
+        _SeriesTool.__init__(self, transfer_jobs, user=user, parent=parent)
         #: Stores results of the transfer job execution (mapped onto indices).
         self._execution_map = None
 
@@ -684,15 +585,13 @@ class _SeriesExecutor(_SeriesTool):
         execution).
         """
         self.add_info('Start series execution ...')
-
         for job_index in sorted(self.transfer_jobs.keys()):
             transfer_job = self.transfer_jobs[job_index]
             transfer_job = self._update_racks(transfer_job)
-
             executed_item = self._execute_job(transfer_job)
-            if executed_item is None: break
+            if executed_item is None:
+                break
             self._execution_map[job_index] = executed_item
-
         if not self.has_errors():
             self.return_value = self._execution_map
             self.add_info('Series execution completed.')
@@ -706,9 +605,7 @@ class RackSampleTransferWriter(_SeriesTool):
 
     **Return Value:** Stream for an TXT file.
     """
-
     NAME = 'Rack Sample Transfer Writer'
-
     #: This line marks a new transfer.
     HEAD_LINE = 'STEP %i:'
     #: The source data line.
@@ -721,26 +618,12 @@ class RackSampleTransferWriter(_SeriesTool):
     #: The volume line.
     VOLUME_LINE = 'volume: %.1f ul'
 
-    def __init__(self, rack_transfer_jobs, log):
-        """
-        Constructor:
-
-        :param rack_transfer_jobs: The rack transfer jobs of the series
-            mapped onto job indices.
-        :type rack_transfer_jobs: :class:`dict`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        _SeriesTool.__init__(self, transfer_jobs=rack_transfer_jobs,
-                             log=log, user=None)
-
+    def __init__(self, rack_transfer_jobs, parent=None):
+        _SeriesTool.__init__(self, rack_transfer_jobs, parent=parent)
         #: The stream for the TXT file.
         self.__stream = None
-
         #: Counts the number of Cybio steps.
         self.__step_counter = None
-
         #: The user used for the simulated executions.
         self.user = get_user('it')
 
@@ -758,7 +641,6 @@ class RackSampleTransferWriter(_SeriesTool):
         generation).
         """
         self.add_info('Start rack transfer file generation ...')
-
         self.__stream = StringIO()
         self.__write_content()
         if not self.has_errors():
@@ -766,29 +648,24 @@ class RackSampleTransferWriter(_SeriesTool):
             self.add_info('File creation completed.')
 
     def __write_content(self):
-        """
-        Writes the file content.
-        """
+        # Writes the file content.
         for job_index in sorted(self.transfer_jobs.keys()):
             rack_transfer_job = self.transfer_jobs[job_index]
             rack_transfer_job = self._update_racks(rack_transfer_job)
             self.__write_rack_transfer_job_record(rack_transfer_job)
-
             # Execute changes (to prepare for the next worklist).
             executed_item = self._execute_job(rack_transfer_job)
-            if executed_item is None: break
-
+            if executed_item is None:
+                break
         self.__stream.seek(0)
 
     def __write_rack_transfer_job_record(self, rack_transfer_job):
-        """
-        Adds an rack transfer record to the stream.
-        """
+        # Adds an rack transfer record to the stream.
         self.__step_counter += 1
-
-        writer = RackSampleTransferSectionWriter(log=self.log,
+        writer = RackSampleTransferSectionWriter(
                                         step_number=self.__step_counter,
-                                        rack_transfer_job=rack_transfer_job)
+                                        rack_transfer_job=rack_transfer_job,
+                                        parent=self)
         paragraph = writer.get_result()
         if paragraph is None:
             msg = 'Error when trying to write paragraph for rack transfer %s.' \
@@ -798,7 +675,7 @@ class RackSampleTransferWriter(_SeriesTool):
             self.__stream.write(paragraph)
 
 
-class RackSampleTransferSectionWriter(BaseAutomationTool):
+class RackSampleTransferSectionWriter(BaseTool):
     """
     Writes a section for a single rack transfer.
 
@@ -806,9 +683,7 @@ class RackSampleTransferSectionWriter(BaseAutomationTool):
 
     **Return Value:** string
     """
-
     NAME = 'Rack Transfer Section Writer'
-
     #: This line marks a new transfer.
     HEAD_LINE = 'STEP %i:'
     #: The source data line.
@@ -821,66 +696,49 @@ class RackSampleTransferSectionWriter(BaseAutomationTool):
     #: The volume line.
     VOLUME_LINE = 'volume: %.1f ul'
 
-    def __init__(self, step_number, rack_transfer_job, log):
+    def __init__(self, step_number, rack_transfer_job, parent=None):
         """
-        Constructor:
+        Constructor.
 
-        :param step_number: The step number (of all rack transfers in
+        :param int step_number: The step number (of all rack transfers in
             the series).
-        :type step_number: :class:`int`
-
         :param rack_transfer_job: The job to write down.
         :type rack_transfer_job: :class:`RackSampleTransferJob`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
         """
-        BaseAutomationTool.__init__(self, log=log)
-
+        BaseTool.__init__(self, parent=parent)
         #: The step (of all rack transfers in teh series).
         self.step_number = step_number
         #: The job to write down.
         self.rack_transfer_job = rack_transfer_job
 
     def run(self):
-        """
-        Runs the tool.
-        """
         self.reset()
         self.add_info('Write rack transfer job section ...')
-
         self.__check_input()
         if not self.has_errors():
             self.return_value = self.__write_section()
             self.add_info('Section completed.')
 
     def __check_input(self):
-        """
-        Checks the initialisation values.
-        """
+        # Checks the initialisation values.
         self.add_debug('Check input ...')
         self._check_input_class('step number', self.step_number, int)
         self._check_input_class('rack transfer job', self.rack_transfer_job,
                                 RackSampleTransferJob)
 
     def __write_section(self):
-        """
-        Writes the section.
-        """
+        # Writes the section.
         self.add_debug('Write section ...')
-
         prst = self.rack_transfer_job.planned_rack_sample_transfer
         head_line = self.HEAD_LINE % (self.step_number)
         from_line = self.FROM_LINE % (self.rack_transfer_job.source_rack.barcode)
         to_line = self.TO_LINE % (self.rack_transfer_job.target_rack.barcode)
         volume_line = self.VOLUME_LINE % (prst.volume \
                                           * VOLUME_CONVERSION_FACTOR)
-
         translation_type = RackSectorTranslator.get_translation_behaviour(
                     source_shape=self.rack_transfer_job.source_rack.rack_shape,
                     target_shape=self.rack_transfer_job.target_rack.rack_shape,
                     number_sectors=prst.number_sectors)
-
         if prst.number_sectors > 1:
             if not translation_type == RackSectorTranslator.MANY_TO_ONE:
                 src_addition = self.SECTOR_ADDITION \
@@ -890,17 +748,15 @@ class RackSampleTransferSectionWriter(BaseAutomationTool):
                 trg_addition = self.SECTOR_ADDITION \
                                % (prst.target_sector_index + 1)
                 to_line += trg_addition
-
         paragraph = head_line + (2 * LINEBREAK_CHAR)
         paragraph += (from_line + LINEBREAK_CHAR)
         paragraph += (to_line + LINEBREAK_CHAR)
         paragraph += (volume_line + LINEBREAK_CHAR)
         paragraph += (2 * LINEBREAK_CHAR) # spacer
-
         return paragraph
 
 
-def create_rack_sector_stream(job_map, log):
+def create_rack_sector_stream(job_map, tool):
     """
     Creates a stream for containing the rack sector info section for the
     passed transfer jobs. The jobs are sorted by the map key before writing.
@@ -915,24 +771,26 @@ def create_rack_sector_stream(job_map, log):
     :return: stream
     """
     stream = StringIO()
-
     indices = job_map.keys()
     indices.sort()
     rack_transfer_counter = 0
+    result = stream
     for i in indices:
         rack_transfer_counter += 1
-        writer = RackSampleTransferSectionWriter(log=log,
-                                        step_number=rack_transfer_counter,
-                                        rack_transfer_job=job_map[i])
+        writer = RackSampleTransferSectionWriter(rack_transfer_counter,
+                                                 job_map[i],
+                                                 parent=tool)
         paragraph = writer.get_result()
-        if paragraph is None: return None
+        if paragraph is None:
+            result = None
+            break
         stream.write(paragraph)
+    if not result is None:
+        stream.seek(0)
+    return result
 
-    stream.seek(0)
-    return stream
 
-
-class SerialWriterExecutorTool(BaseAutomationTool):
+class SerialWriterExecutorTool(BaseTool):
     """
     A abstract base class for tools that shall print or execute worklists
     of a series.
@@ -944,39 +802,32 @@ class SerialWriterExecutorTool(BaseAutomationTool):
     **Return Value:** a zip stream for for printing mode or executed worklists
         for execution mode (can be overwritten)
     """
-
     #: Marks usage of execution mode.
     MODE_EXECUTE = 'execute'
     #: Marker for the usage of worklist printing mode.
     MODE_PRINT_WORKLISTS = 'print'
-
     #: All allowed modes (default: execute and print).
     _MODES = [MODE_EXECUTE, MODE_PRINT_WORKLISTS]
     #: This placeholder is used to mark streams and executed items for
     #: rack sample transfer jobs.
     _RACK_SAMPLE_TRANSFER_MARKER = 'rack_sample_transfer'
 
-    def __init__(self, mode, user=None, **kw):
+    def __init__(self, mode, user=None, parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param mode: :attr:`MODE_EXECUTE` or :attr:`MODE_PRINT_WORKLISTS`
         :type mode: str
-
         :param user: The user who conducts the DB update (required for
             execution mode).
         :type user: :class:`thelma.models.user.User`
         :default user: *None*
         """
-        if not kw.has_key('depending'):
-            kw['depending'] = False
-        BaseAutomationTool.__init__(self, **kw)
-
+        BaseTool.__init__(self, parent=parent)
         #: Print or execute?
         self.mode = mode
         #: Required for execution mode.
         self.user = user
-
         #: The transfer jobs mapped onto job indices.
         self._transfer_jobs = None
         #: The worklists for each rack sample transfer job index.
@@ -985,7 +836,7 @@ class SerialWriterExecutorTool(BaseAutomationTool):
         self.__rack_transfer_indices = None
 
     def reset(self):
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self._transfer_jobs = dict()
         self._rack_transfer_worklists = dict()
         self.__rack_transfer_indices = set()
@@ -993,9 +844,10 @@ class SerialWriterExecutorTool(BaseAutomationTool):
     def run(self):
         self.reset()
         self._check_input()
-
-        if not self.has_errors(): self._create_transfer_jobs()
-        if not self.has_errors(): self.__get_rack_transfer_job_indices()
+        if not self.has_errors():
+            self._create_transfer_jobs()
+        if not self.has_errors():
+            self.__get_rack_transfer_job_indices()
         if not self.has_errors():
             if self.mode == self.MODE_PRINT_WORKLISTS:
                 self.__print_worklists()
@@ -1025,7 +877,6 @@ class SerialWriterExecutorTool(BaseAutomationTool):
                 msg = 'Unexpected mode: %s. Allowed modes: %s.' % (self.mode,
                                                      ', '.join(self._MODES))
                 self.add_error(msg)
-
         if not self.has_errors():
             if self.mode == self.MODE_EXECUTE:
                 self._check_input_class('user', self.user, User)
@@ -1039,20 +890,16 @@ class SerialWriterExecutorTool(BaseAutomationTool):
         raise NotImplementedError('Abstract method.')
 
     def __get_rack_transfer_job_indices(self):
-        """
-        Rack sample transfer job need be treated differently (they do not
-        allow for CSV worklists and the executed items are single liquid
-        transfers instead of worklists).
-        """
+        # Rack sample transfer job need be treated differently (they do not
+        # allow for CSV worklists and the executed items are single liquid
+        # transfers instead of worklists).
         for job_index, transfer_job in self._transfer_jobs.iteritems():
             if isinstance(transfer_job, RackSampleTransferJob):
                 self.__rack_transfer_indices.add(job_index)
 
     def __print_worklists(self):
-        """
-        Called in printing mode (:attr:`MODE_PRINT_WORKLISTS`). Non-rack
-        worklist for the same worklist label are merged by default.
-        """
+        # Called in printing mode (:attr:`MODE_PRINT_WORKLISTS`). Non-rack
+        # worklist for the same worklist label are merged by default.
         stream_map = self.__run_serial_writer()
         if not self.has_errors():
             merge_map = self._merge_streams(stream_map)
@@ -1066,19 +913,16 @@ class SerialWriterExecutorTool(BaseAutomationTool):
             self.add_info('Serial working print completed.')
 
     def __run_serial_writer(self):
-        """
-        Runs the seiral worklist writer.
-        """
-        writer = _SeriesWorklistWriter(transfer_jobs=self._transfer_jobs,
-                                       log=self.log)
+        # Runs the seiral worklist writer.
+        writer = _SeriesWorklistWriter(self._transfer_jobs, parent=self)
         stream_map = writer.get_result()
-
         if stream_map is None:
             msg = 'Error when running serial worklist printer.'
             self.add_error(msg)
-            return None
+            result = None
         else:
-            return stream_map
+            result = stream_map
+        return result
 
     def _merge_streams(self, stream_map):
         """
@@ -1086,7 +930,8 @@ class SerialWriterExecutorTool(BaseAutomationTool):
         """
         sorted_streams = dict()
         for job_index, stream in stream_map.iteritems():
-            if job_index in self.__rack_transfer_indices: continue
+            if job_index in self.__rack_transfer_indices:
+                continue
             transfer_job = self._transfer_jobs[job_index]
             worklist_label = transfer_job.planned_worklist.label
             if sorted_streams.has_key(worklist_label):
@@ -1095,12 +940,10 @@ class SerialWriterExecutorTool(BaseAutomationTool):
                 worklist_map = dict()
                 sorted_streams[worklist_label] = worklist_map
             worklist_map[job_index] = stream
-
         merged_streams = dict()
         for worklist_label, worklist_map in sorted_streams.iteritems():
             merged_stream = merge_csv_streams(worklist_map)
             merged_streams[worklist_label] = merged_stream
-
         return merged_streams
 
     def _get_rack_transfer_stream(self, stream_map):
@@ -1110,15 +953,14 @@ class SerialWriterExecutorTool(BaseAutomationTool):
         """
         rack_transfer_streams = dict()
         for job_index in self.__rack_transfer_indices:
-            if not stream_map.has_key(job_index): continue
+            if not stream_map.has_key(job_index):
+                continue
             rack_transfer_streams[job_index] = stream_map[job_index]
-
         if len(rack_transfer_streams) > 1:
             msg = 'There is more than one rack transfer stream in the ' \
                   'stream map!'
             self.add_error(msg)
             return None
-
         if len(rack_transfer_streams) > 0:
             return rack_transfer_streams.values()[0]
         else:
@@ -1149,8 +991,8 @@ class SerialWriterExecutorTool(BaseAutomationTool):
         """
         Runs the :class:`_SeriesExecutor`.
         """
-        executor = _SeriesExecutor(transfer_jobs=self._transfer_jobs,
-                                   user=self.user, log=self.log)
+        executor = _SeriesExecutor(self._transfer_jobs, self.user,
+                                   parent=self)
         executed_items = executor.get_result()
         if executed_items is None:
             msg = 'Error when running serial worklist executor!'
@@ -1160,19 +1002,16 @@ class SerialWriterExecutorTool(BaseAutomationTool):
             return self.__get_executed_worklists(executed_items)
 
     def __get_executed_worklists(self, executed_items):
-        """
-        For rack sample job, the executor returns no worklists but executed
-        liquid transfer. The worklists for the job must be registered in
-        the :attr:`_rack_transfer_worklists` map by the subclass implementation.
-        """
+        # For rack sample job, the executor returns no worklists but executed
+        # liquid transfer. The worklists for the job must be registered in
+        # the :attr:`_rack_transfer_worklists` map by the subclass
+        # implementation.
         executed_worklists = dict()
         other_worklists = []
-
         for job_index, executed_item in executed_items.iteritems():
             if not job_index in self.__rack_transfer_indices:
                 other_worklists.append(executed_item)
                 continue
-
             worklist = self._rack_transfer_worklists[job_index]
             worklist_label = worklist.label
             if executed_worklists.has_key(worklist_label):
@@ -1182,5 +1021,4 @@ class SerialWriterExecutorTool(BaseAutomationTool):
                 executed_worklists[worklist_label] = executed_worklist
             elt = executed_items[job_index]
             executed_worklist.executed_liquid_transfers.append(elt)
-
         return other_worklists + executed_worklists.values()

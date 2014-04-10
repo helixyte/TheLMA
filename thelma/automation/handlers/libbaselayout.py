@@ -28,26 +28,16 @@ class LibraryBaseLayoutParserHandler(LayoutParserHandler):
 
     _PARSER_CLS = LibraryBaseLayoutParser
 
-    def __init__(self, log, stream):
-        """
-        Constructor:
-
-        :param stream: stream of the file to parse.
-
-        :param log: The ThelmaLog to write into.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        LayoutParserHandler.__init__(self, log=log, stream=stream)
-
+    def __init__(self, stream, parent=None):
+        LayoutParserHandler.__init__(self, stream, parent=parent)
         #: The library base layout.
         self.__base_layout = None
-
 
     def reset(self):
         LayoutParserHandler.reset(self)
         self.__base_layout = None
 
-    def _convert_results_to_model_entity(self):
+    def _convert_results_to_entity(self):
         """
         Converts the parsing results into a :class:`LibraryBaseLayout`
         (no model class).

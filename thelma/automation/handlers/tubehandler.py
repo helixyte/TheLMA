@@ -29,28 +29,16 @@ class XL20OutputParserHandler(BaseParserHandler):
 
     _PARSER_CLS = XL20OutputParser
 
-    def __init__(self, log, stream):
-        """
-        Constructor:
-
-        :param stream: stream of the file to parse.
-
-        :param log: The ThelmaLog to write into.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        BaseParserHandler.__init__(self, log=log, stream=stream)
-
+    def __init__(self, stream, parent=None):
+        BaseParserHandler.__init__(self, stream=stream, parent=parent)
         #: The tube transfer entities created.
         self.__tube_transfers = None
-
         #: Maps racks onto rack barcodes.
         self.__racks = None
         #: The aggregate used to find the rack for a rack barcode.
         self.__rack_agg = None
-
         #: The earliest of all timestamps in the robot log file.
         self.__timestamp = None
-
         #: Intermediate error storage.
         self.__unknown_racks = None
         self.__missing_tube = None
@@ -75,7 +63,7 @@ class XL20OutputParserHandler(BaseParserHandler):
         if self.return_value is None: return None
         return self.__timestamp
 
-    def _convert_results_to_model_entity(self):
+    def _convert_results_to_entity(self):
         """
         Converts the parsing results into a list of :class:`TubeTransfer`
         entities.

@@ -2,12 +2,17 @@
 Utils for tool testing.
 """
 
+import logging
+from tractor import create_wrapper_for_ticket_creation
+from tractor.api import DummyTractor
+import zipfile
+
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 from pyramid.threadlocal import get_current_registry
-from thelma import ThelmaLog
+
 from thelma.automation.semiconstants import clear_semiconstant_caches
 from thelma.automation.semiconstants import initialize_semiconstant_caches
-from tractor import create_wrapper_for_ticket_creation
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.tools.metadata.generation \
     import ExperimentMetadataGenerator
 from thelma.automation.tools.writers import LINEBREAK_CHAR
@@ -23,31 +28,19 @@ from thelma.models.tagging import Tag
 from thelma.models.tagging import TaggedRackPositionSet
 from thelma.models.utils import get_user
 from thelma.testing import ThelmaModelTestCase
-from tractor.api import DummyTractor
-import logging
-import zipfile
 
 
 CONF_FILE = 'thelma:tests/tools/logging.conf'
 
 
-class TestingLog(ThelmaLog):
+class TestingTool(BaseTool):
     """
-    A log that directs all messages to the console.
+    Tool to use as a parent tool for testing.
     """
+    NAME = 'test_tool'
 
-    def __init__(self):
-        ThelmaLog.__init__(self, 'tool_tester', log_level=logging.WARNING)
-
-
-class SilentLog(ThelmaLog):
-    """
-    A log that receives log messages but does not store them.
-    """
-    def __init__(self):
-        ThelmaLog.__init__(self, 'silent_tool_tester',
-                           log_level=logging.WARNING)
-        self.addHandler(logging.NullHandler())
+    def run(self):
+        pass
 
 
 class FileComparisonUtils(object):
@@ -261,7 +254,7 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
             raise AssertionError('No error has been raised!')
 
     def _check_error_messages(self, exp_msg):
-        errors = self.tool.get_messages(logging.ERROR)
+        errors = self.tool.get_messages(logging_level=logging.ERROR)
         error_msgs = '\n'.join(errors)
         if not exp_msg in error_msgs:
             msg = 'Could not find error message.\nExpected: %s\nFound: %s' \
@@ -338,14 +331,6 @@ class ParsingTestCase(FileReadingTestCase):
 
     _PARSER_CLS = None
 
-    def set_up(self):
-        ToolsAndUtilsTestCase.set_up(self)
-        self.log = TestingLog()
-
-    def tear_down(self):
-        FileReadingTestCase.tear_down(self)
-        del self.log
-
     def _continue_setup(self, file_name=None):
         FileReadingTestCase._continue_setup(self, file_name)
         self._create_tool()
@@ -362,7 +347,6 @@ class ParsingTestCase(FileReadingTestCase):
 
 
 class ExperimentMetadataReadingTestCase(FileReadingTestCase):
-
     def set_up(self):
         FileReadingTestCase.set_up(self)
         self.experiment_metadata = None
@@ -386,16 +370,16 @@ class ExperimentMetadataReadingTestCase(FileReadingTestCase):
         raise NotImplementedError('Abstract method')
 
     def __read_experiment_metadata_file(self):
-        em_generator = ExperimentMetadataGenerator.create(stream=self.stream,
-                       experiment_metadata=self.experiment_metadata,
-                       requester=self.em_requester, log=SilentLog())
+        em_generator = \
+            ExperimentMetadataGenerator.create(self.stream,
+                                               self.experiment_metadata,
+                                               self.em_requester)
         self.experiment_metadata = em_generator.get_result()
         if self.raise_error: self.assert_is_not_none(self.experiment_metadata)
         return em_generator
 
 
 class TracToolTestCase(ToolsAndUtilsTestCase):
-
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
         self.tractor_api = None
@@ -431,7 +415,7 @@ class TracToolTestCase(ToolsAndUtilsTestCase):
 
     def _test_and_expect_errors(self, msg=None):
         self._create_tool()
-        self.tool.send_request()
+        self.tool.run()
         self.assert_false(self.tool.transaction_completed())
         if not msg is None: self._check_error_messages(msg)
 

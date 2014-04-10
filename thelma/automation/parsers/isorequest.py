@@ -219,47 +219,33 @@ class IsoRequestParser(ExcelMoleculeDesignPoolLayoutParser):
     """
     This is the actual parser class for parsing ISO excel files.
     """
-
     #: name of the parser (requested by logs)
     NAME = 'ISO Parser'
     #: name of the sheet containing the ISO layout
     SHEET_NAME = 'ISO'
-
     #: Values in the metadata which can be ignored (because they only
     #: serve the purpose to mark filed to fill in).
     METADATA_IGNORE_VALUES = ['optional', 'dd.mm.yyyy', '']
 
-    def __init__(self, stream, log):
-        """
-        :param stream: open Excel file to be parsed
-
-        :param log: The parsing log recording the parsing events.
-        :type log: :class:`thelma.parsers.errors.ParsingLog`
-        """
-        ExcelMoleculeDesignPoolLayoutParser.__init__(self, stream, log)
+    def __init__(self, stream, parent=None):
+        ExcelMoleculeDesignPoolLayoutParser.__init__(self, stream,
+                                                     parent=parent)
         self.layouts_have_specifiers = False
-
         # I. Tag-related values.
-
         #: The tag predicate for molecule design tags (set by the handler).
         self.molecule_design_parameter = None
-
         #: The parameters that might be specified by layouts (with their
         #: predicates and aliases mapped onto the parameter name).
         self.layout_parameters = None
         #: List of optional parameters that do not have to be specified
         #: (set by the handler).
         self.optional_parameters = None
-
         # II. Metadata-related values (set by the handler).
-
         #: List of valid meta data specifiers (list of :class:`string`).
         self.allowed_metadata = None
         #: List of required meta data specifiers
         self.required_metadata = None
-
         # III. Storage of the parsed data
-
         #: Stores the values for the ISO metadata.
         self.metadata_value_map = dict()
         #: Stores the :class:`_ParameterContainer` for each allowed parameter.
@@ -273,25 +259,29 @@ class IsoRequestParser(ExcelMoleculeDesignPoolLayoutParser):
         self.metadata_value_map = None
         self.parameter_map = None
 
-    def parse(self):
+    def run(self):
         """
         Parses the ISO sheet.
         """
         self.reset()
-        self.log.add_debug('Start ISO parsing ...')
-        if self.has_errors(): return None
-        wb = self.open_workbook()
-        self.sheet = self.__get_sheet(wb)
+        self.add_debug('Start ISO parsing ...')
         if not self.has_errors():
-            sheet_container = _IsoSheetParsingContainer(self)
-            self.metadata_value_map = sheet_container.parse_iso_meta_data()
-        if not self.has_errors(): sheet_container.parse_tag_definitions()
-        if not self.has_errors(): sheet_container.find_layouts()
-        if not self.has_errors():
-            self._check_and_replace_floatings()
-            self.parameter_map = sheet_container.update_parameter_containers()
-
-        if not self.has_errors(): self.add_info('Parsing completed.')
+            wb = self.open_workbook()
+            self.sheet = self.__get_sheet(wb)
+            if not self.has_errors():
+                sheet_container = _IsoSheetParsingContainer(self)
+                self.metadata_value_map = \
+                        sheet_container.parse_iso_meta_data()
+            if not self.has_errors():
+                sheet_container.parse_tag_definitions()
+            if not self.has_errors():
+                sheet_container.find_layouts()
+            if not self.has_errors():
+                self._check_and_replace_floatings()
+                self.parameter_map = \
+                    sheet_container.update_parameter_containers()
+            if not self.has_errors():
+                self.add_info('Parsing completed.')
 
     def has_shape(self):
         """
@@ -300,24 +290,19 @@ class IsoRequestParser(ExcelMoleculeDesignPoolLayoutParser):
 
         :rtype: :class:`boolean`
         """
-        if self.shape is None: return False
-        else:
-            return True
+        return not self.shape is None
 
     def __get_sheet(self, workbook):
-        """
-        Returns the sheet for the ISO.
-        """
-
+        # Returns the sheet for the ISO.
         sheet = None
         for sheet_name in workbook.sheet_names():
             if sheet_name.upper() == self.SHEET_NAME:
                 sheet = self.get_sheet_by_name(workbook, sheet_name)
-                return sheet
-
+                if not sheet is None:
+                    break
         if sheet is None:
-            self.abort_parsing = True
-            return None
+            self.abort_execution = True
+        return sheet
 
 
 class _IsoSheetParsingContainer(ExcelMoleculeDesignPoolLayoutParsingContainer):
@@ -331,26 +316,21 @@ class _IsoSheetParsingContainer(ExcelMoleculeDesignPoolLayoutParsingContainer):
         ExcelMoleculeDesignPoolLayoutParsingContainer.__init__(self, parser,
                                                                parser.sheet)
         self._create_info('Parse ISO sheet ...')
-
         #: stores the values for the different metadata specifications
         self.metadata_dict = {}
         for metadata_marker in self._parser.allowed_metadata:
             self.metadata_dict[metadata_marker] = None
-
         #: The name of the molecule design parameter.
         self.molecule_design_parameter = self._parser.molecule_design_parameter
-
         #: stores the parameter containers
         self.parameter_map = {}
         for parameter, alias_list in self._parser.layout_parameters.iteritems():
-            self.parameter_map[parameter] = _ParameterContainer(self._parser,
-                                            parameter, alias_list)
+            self.parameter_map[parameter] = \
+                _ParameterContainer(self._parser, parameter, alias_list)
         # III instance variables for intermediate data storage
-
         #: This is only a placeholder - there is always only one rack.
         self.__rack_container = RackParsingContainer(parser=self._parser,
                                                      rack_label='ISO plate')
-
         #: a list of all layout containers
         self.__layout_containers = []
 
@@ -358,14 +338,12 @@ class _IsoSheetParsingContainer(ExcelMoleculeDesignPoolLayoutParsingContainer):
         """
         Parses the metadata section of the ISO sheet.
         """
-
         self._create_info("Parse ISO metadata ...")
-
         invalid_markers = []
-
         while not self._end_reached:
             metadata_marker = self._get_cell_value(self._current_row, 0)
-            if metadata_marker is None or not isinstance(metadata_marker, str):
+            if metadata_marker is None \
+               or not isinstance(metadata_marker, str):
                 break
             metadata_marker = self._convert_keyword(metadata_marker)
 
@@ -377,24 +355,21 @@ class _IsoSheetParsingContainer(ExcelMoleculeDesignPoolLayoutParsingContainer):
                     metadata_value = None
                 self.metadata_dict[metadata_marker] = metadata_value
             self._step_to_next_row()
-
         if len(invalid_markers) > 0:
             msg = 'Unknown metadata specifiers: %s. Please use only the ' \
                   'following specifiers: %s.' \
                    % (', '.join(sorted(invalid_markers)),
                       ', '.join(sorted(self._parser.allowed_metadata)))
             self._create_error(msg)
-            return None
-
-        self.__metadata_complete()
-        self.__set_default_parameters()
-        return self.metadata_dict
+            result = None
+        else:
+            self.__metadata_complete()
+            self.__set_default_parameters()
+            result = self.metadata_dict
+        return result
 
     def __metadata_complete(self):
-        """
-        Checks whether there are missing metadata specifications.
-        """
-
+        # Checks whether there are missing metadata specifications.
         missing_specifications = []
         for metadata_marker in self._parser.required_metadata:
             metadata_value = self.metadata_dict[metadata_marker]
@@ -406,12 +381,12 @@ class _IsoSheetParsingContainer(ExcelMoleculeDesignPoolLayoutParsingContainer):
             self._create_error(msg)
 
     def __set_default_parameters(self):
-        """
-        Sets the default values for the required parameters.
-        """
+        # Sets the default values for the required parameters.
         for parameter in self.parameter_map.keys():
-            if parameter == self.molecule_design_parameter: continue
-            if not self.metadata_dict.has_key(parameter): continue
+            if parameter == self.molecule_design_parameter:
+                continue
+            if not self.metadata_dict.has_key(parameter):
+                continue
             default_value = self.metadata_dict[parameter]
             self.parameter_map[parameter].default_value = default_value
 
@@ -422,13 +397,13 @@ class _IsoSheetParsingContainer(ExcelMoleculeDesignPoolLayoutParsingContainer):
         tags list of the SheetParsingContainer.
         """
         self._create_debug_info('Parse tag definitions ...')
-
         while not self._end_reached:
             self._parse_tag_definitions()
-            if self._parser.has_errors(): break
+            if self._parser.has_errors():
+                break
             self._step_to_next_row()
-
-        if not self._parser.has_errors(): self.__assign_parameters()
+        if not self._parser.has_errors():
+            self.__assign_parameters()
 
     def __assign_parameters(self):
         """
@@ -438,10 +413,9 @@ class _IsoSheetParsingContainer(ExcelMoleculeDesignPoolLayoutParsingContainer):
         for parameter_container in self.parameter_map.values():
             parameter = parameter_container.parameter_name
             alias_list = parameter_container.tag_predicates
-            tag_definition = self.__get_tag_definition_for_parameter(
-                                                            parameter_container)
+            tag_definition = \
+                self.__get_tag_definition_for_parameter(parameter_container)
             parameter_container.tag_definition = tag_definition
-
             if parameter in self._parser.optional_parameters:
                 continue
             elif parameter == self.molecule_design_parameter:
@@ -452,8 +426,8 @@ class _IsoSheetParsingContainer(ExcelMoleculeDesignPoolLayoutParsingContainer):
                 else:
                     self._parser.pool_tag_definition = tag_definition
             else:
-                if tag_definition is None and \
-                   parameter_container.default_value is None:
+                if tag_definition is None \
+                   and parameter_container.default_value is None:
                     msg = 'There are no values specified for the parameter ' \
                           '"%s". Please give a default value at the ' \
                           'beginning of the sheet or specify the values as ' \
@@ -496,44 +470,45 @@ class _IsoSheetParsingContainer(ExcelMoleculeDesignPoolLayoutParsingContainer):
         will be converted into additional layout tags later).
         """
         for parameter_container in self.parameter_map.values():
-            if not parameter_container.has_layout: continue
+            if not parameter_container.has_layout:
+                continue
             layout_container = parameter_container.layout_container
             del_tags = []
             for tag_container, positions in layout_container.\
                                             tag_data.iteritems():
                 if not parameter_container.predicate_is_alias(
-                                            tag_container.predicate): continue
+                                            tag_container.predicate):
+                    continue
                 tag_value = tag_container.value
                 for pos_container in positions:
                     parameter_container.add_tag_value(tag_value, pos_container)
-                    if self._parser.has_errors(): return None
+                    if self._parser.has_errors():
+                        return None
                 del_tags.append(tag_container)
-
             for tag_container in del_tags:
                 del layout_container.tag_data[tag_container]
             self._tags.remove(parameter_container.tag_definition)
-
         return self.parameter_map
 
     def __get_parameter_for_predicate(self, tag_predicate):
-        """
-        Checks whether the a tag predicate specifies either a molecule
-        design or a concentration.
-        """
+        # Checks whether the a tag predicate specifies either a molecule
+        # design or a concentration.
+        result = None
         for parameter_container in self.parameter_map.values():
             if parameter_container.predicate_is_alias(tag_predicate):
-                return parameter_container
-
-        return None
+                result = parameter_container
+                break
+        return result
 
     def __get_tag_definition_for_parameter(self, parameter_container):
-        """
-        Gets a tag definition container by its predicate.
-        """
+        # Gets a tag definition container by its predicate.
+        result = None
         for tag_definition in self._tags:
-            if parameter_container.predicate_is_alias(tag_definition.predicate):
-                return tag_definition
-        return None
+            if parameter_container.predicate_is_alias(
+                                                    tag_definition.predicate):
+                result = tag_definition
+                break
+        return result
 
 
 class _ParameterContainer(ExcelParsingContainer):
@@ -543,16 +518,12 @@ class _ParameterContainer(ExcelParsingContainer):
 
     def __init__(self, parser, parameter_name, tag_predicates):
         """
-        Construction:
+        Constructor.
 
-        :param parser: The parser this parsing container belongs to.
-
-        :param parameter_name: The name of the parameter.
-
+        :param str parameter_name: The name of the parameter.
         :param tag_predicates: A list of aliases (valid tag predicates)
             for this parameter.
         """
-
         ExcelParsingContainer.__init__(self, parser)
         #: The name of the parameter.
         self.parameter_name = parameter_name
@@ -576,20 +547,11 @@ class _ParameterContainer(ExcelParsingContainer):
         Checks whether a predicate is a valid alias for this parameter.
         """
         conv_predicate = self._convert_keyword(predicate)
-        if conv_predicate in self.tag_predicates:
-            return True
-        else:
-            return False
+        return conv_predicate in self.tag_predicates
 
     def __init_predicates(self, alias_list):
-        """
-        Initialises a list with converted aliases.
-        """
-        converted_predicates = []
-        for alias in alias_list:
-            converted_alias = self._convert_keyword(alias)
-            converted_predicates.append(converted_alias)
-        return converted_predicates
+        # Initialises a list with converted aliases.
+        return [self._convert_keyword(alias) for alias in alias_list]
 
     def add_layout_container(self, layout_container):
         """

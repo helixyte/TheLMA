@@ -131,10 +131,10 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
         """
         self.add_debug('Fetch stock sample layout ...')
 
-        converter = StockSampleCreationLayoutConverter(log=self.log,
-                                           rack_layout=self.entity.rack_layout)
+        converter = StockSampleCreationLayoutConverter(
+                                           self.entity.rack_layout,
+                                           parent=self)
         self.__ssc_layout = converter.get_result()
-
         if self.__ssc_layout is None:
             msg = 'Error when trying to convert stock sample creation ISO ' \
                   'layout.'
@@ -242,7 +242,7 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
         incompatible = []
         for isr in self.entity.iso_stock_racks:
             layout = None
-            kw = dict(log=self.log, rack_layout=isr.rack_layout)
+            kw = dict(rack_layout=isr.rack_layout, parent=self)
             rack_name = '%s (%s)' % (isr.rack.barcode, isr.label)
             if isr.label == self.__pool_stock_rack.label:
                 continue # has been checked separately
@@ -257,8 +257,9 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
                       'rack %s!' % (rack_name)
                 self.add_error(msg)
             else:
-                verifier = StockRackVerifier(log=self.log, stock_rack=isr,
-                                             stock_rack_layout=layout)
+                verifier = StockRackVerifier(isr,
+                                             stock_rack_layout=layout,
+                                             parent=self)
                 compatible = verifier.get_result()
                 if compatible is None:
                     msg = 'Error when trying to verify stock rack %s.' \
@@ -277,8 +278,9 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
         Makes sure there are empty tubes in all required positions and none
         in positions that must be empty.
         """
-        converter = PoolCreationStockRackLayoutConverter(log=self.log,
-                             rack_layout=self.__pool_stock_rack.rack_layout)
+        converter = PoolCreationStockRackLayoutConverter(
+                             self.__pool_stock_rack.rack_layout,
+                             parent=self)
         layout = converter.get_result()
         if layout is None:
             msg = 'Error when trying to convert pool stock rack layout!'
@@ -304,7 +306,6 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
                     continue
                 elif rack_pos not in tube_positions:
                     missing_tube.append(rack_pos.label)
-
             if len(additional_tubes) > 0:
                 msg = 'There are unexpected tubes in the pool stock rack ' \
                       '(%s): %s. Please remove them and try again.' \
@@ -418,15 +419,14 @@ class StockSampleCreationStockTransferReporter(IsoStockTransferReporter):
     """
     EXECUTOR_CLS = StockSampleCreationExecutor
 
-    def __init__(self, executor, **kw):
+    def __init__(self, executor, parent=None):
         """
         Constructor:
 
         :param executor: The executor tool (after run has been completed).
         :type executor: :class:`_LabIsoWriterExecutorTool`
         """
-        IsoStockTransferReporter.__init__(self, executor=executor, **kw)
-
+        IsoStockTransferReporter.__init__(self, executor, parent=parent)
         #: The stock sample creation layout for this ISO.
         self.__ssc_layout = None
 
@@ -463,9 +463,9 @@ class StockSampleCreationStockTransferReporter(IsoStockTransferReporter):
         For stock sample creation ISOs we use a special writer, the
         :class:`StockSampleCreationStockLogFileWriter`.
         """
-        writer = _StockSampleCreationStockLogFileWriter(log=self.log,
-                    stock_sample_creation_layout=self.__ssc_layout,
-                    executed_worklists=self._executed_stock_worklists)
+        writer = _StockSampleCreationStockLogFileWriter(
+                    self.__ssc_layout, self._executed_stock_worklists,
+                    parent=self)
         return writer
 
 
@@ -478,60 +478,48 @@ class _StockSampleCreationStockLogFileWriter(CsvWriter):
     **Return Value:** file stream (CSV format)
     """
     NAME = 'Stock Sample Creation Stock Transfer Log File Writer'
-
     #: The index for the molecule design pool ID column.
     POOL_INDEX = 0
     #: The header for the molecule design pool ID column.
     POOL_HEADER = 'Pool ID'
-
     #: The index for the single molecule design pool ID column.
     MOLECULE_DESIGN_INDEX = 1
     #: The header for the molecule design pool ID column.
     MOLECULE_DESIGN_HEADER = 'Molecule Design ID'
-
     #: The index for the tube barcode column.
     TUBE_BARCODE_INDEX = 2
     #: The header for the tube barcode column.
     TUBE_BARCODE_HEADER = 'Stock Tube Barcode'
-
     #: The index for the volume column.
     VOLUME_INDEX = 3
     #: The header for the volume column.
     VOLUME_HEADER = 'Volume (ul)'
-
     #: The index for the target rack barcode column.
     TARGET_RACK_BARCODE_INDEX = 4
     #: The header for the target rack barcode column.
     TARGET_RACK_BARCODE_HEADER = 'Target Rack Barcode'
-
     #: The index for the target position column.
     TARGET_POSITION_INDEX = 5
     #: The header for the target position column.
     TARGET_POSITION_HEADER = 'Target Position'
 
-
-    def __init__(self, stock_sample_creation_layout, executed_worklists, log):
+    def __init__(self, stock_sample_creation_layout, executed_worklists,
+                 parent=None):
         """
         Constructor:
 
         :param stock_sample_creation_layout: The working_layout containing the
             molecule design pool data.
         :type stock_sample_creation_layout: :class:`StockSampleCreationLayout`
-
         :param executed_worklists: The executed worklists that have been
             generated by the executor (mapped onto transfer job indices).
         :type executed_worklists: :class:`dict`
-
-        :param log: The log to write into.
-        :type log: :class:`thelma.ThelmaLog`
         """
-        CsvWriter.__init__(self, log=log)
-
+        CsvWriter.__init__(self, parent=parent)
         #: The executed worklists that have been generated by the executor.
         self.executed_worklists = executed_worklists
         #: The working layout containing the molecule design pool data.
         self.stock_sample_creation_layout = stock_sample_creation_layout
-
         #: Stores the values for the molecule design pool ID column.
         self.__pool_values = None
         #: Stores the values for the single molecule design IDs column.
@@ -559,10 +547,11 @@ class _StockSampleCreationStockLogFileWriter(CsvWriter):
         Creates the :attr:`_column_map_list`
         """
         self.add_info('Start log file generation ...')
-
         self.__check_input()
-        if not self.has_errors(): self.__store_column_values()
-        if not self.has_errors(): self.__generate_column_maps()
+        if not self.has_errors():
+            self.__store_column_values()
+        if not self.has_errors():
+            self.__generate_column_maps()
 
     def __check_input(self):
         """
@@ -578,11 +567,8 @@ class _StockSampleCreationStockLogFileWriter(CsvWriter):
                                 StockSampleCreationLayout)
 
     def __store_column_values(self):
-        """
-        Store the values for the columns.
-        """
+        # Stores the values for the columns.
         self.add_debug('Store values ...')
-
         target_rack_map = dict()
         for ew in self.executed_worklists:
             for elt in ew.executed_liquid_transfers:
@@ -590,18 +576,14 @@ class _StockSampleCreationStockLogFileWriter(CsvWriter):
                 if not target_rack_map.has_key(target_rack_barcode):
                     target_rack_map[target_rack_barcode] = []
                 target_rack_map[target_rack_barcode].append(elt)
-
         barcodes = sorted(target_rack_map.keys())
         well_containers = set()
-
         for target_rack_barcode in barcodes:
             non_single_md_src_pool = []
-
             executed_transfers = target_rack_map[target_rack_barcode]
             pool_map = self.__get_sorted_executed_transfers(executed_transfers,
                                                             target_rack_barcode)
             if self.has_errors(): break
-
             pools = sorted(pool_map.keys(), cmp=lambda p1, p2:
                                             cmp(p1.id, p2.id))
             for pool in pools:
@@ -624,13 +606,11 @@ class _StockSampleCreationStockLogFileWriter(CsvWriter):
                         non_single_md_src_pool.append(info)
                     else:
                         self.__md_values.append(get_trimmed_string(md_id))
-
             if len(non_single_md_src_pool) > 0:
                 msg = 'Some source container contain more than one ' \
                       'molecule design: %s.' \
                        % (self._get_joined_str(non_single_md_src_pool))
                 self.add_error(msg)
-
         if len(well_containers) > 0:
             msg = 'Some source containers in the worklists are wells: %s!' \
                    % (self._get_joined_str(well_containers))
@@ -638,13 +618,10 @@ class _StockSampleCreationStockLogFileWriter(CsvWriter):
 
     def __get_sorted_executed_transfers(self, executed_transfers,
                                         target_rack_barcode):
-        """
-        Sorts the executed transfer of a worklist by pool and source
-        tube barcode.
-        """
+        # Sorts the executed transfer of a worklist by pool and source tube
+        # barcode.
         pool_map = dict()
         no_pools = set()
-
         for elt in executed_transfers:
             rack_pos = elt.target_container.location.position
             ssc_pos = self.stock_sample_creation_layout.get_working_position(
@@ -668,20 +645,19 @@ class _StockSampleCreationStockLogFileWriter(CsvWriter):
         return pool_map
 
     def __get_molecule_design_id(self, tube):
-        """
-        Returns the molecule design for a single molecule design pool stock
-        tube.
-        """
+        # Returns the molecule design for a single molecule design pool stock
+        # tube.
         sms = tube.sample.sample_molecules
-        if not len(sms) == 1: return None
-        sm = sms[0]
-        return sm.molecule.molecule_design.id
+        if not len(sms) == 1:
+            result = None
+        else:
+            sm = sms[0]
+            result = sm.molecule.molecule_design.id
+        return result
 
     def __generate_column_maps(self):
-        """
-        Initialises the CsvColumnParameters object for the
-        :attr:`_column_map_list`.
-        """
+        # Initialises the CsvColumnParameters object for the
+        # :attr:`_column_map_list`.
         pool_column = CsvColumnParameters(self.POOL_INDEX, self.POOL_HEADER,
                     self.__pool_values)
         md_column = CsvColumnParameters(self.MOLECULE_DESIGN_INDEX,
@@ -696,7 +672,6 @@ class _StockSampleCreationStockLogFileWriter(CsvWriter):
                     self.__trg_rack_barcode_values)
         rack_position_column = CsvColumnParameters(self.TARGET_POSITION_INDEX,
                     self.TARGET_POSITION_HEADER, self.__trg_position_values)
-
         self._column_map_list = [pool_column, md_column, tube_column,
                                  volume_column, rack_barcode_column,
                                  rack_position_column]

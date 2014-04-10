@@ -167,10 +167,11 @@ class _StockRackAssembler(_StockRackAssigner):
         """
         self.add_debug('Check stock tubes ...')
 
-        picker = LabIsoXL20TubePicker(log=self.log,
+        picker = LabIsoXL20TubePicker(
                     stock_tube_containers=self._stock_tube_containers,
                     excluded_racks=self.excluded_racks,
-                    requested_tubes=self.requested_tubes)
+                    requested_tubes=self.requested_tubes,
+                    parent=self)
 
         self._stock_tube_containers = picker.get_result()
         if self._stock_tube_containers is None:
@@ -251,10 +252,11 @@ class _StockRackAssembler(_StockRackAssigner):
 
 
         container_map = self._sort_stock_tube_containers_by_pool(containers)
-        optimizer = LabIsoStockRackOptimizer(log=self.log,
+        optimizer = LabIsoStockRackOptimizer(
                                     stock_tube_containers=container_map,
                                     target_rack_shape=rack_shape,
-                                    rack_marker_map=marker_map)
+                                    rack_marker_map=marker_map,
+                                    parent=self)
         stock_rack_layout = optimizer.get_result()
         if stock_rack_layout is None:
             msg = 'Error when trying to optimise layout for stock rack "%s"!' \
@@ -400,10 +402,11 @@ class _StockRackAssembler(_StockRackAssigner):
             barcode = rack_container.rack.barcode
             container_map = self._sort_stock_tube_containers_by_pool(
                                             self._tubes_by_rack[rack_marker])
-            xl20_writer = LabIsoXL20WorklistWriter(log=self.log,
+            xl20_writer = LabIsoXL20WorklistWriter(
                       rack_barcode=barcode,
                       stock_rack_layout=self._stock_rack_layouts[rack_marker],
-                      stock_tube_containers=container_map)
+                      stock_tube_containers=container_map,
+                      parent=self)
             msg = 'Error when trying to write XL20 worklist stream for ' \
                   'rack "%s"!' % (rack_marker)
             xl20_stream = self.__generate_stream(xl20_writer, None,
@@ -417,7 +420,7 @@ class _StockRackAssembler(_StockRackAssigner):
         # dummy output
         if self.include_dummy_output:
             dummy_writer = XL20Dummy(xl20_worklist_stream=merged_stream,
-                                     log=self.log)
+                                     parent=self)
             dummy_msg = 'Error when trying to write dummy output stream for ' \
                         'rack "%s"!' % (rack_marker)
             self.__generate_stream(dummy_writer, self.FILE_NAME_DUMMY,
@@ -425,20 +428,22 @@ class _StockRackAssembler(_StockRackAssigner):
 
 
         # XL20 summary
-        summary_writer = LabIsoXL20SummaryWriter(log=self.log,
+        summary_writer = LabIsoXL20SummaryWriter(
                     entity=self.entity,
                     stock_tube_containers=self._stock_tube_containers,
                     stock_rack_layouts=self._stock_rack_layouts,
                     excluded_racks=self.excluded_racks,
-                    requested_tubes=self.requested_tubes)
+                    requested_tubes=self.requested_tubes,
+                    parent=self)
         summary_msg = 'Error when trying to write summary stream!'
         self.__generate_stream(summary_writer, self.FILE_NAME_XL20_SUMMARY,
                                summary_msg)
 
         # Instructions
-        kw = dict(log=self.log, entity=self.entity,
-                   iso_request=self._iso_request,
-                   rack_containers=self._rack_containers.values())
+        kw = dict(entity=self.entity,
+                  iso_request=self._iso_request,
+                  rack_containers=self._rack_containers.values(),
+                  parent=self)
         instructions_writer = create_instructions_writer(**kw)
         instruction_msg = 'Error when trying to write instruction stream!'
         self.__generate_stream(instructions_writer,
@@ -785,24 +790,18 @@ class LabIsoXL20WorklistWriter(BaseXL20WorklistWriter):
     """
     NAME = 'Lab ISO XL20 Worklist Writer'
 
-    def __init__(self, log, rack_barcode, stock_rack_layout,
-                 stock_tube_containers):
+    def __init__(self, rack_barcode, stock_rack_layout,
+                 stock_tube_containers, parent=None):
         """
-        :param log: The log to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param log: The barcode of the target rack (= the stock rack).
-        :type log: :class:`basestring`
+        Constructor.
 
         :param stock_rack_layout: Contains the target positions for each pool.
         :type stock_rack_layout: :class:`StockRackLayout`
-
         :param stock_tube_containers: The stock tube container for each pool
             in the layout.
         :type stock_tube_containers: map
         """
-        BaseXL20WorklistWriter.__init__(self, log=log)
-
+        BaseXL20WorklistWriter.__init__(self, parent=parent)
         #: The barcode of the target rack (= the stock rack).
         self.rack_barcode = rack_barcode
         #: Contains the target positions for each pool.
@@ -848,7 +847,6 @@ class LabIsoXL20SummaryWriter(TxtWriter):
     **Return Value:** The summary as stream (TXT)
     """
     NAME = 'Lab ISO XL20 Summary Writer'
-
     #: The main headline of the file.
     BASE_MAIN_HEADER = 'XL20 Worklist Generation Report / %s / %s'
     #: The header text for the general section.
@@ -867,7 +865,6 @@ class LabIsoXL20SummaryWriter(TxtWriter):
     VOLUME_TITLE = 'Volumes'
     #: The volume part of the general section body.
     VOLUME_BASE_LINE = '%s ul: %s'
-
     #: The header text for the destination racks section.
     DESTINATION_RACKS_HEADER = 'Destination Racks'
     #: The body for the destination racks section.
@@ -875,55 +872,43 @@ class LabIsoXL20SummaryWriter(TxtWriter):
     #: Is added to the destination base line if the stock rack is a sector
     #: stock rack.
     DESTINATION_SECTOR_ADDITION = ', sector: %s'
-
     #: The header text for the excluded racks section.
     EXCLUDED_RACKS_HEADER = 'Excluded Racks'
     #: The body for the excluded racks section.
     EXCLUDED_RACKS_BASE_LINE = '%s'
     #: Is used if there are no exlcuded racks.
     NO_EXCLUDED_RACKS_MARKER = 'no excluded racks'
-
     #: The header text for the  requested tubes section.
     REQUESTED_TUBES_HEADER = 'Requested Tubes'
     #: The body for the requested tubes section.
     REQUESTED_TUBES_BASE_LINE = '%s'
     #: Is used if no tubes have been requested.
     NO_REQUESTED_TUBES_MARKER = 'no requested tubes'
-
     #: The header for the source racks section.
     SOURCE_RACKS_HEADER = 'Source Racks'
     #: The body for the source racks section.
     SOURCE_RACKS_BASE_LINE = '%s (%s)'
 
-    def __init__(self, log, entity, stock_tube_containers,
-                 stock_rack_layouts, excluded_racks, requested_tubes):
+    def __init__(self, entity, stock_tube_containers,
+                 stock_rack_layouts, excluded_racks, requested_tubes,
+                 parent=None):
         """
-        Constructor:
-
-        :param log: The ThelmaLog you want to write in.
-        :type log: :class:`thelma.ThelmaLog`
+        Constructor.
 
         :param entity: The ISO or the ISO job for which to generate the summary.
         :type entity: :class:`LabIso` or :class:`IsoJob`
-
-        :param stock_tube_containers: Contain the tube candidates (= tube
+        :param dict stock_tube_containers: Contain the tube candidates (= tube
             transfer source) data mapped onto pools.
-        :type stock_tube_containers: map
-
-        :param stock_rack_layouts: Contain the target positions for each pool
+        :param dict stock_rack_layouts: Contain the target positions for each pool
              mapped onto stock rack markers.
-        :type stock_rack_layouts: map
-
         :param excluded_racks: A list of barcodes from stock racks that shall
             not be used for molecule design picking.
         :type excluded_racks: A list of rack barcodes
-
         :param requested_tubes: A list of barcodes from stock tubes that are
             supposed to be used.
         :type requested_tubes: A list of rack barcodes.
         """
-        TxtWriter.__init__(self, log=log)
-
+        TxtWriter.__init__(self, parent=parent)
         #: The ISO or the ISO job for which to generate the summary.
         self.entity = entity
         #: A list of barcodes from stock racks that shall not be used for
@@ -1131,30 +1116,21 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
     SOURCE_LAYOUT_CLS = StockRackLayout
     TRANSFER_ITEM_CLASS = LabIsoStockTransferItem
 
-    def __init__(self, log, stock_tube_containers, target_rack_shape,
-                 rack_marker_map):
+    def __init__(self, stock_tube_containers, target_rack_shape,
+                 rack_marker_map, parent=None):
         """
-        Constructor:
+        Constructor.
 
-        :param log: The ThelmaLog you want to write in.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param stock_tube_containers: The stock tube containers mapped onto
-            pools. Each container must have a tube candidate.
-        :type stock_tube_containers: map
-
+        :param dict stock_tube_containers: The stock tube containers mapped
+            onto pools. Each container must have a tube candidate.
         :param target_rack_shape: The shape of the target plates.
         :type target_rack_shape: :class:`thelma.models.rack.RackShape`
-
-        :param stock_rack_marker: The rack marker for each rack label that
+        :param str stock_rack_marker: The rack marker for each rack label that
             can occur in the :attr:`stock_tube_containers`.
-        :type stock_rack_marker: :class:`str`
-
-        :param rack_marker_map: The rack marker for each plate label that can
-            occur in the stock tube containers.
-        :type rack_marker_map: :class:`dict`
+        :param dict rack_marker_map: The rack marker for each plate label that
+            can occur in the stock tube containers.
         """
-        BiomekLayoutOptimizer.__init__(self, log=log)
+        BiomekLayoutOptimizer.__init__(self, parent=parent)
         #: The stock tube containers mapped onto pools.
         self.stock_tube_containers = stock_tube_containers
         #: The shape of the target plates.
@@ -1162,7 +1138,6 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
         #: The rack marker for each plate label that can occur in the
         #: :attr:`stock_tube_containers`.
         self.rack_marker_map = rack_marker_map
-
         #: Stores the transfer targets for each pool.
         self.__transfer_targets = None
 
