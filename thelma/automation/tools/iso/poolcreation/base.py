@@ -647,8 +647,8 @@ class PoolCreationStockRackPosition(StockRackPosition):
 
     def __init__(self, rack_position, molecule_design_pool, tube_barcode,
                  transfer_targets=None):
-        StockRackPosition.__init__(self, rack_position, tube_barcode,
-                                   molecule_design_pool, transfer_targets)
+        StockRackPosition.__init__(self, rack_position, molecule_design_pool,
+                                   tube_barcode, transfer_targets)
 
 class PoolCreationStockRackLayoutConverter(StockRackLayoutConverter):
     """

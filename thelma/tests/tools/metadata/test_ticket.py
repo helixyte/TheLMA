@@ -393,8 +393,7 @@ class IsoRequestTicketDescriptionUpdaterTestCase(
 class IsoRequestTicketActivatorTestCase(_IsoRequestTicketUpdateToolTestCase):
 
     def _create_tool(self):
-        self.tool = IsoRequestTicketActivator(
-                                experiment_metadata=self.experiment_metadata)
+        self.tool = IsoRequestTicketActivator(self.experiment_metadata)
 
     def test_result(self):
         self._continue_setup()

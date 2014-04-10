@@ -199,12 +199,12 @@ class BaseLayoutConverter(BaseTool):
         """
         rack_pos = parameter_map[self._RACK_POSITION_KEY]
         kw = self._get_position_init_values(parameter_map, rack_pos)
-        if kw is None: return None
-        if not kw.has_key('rack_position'):
-            kw['rack_position'] = rack_pos
-
-        working_pos = self.POSITION_CLS(**kw) #pylint: disable=E1102
-        return working_pos
+        result = None
+        if not kw is None:
+            if not kw.has_key('rack_position'):
+                kw['rack_position'] = rack_pos
+            result = self.POSITION_CLS(**kw) #pylint: disable=E1102
+        return result
 
     def _get_position_init_values(self, parameter_map, rack_pos):
         """

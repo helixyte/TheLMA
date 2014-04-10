@@ -412,12 +412,11 @@ class RobotSupportDeterminerScreenTestCase(_RobotSupportDeterminerTestCase):
         del self.regard_controls
 
     def _create_tool(self):
-        self.tool = RobotSupportDeterminatorScreen(
-                    source_layout=self.source_layout,
-                    number_replicates=self.number_replicates,
-                    number_design_racks=self.number_design_racks,
-                    handler_iso_volume=self.handler_iso_volume,
-                    association_data=self.association_data)
+        self.tool = RobotSupportDeterminatorScreen(self.source_layout,
+                                                   self.number_replicates,
+                                                   self.number_design_racks,
+                                                   self.handler_iso_volume,
+                                                   self.association_data)
 
     def _continue_setup(self):
         _RobotSupportDeterminerTestCase._continue_setup(self)
@@ -434,9 +433,9 @@ class RobotSupportDeterminerScreenTestCase(_RobotSupportDeterminerTestCase):
     def __create_association_data(self):
         if self.layout_shape.name == RACK_SHAPE_NAMES.SHAPE_384:
             self.association_data = \
-                TransfectionAssociationData(self.source_layout,
-                                            self.regard_controls,
-                                            self.tool)
+                        TransfectionAssociationData(self.source_layout,
+                                                    self.tool,
+                                                    self.regard_controls)
 
     def _continue_setup_deepwell(self):
         self.number_replicates = 10

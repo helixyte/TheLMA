@@ -27,7 +27,6 @@ from thelma.models.tagging import Tag
 from thelma.tests.tools.utils.test_iso import IsoRequestClassesBaseTestCase
 from thelma.tests.tools.utils.test_iso import _IsoRequestRackSectorToolTestCase
 from thelma.tests.tools.utils.utils import ConverterTestCase
-import logging
 
 
 class _TransfectionClassesBaseTestCase(IsoRequestClassesBaseTestCase):
@@ -965,8 +964,8 @@ class _TransfectionRackSectorToolTestCase(_IsoRequestRackSectorToolTestCase):
 
     def _create_association_data(self):
         return TransfectionAssociationData(self.layout,
-                                           self.regard_controls,
-                                           self.tool)
+                                           self.tool,
+                                           self.regard_controls)
 
     def _get_expected_associated_sectors(self):
         if not self.regard_controls and self.current_case_num == 1:
@@ -1114,8 +1113,6 @@ class TransfectionAssociationDataTestCase(_TransfectionRackSectorToolTestCase):
         self._continue_setup()
         self._expect_error(ValueError, self._create_association_data,
                     'Error when trying to find rack sector association.')
-        self.assert_equal(
-                len(self.tool.get_messages(logging_level=logging.ERROR)), 0)
         self.regard_controls = False
         self._check_association_data_384()
         # check other cases - all floatings are treated the same way but
@@ -1129,9 +1126,8 @@ class TransfectionAssociationDataTestCase(_TransfectionRackSectorToolTestCase):
         self._adjust_pos_data_for_regard_control_test()
         self._continue_setup()
         self._expect_error(ValueError, self._create_association_data,
-                           'Error when trying to find rack sector association.')
-        self.assert_equal(
-                len(self.tool.get_messages(logging_level=logging.ERROR)), 0)
+                           'Error when trying to find rack sector '
+                           'association.')
 
     def test_find(self):
         self._continue_setup()

@@ -72,48 +72,39 @@ class StockCondenser(SessionTool):
     #: The file name of the XL20 report file.
     REPORT_FILE_NAME = 'stock_condense_generation_report.txt'
 
-    def __init__(self, racks_to_empty=None, excluded_racks=None, **kw):
+    def __init__(self, racks_to_empty=None, excluded_racks=None, parent=None):
         """
-        Constructor:
+        Constructor.
 
-        :param racks_to_empty: The number of empty racks the run shall
+        :param int racks_to_empty: The number of empty racks the run shall
             result in (optional).
-        :type racks_to_empty: :class:`int`
-
         :param excluded_racks: A list of barcodes from stock racks that shall
             not be used.
         :type excluded_racks: A list or set of rack barcodes
         """
-        SessionTool.__init__(self, depending=False, **kw)
-
+        SessionTool.__init__(self, parent=parent)
         #: The number of empty racks the run shall result in (optional).
         self.racks_to_empty = racks_to_empty
         #: A list of barcodes from stock racks that shall not be used.
         self.excluded_racks = excluded_racks
         if excluded_racks is None: self.excluded_racks = []
-
         #: The number of positions in a stock rack.
         self.__stock_rack_size = None
-
         #: Maps :class:`StockCondenseRack` objects onto tube counts.
         self.__tube_count_map = None
-
         #: Maps donor racks onto rack barcodes.
         self.__donor_racks = None
         #: Maps receiver racks onto rack barcodes.
         self.__receiver_racks = None
-
         #: Do we look for exact tube count matches? (*True* for thie first
         #: iteration of association, *False* for the second).
         self.__look_for_exact_matches = None
         #: Shall we stop looking for rack associations?
         self.__stop_associations = None
-
         #: The scheduled tube transfers sorted by donator rack (ATTENTION:
         #: stores :class:`TubeTransferData` objects, no :class:`TubeTransfer`
         #: entities.
         self.__tube_transfers = None
-
         #: The stream for the worklist file.
         self.__worklist_stream = None
         #: The stream for the report file.
@@ -147,28 +138,28 @@ class StockCondenser(SessionTool):
         if not self.has_errors():
             self.__initialize_session()
             self.__generate_tube_count_map()
-        if not self.has_errors(): self.__associate_racks()
-        if not self.has_errors(): self.__fetch_tube_data()
-        if not self.has_errors(): self.__create_tube_transfers()
-        if not self.has_errors(): self.__fetch_location_data()
-        if not self.has_errors(): self.__write_files()
+        if not self.has_errors():
+            self.__associate_racks()
+        if not self.has_errors():
+            self.__fetch_tube_data()
+        if not self.has_errors():
+            self.__create_tube_transfers()
+        if not self.has_errors():
+            self.__fetch_location_data()
+        if not self.has_errors():
+            self.__write_files()
         if not self.has_errors():
             self.__create_zip_archive()
             self.return_value = self.__zip_stream
             self.add_info('Stock condense file generation completed.')
 
     def __initialize_session(self):
-        """
-        Initializes a session for ORM operations.
-        """
+        # Initializes a session for ORM operations.
         self.__session = Session()
 
     def __check_input(self):
-        """
-        Checks the initialisation values.
-        """
+        # Checks the initialisation values.
         self.add_debug('Check input values ...')
-
         if not self.racks_to_empty is None:
             if self._check_input_class('number of racks to empty',
                                        self.racks_to_empty, int):
@@ -176,7 +167,6 @@ class StockCondenser(SessionTool):
                     msg = 'The number of racks to empty must be positive ' \
                           '(obtained: %i)!' % (self.racks_to_empty)
                     self.add_error(msg)
-
         if isinstance(self.excluded_racks, list):
             self.excluded_racks = set(self.excluded_racks)
         if not isinstance(self.excluded_racks, set):
@@ -189,12 +179,9 @@ class StockCondenser(SessionTool):
                                                excl_rack, basestring): break
 
     def __generate_tube_count_map(self):
-        """
-        Generates the :attr:`__tube_count_map` using the
-        :class:`StockCondenseQuery`.
-        """
+        # Generates the :attr:`__tube_count_map` using the
+        # :class:`StockCondenseQuery`.
         self.add_debug('Run rack query ...')
-
         try:
             query = CondenseRackQuery()
             self._run_query(query, 'Error when running rack query: ')
@@ -207,17 +194,13 @@ class StockCondenser(SessionTool):
             CondenseRackQuery.shut_down()
 
     def __associate_racks(self):
-        """
-        Associates donor and receiver racks.
-        """
+        # Associates donor and receiver racks.
         self.add_debug('Associate racks ...')
-
         # first round (exact matches only)
         self.__run_association_round()
         if not self.__stop_associations:
             self.__look_for_exact_matches = False
             self.__run_association_round()
-
         if self.racks_to_empty is not None and \
                                 self.racks_to_empty > len(self.__donor_racks):
             msg = 'Unable to empty the requested number of racks (%i) ' \
@@ -227,26 +210,24 @@ class StockCondenser(SessionTool):
             self.add_warning(msg)
 
     def __run_association_round(self):
-        """
-        Runs one association round.
-        """
+        # Runs one association round.
         while len(self.__tube_count_map) > 0:
             if self.__stop_associations: break
             if not self.racks_to_empty is None and \
                         len(self.__donor_racks) >= self.racks_to_empty:
                 self.__stop_associations = True
                 break
-
             tube_counts = self.__tube_count_map.keys()
             tube_counts.sort()
             tube_count = tube_counts[0]
-            if tube_count > (self.__stock_rack_size / 2): break
-
+            if tube_count > (self.__stock_rack_size / 2):
+                break
             condense_racks = self.__tube_count_map[tube_count]
             potential_donor = condense_racks.pop()
             if len(condense_racks) == 0:
                 del self.__tube_count_map[tube_count]
-            if potential_donor.rack_barcode in self.excluded_racks: continue
+            if potential_donor.rack_barcode in self.excluded_racks:
+                continue
             found_associations = self.__find_rack_association(potential_donor)
             if not found_associations:
                 add_list_map_element(self.__tube_count_map, tube_count,
@@ -254,25 +235,22 @@ class StockCondenser(SessionTool):
                 break
 
     def __find_rack_association(self, donor_rack):
-        """
-        Initialises a donor rack and finds the receiver racks for it.
-        """
+        # Initialises a donor rack and finds the receiver racks for it.
         receiver_racks = dict()
         associations = dict() # receiver barcode, num tubes
-
         # check
         remaining_tubes = donor_rack.tube_count
         while remaining_tubes > 0:
-
             receiver = None
             while receiver is None:
                 receiver_candidate = self.__find_receiver_rack(remaining_tubes)
-                if receiver_candidate is None: break
+                if receiver_candidate is None:
+                    break
                 if receiver_candidate.rack_barcode in self.excluded_racks:
                     continue
                 receiver = receiver_candidate
-            if receiver is None: return False
-
+            if receiver is None:
+                return False
             if receiver.role is None:
                 occupied_positions = receiver.tube_count
             else:
@@ -282,7 +260,6 @@ class StockCondenser(SessionTool):
             associations[receiver.rack_barcode] = transferred_tubes
             remaining_tubes -= transferred_tubes
             receiver_racks[receiver.rack_barcode] = receiver
-
         # record
         donor_rack.set_role(STOCK_CONDENSE_ROLES.DONOR)
         for receiver_barcode, num_tubes in associations.iteritems():
@@ -303,15 +280,14 @@ class StockCondenser(SessionTool):
         return True
 
     def __find_receiver_rack(self, donor_tube_count):
-        """
-        Finds a rack to take up tubes of a donor rack.
-        """
+        # Finds a rack to take up tubes of a donor rack.
         # try to find an excat match
         receiver_tube_count = self.__stock_rack_size - donor_tube_count
         receiver = self.__get_rack_for_tube_count(receiver_tube_count)
-        if not receiver is None: return receiver
-        if self.__look_for_exact_matches: return None
-
+        if not receiver is None:
+            return receiver
+        if self.__look_for_exact_matches:
+            return None
         # are there any racks left?
         if len(self.__tube_count_map) < 1:
             self.__stop_associations = True
@@ -321,50 +297,44 @@ class StockCondenser(SessionTool):
                       '%i)!' % (len(self.__donor_racks))
                 self.add_error(msg)
             return None
-
         # try to find a rack with less free positions
         while receiver_tube_count < self.__stock_rack_size:
             receiver_tube_count += 1
             if receiver_tube_count == self.__stock_rack_size: # no rack
                 break
             receiver = self.__get_rack_for_tube_count(receiver_tube_count)
-            if not receiver is None: return receiver
-
+            if not receiver is None:
+                return receiver
         # take a rack with more free positions
         # There is at least one rack left ...
         receiver_tube_count = self.__stock_rack_size - donor_tube_count
         while receiver_tube_count > 0:
             receiver_tube_count -= 1
             receiver = self.__get_rack_for_tube_count(receiver_tube_count)
-            if not receiver is None: return receiver
-
+            if not receiver is None:
+                return receiver
         return None
 
     def __get_rack_for_tube_count(self, tube_count):
-        """
-        Obtains a rack for a certain tube count (to be used as receiver
-        racks). The element is removed from the pool.
-        """
+        # Obtains a rack for a certain tube count (to be used as receiver
+        # racks). The element is removed from the pool.
         if self.__tube_count_map.has_key(tube_count):
             receiver_list = self.__tube_count_map[tube_count]
             receiver = receiver_list.pop()
             if len(receiver_list) < 1:
                 receiver_list = None
                 del self.__tube_count_map[tube_count]
-            return receiver
+            result = receiver
         else:
-            return None
+            result = None
+        return result
 
     def __fetch_tube_data(self):
-        """
-        Finds the barcodes and positions for the tube of the picked racks
-        (using the:class:`RackContainerQuery`).
-        """
+        # Finds the barcodes and positions for the tube of the picked racks
+        # (using the:class:`RackContainerQuery`).
         self.add_debug('Get tube data ...')
-
         query = RackContainerQuery(donor_racks=self.__donor_racks.values(),
                             receiver_racks=self.__receiver_racks.values())
-
         self._run_query(query, base_error_msg='Error when trying to fetch ' \
                                               'tube data for racks: ')
         if not self.has_errors():
@@ -382,13 +352,9 @@ class StockCondenser(SessionTool):
                 self.add_warning(msg)
 
     def __create_tube_transfers(self):
-        """
-        Creates the tube transfers.
-        """
+        # Creates the tube transfers.
         self.add_debug('Schedule tube transfers ...')
-
         for donor_barcode, donor_rack in self.__donor_racks.iteritems():
-
             src_positions = sort_rack_positions(
                                     rack_positions=donor_rack.tubes.keys())
             transfer_count = 0
@@ -410,33 +376,27 @@ class StockCondenser(SessionTool):
                 transfer_count += number_tubes
 
     def __fetch_location_data(self):
-        """
-        Fetches the barcoded locations for the racks using the
-        :class:`RackLocationQuery`.
-        """
+        # Fetches the barcoded locations for the racks using the
+        # :class:`RackLocationQuery`.
         self.add_debug('Fetch barcoded locations ...')
-
         all_racks = dict()
         for rack_barcode, scr in self.__donor_racks.iteritems():
             all_racks[rack_barcode] = scr
         for rack_barcode, scr in self.__receiver_racks.iteritems():
             all_racks[rack_barcode] = scr
-
         query = RackLocationQuery(rack_barcodes=all_racks.keys())
         self._run_query(query, 'Error when trying to find rack locations ' \
                                'in the DB: ')
         if not self.has_errors():
             location_map = query.get_query_results()
             for rack_barcode, location_str in location_map.iteritems():
-                if location_str is None: continue
+                if location_str is None:
+                    continue
                 all_racks[rack_barcode].location = location_str
 
     def __write_files(self):
-        """
-        Writes the streams for two files (worklist and report).
-        """
+        # Writes the streams for two files (worklist and report).
         self.add_debug('Write files ...')
-
         worklist_writer = XL20WorklistWriter(self.__tube_transfers,
                                              parent=self)
         self.__worklist_stream = worklist_writer.get_result()
@@ -454,16 +414,12 @@ class StockCondenser(SessionTool):
             self.add_error(msg)
 
     def __create_zip_archive(self):
-        """
-        Creates and fills the zip archive (adds files).
-        """
+        # Creates and fills the zip archive (adds files).
         self.add_info('Writes files into zip stream ...')
-
         self.__zip_stream = StringIO()
         zip_map = dict()
         zip_map[self.WORKLIST_FILE_NAME] = self.__worklist_stream
         zip_map[self.REPORT_FILE_NAME] = self.__report_stream
-
         create_zip_archive(zip_stream=self.__zip_stream, stream_map=zip_map)
 
 
@@ -482,35 +438,27 @@ class StockCondenseRack(object):
     """
     A helper class storing the relevant data of a stock condense rack.
     """
-
     def __init__(self, rack_barcode, tube_count):
         """
-        Constructor:
+        Constructor.
 
         :Note: Do not initialise directly but use
 
-        :param rack_barcode: The barcode of the rack.
-        :type rack_barcode: :class:`str`
-
-        :param tube_count: The current number of stock tubes in this rack.
-        :type tube_count: :class:`int`
+        :param str rack_barcode: The barcode of the rack.
+        :param int tube_count: The current number of stock tubes in this rack.
         """
         #: The barcode of the rack.
         self.rack_barcode = rack_barcode
         #: The current number of stock tubes in this rack.
         self.tube_count = tube_count
-
         #: The role of the rack (donor or receiver).
         self.__role = None
-
         #: The barcodes of the associated racks and the number of tubes the
         #: referring rack will get or provide (:class:`dict`).
         self.__associated_racks = dict()
-
         #: The barcodes of the residing tube (to be added in the second query;
         #: :class:`StockCondenseTube`) mapped onto rack positions.
         self.tubes = dict()
-
         #: Name and index of the current barcoded location of the rack.
         self.location = None
 
@@ -560,24 +508,18 @@ class StockCondenseRack(object):
         """
         Adds another rack association (requires the :attr:`role` to be set).
 
-        :param rack_barcode: The barcode of the associated rack.
-        :type rack_barcode: :class:`str`
-
-        :param number_tubes: The number of tubes that will be donated to or
+        :param str rack_barcode: The barcode of the associated rack.
+        :param int number_tubes: The number of tubes that will be donated to or
             received by this rack.
-        :type number_tubes: :class:`int`
-
         :raises AttributeError: If the role has not been set yet.
         :raises ValueError: If there is already an association for this rack.
         """
-
         if self.__role is None:
             raise AttributeError('Stock condense racks without role ' \
                                  'must not have associations!')
         if self.__associated_racks.has_key(rack_barcode):
             raise ValueError('Rack "%s" is already associated with this rack!' \
                              % (rack_barcode))
-
         self.__associated_racks[rack_barcode] = number_tubes
 
     def add_tube(self, rack_position, tube_barcode):
@@ -590,7 +532,6 @@ class StockCondenseRack(object):
             msg = 'There is already a tube at position %s of rack %s!' \
                    % (rack_position.label, self.rack_barcode)
             raise ValueError(msg)
-
         self.tubes[rack_position] = tube_barcode
 
     def get_positions_without_tube(self):
@@ -600,8 +541,8 @@ class StockCondenseRack(object):
         shape_96 = get_96_rack_shape()
         free_positions = []
         for rack_pos in get_positions_for_shape(shape_96):
-            if not self.tubes.has_key(rack_pos): free_positions.append(rack_pos)
-
+            if not self.tubes.has_key(rack_pos):
+                free_positions.append(rack_pos)
         return free_positions
 
     def __str__(self):
@@ -734,23 +675,20 @@ class RackContainerQuery(CustomQuery):
 
     def __init__(self, donor_racks, receiver_racks):
         """
-        Constructor:
+        Constructor.
 
         :param donor_racks: The donor racks mapped onto rack barcodes.
         :type donor_racks: :class:`list` or iterable
-
         :param receiver_racks: The receiver racks mapped onto rack barcodes.
         :type receiver_racks: :class:`list` or iterable
         """
         CustomQuery.__init__(self)
         #: All stock condense racks mapped onto rack barcodes.
         self.rack_map = dict()
-
         for donor_rack in donor_racks:
             self.rack_map[donor_rack.rack_barcode] = donor_rack
         for receiver_rack in receiver_racks:
             self.rack_map[receiver_rack.rack_barcode] = receiver_rack
-
         #: Stores data about found tubes that do not match the stock constraints
         self.mismatching_tubes = []
 
@@ -766,21 +704,18 @@ class RackContainerQuery(CustomQuery):
                             row_index=result_record[self.ROW_INDEX_INDEX],
                             column_index=result_record[self.COLUMN_INDEX_INDEX])
         tube_barcode = result_record[self.TUBE_BARCODE_INDEX]
-
         tube_status = result_record[self.TUBE_STATUS_INDEX]
         if not tube_status == STOCK_ITEM_STATUS:
             info = '%s (status: %s, rack: %s)' \
                     % (str(tube_barcode), tube_status, rack_barcode)
             self.mismatching_tubes.append(info)
             return None
-
         tube_specs_name = result_record[self.TUBE_SPECS_NAME_INDEX]
         if not tube_specs_name in STOCK_TUBE_SPECS:
             info = '%s (tube specs: %s, rack: %s)' \
                     % (str(tube_barcode), tube_specs_name, rack_barcode)
             self.mismatching_tubes.append(info)
             return None
-
         scr.add_tube(rack_pos, tube_barcode)
 
     def __repr__(self):
@@ -824,6 +759,7 @@ class StockCondenseReportWriter(TxtWriter):
                  racks_to_empty, parent=None):
         """
         Constructor.
+
         :param dict donor_racks: The donor racks mapped onto rack barcodes.
         :param dict receiver_racks: The receiver racks mapped onto rack
             barcodes.

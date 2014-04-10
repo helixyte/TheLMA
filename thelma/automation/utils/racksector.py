@@ -253,7 +253,8 @@ class RackSectorTranslator(object):
 
     @classmethod
     def from_planned_rack_sample_transfer(cls, planned_rack_sample_transfer,
-                      row_count=None, col_count=None, behaviour=None):
+                                          row_count=None, col_count=None,
+                                          behaviour=None):
         """
         Initialises a RackSectorTranslator using the data of a planned rack
         sample transfer.
@@ -262,31 +263,25 @@ class RackSectorTranslator(object):
             to initialise the translator.
         :type planned_rack_transfer:
             :class:`thelma.models.liquidtransfer.PlannedRackSampleTransfer`
-
-        :param row_count: The number of sector rows - if you do not provide
-            a number the row number is calculated assuming a square setup.
-        :type row_count: :class:`int`
-
-        :param col_count: The number of sector columns - if you do not provide
-            a number the row number is calculated assuming a square setup.
-        :type col_count: :class:`int`
-
-        :param behaviour: Enforces a certain translation behaviour for
+        :param int row_count: The number of sector rows - if you do not
+            provide a number the row number is calculated assuming a square
+            setup.
+        :param int col_count: The number of sector columns - if you do not
+            provide a number the row number is calculated assuming a square
+            setup.
+        :param str behaviour: Enforces a certain translation behaviour for
             0 to 0 sector cases (ignored in all other cases).
-        :type behaviour: :class:`string` (class variable)
         :default behaviour: *None*
-
         :raises ValueError: If the algorithm fails to determine row count or
             column count (note that these two values can also be passed).
         :return: The translator (:class:`RackSectorTranslator`).
         """
         prst = planned_rack_sample_transfer
-        return RackSectorTranslator(
-                number_sectors=prst.number_sectors,
-                source_sector_index=prst.source_sector_index,
-                target_sector_index=prst.target_sector_index,
-                behaviour=behaviour,
-                row_count=row_count, col_count=col_count)
+        return RackSectorTranslator(prst.number_sectors,
+                                    prst.source_sector_index,
+                                    prst.target_sector_index,
+                                    behaviour=behaviour,
+                                    row_count=row_count, col_count=col_count)
 
     def translate(self, rack_position):
         """
@@ -311,9 +306,10 @@ class RackSectorTranslator(object):
         # a larger (or equally sized) rack.
         # :Note: Row and column modifier can be provided by the
         #      :func:`convert_many_to_many` method.
-        if row_modifier is None: row_modifier = self.__row_modifier
-        if col_modifier is None: col_modifier = self.__col_modifier
-
+        if row_modifier is None:
+            row_modifier = self.__row_modifier
+        if col_modifier is None:
+            col_modifier = self.__col_modifier
         row_index = (rack_position.row_index * self.__row_count) \
                     + row_modifier
         col_index = (rack_position.column_index * self.__col_count) \
@@ -927,6 +923,7 @@ class AssociationData(object):
             number_sectors = self.__SECTOR_NUMBER_384
         #: The number of sectors depends on the rack shape.
         self._number_sectors = number_sectors
+        # FIXME: Constructor should not perform actions.
         self.__associate(layout, tool, record_errors)
 
     @property

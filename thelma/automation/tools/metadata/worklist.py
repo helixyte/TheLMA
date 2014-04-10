@@ -604,11 +604,20 @@ class _CybioTransferWorklistGenerator(PlannedWorklistGenerator):
         """
         volume = TransfectionParameters.TRANSFER_VOLUME \
                  / VOLUME_CONVERSION_FACTOR
-        prst = PlannedRackSampleTransfer.get_entity(volume=volume,
-                                  source_sector_index=self.SOURCE_SECTOR_INDEX,
-                                  target_sector_index=self.TARGET_SECTOR_INDEX,
-                                  number_sectors=self.SECTOR_NUMBER)
-        self._add_planned_transfer(prst)
+        try:
+            prst = PlannedRackSampleTransfer.get_entity(
+                                                    volume,
+                                                    self.SECTOR_NUMBER,
+                                                    self.SOURCE_SECTOR_INDEX,
+                                                    self.TARGET_SECTOR_INDEX)
+        except ValueError as err:
+            msg = 'Invalid planned rack sample transfer (%d->%d, total %d).' \
+                  'Details: %s.' \
+                  % (self.SOURCE_SECTOR_INDEX, self.TARGET_SECTOR_INDEX,
+                     self.SECTOR_NUMBER, err)
+            self.add_error(msg)
+        else:
+            self._add_planned_transfer(prst)
 
 
 class _CellSuspensionWorklistGenerator(PlannedWorklistGenerator):

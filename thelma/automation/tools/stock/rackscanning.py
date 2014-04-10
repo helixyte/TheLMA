@@ -372,8 +372,8 @@ class RackScanningAdjuster(BaseTool):
     def __write_report_stream(self):
         # Writes the stream of the overview file.
         self.add_debug('Write report file stream ...')
-        writer = RackScanningReportWriter(self.__differences,
-                                          self.__file_layouts.keys(),
+        writer = RackScanningReportWriter(self.__file_layouts.keys(),
+                                          self.__differences,
                                           parent=self)
         self.__overview_stream = writer.get_result()
         if self.__overview_stream is None:
