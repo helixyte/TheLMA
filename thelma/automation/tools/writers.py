@@ -6,9 +6,12 @@ This is an abstract super class for CSV stream generators.
 """
 
 from StringIO import StringIO
-from thelma.automation.tools.base import BaseTool
+import os
 from zipfile import BadZipfile
 import zipfile
+
+from thelma.automation.tools.base import BaseTool
+
 
 __docformat__ = 'reStructuredText en'
 
@@ -428,6 +431,7 @@ def create_zip_archive(zip_stream, stream_map):
 
     return archive
 
+
 def read_zip_archive(zip_stream):
     """
     Converts a zip stream into zip archive. Returns *None* if there are no
@@ -436,8 +440,7 @@ def read_zip_archive(zip_stream):
 
     :param zip_stream: The file stream containing the archive.
     :type zip_stream: :class:`StringIO`
-
-    :return: The file streams in the archive mapped onto file names.
+    :returns: The file streams in the archive mapped onto file names.
     """
     try:
         archive = zipfile.ZipFile(zip_stream, 'r', zipfile.ZIP_DEFLATED, False)
@@ -449,6 +452,27 @@ def read_zip_archive(zip_stream):
         content = archive.read(fn)
         zip_map[fn] = StringIO(content)
     return zip_map
+
+
+def write_zip_archive(zip_stream, output_dir):
+    """
+    Writes the files contained in the given ZIP archive stream to the given
+    output directory in the file system.
+
+    :param zip_stream: The file stream containing the archive.
+    :type zip_stream: :class:`StringIO`
+    :param str output_dir: Output directory to write to.
+    :raises ValueError: If the specified output directory does not exist.
+    """
+    if not os.path.isdir(output_dir):
+        raise ValueError('The specified output directory "%s" does not '
+                         'exist.' % output_dir)
+    file_map = read_zip_archive(zip_stream)
+    for fn, stream in file_map.iteritems():
+        loc = os.path.join(output_dir, fn)
+        with open(loc, 'w') as out_file:
+            out_file.write(stream.read)
+
 
 def merge_csv_streams(stream_map):
     """
