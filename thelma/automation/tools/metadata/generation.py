@@ -693,9 +693,13 @@ class ExperimentMetadataGenerator(BaseTool):
                 self.experiment_metadata.lab_iso_request = self._iso_request
             else:
                 # If we already have an ISO request, it was checked for
-                # compliance already; we only need to update the layout.
-                self.experiment_metadata.lab_iso_request.rack_layout = \
-                                                        new_iso_rack_layout
+                # compliance already; we allow updating untreated positions
+                # in the layout and changing the number of ISOs (for adding
+                # or removing pool IDs in screening ISO requests).
+                existing_ir = self.experiment_metadata.lab_iso_request
+                existing_ir.rack_layout = new_iso_rack_layout
+                existing_ir.expected_number_isos = \
+                            self._iso_request.expected_number_isos
 
 
 class ExperimentMetadataGeneratorOpti(ExperimentMetadataGenerator):
