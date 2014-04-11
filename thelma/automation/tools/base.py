@@ -4,7 +4,7 @@
 """
 
 from everest.repositories.rdb import Session
-from thelma.automation.errors import MessageRecorder
+from thelma.automation.messagerecorder import MessageRecorder
 from thelma.automation.semiconstants import clear_semiconstant_caches
 from thelma.automation.semiconstants import initialize_semiconstant_caches
 from thelma.automation.utils.base import get_trimmed_string

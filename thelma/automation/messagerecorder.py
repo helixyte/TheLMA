@@ -55,6 +55,7 @@ class MessageRecorder(object):
             get_fn = getattr(logging, 'getLogger')
             self._logger = get_fn(self.__class__.__module__ + '.' +
                                   self.__class__.__name__)
+            self.__name = self.NAME
         else:
             if not isinstance(parent, MessageRecorder):
                 raise ValueError('Need to pass in an instance of '
@@ -62,6 +63,7 @@ class MessageRecorder(object):
             self._root_recorder = parent._root_recorder # pylint:disable=W0212
             self._is_root = False
             self._logger = None
+            self.__name = self._root_recorder.name + '->' + self.NAME
 
     def disable_error_and_warning_recording(self):
         """
@@ -76,8 +78,8 @@ class MessageRecorder(object):
         """
         Returns all messages having the given severity level or more.
         """
-        return ["%s - %s" % (self.NAME, log_msg)
-                for (log_lvl, log_msg) in self._root_recorder._message_stack # pylint:disable=W0212
+        return [msg
+                for (log_lvl, msg) in self._root_recorder._message_stack # pylint:disable=W0212
                 if log_lvl >= logging_level]
 
     def has_errors(self):
@@ -97,6 +99,17 @@ class MessageRecorder(object):
         else:
             err_cnt = self._root_recorder.error_count
         return err_cnt
+
+    @property
+    def name(self):
+        """
+        The (read-only) name of this message recorder included as a prefix in
+        all messages.
+
+        The name is formed by concatenating the :attr:`NAME` attribute of
+        all message reccorders in a calling hierarchy.
+        """
+        return self.__name
 
     def reset(self):
         """
@@ -154,7 +167,8 @@ class MessageRecorder(object):
                 self._error_count += 1
             self.abort_execution = True
         if do_record:
-            evt = (logging_level, native_(message))
+            msg = "%s - %s" % (self.__name, native_(message))
+            evt = (logging_level, msg)
              # pylint:disable=W0212
             self._root_recorder._message_stack.append(evt)
             self._root_recorder._logger.log(*evt)

@@ -1,6 +1,6 @@
 import logging
 
-from thelma.automation.errors import MessageRecorder
+from thelma.automation.messagerecorder import MessageRecorder
 from thelma.testing import ThelmaModelTestCase
 
 
