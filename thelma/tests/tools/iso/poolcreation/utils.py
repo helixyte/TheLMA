@@ -678,8 +678,7 @@ class _TubeGenerator(object):
 
     def create_tube(self, rack, rack_pos, pool):
         barcode = SSC_TEST_DATA.get_tube_barcode_for_pool(pool)
-        tube = self.__tube_specs.create_tube(item_status=self.__status,
-                                             barcode=barcode)
+        tube = self.__tube_specs.create_tube(self.__status, barcode)
         rack.add_tube(tube, rack_pos)
         rack.containers.append(tube)
         return tube

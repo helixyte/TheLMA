@@ -17,7 +17,7 @@ from thelma.models.tagging import Tag
 from thelma.tests.tools.utils.utils import ConverterTestCase
 from thelma.tests.tools.utils.utils import MoleculeDesignPoolBaseTestCase
 from thelma.tests.tools.utils.utils import RackSectorTestCase
-import logging
+
 
 class IsoRequestClassesBaseTestCase(MoleculeDesignPoolBaseTestCase):
 

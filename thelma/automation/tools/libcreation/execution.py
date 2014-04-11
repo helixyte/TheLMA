@@ -57,7 +57,7 @@
 #
 #    NAME = 'LibraryCreationXL20Executor'
 #
-#    def __init__(self, library_creation_iso, user):
+#    def __init__(self, library_creation_iso, user, parent=None):
 #        """
 #        Constructor:
 #
@@ -68,7 +68,7 @@
 #        :param user: The user conducting the execution.
 #        :type user: :class:`thelma.models.user.User`
 #        """
-#        BaseAutomationTool.__init__(self, depending=False)
+#        BaseAutomationTool.__init__(self, parent=parent)
 #        #: The stock sample creation ISO for which to execute the worklists.
 #        self.stock_sample_creation_iso = stock_sample_creation_iso
 #        #: The user conducting the execution.

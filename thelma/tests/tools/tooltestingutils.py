@@ -120,11 +120,8 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
         vol = volume / VOLUME_CONVERSION_FACTOR
         if is_stock_sample:
             conc = target_conc / CONCENTRATION_CONVERSION_FACTOR
-            sample = StockSample(volume=vol, container=container,
-                             molecule_design_pool=pool,
-                             supplier=self.supplier,
-                             molecule_type=pool.molecule_type,
-                             concentration=conc)
+            sample = StockSample(vol, container, pool, self.supplier,
+                             pool.molecule_type, conc)
             container.sample = sample
         else:
             sample = container.make_sample(vol)

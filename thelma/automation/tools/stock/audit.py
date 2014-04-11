@@ -173,8 +173,8 @@ class StockAuditReporter(BaseTool):
                              amount='Amount',
                              supplier='Supplier',
                              initialamount='Initial Amount')
-    def __init__(self, molecule_type, output_file):
-        BaseTool.__init__(self, depending=False)
+    def __init__(self, molecule_type, output_file, parent=None):
+        BaseTool.__init__(self, parent=parent)
         self.__molecule_type = molecule_type
         self.__output_file = output_file
 

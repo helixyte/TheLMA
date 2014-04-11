@@ -76,7 +76,6 @@ class PutExperimentMetadataMemberView(PutMemberView):
         experiment_metadata = self.context.get_entity()
         user = get_current_user()
         generator = ExperimentMetadataGenerator.create(
-                                    depending=False,
                                     stream=request_body,
                                     experiment_metadata=experiment_metadata,
                                     requester=user)

@@ -2859,8 +2859,8 @@ class LabIsoTestCase2(LabIsoTestCase1):
                     vol = plt_info[0] / VOLUME_CONVERSION_FACTOR
                     plt = PlannedRackSampleTransfer.get_entity(vol,
                                                                plt_info[2],
-                                                               trg,
-                                                               plt_info[1])
+                                                               plt_info[1],
+                                                               trg)
                 plts.append(plt)
             wl = self._create_planned_worklist(label=wl_label,
                 transfer_type=transfer_type, pipetting_specs=pipetting_specs,

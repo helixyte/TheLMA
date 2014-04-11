@@ -61,7 +61,7 @@
 #    """
 #    NAME = 'Library Generation'
 #
-#    def __init__(self, library_name, stream, requester):
+#    def __init__(self, library_name, stream, requester, parent=None):
 #        """
 #        Constructor:
 #
@@ -73,7 +73,7 @@
 #            trac tickets.
 #        :type requester: :class:`thelma.models.user.User`
 #        """
-#        BaseAutomationTool.__init__(self, depending=False)
+#        BaseAutomationTool.__init__(self, parent=parent)
 #        #: The name of the library to be created.
 #        self.library_name = library_name
 #        #: Excel file stream containing one sheet with the base layout and one

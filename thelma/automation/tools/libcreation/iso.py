@@ -72,7 +72,7 @@
 #    ALIQUOT_PLATE_LABEL_PATTERN = '%s-%i-%inM-%i'
 #
 #    def __init__(self, molecule_design_library, number_isos,
-#                 excluded_racks=None, requested_tubes=None):
+#                 excluded_racks=None, requested_tubes=None, parent=None):
 #        """
 #        Constructor:
 #
@@ -89,7 +89,7 @@
 #            supposed to be used.
 #        :type requested_tubes: A list of tube barcodes.
 #        """
-#        BaseAutomationTool.__init__(self, depending=False)
+#        BaseAutomationTool.__init__(self, parent=parent)
 #        #: The molecule design library for which to generate an ISO.
 #        self.molecule_design_library = molecule_design_library
 #        #: The number of ISOs ordered.
@@ -387,7 +387,7 @@
 #    #: The index for the stock tube barcode column.
 #    TUBE_INDEX = 3
 #
-#    def __init__(self, library_creation_iso):
+#    def __init__(self, library_creation_iso, parent=None):
 #        """
 #        Constructor:
 #
@@ -396,7 +396,7 @@
 #        :type library_creation_iso:
 #            :class:`thelma.models.library.LibraryCreationIso`
 #        """
-#        CsvWriter.__init__(self, depending=False)
+#        CsvWriter.__init__(self, parent=parent)
 #
 #        #: The ISO whose layout you want to print.
 #        self.library_creation_iso = library_creation_iso

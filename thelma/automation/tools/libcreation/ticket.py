@@ -170,7 +170,7 @@
 #    #: the library name and the layout number.
 #    ISO_LABEL_PATTERN = '%s-%s'
 #
-#    def __init__(self, molecule_design_library):
+#    def __init__(self, molecule_design_library, parent=None):
 #        """
 #        Constructor:
 #
@@ -179,7 +179,7 @@
 #        :type molecule_design_library:
 #            :class:`thelma.models.library.MoleculeDesignLibrary`
 #        """
-#        BaseAutomationTool.__init__(self, depending=False)
+#        BaseAutomationTool.__init__(self, parent=parent)
 #        #: The molecule design library for which to generate an ISO.
 #        self.molecule_design_library = molecule_design_library
 #
@@ -268,7 +268,7 @@
 #    #: Shall existing replacements with the same name be overwritten?
 #    REPLACE_EXISTING_ATTACHMENTS = True
 #
-#    def __init__(self, library_creation_iso, file_map):
+#    def __init__(self, library_creation_iso, file_map, parent=None):
 #        """
 #        Constructor:
 #
@@ -281,7 +281,7 @@
 #            file names.
 #        :type file_map: :class:`dict`
 #        """
-#        BaseTracTool.__init__(self, depending=False)
+#        BaseTracTool.__init__(self, parent=parent)
 #
 #        #: The library creation ISO the worklists belong to (also contains
 #        #: the ticket ID).
