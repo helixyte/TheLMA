@@ -5,7 +5,8 @@
 This module creates or updates an experiment metadata. It applies several
 parsers and tools.
 """
-from thelma.automation.semiconstants import get_pipetting_specs
+from math import ceil
+
 from thelma.automation.handlers.experimentdesign \
     import ExperimentDesignParserHandler
 from thelma.automation.handlers.experimentpoolset \
@@ -19,6 +20,7 @@ from thelma.automation.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.semiconstants import get_experiment_metadata_type
 from thelma.automation.semiconstants import get_min_transfer_volume
+from thelma.automation.semiconstants import get_pipetting_specs
 from thelma.automation.semiconstants import get_pipetting_specs_biomek
 from thelma.automation.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.semiconstants import get_reservoir_specs_deep_96
@@ -43,7 +45,6 @@ from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import is_larger_than
 from thelma.automation.utils.base import is_smaller_than
 from thelma.automation.utils.base import is_valid_number
-from thelma.automation.utils.base import round_up
 from thelma.automation.utils.racksector import QuadrantIterator
 from thelma.models.experiment import ExperimentDesign
 from thelma.models.experiment import ExperimentMetadata
@@ -52,6 +53,7 @@ from thelma.models.iso import LabIsoRequest
 from thelma.models.library import MoleculeDesignLibrary
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 from thelma.models.user import User
+
 
 __docformat__ = 'reStructuredText en'
 
@@ -558,7 +560,7 @@ class ExperimentMetadataGenerator(BaseTool):
             queued_pools = len(self._pool_set)
             floating_positions = self._source_layout.get_floating_positions()
             number_floatings = len(floating_positions)
-            plate_number = round_up(float(queued_pools) / number_floatings, 0)
+            plate_number = int(ceil(float(queued_pools) / number_floatings))
             self._iso_request.expected_number_isos = int(plate_number)
 
     def __check_blocked_entities(self):
