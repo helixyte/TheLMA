@@ -344,8 +344,8 @@ class ReporterDispatcher(object):
 
 
 class ReportingAutomationTool(BaseTool): # still abstract pylint: disable=W0223
-    def __init__(self, report_directory=None, **kw):
-        BaseTool.__init__(self, **kw)
+    def __init__(self, report_directory=None, parent=None):
+        BaseTool.__init__(self, parent=parent)
         if report_directory is None:
             report_directory = os.getcwd()
         self.report_directory = report_directory
@@ -357,10 +357,10 @@ class ReportingAutomationTool(BaseTool): # still abstract pylint: disable=W0223
 
 class RegistrationTool(ReportingAutomationTool): # still abstract pylint: disable=W0223
     def __init__(self, registration_items, report_directory=None,
-                 depending=False, **kw):
+                 parent=None):
         ReportingAutomationTool.__init__(self,
                                          report_directory=report_directory,
-                                         depending=depending, **kw)
+                                         parent=parent)
         self.registration_items = registration_items
 
 

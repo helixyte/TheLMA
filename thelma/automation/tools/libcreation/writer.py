@@ -87,7 +87,7 @@
 #    FILE_NAME_CYBIO = '%s-%s-CyBio_instructions.txt'
 #
 #    def __init__(self, library_creation_iso, tube_destination_racks,
-#                 pool_stock_racks):
+#                 pool_stock_racks, parent=None):
 #        """
 #        Constructor:
 #
@@ -107,7 +107,7 @@
 #        :type pool_stock_racks: map of barcodes
 #            (:class:`basestring`) mapped onto sector indices.
 #        """
-#        BaseAutomationTool.__init__(self, depending=False)
+#        BaseAutomationTool.__init__(self, parent=parent)
 #
 #        #: The library creation ISO for which to generate the worklist files.
 #        self.library_creation_iso = library_creation_iso

@@ -10,7 +10,7 @@ from pyramid.compat import string_types
 from xlrd import XLRDError
 from xlrd import open_workbook
 
-from thelma.automation.errors import MessageRecorder
+from thelma.automation.messagerecorder import MessageRecorder
 from thelma.automation.tools.base import BaseTool
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.base import get_trimmed_string

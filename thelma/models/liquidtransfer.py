@@ -402,12 +402,11 @@ class PlannedRackSampleTransfer(PlannedLiquidTransfer):
 
     def __init__(self, volume, hash_value, number_sectors, source_sector_index,
                  target_sector_index, **kw):
-        """
-        Constructor
-        """
-        PlannedLiquidTransfer.__init__(self, volume=volume,
-                           transfer_type=TRANSFER_TYPES.RACK_SAMPLE_TRANSFER,
-                           hash_value=hash_value, **kw)
+        PlannedLiquidTransfer.__init__(self, volume,
+                                       hash_value=hash_value,
+                                       transfer_type=
+                                        TRANSFER_TYPES.RACK_SAMPLE_TRANSFER,
+                                        **kw)
         self._number_sectors = number_sectors
         self._source_sector_index = source_sector_index
         self._target_sector_index = target_sector_index
@@ -441,21 +440,13 @@ class PlannedRackSampleTransfer(PlannedLiquidTransfer):
         values. If there is already an entity with this values in the DB,
         the entity will be loaded, otherwise a new entity is generated.
 
-        :param volume: The volume *in l*.
-        :type volume: positive number
-
-        :param number_sectors: The total number of sectors (:class:`int`).
-        :type number_sectors: :class:`int`
-
-        :param source_sector_index: The sector of the source plate the volume
-            is taken from.
-        :type source_sector_index: :class:`int`
-
-        :param target_sector_index: The sector of the target plate the volume
-            is dispensed into.
-        :type target_sector_index: :class:`int`
-
-        :return: :class:`PlannedRackSampleTransfer`
+        :param float volume: The volume *in l* (positive number).
+        :param int number_sectors: The total number of sectors (:class:`int`).
+        :param int source_sector_index: The sector of the source plate the
+            volume is taken from.
+        :param int target_sector_index: The sector of the target plate the
+            volume is dispensed into.
+        :returns: :class:`PlannedRackSampleTransfer` instance.
         """
         data = dict(number_sectors=number_sectors,
                     source_sector_index=source_sector_index,
@@ -463,9 +454,8 @@ class PlannedRackSampleTransfer(PlannedLiquidTransfer):
         data['volume'] = volume
         return cls.create_from_data(data)
 
-    #pylint: disable=W0221
     @classmethod
-    def get_hash_value(cls, volume, number_sectors, source_sector_index,
+    def get_hash_value(cls, volume, number_sectors, source_sector_index, #pylint: disable=W0221
                        target_sector_index):
         """
         The hash value for rack sample transfers is comprised of the volume
@@ -492,7 +482,6 @@ class PlannedRackSampleTransfer(PlannedLiquidTransfer):
         values = [volume_in_ul, str(number_sectors), str(source_sector_index),
                   str(target_sector_index)]
         return cls._create_hash_value(values)
-    #pylint: enable=W0221
 
     def __repr__(self):
         str_format = '<%s id: %s, volume: %s, source sector: %s, ' \

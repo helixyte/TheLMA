@@ -645,8 +645,8 @@ class LabIsoLayoutTestCase(_LabIsoClassesBaseTestCase):
         lip2 = self._get_layout_pos('a1', layout)
         lip2.stock_tube_barcode = self.POS_CLS.TEMP_STOCK_DATA
         self._expect_error(AttributeError, layout.create_rack_layout,
-                'There are still starting wells without stock data in the ' \
-                'layout!')
+                "There are still starting wells without stock data in the " \
+                "layout (positions: ['A1'])!")
 
 
 class _LabIsoLayoutBaseConverterTestCase(ConverterTestCase,

@@ -236,8 +236,8 @@ class SampleTransferWorklistWriterTestCase(_BiomekWorklistWriterTestCase):
     def test_unsupported_transfer_type(self):
         self.__continue_setup()
         prst = PlannedRackSampleTransfer.get_entity(
-                volume=self.target_container_volume,
-                number_sectors=1, source_sector_index=0, target_sector_index=0)
+                                        self.target_container_volume,
+                                        1, 0, 0)
         self.worklist.planned_liquid_transfers.append(prst)
         self._test_and_expect_errors('Some transfers planned in the worklist ' \
                                      'are not supported')
@@ -453,9 +453,9 @@ class SampleDilutionWorklistWriterTestCase(_BiomekWorklistWriterTestCase):
 
     def test_unsupported_transfer_type(self):
         self.__continue_setup()
-        prst = PlannedRackSampleTransfer.get_entity(number_sectors=1,
-                    volume=self.target_container_volume,
-                    source_sector_index=0, target_sector_index=0)
+        prst = PlannedRackSampleTransfer.get_entity(
+                                        self.target_container_volume,
+                                        1, 0, 0)
         self.worklist.planned_liquid_transfers.append(prst)
         self._test_and_expect_errors('Some transfers planned in the worklist ' \
                                      'are not supported')

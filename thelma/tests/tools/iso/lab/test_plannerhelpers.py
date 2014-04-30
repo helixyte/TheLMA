@@ -447,14 +447,11 @@ class LocationContainerUnspecificTestCase(_LocationContainerTestCase):
 
     def _get_exp_liquid_transfers(self):
         t1 = PlannedRackSampleTransfer.get_entity(
-                volume=20 / VOLUME_CONVERSION_FACTOR,
-                source_sector_index=1, target_sector_index=2, number_sectors=5)
+                                    20 / VOLUME_CONVERSION_FACTOR, 5, 1, 2)
         t2 = PlannedRackSampleTransfer.get_entity(
-                volume=40 / VOLUME_CONVERSION_FACTOR,
-                source_sector_index=1, target_sector_index=3, number_sectors=5)
+                                    40 / VOLUME_CONVERSION_FACTOR, 5, 1, 3)
         t3 = PlannedRackSampleTransfer.get_entity(
-                volume=60 / VOLUME_CONVERSION_FACTOR,
-                source_sector_index=1, target_sector_index=1, number_sectors=5)
+                                    60 / VOLUME_CONVERSION_FACTOR, 5, 1, 1)
         return t1, t2, t3
 
     def test_planned_transfers(self):
@@ -534,17 +531,11 @@ class SectorContainerTestCase(_LocationContainerTestCase):
 
     def _get_exp_liquid_transfers(self):
         t1 = PlannedRackSampleTransfer.get_entity(
-                volume=20 / VOLUME_CONVERSION_FACTOR,
-                source_sector_index=1, target_sector_index=2,
-                number_sectors=self.number_sectors)
+                20 / VOLUME_CONVERSION_FACTOR, self.number_sectors, 1, 2)
         t2 = PlannedRackSampleTransfer.get_entity(
-                volume=40 / VOLUME_CONVERSION_FACTOR,
-                source_sector_index=1, target_sector_index=3,
-                number_sectors=self.number_sectors)
+                40 / VOLUME_CONVERSION_FACTOR, self.number_sectors, 1, 3)
         t3 = PlannedRackSampleTransfer.get_entity(
-                volume=60 / VOLUME_CONVERSION_FACTOR,
-                source_sector_index=1, target_sector_index=1,
-                number_sectors=self.number_sectors)
+                60 / VOLUME_CONVERSION_FACTOR, self.number_sectors, 1, 1)
         return t1, t2, t3
 
 

@@ -137,9 +137,9 @@ class _ExperimentWorklistSeriesTestCase(FileReadingTestCase):
         self.experiment_design = handler.get_result()
 
     def __read_iso_request(self):
-        handler = IsoRequestParserHandler.create(self.stream,
+        handler = IsoRequestParserHandler.create(self.experiment_type.id,
+                                                 self.stream,
                                                  self.user,
-                                                 self.experiment_type.id,
                                                  None)
         handler.get_result()
         self.transfection_layout = handler.get_transfection_layout()

@@ -349,10 +349,10 @@ class _SeriesToolTestCase(FileCreatorTestCase):
 
     def __create_rack_sample_transfer(self):
         self.rack_transfer = PlannedRackSampleTransfer.get_entity(
-                        volume=self.rack_transfer_volume,
-                        source_sector_index=self.source_sector,
-                        target_sector_index=self.target_sector,
-                        number_sectors=self.number_sectors)
+                                                self.rack_transfer_volume,
+                                                self.number_sectors,
+                                                self.source_sector,
+                                                self.target_sector)
 
     def __create_sample_transfer_worklist(self):
         self.transfer_worklist = PlannedWorklist(label=self._TRANSFER_WORKLIST,
@@ -829,20 +829,14 @@ class RackSampleTransferWriterTestCase(FileCreatorTestCase):
         self.rep_plate.barcode = self.rep_plate_barcode
 
     def __create_transfer_jobs(self):
-        rt1 = PlannedRackSampleTransfer.get_entity(volume=self.volume1,
-               number_sectors=4, source_sector_index=0, target_sector_index=1)
-        rtj1 = RackSampleTransferJob(index=0, planned_rack_sample_transfer=rt1,
-                    target_rack=self.int_plate, source_rack=self.small_plate)
+        rt1 = PlannedRackSampleTransfer.get_entity(self.volume1, 4, 0, 1)
+        rtj1 = RackSampleTransferJob(0, rt1, self.int_plate, self.small_plate)
         self.rack_transfer_jobs[0] = rtj1
-        rt2 = PlannedRackSampleTransfer.get_entity(volume=self.volume2,
-               number_sectors=4, source_sector_index=1, target_sector_index=2)
-        rtj2 = RackSampleTransferJob(index=1, planned_rack_sample_transfer=rt2,
-                    target_rack=self.int_plate, source_rack=self.int_plate)
+        rt2 = PlannedRackSampleTransfer.get_entity(self.volume2, 4, 1, 2)
+        rtj2 = RackSampleTransferJob(1, rt2, self.int_plate, self.int_plate)
         self.rack_transfer_jobs[1] = rtj2
-        rt3 = PlannedRackSampleTransfer.get_entity(volume=self.volume3,
-               number_sectors=1, source_sector_index=0, target_sector_index=0)
-        rtj3 = RackSampleTransferJob(index=2, planned_rack_sample_transfer=rt3,
-                    target_rack=self.rep_plate, source_rack=self.int_plate)
+        rt3 = PlannedRackSampleTransfer.get_entity(self.volume3, 1, 0, 0)
+        rtj3 = RackSampleTransferJob(2, rt3, self.rep_plate, self.int_plate)
         self.rack_transfer_jobs[2] = rtj3
 
     def test_result(self):

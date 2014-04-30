@@ -152,9 +152,9 @@ class RackScanningAdjusterTestCase(FileCreatorTestCase):
         del self.new_racks
 
     def _create_tool(self):
-        self.tool = RackScanningAdjuster(user=self.executor_user,
-                            rack_scanning_files=self.rack_scanning_stream,
-                            adjust_database=self.adjust_database)
+        self.tool = RackScanningAdjuster(self.rack_scanning_stream,
+                                         adjust_database=self.adjust_database,
+                                         user=self.executor_user)
 
     def _test_and_expect_errors(self, msg=None):
         FileCreatorTestCase._test_and_expect_errors(self, msg=msg)
@@ -307,14 +307,14 @@ class RackScanningAdjusterTestCase(FileCreatorTestCase):
     def test_file_too_old_one_rack(self):
         self.file_age = timedelta(days=4, hours=3, minutes=20)
         self.__check_result()
-        self._check_warning_messages('The layout is older than 1 days ' \
+        self._check_warning_messages('The layout is older than 1 days '
                                      '(age: 4 days, 3 hours)')
 
     def test_file_too_old_several_racks(self):
         self.file_age = timedelta(days=4, hours=3, minutes=20)
         self.number_files = 2
         self.__check_result()
-        self._check_warning_messages('is older than 1 days (age: 4 days, ' \
+        self._check_warning_messages('is older than 1 days (age: 4 days, '
                                      '3 hours)')
 
     def test_invalid_input_values(self):

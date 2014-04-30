@@ -507,7 +507,7 @@ class SampleDilutionWorklistExecutor(WorklistExecutor):
     **Return Value:** An executed worklist
         (:class:`thelma.models.liquidtransfer.ExecutedWorklist`).
     """
-    NAME = 'Container Dilution Worklist Executor'
+    NAME = 'Sample Dilution Worklist Executor'
     TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_DILUTION
 
     def __init__(self, planned_worklist, target_rack, pipetting_specs, user,
@@ -544,7 +544,7 @@ class SampleDilutionWorklistExecutor(WorklistExecutor):
 
     def _register_transfer(self, planned_liquid_transfer):
         """
-        Planned liquid transfers are planned container dilutions.
+        Planned liquid transfers are planned sample dilutions.
         """
         trg_pos = planned_liquid_transfer.target_position
 
@@ -579,7 +579,7 @@ class SampleTransferWorklistExecutor(WorklistExecutor):
     **Return Value:** An executed worklist
         (:class:`thelma.models.liquidtransfer.ExecutedWorklist`).
     """
-    NAME = 'Container Transfer Worklist Executor'
+    NAME = 'Sample Transfer Worklist Executor'
     TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_TRANSFER
 
     def __init__(self, planned_worklist, target_rack, pipetting_specs, user,
@@ -753,11 +753,10 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
                                        number_sectors)
 
         try:
-            self._translator = RackSectorTranslator.\
-                        from_planned_rack_sample_transfer(
-                        planned_rack_sample_transfer=\
-                                            self.planned_rack_sample_transfer,
-                        behaviour=self.__translation_behaviour)
+            self._translator = \
+                RackSectorTranslator.from_planned_rack_sample_transfer(
+                                    self.planned_rack_sample_transfer,
+                                    behaviour=self.__translation_behaviour)
         except ValueError as e:
             msg = 'Error when trying to initialise rack sector translator. ' \
                   'Details: %s' % (e)

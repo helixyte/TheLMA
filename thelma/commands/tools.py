@@ -503,7 +503,7 @@ class XL20ExecutorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
     name = 'xl20executor'
     tool = 'thelma.automation.tools.worklists.tubehandler:XL20Executor'
     option_defs = \
-        [make_lazy_file_option_def(option_name='--output-file',
+        [make_lazy_file_option_def(option_name='output-file',
                                    parameter_name='output_file_stream',
                                    help_string='The XL20 output file ' \
                                                'containing the transfer ' \
@@ -871,7 +871,7 @@ class StockSampleCreationIsoRequestGenerator(ToolCommand): # no __init__ pylint:
           dict(help='Name of stock sample ISO request to create.'
                )
           ),
-         make_lazy_file_option_def(option_name='--excel-file',
+         make_lazy_file_option_def(option_name='excel-file',
                                    parameter_name='stream',
                                    help_string='Excel file to load.',
                                    read_on_open=True),
@@ -1122,7 +1122,7 @@ class XL20DummyToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
     name = 'xl20dummy'
     tool = 'thelma.automation.tools.dummies:XL20Dummy'
     option_defs = \
-        [make_lazy_file_option_def(option_name='--worklist-file',
+        [make_lazy_file_option_def(option_name='worklist-file',
                                    parameter_name='xl20_worklist_stream',
                                    help_string='The XL20 worklist file '
                                                'containing the planned ' \
@@ -1148,7 +1148,7 @@ class CustomLiquidTransferToolCommand(ToolCommand):
     name = 'customliquidtransfertool'
     tool = 'thelma.automation.tools.worklists.custom:CustomLiquidTransferTool'
     option_defs = \
-        [make_lazy_file_option_def(option_name='--excel-file',
+        [make_lazy_file_option_def(option_name='excel-file',
                                    parameter_name='stream',
                                    help_string='Excel file to load.',
                                    read_on_open=True),
@@ -1179,7 +1179,7 @@ class CustomLiquidTransferWorklistExecutor(ToolCommand):
     tool = 'thelma.automation.tools.worklists.custom:' \
            'CustomLiquidTransferExecutor'
     option_defs = \
-        [make_lazy_file_option_def(option_name='--excel-file',
+        [make_lazy_file_option_def(option_name='excel-file',
                                    parameter_name='stream',
                                    help_string='Excel file to load.',
                                    read_on_open=True),
