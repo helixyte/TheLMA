@@ -177,11 +177,12 @@ class ZippedWorklistRenderer(CustomRenderer):
         if params.has_key('rack'):
             bcs = [params['rack']]
         else:
-            barcode1 = params['rack1']
-            barcode2 = params['rack2']
-            barcode3 = params['rack3']
-            barcode4 = params['rack4']
-            bcs = [barcode1, barcode2, barcode3, barcode4]
+            # We must have at least one barcode.
+            bcs = [params['rack1']]
+            for key in ('rack2', 'rack3', 'rack4'):
+                bc = params.get(key)
+                if not bc is None:
+                    bcs.append(bc)
         return bcs
 
     def _prepare_for_xl20_worklist_creation(self, entity):
