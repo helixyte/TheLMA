@@ -186,7 +186,8 @@ class IsoJob(Job):
             pp = self.preparation_plates
             # Detect if this ISO job is done (it is sufficient to check the
             # status of the first preparation plate).
-            if len(pp) > 0 and pp[0].status == get_item_status_managed():
+            item_status_managed = get_item_status_managed()
+            if len(pp) > 0 and pp[0].status == item_status_managed:
                 status = ISO_STATUS.DONE
             else:
                 status = ISO_STATUS.QUEUED
