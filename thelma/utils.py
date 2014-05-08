@@ -87,7 +87,10 @@ class ToolRunner(ToolRunnerBase):
 
 class TracToolRunner(ToolRunnerBase):
     def run(self):
-        self._tool.run()
+        # We need to call get_result here to ensure the cleanup of the
+        # semiconstant caches...
+        # FIXME: Should use run here!
+        dummy = self._tool.get_result()
         if not self._tool.transaction_completed():
             raise HTTPBadRequest(self._get_error_messages())
 

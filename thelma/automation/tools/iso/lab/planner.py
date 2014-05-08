@@ -661,7 +661,7 @@ class LabIsoBuilder(object):
             return False
         if plate_pos.stock_tube_barcode is None: return False
         if not from_final_plate: return True
-        return (plate_pos.from_job == from_job)
+        return (plate_pos.from_job == from_job) or not self.has_job_processing
 
     def __str__(self):
         return self.ticket_number

@@ -238,7 +238,9 @@ class _StockRackAssigner(BaseTool):
             for plate_pos in layout.get_sorted_working_positions():
                 if not plate_pos.is_starting_well:
                     continue
-                if is_final_plate and not (plate_pos.from_job == for_job):
+                if is_final_plate \
+                   and not (plate_pos.from_job == for_job) \
+                   and self._processing_order != LAB_ISO_ORDERS.NO_JOB:
                     continue
                 elif plate_pos.is_fixed and not regard_iso_prep_fixed:
                     continue
