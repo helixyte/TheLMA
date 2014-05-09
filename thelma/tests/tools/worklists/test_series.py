@@ -204,14 +204,14 @@ class _SeriesExecutorDummy(_SeriesExecutor):
     """
     Only serves for testing.
     """
-    pass
+    NAME = 'Dummy Series Executor'
 
 
 class _SerialWriterExecutorDummy(SerialWriterExecutorTool):
     """
     Only serves for testing. Does not add real functionality.
     """
-
+    NAME = 'Dummy Serial Writer Executor'
     FILE_NAME_RST = 'series_rack_transfer.txt'
     WORKLIST_LABEL_RST = 'rack_sample_transfer_wl'
 

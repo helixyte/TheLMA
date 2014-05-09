@@ -802,6 +802,7 @@ class SerialWriterExecutorTool(BaseTool):
     **Return Value:** a zip stream for for printing mode or executed worklists
         for execution mode (can be overwritten)
     """
+    NAME = 'Serial Writer Executor'
     #: Marks usage of execution mode.
     MODE_EXECUTE = 'execute'
     #: Marker for the usage of worklist printing mode.
