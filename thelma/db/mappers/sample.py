@@ -63,6 +63,7 @@ def create_mapper(sample_tbl, sample_molecule_tbl, molecule_tbl,
             sample_molecules=
                     relationship(SampleMolecule,
                                  back_populates='sample',
+                                 cascade='all,delete,delete-orphan',
                                  lazy='joined'
                                  ),
             ),
