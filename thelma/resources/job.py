@@ -103,19 +103,19 @@ class ExperimentJobMember(JobMember):
             except TypeError as te:
                 raise HTTPBadRequest(str(te)).exception
         if not tool is None:
-            new_experiment = tool.get_result()
-            if not new_experiment is None:
-                status_agg = get_root_aggregate(IItemStatus)
-                status_managed = \
-                    status_agg.get_by_slug(ITEM_STATUS_NAMES.MANAGED.lower())
-                for new_exp_rack in new_experiment.experiment_racks:
-                    new_exp_rack.rack.status = status_managed
-                exp_ent.source_rack = new_experiment.source_rack
-                exp_ent.experiment_racks = new_experiment.experiment_racks
+            # FIXME: We don't care about the result here; still we must call
+            #        get_result for its side effects.
+            dummy = tool.get_result()
             if tool.has_errors():
                 exc_msg = str(tool.get_messages(logging_level=logging.ERROR))
                 raise HTTPBadRequest('Could not update Database: %s' % exc_msg
                                      ).exception
+            else:
+                status_agg = get_root_aggregate(IItemStatus)
+                status_managed = \
+                    status_agg.get_by_slug(ITEM_STATUS_NAMES.MANAGED.lower())
+                for exp_rack in exp_ent.experiment_racks:
+                    exp_rack.rack.status = status_managed
 
 
 class IsoJobMember(JobMember):
