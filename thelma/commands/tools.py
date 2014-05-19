@@ -1235,3 +1235,79 @@ class RackSampleTransferExecutor(ToolCommand):
                                         'Barcode of the source rack.',
                                         IRack),
                    ]
+
+
+class PlateCreator96To384(ToolCommand):
+    name = 'platecreator96to384'
+    tool = 'thelma.automation.tools.platecreator:PlateCreator96To384'
+
+    option_defs = [('--layout-filename-q1',
+                    'layout_filename_q1',
+                    dict(help='File for layout of Q1.',
+                         type='string')
+                    ),
+                   ('--layout-filename-q2',
+                    'layout_filename_q2',
+                    dict(help='File for layout of Q2.',
+                         type='string')
+                    ),
+                   ('--layout-filename-q3',
+                    'layout_filename_q3',
+                    dict(help='File for layout of Q3.',
+                         type='string')
+                    ),
+                   ('--layout-filename-q4',
+                    'layout_filename_q4',
+                    dict(help='File for layout of Q4.',
+                         type='string')
+                    ),
+                   ('--target-barcode',
+                    'target_barcode',
+                    dict(help='Target plate barcode.',
+                         type='string')
+                    ),
+                   ('--iso-concentration',
+                    'iso_concentration',
+                    dict(help='Final ISO concentration (nano M).',
+                         type='int'),
+                    ),
+                   ('--iso-volume',
+                    'iso_volume',
+                    dict(help='Final ISO volume (micro l).',
+                         type='int'),
+                    ),
+                    ]
+
+
+class PlateCreator96To384(ToolCommand):
+    name = 'platecopier'
+    tool = 'thelma.automation.tools.platecopier:PlateCopier'
+
+    option_defs = [('--source-barcode',
+                    'source_barcode',
+                    dict(help='Source plate barcode.',
+                         type='string')
+                    ),
+                   ('--target-barcodes',
+                    'target_barcodes',
+                    dict(help='Target plate barcodes (comma-separated list).',
+                         type='string')
+                    ),
+                   ('--transfer-volume',
+                    'transfer_volume',
+                    dict(help='Volume to transfer (in micro l).',
+                         type='int'),
+                    ),
+                    ]
+
+
+class PlateCreator96To384(ToolCommand):
+    name = 'plateeraser'
+    tool = 'thelma.automation.tools.plateeraser:PlateEraser'
+
+    option_defs = [('--barcodes',
+                    'barcodes',
+                    dict(help='Rack barcodes (comma-separated list).',
+                         type='string')
+                    ),
+                   ]
