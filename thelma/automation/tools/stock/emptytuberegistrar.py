@@ -25,6 +25,7 @@ class EmptyTubeRegistrar(BaseTool):
     # FIXME: Make these configurable.
     STATUS = ITEM_STATUS_NAMES.MANAGED.lower()
     SPECS = 'matrix0500'
+    NAME = 'Empty Tube Registrar'
     def __init__(self, scanfile_directory, parent=None):
         BaseTool.__init__(self, parent=parent)
         self.__scanfile_directory = os.path.realpath(scanfile_directory)
