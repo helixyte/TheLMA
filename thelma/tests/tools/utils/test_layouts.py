@@ -7,16 +7,16 @@ from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.converters import BaseLayoutConverter
-from thelma.automation.utils.converters import LibraryLayoutConverter
+from thelma.automation.utils.converters import LibraryBaseLayoutConverter
 from thelma.automation.utils.converters import MoleculeDesignPoolLayoutConverter
 from thelma.automation.utils.converters import TransferLayoutConverter
 from thelma.automation.utils.layouts import EMPTY_POSITION_TYPE
 from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
 from thelma.automation.utils.layouts import FLOATING_POSITION_TYPE
 from thelma.automation.utils.layouts import LIBRARY_POSITION_TYPE
-from thelma.automation.utils.layouts import LibraryLayout
-from thelma.automation.utils.layouts import LibraryLayoutParameters
-from thelma.automation.utils.layouts import LibraryLayoutPosition
+from thelma.automation.utils.layouts import LibraryBaseLayout
+from thelma.automation.utils.layouts import LibraryBaseLayoutParameters
+from thelma.automation.utils.layouts import LibraryBaseLayoutPosition
 from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
 from thelma.automation.utils.layouts import MoleculeDesignPoolLayout
 from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
@@ -1217,7 +1217,7 @@ class TransferLayoutConverterTestCase(ConverterTestCase,
 
 class LibraryLayoutPositionTestCase(ToolsAndUtilsTestCase):
 
-    test_cls = LibraryLayoutPosition
+    test_cls = LibraryBaseLayoutPosition
 
     def __get_init_data(self):
         rack_pos = get_rack_position_from_label('a1')
@@ -1264,11 +1264,11 @@ class LibraryLayoutTestCase(ToolsAndUtilsTestCase):
         del self.pos_data
 
     def __create_test_layout(self):
-        layout = LibraryLayout(shape=get_96_rack_shape())
+        layout = LibraryBaseLayout(shape=get_96_rack_shape())
         for pos_label, is_lib_pos in self.pos_data.iteritems():
             rack_pos = get_rack_position_from_label(pos_label)
-            lp = LibraryLayoutPosition(rack_position=rack_pos,
-                                       is_library_position=is_lib_pos)
+            lp = LibraryBaseLayoutPosition(rack_position=rack_pos,
+                                           is_library_position=is_lib_pos)
             layout.add_position(lp)
         return layout
 
@@ -1298,10 +1298,10 @@ class LibraryLayoutTestCase(ToolsAndUtilsTestCase):
 
 class LibraryLayoutConverterTestCase(ConverterTestCase):
 
-    PARAMETER_SET = LibraryLayoutParameters
-    POS_CLS = LibraryLayoutPosition
-    LAYOUT_CLS = LibraryLayout
-    CONVERTER_CLS = LibraryLayoutConverter
+    PARAMETER_SET = LibraryBaseLayoutParameters
+    POS_CLS = LibraryBaseLayoutPosition
+    LAYOUT_CLS = LibraryBaseLayout
+    CONVERTER_CLS = LibraryBaseLayoutConverter
 
     def set_up(self):
         ConverterTestCase.set_up(self)

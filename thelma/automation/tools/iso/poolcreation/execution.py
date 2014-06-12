@@ -34,6 +34,7 @@ from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import StockSampleCreationIso
 from thelma.models.liquidtransfer import ExecutedWorklist
 
+
 __docformat__ = 'reStructuredText en'
 
 __all__ = ['StockSampleCreationExecutor',
@@ -59,31 +60,26 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
 
     def __init__(self, iso, user, **kw):
         """
-        Constructor:
+        Constructor.
 
         :param iso: The stock sample creation ISO for which to execute the
             worklists.
         :type iso: :class:`thelma.models.iso.StockSampleCreationIso`
-
         :param user: The user conducting the execution.
         :type user: :class:`thelma.models.user.User`
         """
         StockTransferWriterExecutor.__init__(self, user=user, entity=iso,
                             mode=StockTransferWriterExecutor.MODE_EXECUTE, **kw)
-
         #: The stock sample creation layout for this ISO.
         self.__ssc_layout = None
-
         #: The :class:`IsoRackContainer` for each stock rack mapped onto
         #: rack marker.
         self.__rack_containers = None
         #: The stock rack that serves as target rack (:class:`IsoStockRack`).
         self.__pool_stock_rack = None
-
         #: The stock transfer worklist is the only worklist in the stock rack
         #: series.
         self.__stock_transfer_worklist = None
-
         #: The indices for the rack transfer jobs mapped onto the worklist
         #: they belong to.
         self.__rack_transfer_indices = None
@@ -103,10 +99,14 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
         """
         Executes the pool creation worklists.
         """
-        if not self.has_errors(): self.__get_layout()
-        if not self.has_errors(): self.__get_racks()
-        if not self.has_errors(): self.__create_buffer_transfer_job()
-        if not self.has_errors(): self.__create_stock_transfer_jobs()
+        if not self.has_errors():
+            self.__get_layout()
+        if not self.has_errors():
+            self.__get_racks()
+        if not self.has_errors():
+            self.__create_buffer_transfer_job()
+        if not self.has_errors():
+            self.__create_stock_transfer_jobs()
 
     def get_stock_sample_creation_layout(self):
         """
@@ -126,11 +126,9 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
             self.add_error(msg)
 
     def __get_layout(self):
-        """
-        Fetches the stock sample layout and sorts its positions into quadrants.
-        """
+        # Fetches the stock sample layout and sorts its positions into
+        # quadrants.
         self.add_debug('Fetch stock sample layout ...')
-
         converter = StockSampleCreationLayoutConverter(
                                            self.entity.rack_layout,
                                            parent=self)
@@ -146,12 +144,10 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
                     self.__ignore_positions.append(rack_pos)
 
     def __get_racks(self):
-        """
-        Fetches the ISO stock rack and the single molecule stock racks
-        (barcodes for the single design racks are found in the worklist labels).
-        """
+        # Fetches the ISO stock rack and the single molecule stock racks
+        # (barcodes for the single design racks are found in the worklist
+        # labels).
         self.add_debug('Fetch stock racks ...')
-
         isrs = self.entity.iso_stock_racks
         for isr in isrs:
             label = isr.label
@@ -161,7 +157,8 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
                                  'label "%s"' % (isr.label),
                         error_types=IndexError,
                         **dict(stock_rack_label=label))
-            if label_values is None: continue
+            if label_values is None:
+                continue
             rack_marker = label_values[LABELS.MARKER_RACK_MARKER]
             if rack_marker == LABELS.ROLE_POOL_STOCK:
                 if self.__pool_stock_rack is not None:
@@ -173,7 +170,6 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
                 rack_container = IsoRackContainer(rack=isr.rack,
                                  rack_marker=rack_marker, label=label)
                 self.__rack_containers[rack_marker] = rack_container
-
         number_designs = self.entity.iso_request.number_designs
         exp_lengths = ((number_designs + 1), 2)
         if not len(isrs) in exp_lengths:
@@ -196,15 +192,11 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
             self.__stock_transfer_worklist = ws.get_sorted_worklists()[0]
 
     def __create_buffer_transfer_job(self):
-        """
-        Creates the transfer job for the buffer worklist.
-        """
+        # Creates the transfer job for the buffer worklist.
         self.add_debug('Create buffer transfer jobs ...')
-
         worklist_series = self.entity.iso_request.worklist_series
         buffer_worklist = worklist_series.get_worklist_for_index(
                   StockSampleCreationWorklistGenerator.BUFFER_WORKLIST_INDEX)
-
         rs = get_reservoir_spec(RESERVOIR_SPECS_NAMES.FALCON_MANUAL)
         job_index = len(self._transfer_jobs)
         cdj = SampleDilutionJob(index=job_index,
@@ -216,13 +208,10 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
         self._transfer_jobs[job_index] = cdj
 
     def __create_stock_transfer_jobs(self):
-        """
-        Creates the transfer jobs for the pool creation. We do not need
-        to regard potential empty (ignored) positions here, because the
-        worklist creation is already based on the library layout.
-        """
+        # Creates the transfer jobs for the pool creation. We do not need
+        # to regard potential empty (ignored) positions here, because the
+        # worklist creation is already based on the library layout.
         self.add_debug('Create pool creation transfer jobs ...')
-
         for rack_container in self.__rack_containers.values():
             job_index = len(self._transfer_jobs)
             stj = SampleTransferJob(index=job_index,
@@ -267,17 +256,14 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
                     self.add_error(msg)
                 elif not compatible:
                     incompatible.append(rack_name)
-
         if len(incompatible) > 0:
             msg = 'The following stock racks are not compatible: %s.' \
                    % (self._get_joined_str(incompatible))
             self.add_error(msg)
 
     def __verify_pool_stock_rack(self):
-        """
-        Makes sure there are empty tubes in all required positions and none
-        in positions that must be empty.
-        """
+        # Makes sure there are empty tubes in all required positions and none
+        # in positions that must be empty.
         converter = PoolCreationStockRackLayoutConverter(
                              self.__pool_stock_rack.rack_layout,
                              parent=self)
@@ -342,24 +328,20 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
         self.__create_stock_samples()
 
     def __create_stock_samples(self):
-        """
-        Converts the new pool samples into :class:`StockSample` entities.
-
-        We also compare expected and found molecule designs again. This has
-        in theory already been done by the verifier. However, we have done a
-        transfer in between and we want to exclude the (slight) chance that
-        something went wrong during this process since afterwards it will hardly
-        be possible to reconstruct the course of events and in case of the
-        stock we better double-check.
-        """
+        # Converts the new pool samples into :class:`StockSample` entities.
+        # We also compare expected and found molecule designs again. This has
+        # in theory already been done by the verifier. However, we have done a
+        # transfer in between and we want to exclude the (slight) chance that
+        # something went wrong during this process since afterwards it will
+        # hardly be possible to reconstruct the course of events and in case
+        # of the stock we better double-check.
         self.add_debug('Generate stock samples ...')
-
         mismatch = []
         diff_supplier = []
-
         for tube in self.__pool_stock_rack.rack.containers:
             sample = tube.sample
-            if sample is None: continue
+            if sample is None:
+                continue
             # check whether expected pool
             rack_pos = tube.location.position
             ssc_pos = self.__ssc_layout.get_working_position(rack_pos)
@@ -388,7 +370,6 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
                 continue
             else:
                 sample.convert_to_stock_sample()
-
         if len(mismatch) > 0:
             msg = 'The molecule designs for the following stock sample do ' \
                   'not match the expected designs for this sample. This ' \
@@ -401,14 +382,12 @@ class StockSampleCreationExecutor(StockTransferWriterExecutor):
                    % (', '.join(sorted(diff_supplier)))
             self.add_error(msg)
 
-    #pylint: disable=W0613
-    def _get_file_map(self, merged_stream_map, rack_transfer_stream):
+    def _get_file_map(self, merged_stream_map, rack_transfer_stream): #pylint: disable=W0613
         """
         We do not need to implement this method because printing mode is not
         not allowed anyway.
         """
         self.add_error('Printing mode is not allowed for this tool!')
-    #pylint: disable=W0613
 
 
 class StockSampleCreationStockTransferReporter(IsoStockTransferReporter):
@@ -421,7 +400,7 @@ class StockSampleCreationStockTransferReporter(IsoStockTransferReporter):
 
     def __init__(self, executor, parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param executor: The executor tool (after run has been completed).
         :type executor: :class:`_LabIsoWriterExecutorTool`
@@ -506,7 +485,7 @@ class _StockSampleCreationStockLogFileWriter(CsvWriter):
     def __init__(self, stock_sample_creation_layout, executed_worklists,
                  parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param stock_sample_creation_layout: The working_layout containing the
             molecule design pool data.
@@ -554,9 +533,6 @@ class _StockSampleCreationStockLogFileWriter(CsvWriter):
             self.__generate_column_maps()
 
     def __check_input(self):
-        """
-        Checks the initialisation values.
-        """
         self.add_debug('Check input values ...')
 
         self._check_input_list_classes('executed_worklist',

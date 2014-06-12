@@ -89,6 +89,20 @@ class RackLayout(Entity):
                     positions.add(position)
         return positions
 
+    def has_positions(self):
+        """
+        Checks if this rack layout has any tagged positions.
+
+        :return: Test result.
+        :rtype: bool
+        """
+        result = False
+        for trps in self.tagged_rack_position_sets:
+            if len(trps.rack_position_set) > 0:
+                result = True
+                break
+        return result
+
     def __str__(self):
         return '%s' % (self.id)
 

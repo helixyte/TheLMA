@@ -4,7 +4,7 @@ Short cuts for tools involved in lab ISO processing.
 from thelma.automation.tools.iso.poolcreation.execution \
     import StockSampleCreationExecutor
 from thelma.automation.tools.iso.poolcreation.generation \
-    import StockSampleCreationIsoCreator
+    import StockSampleCreationIsoGenerator
 from thelma.automation.tools.iso.poolcreation.generation \
     import StockSampleCreationIsoRequestGenerator
 from thelma.automation.tools.iso.poolcreation.execution \
@@ -57,7 +57,7 @@ def get_iso_request_generator(iso_request_label, stream, requester,
 
 def get_iso_generator(iso_request, ticket_numbers=None, reporter=None, **kw):
     """
-    Factory method creating a :class:`StockSampleCreationIsoCreator` that
+    Factory method creating a :class:`StockSampleCreationIsoGenerator` that
     generates ISOs for the passed ISO request.
 
     IMPORTANT: This tool must not launch warnings or be interrupted, otherwise
@@ -84,7 +84,7 @@ def get_iso_generator(iso_request, ticket_numbers=None, reporter=None, **kw):
     """
     kw.update(dict(iso_request=iso_request, ticket_numbers=ticket_numbers,
                    reporter=reporter))
-    return StockSampleCreationIsoCreator(**kw)
+    return StockSampleCreationIsoGenerator(**kw)
 
 def get_worklist_writer(iso, tube_destination_racks, pool_stock_rack_barcode,
                         use_single_source_rack=False, **kw):

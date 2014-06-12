@@ -37,7 +37,7 @@ class _ISO_LABELS_BASE(object):
     """
     #: The character used in the labels to separate the value parts.
     SEPARATING_CHAR = '_'
-    #: This character is used seperate running numbers from value parts.
+    #: This character is used separate running numbers from value parts.
     NUMBERING_CHAR = '#'
     #: Marker for worklist source racks in keyword dictionaries.
     MARKER_WORKLIST_SOURCE = 'source_rack_marker'
@@ -68,7 +68,6 @@ class _ISO_LABELS_BASE(object):
             if isinstance(value, int):
                 value_str = cls._get_int_str(value)
                 value_parts[i] = value_str
-
         sep = cls.SEPARATING_CHAR
         if for_numbering:
             sep = cls.NUMBERING_CHAR

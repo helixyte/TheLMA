@@ -37,7 +37,7 @@ __all__ = ['_LiquidTransferJob',
            'RackSampleTransferJob',
            '_SeriesTool',
            '_SeriesWorklistWriter',
-           '_SeriesExecutor',
+           'SeriesExecutor',
            'SerialWriterExecutorTool']
 
 
@@ -408,7 +408,6 @@ class _SeriesTool(BaseTool):
             source_barcode = transfer_job.source_rack.barcode
             if self._barcode_map.has_key(source_barcode):
                 transfer_job.source_rack = self._barcode_map[source_barcode]
-        return transfer_job
 
     def _execute_job(self, transfer_job):
         """
@@ -551,7 +550,7 @@ class _SeriesWorklistWriter(_SeriesTool):
             self._rack_transfer_stream.write(paragraph)
 
 
-class _SeriesExecutor(_SeriesTool):
+class SeriesExecutor(_SeriesTool):
     """
     Tool that executes a whole series of worklists and/or planned liquid
     transfers (rack transfers).
@@ -584,10 +583,10 @@ class _SeriesExecutor(_SeriesTool):
         The tasks performed by the specific tool (planned liquid transfer
         execution).
         """
-        self.add_info('Start series execution ...')
+        self.add_info('Starting worklist series.')
         for job_index in sorted(self.transfer_jobs.keys()):
             transfer_job = self.transfer_jobs[job_index]
-            transfer_job = self._update_racks(transfer_job)
+            self._update_racks(transfer_job)
             executed_item = self._execute_job(transfer_job)
             if executed_item is None:
                 break
@@ -989,9 +988,9 @@ class SerialWriterExecutorTool(BaseTool):
 
     def _get_executed_worklists(self):
         """
-        Runs the :class:`_SeriesExecutor`.
+        Runs the :class:`SeriesExecutor`.
         """
-        executor = _SeriesExecutor(self._transfer_jobs, self.user,
+        executor = SeriesExecutor(self._transfer_jobs, self.user,
                                    parent=self)
         executed_items = executor.get_result()
         if executed_items is None:

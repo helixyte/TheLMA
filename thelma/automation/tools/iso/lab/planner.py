@@ -399,7 +399,7 @@ class LabIsoBuilder(object):
                                              entity_label=iso.label)
             plate = plate_specs.create_rack(label=label,
                                             status=self.__plate_status)
-            iso.add_aliquot_plate(plate=plate)
+            iso.add_aliquot_plate(plate)
 
     def _complete_iso_preparation_layouts(self, floating_map):
         """
@@ -427,8 +427,7 @@ class LabIsoBuilder(object):
             plate_specs = self.plate_specs[plate_marker]
             plate = plate_specs.create_rack(label=label,
                                             status=self.__plate_status)
-            iso.add_preparation_plate(plate=plate,
-                                      rack_layout=layout.create_rack_layout())
+            iso.add_preparation_plate(plate, layout.create_rack_layout())
 
     def __strip_plate_marker(self, plate_marker, is_single_plate):
         """
@@ -494,7 +493,6 @@ class LabIsoBuilder(object):
         for plate_marker, layout in self.job_layouts.iteritems():
             copy_layout = self._create_layout_without_floatings(layout)
             completed_layouts[plate_marker] = copy_layout
-
         return completed_layouts
 
     def create_job_preparation_plates(self, iso_job, layouts):
@@ -507,8 +505,7 @@ class LabIsoBuilder(object):
                                              entity_label=iso_job.label)
             plate = plate_specs.create_rack(label=label,
                                             status=self.__plate_status)
-            iso_job.add_preparation_plate(plate=plate,
-                                      rack_layout=layout.create_rack_layout())
+            iso_job.add_preparation_plate(plate, layout.create_rack_layout())
 
     def __distribute_pools_to_job_stock_racks(self):
         """

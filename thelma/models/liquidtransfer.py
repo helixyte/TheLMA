@@ -191,10 +191,8 @@ class PlannedSampleDilution(PlannedLiquidTransfer):
 
     _MARKER_INTERFACE = IPlannedSampleDilution
 
-    def __init__(self, volume, hash_value, target_position, diluent_info, **kw):
-        """
-        Constructor
-        """
+    def __init__(self, volume, hash_value, target_position, diluent_info,
+                 **kw):
         PlannedLiquidTransfer.__init__(self, volume=volume,
                                 transfer_type=TRANSFER_TYPES.SAMPLE_DILUTION,
                                 hash_value=hash_value, **kw)
@@ -208,17 +206,12 @@ class PlannedSampleDilution(PlannedLiquidTransfer):
         values. If there is already an entity with this values in the DB,
         the entity will be loaded, otherwise a new entity is generated.
 
-        :param volume: The volume *in l*.
-        :type volume: positive number
-
-        :param diluent_info: Further information (e.g. name and concentration)
-            of the diluent.
-        :type diluent_info: :class:`str`
-
+        :param float volume: The volume *in l* (greater than zero).
+        :param str diluent_info: Further information (e.g. name and
+            concentration) of the diluent.
         :param target_position: The rack position to which the volume is added.
         :type target_position: :class:`thelma.models.rack.RackPosition`
-
-        :return: :class:`PlannedSampleDilution`
+        :returns: :class:`PlannedSampleDilution`
         """
         data = dict(diluent_info=diluent_info,
                     target_position=target_position)
@@ -232,14 +225,10 @@ class PlannedSampleDilution(PlannedLiquidTransfer):
         The hash value for sample dilutions is comprised of the volume (in ul),
         diluent info and target position ID.
 
-        :param volume: The volume. The unit will be regarded as litre, if the
-            value is smaller 1, otherwise the unit will be assumed to be *ul*.
-        :type volume: positive number
-
-        :param diluent_info: Further information (e.g. name and concentration)
-            of the diluent.
-        :type diluent_info: :class:`str`
-
+        :param float volume: The volume (greater than zero). Assuming litre
+            as unit if volume is smaller than 1, *ul* otherwise.
+        :param str diluent_info: Further information (e.g. name and
+            concentration) of the diluent.
         :param target_position: The rack position to which the volume is added.
         :type target_position: :class:`thelma.models.rack.RackPosition`
 
@@ -608,8 +597,8 @@ class WorklistSeries(Entity):
         """
         Adds the worklists using the index provided.
         """
-        WorklistSeriesMember(planned_worklist=worklist, worklist_series=self,
-                             index=index)
+        # FIXME: Using instantiation for its side effect.
+        WorklistSeriesMember(worklist, self, index)
 
     def get_worklist_for_index(self, wl_index):
         """
@@ -622,7 +611,6 @@ class WorklistSeries(Entity):
         """
         for wsm in self.worklist_series_members:
             if wsm.index == wl_index: return wsm.planned_worklist
-
         raise ValueError('There is no worklist for index %i!' % (wl_index))
 
     def get_sorted_worklists(self):

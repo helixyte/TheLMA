@@ -7,11 +7,11 @@ AAB
 from thelma.automation.handlers.base import LayoutParserHandler
 from thelma.automation.parsers.libbaselayout import LibraryBaseLayoutParser
 from thelma.automation.semiconstants import get_rack_position_from_indices
-from thelma.automation.utils.layouts import LibraryLayout
-from thelma.automation.utils.layouts import LibraryLayoutPosition
+from thelma.automation.tools.iso.libcreation.base import LibraryBaseLayout
+from thelma.automation.tools.iso.libcreation.base import \
+    LibraryBaseLayoutPosition
 
 __docformat__ = 'reStructuredText en'
-
 __all__ = ['LibraryBaseLayoutParserHandler',
            ]
 
@@ -43,30 +43,25 @@ class LibraryBaseLayoutParserHandler(LayoutParserHandler):
         (no model class).
         """
         self.add_info('Convert parser results ...')
-
-        if not self.has_errors(): self.__init_layout()
+        if not self.has_errors():
+            self.__init_layout()
         if not self.has_errors():
             for rack_pos_container in self.parser.contained_wells:
                 rack_pos = get_rack_position_from_indices(
                                 row_index=rack_pos_container.row_index,
                                 column_index=rack_pos_container.column_index)
-                base_pos = LibraryLayoutPosition(rack_position=rack_pos,
-                                                 is_library_position=True)
+                base_pos = LibraryBaseLayoutPosition(rack_pos)
                 self.__base_layout.add_position(base_pos)
-
         if not self.has_errors() and len(self.__base_layout) < 1:
             msg = 'The specified base layout is empty!'
             self.add_error(msg)
-
         if not self.has_errors():
             self.__base_layout.close()
             self.return_value = self.__base_layout
             self.add_info('Conversion completed.')
 
     def __init_layout(self):
-        """
-        Determines the parsed rack shape to initialises the layout.
-        """
+        # Determines the parsed rack shape to initializes the layout.
         self._determine_rack_shape()
         if not self._rack_shape is None:
-            self.__base_layout = LibraryLayout(self._rack_shape)
+            self.__base_layout = LibraryBaseLayout(self._rack_shape)

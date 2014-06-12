@@ -258,7 +258,7 @@ class IsoRequestLayout(MoleculeDesignPoolLayout):
     """
 
     #: The working position class this layout is associated with.
-    WORKING_POSITION_CLASS = IsoRequestPosition
+    POSITION_CLS = IsoRequestPosition
 
     def has_consistent_volumes_and_concentrations(self):
         """

@@ -32,8 +32,8 @@ from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.iso import IsoRequestLayout
 from thelma.automation.utils.iso import IsoRequestLayoutConverter
 from thelma.automation.utils.iso import IsoRequestPosition
-from thelma.automation.utils.layouts import LibraryLayout
-from thelma.automation.utils.layouts import LibraryLayoutPosition
+from thelma.automation.utils.layouts import LibraryBaseLayout
+from thelma.automation.utils.layouts import LibraryBaseLayoutPosition
 from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
 from thelma.automation.utils.layouts import TransferTarget
 from thelma.interfaces import IMoleculeDesignLibrary
@@ -2429,10 +2429,10 @@ class TestLibraryGenerator(object):
 
     @classmethod
     def get_library_layout(cls):
-        layout = LibraryLayout(shape=get_384_rack_shape())
+        layout = LibraryBaseLayout(shape=get_384_rack_shape())
         for pos_label in ('b3', 'b4', 'c3', 'c4'):
             rack_pos = get_rack_position_from_label(pos_label)
-            lib_pos = LibraryLayoutPosition(rack_position=rack_pos)
+            lib_pos = LibraryBaseLayoutPosition(rack_position=rack_pos)
             layout.add_position(lib_pos)
         return layout
 

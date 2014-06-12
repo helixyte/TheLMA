@@ -6,13 +6,13 @@ AAB
 """
 from thelma.automation.tools.iso.poolcreation.base import VolumeCalculator
 from thelma.automation.tools.iso.poolcreation.generation \
-    import StockSampleCreationIsoCreator
+    import StockSampleCreationIsoGenerator
 from thelma.automation.tools.iso.poolcreation.generation \
     import StockSampleCreationIsoRequestGenerator
 from thelma.automation.tools.iso.poolcreation.generation \
     import StockSampleCreationWorklistGenerator
 from thelma.automation.tools.iso.poolcreation.generation \
-    import _StockSampleCreationTicketGenerator
+    import StockSampleCreationTicketGenerator
 from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
@@ -182,7 +182,7 @@ class StockSampleCreationTicketGeneratorTestCase(TracToolTestCase):
         del self.layout_number
 
     def _create_tool(self):
-        self.tool = _StockSampleCreationTicketGenerator(self.requester,
+        self.tool = StockSampleCreationTicketGenerator(self.requester,
                                                         self.iso_label,
                                                         self.layout_number)
 
@@ -221,7 +221,7 @@ class StockSampleCreationIsoCreatorTestCase(StockSampleCreationTestCase2):
         del self.reporter
 
     def _create_tool(self):
-        self.tool = StockSampleCreationIsoCreator(iso_request=self.iso_request,
+        self.tool = StockSampleCreationIsoGenerator(iso_request=self.iso_request,
               ticket_numbers=self.ticket_numbers, reporter=self.reporter)
 
     def _continue_setup(self, file_name=None):

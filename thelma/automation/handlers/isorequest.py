@@ -30,7 +30,7 @@ from thelma.automation.utils.base import are_equal_values
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import is_larger_than
 from thelma.automation.utils.base import is_valid_number
-from thelma.automation.utils.converters import LibraryLayoutConverter
+from thelma.automation.utils.converters import LibraryBaseLayoutConverter
 from thelma.automation.utils.iso import IsoRequestParameters
 from thelma.automation.utils.layouts import EMPTY_POSITION_TYPE
 from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
@@ -1282,8 +1282,8 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
         must contain samples and which are allowed to take up other
         ISO request position types).
         """
-        converter = LibraryLayoutConverter(self.__library.rack_layout,
-                                           parent=self)
+        converter = LibraryBaseLayoutConverter(self.__library.rack_layout,
+                                               parent=self)
         self.__lib_base_layout = converter.get_result()
         if self.__lib_base_layout is None:
             msg = 'Unable to convert library base layout.'

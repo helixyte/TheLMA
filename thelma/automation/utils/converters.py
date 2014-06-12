@@ -12,9 +12,9 @@ from thelma.automation.tools.base import BaseTool
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.layouts import EMPTY_POSITION_TYPE
 from thelma.automation.utils.layouts import LIBRARY_POSITION_TYPE
-from thelma.automation.utils.layouts import LibraryLayout
-from thelma.automation.utils.layouts import LibraryLayoutParameters
-from thelma.automation.utils.layouts import LibraryLayoutPosition
+from thelma.automation.utils.layouts import LibraryBaseLayout
+from thelma.automation.utils.layouts import LibraryBaseLayoutParameters
+from thelma.automation.utils.layouts import LibraryBaseLayoutPosition
 from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
 from thelma.automation.utils.layouts import MoleculeDesignPoolLayout
 from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
@@ -36,7 +36,7 @@ __author__ = 'Anna-Antonia Berger'
 __all__ = ['BaseLayoutConverter',
            'TransferLayoutConverter',
            'MoleculeDesignPoolLayoutConverter',
-           'LibraryLayoutConverter']
+           'LibraryBaseLayoutConverter']
 
 
 class BaseLayoutConverter(BaseTool):
@@ -633,17 +633,17 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter):
         error_dict.update(new_params)
 
 
-class LibraryLayoutConverter(BaseLayoutConverter):
+class LibraryBaseLayoutConverter(BaseLayoutConverter):
     """
     Converts a :class:`thelma.models.racklayout.RackLayout` into a
     :class:`LibraryBaseLayout`.
 
     """
-    NAME = 'Library Layout Converter'
+    NAME = 'Library Base Layout Converter'
 
-    PARAMETER_SET = LibraryLayoutParameters
-    POSITION_CLS = LibraryLayoutPosition
-    LAYOUT_CLS = LibraryLayout
+    PARAMETER_SET = LibraryBaseLayoutParameters
+    POSITION_CLS = LibraryBaseLayoutPosition
+    LAYOUT_CLS = LibraryBaseLayout
 
     def __init__(self, rack_layout, parent=None):
         BaseLayoutConverter.__init__(self, rack_layout, parent=parent)

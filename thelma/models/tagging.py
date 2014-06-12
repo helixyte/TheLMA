@@ -148,7 +148,6 @@ class TaggedRackPositionSet(Tagged):
     the rack position set (:class:`thelma.models.rack.RackPositionSet`)
 
     """
-
     #: The associated rack position set
     #: (:class:`thelma.models.rack.RackPositionSet`).
     rack_position_set = None

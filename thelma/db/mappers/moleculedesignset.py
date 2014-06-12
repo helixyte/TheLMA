@@ -20,7 +20,8 @@ def create_mapper(molecule_design_set_tbl, molecule_design_set_member_tbl):
           properties=
             dict(molecule_designs=
                    relationship(MoleculeDesign, collection_class=set,
-                                secondary=molecule_design_set_member_tbl),
+                                secondary=molecule_design_set_member_tbl,
+                                lazy='joined'),
                  stock_samples=
                     relationship(StockSample,
                                  back_populates='molecule_design_pool'),

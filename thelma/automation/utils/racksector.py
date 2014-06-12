@@ -5,7 +5,9 @@ AAB
 """
 
 from math import sqrt
+
 from thelma.automation.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.semiconstants import get_rack_position_from_indices
 from thelma.automation.tools.base import BaseTool
@@ -440,7 +442,7 @@ def get_sector_positions(sector_index, rack_shape, number_sectors,
 
 class QuadrantIterator(object):
     """
-    A rack quadrant is an part of the rack containing one position for each
+    A rack quadrant is a part of the rack containing one position for each
     rack sector. All positions of a quadrant are derived from the same source
     rack.
 
@@ -1048,3 +1050,34 @@ class AssociationData(object):
 
     def __str__(self):
         return self.__class__.__name__
+
+
+def get_sector_layouts_for_384_layout(layout, sector_layout_class=None):
+    """
+    Converts the given 384 layout into four 96 well sector layouts of the
+    given layout class.
+
+    :param sector_layout_class: Class to use for the sector layouts.
+    :returns: map sector index -> 96 well layout
+    :rtype: dict
+    """
+    if sector_layout_class is None:
+        sector_layout_class = type(layout)
+    sec_pos_map_384 = QuadrantIterator.sort_into_sectors(layout, 4)
+    rs96 = get_96_rack_shape()
+    sec_layout_map = {}
+    for sec_idx in range(4):
+        sec_wrk_poss_384 = sec_pos_map_384[sec_idx]
+        if len(sec_wrk_poss_384) < 1:
+            # FIXME: Should break here.
+            continue
+        trl = RackSectorTranslator(4, sec_idx, 0,
+                                   behaviour=RackSectorTranslator.ONE_TO_MANY)
+        sec_layout = sector_layout_class(rs96)
+        for sec_wrk_pos_384 in sec_wrk_poss_384:
+            sec_pos_96 = trl.translate(sec_wrk_pos_384.rack_position)
+            sec_wrk_pos_96 = sec_wrk_pos_384.clone()
+            sec_wrk_pos_96.rack_position = sec_pos_96
+            sec_layout.add_position(sec_wrk_pos_96)
+        sec_layout_map[sec_idx] = sec_layout
+    return sec_layout_map
