@@ -463,13 +463,13 @@ class QuadrantIterator(object):
             setup.
         """
         #: The translators for each rack sector.
-        self.__translators = dict()
+        self.__ssc_layout_map = dict()
         for i in range(number_sectors):
             translator = RackSectorTranslator(number_sectors=number_sectors,
                         source_sector_index=0, target_sector_index=i,
                         row_count=row_count, col_count=col_count,
                         behaviour=RackSectorTranslator.MANY_TO_MANY)
-            self.__translators[i] = translator
+            self.__ssc_layout_map[i] = translator
 
     def get_quadrant_positions(self, sector_zero_position):
         """
@@ -480,7 +480,7 @@ class QuadrantIterator(object):
         :returns: A map with the rack positions mapped onto sector indices.
         """
         quadrant_positions = dict()
-        for sector_index, translator in self.__translators.iteritems():
+        for sector_index, translator in self.__ssc_layout_map.iteritems():
             target_pos = translator.translate(sector_zero_position)
             quadrant_positions[sector_index] = target_pos
         return quadrant_positions
@@ -526,10 +526,10 @@ class QuadrantIterator(object):
         quadrants = []
         if not working_layout is None:
             rack_shape = working_layout.shape
-        translator_0 = self.__translators[0]
+        translator_0 = self.__ssc_layout_map[0]
         positions_0 = get_sector_positions(sector_index=0,
                         rack_shape=rack_shape,
-                        number_sectors=len(self.__translators),
+                        number_sectors=len(self.__ssc_layout_map),
                         row_count=translator_0.row_count,
                         col_count=translator_0.col_count)
         for pos_0 in positions_0:
@@ -563,7 +563,7 @@ class QuadrantIterator(object):
 
     def __repr__(self):
         str_format = '<%s number of sectors: %i>'
-        params = (self.__class__.__name__, len(self.__translators))
+        params = (self.__class__.__name__, len(self.__ssc_layout_map))
         return str_format % params
 
 

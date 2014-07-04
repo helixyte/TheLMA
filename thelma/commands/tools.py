@@ -787,9 +787,7 @@ class _IsoOperationToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
         return list(agg.iterator())[0]
 
     iso_callback = \
-        LazyOptionCallback(lambda cls, value, options: # pylint: disable=W0108
-                                StockSampleCreationWorklistWriterToolCommand \
-                                    .get_iso(value))
+        LazyOptionCallback(lambda cls, value, options: cls.get_iso(value)) # pylint: disable=W0108
 
     option_defs = [('--iso',
                     'iso',
@@ -804,13 +802,14 @@ class _IsoOperationToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
 
 
 def _rack_barcode_list_callback(option, name, value, parser): # pylint: disable=W0613
-    return value.split(',')
+    bcs = value.split(',')
+    setattr(parser.values, option.dest, bcs)
 
 
-class StockSampleCreationWorklistWriterToolCommand(_IsoOperationToolCommand): # no __init__ pylint: disable=W0232
-    name = 'stocksamplecreationworklistwriter'
+class StockSampleCreationIsoWorklistWriterToolCommand(_IsoOperationToolCommand): # no __init__ pylint: disable=W0232
+    name = 'stocksamplecreationisoworklistwriter'
     tool = 'thelma.automation.tools.iso.poolcreation.writer:' \
-           'StockSampleCreationWorklistWriter'
+           'StockSampleCreationIsoWorklistWriter'
 
     option_defs = _IsoOperationToolCommand.option_defs + \
                   [('--single-stock-racks',
@@ -856,7 +855,7 @@ class LibraryCreationIsoWorklistWriterToolCommand(_IsoOperationToolCommand): # n
            ':LibraryCreationIsoWorklistWriter'
 
     option_defs = \
-        StockSampleCreationWorklistWriterToolCommand.option_defs[:-2] + \
+        StockSampleCreationIsoWorklistWriterToolCommand.option_defs[:-2] + \
         [('--pool-stock-racks',
           'pool_stock_racks',
           dict(help='Barcodes for the racks that will contain ' \
@@ -879,7 +878,7 @@ class LibraryCreationIsoWorklistWriterToolCommand(_IsoOperationToolCommand): # n
 
     @classmethod
     def finalize(cls, tool, options):
-        if not tool.has_errors() and not options.simulate:
+        if not tool.has_errors(): #  and not options.simulate:
             uploader = LibraryCreationTicketWorklistUploader(tool)
             uploader.run()
             if not uploader.transaction_completed():

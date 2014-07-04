@@ -9,6 +9,7 @@ from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.iso.poolcreation import get_worklist_uploader
 from thelma.automation.tools.iso.poolcreation import get_worklist_writer
+from thelma.automation.tools.iso.poolcreation.writer import StockSampleCreationInstructionsWriter
 from thelma.automation.tools.iso.poolcreation.base \
     import StockSampleCreationLayout
 from thelma.automation.tools.iso.poolcreation.base \
@@ -16,11 +17,9 @@ from thelma.automation.tools.iso.poolcreation.base \
 from thelma.automation.tools.iso.poolcreation.writer \
     import StockSampleCreationIsoLayoutWriter
 from thelma.automation.tools.iso.poolcreation.writer \
-    import StockSampleCreationWorklistWriter
+    import StockSampleCreationIsoWorklistWriter
 from thelma.automation.tools.iso.poolcreation.writer \
     import _SingleRackTransferWorklistWriter
-from thelma.automation.tools.iso.poolcreation.writer \
-    import _StockSampleCreationInstructionsWriter
 from thelma.automation.tools.iso.poolcreation.writer \
     import _StockSampleCreationXL20ReportWriter
 from thelma.automation.tools.worklists.tubehandler import TubeTransferData
@@ -118,7 +117,7 @@ class StockSampleCreationInstructionsWriterTestCase(
         del self.buffer_volume
 
     def _create_tool(self):
-        self.tool = _StockSampleCreationInstructionsWriter(
+        self.tool = StockSampleCreationInstructionsWriter(
                                                 self.iso_label,
                                                 self.target_rack_barcode,
                                                 self.tube_destination_racks,
@@ -328,7 +327,7 @@ class StockSampleCreationWorklistWriterTestCase(
         del self.use_single_source_rack
 
     def _create_tool(self):
-        self.tool = StockSampleCreationWorklistWriter(iso=self.iso,
+        self.tool = StockSampleCreationIsoWorklistWriter(iso=self.iso,
                           tube_destination_racks=self.tube_destination_racks,
                           pool_stock_rack_barcode=self.target_rack_barcode,
                           use_single_source_rack=self.use_single_source_rack)

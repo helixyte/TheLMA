@@ -3,11 +3,12 @@ Tools that report to trac tool (stock transfers).
 
 AAB
 """
+from tractor import AttachmentWrapper
+from tractor import create_wrapper_for_ticket_update
+
 from thelma.automation.tools.iso.base import StockTransferWriterExecutor
 from thelma.automation.tracbase import BaseTracTool
 from thelma.models.liquidtransfer import ExecutedWorklist
-from tractor import AttachmentWrapper
-from tractor import create_wrapper_for_ticket_update
 
 
 __docformat__ = 'reStructuredText en'
@@ -92,7 +93,8 @@ class IsoStockTransferReporter(BaseTracTool):
             elif self.executor.return_value is None:
                 msg = 'The executor has not run yet!'
                 self.add_error(msg)
-            elif not self.executor.mode == self.EXECUTOR_CLS.MODE_EXECUTE:
+            elif not self.executor.mode == \
+                            StockTransferWriterExecutor.MODE_EXECUTE:
                 msg = 'The executor is not in execution mode!'
                 self.add_error(msg)
 

@@ -17,6 +17,8 @@ from thelma.automation.tools.worklists.series import SeriesExecutor
 from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import StockSampleCreationIso
 from thelma.models.liquidtransfer import ExecutedWorklist
+from thelma.automation.tools.iso.base import StockTransferWriterExecutor
+from thelma.automation.tools.worklists.series import SampleTransferJob
 
 
 __docformat__ = 'reStructuredText en'
@@ -46,16 +48,23 @@ class LibraryCreationIsoExecutor(BaseTool):
         #:
         self.__prep_plate_map = None
         #:
+        self.__ssc_layout_map = None
+        #:
         self.__empty_stock_rack_positions_map = None
         #:
-        self.__stock_transfer_executed_worklist_map = None
+        self.__stock_trf_exc_wl_map = None
+        # These are attributes required by the Trac reporter that this
+        # executor is passed to.
+        self.mode = StockTransferWriterExecutor.MODE_EXECUTE
+        self.entity = iso
 
     def reset(self):
         BaseTool.reset(self)
         self.__single_stock_rack_map = {}
         self.__prep_plate_map = {}
+        self.__ssc_layout_map = {}
         self.__empty_stock_rack_positions_map = {}
-        self.__stock_transfer_executed_worklist_map = None
+        self.__stock_trf_exc_wl_map = None
 
     def run(self):
         self.reset()
@@ -69,25 +78,29 @@ class LibraryCreationIsoExecutor(BaseTool):
             transfer_job_map = {}
             self.__build_buffer_transfer_jobs(transfer_job_map)
         if not self.has_errors():
-            # We need to keep the stock transfer jobs separate for reporting
-            # purposes.
-            stock_transfer_job_map = {}
-            self.__build_stock_transfer_jobs(stock_transfer_job_map)
-            transfer_job_map.update(stock_transfer_job_map)
-            self.__stock_transfer_executed_worklist_map = \
-                            dict.fromkeys(stock_transfer_job_map.keys())
+            # We need to keep track of the stock transfer job indices for
+            # Trac reporting purposes.
+            stock_transfer_jobs = []
+            self.__build_stock_transfer_jobs(transfer_job_map,
+                                             stock_transfer_jobs)
+            self.__stock_trf_exc_wl_map = \
+                                        dict.fromkeys(stock_transfer_jobs)
         if not self.has_errors():
             self.__build_aliquot_transfer_jobs(transfer_job_map)
         if not self.has_errors():
             executed_jobs_map = \
                 self.__execute_transfer_jobs(transfer_job_map)
         if not self.has_errors():
+            if not self.__pool_stock_rack_map is None:
+                self.__create_stock_samples()
+            self.iso.status = ISO_STATUS.DONE
             self.return_value = executed_jobs_map
             self.add_info('Library creation executor finished.')
 
     def get_working_layout(self):
         """
-        Returns the working layout of the library (for reporting purposes).
+        Returns the working layout of the library (required by the Trac
+        reporter).
         """
         cnv = LibraryLayoutConverter(self.iso.rack_layout,
                                      parent=self)
@@ -95,9 +108,10 @@ class LibraryCreationIsoExecutor(BaseTool):
 
     def get_executed_stock_worklists(self):
         """
-        Returns the executed worklist map for all stock transfer jobs.
+        Returns the executed worklists for all stock transfer jobs (required
+        by the Trac reporter).
         """
-        return self.__stock_transfer_executed_worklist_map()
+        return self.__stock_trf_exc_wl_map.values()
 
     def __check_input(self):
         try:
@@ -156,6 +170,7 @@ class LibraryCreationIsoExecutor(BaseTool):
             cnv = StockSampleCreationLayoutConverter(spp.rack_layout,
                                                      parent=self)
             ssc_layout = cnv.get_result()
+            self.__ssc_layout_map[spp.sector_index] = ssc_layout
             all_poss = get_positions_for_shape(RACK_SHAPE_NAMES.SHAPE_96)
             empty_poss = \
                 list(set(all_poss).difference(ssc_layout.get_positions()))
@@ -193,7 +208,8 @@ class LibraryCreationIsoExecutor(BaseTool):
                             self.__empty_stock_rack_positions_map[sec_idx])
             transfer_job_map[job_idx] = (trf_job, wl)
 
-    def __build_stock_transfer_jobs(self, transfer_job_map):
+    def __build_stock_transfer_jobs(self, transfer_job_map,
+                                    stock_transfer_jobs):
         self.add_debug('Creating stock transfer jobs.')
         for sec_idx in range(4):
             has_pool_racks = not self.__pool_stock_rack_map is None
@@ -208,27 +224,40 @@ class LibraryCreationIsoExecutor(BaseTool):
             if psr is None:
                 continue
             if has_pool_racks:
-                # Build the job(s) for the transfer(s) from the single
-                # design stock rack(s) to the pool stock racks.
+                # With pool racks, we have two transfers:
+                # sector single stock racks -> sector pool stock rack ->
+                # sector preparation plate.
+                # The first transfer is a sample transfer job, the second
+                # a rack transfer job.
                 for sdsr in self.__single_stock_rack_map[sec_idx]:
                     sdsr_wl = sdsr.worklist_series.get_worklist_for_index(0)
                     job_idx = len(transfer_job_map)
-                    sdsr_trf_job = RackSampleTransferJob(
-                                        job_idx,
-                                        sdsr_wl.planned_liquid_transfers[0],
-                                        psr.rack,
-                                        sdsr.rack)
+                    sdsr_trf_job = SampleTransferJob(job_idx, sdsr_wl,
+                                                     psr.rack, sdsr.rack)
                 transfer_job_map[job_idx] = (sdsr_trf_job, sdsr_wl)
-            # Build the job for the transfer from the preparation plate source
-            # rack to the preparation plate.
-            sr_wl = psr.worklist_series.get_worklist_for_index(0)
-            job_idx = len(transfer_job_map)
-            sr_trf_job = \
-                RackSampleTransferJob(job_idx,
-                                      sr_wl.planned_liquid_transfers[0],
+                # Build the job for the transfer from the preparation plate
+                # source rack to the preparation plate.
+                psr_wl = psr.worklist_series.get_worklist_for_index(0)
+                job_idx = len(transfer_job_map)
+                psr_trf_job = \
+                    RackSampleTransferJob(job_idx,
+                                          psr_wl.planned_liquid_transfers[0],
+                                          self.__prep_plate_map[sec_idx].rack,
+                                          psr.rack)
+            else:
+                # Without pool racks, we only have one transfer:
+                # sector single stock rack -> sector preparation plate.
+                # This transfer is a sample transfer job.
+                job_idx = len(transfer_job_map)
+                psr_wl = psr.worklist_series.get_worklist_for_index(0)
+                job_idx = len(transfer_job_map)
+                psr_trf_job = \
+                    SampleTransferJob(job_idx, psr_wl,
                                       self.__prep_plate_map[sec_idx].rack,
                                       psr.rack)
-            transfer_job_map[job_idx] = (sr_trf_job, sr_wl)
+            transfer_job_map[job_idx] = (psr_trf_job, psr_wl)
+            #
+            stock_transfer_jobs.append(job_idx)
 
     def __build_aliquot_transfer_jobs(self, transfer_job_map):
         self.add_debug('Creating aliquot transfer jobs.')
@@ -255,21 +284,49 @@ class LibraryCreationIsoExecutor(BaseTool):
                                 for (k, v) in transfer_job_map.iteritems()])
         se = SeriesExecutor(exc_trf_job_map, self.user, parent=self)
         exc_jobs_map = se.get_result()
-        # FIXME: This is terrible - we have to manually keep track of which
-        #        worklist belongs to which transfer job and create
-        #        ExecutedWorklist instances *only* for rack sample transfer
-        #        jobs - plus we have to store the executed worklists for
-        #        stock transfer jobs separately for reporting purposes.
-        exc_wl_map = {}
-        for trf_job_idx, trf_job_data in transfer_job_map.iteritems():
-            trf_job, planned_wl = trf_job_data
-            if isinstance(trf_job, RackSampleTransferJob):
-                exc_rack_trf = exc_jobs_map[trf_job_idx]
-                ew = exc_wl_map.get(planned_wl)
-                if ew is None:
-                    ew = ExecutedWorklist(planned_worklist=planned_wl)
-                    exc_wl_map[planned_wl] = ew
-                ew.executed_liquid_transfers.append(exc_rack_trf)
-            if trf_job_idx in self.__stock_transfer_executed_worklist_map:
-                self.__stock_transfer_executed_worklist_map[trf_job_idx] = ew
+        if not se.has_errors():
+            # FIXME: This is terrible - we have to manually keep track of
+            #        which worklist belongs to which transfer job and create
+            #        ExecutedWorklist instances *only* for rack sample
+            #        transfer jobs - plus we have to store the executed
+            #        worklists for stock transfer jobs separately for
+            #        reporting purposes.
+            exc_wl_map = {}
+            for trf_job_idx, trf_job_data in transfer_job_map.iteritems():
+                trf_job, planned_wl = trf_job_data
+                exc_data = exc_jobs_map[trf_job_idx]
+                if isinstance(trf_job, RackSampleTransferJob):
+                    ew = exc_wl_map.get(planned_wl)
+                    if ew is None:
+                        ew = ExecutedWorklist(planned_worklist=planned_wl)
+                        exc_wl_map[planned_wl] = ew
+                    ew.executed_liquid_transfers.append(exc_data)
+                elif trf_job_idx in self.__stock_trf_exc_wl_map:
+                    self.__stock_trf_exc_wl_map[trf_job_idx] = exc_data
         return exc_jobs_map
+
+    def __create_stock_samples(self):
+        mismatches = []
+        for psr in self.__pool_stock_rack_map.values():
+            ssc_layout = self.__ssc_layout_map[psr.sector_index]
+            for tube_rack in psr.rack:
+                for tube in tube_rack.containers:
+                    sample = tube.sample
+                    if sample is None:
+                        continue
+                    rack_pos = tube.location.position
+                    ssc_pos = ssc_layout.get_working_position(rack_pos)
+                    exp_mds = set([md.id for md in ssc_pos.pool])
+                    found_mds = set([sm.molecule.molecule_design_id
+                                     for sm in sample.sample_molecules])
+                    if found_mds != exp_mds:
+                        info = '%s (pool: %s, expected designs: %s, found ' \
+                               'designs: %s)' \
+                               % (rack_pos, ssc_pos.pool,
+                                  '-'.join([str(md) for md in exp_mds]),
+                                  '-'.join([str(md) for md in found_mds]))
+                        mismatches.append(info)
+                    else:
+                        sample.convert_so_stock_sample()
+
+

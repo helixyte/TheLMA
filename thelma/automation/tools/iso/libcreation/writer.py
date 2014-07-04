@@ -1,4 +1,5 @@
 """
+Worklist writer for library creation ISOs.
 """
 from datetime import datetime
 from operator import add
@@ -7,9 +8,10 @@ from everest.entities.utils import get_root_aggregate
 from everest.querying.specifications import cntd
 from thelma.automation.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.tools.base import BaseTool
+from thelma.automation.tools.dummies import XL20Dummy
+from thelma.automation.tools.iso.libcreation.base import LABELS
 from thelma.automation.tools.iso.libcreation.base import \
     DEFAULT_POOL_STOCK_RACK_CONCENTRATION
-from thelma.automation.tools.iso.libcreation.base import LABELS
 from thelma.automation.tools.iso.libcreation.base import \
     LibraryLayoutConverter
 from thelma.automation.tools.iso.libcreation.base import \
@@ -22,6 +24,7 @@ from thelma.automation.tools.worklists.tubehandler import TubeTransferData
 from thelma.automation.tools.worklists.tubehandler import XL20WorklistWriter
 from thelma.automation.tools.writers import LINEBREAK_CHAR
 from thelma.automation.tools.writers import TxtWriter
+from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.racksector import RackSectorTranslator
 from thelma.interfaces import ITube
@@ -30,10 +33,10 @@ from thelma.models.iso import ISO_STATUS
 from thelma.models.iso import IsoSectorStockRack
 from thelma.models.iso import StockSampleCreationIso
 from thelma.models.liquidtransfer import PlannedRackSampleTransfer
+from thelma.models.liquidtransfer import PlannedSampleTransfer
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.liquidtransfer import WorklistSeries
-from thelma.automation.tools.dummies import XL20Dummy
 
 
 __docformat__ = 'reStructuredText en'
@@ -52,7 +55,7 @@ class LibraryCreationIsoWorklistWriter(BaseTool):
     FILE_NAME_XL20_WORKLIST = '%s-%s_xl20_worklist_Q%i.csv'
     #: File name for the tube handler dummy output file. Placeholders like
     #: for the XL20 worklist file name.
-    FILE_NAME_XL20_DUMMY_OUTPUT = '%s-%s_xl20_dummy_output_Q%i.csv'
+    FILE_NAME_XL20_DUMMY_OUTPUT = '%s-%s_xl20_dummy_output_Q%i.tpo'
     #: File name for a tube handler worklist file. The placeholder contain
     #: the layout number, the library name and the quadrant number.
     FILE_NAME_XL20_REPORT = '%s-%s_xl20_report_Q%i.txt'
@@ -136,7 +139,7 @@ class LibraryCreationIsoWorklistWriter(BaseTool):
                    , 'Missing single stock rack rack barcodes.'
             if not self.pool_stock_racks is None:
                 assert isinstance(self.pool_stock_racks, list) \
-                       , 'Invalid pool stock rack map.'
+                       , 'Invalid pool stock rack list.'
                 assert len([type(val) for val in self.pool_stock_racks
                             if not type(val) in (str, unicode)]) \
                         == 0, 'Invalid pool stock rack list values.'
@@ -187,7 +190,7 @@ class LibraryCreationIsoWorklistWriter(BaseTool):
         # positions using the layout of the sector preparation plates. Also
         # builds a map sector index -> pool stock rack barcode.
         self.add_debug('Checking new pool tube racks.')
-        pool_stock_rack_map = []
+        pool_stock_rack_map = {}
         for ispp in self.iso.iso_sector_preparation_plates:
             trl = RackSectorTranslator(4, ispp.sector_index, 0,
                                        behaviour=
@@ -251,7 +254,8 @@ class LibraryCreationIsoWorklistWriter(BaseTool):
                                             sector_index)
         wl_series = self.__make_stock_rack_worklist_series(
                                                     wl_label,
-                                                    stock_transfer_volume)
+                                                    stock_transfer_volume,
+                                                    sector_layout)
         tube_map = self.__get_tube_map_for_sector(sector_layout)
         sector_tube_transfers = []
         sdssr_barcodes = self.__single_stock_rack_map[sector_index]
@@ -275,18 +279,20 @@ class LibraryCreationIsoWorklistWriter(BaseTool):
         return sector_tube_transfers
 
     def __process_pool_transfers(self, sector_index, sector_layout):
-        pp_vol = self.iso.iso_request.preparation_plate_volume
-        prep_transfer_volume = get_preparation_plate_transfer_volume(
-                                        preparation_plate_volume=pp_vol) \
-                                / VOLUME_CONVERSION_FACTOR
+        pp_vol = self.iso.iso_request.preparation_plate_volume \
+                 * VOLUME_CONVERSION_FACTOR
         # Create a worklist series for the stock transfer.
         wl_label = LABELS.create_sector_stock_transfer_worklist_label(
                                                     self.iso.label,
                                                     LABELS.ROLE_POOL_STOCK,
                                                     sector_index)
+        prep_transfer_volume = get_preparation_plate_transfer_volume(
+                                        preparation_plate_volume=pp_vol) \
+                                / VOLUME_CONVERSION_FACTOR
         wl_series = self.__make_stock_rack_worklist_series(
                                                     wl_label,
-                                                    prep_transfer_volume)
+                                                    prep_transfer_volume,
+                                                    None)
         # Process the new pool rack.
         self.__process_stock_rack(
                         LABELS.ROLE_POOL_STOCK,
@@ -306,12 +312,24 @@ class LibraryCreationIsoWorklistWriter(BaseTool):
                  )
         return (dict([(t.barcode, t) for t in iter(tube_agg)]))
 
-    def __make_stock_rack_worklist_series(self, label, volume):
+    def __make_stock_rack_worklist_series(self, label, volume, layout):
         # Builds a sector 0 -> sector 0 rack transfer worklist series.
         pip_specs_cy = get_pipetting_specs_cybio()
-        psts = [PlannedRackSampleTransfer.get_entity(volume, 1, 0, 0)]
         wl_series = WorklistSeries()
-        wl = PlannedWorklist(label, TRANSFER_TYPES.RACK_SAMPLE_TRANSFER,
+        psts = []
+        if layout is None:
+            # Rack transfer (only for pool stock rack -> prep plate transfer).
+            pst = PlannedRackSampleTransfer.get_entity(volume, 1, 0, 0)
+            psts.append(pst)
+            pwl_type = TRANSFER_TYPES.RACK_SAMPLE_TRANSFER
+        else:
+            # Sample transfers (for single stock transfer).
+            for rack_pos in layout.get_positions():
+                pst = PlannedSampleTransfer.get_entity(volume, rack_pos,
+                                                       rack_pos)
+                psts.append(pst)
+            pwl_type = TRANSFER_TYPES.SAMPLE_TRANSFER
+        wl = PlannedWorklist(label, pwl_type,
                              pip_specs_cy, planned_liquid_transfers=psts)
         wl_series.add_worklist(0, wl)
         return wl_series
@@ -396,12 +414,12 @@ class LibraryCreationIsoWorklistWriter(BaseTool):
                             self.FILE_NAME_XL20_DUMMY_OUTPUT % fn_params
                         file_map[fn_dummy_output] = dummy_output_stream
             report_writer = LibraryCreationXL20ReportWriter(
+                                self.iso,
                                 tube_transfers,
-                                self.iso.iso_request.label,
-                                self.iso.layout_number,
-                                self.iso.iso_request.number_designs,
                                 sec_idx,
                                 self.__source_rack_locations,
+                                has_pool_stock_racks=
+                                    not self.pool_stock_racks is None,
                                 parent=self)
             report_stream = report_writer.get_result()
             if report_stream is None:
@@ -418,7 +436,6 @@ class LibraryCreationIsoWorklistWriter(BaseTool):
         writer = LibraryCreationCyBioOverviewWriter(
                                     self.iso,
                                     self.__single_stock_rack_map,
-                                    self.iso.iso_request.number_designs,
                                     pool_stock_rack_map=
                                                 self.__pool_stock_rack_map,
                                     parent=self)
@@ -462,36 +479,42 @@ class LibraryCreationXL20ReportWriter(TxtWriter):
     SOURCE_RACKS_HEADER = 'Source Racks'
     #: The body for the source racks section.
     SOURCE_RACKS_BASE_LINE = '%s (%s)'
-    def __init__(self, tube_transfers, library_name, layout_number,
-                 number_designs, sector_index, source_rack_locations,
+    def __init__(self, iso, tube_transfers, sector_index,
+                 source_rack_locations, has_pool_stock_racks=True,
                  parent=None):
         """
         Constructor.
 
+        :param iso: The library creation ISO for which to
+            generate the file.
+        :type iso:
+            :class:`thelma.models.iso.StockSampleCreationIso`
         :param tube_transfers: Define which tube goes where.
         :type tube_transfers: :class:`TubeTransfer`#
-        :param str library_name: Name of the library we are creating.
-        :param int layout_number: Layout for which we are creating racks.
-        :param int number_designs: Number single molecule designs per pool.
         :param int sector_index: Rack sector being created.
         :param dict source_rack_locations: Map rack barcode -> rack location.
+        :param bool has_pool_stock_racks: Flag indicating if the ISO being
+            processed will create stock pool racks.
         """
         TxtWriter.__init__(self, parent=None)
         self.tube_transfers = tube_transfers
-        self.library_name = library_name
-        self.layout_number = layout_number
-        self.number_designs = number_designs
+        self.iso = iso
         self.sector_index = sector_index
         self.source_rack_locations = source_rack_locations
+        self.has_pool_stock_racks = has_pool_stock_racks
 
     def _check_input(self):
+        if self._check_input_class('library creation ISO',
+                            self.iso, StockSampleCreationIso):
+            status = self.iso.status
+            if status != ISO_STATUS.QUEUED:
+                msg = 'Unexpected ISO status: "%s"' % (status)
+                self.add_error(msg)
         if self._check_input_class('tube transfer list', self.tube_transfers,
                                    list):
             for ttd in self.tube_transfers:
                 if not self._check_input_class('tube transfer', ttd,
                                                TubeTransferData): break
-        self._check_input_class('library name', self.library_name, basestring)
-        self._check_input_class('layout number', self.layout_number, int)
         self._check_input_class('sector index', self.sector_index, int)
         self._check_input_class('rack location map',
                                 self.source_rack_locations, dict)
@@ -513,12 +536,22 @@ class LibraryCreationXL20ReportWriter(TxtWriter):
                              preceding_blank_lines=0, trailing_blank_lines=1)
 
     def __write_general_section(self):
-        # The general section contains library name, sector index, layout
-        # number and the number of tubes.
-        vol = get_pool_transfer_volume(number_designs=self.number_designs)
+        # The general section contains library name, layout number, sector
+        # index, number of tubes, and transfer volume.
+        if self.has_pool_stock_racks:
+            vol = get_pool_transfer_volume(
+                        number_designs=self.iso.iso_request.number_designs)
+        else:
+            pp_vol = self.iso.iso_request.preparation_plate_volume \
+                     * VOLUME_CONVERSION_FACTOR
+            src_conc = self.iso.iso_request.stock_concentration \
+                       * CONCENTRATION_CONVERSION_FACTOR
+            vol = get_preparation_plate_transfer_volume(
+                                            source_concentration=src_conc,
+                                            preparation_plate_volume=pp_vol)
         self._write_headline(self.GENERAL_HEADER, preceding_blank_lines=1)
-        general_lines = [self.LIBRARY_LINE % self.library_name,
-                         self.LAYOUT_NUMBER_LINE % self.layout_number,
+        general_lines = [self.LIBRARY_LINE % self.iso.iso_request.label,
+                         self.LAYOUT_NUMBER_LINE % self.iso.layout_number,
                          self.SECTOR_NUMBER_LINE % (self.sector_index + 1),
                          self.TUBE_NO_LINE % len(self.tube_transfers),
                          self.VOLUME_LINE % vol]
@@ -564,7 +597,7 @@ class LibraryCreationCyBioOverviewWriter(TxtWriter):
     #: Header for the pool creation section.
     HEADER_POOL_CREATION = 'Pool Creation'
     #: Header for the preparation plate transfer section.
-    HEADER_SOURCE_CREATION = 'Transfer from Stock Rack to Preparation Plates'
+    HEADER_PREP_CREATION = 'Transfer from Stock Rack to Preparation Plates'
     #: Header for the aliquot transfer section.
     HEADER_ALIQUOT_TRANSFER = 'Transfer to Library Aliquot Plates'
     #: Base line for transfer volumes.
@@ -582,26 +615,24 @@ class LibraryCreationCyBioOverviewWriter(TxtWriter):
     #: Base line for quadrant depcitions.
     QUADRANT_LINE = 'Q%i:'
 
-    def __init__(self, iso, single_stock_rack_map, number_designs,
-                 pool_stock_rack_map=None, parent=None):
+    def __init__(self, iso, single_stock_rack_map, pool_stock_rack_map=None,
+                 parent=None):
         """
         Constructor.
 
         :param iso: The library creation ISO for which to
             generate the file.
         :type iso:
-            :class:`thelma.models.library.LibraryCreationIso`
-        :param doct single_stock_rack_map: The barcodes for the destination
+            :class:`thelma.models.iso.StockSampleCreationIso`
+        :param dict single_stock_rack_map: The barcodes for the destination
             rack for the single molecule design tube (these racks have to be
             empty).
-        :param int number_designs: Number single molecule designs per pool.
         :param dict pool_stock_rack_map: The barcodes for the pool stock racks
             (these racks have to have empty tubes in defined positions).
         """
         TxtWriter.__init__(self, parent=parent)
         self.iso = iso
         self.single_stock_rack_map = single_stock_rack_map
-        self.number_designs = number_designs
         self.pool_stock_rack_map = pool_stock_rack_map
         #: Sector preparation plates.
         self.__sector_prep_plate_map = None
@@ -664,7 +695,8 @@ class LibraryCreationCyBioOverviewWriter(TxtWriter):
                              preceding_blank_lines=0)
         lines = []
         volume_line = self.VOLUME_LINE \
-                % get_pool_transfer_volume(number_designs=self.number_designs)
+            % get_pool_transfer_volume(number_designs=
+                                         self.iso.iso_request.number_designs)
         volume_line += ' each'
         lines.append(volume_line)
         buffer_line = self.BUFFER_LINE % get_pool_buffer_volume()
@@ -687,23 +719,24 @@ class LibraryCreationCyBioOverviewWriter(TxtWriter):
     def __write_prep_creation_section(self):
         # This part deals with the transfer to the preparation plates.
         self.add_debug('Writing preparation plate section.')
-        self._write_headline(header_text=self.HEADER_SOURCE_CREATION)
-        lines = []
-        # FIXME: Make this configurable.
-        pp_vol = self.iso.iso_request.preparation_plate_volume
+        self._write_headline(header_text=self.HEADER_PREP_CREATION)
+        pp_vol = self.iso.iso_request.preparation_plate_volume \
+                 * VOLUME_CONVERSION_FACTOR
         if not self.pool_stock_rack_map is None:
             src_conc = DEFAULT_POOL_STOCK_RACK_CONCENTRATION
             src_rack_map = self.pool_stock_rack_map
         else:
-            src_conc = self.iso.iso_request.stock_concentration
+            src_conc = self.iso.iso_request.stock_concentration \
+                       * CONCENTRATION_CONVERSION_FACTOR
             src_rack_map = dict([(idx, bcs[0])
                                  for (idx, bcs) in
-                                 self.single_stock_rack_map.items()])
+                                 self.single_stock_rack_map.items()
+                                 if idx in self.__sector_prep_plate_map])
         trf_vol = get_preparation_plate_transfer_volume(
                                             source_concentration=src_conc,
                                             preparation_plate_volume=pp_vol)
         volume_line = self.VOLUME_LINE % trf_vol
-        lines.append(volume_line)
+        lines = [volume_line]
         buffer_volume = pp_vol - trf_vol
         buffer_line = self.BUFFER_LINE % buffer_volume
         lines.append(buffer_line)

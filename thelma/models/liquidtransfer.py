@@ -287,7 +287,7 @@ class PlannedSampleTransfer(PlannedLiquidTransfer):
         """
         Constructor
         """
-        PlannedLiquidTransfer.__init__(self, volume=volume,
+        PlannedLiquidTransfer.__init__(self, volume,
                                transfer_type=TRANSFER_TYPES.SAMPLE_TRANSFER,
                                hash_value=hash_value, **kw)
         self._source_position = source_position
