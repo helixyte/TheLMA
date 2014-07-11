@@ -214,6 +214,7 @@ class _SerialWriterExecutorDummy(SerialWriterExecutorTool):
 
     FILE_NAME_RST = 'series_rack_transfer.txt'
     WORKLIST_LABEL_RST = 'rack_sample_transfer_wl'
+    NAME = 'Serial Writer Executor Dummy'
 
     def __init__(self, transfer_jobs, mode, user=None, **kw):
         SerialWriterExecutorTool.__init__(self, mode, user=user, **kw)

@@ -327,10 +327,11 @@ class StockSampleCreationWorklistWriterTestCase(
         del self.use_single_source_rack
 
     def _create_tool(self):
-        self.tool = StockSampleCreationIsoWorklistWriter(iso=self.iso,
-                          tube_destination_racks=self.tube_destination_racks,
-                          pool_stock_rack_barcode=self.target_rack_barcode,
-                          use_single_source_rack=self.use_single_source_rack)
+        self.tool = StockSampleCreationIsoWorklistWriter(
+                        self.iso,
+                        self.tube_destination_racks,
+                        self.target_rack_barcode,
+                        use_single_source_rack=self.use_single_source_rack)
 
     def _continue_setup(self, file_name=None):
         _StockSampleCreationWriterTestCase._continue_setup(self,

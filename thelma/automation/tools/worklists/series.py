@@ -498,7 +498,7 @@ class _SeriesWorklistWriter(_SeriesTool):
         last_index = max(self.transfer_jobs.keys())
         for job_index in sorted(self.transfer_jobs.keys()):
             transfer_job = self.transfer_jobs[job_index]
-            transfer_job = self._update_racks(transfer_job)
+            self._update_racks(transfer_job)
             # Write worklist
             writer = self.__get_writer(transfer_job)
             if writer is None and isinstance(transfer_job,
@@ -650,7 +650,7 @@ class RackSampleTransferWriter(_SeriesTool):
         # Writes the file content.
         for job_index in sorted(self.transfer_jobs.keys()):
             rack_transfer_job = self.transfer_jobs[job_index]
-            rack_transfer_job = self._update_racks(rack_transfer_job)
+            self._update_racks(rack_transfer_job)
             self.__write_rack_transfer_job_record(rack_transfer_job)
             # Execute changes (to prepare for the next worklist).
             executed_item = self._execute_job(rack_transfer_job)
@@ -801,6 +801,7 @@ class SerialWriterExecutorTool(BaseTool):
     **Return Value:** a zip stream for for printing mode or executed worklists
         for execution mode (can be overwritten)
     """
+    NAME = 'Serial Writer Executor'
     #: Marks usage of execution mode.
     MODE_EXECUTE = 'execute'
     #: Marker for the usage of worklist printing mode.

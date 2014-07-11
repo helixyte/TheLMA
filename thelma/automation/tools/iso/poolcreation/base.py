@@ -43,6 +43,9 @@ __all__ = ['LABELS',
            'SingleDesignStockRackLayout',
            'SingleDesignStockRackLayoutConverter']
 
+#: Default preparation plate volume in ul.
+DEFAULT_PREPARATION_PLATE_VOLUME = 43.3
+
 
 class LABELS(_ISO_LABELS_BASE):
     """

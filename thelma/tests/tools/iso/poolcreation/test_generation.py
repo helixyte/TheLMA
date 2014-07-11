@@ -314,5 +314,4 @@ class StockSampleCreationIsoCreatorTestCase(StockSampleCreationTestCase2):
         self._continue_setup()
         self._test_and_expect_errors('You must specify either 1 ticket ' \
             'number (in which case all ISOs will get the same ticket number) ' \
-            'or one for each ISO to generate (2). You specified 3 numbers: ' \
-            '1, 2, 3.')
+            'or one for each ISO to generate (2). You specified 3 numbers ')

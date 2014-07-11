@@ -86,7 +86,7 @@ def get_iso_generator(iso_request, ticket_numbers=None, reporter=None, **kw):
                    reporter=reporter))
     return StockSampleCreationIsoGenerator(**kw)
 
-def get_worklist_writer(iso, tube_destination_racks, pool_stock_rack_barcode,
+def get_worklist_writer(iso, single_stock_racks, pool_stock_rack_barcode,
                         use_single_source_rack=False, **kw):
     """
     Factor method creating an :class:`StockSampleCreationIsoWorklistWriter` for
@@ -99,10 +99,10 @@ def get_worklist_writer(iso, tube_destination_racks, pool_stock_rack_barcode,
         the worklist files.
     :type iso: :class:`thelma.models.iso.StockSampleCreationIso`
 
-    :param tube_destination_racks: The barcodes for the destination
+    :param single_stock_racks: The barcodes for the destination
         racks for the single molecule design tubes (these racks have to be
         empty).
-    :type tube_destination_racks: list of barcodes (:class:`basestring`)
+    :type single_stock_racks: list of barcodes (:class:`basestring`)
 
     :param pool_stock_rack_barcode: The barcodes for the new pool stock rack
         (this rack has to have empty tubes in defined positions).
@@ -113,7 +113,7 @@ def get_worklist_writer(iso, tube_destination_racks, pool_stock_rack_barcode,
     :type use_single_source_rack: :class:`bool`
     :default use_single_source_rack: *False*
     """
-    kw.update(dict(iso=iso, tube_destination_racks=tube_destination_racks,
+    kw.update(dict(iso=iso, single_stock_racks=single_stock_racks,
                    pool_stock_rack_barcode=pool_stock_rack_barcode,
                    use_single_source_rack=use_single_source_rack))
     return StockSampleCreationIsoWorklistWriter(**kw)

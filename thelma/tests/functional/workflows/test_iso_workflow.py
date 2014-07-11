@@ -64,7 +64,7 @@ class IsoWorkflowTestCase(ThelmaFunctionalTestCase):
         ThelmaFunctionalTestCase.set_up(self)
         # Set up a dummy request and start the service so we can use it before
         # the root factory is called (and starts it).
-        base_url = app_url = self._get_app_url()
+        base_url = app_url = self.ini.get_app_url()
         request = DummyRequest(application_url=app_url,
                                host_url=base_url,
                                path_url=app_url,

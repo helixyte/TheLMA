@@ -844,7 +844,7 @@ class StockSampleCreationInstructionsWriter(TxtWriter):
     """
     NAME = 'Stock Sample Creation CyBio Writer'
     #: Header for the pool creation section.
-    HEADER_POOL_CREATION = 'Pool Creation Instructions for %s ISO "%s"'
+    HEADER_POOL_CREATION = 'Pool Creation Instructions for %sISO "%s"'
     #: Base line for transfer volumes.
     VOLUME_LINE = 'Volume: %.1f ul each'
     #: Base line for buffer volumes.
@@ -913,7 +913,7 @@ class StockSampleCreationInstructionsWriter(TxtWriter):
             header = self.HEADER_POOL_CREATION % ('', self.iso_label)
         else:
             header = self.HEADER_POOL_CREATION \
-                     % ('sector %d of' % self.sector_index, self.iso_label)
+                     % ('sector %d of ' % self.sector_index, self.iso_label)
         self._write_headline(header, preceding_blank_lines=0)
         volume_line = self.VOLUME_LINE % (self.take_out_volume)
         buffer_line = self.BUFFER_LINE % (self.buffer_volume)

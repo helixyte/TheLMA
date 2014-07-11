@@ -25,6 +25,8 @@ from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.tools.base import BaseTool
+from thelma.automation.tools.iso.poolcreation.base import \
+    DEFAULT_PREPARATION_PLATE_VOLUME
 from thelma.automation.tools.iso.poolcreation.base import DILUENT_INFO
 from thelma.automation.tools.iso.poolcreation.base import LABELS
 from thelma.automation.tools.iso.poolcreation.base import VolumeCalculator
@@ -234,6 +236,7 @@ class StockSampleCreationIsoRequestGenerator(BaseTool):
                             self.iso_request_label,
                             stock_vol,
                             stock_conc,
+                            DEFAULT_PREPARATION_PLATE_VOLUME,
                             self.__number_designs,
                             owner=STOCKMANAGEMENT_USER,
                             expected_number_isos=self.__expected_number_isos,
