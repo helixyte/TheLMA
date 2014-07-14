@@ -652,7 +652,14 @@ class LibraryIsoRequestGeneratorToolCommand(ToolCommand): # no __init__ pylint: 
           dict(help='Flag indicating that pool stock racks should be created.',
                action='store_true'),
           ),
-       ]
+         ('--iso-request-label',
+          'iso_request_label',
+          dict(help='Optional short label to use for the ISO request (will '
+                    'be printed on racks and therefore needs to be at most '
+                    '8 characters long). Defaults to the library name.'
+               )
+          ),
+                ]
 
     @classmethod
     def finalize(cls, tool, options):

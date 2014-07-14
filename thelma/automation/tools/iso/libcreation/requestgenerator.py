@@ -65,7 +65,7 @@ class LibraryCreationIsoRequestGenerator(BaseTool):
                  number_aliquots=DEFAULT_NUMBER_LIBRARY_PLATE_ALIQUOTS,
                  preparation_plate_volume=DEFAULT_PREPARATION_PLATE_VOLUME,
                  molecule_type=DEFAULT_LIBRARY_MOLECULE_TYPE_ID,
-                 create_pool_racks=None, parent=None):
+                 create_pool_racks=None, iso_request_label=None, parent=None):
         """
         Constructor.
 
@@ -88,6 +88,9 @@ class LibraryCreationIsoRequestGenerator(BaseTool):
             stock transfer will be assumed to have the preparation plate as
             target and buffer volumes will be calculated accordingly. By
             default, this is set to `True` unless `number_designs` is 1.
+        :param str iso_request_label: Optional short label to use for the
+            ISO request (this will show up on racks and therefore needs to
+            be no more than 8 characters). Defaults to :param:`library_name`.
         """
         BaseTool.__init__(self, parent=parent)
         self.library_name = library_name
@@ -100,6 +103,9 @@ class LibraryCreationIsoRequestGenerator(BaseTool):
         if create_pool_racks is None:
             create_pool_racks = not number_designs == 1
         self.create_pool_racks = create_pool_racks
+        if iso_request_label is None:
+            iso_request_label = library_name
+        self.iso_request_label = iso_request_label
         #: The base layout (384-well) defining which positions contain
         #: libary samples.
         self.__base_layout = None
@@ -244,7 +250,7 @@ class LibraryCreationIsoRequestGenerator(BaseTool):
         pp_vol = self.preparation_plate_volume / VOLUME_CONVERSION_FACTOR
         self.add_debug('Create ISO request ...')
         iso_request = StockSampleCreationIsoRequest(
-                            self.library_name,
+                            self.iso_request_label,
                             stock_vol,
                             stock_conc,
                             number_designs=self.number_designs,
