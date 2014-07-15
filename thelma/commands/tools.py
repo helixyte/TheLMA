@@ -893,10 +893,10 @@ class LibraryCreationIsoWorklistWriterToolCommand(_IsoOperationToolCommand): # n
                 print msg
 
 
-class StockSampleCreationExecutorToolCommand(_IsoOperationToolCommand): # no __init__ pylint: disable=W0232
-    name = 'stocksamplecreationexecutor'
+class StockSampleCreationIsoExecutorToolCommand(_IsoOperationToolCommand): # no __init__ pylint: disable=W0232
+    name = 'stocksamplecreationisoexecutor'
     tool = 'thelma.automation.tools.iso.poolcreation.execution:' \
-           'StockSampleCreationExecutor'
+           'StockSampleCreationIsoExecutor'
 
     option_defs = _IsoOperationToolCommand.option_defs + \
         [make_lazy_user_option_def(help_string='User name of the user who '
@@ -915,7 +915,7 @@ class StockSampleCreationExecutorToolCommand(_IsoOperationToolCommand): # no __i
 
 
 class LibraryCreationIsoExecutorToolCommand(
-                                StockSampleCreationExecutorToolCommand): # no __init__ pylint: disable=W0232
+                                StockSampleCreationIsoExecutorToolCommand): # no __init__ pylint: disable=W0232
     name = 'librarycreationisoexecutor'
     tool = 'thelma.automation.tools.iso.libcreation.executor:' \
            'LibraryCreationIsoExecutor'

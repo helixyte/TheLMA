@@ -37,12 +37,12 @@ from thelma.models.liquidtransfer import ExecutedWorklist
 
 __docformat__ = 'reStructuredText en'
 
-__all__ = ['StockSampleCreationExecutor',
+__all__ = ['StockSampleCreationIsoExecutor',
            '_StockSampleCreationStockLogFileWriter',
            'StockSampleCreationStockTransferReporter']
 
 
-class StockSampleCreationExecutor(StockTransferWriterExecutor):
+class StockSampleCreationIsoExecutor(StockTransferWriterExecutor):
     """
     Executes the worklist file for a pool stock sample creation ISO.
     This comprises both buffer dilution and stock transfer.
@@ -396,7 +396,7 @@ class StockSampleCreationStockTransferReporter(IsoStockTransferReporter):
 
     **Return Value:** The log file as stream (arg 0) and comment (arg 1)s
     """
-    EXECUTOR_CLS = StockSampleCreationExecutor
+    EXECUTOR_CLS = StockSampleCreationIsoExecutor
 
     def __init__(self, executor, parent=None):
         """

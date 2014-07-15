@@ -2,7 +2,7 @@
 Short cuts for tools involved in lab ISO processing.
 """
 from thelma.automation.tools.iso.poolcreation.execution \
-    import StockSampleCreationExecutor
+    import StockSampleCreationIsoExecutor
 from thelma.automation.tools.iso.poolcreation.generation \
     import StockSampleCreationIsoGenerator
 from thelma.automation.tools.iso.poolcreation.generation \
@@ -133,7 +133,7 @@ def get_worklist_uploader(writer, **kw):
 
 def get_executor(iso, user, **kw):
     """
-    Factory method creating an :class:`StockSampleCreationExecutor` that
+    Factory method creating an :class:`StockSampleCreationIsoExecutor` that
     conducts the DB updates for an stock sample creation ISO. The stock transfer
     reporting tool that log the stock transfers at the trac ticket can be
     fetched with :func:`get_stock_transfer_reporter`.
@@ -146,7 +146,7 @@ def get_executor(iso, user, **kw):
     :type user: :class:`thelma.models.user.User`
     """
     kw.update(iso=iso, user=user)
-    return StockSampleCreationExecutor(**kw)
+    return StockSampleCreationIsoExecutor(**kw)
 
 def get_stock_transfer_reporter(executor, **kw):
     """
@@ -155,7 +155,7 @@ def get_stock_transfer_reporter(executor, **kw):
     stock transfers in the Trac ticket.
 
     :param executor: The executor tool (after run has been completed).
-    :type executor: :class:`StockSampleCreationExecutor`
+    :type executor: :class:`StockSampleCreationIsoExecutor`
     """
     kw.update(executor=executor)
     return StockSampleCreationStockTransferReporter(**kw)

@@ -351,7 +351,7 @@ class StockSampleCreationTicketGenerator(BaseTracTool):
     #: The value for the ticket's severity.
     SEVERITY = SEVERITY_ATTRIBUTE_VALUES.NORMAL
     #: The value for the ticket cc.
-    CC = '%s, it' % (STOCKMANAGEMENT_USER)
+    CC = STOCKMANAGEMENT_USER
     #: The value for the ticket's component.
     COMPONENT = 'Logistics'
 
