@@ -52,13 +52,13 @@ class LibraryCreationIsoWorklistWriter(BaseTool):
     NAME = 'Library Creation Worklist Writer'
     #: File name for the tube handler worklist file. The placeholder contain
     #: the layout number, the library name and the quadrant number.
-    FILE_NAME_XL20_WORKLIST = '%s-%s_xl20_worklist_Q%i.csv'
+    FILE_NAME_XL20_WORKLIST = '%s-%s_xl20_worklist_Q%s.csv'
     #: File name for the tube handler dummy output file. Placeholders like
     #: for the XL20 worklist file name.
-    FILE_NAME_XL20_DUMMY_OUTPUT = '%s-%s_xl20_dummy_output_Q%i.tpo'
+    FILE_NAME_XL20_DUMMY_OUTPUT = '%s-%s_xl20_dummy_output_Q%s.tpo'
     #: File name for a tube handler worklist file. The placeholder contain
     #: the layout number, the library name and the quadrant number.
-    FILE_NAME_XL20_REPORT = '%s-%s_xl20_report_Q%i.txt'
+    FILE_NAME_XL20_REPORT = '%s-%s_xl20_report_Q%s.txt'
     #: File name for the CyBio instructions info file. The placeholders
     #: contain the layout number and the the library name.
     FILE_NAME_CYBIO = '%s-%s-CyBio_instructions.txt'
@@ -181,7 +181,8 @@ class LibraryCreationIsoWorklistWriter(BaseTool):
             single_stock_rack_map[sec_idx] = sec_bcs
         if len(racks_with_tubes) > 0:
             msg = 'The following tube destination racks you have chosen are ' \
-                  'not empty: %s.' % (', '.join(sorted(racks_with_tubes)))
+                  'not empty: %s.' % \
+                  (', '.join(sorted([r.barcode for r in racks_with_tubes])))
             self.add_error(msg)
         return single_stock_rack_map
 
@@ -390,45 +391,62 @@ class LibraryCreationIsoWorklistWriter(BaseTool):
     def __build_tube_handler_files(self, stock_tube_transfer_map, file_map):
         self.add_debug('Creating XL20 files.')
         for sec_idx, tube_transfers in stock_tube_transfer_map.iteritems():
-            fn_params = (self.iso.iso_request.label,
-                         self.iso.layout_number,
-                         sec_idx + 1)
-            worklist_writer = XL20WorklistWriter(tube_transfers, parent=self)
-            worklist_stream = worklist_writer.get_result()
-            if worklist_stream is None:
-                msg = 'Error when trying to write tube handler worklist ' \
-                      'file for sector %i.' % (sec_idx + 1)
-                self.add_error(msg)
-            else:
-                fn_wl = self.FILE_NAME_XL20_WORKLIST % fn_params
-                file_map[fn_wl] = worklist_stream
-                if self.include_dummy_output:
-                    dummy_writer = XL20Dummy(worklist_stream, parent=self)
-                    dummy_output_stream = dummy_writer.get_result()
-                    if dummy_output_stream is None:
-                        msg = 'Error trying to generate dummy tube handler ' \
-                              'output.'
-                        self.add_error(msg)
-                    else:
-                        fn_dummy_output = \
-                            self.FILE_NAME_XL20_DUMMY_OUTPUT % fn_params
-                        file_map[fn_dummy_output] = dummy_output_stream
-            report_writer = LibraryCreationXL20ReportWriter(
-                                self.iso,
-                                tube_transfers,
-                                sec_idx,
-                                self.__source_rack_locations,
-                                has_pool_stock_racks=
-                                    not self.pool_stock_racks is None,
-                                parent=self)
-            report_stream = report_writer.get_result()
-            if report_stream is None:
-                msg = 'Error when trying to write tube handler report for ' \
-                      'sector %i.' % (sec_idx + 1)
-                self.add_error(msg)
-            else:
-                fn = self.FILE_NAME_XL20_REPORT % fn_params
-                file_map[fn] = report_stream
+            self.__build_tube_handler_files_for_transfers(tube_transfers,
+                                                          file_map,
+                                                          sec_idx + 1)
+        # Generate single tube handler and report files for all quadrants
+        # (simplifies processing).
+        all_tube_transfers = reduce(add, stock_tube_transfer_map.values())
+        self.__build_tube_handler_files_for_transfers(all_tube_transfers,
+                                                      file_map, None)
+
+    def __build_tube_handler_files_for_transfers(self, tube_transfers,
+                                                 file_map, sector_index):
+        if sector_index is None:
+            filename_suffix = 'all'
+        else:
+            filename_suffix = str(sector_index)
+        fn_params = (self.iso.iso_request.label,
+                     self.iso.layout_number,
+                     filename_suffix
+                     )
+        worklist_writer = XL20WorklistWriter(tube_transfers, parent=self)
+        worklist_stream = worklist_writer.get_result()
+        fn_wl = self.FILE_NAME_XL20_WORKLIST % fn_params
+        if worklist_stream is None:
+            msg = 'Error when trying to write tube handler worklist ' \
+                  '(%s, %s, %s).' % fn_params
+            self.add_error(msg)
+        else:
+            file_map[fn_wl] = worklist_stream
+            if self.include_dummy_output:
+                dummy_writer = XL20Dummy(worklist_stream, parent=self)
+                dummy_output_stream = dummy_writer.get_result()
+                if dummy_output_stream is None:
+                    msg = 'Error trying to generate dummy tube handler ' \
+                          'output (%s, %s, %s).' % fn_params
+                    self.add_error(msg)
+                else:
+                    fn_dummy_output = \
+                        self.FILE_NAME_XL20_DUMMY_OUTPUT % fn_params
+                    file_map[fn_dummy_output] = dummy_output_stream
+        report_writer = LibraryCreationXL20ReportWriter(
+                            self.iso,
+                            tube_transfers,
+                            self.__source_rack_locations,
+                            sector_index=sector_index,
+                            has_pool_stock_racks=
+                                not self.pool_stock_racks is None,
+                            parent=self)
+        report_stream = report_writer.get_result()
+        if report_stream is None:
+            msg = 'Error when trying to write tube handler report ' \
+                  '(%s, %s, %s).' % fn_params
+            self.add_error(msg)
+        else:
+            fn = self.FILE_NAME_XL20_REPORT % fn_params
+            file_map[fn] = report_stream
+
 
     def __build_cybio_overview_file(self, file_map):
         self.add_debug('Creating Cybio overview file.')
@@ -451,8 +469,7 @@ class LibraryCreationIsoWorklistWriter(BaseTool):
 
 class LibraryCreationXL20ReportWriter(TxtWriter):
     """
-    Generates an overview for the tube handling of a particular quadrant
-    in a library creation ISO.
+    Generates an overview for the tube handling in a library creation ISO.
 
     **Return Value:** stream (TXT)
     """
@@ -479,9 +496,9 @@ class LibraryCreationXL20ReportWriter(TxtWriter):
     SOURCE_RACKS_HEADER = 'Source Racks'
     #: The body for the source racks section.
     SOURCE_RACKS_BASE_LINE = '%s (%s)'
-    def __init__(self, iso, tube_transfers, sector_index,
-                 source_rack_locations, has_pool_stock_racks=True,
-                 parent=None):
+    def __init__(self, iso, tube_transfers,
+                 source_rack_locations, sector_index=None,
+                 has_pool_stock_racks=True, parent=None):
         """
         Constructor.
 
@@ -491,7 +508,9 @@ class LibraryCreationXL20ReportWriter(TxtWriter):
             :class:`thelma.models.iso.StockSampleCreationIso`
         :param tube_transfers: Define which tube goes where.
         :type tube_transfers: :class:`TubeTransfer`#
-        :param int sector_index: Rack sector being created.
+        :param int sector_index: Sector of the rack being created. If this
+            is not given, no sector information will be included in the
+            header.
         :param dict source_rack_locations: Map rack barcode -> rack location.
         :param bool has_pool_stock_racks: Flag indicating if the ISO being
             processed will create stock pool racks.
@@ -499,8 +518,8 @@ class LibraryCreationXL20ReportWriter(TxtWriter):
         TxtWriter.__init__(self, parent=None)
         self.tube_transfers = tube_transfers
         self.iso = iso
-        self.sector_index = sector_index
         self.source_rack_locations = source_rack_locations
+        self.sector_index = sector_index
         self.has_pool_stock_racks = has_pool_stock_racks
 
     def _check_input(self):
@@ -515,7 +534,8 @@ class LibraryCreationXL20ReportWriter(TxtWriter):
             for ttd in self.tube_transfers:
                 if not self._check_input_class('tube transfer', ttd,
                                                TubeTransferData): break
-        self._check_input_class('sector index', self.sector_index, int)
+        if not self.sector_index is None:
+            self._check_input_class('sector index', self.sector_index, int)
         self._check_input_class('rack location map',
                                 self.source_rack_locations, dict)
 
@@ -551,10 +571,12 @@ class LibraryCreationXL20ReportWriter(TxtWriter):
                                             preparation_plate_volume=pp_vol)
         self._write_headline(self.GENERAL_HEADER, preceding_blank_lines=1)
         general_lines = [self.LIBRARY_LINE % self.iso.iso_request.label,
-                         self.LAYOUT_NUMBER_LINE % self.iso.layout_number,
-                         self.SECTOR_NUMBER_LINE % (self.sector_index + 1),
-                         self.TUBE_NO_LINE % len(self.tube_transfers),
-                         self.VOLUME_LINE % vol]
+                         self.LAYOUT_NUMBER_LINE % self.iso.layout_number]
+        if not self.sector_index is None:
+            general_lines.append(
+                         self.SECTOR_NUMBER_LINE % (self.sector_index + 1))
+        general_lines.extend([self.TUBE_NO_LINE % len(self.tube_transfers),
+                              self.VOLUME_LINE % vol])
         self._write_body_lines(general_lines)
 
     def __write_destination_racks_section(self):
