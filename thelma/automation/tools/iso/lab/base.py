@@ -358,7 +358,7 @@ class LabIsoPosition(TransferPosition):
             msg = 'The position type for a %s position must not be None!' \
                   % (self.__class__.__name__)
             raise ValueError(msg)
-        TransferPosition.__init__(self, rack_position=rack_position,
+        TransferPosition.__init__(self, rack_position,
                                   molecule_design_pool=molecule_design_pool,
                                   position_type=position_type,
                                   transfer_targets=transfer_targets)
@@ -1005,16 +1005,17 @@ class FinalLabIsoPosition(LabIsoPosition):
         :type from_job: :class:`bool`
         :default from_job: *False*
         """
-        LabIsoPosition.__init__(self, rack_position=rack_position,
-                                  molecule_design_pool=molecule_design_pool,
-                                  position_type=position_type,
-                                  concentration=concentration,
-                                  volume=volume,
-                                  transfer_targets=transfer_targets,
-                                  stock_tube_barcode=stock_tube_barcode,
-                                  stock_rack_barcode=stock_rack_barcode,
-                                  sector_index=sector_index,
-                                  stock_rack_marker=stock_rack_marker)
+        LabIsoPosition.__init__(self,
+                                rack_position,
+                                molecule_design_pool,
+                                position_type,
+                                concentration,
+                                volume,
+                                transfer_targets=transfer_targets,
+                                stock_tube_barcode=stock_tube_barcode,
+                                stock_rack_barcode=stock_rack_barcode,
+                                sector_index=sector_index,
+                                stock_rack_marker=stock_rack_marker)
 
         if from_job and not self.is_fixed:
             msg = 'Only fixed final lab ISO positions can be provided from ' \

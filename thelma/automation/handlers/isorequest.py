@@ -13,6 +13,7 @@ The tools are components of the :class:`ExperimentMetadataGenerator`.
 from datetime import date
 
 from everest.entities.utils import get_root_aggregate
+from everest.entities.utils import slug_from_identifier
 from thelma.automation.handlers.base \
     import MoleculeDesignPoolLayoutParserHandler
 from thelma.automation.parsers.isorequest import IsoRequestParser
@@ -1265,7 +1266,7 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
 
         lib_name = self.parser.metadata_value_map[self.LIBRARY_KEY]
         lib_agg = get_root_aggregate(IMoleculeDesignLibrary)
-        self.__library = lib_agg.get_by_slug(lib_name)
+        self.__library = lib_agg.get_by_slug(slug_from_identifier(lib_name))
         if self.__library is None:
             msg = 'Unknown library "%s".' % (lib_name)
             self.add_error(msg)

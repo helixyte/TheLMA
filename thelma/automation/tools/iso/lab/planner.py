@@ -685,7 +685,7 @@ class LabIsoPlanner(IsoProvider):
 
     #: The CyBio is only used if it would transfer at the least the given
     #: number of pools.
-    _MIN_CYBIO_TRANSFER_NUMBER = 30
+    _MIN_CYBIO_TRANSFER_NUMBER = 384
 
     def __init__(self, iso_request, number_isos,
                  excluded_racks=None, requested_tubes=None, parent=None):
@@ -2136,11 +2136,12 @@ class RackPositionContainer(_LocationContainer):
         Creates a particular :class:`FinalLabIsoPosition` for a final ISO
         plate layout.
         """
-        return self._to_iso_plate_position(pos_cls=FinalLabIsoPosition,
-                            rack_pos=self.rack_position,
-                            pool=self.pool, position_type=self.position_type,
-                            transfer_targets=transfer_targets,
-                            from_job=from_job)
+        return self._to_iso_plate_position(FinalLabIsoPosition,
+                                           self.rack_position,
+                                           self.pool,
+                                           self.position_type,
+                                           transfer_targets,
+                                           from_job=from_job)
 
     def create_preparation_position(self, preparation_targets, final_targets):
         """
@@ -3133,11 +3134,14 @@ class _LayoutPlanner(BaseTool):
         self.add_info('Start analysis ...')
 
         self._check_input()
-        if not self.has_errors(): self._register_requested_plate_containers()
-        if not self.has_errors(): self.__find_preparation_routes()
+        if not self.has_errors():
+            self._register_requested_plate_containers()
+        if not self.has_errors():
+            self.__find_preparation_routes()
         if not self.has_errors() and self._picked_assigner is None:
             self.__pick_location_assigner()
-        if not self.has_errors(): self.__adjust_layout_builder()
+        if not self.has_errors():
+            self.__adjust_layout_builder()
         if not self.has_errors():
             self.return_value = self.builder
             self.add_info('Analysis completed.')
@@ -3952,7 +3956,7 @@ class LibraryIsoBuilder(LabIsoBuilder):
         #: use :func:`set_iso_request_layout` to set.
         self._iso_request_layout = None
         #: The picked library plates mapped onto layout numbers - use
-        #: :func:`set_library_platesset_library_plates` to set.
+        #: :func:`set_library_plates` to set.
         self._library_plates = None
 
     def set_iso_request_layout(self, iso_request_layout):

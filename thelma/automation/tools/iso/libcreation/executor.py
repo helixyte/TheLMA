@@ -19,6 +19,7 @@ from thelma.models.iso import StockSampleCreationIso
 from thelma.models.liquidtransfer import ExecutedWorklist
 from thelma.automation.tools.iso.base import StockTransferWriterExecutor
 from thelma.automation.tools.worklists.series import SampleTransferJob
+from thelma.models.library import LibraryPlate
 
 
 __docformat__ = 'reStructuredText en'
@@ -35,7 +36,7 @@ class LibraryCreationIsoExecutor(BaseTool):
         """
         Constructor.
 
-        :param iso: `StockSampleCreationIso` to execute.
+        :param iso: library creation ISO to execute.
         :param user: User performing the execution.
         """
         BaseTool.__init__(self, parent=parent)
@@ -90,9 +91,11 @@ class LibraryCreationIsoExecutor(BaseTool):
         if not self.has_errors():
             executed_jobs_map = \
                 self.__execute_transfer_jobs(transfer_job_map)
+        if not self.has_errors() and not self.__pool_stock_rack_map is None:
+            self.__create_stock_samples()
         if not self.has_errors():
-            if not self.__pool_stock_rack_map is None:
-                self.__create_stock_samples()
+            self.__create_library_plates()
+        if not self.has_errors():
             self.iso.status = ISO_STATUS.DONE
             self.return_value = executed_jobs_map
             self.add_info('Library creation executor finished.')
@@ -329,4 +332,10 @@ class LibraryCreationIsoExecutor(BaseTool):
                     else:
                         sample.convert_so_stock_sample()
 
+    def __create_library_plates(self):
+        lib = self.iso.iso_request.molecule_design_library
+        layout_number = self.iso.layout_number
+        for iso_plate in self.iso.iso_aliquot_plates:
+            lp = LibraryPlate(lib, iso_plate.rack, layout_number)
+            lib.library_plates.append(lp)
 
