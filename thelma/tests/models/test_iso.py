@@ -114,6 +114,7 @@ class StockSampleCreationIsoRequestModelTestCase(IsoRequestModelTestCase):
         kw['number_designs'] = 4
         kw['stock_volume'] = 0.0001 # 100 ul
         kw['stock_concentration'] = 0.0001 # 100 uM
+        kw['preparation_plate_volume'] = 43.3e-6 # 43.3 ul
         return kw
 
     def test_init(self):

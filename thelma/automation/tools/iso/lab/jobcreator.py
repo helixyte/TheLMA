@@ -117,8 +117,8 @@ class LabIsoJobCreator(IsoJobCreator):
         """
         In case of lab ISOs there might be ISO job preparation plates.
         """
-        job_prep_plate_layouts = self.__builder.\
-                                        complete_job_preparation_plates()
+        job_prep_plate_layouts = \
+                self.__builder.complete_job_preparation_plates()
         self.__builder.create_job_preparation_plates(self._iso_job,
                                                      job_prep_plate_layouts)
 

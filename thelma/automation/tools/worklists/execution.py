@@ -349,6 +349,13 @@ class LiquidTransferExecutor(BaseTool):
         Updates the racks sample for a particular rack.
         If the rack is a target rack, the sample molecules are updated as well.
         """
+        # FIXME: It is very inefficient to loop over all containers in the
+        #        rack when you only update a few containers.
+        #        Should do:
+        #        for pos, sample_data in sample_data_map.iteritems():
+        #            cnt = rack.container_locations[pos].container
+        #            upd_spl = sample_data.update_container_sample(cnt)
+        #            cnt.sample = upd_spl
         for container in rack.containers:
             rack_pos = container.location.position
             if not sample_data_map.has_key(rack_pos):
@@ -490,7 +497,8 @@ class WorklistExecutor(LiquidTransferExecutor):
         for plt in self.planned_worklist.planned_liquid_transfers:
             self._create_executed_liquid_transfer(plt)
 
-        if not self.has_errors(): self.return_value = self._executed_worklist
+        if not self.has_errors():
+            self.return_value = self._executed_worklist
 
     def _get_target_tubes(self):
         """
@@ -1172,7 +1180,7 @@ class TargetSample(SampleData):
             msg = 'Unsupported type "%s"' \
                    % (planned_sample_dilution.__class__.__name__)
             raise TypeError(msg)
-        transfer_sample = TransferredSample(volume=\
+        transfer_sample = TransferredSample(volume=
                                             planned_sample_dilution.volume)
         self.add_transfer(transfer_sample)
         return transfer_sample

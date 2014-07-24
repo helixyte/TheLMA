@@ -13,7 +13,7 @@ from thelma.automation.tools.iso.poolcreation.base \
     import SingleDesignStockRackLayout
 from thelma.automation.tools.iso.poolcreation.base import LABELS
 from thelma.automation.tools.iso.poolcreation.execution \
-    import StockSampleCreationExecutor
+    import StockSampleCreationIsoExecutor
 from thelma.automation.tools.iso.poolcreation.execution \
     import StockSampleCreationStockTransferReporter
 from thelma.automation.tools.iso.poolcreation.execution \
@@ -159,7 +159,7 @@ class StockSampleCreationExecutorTestCase(
                                     _StockSampleCreationExecutorBaseTestCase):
 
     def _create_tool(self):
-        self.tool = StockSampleCreationExecutor(iso=self.iso,
+        self.tool = StockSampleCreationIsoExecutor(iso=self.iso,
                                                 user=self.executor_user)
 
     def _test_and_expect_errors(self, msg=None):
@@ -557,7 +557,7 @@ class StockSampleCreationStockTransferReporterTestCase(FileCreatorTestCase,
         ori_executor = self.executor
         self.executor = None
         self._test_and_expect_errors('The executor must be a ' \
-                    'StockSampleCreationExecutor object (obtained: NoneType).')
+                    'StockSampleCreationIsoExecutor object (obtained: NoneType).')
         self.executor = ori_executor
         self.executor.add_error('test')
         self._test_and_expect_errors('The executor has errors!')

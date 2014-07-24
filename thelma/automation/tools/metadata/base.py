@@ -681,7 +681,7 @@ class TransfectionLayout(IsoRequestLayout):
     contain data about the ISO, the mastermix and transfer parameters.
     """
 
-    WORKING_POSITION_CLASS = TransfectionPosition
+    POSITION_CLS = TransfectionPosition
 
     def copy(self):
         """

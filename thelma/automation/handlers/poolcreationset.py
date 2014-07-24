@@ -1,7 +1,7 @@
 """
 This handler converts the results of the library member parser into a
 molecule design set (:class:`thelma.models.molecule.MoleculeDesignSet`).
-At this, the handler tries to determine the stock sample molecule design ID
+The handler tries to determine the stock sample molecule design ID
 for every molecule design set. If there is no ID, a new ID is created.
 
 AAB
@@ -18,6 +18,7 @@ from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.moleculedesign import MoleculeDesignPool
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 
+
 __docformat__ = 'reStructuredText en'
 
 __all__ = ['PoolCreationSetParserHandler',
@@ -25,10 +26,10 @@ __all__ = ['PoolCreationSetParserHandler',
 
 class PoolCreationSetParserHandler(BaseParserHandler):
     """
-    Converts the results of the :class:`PoolCreationSet` into a
+    Converts the results of the :class:`PoolCreationSetParser` into a
     :class:`MoleculeDesignPoolSet`.
 
-    **Return Value:** :class:`PoolSet`
+    **Return Value:** :class:`MoleculeDesignPoolSet`
     """
     NAME = 'Stock Sample Pool Order Parser Handler'
     _PARSER_CLS = PoolCreationSetParser
@@ -77,18 +78,17 @@ class PoolCreationSetParserHandler(BaseParserHandler):
         return self._get_additional_value(self.__molecule_type)
 
     def _convert_results_to_entity(self):
-        """
-        Converts the parsing results into a :class:`MoleculeDesignSet`.
-        """
         self.add_info('Convert parser results ...')
-
-        if not self.has_errors(): self.__get_molecule_designs_and_pools()
-        if not self.has_errors(): self.__check_consistency()
-        if not self.has_errors(): self.__get_missing_molecule_design_pools()
         if not self.has_errors():
-            self.return_value = MoleculeDesignPoolSet(
-                                    molecule_type=self.__molecule_type,
-                                    molecule_design_pools=self.__pools)
+            self.__get_molecule_designs_and_pools()
+        if not self.has_errors():
+            self.__check_consistency()
+        if not self.has_errors():
+            self.__get_missing_molecule_design_pools()
+        if not self.has_errors():
+            self.return_value = \
+                MoleculeDesignPoolSet(self.__molecule_type,
+                                      molecule_design_pools=self.__pools)
             self.add_info('Conversion completed.')
 
     def __get_molecule_designs_and_pools(self):
@@ -151,15 +151,14 @@ class PoolCreationSetParserHandler(BaseParserHandler):
         while True:
             i += 1
             md_ids, pool_id = self.__get_ids_for_row(i)
-            if md_ids is None and pool_id is None: break
-
+            if md_ids is None and pool_id is None:
+                break
             if self.__pool_map.has_key(pool_id):
                 pool = self.__pool_map[pool_id]
                 self.__check_number_designs(pool.number_designs, i)
                 self.__check_molecule_type(pool.molecule_type, i)
                 exp_ids = [md.id for md in pool]
-                if not md_ids is None and \
-                                        (not sorted(exp_ids) == sorted(md_ids)):
+                if not md_ids is None and sorted(exp_ids) != sorted(md_ids):
                     info = '%i (expected: %s, found in file: %s)' \
                             % (pool_id,
                                '-'.join([str(ei) for ei in sorted(exp_ids)]),
@@ -169,18 +168,15 @@ class PoolCreationSetParserHandler(BaseParserHandler):
                     self.__pools.add(pool)
             else:
                 self.__pools_to_find.append(md_ids)
-
             if not md_ids is None:
                 self.__check_number_designs(len(md_ids), i)
                 for md_id in md_ids:
                     md = self.__md_map[md_id]
                     self.__check_molecule_type(md.molecule_type, i)
-
         if len(mismatch) > 0:
             msg = 'In some rows the pools and the molecule designs you have ' \
                   'ordered to not match: %s.' % (', '.join(mismatch)) # no sort
             self.add_error(msg)
-
         if len(self.__invalid_number_designs) > 0:
             msg = 'The number of molecule designs must be the same for all ' \
                   'pools. The number of designs for the first pool is %i. ' \
@@ -188,7 +184,6 @@ class PoolCreationSetParserHandler(BaseParserHandler):
                   '%s.' % (self.__number_molecule_designs,
                    ', '.join([str(rn) for rn in self.__invalid_number_designs]))
             self.add_error(msg)
-
         if len(self.__invalid_molecule_type) > 0:
             msg = 'The molecule type must be the same for all pools. The ' \
                   'molecule type for the first pools is %s. The pools in the ' \
@@ -221,9 +216,8 @@ class PoolCreationSetParserHandler(BaseParserHandler):
                              number_designs=self.__number_molecule_designs)) \
                              / CONCENTRATION_CONVERSION_FACTOR
         for md_ids in self.__pools_to_find:
-            mds = set()
-            for md_id in md_ids: mds.add(self.__md_map[md_id])
-            pool = MoleculeDesignPool.create_from_data(dict(
-                                        molecule_designs=mds,
-                                        default_stock_concentration=stock_conc))
+            mds = set([self.__md_map[md_id] for md_id in md_ids])
+            mdp_data = dict(molecule_designs=mds,
+                            default_stock_concentration=stock_conc)
+            pool = MoleculeDesignPool.create_from_data(mdp_data)
             self.__pools.add(pool)

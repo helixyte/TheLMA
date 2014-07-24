@@ -19,12 +19,16 @@ def create_mapper(iso_plate_mapper,
     m = mapper(IsoSectorPreparationPlate, iso_sector_preparation_plate_tbl,
                inherits=iso_plate_mapper,
                properties=dict(
-                    iso=relationship(StockSampleCreationIso, uselist=False,
-                        back_populates='iso_sector_preparation_plates'),
-                rack_layout=relationship(RackLayout, uselist=False,
-                        cascade='all,delete,delete-orphan',
-                        single_parent=True)
-                                ),
+                    iso=relationship(StockSampleCreationIso,
+                                     uselist=False,
+                                     back_populates=\
+                                        'iso_sector_preparation_plates'),
+                    rack_layout=
+                        relationship(RackLayout,
+                                     uselist=False,
+                                     cascade='all,delete,delete-orphan',
+                                     single_parent=True)
+                               ),
                polymorphic_identity=ISO_PLATE_TYPES.SECTOR_PREPARATION,
                )
     return m

@@ -20,7 +20,7 @@ from thelma.automation.tools.worklists.series import RackSampleTransferWriter
 from thelma.automation.tools.worklists.series import SampleDilutionJob
 from thelma.automation.tools.worklists.series import SampleTransferJob
 from thelma.automation.tools.worklists.series import SerialWriterExecutorTool
-from thelma.automation.tools.worklists.series import _SeriesExecutor
+from thelma.automation.tools.worklists.series import SeriesExecutor
 from thelma.automation.tools.worklists.series import _SeriesWorklistWriter
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
@@ -200,7 +200,7 @@ class _SeriesWorklistWriterDummy(_SeriesWorklistWriter):
     pass
 
 
-class _SeriesExecutorDummy(_SeriesExecutor):
+class _SeriesExecutorDummy(SeriesExecutor):
     """
     Only serves for testing.
     """
@@ -214,6 +214,7 @@ class _SerialWriterExecutorDummy(SerialWriterExecutorTool):
     NAME = 'Dummy Serial Writer Executor'
     FILE_NAME_RST = 'series_rack_transfer.txt'
     WORKLIST_LABEL_RST = 'rack_sample_transfer_wl'
+    NAME = 'Serial Writer Executor Dummy'
 
     def __init__(self, transfer_jobs, mode, user=None, **kw):
         SerialWriterExecutorTool.__init__(self, mode, user=user, **kw)

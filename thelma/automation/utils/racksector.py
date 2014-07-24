@@ -5,7 +5,9 @@ AAB
 """
 
 from math import sqrt
+
 from thelma.automation.semiconstants import RACK_SHAPE_NAMES
+from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.semiconstants import get_rack_position_from_indices
 from thelma.automation.tools.base import BaseTool
@@ -440,7 +442,7 @@ def get_sector_positions(sector_index, rack_shape, number_sectors,
 
 class QuadrantIterator(object):
     """
-    A rack quadrant is an part of the rack containing one position for each
+    A rack quadrant is a part of the rack containing one position for each
     rack sector. All positions of a quadrant are derived from the same source
     rack.
 
@@ -461,13 +463,13 @@ class QuadrantIterator(object):
             setup.
         """
         #: The translators for each rack sector.
-        self.__translators = dict()
+        self.__ssc_layout_map = dict()
         for i in range(number_sectors):
             translator = RackSectorTranslator(number_sectors=number_sectors,
                         source_sector_index=0, target_sector_index=i,
                         row_count=row_count, col_count=col_count,
                         behaviour=RackSectorTranslator.MANY_TO_MANY)
-            self.__translators[i] = translator
+            self.__ssc_layout_map[i] = translator
 
     def get_quadrant_positions(self, sector_zero_position):
         """
@@ -478,7 +480,7 @@ class QuadrantIterator(object):
         :returns: A map with the rack positions mapped onto sector indices.
         """
         quadrant_positions = dict()
-        for sector_index, translator in self.__translators.iteritems():
+        for sector_index, translator in self.__ssc_layout_map.iteritems():
             target_pos = translator.translate(sector_zero_position)
             quadrant_positions[sector_index] = target_pos
         return quadrant_positions
@@ -524,10 +526,10 @@ class QuadrantIterator(object):
         quadrants = []
         if not working_layout is None:
             rack_shape = working_layout.shape
-        translator_0 = self.__translators[0]
+        translator_0 = self.__ssc_layout_map[0]
         positions_0 = get_sector_positions(sector_index=0,
                         rack_shape=rack_shape,
-                        number_sectors=len(self.__translators),
+                        number_sectors=len(self.__ssc_layout_map),
                         row_count=translator_0.row_count,
                         col_count=translator_0.col_count)
         for pos_0 in positions_0:
@@ -561,7 +563,7 @@ class QuadrantIterator(object):
 
     def __repr__(self):
         str_format = '<%s number of sectors: %i>'
-        params = (self.__class__.__name__, len(self.__translators))
+        params = (self.__class__.__name__, len(self.__ssc_layout_map))
         return str_format % params
 
 
@@ -1048,3 +1050,34 @@ class AssociationData(object):
 
     def __str__(self):
         return self.__class__.__name__
+
+
+def get_sector_layouts_for_384_layout(layout, sector_layout_class=None):
+    """
+    Converts the given 384 layout into four 96 well sector layouts of the
+    given layout class.
+
+    :param sector_layout_class: Class to use for the sector layouts.
+    :returns: map sector index -> 96 well layout
+    :rtype: dict
+    """
+    if sector_layout_class is None:
+        sector_layout_class = type(layout)
+    sec_pos_map_384 = QuadrantIterator.sort_into_sectors(layout, 4)
+    rs96 = get_96_rack_shape()
+    sec_layout_map = {}
+    for sec_idx in range(4):
+        sec_wrk_poss_384 = sec_pos_map_384[sec_idx]
+        if len(sec_wrk_poss_384) < 1:
+            # FIXME: Should break here.
+            continue
+        trl = RackSectorTranslator(4, sec_idx, 0,
+                                   behaviour=RackSectorTranslator.ONE_TO_MANY)
+        sec_layout = sector_layout_class(rs96)
+        for sec_wrk_pos_384 in sec_wrk_poss_384:
+            sec_pos_96 = trl.translate(sec_wrk_pos_384.rack_position)
+            sec_wrk_pos_96 = sec_wrk_pos_384.clone()
+            sec_wrk_pos_96.rack_position = sec_pos_96
+            sec_layout.add_position(sec_wrk_pos_96)
+        sec_layout_map[sec_idx] = sec_layout
+    return sec_layout_map

@@ -17,7 +17,7 @@ def create_mapper(iso_plate_mapper, iso_aliquot_plate_tbl):
                inherits=iso_plate_mapper,
                properties=dict(
                     iso=relationship(Iso, uselist=False,
-                        back_populates='iso_aliquot_plates'),
+                                     back_populates='iso_aliquot_plates'),
                     ),
                polymorphic_identity=ISO_PLATE_TYPES.ALIQUOT,
                )

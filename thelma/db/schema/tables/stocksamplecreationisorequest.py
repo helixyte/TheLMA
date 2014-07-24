@@ -27,7 +27,9 @@ def create_table(metadata, iso_request_tbl):
                        nullable=False),
                 Column('number_designs', Integer,
                        CheckConstraint('number_designs>1'),
-                       nullable=False)
+                       nullable=False),
+                Column('preparation_plate_volume', Float,
+                       CheckConstraint('preparation_plate_volume>0')),
                 )
     PrimaryKeyConstraint(tbl.c.iso_request_id)
 

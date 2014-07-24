@@ -46,7 +46,6 @@ class IsoRequest(Entity):
 
     **Equality Condition**: equal :attr:`id`
     """
-
     #: The type of the associated ISOs. One of the constants defined in
     #: :class:`ISO_TYPES`.
     iso_type = None
@@ -67,15 +66,12 @@ class IsoRequest(Entity):
     worklist_series = None
     #: The pool set (:class:`thelma.models.moleculedesign.MoleculeDesignPoolSet`)
     #: for the request is optional. The type of pools included depends on the
-    #: derived class).
+    #: derived class.
     molecule_design_pool_set = None
 
     def __init__(self, label, expected_number_isos=1, number_aliquots=1,
                  owner='', worklist_series=None, molecule_design_pool_set=None,
                  iso_type=None, **kw):
-        """
-        Constructor
-        """
         if self.__class__ is IsoRequest:
             raise NotImplementedError('Abstract class')
         Entity.__init__(self, **kw)
@@ -155,11 +151,11 @@ class LabIsoRequest(IsoRequest):
     molecule_design_library = None
 
     def __init__(self, label, requester, rack_layout, delivery_date=None,
-                 comment=None, experiment_metadata=None, process_job_first=True,
-                 iso_plate_reservoir_specs=None, molecule_design_library=None,
-                 **kw):
+                 comment=None, experiment_metadata=None,
+                 process_job_first=True, iso_plate_reservoir_specs=None,
+                 molecule_design_library=None, **kw):
         """
-        Constructor
+        Constructor.
         """
         IsoRequest.__init__(self, label=label, iso_type=ISO_TYPES.LAB, **kw)
         self.requester = requester
@@ -195,26 +191,27 @@ class StockSampleCreationIsoRequest(IsoRequest):
 
     **Equality Condition**: equal :attr:`id`
     """
-    #: The volume for each new stock sample to be generated in l.
+    #: Volume for each new stock sample to be generated in l.
     stock_volume = None
-    #: The concentration for each new stock sample to be generated in M.
+    #: Concentration for each new stock sample to be generated in M.
     stock_concentration = None
+    #: Volume of the preparation plate in l if this is a library creation
+    #: ISO request.
+    preparation_plate_volume = None
     #: The number of single molecule designs each new pool will consist of.
     number_designs = None
-
     #: The molecule design library created with this ISO request
     #: (:class:`thelma.models.library.MoleculeDesignLibrary`, optional).
     molecule_design_library = None
 
-    def __init__(self, label, stock_volume, stock_concentration, number_designs,
+    def __init__(self, label, stock_volume, stock_concentration,
+                 preparation_plate_volume, number_designs,
                  molecule_design_library=None, **kw):
-        """
-        Constructor
-        """
-        IsoRequest.__init__(self, label=label,
+        IsoRequest.__init__(self, label,
                             iso_type=ISO_TYPES.STOCK_SAMPLE_GENERATION, **kw)
         self.stock_volume = stock_volume
         self.stock_concentration = stock_concentration
+        self.preparation_plate_volume = preparation_plate_volume
         self.number_designs = number_designs
         self.molecule_design_library = molecule_design_library
 
@@ -249,12 +246,13 @@ class ISO_STATUS(object):
 
 class Iso(Entity):
     """
+    Abstract base class for ISOs.
+
     ISO is the abbreviation for \'Internal Sample Order\'. An ISO
     always results in the generation of rack having sample with defined
-    volumes and concentrations in defined positions. This can be a source plate
-    in terms of experiments or new sample stock racks for stock sample
-    generation ISOs). If the resulting rack is a plate it is possible to
-    deliver several replicates.
+    volumes and concentrations in defined positions. This can be a source
+    plate for an experiment or new sample stock racks. If the resulting rack
+    is a plate it is possible to deliver several aliquots.
 
     An ISO is always connected to an :class:`IsoRequest`. The ISO request
     contains general data that applies to all ISOs it contains. In contrast,
@@ -314,9 +312,6 @@ class Iso(Entity):
                  iso_stock_racks=None, iso_sector_stock_racks=None,
                  iso_preparation_plates=None, iso_aliquot_plates=None,
                  iso_type=None, **kw):
-        """
-        Constructor
-        """
         if self.__class__ is Iso:
             raise NotImplementedError('Abstract class')
         Entity.__init__(self, **kw)
@@ -359,8 +354,11 @@ class Iso(Entity):
         The ISO job stock tube used for this ISO (assigned to the
         :attr:`iso_job`).
         """
-        if self.iso_job is None: return None
-        return self.iso_job.iso_job_stock_rack
+        if self.iso_job is None:
+            result = None
+        else:
+            result = self.iso_job.iso_job_stock_rack
+        return result
 
     @property
     def stock_racks(self):
@@ -383,6 +381,28 @@ class Iso(Entity):
         Read only access to the racks of the aliquot plates in this ISO.
         """
         return [iaq.rack for iaq in self.iso_aliquot_plates]
+
+    def add_aliquot_plate(self, plate):
+        """
+        Adds an :class:`IsoAliquotPlate`.
+
+        :param plate: The plate to be added.
+        :type plate: :class:`thelma.models.rack.Plate`
+        """
+        iap = IsoAliquotPlate(None, plate)
+        self.iso_aliquot_plates.append(iap)
+
+    def add_preparation_plate(self, plate, rack_layout):
+        """
+        Adds an :class:`IsoPreparationPlate`.
+
+        :param plate: The plate to be added.
+        :type plate: :class:`thelma.models.rack.Plate`
+        :param rack_layout: The rack layout containing the plate data.
+        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
+        """
+        ipp = IsoPreparationPlate(None, plate, rack_layout)
+        self.iso_preparation_plates.append(ipp)
 
     def __eq__(self, other):
         return (isinstance(other, Iso) \
@@ -435,40 +455,17 @@ class LabIso(Iso):
         library plates are tried first).
         """
         if len(self.library_plates) > 0:
-            return self.library_plates
+            result = self.library_plates
         else:
-            return self.iso_aliquot_plates
-
-    def add_aliquot_plate(self, plate):
-        """
-        Adds an :class:`IsoAliquotPlate`.
-
-        :param plate: The plate to be added.
-        :type plate: :class:`thelma.models.rack.Plate`
-        """
-        # FIXME: Using instantiation for side effect.
-        IsoAliquotPlate(iso=self, rack=plate)
-
-    def add_preparation_plate(self, plate, rack_layout):
-        """
-        Adds an :class:`IsoPreparationPlate`.
-
-        :param plate: The plate to be added.
-        :type plate: :class:`thelma.models.rack.Plate`
-
-        :param rack_layout: The rack layout containing the plate data.
-        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
-        """
-        # FIXME: Using instantiation for side effect.
-        IsoPreparationPlate(iso=self, rack=plate, rack_layout=rack_layout)
+            result = self.iso_aliquot_plates
+        return result
 
 
 class StockSampleCreationIso(Iso):
     """
-    This special :class:`Iso` serves the generation of new (pooled) stock
-    samples (in tube racks).
+    Specialized ISO for creating new (pooled) stock samples (in tube racks).
 
-    The rack layout is a :class:`StockSampleCreationLayout` and the contains
+    The rack layout is a :class:`StockSampleCreationLayout` and contains
     the pools that are generated by this ISO.
 
     **Equality condition**: equal :attr:`iso_request` and equal
@@ -479,23 +476,34 @@ class StockSampleCreationIso(Iso):
     #: The number of the layout this ISO deals with (a running number
     #: within the ISO request).
     layout_number = None
-
-    #: The sector preparations plates for this ISO (only if the ISOs is part of
-    #: a ISO request that creates also plates for an molecule design library)
+    #: The sector preparations plates for this ISO if this is a library
+    #: creation ISO.
     iso_sector_preparation_plates = None
 
-    def __init__(self, label, ticket_number, layout_number, number_stock_racks,
-                 iso_sector_preparation_plates=None, **kw):
-        """
-        Constructor
-        """
-        Iso.__init__(self, label=label, number_stock_racks=number_stock_racks,
+    def __init__(self, label, number_stock_racks, rack_layout, ticket_number,
+                 layout_number, iso_sector_preparation_plates=None, **kw):
+        Iso.__init__(self, label, number_stock_racks, rack_layout,
                      iso_type=ISO_TYPES.STOCK_SAMPLE_GENERATION, **kw)
         self.ticket_number = ticket_number
         self.layout_number = layout_number
         if iso_sector_preparation_plates is None:
             iso_sector_preparation_plates = []
         self.iso_sector_preparation_plates = iso_sector_preparation_plates
+
+    def add_sector_preparation_plate(self, plate, sector_index, rack_layout):
+        """
+        Adds a :class:`IsoSectorPreparationPlate`.
+
+        :param plate: The plate to be added.
+        :type plate: :class:`thelma.models.rack.Plate`
+        :param rack_layout: The rack layout containing the plate data.
+        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
+        :param int sector_index: Sector index for this sector preparation
+            plate.
+        """
+        ispp = IsoSectorPreparationPlate(None, plate, sector_index,
+                                         rack_layout)
+        self.iso_sector_preparation_plates.append(ispp)
 
     def __eq__(self, other):
         return Iso.__eq__(self, other) and \
@@ -530,7 +538,6 @@ class StockRack(Entity):
     """
     #: The type of the stock rack (see :class:`STOCK_RACK_TYPES`).
     stock_rack_type = None
-
     #: The label of the stock rack entity is not equal to the rack label.
     #: The entity label contains data that is parsed for ISO processing.
     label = None
@@ -548,9 +555,6 @@ class StockRack(Entity):
 
     def __init__(self, label, rack, rack_layout, worklist_series,
                  stock_rack_type=None, **kw):
-        """
-        Constructor
-        """
         if self.__class__ is StockRack:
             raise NotImplementedError('Abstract class')
         Entity.__init__(self, **kw)
@@ -588,11 +592,7 @@ class IsoJobStockRack(StockRack):
 
     def __init__(self, iso_job, label, rack, rack_layout, worklist_series,
                  **kw):
-        """
-        Constructor
-        """
-        StockRack.__init__(self, rack=rack, rack_layout=rack_layout,
-                           worklist_series=worklist_series, label=label,
+        StockRack.__init__(self, label, rack, rack_layout, worklist_series,
                            stock_rack_type=STOCK_RACK_TYPES.ISO_JOB, **kw)
         self.iso_job = iso_job
 
@@ -612,16 +612,11 @@ class IsoStockRack(StockRack):
 
     **Equality Condition**: equal :attr:`id`
     """
-
     #: The ISO this stock rack belongs to (:class:`Iso`).
     iso = None
 
     def __init__(self, iso, label, rack, rack_layout, worklist_series, **kw):
-        """
-        Constructor
-        """
-        StockRack.__init__(self, rack=rack, rack_layout=rack_layout,
-                           worklist_series=worklist_series, label=label,
+        StockRack.__init__(self, label, rack, rack_layout, worklist_series,
                            stock_rack_type=STOCK_RACK_TYPES.ISO, **kw)
         self.iso = iso
 
@@ -652,14 +647,10 @@ class IsoSectorStockRack(StockRack):
     #: The sector index this stock rack is responsible for (0-based).
     sector_index = None
 
-    def __init__(self, rack, label, iso, sector_index, rack_layout,
+    def __init__(self, iso, sector_index, label, rack, rack_layout,
                  worklist_series, **kw):
-        """
-        Constructor
-        """
-        StockRack.__init__(self, rack=rack, rack_layout=rack_layout,
-                              worklist_series=worklist_series, label=label,
-                              stock_rack_type=STOCK_RACK_TYPES.SECTOR, **kw)
+        StockRack.__init__(self, label, rack, rack_layout, worklist_series,
+                           stock_rack_type=STOCK_RACK_TYPES.SECTOR, **kw)
         self.iso = iso
         self.sector_index = sector_index
 
@@ -697,10 +688,7 @@ class IsoPlate(Entity):
     #: The actual plate (:class:`thelma.models.rack.Plate`)
     rack = None
 
-    def __init__(self, rack, iso, iso_plate_type=None, **kw):
-        """
-        Constructor
-        """
+    def __init__(self, iso, rack, iso_plate_type=None, **kw):
         Entity.__init__(self, **kw)
         if self.__class__ is IsoPlate:
             raise NotImplementedError('Abstract class')
@@ -738,10 +726,7 @@ class IsoAliquotPlate(IsoPlate):
     has_been_used = None
 
     def __init__(self, iso, rack, has_been_used=False, **kw):
-        """
-        Constructor
-        """
-        IsoPlate.__init__(self, iso=iso, rack=rack,
+        IsoPlate.__init__(self, iso, rack,
                           iso_plate_type=ISO_PLATE_TYPES.ALIQUOT, **kw)
         self.has_been_used = has_been_used
 
@@ -758,10 +743,7 @@ class IsoPreparationPlate(IsoPlate):
     rack_layout = None
 
     def __init__(self, iso, rack, rack_layout, **kw):
-        """
-        Constructor
-        """
-        IsoPlate.__init__(self, iso=iso, rack=rack,
+        IsoPlate.__init__(self, iso, rack,
                           iso_plate_type=ISO_PLATE_TYPES.PREPARATION, **kw)
         self.rack_layout = rack_layout
 
@@ -791,10 +773,7 @@ class IsoSectorPreparationPlate(IsoPlate):
     sector_index = None
 
     def __init__(self, iso, rack, sector_index, rack_layout, **kw):
-        """
-        Constructor
-        """
-        IsoPlate.__init__(self, iso=iso, rack=rack,
+        IsoPlate.__init__(self, iso, rack,
                           iso_plate_type=ISO_PLATE_TYPES.SECTOR_PREPARATION,
                           **kw)
         self.rack_layout = rack_layout
@@ -820,7 +799,6 @@ class IsoJobPreparationPlate(Entity):
 
     **Equality Condition**: equal :attr:`iso_job` and equal :attr:`rack`
     """
-
     #: The ISO job this plate belongs to (:class:`thelma.models.job.IsoJob`).
     iso_job = None
     #: The actual plate (:class:`thelma.models.rack.Plate`)
@@ -830,9 +808,6 @@ class IsoJobPreparationPlate(Entity):
     rack_layout = None
 
     def __init__(self, iso_job, rack, rack_layout, **kw):
-        """
-        Constructor
-        """
         Entity.__init__(self, **kw)
         self.iso_job = iso_job
         self.rack = rack

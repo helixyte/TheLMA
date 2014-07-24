@@ -13,6 +13,7 @@ The tools are components of the :class:`ExperimentMetadataGenerator`.
 from datetime import date
 
 from everest.entities.utils import get_root_aggregate
+from everest.entities.utils import slug_from_identifier
 from thelma.automation.handlers.base \
     import MoleculeDesignPoolLayoutParserHandler
 from thelma.automation.parsers.isorequest import IsoRequestParser
@@ -30,7 +31,7 @@ from thelma.automation.utils.base import are_equal_values
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import is_larger_than
 from thelma.automation.utils.base import is_valid_number
-from thelma.automation.utils.converters import LibraryLayoutConverter
+from thelma.automation.utils.converters import LibraryBaseLayoutConverter
 from thelma.automation.utils.iso import IsoRequestParameters
 from thelma.automation.utils.layouts import EMPTY_POSITION_TYPE
 from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
@@ -1265,7 +1266,7 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
 
         lib_name = self.parser.metadata_value_map[self.LIBRARY_KEY]
         lib_agg = get_root_aggregate(IMoleculeDesignLibrary)
-        self.__library = lib_agg.get_by_slug(lib_name)
+        self.__library = lib_agg.get_by_slug(slug_from_identifier(lib_name))
         if self.__library is None:
             msg = 'Unknown library "%s".' % (lib_name)
             self.add_error(msg)
@@ -1282,8 +1283,8 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
         must contain samples and which are allowed to take up other
         ISO request position types).
         """
-        converter = LibraryLayoutConverter(self.__library.rack_layout,
-                                           parent=self)
+        converter = LibraryBaseLayoutConverter(self.__library.rack_layout,
+                                               parent=self)
         self.__lib_base_layout = converter.get_result()
         if self.__lib_base_layout is None:
             msg = 'Unable to convert library base layout.'

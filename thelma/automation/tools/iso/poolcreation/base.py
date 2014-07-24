@@ -6,24 +6,27 @@ AAB
 from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.semiconstants import RACK_SHAPE_NAMES
 from thelma.automation.semiconstants import get_min_transfer_volume
+from thelma.automation.tools.iso.base import StockRackLayout
 from thelma.automation.tools.iso.base import StockRackLayoutConverter
 from thelma.automation.tools.iso.base import StockRackParameters
 from thelma.automation.tools.iso.base import StockRackPosition
 from thelma.automation.tools.iso.base import _ISO_LABELS_BASE
-from thelma.automation.tools.stock.base import get_default_stock_concentration
+from thelma.automation.tools.stock.base import \
+    get_default_stock_concentration
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import is_larger_than
 from thelma.automation.utils.base import round_up
-from thelma.automation.utils.converters import MoleculeDesignPoolLayoutConverter
+from thelma.automation.utils.converters import \
+    MoleculeDesignPoolLayoutConverter
 from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
 from thelma.automation.utils.layouts import MoleculeDesignPoolLayout
 from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
 from thelma.automation.utils.layouts import MoleculeDesignPoolPosition
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from thelma.models.tagging import Tag
-from thelma.automation.tools.iso.base import StockRackLayout
+
 
 __docformat__ = 'reStructuredText en'
 
@@ -40,28 +43,28 @@ __all__ = ['LABELS',
            'SingleDesignStockRackLayout',
            'SingleDesignStockRackLayoutConverter']
 
+#: Default preparation plate volume in ul.
+DEFAULT_PREPARATION_PLATE_VOLUME = 43.3
+
 
 class LABELS(_ISO_LABELS_BASE):
     """
     Generates and parses worklist and rack labels involved in lab ISO
     processing.
     """
-
     #: Marker for stock racks that will contain the new pools.
-    ROLE_POOL_STOCK = 'psr'
+    ROLE_POOL_STOCK = 'ps'
     #: Marker for stock racks that contain single designs that will be used
     #: to generate the new pools.
     ROLE_SINGLE_DESIGN_STOCK = 'sds'
-
     #: Marker for ISO labels.
     MARKER_ISO_LABEL = 'iso_label'
     #: Marker for ISO request labels.
     MARKER_ISO_REQUEST_LABEL = 'iso_request_label'
     #: Marker for the layout number.
     MARKER_LAYOUT_NUMBER = 'layout_number'
-
     #: Is part of stock transfer worklist labels.
-    __FILL_WORKLIST_STOCK_TRANSFER = 'stock_transfer'
+    _FILL_WORKLIST_STOCK_TRANSFER = 'stock_transfer'
 
     @classmethod
     def create_iso_label(cls, iso_request_label, layout_number):
@@ -90,7 +93,7 @@ class LABELS(_ISO_LABELS_BASE):
         The stock transfer worklist label contains the ISO label and a
         filler.
         """
-        value_parts = [cls.__FILL_WORKLIST_STOCK_TRANSFER, iso_label]
+        value_parts = [cls._FILL_WORKLIST_STOCK_TRANSFER, iso_label]
         return cls._create_label(value_parts)
 
     @classmethod
@@ -193,16 +196,15 @@ class VolumeCalculator(object):
             :class:`thelma.models.iso.StockSampleCreationIsoRequest`
         """
         pool_set = iso_request.molecule_design_pool_set
-        single_design_stock_concentration = get_default_stock_concentration(
-                        molecule_type=pool_set.molecule_type, number_designs=1)
-
+        single_design_stock_concentration = \
+            get_default_stock_concentration(pool_set.molecule_type,
+                                            number_designs=1)
         kw = dict(
             target_volume=iso_request.stock_volume * VOLUME_CONVERSION_FACTOR,
             target_concentration=iso_request.stock_concentration \
                                    * CONCENTRATION_CONVERSION_FACTOR,
             number_designs=iso_request.number_designs,
             stock_concentration=single_design_stock_concentration)
-
         return cls(**kw)
 
     def calculate(self):
@@ -217,15 +219,12 @@ class VolumeCalculator(object):
         self.__calculate_buffer_volume()
 
     def __calculate_single_stock_transfer_volume(self):
-        """
-        Determines the volume that has to be transferred from a single design
-        stock tube to a future pool stock tube (for the given volume,
-        concentration, and number of designs). The target volume might
-        be increased if the resulting single design transfer volume has
-        more than 1 decimal place.
-
-        :raises ValueErrors: if something the values are not compatible
-        """
+        # Determines the volume that has to be transferred from a single design
+        # stock tube to a future pool stock tube (for the given volume,
+        # concentration, and number of designs). The target volume might
+        # be increased if the resulting single design transfer volume has
+        # more than 1 decimal place.
+        # :raises ValueErrors: if something the values are not compatible
         target_single_conc = float(self.__target_concentration) \
                              / self.__number_designs
         if target_single_conc > self.__stock_concentration:
@@ -237,7 +236,6 @@ class VolumeCalculator(object):
                      get_trimmed_string(target_single_conc),
                      get_trimmed_string(self.__stock_concentration))
             raise ValueError(msg)
-
         dil_factor = self.__stock_concentration / target_single_conc
         min_target_volume = round_up(dil_factor * self.__min_cybio_transfer_vol)
         if (min_target_volume > self.__target_volume):
@@ -251,7 +249,6 @@ class VolumeCalculator(object):
                      self.__min_cybio_transfer_vol,
                      round_up(min_target_volume, 0))
             raise ValueError(msg)
-
         self.__stock_transfer_vol = round_up(self.__target_volume / dil_factor)
         self.__adjusted_target_vol = round(
                                      self.__stock_transfer_vol * dil_factor, 1)
@@ -270,28 +267,22 @@ class VolumeCalculator(object):
             raise ValueError(msg)
 
     def __calculate_buffer_volume(self):
-        """
-        Calculates the volume of the annealing buffer (*in ul*) required to
-        generate the desired concentration and volume. Also adjusts the
-        target volume if the necessary (e.g.
-
-        Might invoke :func:`get_single_stock_transfer_volume` if the method
-        has not run before.
-        """
+        # Calculates the volume of the annealing buffer (*in ul*) required to
+        # generate the desired concentration and volume. Also adjusts the
+        # target volume if the necessary (e.g.
         buffer_volume = self.__adjusted_target_vol \
                         - (self.__stock_transfer_vol * self.__number_designs)
-
-        if (buffer_volume < 0.01 and buffer_volume > 0):
+        if (buffer_volume < 0.01 and buffer_volume >= 0):
             buffer_volume = None
         elif buffer_volume < self.__min_cybio_transfer_vol:
             corr_factor = self.__min_cybio_transfer_vol / buffer_volume
-            target_single_conc = float(self.__target_concentration) \
-                                 / self.__number_designs
+            target_single_conc = \
+                float(self.__target_concentration) / self.__number_designs
             dil_factor = self.__stock_concentration / target_single_conc
-            self.__stock_transfer_vol = self.__stock_transfer_vol * corr_factor
-            self.__adjusted_target_vol = (self.__number_designs *
-                                        self.__stock_transfer_vol) * dil_factor
-
+            self.__stock_transfer_vol = \
+                self.__stock_transfer_vol * corr_factor
+            self.__adjusted_target_vol = \
+                self.__number_designs * self.__stock_transfer_vol * dil_factor
         self.__buffer_volume = buffer_volume
 
     def get_single_design_stock_transfer_volume(self):
@@ -498,8 +489,11 @@ class StockSampleCreationPosition(MoleculeDesignPoolPosition):
                                                     self.stock_tube_barcodes}
 
     def __eq__(self, other):
-        if not MoleculeDesignPoolPosition.__eq__(self, other): return False
-        return self.stock_tube_barcodes == other.stock_tube_barcodes
+        if not MoleculeDesignPoolPosition.__eq__(self, other):
+            result = False
+        else:
+            result = self.stock_tube_barcodes == other.stock_tube_barcodes
+        return result
 
     def __repr__(self):
         str_format = '<%s rack position: %s, pool ID: %s, molecule ' \
@@ -515,7 +509,7 @@ class StockSampleCreationLayout(MoleculeDesignPoolLayout):
     Defines the molecule design pool data for a stock tube rack or a
     library plate.
     """
-    WORKING_POSITION_CLASS = StockSampleCreationPosition
+    POSITION_CLS = StockSampleCreationPosition
 
     __DEFAULT_SHAPE_NAME = RACK_SHAPE_NAMES.SHAPE_96
 
@@ -534,7 +528,7 @@ class StockSampleCreationLayout(MoleculeDesignPoolLayout):
 
     def get_pool_set(self, molecule_type):
         """
-        Returns a pool set contain all pool from the layout.
+        Returns a pool set containing all pools from the layout.
 
         :param molecule_type: The type of the pools in the set is derived
             from the molecule type of the stock sample creation ISO request.

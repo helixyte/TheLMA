@@ -226,15 +226,17 @@ class IsoProvider(BaseTool):
         """
         Checks the initialisation values.
         """
-        self.add_debug('Check initialisation values ...')
-        if self._check_input_class('ISO request', self.iso_request, IsoRequest):
+        self.add_debug('Check initialization values ...')
+        if self._check_input_class('ISO request', self.iso_request,
+                                   IsoRequest):
             iso_type = self.iso_request.iso_type
             if not self.__ISO_REQUEST_CLS.has_key(iso_type):
                 msg = 'Unsupported ISO type "%s"!' % (iso_type)
                 self.add_error(msg)
             else:
                 ir_cls = self.__ISO_REQUEST_CLS[self._ISO_TYPE]
-                self._check_input_class('ISO request', self.iso_request, ir_cls)
+                self._check_input_class('ISO request', self.iso_request,
+                                        ir_cls)
         if not is_valid_number(self.number_isos, is_integer=True):
             msg = 'The number of ISOs order must be a positive integer ' \
                   '(obtained: %s).' % (self.number_isos)

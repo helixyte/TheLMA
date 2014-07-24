@@ -2,6 +2,7 @@
 Run tool command.
 """
 import logging
+import optparse
 import os
 import sys
 
@@ -25,8 +26,13 @@ from everest.resources.utils import get_collection_class
 from everest.utils import classproperty
 from paste.deploy import appconfig # pylint: disable=E0611,F0401
 from paste.script.command import Command # pylint: disable=E0611,F0401
-from thelma.automation.tools.iso.poolcreation.execution import StockSampleCreationStockTransferReporter
-from thelma.automation.tools.writers import write_zip_archive
+from thelma.automation.tools.iso.libcreation.report import \
+    LibraryCreationStockTransferReporter
+from thelma.automation.tools.iso.libcreation.report import \
+    LibraryCreationTicketWorklistUploader
+from thelma.automation.tools.iso.poolcreation.execution import \
+    StockSampleCreationStockTransferReporter
+from thelma.interfaces import IMoleculeDesignPool
 from thelma.automation.tools.iso.poolcreation.writer \
     import StockSampleCreationTicketWorklistUploader
 from thelma.automation.tools.stock.sampleregistration import \
@@ -37,7 +43,9 @@ from thelma.automation.tools.stock.sampleregistration import \
     ISampleRegistrationItem
 from thelma.automation.tools.stock.sampleregistration import \
     ISupplierSampleRegistrationItem
+from thelma.automation.tools.writers import write_zip_archive
 from thelma.interfaces import IIsoJob
+from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IPipettingSpecs
 from thelma.interfaces import IPlannedWorklist
 from thelma.interfaces import IRack
@@ -208,6 +216,9 @@ class ToolCommand(Command):
         Command.__init__(self, name)
         self._report_callback = lambda : None
 
+    class ToolOption(optparse.Option):
+        ATTRS = optparse.Option.ATTRS + ['pass_to_tool']
+
     @classmethod
     def make_standard_parser(cls,
                              verbose=True,
@@ -222,6 +233,7 @@ class ToolCommand(Command):
                                          simulate=simulate,
                                          quiet=quiet,
                                          overwrite=overwrite)
+        parser.option_class = cls.ToolOption
         parser.add_option('--ignore-warnings',
                           action='store_true',
                           dest='ignore_warnings',
@@ -280,13 +292,17 @@ class ToolCommand(Command):
         # Initializing lazy options. We pass the target class and the
         # options so the callback has access to them.
         opts = self.options # pylint: disable=E1101
+        kw = {}
         for arg_name in arg_names:
             arg_value = getattr(opts, arg_name)
             if isinstance(arg_value, LazyOptionCallback):
                 arg_value = arg_value.initialize(self.__target_class, opts)
                 setattr(opts, arg_name, arg_value)
-        kw = dict((arg_name, getattr(opts, arg_name))
-                  for arg_name in arg_names)
+            kw[arg_name] = arg_value
+        # Remove options that are for command use only.
+        for opt in self.parser.option_list:
+            if opt.dest in kw and opt.pass_to_tool is False:
+                del kw[opt.dest]
         tool = tool_cls(**kw)
         try:
             tool.run()
@@ -555,310 +571,6 @@ class StockCondenserToolCommand(ToolCommand): # no __init__ pylint: disable=W023
             write_zip_archive(tool.return_value, options.outut_dir)
 
 
-#class LibraryGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
-#    """
-#    Runs the library ISO creator tool.
-#    """
-#    _excel_file_callback = LazyOptionCallback(lambda cls, value, options:
-#                                            open(value, 'rb').read())
-#    _user_callback = \
-#            LazyOptionCallback(lambda cls, value, options:
-#                            get_root_aggregate(IUser).get_by_slug(value))
-#    name = 'librarygenerator'
-#    tool = 'thelma.automation.tools.libcreation.generation:LibraryGenerator'
-#    option_defs = [('--library-name',
-#                    'library_name',
-#                    dict(help='Name of the molecule design library to create.'
-#                         )
-#                    ),
-#                   ('--excel-file',
-#                    'stream',
-#                    dict(help='Path for the Excel file to load.',
-#                         action='callback',
-#                         type='string',
-#                         callback=_excel_file_callback)
-#                    ),
-#                   ('--requester',
-#                    'requester',
-#                    dict(help='User name to use as the owner of the Trac '
-#                              'ticket.',
-#                         action='callback',
-#                         type='string',
-#                         callback=_user_callback),
-#                   )
-#                   ]
-#
-#    @classmethod
-#    def finalize(cls, tool, options):
-#        if not tool.has_errors():
-#            lib_agg = get_root_aggregate(IMoleculeDesignLibrary)
-#            lib_agg.add(tool.return_value)
-#
-#
-#class LibraryIsoGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
-#    """
-#    Creates ISOs for a library creation ISO request.
-#    """
-#
-#    @classmethod
-#    def get_library(cls, value):
-#        agg = get_root_aggregate(IMoleculeDesignLibrary)
-#        agg.filter = eq(label=value)
-#        return list(agg.iterator())[0]
-#
-#    _library_callback = \
-#        LazyOptionCallback(lambda cls, value, options: cls.get_library(value))
-#
-#    name = 'librarycreationisogenerator'
-#    tool = 'thelma.automation.tools.libcreation.ticket:LibraryCreationIsoCreator'
-#    option_defs = [('--library-name',
-#                    'molecule_design_library',
-#                    dict(help='Name of the molecule design library whose ' \
-#                              'ISOs to create.',
-#                        action='callback',
-#                        type='string',
-#                        callback=_library_callback),
-#                    )
-#                   ]
-#
-#class LibraryIsoPopulatorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
-#
-#    @classmethod
-#    def get_library(cls, value):
-#        agg = get_root_aggregate(IMoleculeDesignLibrary)
-#        agg.filter = eq(label=value)
-#        return list(agg.iterator())[0]
-#
-#    @classmethod
-#    def split_string(cls, value):
-#        return value.split(',')
-#
-#    _library_callback = \
-#        LazyOptionCallback(lambda cls, value, options: cls.get_library(value))
-#
-#    _excluded_racks_callback = \
-#        LazyOptionCallback(lambda cls, value, options: cls.split_string(value))
-#
-#    _requested_tube_callback = \
-#        LazyOptionCallback(lambda cls, value, options: cls.split_string(value))
-#
-#    name = 'librarycreationisopopulator'
-#    tool = 'thelma.automation.tools.libcreation.iso:LibraryCreationIsoPopulator'
-#    option_defs = [('--library-name',
-#                    'molecule_design_library',
-#                    dict(help='Name of the molecule design library whose ' \
-#                         'ISOs to populate.',
-#                        action='callback',
-#                        type='string',
-#                        callback=_library_callback),
-#                    ),
-#                   ('--number-isos',
-#                    'number_isos',
-#                    dict(help='The number of ISOs you want to populate ' \
-#                              '(includes an optimization step).',
-#                         type='int')
-#                    ),
-#                   ('--excluded-racks',
-#                    'excluded_racks',
-#                    dict(help='Racks from you do not want to pick tubes ' \
-#                              '(comma-separated, no white spaces).',
-#                         action='callback',
-#                         type='string',
-#                         callback=_excluded_racks_callback)
-#                    ),
-#                   ('--requested-tubes',
-#                    'requested_tubes',
-#                    dict(help='Tubes you prefer to be used ' \
-#                              '(comma-separated, no white spaces).',
-#                         action='callback',
-#                         type='string',
-#                         callback=_requested_tube_callback),
-#                   )
-#                   ]
-#
-#    @classmethod
-#    def finalize(cls, tool, options):
-#        if not tool.has_errors():
-#            labels = []
-#            for lci in tool.return_value:
-#                labels.append(lci.label)
-#            msg = '%i ISO(s) have been created: %s' % (
-#                                            len(labels), ', '.join(labels))
-#            print msg
-#
-#
-#class LibraryCreationLayoutWriterToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
-#
-#    @classmethod
-#    def get_iso(cls, value):
-#        agg = get_root_aggregate(ILibraryCreationIso)
-#        agg.filter = eq(label=value)
-#        return list(agg.iterator())[0]
-#
-#    _iso_callback = \
-#        LazyOptionCallback(lambda cls, value, options: cls.get_iso(value))
-#
-#    name = 'librarycreationisolayoutwriter'
-#    tool = 'thelma.automation.tools.libcreation.iso:LibraryCreationIsoLayoutWriter'
-#    option_defs = [('--iso',
-#                    'library_creation_iso',
-#                    dict(help='Label of the library creation ISO whose ' \
-#                              'layout you want to print.',
-#                        action='callback',
-#                        type='string',
-#                        callback=_iso_callback),
-#                    )]
-#
-#    # TODO: think about how to make this prettier
-#    @classmethod
-#    def finalize(cls, tool, options):
-#        if not tool.has_errors():
-#            iso_label = tool.library_creation_iso.label
-#            fn = '/Users/berger/Desktop/%s.csv' % (iso_label)
-#            o = open(fn, 'w')
-#            stream = tool.return_value
-#            stream.seek(0)
-#            o.write(stream.read())
-#            o.close()
-#
-#
-#class LibraryCreationWorklistWriterToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
-#
-#    @classmethod
-#    def get_iso(cls, value):
-#        agg = get_root_aggregate(ILibraryCreationIso)
-#        agg.filter = eq(label=value)
-#        return list(agg.iterator())[0]
-#
-#    @classmethod
-#    def get_tube_destination_map(cls, value):
-#        barcodes = value.split(',')
-#        # TODO: make configurable
-#        tube_racks = dict()
-#        number_quadrants = 4
-#        number_mds = 3
-#        for sector_index in range(number_quadrants):
-#            quadrant_barcodes = []
-#            i = 0
-#            while i < number_mds:
-#                barcode = barcodes.pop(0)
-#                quadrant_barcodes.append(barcode)
-#                i += 1
-#            tube_racks[sector_index] = quadrant_barcodes
-#        return tube_racks
-#
-#    @classmethod
-#    def get_pool_stock_rack_barcodes(cls, value):
-#        barcodes = value.split(',')
-#        pool_racks = dict()
-#        number_quadrants = 4
-#        for sector_index in range(number_quadrants):
-#            barcode = barcodes[sector_index]
-#            pool_racks[sector_index] = barcode
-#        return pool_racks
-#
-#    _iso_callback = \
-#        LazyOptionCallback(lambda cls, value, options: cls.get_iso(value))
-#
-#    _tube_destination_racks_callback = \
-#        LazyOptionCallback(lambda cls, value, options:
-#                        cls.get_tube_destination_map(value))
-#
-#
-#    _pool_stock_rack_callback = \
-#        LazyOptionCallback(lambda cls, value, options:
-#                        cls.get_pool_stock_rack_barcodes(value))
-#
-#    name = 'librarycreationworklistwriter'
-#    tool = 'thelma.automation.tools.libcreation.writer:LibraryCreationWorklistWriter'
-#    option_defs = [('--iso',
-#                    'library_creation_iso',
-#                    dict(help='Label of the library creation ISO for which ' \
-#                              'you want to get worklist files.',
-#                        action='callback',
-#                        type='string',
-#                        callback=_iso_callback),
-#                    ),
-#                   ('--tube-destination-racks',
-#                    'tube_destination_racks',
-#                    dict(help='The barcodes for the tube handler destination ' \
-#                              'racks (for the single molecule design tubes - ' \
-#                              'these racks have to be empty). Pass the ' \
-#                              'barcodes comma-separated and without white ' \
-#                              'spaces).',
-#                        action='callback',
-#                        type='string',
-#                        callback=_tube_destination_racks_callback)
-#                    ),
-#                   ('--pool-stock-racks',
-#                    'pool_stock_racks',
-#                    dict(help='Barcodes for the racks that will contain ' \
-#                              'the pool stock tubes. These racks have to ' \
-#                              'have empty tubes in defined positions. Pass ' \
-#                              'ordered by sector, comma-separated and ' \
-#                              'without white spaces).',
-#                         action='callback',
-#                         type='string',
-#                         callback=_pool_stock_rack_callback)
-#                    ),
-#                   ]
-#
-#    @classmethod
-#    def finalize(cls, tool, options):
-#        if not tool.has_errors() and not options.simulate:
-#            uploader = LibraryCreationTicketWorklistUploader(
-#                        library_creation_iso=tool.library_creation_iso,
-#                        file_map=tool.return_value)
-#            uploader.run()
-#            if not uploader.transaction_completed():
-#                msg = 'Error during transmission to Trac!'
-#                print msg
-#
-#
-#class LibraryCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
-#
-#    @classmethod
-#    def get_iso(cls, value):
-#        agg = get_root_aggregate(ILibraryCreationIso)
-#        agg.filter = eq(label=value)
-#        return list(agg.iterator())[0]
-#
-#    _iso_callback = \
-#        LazyOptionCallback(lambda cls, value, options: cls.get_iso(value))
-#    _user_callback = \
-#        LazyOptionCallback(lambda cls, value, options:
-#                        get_root_aggregate(IUser).get_by_slug(value))
-#
-#    name = 'librarycreationexecutor'
-#    tool = 'thelma.automation.tools.libcreation.execution:LibraryCreationExecutor'
-#    option_defs = [('--iso',
-#                    'library_creation_iso',
-#                    dict(help='Label of the library creation ISO which you ' \
-#                              'want to update.',
-#                        action='callback',
-#                        type='string',
-#                        callback=_iso_callback),
-#                    ),
-#                   ('--user',
-#                    'user',
-#                    dict(help='User name of the user who performs the update.',
-#                         action='callback',
-#                         type='string',
-#                         callback=_user_callback),
-#                   )
-#                   ]
-#
-#    @classmethod
-#    def finalize(cls, tool, options):
-#        if not tool.has_errors() and not options.simulate:
-#            reporter = LibraryCreationStockTransferReporter(
-#                        executor=tool)
-#            reporter.run()
-#            if not reporter.transaction_completed():
-#                msg = 'Error during transmission to Trac!'
-#                print msg
-
-
 class StockSampleCreationIsoRequestGenerator(ToolCommand): # no __init__ pylint: disable=W0232
     """
     Runs the stock sample ISO Request Generator tool.
@@ -896,15 +608,67 @@ class StockSampleCreationIsoRequestGenerator(ToolCommand): # no __init__ pylint:
             ir_agg.add(tool.return_value)
 
 
-def _ticket_numbers_callback(option, name, value, parser): # pylint: disable=W0613
-    nums = [int(num.strip()) for num in value.split(',')]
-    setattr(parser.values, option.dest, nums)
+
+class LibraryIsoRequestGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
+    """
+    Runs the library ISO creator tool.
+    """
+    name = 'librarycreationisorequestgenerator'
+    tool = 'thelma.automation.tools.iso.libcreation.requestgenerator' \
+           ':LibraryCreationIsoRequestGenerator'
+    option_defs = \
+        [('--library-name',
+          'library_name',
+          dict(help='Name of the molecule design library to create.'
+               )
+          ),
+         make_lazy_file_option_def(option_name='excel-file',
+                                   parameter_name='stream',
+                                   help_string='Excel file to load.',
+                                   read_on_open=True),
+         make_lazy_user_option_def(option_name='requester',
+                                   help_string='User name to use as the ' \
+                                               'owner of the Trac ticket.'
+                                   ),
+         ('--number-designs',
+          'number_designs',
+          dict(help='Number of molecule designs per library sample.',
+               type='int',
+               ),
+          ),
+         ('--number-aliquots',
+          'number_aliquots',
+          dict(help='Number of aliquots to generate per library layout.',
+               type='int',
+               ),
+          ),
+         ('--preparation-plate-volume',
+          'preparation_plate_volume',
+          dict(help='Volume for the preparation plates in ul.',
+               type='float'),
+          ),
+         ('--create-pool-racks',
+          'create_pool_racks',
+          dict(help='Flag indicating that pool stock racks should be created.',
+               action='store_true'),
+          ),
+         ('--iso-request-label',
+          'iso_request_label',
+          dict(help='Optional short label to use for the ISO request (will '
+                    'be printed on racks and therefore needs to be at most '
+                    '8 characters long). Defaults to the library name.'
+               )
+          ),
+                ]
+
+    @classmethod
+    def finalize(cls, tool, options):
+        if not tool.has_errors():
+            lib_agg = get_root_aggregate(IMoleculeDesignLibrary)
+            lib_agg.add(tool.return_value)
 
 
-class StockSampleCreationIsoGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
-    """
-    Creates ISOs for a pool stock sample creation ISO request.
-    """
+class _IsoRequestOperationTool(ToolCommand): # no __init__ pylint: disable=W0232
     @classmethod
     def get_iso_request(cls, value):
         ir_agg = get_root_aggregate(IStockSampleCreationIsoRequest)
@@ -916,9 +680,6 @@ class StockSampleCreationIsoGeneratorToolCommand(ToolCommand): # no __init__ pyl
                                 StockSampleCreationIsoGeneratorToolCommand \
                                     .get_iso_request(value))
 
-    name = 'stocksamplecreationisocreator'
-    tool = 'thelma.automation.tools.iso.poolcreation.generation:' \
-           'StockSampleCreationIsoCreator'
     option_defs = [('--iso-request-label',
                     'iso_request',
                     dict(help='The label of the ISO request for which ISOs ' \
@@ -927,36 +688,65 @@ class StockSampleCreationIsoGeneratorToolCommand(ToolCommand): # no __init__ pyl
                         type='string',
                         callback=iso_request_callback),
                     ),
-                   ('--ticket-numbers',
+                   ]
+
+
+def _ticket_numbers_callback(option, name, value, parser): # pylint: disable=W0613
+    nums = [int(num.strip()) for num in value.split(',')]
+    setattr(parser.values, option.dest, nums)
+
+
+class StockSampleCreationIsoGeneratorToolCommand(_IsoRequestOperationTool): # no __init__ pylint: disable=W0232
+    """
+    Creates ISOs for a pool stock sample creation ISO request.
+    """
+    name = 'stocksamplecreationisogenerator'
+    tool = 'thelma.automation.tools.iso.poolcreation.generation:' \
+           'StockSampleCreationIsoGenerator'
+    option_defs = _IsoRequestOperationTool.option_defs + \
+                  [('--ticket-numbers',
                     'ticket_numbers',
                     dict(help='The ticket numbers for the ISOs to generate',
                          action='callback',
                          type='string',
                          callback=_ticket_numbers_callback),
                     ),
-                   ('--reporter',
-                    'reporter',
-                    dict(help='Reporter of the tickets, if tickets should ' \
-                              'be created for the new ISOs.',
-                         type='string'),
-                    ),
+                   make_lazy_user_option_def(
+                                option_name='reporter',
+                                help_string='Reporter of the tickets, if ' \
+                                            'tickets should be created for ' \
+                                            'the new ISOs.',
+                                   ),
                    ]
 
-class StockSampleCreationIsoJobGeneratorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
+
+class LibraryCreationIsoGeneratorToolCommand(
+                                StockSampleCreationIsoGeneratorToolCommand): # no __init__ pylint: disable=W0232
+    """
+    Creates ISOs for a library creation ISO request.
+    """
+    name = 'librarycreationisogenerator'
+    tool = 'thelma.automation.tools.iso.libcreation.isogenerator' \
+           ':LibraryCreationIsoGenerator'
+
+
+class StockSampleCreationIsoJobCreatorToolCommand(_IsoRequestOperationTool): # no __init__ pylint: disable=W0232
     name = 'stocksamplecreationisojobcreator'
-    tool = 'thelma.automation.tools.iso.poolcreation.jobcreator:' \
-           'StockSampleCreationIsoJobCreator'
-    option_defs = \
-        [('--iso-request-label',
-          'iso_request',
-          dict(help='The label of the ISO request whose ISOs to ' \
-                    'create.',
-               action='callback',
-               type='string',
-               callback=StockSampleCreationIsoGeneratorToolCommand \
-                            .iso_request_callback),
-          ),
-         make_lazy_user_option_def(option_name='job-owner',
+    tool = 'thelma.automation.tools.iso.poolcreation.jobcreator' \
+           ':StockSampleCreationIsoJobCreator'
+
+    @classmethod
+    def split_string(cls, value):
+        return value.split(',')
+
+    _excluded_racks_callback = \
+        LazyOptionCallback(lambda cls, value, options: cls.split_string(value))
+
+    _requested_tubes_callback = \
+        LazyOptionCallback(lambda cls, value, options: cls.split_string(value))
+
+    option_defs = _IsoRequestOperationTool.option_defs + \
+        [make_lazy_user_option_def(option_name='job-owner',
                                    help_string='User name of the user the ' \
                                                'job will be assigned to.'),
          ('--number-isos',
@@ -964,6 +754,22 @@ class StockSampleCreationIsoJobGeneratorToolCommand(ToolCommand): # no __init__ 
           dict(help='The number of ISOs ordered.',
                type='int')
           ),
+         ('--excluded-racks',
+          'excluded_racks',
+          dict(help='Racks from you do not want to pick tubes ' \
+                    '(comma-separated, no white spaces).',
+               action='callback',
+               type='string',
+               callback=_excluded_racks_callback)
+          ),
+         ('--requested-tubes',
+          'requested_tubes',
+          dict(help='Tubes you prefer to be used ' \
+                    '(comma-separated, no white spaces).',
+               action='callback',
+               type='string',
+               callback=_requested_tubes_callback),
+         )
          ]
 
     @classmethod
@@ -973,7 +779,14 @@ class StockSampleCreationIsoJobGeneratorToolCommand(ToolCommand): # no __init__ 
             ij_agg.add(tool.return_value)
 
 
-class StockSampleCreationWorklistWriterToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
+class LibraryCreationIsoJobCreatorToolCommand(
+                                StockSampleCreationIsoJobCreatorToolCommand): # no __init__ pylint: disable=W0232
+    name = 'librarycreationisojobcreator'
+    tool = 'thelma.automation.tools.iso.libcreation.jobcreator' \
+           ':LibraryCreationIsoJobCreator'
+
+
+class _IsoOperationToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
     @classmethod
     def get_iso(cls, value):
         agg = get_root_aggregate(IStockSampleCreationIso)
@@ -981,15 +794,8 @@ class StockSampleCreationWorklistWriterToolCommand(ToolCommand): # no __init__ p
         return list(agg.iterator())[0]
 
     iso_callback = \
-        LazyOptionCallback(lambda cls, value, options: # pylint: disable=W0108
-                                StockSampleCreationWorklistWriterToolCommand \
-                                    .get_iso(value))
-    _tube_destination_racks_callback = \
-        LazyOptionCallback(lambda cls, value, options: value.split(','))
+        LazyOptionCallback(lambda cls, value, options: cls.get_iso(value)) # pylint: disable=W0108
 
-    name = 'stocksamplecreationworklistwriter'
-    tool = 'thelma.automation.tools.iso.poolcreation.writer:' \
-           'StockSampleCreationWorklistWriter'
     option_defs = [('--iso',
                     'iso',
                     dict(help='Label of the pool creation ISO for which ' \
@@ -998,22 +804,38 @@ class StockSampleCreationWorklistWriterToolCommand(ToolCommand): # no __init__ p
                         type='string',
                         callback=iso_callback),
                     ),
-                   ('--tube-destination-racks',
-                    'tube_destination_racks',
-                    dict(help='The barcodes for the tube handler destination ' \
-                              'racks (for the single molecule design tubes - ' \
-                              'these racks have to be empty). Pass the ' \
-                              'barcodes comma-separated and without white ' \
-                              'spaces).',
+                   ]
+
+
+
+def _rack_barcode_list_callback(option, name, value, parser): # pylint: disable=W0613
+    bcs = value.split(',')
+    setattr(parser.values, option.dest, bcs)
+
+
+class StockSampleCreationIsoWorklistWriterToolCommand(_IsoOperationToolCommand): # no __init__ pylint: disable=W0232
+    name = 'stocksamplecreationisoworklistwriter'
+    tool = 'thelma.automation.tools.iso.poolcreation.writer:' \
+           'StockSampleCreationIsoWorklistWriter'
+
+    option_defs = _IsoOperationToolCommand.option_defs + \
+                  [('--single-stock-racks',
+                    'single_stock_racks',
+                    dict(help='Comma-separated list of barcodes for the ' \
+                              'stock racks containing the single ' \
+                              'design samples that serve as sources' \
+                              'for the pools to create (must be empty).',
                         action='callback',
                         type='string',
-                        callback=_tube_destination_racks_callback)
+                        callback=_rack_barcode_list_callback)
                     ),
                    ('--pool-stock-rack',
                     'pool_stock_rack_barcode',
-                    dict(help='The barcodes for the rack that will contain ' \
+                    dict(help='Barcode of the rack that will contain ' \
                               'the pool stock tubes. This rack has to ' \
-                              'have empty tubes in defined positions.',
+                              'have empty tubes in defined positions. '
+                              'If this is not given, the pools are created ' \
+                              'directly in sector preparation plates.',
                          type='string')
                     ),
                    ('--use-single-source-rack',
@@ -1027,43 +849,81 @@ class StockSampleCreationWorklistWriterToolCommand(ToolCommand): # no __init__ p
     @classmethod
     def finalize(cls, tool, options):
         if not tool.has_errors() and not options.simulate:
-            uploader = StockSampleCreationTicketWorklistUploader(writer=tool)
+            uploader = StockSampleCreationTicketWorklistUploader(tool)
             uploader.run()
             if not uploader.transaction_completed():
                 msg = 'Error during transmission to Trac!'
                 print msg
 
 
-class StockSampleCreationExecutorToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
-    @classmethod
-    def get_iso(cls, value):
-        agg = get_root_aggregate(IStockSampleCreationIso)
-        agg.filter = eq(label=value)
-        return list(agg.iterator())[0]
+class LibraryCreationIsoWorklistWriterToolCommand(_IsoOperationToolCommand): # no __init__ pylint: disable=W0232
+    name = 'librarycreationisoworklistwriter'
+    tool = 'thelma.automation.tools.iso.libcreation.writer' \
+           ':LibraryCreationIsoWorklistWriter'
 
-    _iso_callback = StockSampleCreationWorklistWriterToolCommand.iso_callback
-
-    name = 'stocksamplecreationexecutor'
-    tool = 'thelma.automation.tools.iso.poolcreation.execution:' \
-           'StockSampleCreationExecutor'
     option_defs = \
-        [('--iso',
-          'iso',
-          dict(help='Label of the stock sample creation ISO which ' \
-                    'you want to update.',
+        StockSampleCreationIsoWorklistWriterToolCommand.option_defs[:-2] + \
+        [('--pool-stock-racks',
+          'pool_stock_racks',
+          dict(help='Barcodes for the racks that will contain ' \
+                    'the pool stock tubes. These racks have to ' \
+                    'have empty tubes in defined positions. Pass ' \
+                    'ordered by sector, comma-separated and ' \
+                    'without white spaces).',
                action='callback',
                type='string',
-               callback=_iso_callback),
+               callback=_rack_barcode_list_callback)
           ),
-         make_lazy_user_option_def(help_string='User name of the user who '
+         ('--include-dummy-output',
+          'include_dummy_output',
+          dict(help='Flag indicating that the output should include a dummy '
+                    'tube handler output file for in silico tube handling.',
+               action='store_true',
+               default=False),
+          ),
+         ]
+
+    @classmethod
+    def finalize(cls, tool, options):
+        if not tool.has_errors(): #  and not options.simulate:
+            uploader = LibraryCreationTicketWorklistUploader(tool)
+            uploader.run()
+            if not uploader.transaction_completed():
+                msg = 'Error during transmission to Trac!'
+                print msg
+
+
+class StockSampleCreationIsoExecutorToolCommand(_IsoOperationToolCommand): # no __init__ pylint: disable=W0232
+    name = 'stocksamplecreationisoexecutor'
+    tool = 'thelma.automation.tools.iso.poolcreation.execution:' \
+           'StockSampleCreationIsoExecutor'
+
+    option_defs = _IsoOperationToolCommand.option_defs + \
+        [make_lazy_user_option_def(help_string='User name of the user who '
                                                'performs the update.'),
          ]
 
     @classmethod
     def finalize(cls, tool, options):
         if not tool.has_errors() and not options.simulate:
-            reporter = StockSampleCreationStockTransferReporter(
-                        executor=tool)
+            reporter = StockSampleCreationStockTransferReporter(tool)
+            reporter.run()
+            if not reporter.transaction_completed():
+                msg = 'Error during transmission to Trac!'
+                print msg
+
+
+
+class LibraryCreationIsoExecutorToolCommand(
+                                StockSampleCreationIsoExecutorToolCommand): # no __init__ pylint: disable=W0232
+    name = 'librarycreationisoexecutor'
+    tool = 'thelma.automation.tools.iso.libcreation.executor:' \
+           'LibraryCreationIsoExecutor'
+
+    @classmethod
+    def finalize(cls, tool, options):
+        if not tool.has_errors() and not options.simulate:
+            reporter = LibraryCreationStockTransferReporter(tool)
             reporter.run()
             if not reporter.transaction_completed():
                 msg = 'Error during transmission to Trac!'
@@ -1088,10 +948,6 @@ class StockAuditToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
 
 
 class RackScanningAdjusterToolCommand(ToolCommand): # no __init__ pylint: disable=W0232
-
-    _user_callback = \
-        LazyOptionCallback(lambda cls, value, options:
-                                get_root_aggregate(IUser).get_by_slug(value))
 
     name = 'rackscanningadjuster'
     tool = 'thelma.automation.tools.stock.rackscanning:RackScanningAdjuster'
@@ -1279,7 +1135,7 @@ class PlateCreator96To384(ToolCommand):
                     ]
 
 
-class PlateCreator96To384(ToolCommand):
+class PlateCopier96To384(ToolCommand):
     name = 'platecopier'
     tool = 'thelma.automation.tools.platecopier:PlateCopier'
 
@@ -1301,7 +1157,7 @@ class PlateCreator96To384(ToolCommand):
                     ]
 
 
-class PlateCreator96To384(ToolCommand):
+class PlateEraser96To384(ToolCommand):
     name = 'plateeraser'
     tool = 'thelma.automation.tools.plateeraser:PlateEraser'
 
@@ -1311,3 +1167,64 @@ class PlateCreator96To384(ToolCommand):
                          type='string')
                     ),
                    ]
+
+
+class StockSampleCreationTubePickerCommand(ToolCommand):
+    name = 'stocksamplecreationtubepicker'
+    tool = 'thelma.automation.tools.iso.poolcreation.tubepicking:' \
+           'StockSampleCreationTubePicker'
+
+    @classmethod
+    def get_ids_from_file(cls, file_name):
+        with open(file_name, 'rU') as input_file:
+            ids = [int(line.strip()) for line in input_file]
+        agg = get_root_aggregate(IMoleculeDesignPool)
+        agg.filter = cntd(id=ids)
+        return list(iter(agg))
+
+    ids_callback = LazyOptionCallback(lambda cls, value, options: # pylint: disable=W0108
+                                        cls.get_ids_from_file(value))
+
+    option_defs = \
+        [('--pool-id-file',
+          'molecule_design_pools',
+          dict(help='File with molecule design pool IDs.',
+               type='string',
+               action='callback',
+               callback=ids_callback
+               )
+          ),
+         ('--output-file',
+          'output_file',
+          dict(help='File to write the picked candidates to.',
+               default='tube_picker_candidates.csv',
+               type='string',
+               pass_to_tool=False)
+          ),
+         ('--stock-concentration',
+          'single_design_concentration',
+          dict(help='Stock sample concentration of the tubes to pick.',
+               type='float'),
+          ),
+         ('--stock-volume',
+          'take_out_volume',
+          dict(help='Requested stock volume to transfer.',
+               type='float'),
+          ),
+         ]
+
+    @classmethod
+    def finalize(cls, tool, options):
+        if not tool.has_errors():
+            fn = options.output_file
+            out_lines = ['pool_id,tube_barcode,rack_barcode,rack_position'
+                         ',volume']
+            attrs = ('pool_id', 'tube_barcode', 'rack_barcode',
+                     'rack_position', 'volume')
+            fmt_str = ','.join(['%%(%s)s' % attr for attr in attrs])
+            for cand in tool.return_value:
+                out_lines.append(fmt_str
+                                 % dict([(attr, getattr(cand, attr))
+                                         for attr in attrs]))
+            with open(fn, 'wb') as out_file:
+                out_file.write(os.linesep.join(out_lines))

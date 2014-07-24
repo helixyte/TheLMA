@@ -98,19 +98,6 @@ class BaseParserHandler(BaseTool):
         """
         raise NotImplementedError('Abstract method.')
 
-    def _get_additional_value(self, value):
-        """
-        This function can be used, if there are additional value to be returned
-        to external tool besides the actual return value. The function makes
-        sure the value is only return if the :attr:`return_value` of the tool
-        is not none (i.e. the tool has run and completed without errors).
-        """
-        if self.return_value is None:
-            result = None
-        else:
-            result = value
-        return result
-
     def __str__(self):
         return '<Parser Handler %s, errors: %i>' % (self.NAME,
                                                     self.error_count)

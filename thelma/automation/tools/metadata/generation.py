@@ -2004,9 +2004,9 @@ class RobotSupportDeterminatorLibrary(_RobotSupportDeterminator):
         it is sufficient to provide mastermix for all experiment racks.
         """
         self.add_debug('Check ISO volumes ...')
-        # We do this step by step to regard the rounding
-        optimem_vol = self.__iso_volume * (self.__optimem_dil_factor - 1)
-        optimem_vol = round(optimem_vol, 1)
+        # We do this step by step to avoid rounding errors.
+        optimem_vol = round(self.__iso_volume *
+                            (self.__optimem_dil_factor - 1), 1)
         combined_vol = optimem_vol + self.__iso_volume
         mastermix_vol = combined_vol \
                         * TransfectionParameters.REAGENT_MM_DILUTION_FACTOR

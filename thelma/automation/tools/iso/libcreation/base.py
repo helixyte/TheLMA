@@ -1,10 +1,12 @@
 """
-Base classes and constants for library creation ticket.
-
-AAB
 """
-from thelma.automation.tools.iso.poolcreation.base import StockSampleCreationLayout
-from thelma.automation.utils.base import round_up
+from thelma.automation.tools.iso.poolcreation.base import \
+    LABELS as _POOL_CREATION_LABELS
+from thelma.automation.tools.iso.poolcreation.base import \
+    StockSampleCreationLayout
+from thelma.automation.tools.iso.poolcreation.base import \
+    StockSampleCreationLayoutConverter
+from thelma.automation.tools.stock.base import get_default_stock_concentration
 from thelma.automation.utils.converters import BaseLayoutConverter
 from thelma.automation.utils.layouts import ParameterSet
 from thelma.automation.utils.layouts import WorkingLayout
@@ -13,72 +15,95 @@ from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 
 
 __docformat__ = 'reStructuredText en'
+__all__ = []
 
-__all__ = ['NUMBER_SECTORS',
-           'NUMBER_MOLECULE_DESIGNS',
-           'MOLECULE_DESIGN_TRANSFER_VOLUME',
-           'POOL_STOCK_RACK_CONCENTRATION',
-           'PREPARATION_PLATE_CONCENTRATION',
-           'ALIQUOT_PLATE_CONCENTRATION',
-           'ALIQUOT_PLATE_VOLUME',
-           'STARTING_NUMBER_ALIQUOTS',
-           'get_stock_pool_buffer_volume',
-           'get_source_plate_transfer_volume',
-           'LibraryBaseLayoutParameters',
-           'LibraryBaseLayoutPosition',
-           'LibraryBaseLayout',
-           'LibraryBaseLayoutConverter',
-           'LibraryLayout']
-
-
-#: The number of rack sectors (96-to-384 plate transition).
+#: Number of rack sectors (96-to-384 plate transition).
 NUMBER_SECTORS = 4
 #: The molecule type ID for the library.
-MOLECULE_TYPE = MOLECULE_TYPE_IDS.SIRNA
-
-#: The number of molecule designs per pool.
-NUMBER_MOLECULE_DESIGNS = 3
-#: The transfer volume of each molecule design in the pool (from single
-#: molecule design stock to pool) in ul.
-MOLECULE_DESIGN_TRANSFER_VOLUME = 3
-
-#: The volume of the pool stock racks in ul.
-POOL_STOCK_RACK_VOLUME = 45
-#: The concentration of the pool stock racks in nM.
-POOL_STOCK_RACK_CONCENTRATION = 10000 # 10 uM
-#: The concentration of the prepartion plate in nM.
-PREPARATION_PLATE_CONCENTRATION = 1270 # 1270 nM
-#: The sample volume (after dilution, before aliquot plate creation) in the
-#: preparation plate in ul.
-PREPARATION_PLATE_VOLUME = 43.3 # 43.3 ul
-#: The concentration of the library plate in nM.
-ALIQUOT_PLATE_CONCENTRATION = 1270 # 1270 nM
-#: The final sample volume in the library aliquot plate in ul.
-ALIQUOT_PLATE_VOLUME = 4
-
-#: The number of aliquot plates generated for each layout.
-STARTING_NUMBER_ALIQUOTS = 8
-
-OPTIMEM_DILUTION_FACTOR = 3
+DEFAULT_LIBRARY_MOLECULE_TYPE_ID = MOLECULE_TYPE_IDS.SIRNA
+#: Default concentration of the pool stock racks in nM.
+DEFAULT_POOL_STOCK_RACK_CONCENTRATION = 10000 # 10 uM
+#: Default volume of the pool stock racks in ul.
+DEFAULT_POOL_STOCK_RACK_VOLUME = 45
+#: Default preparation plate concentration in nM.
+DEFAULT_PREPARATION_PLATE_CONCENTRATION = 1270 # 1270 nM
+#: Default preparation plate volume in ul.
+DEFAULT_PREPARATION_PLATE_VOLUME = 43.3 # 43.3 ul
+#: Default library aliquot plate concentration in nM.
+DEFAULT_ALIQUOT_PLATE_CONCENTRATION = 1270 # 1270 nM
+#: Default library aliquot plate volume in ul.
+DEFAULT_ALIQUOT_PLATE_VOLUME = 4 # 4 ul
+#: Default number of aliquots to create for each library plate.
+DEFAULT_NUMBER_LIBRARY_PLATE_ALIQUOTS = 8
+#: Default number of molecule designs per library pool.
+DEFAULT_NUMBER_MOLECULE_DESIGNS = 3
 
 
-def get_stock_pool_buffer_volume():
+def get_pool_buffer_volume():
     """
-    Returns the buffer volume required to generate the pool stock samples.
+    Returns the volume of buffer to transfer to a library pool rack.
     """
-    total_transfer_volume = NUMBER_MOLECULE_DESIGNS \
-                            * MOLECULE_DESIGN_TRANSFER_VOLUME
-    return POOL_STOCK_RACK_VOLUME - total_transfer_volume
+    # The total transfer volume is equal to the transfer needed for "pools"
+    # consisting of one single design.
+    total_transfer_volume = get_pool_transfer_volume(number_designs=1)
+    return round(DEFAULT_POOL_STOCK_RACK_VOLUME - total_transfer_volume, 1)
 
-def get_source_plate_transfer_volume():
+
+def get_pool_transfer_volume(number_designs=DEFAULT_NUMBER_MOLECULE_DESIGNS,
+                             stock_concentration=None):
     """
-    Returns the volume that is transferred from a pool stock rack to a
-    library source (preparation) plate in ul.
+    Returns the volume to transfer from a (single design) stock rack in ul to
+    a library pool rack.
+
+    :param int number_designs: Number of single molecule designs per library
+        pool.
+    :param str molecule_type_id: ID of the molecule design in the pool.
     """
-    dilution_factor = float(POOL_STOCK_RACK_CONCENTRATION) \
-                      / PREPARATION_PLATE_CONCENTRATION
-    vol = PREPARATION_PLATE_VOLUME / dilution_factor
-    return round_up(vol)
+    if stock_concentration is None:
+        stock_concentration = \
+            get_default_stock_concentration(DEFAULT_LIBRARY_MOLECULE_TYPE_ID)
+    dilution_factor = float(stock_concentration) \
+                      / DEFAULT_POOL_STOCK_RACK_CONCENTRATION
+    total_vol = DEFAULT_POOL_STOCK_RACK_VOLUME / dilution_factor
+    return round(total_vol / number_designs, 1)
+
+
+def get_preparation_plate_transfer_volume(
+                source_concentration=DEFAULT_POOL_STOCK_RACK_CONCENTRATION,
+                preparation_plate_volume=DEFAULT_PREPARATION_PLATE_VOLUME):
+    """
+    Returns the volume to transfer to a preparation plate in ul for the given
+    source concentration, preparation plate volume, and number of molecule
+    designs.
+
+    :param float source_concentration: Concentration of the source plate in
+        nM. This is either the pool rack concentration or the single stock
+        concentration, depending on the library creation process.
+    :param float preparation_plate_volume: Volume of the preparation plate
+        in ul.
+    """
+    dilution_factor = float(source_concentration) \
+                      / DEFAULT_PREPARATION_PLATE_CONCENTRATION
+    vol = preparation_plate_volume / dilution_factor
+    return round(vol, 1)
+
+
+def get_stock_transfer_volume(preparation_plate_volume=
+                                            DEFAULT_PREPARATION_PLATE_VOLUME,
+                              stock_concentration=None,
+                              number_designs=DEFAULT_NUMBER_MOLECULE_DESIGNS):
+    """
+    Returns the (single) stock transfer volume for the given preparation
+    plate volume, stock concentration and number of molecule designs per pool.
+    """
+    if stock_concentration is None:
+        stock_concentration = \
+            get_default_stock_concentration(DEFAULT_LIBRARY_MOLECULE_TYPE_ID)
+    prep_vol = get_preparation_plate_transfer_volume(
+                                    source_concentration=stock_concentration,
+                                    preparation_plate_volume=
+                                                preparation_plate_volume)
+    return round(prep_vol / number_designs, 1)
 
 
 class LibraryBaseLayoutParameters(ParameterSet):
@@ -103,28 +128,23 @@ class LibraryBaseLayoutPosition(WorkingPosition):
     and this is the availability for library samples.
 
     **Equality condition**: equal :attr:`rack_position` and
-        :attr:`is_sample_pos`
+        :attr:`is_sample_position`
     """
     PARAMETER_SET = LibraryBaseLayoutParameters
 
     def __init__(self, rack_position, is_sample_position=True):
         """
-        Constructor:
+        Constructor.
 
         :param rack_position: The rack position.
         :type rack_position: :class:`thelma.models.rack.RackPosition`.
-
-        :param is_sample_position: Is this position available for samples?
-        :type is_sample_position: :class:`bool`
+        :param bool is_sample_position: Is this position available for samples?
         """
         WorkingPosition.__init__(self, rack_position)
-
         if not isinstance(is_sample_position, bool):
             msg = 'The "sample position" flag must be a bool (obtained: %s).' \
                   % (is_sample_position.__class__.__name__)
             raise TypeError(msg)
-
-        #: Is this position available for samples?
         self.is_sample_position = is_sample_position
 
     def _get_parameter_values_map(self):
@@ -149,7 +169,7 @@ class LibraryBaseLayout(WorkingLayout):
     """
     Defines which position in a library may contain library samples.
     """
-    WORKING_POSITION_CLASS = LibraryBaseLayoutPosition
+    POSITION_CLS = LibraryBaseLayoutPosition
 
     def __init__(self, shape):
         """
@@ -171,7 +191,7 @@ class LibraryBaseLayout(WorkingLayout):
         :type working_position: :class:`LibraryBaseLayoutPosition`
 
         :raises ValueError: If the added position is not a
-            :attr:`WORKING_POSITION_CLASS` object.
+            :attr:`POSITION_CLS` object.
         :raises AttributeError: If the layout is closed.
         :raises TypeError: if the position has the wrong type
         """
@@ -257,16 +277,15 @@ class LibraryBaseLayoutConverter(BaseLayoutConverter):
         working_layout.close()
 
 
-
 class LibraryLayout(StockSampleCreationLayout):
     """
-    A special :class:`StockSampleCreationLayout` for a plate involived
+    A special :class:`StockSampleCreationLayout` for a plate involved
     in library generation (either :class:`IsoAliquotPlate` (rack shape 16x24)
     or :class:`IsoSectorPreparationPlate` (rack shape 8x12)).
     """
     def __init__(self, shape):
         """
-        Constructor:
+        Constructor.
 
         :param shape: The rack shape.
         :type shape: :class:`thelma.models.rack.RackShape`
@@ -306,5 +325,44 @@ class LibraryLayout(StockSampleCreationLayout):
             msg = 'Position %s is not part of the base layout. It must not ' \
                   'take up samples.' % (rack_pos)
             raise ValueError(msg)
-
         WorkingLayout.add_position(self, working_position)
+
+
+class LibraryLayoutConverter(StockSampleCreationLayoutConverter):
+
+    NAME = 'Library Layout Converter'
+    LAYOUT_CLS = LibraryLayout
+
+
+class LABELS(_POOL_CREATION_LABELS):
+    MARKER_SECTOR_INDEX = 'sector_index'
+
+    @classmethod
+    def create_sector_stock_transfer_worklist_label(cls, iso_label, role,
+                                                    sector_index):
+        value_parts = [cls._FILL_WORKLIST_STOCK_TRANSFER, iso_label, role,
+                       sector_index]
+        return cls._create_label(value_parts)
+
+    @classmethod
+    def create_sector_stock_rack_label(cls, iso_label, role,
+                                       sector_index, design_number=None):
+        # The rack marker for sector stock racks consists of the rack role,
+        # the sector index and optionally the design number.
+        # Example: psrQ1#1
+        if design_number is None:
+            rack_marker = '%sQ%i' % (role, sector_index)
+        else:
+            rack_marker = '%sQ%i#%i' % (role, sector_index, design_number)
+        value_parts = [iso_label, rack_marker]
+        return cls._create_label(value_parts)
+
+    @classmethod
+    def parse_sector_stock_rack_label(cls, label):
+        values = _POOL_CREATION_LABELS.parse_stock_rack_label(label)
+        # The base class does not parse out the sector index from the rack
+        # role string.
+        rack_role, sector_idx_str = values[cls.MARKER_RACK_ROLE].split('Q')
+        values[cls.MARKER_RACK_ROLE] = rack_role
+        values[cls.MARKER_SECTOR_INDEX] = int(sector_idx_str)
+        return values

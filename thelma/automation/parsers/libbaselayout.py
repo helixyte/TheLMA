@@ -65,42 +65,40 @@ class LibraryBaseLayoutParser(ExcelFileParser):
             self.add_info('Parsing completed.')
 
     def __determine_layout_dimension(self):
-        """
-        Makes sure the layout is in the right position and determines
-        the layout dimension.
-        """
+        # Makes sure the layout is in the right position and determines
+        # the layout dimension.
         self.add_debug('Determine layout dimension ...')
-
         first_col_value = self.get_cell_value(self.sheet,
                     self.TOP_LEFT_POSITION[0] + 1, self.TOP_LEFT_POSITION[1])
         is_layout = first_col_value == 'A'
-
         if not is_layout:
             msg = 'Error when trying to locate the layout. Please make sure ' \
                   'the columns header start in row 2 in column A.'
             self.add_error(msg)
             return None
-
         row_number = self.get_sheet_row_number(self.sheet)
         col_number = self.get_sheet_column_number(self.sheet)
         rack_row, rack_column = 0, 0
         start_row = self.TOP_LEFT_POSITION[0]
         start_column = self.TOP_LEFT_POSITION[1]
-        # get number of rows, row labels are alphanumeric
+        # Get number of rows, row labels are alphanumeric.
         while True:
             row_cell_value = self.get_cell_value(self.sheet,
                                     (start_row + rack_row + 1), start_column)
-            if row_cell_value != label_from_number(rack_row + 1): break
+            if row_cell_value != label_from_number(rack_row + 1):
+                break
             rack_row += 1
-            if (start_row + rack_row + 1) >= row_number: break
-        # get number of columns, column labels are numbers
+            if (start_row + rack_row + 1) >= row_number:
+                break
+        # Get number of columns, column labels are numbers.
         while True:
             column_cell_value = self.get_cell_value(self.sheet, start_row,
                                  (start_column + rack_column + 1))
-            if column_cell_value != (rack_column + 1): break
+            if column_cell_value != (rack_column + 1):
+                break
             rack_column += 1
-            if (start_column + rack_column + 1) >= col_number: break
-
+            if (start_column + rack_column + 1) >= col_number:
+                break
         if not (rack_row, rack_column) in self.RACK_SHAPES:
             msg = 'Invalid layout block shape (%ix%i).' % (rack_row,
                                                            rack_column)
@@ -109,18 +107,16 @@ class LibraryBaseLayoutParser(ExcelFileParser):
             self.shape = RackShapeParsingContainer(self, rack_row, rack_column)
 
     def __find_sample_wells(self):
-        """
-        Each well containing at least 1 character is regarded as positive
-        and added to the list.
-        """
+        # Each well containing at least 1 character is regarded as positive
+        # and added to the list.
         self.add_debug('Search wells ...')
-
         for r in range(self.shape.row_number):
             table_row = self.TOP_LEFT_POSITION[0] + 1 + r
             for c in range(self.shape.column_number):
                 table_col = self.TOP_LEFT_POSITION[1] + 1 + c
                 cell_value = self.get_cell_value(self.sheet, table_row,
                                                  table_col)
-                if cell_value is None or len(cell_value) < 1: continue
+                if cell_value is None or len(cell_value) < 1:
+                    continue
                 pos_container = RackPositionParsingContainer(self, r, c)
                 self.contained_wells.append(pos_container)

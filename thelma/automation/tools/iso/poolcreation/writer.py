@@ -70,14 +70,14 @@ from thelma.models.liquidtransfer import WorklistSeries
 
 __docformat__ = 'reStructuredText en'
 
-__all__ = ['StockSampleCreationWorklistWriter',
+__all__ = ['StockSampleCreationIsoWorklistWriter',
            '_StockSampleCreationXL20ReportWriter',
-           '_StockSampleCreationInstructionsWriter',
+           'StockSampleCreationInstructionsWriter',
            'StockSampleCreationIsoLayoutWriter',
            'StockSampleCreationTicketWorklistUploader']
 
 
-class StockSampleCreationWorklistWriter(BaseTool):
+class StockSampleCreationIsoWorklistWriter(BaseTool):
     """
     Writes the worklists files for a pool stock sample creation ISO.
     This comprises:
@@ -88,8 +88,8 @@ class StockSampleCreationWorklistWriter(BaseTool):
     - overview file
 
     The tool also assigns the ISO stock rack for the pool rack (the rack that
-    will contain the pools to be created) and the destination racks
-    (the target racks for the single molecule design pool).
+    will contain the pools to be created) and the single stock racks
+    (the stock racks containing the single design source samples).
 
     :Note: The files for the CyBio worklists cannot be generated here, because
         this requires the stock tubes to be transferred.
@@ -113,7 +113,7 @@ class StockSampleCreationWorklistWriter(BaseTool):
     #: only one single design rack).
     FILE_NAME_BIOMEK = '%s_biomek_worklist.csv'
 
-    def __init__(self, iso, tube_destination_racks, pool_stock_rack_barcode,
+    def __init__(self, iso, single_stock_racks, pool_stock_rack_barcode,
                  use_single_source_rack=False, parent=None):
         """
         Constructor.
@@ -121,10 +121,8 @@ class StockSampleCreationWorklistWriter(BaseTool):
         :param iso: The pool stock sample creation ISO for which to generate
             the worklist files.
         :type iso: :class:`thelma.models.iso.StockSampleCreationIso`
-        :param tube_destination_racks: The barcodes for the destination
-            racks for the single molecule design tubes (these racks have to be
-            empty).
-        :type tube_destination_racks: list of barcodes (:class:`basestring`)
+        :param list single_stock_racks: Barcodes for single design stock racks
+            (must be empty).
         :param pool_stock_rack_barcode: The barcodes for the new pool stock rack
             (this rack has to have empty tubes in defined positions).
         :type pool_stock_rack_barcode: :class:`basestring`
@@ -137,11 +135,11 @@ class StockSampleCreationWorklistWriter(BaseTool):
         self.iso = iso
         #: The barcodes for the destination racks for the single molecule
         #: design tubes (these racks have to be empty).
-        self.tube_destination_racks = tube_destination_racks
+        self.single_stock_racks = single_stock_racks
         #: The barcodes for the new pool stock rack (this rack has to have
         #: empty tubes in defined positions).
         self.pool_stock_rack_barcode = pool_stock_rack_barcode
-        #: If there are only dew pools to be created the user might want to
+        #: If there are only a few pools to be created the user might want to
         #: use a single stock rack.
         self.use_single_source_rack = use_single_source_rack
         #: The layout number of the ISO.
@@ -161,9 +159,9 @@ class StockSampleCreationWorklistWriter(BaseTool):
         self.__rack_containers = None
         #: The :class:`StockSampleCreationLayout` for the ISO.
         self.__ssc_layout = None
-        #: The :class:`StockRackLayout` objects for the tube destination racks
+        #: The :class:`StockRackLayout` objects for the single stock racks
         #: mapped onto rack barcode.
-        self.__dest_rack_layouts = None
+        self.__single_stock_rack_layouts = None
         #: Contains positions for which we do not want to generate a pool
         #: (because there are not enough pools to fill a 8x12 rack).
         self.__ignored_positions = None
@@ -183,7 +181,7 @@ class StockSampleCreationWorklistWriter(BaseTool):
         self.__rack_map = dict()
         self.__rack_containers = dict()
         self.__ssc_layout = None
-        self.__dest_rack_layouts = dict()
+        self.__single_stock_rack_layouts = dict()
         self.__ignored_positions = []
         self.__tube_map = dict()
         self.__tube_transfers = []
@@ -191,14 +189,11 @@ class StockSampleCreationWorklistWriter(BaseTool):
         self.__source_rack_locations = dict()
 
     def run(self):
-        """
-        Creates the worklist files.
-        """
         self.reset()
         self.add_info('Start worklist file generation ...')
         self.__check_input()
         if not self.has_errors():
-            self.__set_volumes()
+            self._set_volumes()
         if not self.has_errors():
             self.__get_tube_racks()
         if not self.has_errors():
@@ -206,7 +201,7 @@ class StockSampleCreationWorklistWriter(BaseTool):
         if not self.has_errors():
             self.__write_layout_file()
         if not self.has_errors():
-            self.__check_tube_destination_racks()
+            self.__check_single_stock_racks()
             self.__check_pool_stock_rack()
         if not self.has_errors():
             self.__fetch_tube_locations()
@@ -221,9 +216,6 @@ class StockSampleCreationWorklistWriter(BaseTool):
             self.add_info('Worklist file generation completed.')
 
     def __check_input(self):
-        """
-        Checks the initialisation values.
-        """
         self.add_debug('Check input values ...')
         if self._check_input_class('ISO', self.iso, StockSampleCreationIso):
             status = self.iso.status
@@ -232,23 +224,23 @@ class StockSampleCreationWorklistWriter(BaseTool):
                 self.add_error(msg)
             self.layout_number = self.iso.layout_number
         self._check_input_list_classes('tube destination rack',
-                                       self.tube_destination_racks, basestring)
+                                       self.single_stock_racks, basestring)
         self._check_input_class('pool stock rack barcode',
                                 self.pool_stock_rack_barcode, basestring)
         self._check_input_class('"use single source rack " flag',
                                 self.use_single_source_rack, bool)
 
-    def __set_volumes(self):
-        # Sets the stock take out volume and the buffer volume. These number
+    def _set_volumes(self):
+        # Sets the stock take out volume and the buffer volume. These numbers
         # are derived from the buffer worklist and the ISO request. The buffer
-        # volume could also be determined from the ISO request data - the
-        # approach below has been chosen because it comprises some additional
+        # volume could also be determined from the ISO request data; the
+        # approach below has been chosen because it allows for some additional
         # checks.
         worklist_series = self.iso.iso_request.worklist_series
         if worklist_series is None:
             msg = 'Unable to find worklist series for ISO request!'
             self.add_error(msg)
-        elif not len(worklist_series) == 1:
+        elif len(worklist_series) != 1:
             msg = 'The worklist series of the ISO request has an unexpected ' \
                   'length (%i, expected: 1).' % (len(worklist_series))
             self.add_error(msg)
@@ -271,17 +263,17 @@ class StockSampleCreationWorklistWriter(BaseTool):
                         break
                 if not self.has_errors() and not volume is None:
                     self.__buffer_volume = volume * VOLUME_CONVERSION_FACTOR
-        volume_calculator = VolumeCalculator.from_iso_request(
-                                            iso_request=self.iso.iso_request)
+        volume_calculator = \
+            VolumeCalculator.from_iso_request(self.iso.iso_request)
         self._run_and_record_error(volume_calculator.calculate,
                        base_msg='Unable to determine stock transfer volume: ',
                        error_types=ValueError)
-        self.__stock_take_out_volume = volume_calculator.\
-                                    get_single_design_stock_transfer_volume()
+        self.__stock_take_out_volume = \
+            volume_calculator.get_single_design_stock_transfer_volume()
 
     def __get_tube_racks(self):
-        # Fetches the tubes rack for the rack barcodes.
-        self.add_debug('Fetch tube racks ...')
+        # Fetches the tube racks for the rack barcodes.
+        self.add_debug('Fetching tube racks ...')
         tube_rack_agg = get_root_aggregate(ITubeRack)
         not_found = []
         pool_rack = tube_rack_agg.get_by_slug(self.pool_stock_rack_barcode)
@@ -289,7 +281,7 @@ class StockSampleCreationWorklistWriter(BaseTool):
             not_found.append(self.pool_stock_rack_barcode)
         else:
             self.__rack_map[self.pool_stock_rack_barcode] = pool_rack
-        for barcode in self.tube_destination_racks:
+        for barcode in self.single_stock_racks:
             rack = tube_rack_agg.get_by_slug(barcode)
             if rack is None:
                 not_found.append(barcode)
@@ -316,14 +308,14 @@ class StockSampleCreationWorklistWriter(BaseTool):
                 if not rack_pos in layout_positions:
                     self.__ignored_positions.append(rack_pos)
 
-    def __check_tube_destination_racks(self):
+    def __check_single_stock_racks(self):
         # Makes sure there is the right number of tube destination racks and
         # that all racks are empty.
         self.add_debug('Check tube destination racks ...')
         not_empty = []
         number_designs = self.iso.iso_request.number_designs
         if self.use_single_source_rack:
-            if len(self.tube_destination_racks) > 1:
+            if len(self.single_stock_racks) > 1:
                 msg = 'There is more than one barcode for tube destination ' \
                       'list. Will use the smallest one.'
                 self.add_warning(msg)
@@ -333,14 +325,15 @@ class StockSampleCreationWorklistWriter(BaseTool):
                       '(%i tubes). Try again without requesting a single ' \
                       'source rack.' % (single_pools)
                 self.add_error(msg)
-        elif not len(self.tube_destination_racks) == number_designs:
+        elif not len(self.single_stock_racks) == number_designs:
             msg = 'You need to provide %i empty racks. You have provided ' \
                   '%i barcodes.' % (number_designs,
-                                    len(self.tube_destination_racks))
+                                    len(self.single_stock_racks))
             self.add_error(msg)
-        for barcode in sorted(self.tube_destination_racks):
+        for barcode in sorted(self.single_stock_racks):
             rack = self.__rack_map[barcode]
-            if len(rack.containers) > 0: not_empty.append(barcode)
+            if len(rack.containers) > 0:
+                not_empty.append(barcode)
             if self.use_single_source_rack:
                 rack_number = None
             else:
@@ -348,7 +341,7 @@ class StockSampleCreationWorklistWriter(BaseTool):
             rack_marker = LABELS.create_rack_marker(
                                 LABELS.ROLE_SINGLE_DESIGN_STOCK, rack_number)
             self._store_rack_container(rack, rack_marker)
-            self.__dest_rack_layouts[barcode] = SingleDesignStockRackLayout()
+            self.__single_stock_rack_layouts[barcode] = SingleDesignStockRackLayout()
         if len(not_empty) > 0:
             msg = 'The following tube destination racks you have chosen are ' \
                   'not empty: %s.' % (', '.join(sorted(not_empty)))
@@ -401,7 +394,7 @@ class StockSampleCreationWorklistWriter(BaseTool):
         """
         stock_rack_label = LABELS.create_stock_rack_label(self.iso.label,
                                                           rack_marker)
-        rack_container = IsoRackContainer(rack=rack, rack_marker=rack_marker,
+        rack_container = IsoRackContainer(rack, rack_marker,
                                           label=stock_rack_label)
         self.__rack_containers[rack.barcode] = rack_container
 
@@ -475,7 +468,7 @@ class StockSampleCreationWorklistWriter(BaseTool):
             tube_barcodes = ssc_pos.stock_tube_barcodes
             for i in range(len(tube_barcodes)):
                 tube_barcode = tube_barcodes[i]
-                trg_rack_barcode = self.tube_destination_racks[i]
+                trg_rack_barcode = self.single_stock_racks[i]
                 self.__store_tube_transfer(tube_barcode, trg_rack_barcode,
                                           rack_pos)
                 self.__create_stock_rack_position(ssc_pos, tube_barcode,
@@ -488,7 +481,7 @@ class StockSampleCreationWorklistWriter(BaseTool):
         # source racks.
         positions = get_positions_for_shape(get_96_rack_shape(),
                                             vertical_sorting=True)
-        trg_rack_barcode = self.tube_destination_racks[0]
+        trg_rack_barcode = self.single_stock_racks[0]
         for ssc_pos in self.__ssc_layout.get_sorted_working_positions():
             tube_barcodes = ssc_pos.stock_tube_barcodes
             for i in range(len(tube_barcodes)):
@@ -502,28 +495,23 @@ class StockSampleCreationWorklistWriter(BaseTool):
     def __store_tube_transfer(self, tube_barcode, trg_rack_barcode, rack_pos):
         # Convenience method creating and storing a :class:`TubeTransferData`
         # object and a :class:`StockRackPosition`for the tube.
-        tube = self.__tube_map[tube_barcode]
-        ttd = TubeTransferData(tube_barcode=tube_barcode,
-                               src_rack_barcode=tube.rack.barcode,
-                               src_pos=tube.position,
-                               trg_rack_barcode=trg_rack_barcode,
-                               trg_pos=rack_pos)
+        src_tube = self.__tube_map[tube_barcode]
+        ttd = TubeTransferData(tube_barcode, src_tube.rack.barcode,
+                               src_tube.position, trg_rack_barcode, rack_pos)
         self.__tube_transfers.append(ttd)
 
     def __create_stock_rack_position(self, ssc_pos, tube_barcode, src_rack_pos,
                                      trg_rack_barcode):
         # Convenience method creating and storing a tube destination
         # :class:`StockRackPosition` for a source tube.
-        layout = self.__dest_rack_layouts[trg_rack_barcode]
-        tt = TransferTarget(rack_position=ssc_pos.rack_position,
-                            transfer_volume=self.__stock_take_out_volume,
+        layout = self.__single_stock_rack_layouts[trg_rack_barcode]
+        tt = TransferTarget(ssc_pos.rack_position,
+                            self.__stock_take_out_volume,
                             target_rack_marker=LABELS.ROLE_POOL_STOCK)
         tube = self.__tube_map[tube_barcode]
         tube_pool = tube.sample.molecule_design_pool # contains a stock sample
-        sr_pos = StockRackPosition(rack_position=src_rack_pos,
-                                   molecule_design_pool=tube_pool,
-                                   tube_barcode=tube_barcode,
-                                   transfer_targets=[tt])
+        sr_pos = StockRackPosition(src_rack_pos, tube_pool, tube_barcode,
+                                   [tt])
         layout.add_position(sr_pos)
 
     def __write_tube_handler_files(self):
@@ -573,10 +561,10 @@ class StockSampleCreationWorklistWriter(BaseTool):
         """
         self.add_debug('Generate CyBio info file ...')
 
-        writer = _StockSampleCreationInstructionsWriter(
+        writer = StockSampleCreationInstructionsWriter(
                                                 self.iso.label,
                                                 self.pool_stock_rack_barcode,
-                                                self.tube_destination_racks,
+                                                self.single_stock_racks,
                                                 self.__stock_take_out_volume,
                                                 self.__buffer_volume,
                                                 parent=self)
@@ -620,7 +608,7 @@ class StockSampleCreationWorklistWriter(BaseTool):
         psts = []
         if self.use_single_source_rack:
             ps = get_pipetting_specs_biomek_stock()
-            layout = self.__dest_rack_layouts.values()[0] # contain only 1 layout
+            layout = self.__single_stock_rack_layouts.values()[0] # contain only 1 layout
             for rack_pos, sr_pos in layout.iterpositions():
                 for tt in sr_pos.transfer_targets:
                     trg_pos = get_rack_position_from_label(tt.position_label)
@@ -631,13 +619,11 @@ class StockSampleCreationWorklistWriter(BaseTool):
         else:
             ps = get_pipetting_specs_cybio()
             for rack_pos in self.__ssc_layout.get_positions():
-                pst = PlannedSampleTransfer.get_entity(volume=volume,
-                                            source_position=rack_pos,
-                                            target_position=rack_pos)
+                pst = PlannedSampleTransfer.get_entity(volume,
+                                                       rack_pos, rack_pos)
                 psts.append(pst)
-        worklist = PlannedWorklist(label=wl_label, pipetting_specs=ps,
-                                   transfer_type=TRANSFER_TYPES.SAMPLE_TRANSFER,
-                                   planned_liquid_transfers=psts)
+        worklist = PlannedWorklist(wl_label, TRANSFER_TYPES.SAMPLE_TRANSFER,
+                                   ps, planned_liquid_transfers=psts)
         ws = WorklistSeries()
         ws.add_worklist(0, worklist)
         return ws
@@ -649,7 +635,7 @@ class StockSampleCreationWorklistWriter(BaseTool):
         worklist = worklist_series.get_worklist_for_index(0)
         writer = _SingleRackTransferWorklistWriter(
                                                 worklist,
-                                                self.tube_destination_racks[0],
+                                                self.single_stock_racks[0],
                                                 self.pool_stock_rack_barcode,
                                                 parent=self)
         stream = writer.get_result()
@@ -670,9 +656,9 @@ class StockSampleCreationWorklistWriter(BaseTool):
                 stock_rack = isr
                 break
         if stock_rack is None:
-            IsoStockRack(iso=self.iso, rack=rack, rack_layout=rack_layout,
-                         worklist_series=worklist_series,
-                         label=stock_rack_label)
+            # FIXME: Using instantiation for side effects.
+            IsoStockRack(self.iso, stock_rack_label, rack, rack_layout,
+                         worklist_series)
         else:
             stock_rack.worklist_series = worklist_series
             stock_rack.rack = rack
@@ -704,9 +690,9 @@ class StockSampleCreationWorklistWriter(BaseTool):
     def __create_single_design_stock_racks(self, worklist_series):
         # Creates the ISO stock rack for the tube destination racks. The
         # layouts have already been generated during tube location finding.
-        for barcode in self.tube_destination_racks:
+        for barcode in self.single_stock_racks:
             rack_container = self.__rack_containers[barcode]
-            layout = self.__dest_rack_layouts[barcode]
+            layout = self.__single_stock_rack_layouts[barcode]
             self.__create_stock_rack(worklist_series, rack_container.rack,
                                      rack_layout=layout.create_rack_layout(),
                                      stock_rack_label=rack_container.label)
@@ -756,16 +742,10 @@ class _StockSampleCreationXL20ReportWriter(TxtWriter):
             molecule design samples) *in ul* (positive number).
         """
         TxtWriter.__init__(self, parent=parent)
-        #: Define which tube goes where.
         self.tube_transfers = tube_transfers
-        #: The label of the ISO we are dealing with.
         self.iso_label = iso_label
-        #: The layout for which we are creating racks
         self.layout_number = layout_number
-        #: Maps rack locations onto rack barcodes.
         self.source_rack_locations = source_rack_locations
-        #: The volume to be transferred (for the single molecule design samples)
-        #: *in ul*.
         self.take_out_volume = take_out_volume
 
     def _check_input(self):
@@ -776,10 +756,8 @@ class _StockSampleCreationXL20ReportWriter(TxtWriter):
                                        TubeTransferData)
         self._check_input_class('ISO label', self.iso_label, basestring)
         self._check_input_class('layout number', self.layout_number, int)
-
         self._check_input_class('rack location map',
                                 self.source_rack_locations, dict)
-
         if not is_valid_number(self.take_out_volume):
             msg = 'The stock take out volume must be a positive number ' \
                   '(obtained: %s).' % (self.take_out_volume)
@@ -854,7 +832,7 @@ class _StockSampleCreationXL20ReportWriter(TxtWriter):
             self.add_error(msg)
 
 
-class _StockSampleCreationInstructionsWriter(TxtWriter):
+class StockSampleCreationInstructionsWriter(TxtWriter):
     """
     This tools writes an CyBio overview file for the CyBio steps involved in
     the creation of new pool sample stock racks.
@@ -866,7 +844,7 @@ class _StockSampleCreationInstructionsWriter(TxtWriter):
     """
     NAME = 'Stock Sample Creation CyBio Writer'
     #: Header for the pool creation section.
-    HEADER_POOL_CREATION = 'Pool Creation Instructions for ISO "%s"'
+    HEADER_POOL_CREATION = 'Pool Creation Instructions for %sISO "%s"'
     #: Base line for transfer volumes.
     VOLUME_LINE = 'Volume: %.1f ul each'
     #: Base line for buffer volumes.
@@ -879,48 +857,44 @@ class _StockSampleCreationInstructionsWriter(TxtWriter):
     ROBOT_LINE = 'Use %s robot for stock transfers.'
 
     def __init__(self, iso_label, pool_stock_rack_barcode,
-                 tube_destination_racks, take_out_volume, buffer_volume,
-                 parent=None):
+                 single_stock_racks, take_out_volume, buffer_volume,
+                 sector_index=None, parent=None):
         """
         Constructor.
 
         :param str iso_label: The name of the ISO the file will be generated
             for.
-        :param tube_destination_racks: The barcodes for the destination
-            racks for the single molecule design tube (these racks have to be
-            empty).
-        :type tube_destination_racks: lists of barcodes (:class:`basestring`)
         :param str pool_stock_rack_barcode: The barcode for the new pool stock
             rack (this racks has to have empty tubes in defined positions).
+        :param single_stock_racks: The barcodes for the destination
+            racks for the single molecule design tube (these racks have to be
+            empty).
+        :type single_stock_racks: lists of barcodes (:class:`basestring`)
         :param int take_out_volume: The volume to be transferred (for the
             single molecule design sample) in ul (positive number).
         :param int buffer_volume: The buffer volume in the new stock tubes in
-            ul (positive number).
+            ul (positive number);
+        :param int sector_index: The sector index for the stock rack if this
+            is a
         """
         TxtWriter.__init__(self, parent=parent)
-        #: The name of the ISO the file will be generated for.
         self.iso_label = iso_label
-        #: The barcodes for the destination, rack for the single molecule
-        #: design tubes.
-        self.tube_destination_racks = tube_destination_racks
-        #: The barcode for the new pool stock rack.
+        self.single_stock_racks = single_stock_racks
         self.pool_stock_rack_barcode = pool_stock_rack_barcode
-        #: The volume to be transferred (for the single molecule design samples)
-        #: in ul.
         self.take_out_volume = take_out_volume
-        #: The buffer volume in the new stock tubes in ul.
         self.buffer_volume = buffer_volume
+        self.sector_index = sector_index
 
     def _check_input(self):
         self.add_debug('Check input values ...')
         self._check_input_class('ISO label', self.iso_label, basestring)
         if self._check_input_class('tube destination rack map',
-                                   self.tube_destination_racks, list):
-            for barcode in self.tube_destination_racks:
+                                   self.single_stock_racks, list):
+            for barcode in self.single_stock_racks:
                 if not self._check_input_class(
                        'barcode for a tube destination rack',
                         barcode, basestring): break
-            if not len(self.tube_destination_racks) > 0:
+            if not len(self.single_stock_racks) > 0:
                 msg = 'There are no barcodes in the destination rack map!'
                 self.add_error(msg)
         self._check_input_class('pool stock rack barcode',
@@ -935,14 +909,18 @@ class _StockSampleCreationInstructionsWriter(TxtWriter):
 
     def _write_stream_content(self):
         self.add_debug('Write stream ...')
-        header = self.HEADER_POOL_CREATION % (self.iso_label)
-        self._write_headline(header_text=header, preceding_blank_lines=0)
+        if self.sector_index is None:
+            header = self.HEADER_POOL_CREATION % ('', self.iso_label)
+        else:
+            header = self.HEADER_POOL_CREATION \
+                     % ('sector %d of ' % self.sector_index, self.iso_label)
+        self._write_headline(header, preceding_blank_lines=0)
         volume_line = self.VOLUME_LINE % (self.take_out_volume)
         buffer_line = self.BUFFER_LINE % (self.buffer_volume)
         src_line = self.SOURCE_LINE \
-                  % (self._get_joined_str(self.tube_destination_racks))
+                  % (self._get_joined_str(self.single_stock_racks))
         trg_line = self.TARGET_LINE % (self.pool_stock_rack_barcode)
-        if len(self.tube_destination_racks) == 1:
+        if len(self.single_stock_racks) == 1:
             use_robot = 'Biomek (stock transfer setting)'
         else:
             use_robot = PIPETTING_SPECS_NAMES.CYBIO
@@ -1046,7 +1024,7 @@ class _SingleRackTransferWorklistWriter(CsvWriter):
         Constructor.
 
         :param worklist: The stock transfer worklist generated by the
-            :class:`StockSampleCreationWorklistWriter`.
+            :class:`StockSampleCreationIsoWorklistWriter`.
         :type worklist: :class:`thelma.models.liquidtransfers.PlannedWorklist`
             (transfer type SAMPLE_TRANSFER)
         :param str single_design_rack_barcode: The barcode of the single
@@ -1056,7 +1034,7 @@ class _SingleRackTransferWorklistWriter(CsvWriter):
         """
         CsvWriter.__init__(self, parent=parent)
         #: The stock transfer worklist generated by the
-        #: :class:`StockSampleCreationWorklistWriter`.
+        #: :class:`StockSampleCreationIsoWorklistWriter`.
         self.worklist = worklist
         #: The barcode of the single design pool rack (serves as source rack).
         self.single_design_rack_barcode = single_design_rack_barcode
@@ -1143,7 +1121,7 @@ class _SingleRackTransferWorklistWriter(CsvWriter):
 class StockSampleCreationTicketWorklistUploader(BaseTracTool):
     """
     Uses the worklist files the generated by the
-    :class:`StockSampleCreationWorklistWriter` and sends them to the ticket
+    :class:`StockSampleCreationIsoWorklistWriter` and sends them to the ticket
     of the stock sample creation ISO.
     """
     NAME = 'Pool Creation Ticket Worklist Uploader'
@@ -1159,10 +1137,9 @@ class StockSampleCreationTicketWorklistUploader(BaseTracTool):
         Constructor.
 
         :param writer: The writer that has generated the files.
-        :type writer: :class:`StockSampleCreationWorklistWriter`
+        :type writer: :class:`StockSampleCreationIsoWorklistWriter`
         """
         BaseTracTool.__init__(self, parent=parent)
-        #: The writer that has generated the files.
         self.writer = writer
         #: The stock sample creation ISO the worklists belong to (also contains
         #: the ticket ID).
@@ -1182,13 +1159,16 @@ class StockSampleCreationTicketWorklistUploader(BaseTracTool):
         if not self.has_errors():
             self.__fetch_writer_data()
         if not self.has_errors():
-            self.__prepare_and_submit()
+            fn = self._make_filename(self.__iso)
+        if not self.has_errors():
+            self.__prepare_and_submit(fn)
 
     def __check_input(self):
         # Checks the initialisation values.
         self.add_debug('Check input values ...')
-        if self._check_input_class('writer', self.writer,
-                                   StockSampleCreationWorklistWriter):
+        # Can't check for specific writer class here as we have a subclass
+        # that uses a writer that inherits from BaseTool.
+        if self._check_input_class('writer', self.writer, BaseTool):
             if self.writer.has_errors():
                 msg = 'The writer has errors! Abort file generation.'
                 self.add_error(msg)
@@ -1205,13 +1185,16 @@ class StockSampleCreationTicketWorklistUploader(BaseTracTool):
         if self._check_input_class('file map', self.__file_map, dict):
             for fn in self.__file_map.keys():
                 if not self._check_input_class('file name', fn,
-                                               basestring): break
+                                               basestring):
+                    break
 
-    def __prepare_and_submit(self):
+    def _make_filename(self, iso):
+        return self.FILE_NAME % (iso.label)
+
+    def __prepare_and_submit(self, filename):
         # Submits the request.
-        fn = self.FILE_NAME % (self.__iso.label)
         attachment = AttachmentWrapper(content=self.__file_map,
-                                       file_name=fn,
+                                       file_name=filename,
                                        description=self.DESCRIPTION)
         ticket_id = self.__iso.ticket_number
         kw = dict(ticket_id=ticket_id, attachment=attachment,
