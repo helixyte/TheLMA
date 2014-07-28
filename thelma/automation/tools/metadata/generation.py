@@ -1929,16 +1929,20 @@ class RobotSupportDeterminatorLibrary(_RobotSupportDeterminator):
         The specs must match the ones defined by the library
         """
         _RobotSupportDeterminator._init_iso_reservoir_specs(self)
-        plate_specs_lib = self.library.plate_specs
-        if not plate_specs_lib is None:
-            lib_specs = get_reservoir_specs_from_rack_specs(plate_specs_lib)
-            if not lib_specs == self._iso_reservoir_specs:
-                msg = 'The volume capacity of the library plates does not ' \
-                      'allow for standard mastermix support. Robot support ' \
-                      'for mastermix preparation is disabled now.'
-                self.add_warning(msg)
-                self.supports_mastermix = False
-            self._iso_reservoir_specs = lib_specs
+        if len(self.library.library_plates) == 0:
+            msg = 'No library plates available for screening.'
+            self.add_error(msg)
+        else:
+            ps_lib = self.library.plate_specs
+            if not ps_lib is None:
+                rs_lib = get_reservoir_specs_from_rack_specs(ps_lib)
+                if not rs_lib == self._iso_reservoir_specs:
+                    msg = 'The volume capacity of the library plates does ' \
+                          'not allow for standard mastermix support. Robot ' \
+                          'support for mastermix preparation is disabled now.'
+                    self.add_warning(msg)
+                    self.supports_mastermix = False
+                self._iso_reservoir_specs = rs_lib
 
     def _get_max_target_count(self):
         """
