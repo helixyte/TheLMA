@@ -8,12 +8,11 @@ from thelma.automation.handlers.poolcreationset import \
 from thelma.automation.semiconstants import get_pipetting_specs_biomek
 from thelma.automation.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.tools.base import BaseTool
+from thelma.automation.tools.iso.libcreation.base import DEFAULT_ALIQUOT_PLATE_VOLUME
 from thelma.automation.tools.iso.libcreation.base import LibraryBaseLayout
 from thelma.automation.tools.iso.libcreation.base import NUMBER_SECTORS
 from thelma.automation.tools.iso.libcreation.base import \
     DEFAULT_ALIQUOT_PLATE_CONCENTRATION
-from thelma.automation.tools.iso.libcreation.base import \
-    DEFAULT_ALIQUOT_PLATE_VOLUME
 from thelma.automation.tools.iso.libcreation.base import \
     DEFAULT_LIBRARY_MOLECULE_TYPE_ID
 from thelma.automation.tools.iso.libcreation.base import \
@@ -64,6 +63,7 @@ class LibraryCreationIsoRequestGenerator(BaseTool):
     def __init__(self, library_name, stream, requester, number_designs=1,
                  number_aliquots=DEFAULT_NUMBER_LIBRARY_PLATE_ALIQUOTS,
                  preparation_plate_volume=DEFAULT_PREPARATION_PLATE_VOLUME,
+                 aliquot_plate_volume=DEFAULT_ALIQUOT_PLATE_VOLUME,
                  molecule_type=DEFAULT_LIBRARY_MOLECULE_TYPE_ID,
                  create_pool_racks=None, iso_request_label=None, parent=None):
         """
@@ -83,6 +83,8 @@ class LibraryCreationIsoRequestGenerator(BaseTool):
             each library plate.
         :params float preparation_plate_volume: Volume to create in the
             preparation plates in ul.
+        :params float aliquot_plate_volume: Volume to create in the
+            aliquot plates in ul.
         :params bool create_pool_racks: Flag indicating whether pooled stock
             tube racks should be created. If this is set to `False`, the
             stock transfer will be assumed to have the preparation plate as
@@ -99,6 +101,7 @@ class LibraryCreationIsoRequestGenerator(BaseTool):
         self.number_designs = number_designs
         self.number_aliquots = number_aliquots
         self.preparation_plate_volume = preparation_plate_volume
+        self.aliquot_plate_volume = aliquot_plate_volume
         self.molecule_type = molecule_type
         if create_pool_racks is None:
             create_pool_racks = not number_designs == 1
@@ -241,7 +244,7 @@ class LibraryCreationIsoRequestGenerator(BaseTool):
 
     def __create_library(self):
         # Create library creation ISO request and library.
-        final_vol = DEFAULT_ALIQUOT_PLATE_VOLUME / VOLUME_CONVERSION_FACTOR
+        final_vol = self.aliquot_plate_volume / VOLUME_CONVERSION_FACTOR
         final_conc = DEFAULT_ALIQUOT_PLATE_CONCENTRATION \
                         / CONCENTRATION_CONVERSION_FACTOR
         stock_vol = self.__stock_transfer_volume / VOLUME_CONVERSION_FACTOR
