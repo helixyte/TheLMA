@@ -23,7 +23,7 @@ class TissueMember(Member):
     label = terminal_attribute(str, 'label')
 
 class TissueCollection(Collection):
-    title = 'Tissue'
-    root_name = 'tissue'
-    description = 'Manage tissue'
+    title = 'Tissues'
+    root_name = 'tissues'
+    description = 'Manage tissues'
     default_order = AscendingOrderSpecification('label')

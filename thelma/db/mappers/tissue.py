@@ -1,8 +1,7 @@
 """
 Tissue mapper.
 """
-from everest.repositories.rdb.utils import as_slug_expression
-from everest.repositories.rdb.utils import mapper
+from everest.repositories.rdb.utils import as_slug_expression, mapper
 from sqlalchemy.orm import relationship
 from thelma.models.cell_line import CellLine
 from thelma.models.tissue import Tissue

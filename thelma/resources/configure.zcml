@@ -3218,11 +3218,6 @@
                     name="ignore"
                     value="false" />
             </attribute>
-            <attribute name="cell-line">
-                <option
-                    name="ignore"
-                    value="false" />
-            </attribute>
         </representer>
         <representer
             kind="collection"
@@ -3533,7 +3528,7 @@
         interface="thelma.interfaces.ITissue"
         member=".tissue.TissueMember"
         collection=".tissue.TissueCollection"
-        entity="thelma.models.tissue.Tissues"
+        entity="thelma.models.tissue.Tissue"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -3565,12 +3560,7 @@
         >
             <option
                 name="xml_tag"
-                value="tissues" />
-            <attribute name="cell-lines">
-                <option
-                    name="ignore"
-                    value="true" />
-            </attribute>
+                value="tissue" />
         </representer>
     </resource>
 

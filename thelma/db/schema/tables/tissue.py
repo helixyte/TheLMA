@@ -1,5 +1,5 @@
 """
-Species table.
+Tissue table.
 """
 from sqlalchemy import Column
 from sqlalchemy import Integer

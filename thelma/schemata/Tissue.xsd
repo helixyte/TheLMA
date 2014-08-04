@@ -82,7 +82,7 @@
     </complexType>
 
     <complexType
-        name="SpeciesCollectionLinkType"
+        name="TissueCollectionLinkType"
     >
         <complexContent>
             <restriction

@@ -1,5 +1,5 @@
 """
-Species model classes.
+Tissue model classes.
 
 NP, AAB
 """
