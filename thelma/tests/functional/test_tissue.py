@@ -8,7 +8,7 @@ __all__ = ['TissuesCollectionTestCase']
 
 class TissuesCollectionTestCase(ThelmaFunctionalTestCase):
 
-    path = '/tissue'
+    path = '/tissues'
 
     def test_get_collection_without_querying(self):
         res = self.app.get(self.path, status=200)
