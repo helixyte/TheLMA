@@ -24,7 +24,7 @@ def create_mapper(organization_tbl):
                           comparator_factory=CaseInsensitiveComparator
                           ),
                       cell_culture_ware=relationship(CellCultureWare,
-                                         back_populates='organization'),
+                                         back_populates='supplier'),
                       ),
                   )
     return m
