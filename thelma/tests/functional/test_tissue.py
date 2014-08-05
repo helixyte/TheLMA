@@ -4,9 +4,9 @@ Functional tests for the species resource.
 
 from thelma.testing import ThelmaFunctionalTestCase
 
-__all__ = ['TissuesCollectionTestCase']
+__all__ = ['TissueCollectionTestCase']
 
-class TissuesCollectionTestCase(ThelmaFunctionalTestCase):
+class TissueCollectionTestCase(ThelmaFunctionalTestCase):
 
     path = '/tissues'
 

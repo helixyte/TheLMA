@@ -18,7 +18,7 @@ __all__ = ['TissueCollection',
 
 
 class TissueMember(Member):
-    relation = "%s/species" % RELATION_BASE_URL
+    relation = "%s/tissue" % RELATION_BASE_URL
     title = attribute_alias('label')
     label = terminal_attribute(str, 'label')
 

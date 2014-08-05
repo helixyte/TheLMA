@@ -13,8 +13,8 @@ __all__ = ['create_table']
 
 def create_table(metadata):
     "Table factory."
-    tbl = Table('species', metadata,
-        Column('species_id', Integer, primary_key=True),
+    tbl = Table('tissue', metadata,
+        Column('tissue_id', Integer, primary_key=True),
         Column('label', String(128), nullable=False, unique=True),
         )
     return tbl
