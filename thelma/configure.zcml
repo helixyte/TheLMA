@@ -83,6 +83,7 @@
 
     <collection_view
         for=".interfaces.IBarcodePrintJob
+           .interfaces.ICellCultureWare
            .interfaces.IChemicalStructure
            .interfaces.IChemicalStructureType
            .interfaces.IContainerSpecs
@@ -160,7 +161,8 @@
     <!-- Member ATOM views -->
 
     <member_view
-        for=".interfaces.IChemicalStructure
+        for=".interfaces.ICellCultureWare
+           .interfaces.IChemicalStructure
            .interfaces.IChemicalStructureType
            .interfaces.IDevice
            .interfaces.IDeviceType

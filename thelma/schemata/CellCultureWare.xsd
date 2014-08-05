@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema
+    targetNamespace="http://schemata.cenix-bioscience.com/cell_culture_ware"
+    elementFormDefault="qualified"
+    xmlns="http://www.w3.org/2001/XMLSchema"
+    xmlns:ccw="http://schemata.cenix-bioscience.com/cell_culture_ware"
+    xmlns:g="http://schemata.cenix-bioscience.com/gene"
+    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+>
+    <import
+        schemaLocation="Shared.xsd"
+        namespace="http://schemata.cenix-bioscience.com/shared"
+    >
+    </import>
+    <import
+        schemaLocation="CellLine.xsd"
+        namespace="http://schemata.cenix-bioscience.com/cell_line"
+    >
+    </import>
+
+    <complexType
+        name="CellCultureWareType"
+    >
+        <complexContent>
+            <extension
+                base="sh:ResourceType"
+            >
+                <choice>
+                    <element
+                        name="link"
+                        type="ccw:CellCultureWareLinkType"
+                    >
+                    </element>
+                    <sequence>
+                        <element
+                            name="label"
+                            type="string"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                    </sequence>
+                </choice>
+            </extension>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="CellCultureWareCollectionType"
+    >
+         <choice>
+             <element
+                 ref="ccw:cell_culture_ware"
+                 maxOccurs="unbounded"
+                 minOccurs="0"
+             >
+             </element>
+             <element
+                 name="link"
+                 type="ccw:CellCultureWareCollectionLinkType"
+                 maxOccurs="1"
+                 minOccurs="0"
+             >
+             </element>
+         </choice>
+    </complexType>
+
+    <complexType
+        name="CellCultureWareLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/cell_culture_ware"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <complexType
+        name="CellCultureWareCollectionLinkType"
+    >
+        <complexContent>
+            <restriction
+                base="sh:LinkType"
+            >
+                <attribute
+                    name="rel"
+                    type="string"
+                    fixed="http://relations.cenix-bioscience.com/cell_culture_ware-collection"
+                ></attribute>
+            </restriction>
+        </complexContent>
+    </complexType>
+
+    <element
+        name="cell_culture_ware"
+        type="ccw:CellCultureWareType"
+    >
+    </element>
+
+    <element
+        name="cell_cultre_wares"
+        type="ccw:CellCultureWareCollectionType"
+    ></element>
+
+</schema>

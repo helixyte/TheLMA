@@ -2,6 +2,7 @@ from thelma.db.mappers import amplicondesign
 from thelma.db.mappers import antimirdesign
 from thelma.db.mappers import barcodedlocation
 from thelma.db.mappers import barcodedlocationtype
+from thelma.db.mappers import cellcultureware
 from thelma.db.mappers import chemicalstructure
 from thelma.db.mappers import cloneddsdnadesign
 from thelma.db.mappers import compoundchemicalstructure

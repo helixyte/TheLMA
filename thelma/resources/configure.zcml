@@ -38,6 +38,43 @@
         </representer>
     </resource>
 
+    <!-- Cell Culture Ware -->
+
+    <resource
+        interface="thelma.interfaces.ICellCultureWare"
+        member=".cellcultureware.CellCultureWareMember"
+        collection=".cellcultureware.CellCultureWareCollection"
+        entity="thelma.models.cellcultureware.CellCultureWare"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/Tissue.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/cellcultureware" />
+            <option
+                name="xml_prefix"
+                value="tc" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="cell_culture_ware" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="cell_culture_wares" />
+        </representer>
+    </resource>
+
     <!-- Chemical Structure Type -->
 
     <resource
@@ -3560,7 +3597,7 @@
         >
             <option
                 name="xml_tag"
-                value="tissue" />
+                value="tissues" />
         </representer>
     </resource>
 
