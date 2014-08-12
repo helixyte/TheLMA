@@ -102,32 +102,23 @@ class ExperimentDesignParserHandler(MoleculeDesignPoolLayoutParserHandler):
     #: The name of the transfection sheet (for non-screening caes).
     TRANSFECTION_SHEET_NAME = 'Transfection'
 
-    def __init__(self, stream, requester, scenario, log):
+    def __init__(self, stream, requester, scenario, parent=None):
         """
-        Constructor:
-
-        :param stream: stream of the file to be parsed
+        Constructor.
 
         :param requester: the user uploading the experiment design
         :type requester: :class:`thelma.models.user.User`
-
         :param scenario: The scenario (experiment metadata types) defines the
             mandatory and forbidden parameters for a design rack layout and the
             names of the sheets to be parsed.
         :type scenario: :class:`thelma.models.experiment.ExperimentMetadataType`
-
-        :param log: The ThelmaLog you want to write in.
-        :type log: :class:`thelma.ThelmaLog`
         """
-        MoleculeDesignPoolLayoutParserHandler.__init__(self, log=log,
-                                                       stream=stream)
-
+        MoleculeDesignPoolLayoutParserHandler.__init__(self, stream,
+                                                       parent=parent)
         #: The user uploading the file.
         self.requester = requester
-
         #: A :class:`ExperimentMetadataType` supported by this handler subclass.
         self.scenario = scenario
-
         #: Transfection parameters that need to be specified in the layout.
         self.__mandatory_parameters = None
         #: Transfection parameters that must *not* be specified in the layout.
@@ -154,7 +145,7 @@ class ExperimentDesignParserHandler(MoleculeDesignPoolLayoutParserHandler):
             sheet_names.add(self.TRANSFECTION_SHEET_NAME)
         self.parser.sheet_names = sheet_names
 
-    def _convert_results_to_model_entity(self):
+    def _convert_results_to_entity(self):
         """
         Assembles and experiment design from the parsed sheets.
         """

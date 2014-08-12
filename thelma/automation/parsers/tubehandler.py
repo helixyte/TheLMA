@@ -94,21 +94,11 @@ class XL20OutputParser(TxtFileParser):
     #: The format of the time.
     TIME_FORMAT = '%H:%M:%S'
 
-    def __init__(self, stream, log):
-        """
-        Constructor:
-
-        :param stream: stream of the file to parse.
-
-        :param log: The ThelmaLog to write into.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        TxtFileParser.__init__(self, stream=stream, log=log)
-
+    def __init__(self, stream, parent=None):
+        TxtFileParser.__init__(self, stream, parent=parent)
         #: The tube transfer items found (stored as
         #: :class:`XL20TransferParsingContainer`).
         self.xl20_transfers = None
-
         # Intermediate error storage
         self.__incomplete_line = None
         self.__error_descriptions = None
@@ -126,19 +116,19 @@ class XL20OutputParser(TxtFileParser):
         self.__inconsistent_tube_barcodes = []
         self.__invalid_timestamp = []
 
-    def parse(self):
+    def run(self):
         """
         Runs the parser.
         """
         self.reset()
         self.add_info('Start parsing ...')
         self.has_run = True
-
         self._split_into_lines()
         if not self.has_errors():
             self.__parse_data_lines()
             self.__record_messages()
-        if not self.has_errors(): self.add_info('Parsing completed.')
+        if not self.has_errors():
+            self.add_info('Parsing completed.')
 
     def __parse_data_lines(self):
         """

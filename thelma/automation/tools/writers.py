@@ -6,9 +6,12 @@ This is an abstract super class for CSV stream generators.
 """
 
 from StringIO import StringIO
-from thelma.automation.tools.base import BaseAutomationTool
+import os
 from zipfile import BadZipfile
 import zipfile
+
+from thelma.automation.tools.base import BaseTool
+
 
 __docformat__ = 'reStructuredText en'
 
@@ -26,7 +29,7 @@ __all__ = ['LINEBREAK_CHAR',
 LINEBREAK_CHAR = '\r\n'
 
 
-class CsvWriter(BaseAutomationTool):
+class CsvWriter(BaseTool):
     """
     A base tool to generate CSV file streams.
 
@@ -36,14 +39,8 @@ class CsvWriter(BaseAutomationTool):
     #: The delimiter used to separate columns.
     DELIMITER = ','
 
-    def __init__(self, log=None, depending=True):
-        """
-        Constructor:
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        BaseAutomationTool.__init__(self, log, depending=depending)
+    def __init__(self, parent=None):
+        BaseTool.__init__(self, parent=parent)
         #: The stream to be generated.
         self.__stream = None
         #: Maps :class:`CsvColumnDictionary`s onto column indices.
@@ -58,7 +55,7 @@ class CsvWriter(BaseAutomationTool):
         """
         Resets all attributes except for the user input.
         """
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self.__stream = None
         self._column_map_list = None
         self._index_map = None
@@ -311,21 +308,15 @@ class CsvColumnParameters(object):
         return str_format % params
 
 
-class TxtWriter(BaseAutomationTool):
+class TxtWriter(BaseTool):
     """
     A base tool to generate TXT file streams.
 
     **Return Value:** a file stream (TXT format)
     """
 
-    def __init__(self, log=None, depending=True):
-        """
-        Constructor:
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        BaseAutomationTool.__init__(self, log, depending=depending)
+    def __init__(self, parent=None):
+        BaseTool.__init__(self, parent=parent)
         #: The stream to be generated.
         self._stream = None
 
@@ -333,7 +324,7 @@ class TxtWriter(BaseAutomationTool):
         """
         Resets all values except for the initialization values.
         """
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self._stream = None
 
     def run(self):
@@ -440,6 +431,7 @@ def create_zip_archive(zip_stream, stream_map):
 
     return archive
 
+
 def read_zip_archive(zip_stream):
     """
     Converts a zip stream into zip archive. Returns *None* if there are no
@@ -448,8 +440,7 @@ def read_zip_archive(zip_stream):
 
     :param zip_stream: The file stream containing the archive.
     :type zip_stream: :class:`StringIO`
-
-    :return: The file streams in the archive mapped onto file names.
+    :returns: The file streams in the archive mapped onto file names.
     """
     try:
         archive = zipfile.ZipFile(zip_stream, 'r', zipfile.ZIP_DEFLATED, False)
@@ -461,6 +452,27 @@ def read_zip_archive(zip_stream):
         content = archive.read(fn)
         zip_map[fn] = StringIO(content)
     return zip_map
+
+
+def write_zip_archive(zip_stream, output_dir):
+    """
+    Writes the files contained in the given ZIP archive stream to the given
+    output directory in the file system.
+
+    :param zip_stream: The file stream containing the archive.
+    :type zip_stream: :class:`StringIO`
+    :param str output_dir: Output directory to write to.
+    :raises ValueError: If the specified output directory does not exist.
+    """
+    if not os.path.isdir(output_dir):
+        raise ValueError('The specified output directory "%s" does not '
+                         'exist.' % output_dir)
+    file_map = read_zip_archive(zip_stream)
+    for fn, stream in file_map.iteritems():
+        loc = os.path.join(output_dir, fn)
+        with open(loc, 'w') as out_file:
+            out_file.write(stream.read)
+
 
 def merge_csv_streams(stream_map):
     """

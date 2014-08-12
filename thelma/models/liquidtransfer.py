@@ -191,10 +191,8 @@ class PlannedSampleDilution(PlannedLiquidTransfer):
 
     _MARKER_INTERFACE = IPlannedSampleDilution
 
-    def __init__(self, volume, hash_value, target_position, diluent_info, **kw):
-        """
-        Constructor
-        """
+    def __init__(self, volume, hash_value, target_position, diluent_info,
+                 **kw):
         PlannedLiquidTransfer.__init__(self, volume=volume,
                                 transfer_type=TRANSFER_TYPES.SAMPLE_DILUTION,
                                 hash_value=hash_value, **kw)
@@ -208,17 +206,12 @@ class PlannedSampleDilution(PlannedLiquidTransfer):
         values. If there is already an entity with this values in the DB,
         the entity will be loaded, otherwise a new entity is generated.
 
-        :param volume: The volume *in l*.
-        :type volume: positive number
-
-        :param diluent_info: Further information (e.g. name and concentration)
-            of the diluent.
-        :type diluent_info: :class:`str`
-
+        :param float volume: The volume *in l* (greater than zero).
+        :param str diluent_info: Further information (e.g. name and
+            concentration) of the diluent.
         :param target_position: The rack position to which the volume is added.
         :type target_position: :class:`thelma.models.rack.RackPosition`
-
-        :return: :class:`PlannedSampleDilution`
+        :returns: :class:`PlannedSampleDilution`
         """
         data = dict(diluent_info=diluent_info,
                     target_position=target_position)
@@ -232,14 +225,10 @@ class PlannedSampleDilution(PlannedLiquidTransfer):
         The hash value for sample dilutions is comprised of the volume (in ul),
         diluent info and target position ID.
 
-        :param volume: The volume. The unit will be regarded as litre, if the
-            value is smaller 1, otherwise the unit will be assumed to be *ul*.
-        :type volume: positive number
-
-        :param diluent_info: Further information (e.g. name and concentration)
-            of the diluent.
-        :type diluent_info: :class:`str`
-
+        :param float volume: The volume (greater than zero). Assuming litre
+            as unit if volume is smaller than 1, *ul* otherwise.
+        :param str diluent_info: Further information (e.g. name and
+            concentration) of the diluent.
         :param target_position: The rack position to which the volume is added.
         :type target_position: :class:`thelma.models.rack.RackPosition`
 
@@ -298,7 +287,7 @@ class PlannedSampleTransfer(PlannedLiquidTransfer):
         """
         Constructor
         """
-        PlannedLiquidTransfer.__init__(self, volume=volume,
+        PlannedLiquidTransfer.__init__(self, volume,
                                transfer_type=TRANSFER_TYPES.SAMPLE_TRANSFER,
                                hash_value=hash_value, **kw)
         self._source_position = source_position
@@ -402,12 +391,11 @@ class PlannedRackSampleTransfer(PlannedLiquidTransfer):
 
     def __init__(self, volume, hash_value, number_sectors, source_sector_index,
                  target_sector_index, **kw):
-        """
-        Constructor
-        """
-        PlannedLiquidTransfer.__init__(self, volume=volume,
-                           transfer_type=TRANSFER_TYPES.RACK_SAMPLE_TRANSFER,
-                           hash_value=hash_value, **kw)
+        PlannedLiquidTransfer.__init__(self, volume,
+                                       hash_value=hash_value,
+                                       transfer_type=
+                                        TRANSFER_TYPES.RACK_SAMPLE_TRANSFER,
+                                        **kw)
         self._number_sectors = number_sectors
         self._source_sector_index = source_sector_index
         self._target_sector_index = target_sector_index
@@ -441,21 +429,13 @@ class PlannedRackSampleTransfer(PlannedLiquidTransfer):
         values. If there is already an entity with this values in the DB,
         the entity will be loaded, otherwise a new entity is generated.
 
-        :param volume: The volume *in l*.
-        :type volume: positive number
-
-        :param number_sectors: The total number of sectors (:class:`int`).
-        :type number_sectors: :class:`int`
-
-        :param source_sector_index: The sector of the source plate the volume
-            is taken from.
-        :type source_sector_index: :class:`int`
-
-        :param target_sector_index: The sector of the target plate the volume
-            is dispensed into.
-        :type target_sector_index: :class:`int`
-
-        :return: :class:`PlannedRackSampleTransfer`
+        :param float volume: The volume *in l* (positive number).
+        :param int number_sectors: The total number of sectors (:class:`int`).
+        :param int source_sector_index: The sector of the source plate the
+            volume is taken from.
+        :param int target_sector_index: The sector of the target plate the
+            volume is dispensed into.
+        :returns: :class:`PlannedRackSampleTransfer` instance.
         """
         data = dict(number_sectors=number_sectors,
                     source_sector_index=source_sector_index,
@@ -463,9 +443,8 @@ class PlannedRackSampleTransfer(PlannedLiquidTransfer):
         data['volume'] = volume
         return cls.create_from_data(data)
 
-    #pylint: disable=W0221
     @classmethod
-    def get_hash_value(cls, volume, number_sectors, source_sector_index,
+    def get_hash_value(cls, volume, number_sectors, source_sector_index, #pylint: disable=W0221
                        target_sector_index):
         """
         The hash value for rack sample transfers is comprised of the volume
@@ -492,7 +471,6 @@ class PlannedRackSampleTransfer(PlannedLiquidTransfer):
         values = [volume_in_ul, str(number_sectors), str(source_sector_index),
                   str(target_sector_index)]
         return cls._create_hash_value(values)
-    #pylint: enable=W0221
 
     def __repr__(self):
         str_format = '<%s id: %s, volume: %s, source sector: %s, ' \
@@ -619,8 +597,8 @@ class WorklistSeries(Entity):
         """
         Adds the worklists using the index provided.
         """
-        WorklistSeriesMember(planned_worklist=worklist, worklist_series=self,
-                             index=index)
+        # FIXME: Using instantiation for its side effect.
+        WorklistSeriesMember(worklist, self, index)
 
     def get_worklist_for_index(self, wl_index):
         """
@@ -633,7 +611,6 @@ class WorklistSeries(Entity):
         """
         for wsm in self.worklist_series_members:
             if wsm.index == wl_index: return wsm.planned_worklist
-
         raise ValueError('There is no worklist for index %i!' % (wl_index))
 
     def get_sorted_worklists(self):

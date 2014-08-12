@@ -23,6 +23,7 @@ from thelma.automation.parsers.base import ExcelFileParser
 from thelma.automation.parsers.base import ExcelSheetParsingContainer
 from thelma.automation.utils.base import is_valid_number
 
+
 __docformat__ = "reStructuredText en"
 
 __all__ = ['PoolCreationSetParser',
@@ -34,12 +35,10 @@ class PoolCreationSetParser(ExcelFileParser):
     Parses the excel sheet that provides the molecule designs for the
     pools of a pool creation ISO request.
     """
-
     #: name of the parser (requested by logs).
     NAME = 'Stock Sample Pool Order Parser'
     #: name of the sheet containing the molecule design list.
     SHEET_NAME = 'Molecule Designs'
-
     #: Valid names for the column containing the pools IDs for the final
     #: molecule design pools.
     POOL_COLUMN_NAMES = ['Molecule Design Pool IDs', 'Pool IDs']
@@ -48,15 +47,11 @@ class PoolCreationSetParser(ExcelFileParser):
     #: Separates the molecule designs in one cell.
     DELIMITER = ','
 
-    def __init__(self, stream, log):
-        """
-        :param stream: open Excel file to be parsed
-        """
-        ExcelFileParser.__init__(self, stream=stream, log=log)
-
+    def __init__(self, stream, parent=None):
+        ExcelFileParser.__init__(self, stream, parent=parent)
         #: The molecule design pool IDs mapped onto row index.
         self.pool_ids = None
-        #: The molecule design lists founds (each record is a list
+        #: The molecule design lists found (each record is a list
         #: molecule design IDs) mapped onto row index.
         self.molecule_design_lists = None
 
@@ -65,18 +60,18 @@ class PoolCreationSetParser(ExcelFileParser):
         self.pool_ids = dict()
         self.molecule_design_lists = dict()
 
-    def parse(self):
+    def run(self):
         self.reset()
         self.add_info('Start parsing ...')
-
         wb = self.open_workbook()
         self.sheet = self.get_sheet_by_name(wb, self.SHEET_NAME,
                                             raise_error=True)
         if not self.has_errors():
-            parsing_container = _PoolCreationSetParsingContainer(parser=self,
-                                                            sheet=self.sheet)
-            parsing_container.determine_column_indeces()
-        if not self.has_errors(): parsing_container.parse_columns()
+            parsing_container = _PoolCreationSetParsingContainer(self,
+                                                                 self.sheet)
+            parsing_container.determine_column_indices()
+        if not self.has_errors():
+            parsing_container.parse_columns()
         if not self.has_errors():
             self.add_info('Parsing completed.')
 
@@ -90,29 +85,27 @@ class _PoolCreationSetParsingContainer(ExcelSheetParsingContainer):
 
     def __init__(self, parser, sheet):
         """
+        Constructor.
+
         :param parser: the parser this container belongs to
         :type parser: :class:`ExcelFileParser`
-
         :param sheet: the excel sheet this container deals with
         """
         ExcelSheetParsingContainer.__init__(self, parser, sheet)
-
         #: The index of the column containing the final pool IDs.
         self.__pool_column_index = None
         #: The index of the column containing the molecule design IDs.
         self.__single_md_column_index = None
 
-    def determine_column_indeces(self):
+    def determine_column_indices(self):
         """
         The columns are found by name.
         """
         self._create_debug_info('Find column index ...')
-
         row_index = 0
         md_column_name = self._parser.MOLECULE_DESIGN_COLUMN_NAME.upper()
         pool_column_names = [name.upper() for name in \
                              self._parser.POOL_COLUMN_NAMES]
-
         for col_index in range(self._col_number):
             if (self.__single_md_column_index is not None and \
                                 self.__pool_column_index is not None): break
@@ -125,7 +118,6 @@ class _PoolCreationSetParsingContainer(ExcelSheetParsingContainer):
             elif cell_value in pool_column_names:
                 self.__pool_column_index = col_index
                 continue
-
         if self.__single_md_column_index is None and \
                                             self.__pool_column_index is None:
             msg = 'Unable to find a molecule design data column. A valid ' \
@@ -141,13 +133,11 @@ class _PoolCreationSetParsingContainer(ExcelSheetParsingContainer):
         Searches the found columns for IDs.
         """
         self._create_debug_info('Parse column ...')
-
         invalid_mds = []
         invalid_pools = []
-
         self._step_to_next_row()
         while not self._end_reached:
-            # get cell values
+            # Get cell values.
             md_value = None
             if self.__single_md_column_index is not None:
                 md_value = self._get_cell_value(self._current_row,
@@ -156,20 +146,17 @@ class _PoolCreationSetParsingContainer(ExcelSheetParsingContainer):
             if self.__pool_column_index is not None:
                 pool_value = self._get_cell_value(self._current_row,
                                                  self.__pool_column_index)
-
             if md_value is None and pool_value is None:
                 self._end_reached = True
                 break
-
-            # check pool IDs
+            # Check pool IDs.
             if not pool_value is None and not is_valid_number(pool_value,
                                                               is_integer=True):
-                info = 'row %i (%s)' % ((self._current_row + 1), pool_value)
+                info = 'row %i (%s)' % (self._current_row + 1, pool_value)
                 invalid_pools.append(info)
             elif not pool_value is None:
                 self._parser.pool_ids[self._current_row] = pool_value
-
-            # check single molecule design IDs
+            # Check single molecule design IDs.
             if md_value is not None:
                 md_ids = str(md_value).split(self._parser.DELIMITER)
                 valid = True
@@ -184,17 +171,14 @@ class _PoolCreationSetParsingContainer(ExcelSheetParsingContainer):
                     self._parser.molecule_design_lists[self._current_row] = \
                                                                         md_ids
             self._step_to_next_row()
-
         if len(self._parser.molecule_design_lists) < 1 and \
                                             len(self._parser.pool_ids) < 1:
             msg = 'There is no design data in the columns!'
             self._create_error(msg)
-
         if len(invalid_mds) > 0:
             msg = 'Some rows contain invalid molecule design IDs: %s.' \
                   % (', '.join(invalid_mds))
             self._create_error(msg)
-
         if len(invalid_pools) > 0:
             msg = 'Some rows contain invalid pool IDs: %s.' \
                   % (', '.join(invalid_pools))

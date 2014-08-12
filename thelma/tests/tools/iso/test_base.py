@@ -352,8 +352,7 @@ class StockRackVerifierTestCase(VerifierTestCase):
         del self.stock_rack_layout
 
     def _create_tool(self):
-        self.tool = StockRackVerifier(log=self.log,
-                                      stock_rack=self.stock_rack,
+        self.tool = StockRackVerifier(self.stock_rack,
                                       stock_rack_layout=self.stock_rack_layout)
 
     def _init_layout(self):

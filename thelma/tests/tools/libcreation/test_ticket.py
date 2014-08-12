@@ -30,7 +30,6 @@
 #    import LibraryCreationExecutorBaseTestCase
 #from thelma.tests.tools.libcreation.test_writer \
 #    import LibraryCreationWorklistWriterBaseTestCase
-#from thelma.tests.tools.tooltestingutils import TestingLog
 #from thelma.tests.tools.tooltestingutils import TracToolTestCase
 #
 #
@@ -38,7 +37,6 @@
 #
 #    def set_up(self):
 #        TracToolTestCase.set_up(self)
-#        self.log = TestingLog()
 #        self.requester = get_user('sachse')
 #        self.iso_label = 'testlib-14'
 #        self.layout_number = 14
@@ -50,10 +48,9 @@
 #        del self.layout_number
 #
 #    def _create_tool(self):
-#        self.tool = LibraryCreationTicketGenerator(requester=self.requester,
-#                                        iso_label=self.iso_label,
-#                                        layout_number=self.layout_number,
-#                                        log=self.log)
+#        self.tool = LibraryCreationTicketGenerator(self.requester,
+#                                                   self.iso_label,
+#                                                   self.layout_number)
 #
 #    def test_result(self):
 #        self._create_tool()
@@ -200,7 +197,7 @@
 #    def test_result(self):
 #        with RdbContextManager() as session:
 #            self._continue_setup(session)
-#            self.tool.send_request()
+#            self.tool.run()
 #            self.assert_true(self.tool.transaction_completed())
 #            exp_fn = self.tool.FILE_NAME % (self.libname, 1)
 #            self.assert_equal(self.tool.return_value, exp_fn)
@@ -267,9 +264,9 @@
 #
 #    def _create_ticket(self, user, iso_request):
 #        if self.CREATE_TICKET:
-#            ticket_creator = LibraryCreationTicketGenerator(requester=user,
-#                                log=self.log, iso_label=self.library_iso.label,
-#                                layout_number=self.library_iso.layout_number)
+#            ticket_creator = LibraryCreationTicketGenerator(user,
+#                                                            self.library_iso.label,
+#                                                            self.library_iso.layout_number)
 #            self.library_iso.ticket_number = ticket_creator.get_ticket_id()
 #
 #    def _create_report_uploader(self):
@@ -277,10 +274,9 @@
 #                                            executor=self.executor)
 #
 #    def _create_tool_log_file_writer(self):
-#        self.tool = LibraryCreationStockLogFileWriter(log=self.log,
-#                                library_layout=self.library_layout,
-#                                executed_worklists=self.executed_worklists,
-#                                sample_stock_racks=self.sample_stock_racks)
+#        self.tool = LibraryCreationStockLogFileWriter(self.library_layout,
+#                                                      self.executed_worklists,
+#                                                      self.sample_stock_racks)
 #
 #
 #class LibraryCreationStockTransferLogFileWriterTestCase(
@@ -333,7 +329,7 @@
 #
 #    def test_result(self):
 #        self._continue_setup()
-#        self.tool.send_request()
+#        self.tool.run()
 #        self.assert_true(self.tool.transaction_completed())
 #        tool_stream, comment = self.tool.return_value
 #        self.assert_is_not_none(tool_stream)

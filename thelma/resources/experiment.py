@@ -9,9 +9,9 @@ import logging
 
 from pyramid.httpexceptions import HTTPBadRequest
 
-from everest.entities.interfaces import IEntity
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.querying.specifications import DescendingOrderSpecification
+from everest.querying.specifications import cntd
 from everest.representers.dataelements import DataElementAttributeProxy
 from everest.representers.interfaces import IDataElement
 from everest.resources.base import Collection
@@ -20,9 +20,10 @@ from everest.resources.descriptors import attribute_alias
 from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
-from everest.resources.staging import create_staging_collection
+from everest.resources.utils import get_root_collection
 from everest.resources.utils import url_to_resource
 from thelma.automation.semiconstants import get_experiment_metadata_type
+from thelma.automation.tools.experiment import get_writer
 from thelma.automation.tools.metadata.ticket \
     import IsoRequestTicketDescriptionUpdater
 from thelma.automation.tools.metadata.ticket import IsoRequestTicketActivator
@@ -103,27 +104,6 @@ class ExperimentDesignMember(Member):
                                            'experiment_metadata')
 
 
-    def update(self, data):
-        if IEntity.providedBy(data): # pylint:disable=E1101
-            entity = self.get_entity()
-            while entity.design_racks:
-                entity.design_racks.pop()
-            while data.design_racks:
-                new_rack = data.design_racks.pop()
-                entity.design_racks.append(new_rack)
-#                ws = rack.worklist_series
-#                rack.worklist_series = None
-#                # remove the back reference to avoid conflicts
-#                new_rack = ExperimentDesignRack(rack.label,
-#                                                rack.layout,
-#                                                worklist_series=ws)
-#                entity.design_racks.append(new_rack)
-            entity.rack_shape = data.rack_shape
-            entity.worklist_series = data.worklist_series
-        else:
-            Member.update(self, data)
-
-
 class ExperimentDesignCollection(Collection):
     title = 'Experiment Designs'
     root_name = 'experiment-designs'
@@ -144,6 +124,9 @@ class ExperimentMember(Member):
     experiment_metadata_type = \
         member_attribute(IExperimentMetadataType,
             'experiment_design.experiment_metadata.experiment_metadata_type')
+
+    def get_writer(self):
+        return get_writer(self.get_entity())
 
 
 class ExperimentCollection(Collection):
@@ -177,10 +160,8 @@ class ExperimentMetadataMember(Member):
                 for tp in rack.rack_layout.tagged_rack_position_sets:
                     for tag in tp.tags:
                         tags_dict[tag.get_entity().slug] = tag
-            tag_coll = create_staging_collection(ITag)
-            tag_coll.__parent__ = self
-            for tag in tags_dict.values():
-                tag_coll.add(tag)
+            tag_coll = get_root_collection(ITag)
+            tag_coll.filter = cntd(id=[tag.id for tag in tags_dict.values()])
             result = tag_coll
         elif name == 'experiment-design-racks':
             result = self.__get_design_racks()
@@ -259,9 +240,9 @@ class ExperimentMetadataMember(Member):
 
     @classmethod
     def __run_trac_tool(cls, tool, error_msg_text):
-        tool.send_request()
+        tool.run()
         if not tool.transaction_completed():
-            exc_msg = str(tool.get_messages(logging.ERROR))
+            exc_msg = str(tool.get_messages(logging_level=logging.ERROR))
             raise HTTPBadRequest(error_msg_text % exc_msg).exception
         return tool.return_value
 

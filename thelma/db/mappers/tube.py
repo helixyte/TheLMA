@@ -1,9 +1,9 @@
 """
 Tube mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy import String
 from sqlalchemy.orm import column_property
+#from sqlalchemy.orm import relationship
 from sqlalchemy.orm.deprecated_interfaces import MapperExtension
 from sqlalchemy.sql import case
 from sqlalchemy.sql import cast
@@ -11,8 +11,12 @@ from sqlalchemy.sql import literal
 from sqlalchemy.sql import select
 from sqlalchemy.sql.expression import delete
 from sqlalchemy.sql.expression import insert
+
+from everest.repositories.rdb.utils import mapper
 from thelma.models.container import CONTAINER_TYPES
 from thelma.models.container import Tube
+#from thelma.models.sample import StockSample
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
@@ -48,6 +52,10 @@ def create_mapper(container_mapper, container_tbl, container_barcode_tbl):
                inherits=container_mapper,
                properties=
                 dict(barcode=column_property(bc_select.as_scalar()),
+#                     sample=relationship(Stock4Sample, uselist=False,
+#                                         back_populates='container',
+#                                         lazy='joined'
+#                                         ),
                      ),
                polymorphic_identity=CONTAINER_TYPES.TUBE)
     return m

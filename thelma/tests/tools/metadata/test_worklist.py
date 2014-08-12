@@ -34,8 +34,6 @@ from thelma.interfaces import IUser
 from thelma.models.liquidtransfer import PlannedWorklist
 from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.tests.tools.tooltestingutils import FileReadingTestCase
-from thelma.tests.tools.tooltestingutils import SilentLog
-from thelma.tests.tools.tooltestingutils import TestingLog
 
 
 class _ExperimentWorklistSeriesTestCase(FileReadingTestCase):
@@ -48,8 +46,6 @@ class _ExperimentWorklistSeriesTestCase(FileReadingTestCase):
                         EXPERIMENT_SCENARIOS.SCREENING : 'valid_screen.xls',
                         EXPERIMENT_SCENARIOS.MANUAL : 'valid_manual.xls',
                         EXPERIMENT_SCENARIOS.LIBRARY : 'valid_library.xls'}
-        self.log = TestingLog()
-        self.silent_log = SilentLog()
         self.user = self._get_entity(IUser, 'it')
         self.molecule_type = get_root_aggregate(IMoleculeType).\
                              get_by_id('SIRNA')
@@ -101,8 +97,6 @@ class _ExperimentWorklistSeriesTestCase(FileReadingTestCase):
     def tear_down(self):
         FileReadingTestCase.tear_down(self)
         del self.VALID_FILES
-        del self.log
-        del self.silent_log
         del self.molecule_type
         del self.experiment_type
         del self.experiment_metadata_label
@@ -137,15 +131,16 @@ class _ExperimentWorklistSeriesTestCase(FileReadingTestCase):
         self._create_tool()
 
     def __read_experiment_design(self):
-        handler = ExperimentDesignParserHandler(stream=self.stream,
-                    log=self.silent_log, requester=self.user,
-                    scenario=self.experiment_type)
+        handler = ExperimentDesignParserHandler(self.stream,
+                                                self.user,
+                                                self.experiment_type)
         self.experiment_design = handler.get_result()
 
     def __read_iso_request(self):
-        handler = IsoRequestParserHandler.create(stream=self.stream,
-                    requester=self.user, log=self.silent_log,
-                    experiment_type_id=self.experiment_type.id)
+        handler = IsoRequestParserHandler.create(self.experiment_type.id,
+                                                 self.stream,
+                                                 self.user,
+                                                 None)
         handler.get_result()
         self.transfection_layout = handler.get_transfection_layout()
         is_library_scenario = (self.experiment_type.id == \
@@ -167,10 +162,8 @@ class _ExperimentWorklistSeriesTestCase(FileReadingTestCase):
                 tf_pos.iso_concentration = 1270
 
     def __associate_opti_layouts(self):
-        associator = WellAssociatorOptimisation(
-                                experiment_design=self.experiment_design,
-                                source_layout=self.transfection_layout,
-                                log=self.silent_log)
+        associator = WellAssociatorOptimisation(self.experiment_design,
+                                                self.transfection_layout)
         self.design_rack_associations = associator.get_result()
         self.transfection_layout = associator.get_completed_source_layout()
 
@@ -356,10 +349,8 @@ class _ExperimentWorklistSeriesTestCase(FileReadingTestCase):
 class OptimemWorklistGeneratorTestCase(_ExperimentWorklistSeriesTestCase):
 
     def _create_tool(self):
-        self.tool = _OptimemWorklistGenerator(
-                    experiment_metadata_label=self.experiment_metadata_label,
-                    transfection_layout=self.transfection_layout,
-                    log=self.log)
+        self.tool = _OptimemWorklistGenerator(self.experiment_metadata_label,
+                                              self.transfection_layout)
 
     def test_result_opti(self):
         self._continue_setup()
@@ -384,9 +375,8 @@ class OptimemWorklistGeneratorTestCase(_ExperimentWorklistSeriesTestCase):
 class ReagentWorklistGeneratorTestCase(_ExperimentWorklistSeriesTestCase):
 
     def _create_tool(self):
-        self.tool = _ReagentWorklistGenerator(
-                    experiment_metadata_label=self.experiment_metadata_label,
-                    transfection_layout=self.transfection_layout, log=self.log)
+        self.tool = _ReagentWorklistGenerator(self.experiment_metadata_label,
+                                              self.transfection_layout)
 
     def test_result_opti(self):
         self._continue_setup()
@@ -426,9 +416,8 @@ class BiomekTransferWorklistGeneratorTestCase(_ExperimentWorklistSeriesTestCase)
         self.label = '%s-2' % (self.experiment_metadata_label)
 
     def _create_tool(self):
-        self.tool = _BiomekTransferWorklistGenerator(
-                    label=self.label,
-                    transfection_layout=self.transfection_layout, log=self.log)
+        self.tool = _BiomekTransferWorklistGenerator(self.label,
+                                                     self.transfection_layout)
 
     def test_result_opti(self):
         self._continue_setup()
@@ -445,8 +434,8 @@ class BiomekTransferWorklistGeneratorTestCase(_ExperimentWorklistSeriesTestCase)
 class CybioTransferWorklistGeneratorTestCase(_ExperimentWorklistSeriesTestCase):
 
     def _create_tool(self):
-        self.tool = _CybioTransferWorklistGenerator(log=self.log,
-                experiment_metadata_label=self.experiment_metadata_label)
+        self.tool = \
+            _CybioTransferWorklistGenerator(self.experiment_metadata_label)
 
     def test_result_screen(self):
         self.experiment_type = get_experiment_type_screening()
@@ -471,9 +460,8 @@ class CellSuspensionWorklistGeneratorTestCase(_ExperimentWorklistSeriesTestCase)
                                 self.design_rack_label)
 
     def _create_tool(self):
-        self.tool = _CellSuspensionWorklistGenerator(
-                label=self.label, log=self.log,
-                transfection_layout=self.transfection_layout)
+        self.tool = _CellSuspensionWorklistGenerator(self.label,
+                                                     self.transfection_layout)
 
     def test_result_opti(self):
         self._continue_setup()
@@ -513,12 +501,12 @@ class ExperimentWorklistGeneratorTestCase(_ExperimentWorklistSeriesTestCase):
         del self.supports_mastermix
 
     def _create_tool(self):
-        self.tool = ExperimentWorklistGenerator(log=self.log,
-                        label=self.experiment_metadata_label,
-                        experiment_design=self.experiment_design,
-                        source_layout=self.transfection_layout,
-                        scenario=self.experiment_type,
-                        supports_mastermix=self.supports_mastermix,
+        self.tool = ExperimentWorklistGenerator(
+                        self.experiment_design,
+                        self.experiment_metadata_label,
+                        self.transfection_layout,
+                        self.experiment_type,
+                        self.supports_mastermix,
                         design_rack_associations=self.design_rack_associations)
 
     def __check_results(self):

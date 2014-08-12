@@ -42,7 +42,6 @@ from thelma.models.moleculedesign import MoleculeDesign
 from thelma.models.moleculedesign import MoleculeDesignPool
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 from thelma.tests.tools.tooltestingutils import FileReadingTestCase
-from thelma.tests.tools.tooltestingutils import SilentLog
 from thelma.tests.tools.tooltestingutils import TracToolTestCase
 
 
@@ -346,9 +345,11 @@ class StockSampleCreationTestCase2(StockSampleCreationTestCase1,
 
     def __create_iso_request(self):
         generator = StockSampleCreationIsoRequestGenerator(
-                iso_request_label=self.iso_request_label,
-                stream=self.stream, target_volume=self.target_volume,
-                target_concentration=self.target_concentration)
+                                                self.iso_request_label,
+                                                self.stream,
+                                                self.target_volume,
+                                                self.target_concentration,
+                                                parent=self.tool)
         self.iso_request = generator.get_result()
         if self.iso_request is None:
             raise ValueError('ISO request generation has failed!')
@@ -382,8 +383,7 @@ class StockSampleCreationTestCase2(StockSampleCreationTestCase1,
             self.assert_equal(len(pool_set), exp_length)
 
     def _check_iso_layout(self, rack_layout, layout_num):
-        converter = StockSampleCreationLayoutConverter(rack_layout=rack_layout,
-                                                       log=SilentLog())
+        converter = StockSampleCreationLayoutConverter(rack_layout)
         layout = converter.get_result()
         if layout is None:
             msg = 'Error when trying to convert the ISO layout for layout ' \
@@ -520,16 +520,14 @@ class StockSampleCreationTestCase3(StockSampleCreationTestCase2):
             self._generate_iso_layouts()
 
     def __populate_iso(self):
-        populator = StockSampleCreationIsoPopulator(log=SilentLog(),
-                            iso_request=self.iso_request, number_isos=1)
+        populator = StockSampleCreationIsoPopulator(self.iso_request, 1)
         isos = populator.get_result()
         if isos is None:
             raise ValueError('Error during ISO generation!')
         warnings = ' '.join(populator.get_messages())
         self.assert_false('Unable to find valid tubes for the following ' \
                           'pools' in warnings)
-        converter = StockSampleCreationLayoutConverter(log=SilentLog(),
-                                rack_layout=isos[0].rack_layout)
+        converter = StockSampleCreationLayoutConverter(isos[0].rack_layout)
         layout = converter.get_result()
         if layout is None:
             raise ValueError('Error during ISO layout conversion!')
@@ -568,14 +566,13 @@ class StockSampleCreationTestCase3(StockSampleCreationTestCase2):
 
     def _get_stock_rack_layout(self, stock_rack, is_pool_stock_rack=False,
                                is_single_stock_rack=False):
-        kw = dict(log=SilentLog(), rack_layout=stock_rack.rack_layout)
         if is_pool_stock_rack:
             converter_cls = PoolCreationStockRackLayoutConverter
         elif is_single_stock_rack:
             converter_cls = SingleDesignStockRackLayoutConverter
         else:
             converter_cls = StockRackLayoutConverter
-        converter = converter_cls(**kw)
+        converter = converter_cls(stock_rack.rack_layout)
         layout = converter.get_result()
         if layout is None:
             raise AssertionError('Unable to convert layout of stock rack ' \
@@ -681,8 +678,7 @@ class _TubeGenerator(object):
 
     def create_tube(self, rack, rack_pos, pool):
         barcode = SSC_TEST_DATA.get_tube_barcode_for_pool(pool)
-        tube = self.__tube_specs.create_tube(item_status=self.__status,
-                                             barcode=barcode)
+        tube = self.__tube_specs.create_tube(self.__status, barcode)
         rack.add_tube(tube, rack_pos)
         rack.containers.append(tube)
         return tube

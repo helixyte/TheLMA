@@ -4,12 +4,12 @@ ISOs.
 
 AAB
 """
+from thelma.automation.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.iso.poolcreation import get_worklist_uploader
 from thelma.automation.tools.iso.poolcreation import get_worklist_writer
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.automation.semiconstants import get_pipetting_specs_cybio
+from thelma.automation.tools.iso.poolcreation.writer import StockSampleCreationInstructionsWriter
 from thelma.automation.tools.iso.poolcreation.base \
     import StockSampleCreationLayout
 from thelma.automation.tools.iso.poolcreation.base \
@@ -17,24 +17,22 @@ from thelma.automation.tools.iso.poolcreation.base \
 from thelma.automation.tools.iso.poolcreation.writer \
     import StockSampleCreationIsoLayoutWriter
 from thelma.automation.tools.iso.poolcreation.writer \
-    import StockSampleCreationWorklistWriter
-from thelma.automation.tools.iso.poolcreation.writer \
-    import _StockSampleCreationXL20ReportWriter
-from thelma.automation.tools.iso.poolcreation.writer \
-    import _StockSampleCreationInstructionsWriter
+    import StockSampleCreationIsoWorklistWriter
 from thelma.automation.tools.iso.poolcreation.writer \
     import _SingleRackTransferWorklistWriter
+from thelma.automation.tools.iso.poolcreation.writer \
+    import _StockSampleCreationXL20ReportWriter
 from thelma.automation.tools.worklists.tubehandler import TubeTransferData
 from thelma.automation.tools.worklists.tubehandler import XL20WorklistWriter
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.models.iso import ISO_STATUS
+from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.racklayout import RackLayout
 from thelma.tests.tools.iso.poolcreation.utils \
     import StockSampleCreationTestCase3
 from thelma.tests.tools.iso.poolcreation.utils import SSC_TEST_DATA
 from thelma.tests.tools.tooltestingutils import FileComparisonUtils
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-from thelma.tests.tools.tooltestingutils import TestingLog
 
 
 class StockSampleCreationIsoLayoutWriterTestCase(StockSampleCreationTestCase3,
@@ -43,18 +41,15 @@ class StockSampleCreationIsoLayoutWriterTestCase(StockSampleCreationTestCase3,
     def set_up(self):
         StockSampleCreationTestCase3.set_up(self)
         self.WL_PATH = SSC_TEST_DATA.WORKLIST_FILE_PATH
-        self.log = TestingLog()
         self.layout = None
 
     def tear_down(self):
         StockSampleCreationTestCase3.tear_down(self)
         del self.WL_PATH
-        del self.log
         del self.layout
 
     def _create_tool(self):
-        self.tool = StockSampleCreationIsoLayoutWriter(log=self.log,
-                                   pool_creation_layout=self.layout)
+        self.tool = StockSampleCreationIsoLayoutWriter(self.layout)
 
     def _continue_setup(self, file_name=None):
         StockSampleCreationTestCase3._continue_setup(self, file_name=file_name)
@@ -112,24 +107,22 @@ class StockSampleCreationInstructionsWriterTestCase(
 
     def set_up(self):
         _StockSampleCreationWriterTestCase.set_up(self)
-        self.log = TestingLog()
         self.iso_label = SSC_TEST_DATA.ISO_LABELS[1]
         self.take_out_volume = SSC_TEST_DATA.SINGLE_DESIGN_TRANSFER_VOLUME
         self.buffer_volume = SSC_TEST_DATA.BUFFER_VOLUME
 
     def tear_down(self):
         _StockSampleCreationWriterTestCase.tear_down(self)
-        del self.log
         del self.take_out_volume
         del self.buffer_volume
 
     def _create_tool(self):
-        self.tool = _StockSampleCreationInstructionsWriter(log=self.log,
-                        pool_stock_rack_barcode=self.target_rack_barcode,
-                        tube_destination_racks=self.tube_destination_racks,
-                        take_out_volume=self.take_out_volume,
-                        buffer_volume=self.buffer_volume,
-                        iso_label=self.iso_label)
+        self.tool = StockSampleCreationInstructionsWriter(
+                                                self.iso_label,
+                                                self.target_rack_barcode,
+                                                self.tube_destination_racks,
+                                                self.take_out_volume,
+                                                self.buffer_volume)
 
     def test_result_cybio(self):
         self._continue_setup()
@@ -176,20 +169,19 @@ class SingleRackTransferWorklistWriterTestCase(
 
     def set_up(self):
         _StockSampleCreationWriterTestCase.set_up(self)
-        self.log = TestingLog()
         self.worklist = None
         self.single_design_rack_barcode = self.tube_destination_racks[0]
 
     def tear_down(self):
         _StockSampleCreationWriterTestCase.tear_down(self)
-        del self.log
         del self.worklist
         del self.single_design_rack_barcode
 
     def _create_tool(self):
-        self.tool = _SingleRackTransferWorklistWriter(log=self.log,
-            worklist=self.worklist, pool_rack_barcode=self.target_rack_barcode,
-            single_design_rack_barcode=self.single_design_rack_barcode)
+        self.tool = _SingleRackTransferWorklistWriter(
+                                            self.worklist,
+                                            self.single_design_rack_barcode,
+                                            self.target_rack_barcode)
 
     def _continue_setup(self, file_name=None):
         _StockSampleCreationWriterTestCase._continue_setup(self,
@@ -236,7 +228,6 @@ class StockSampleCreationXL20ReportWriterTestCase(
     def set_up(self):
         _StockSampleCreationWriterTestCase.set_up(self)
         self.WL_PATH = SSC_TEST_DATA.WORKLIST_FILE_PATH
-        self.log = TestingLog()
         self.tube_transfers = []
         self.iso_label = 'ssgen_test_03'
         self.layout_number = 3
@@ -254,7 +245,6 @@ class StockSampleCreationXL20ReportWriterTestCase(
 
     def tear_down(self):
         _StockSampleCreationWriterTestCase.tear_down(self)
-        del self.log
         del self.tube_transfers
         del self.iso_label
         del self.layout_number
@@ -263,11 +253,12 @@ class StockSampleCreationXL20ReportWriterTestCase(
         del self.source_rack_locations
 
     def _create_tool(self):
-        self.tool = _StockSampleCreationXL20ReportWriter(log=self.log,
-                tube_transfers=self.tube_transfers, iso_label=self.iso_label,
-                layout_number=self.layout_number,
-                take_out_volume=self.take_out_volume,
-                source_rack_locations=self.source_rack_locations)
+        self.tool = _StockSampleCreationXL20ReportWriter(
+                                                self.tube_transfers,
+                                                self.iso_label,
+                                                self.layout_number,
+                                                self.source_rack_locations,
+                                                self.take_out_volume)
 
     def _continue_setup(self): #pylint: disable=W0221
         self.__create_tube_transfers()
@@ -336,10 +327,11 @@ class StockSampleCreationWorklistWriterTestCase(
         del self.use_single_source_rack
 
     def _create_tool(self):
-        self.tool = StockSampleCreationWorklistWriter(iso=self.iso,
-                          tube_destination_racks=self.tube_destination_racks,
-                          pool_stock_rack_barcode=self.target_rack_barcode,
-                          use_single_source_rack=self.use_single_source_rack)
+        self.tool = StockSampleCreationIsoWorklistWriter(
+                        self.iso,
+                        self.tube_destination_racks,
+                        self.target_rack_barcode,
+                        use_single_source_rack=self.use_single_source_rack)
 
     def _continue_setup(self, file_name=None):
         _StockSampleCreationWriterTestCase._continue_setup(self,
@@ -757,7 +749,7 @@ class StockSampleCreationTicketWorklistUploaderTestCase(
 
     def test_result(self):
         self._continue_setup()
-        self.tool.send_request()
+        self.tool.run()
         self.assert_true(self.tool.transaction_completed())
         trac_fn = self.tool.return_value
         self.assert_equal(trac_fn, 'ssgen_test_01_robot_worklists.zip')

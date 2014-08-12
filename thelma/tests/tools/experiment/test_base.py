@@ -18,8 +18,8 @@ from thelma.models.racklayout import RackLayout
 from thelma.tests.tools.experiment.utils import EXPERIMENT_TEST_DATA
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
 from thelma.tests.tools.tooltestingutils import FileReadingTestCase
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.utils.utils import VerifierTestCase
+
 
 class SourceRackVerifierTestCase(VerifierTestCase):
 
@@ -52,8 +52,7 @@ class SourceRackVerifierTestCase(VerifierTestCase):
         del self.iso_layouts
 
     def _create_tool(self):
-        self.tool = SourceRackVerifier(log=self.log, source_plate=self.rack,
-                                       iso_request=self.iso_request)
+        self.tool = SourceRackVerifier(self.rack, self.iso_request)
 
     def _get_position_kw(self, pos_label, pos_data):
         kw = dict(rack_position=get_rack_position_from_label(pos_label),
@@ -221,16 +220,13 @@ class ReagentPreparationWriterTestCase(FileReadingTestCase,
         self.TEST_FILE_PATH = EXPERIMENT_TEST_DATA.TEST_FILE_PATH
         self.WL_PATH = EXPERIMENT_TEST_DATA.WORKLIST_FILE_PATH
         self.VALID_FILE = 'reagent_worklist.csv'
-        self.log = TestingLog()
 
     def tear_down(self):
         FileReadingTestCase.tear_down(self)
         del self.WL_PATH
-        del self.log
 
     def _create_tool(self):
-        self.tool = ReagentPreparationWriter(log=self.log,
-                                             reagent_stream_content=self.stream)
+        self.tool = ReagentPreparationWriter(self.stream)
 
     def _continue_setup(self, file_name=None):
         FileReadingTestCase._continue_setup(self, file_name=file_name)

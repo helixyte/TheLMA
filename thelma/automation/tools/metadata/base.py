@@ -681,7 +681,7 @@ class TransfectionLayout(IsoRequestLayout):
     contain data about the ISO, the mastermix and transfer parameters.
     """
 
-    WORKING_POSITION_CLASS = TransfectionPosition
+    POSITION_CLS = TransfectionPosition
 
     def copy(self):
         """
@@ -778,16 +778,11 @@ class TransfectionLayout(IsoRequestLayout):
         :type iso_request_rack_layout:
             :class:`thelma.models.racklayout.RackLayout`
         """
-
-        trps_map = dict()
-
-        for trps in exp_rack_layout.tagged_rack_position_sets:
-            hash_value = trps.rack_position_set.hash_value
-            trps_map[hash_value] = trps
-
+        trps_map = \
+                dict([(trps.rack_position_set.hash_value, trps)
+                      for trps in exp_rack_layout.tagged_rack_position_sets])
         excluded_parameters = [IsoRequestParameters.ISO_VOLUME,
                                IsoRequestParameters.ISO_CONCENTRATION]
-
         for trps in iso_request_rack_layout.tagged_rack_position_sets:
             hash_value = trps.rack_position_set
             tags = []
@@ -807,7 +802,6 @@ class TransfectionLayout(IsoRequestLayout):
                 trps = TaggedRackPositionSet(set(tags), trps.rack_position_set,
                                              user)
                 trps_map[hash_value] = trps
-
         return RackLayout(shape=exp_rack_layout.shape,
                           tagged_rack_position_sets=trps_map.values())
 
@@ -841,46 +835,33 @@ class TransfectionLayoutConverter(IsoRequestLayoutConverter):
     only used to ensure layout uniqueness.
     """
     NAME = 'Transfection Layout Converter'
-
     PARAMETER_SET = TransfectionParameters
     LAYOUT_CLS = TransfectionLayout
     POSITION_CLS = TransfectionPosition
 
-    def __init__(self, rack_layout, log, is_iso_request_layout=True,
-                 is_mastermix_template=False):
+    def __init__(self, rack_layout, is_iso_request_layout=True,
+                 is_mastermix_template=False, parent=None):
         """
-        Constructor:
-
-        :param rack_layout: The rack layout containing the ISO data.
-        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
+        Constructor.
 
         :param is_iso_request_layout: Defines if certain parameters are allowed
             to be missing (final concentration, reaagent name,
             reagent dil factor).
         :type is_iso_request_layout: :class:`boolean`
         :default is_iso_request_layout: True
-
-        :param is_mastermix_template: Defines if certain parameters are allowed
-            to be missing (ISO volume, ISO concentration, position type).
-            If *True*, \'is_iso_layout\' must be false.
-        :type is_mastermix_template: :class:`boolean`
+        :param bool is_mastermix_template: Defines if certain parameters are
+            allowed to be missing (ISO volume, ISO concentration, position
+            type). If *True*, \'is_iso_layout\' must be false.
         :default is_mastermix_layout: False
-
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
-        :type log: :class:`thelma.ThelmaLog`
         """
-        IsoRequestLayoutConverter.__init__(self, rack_layout=rack_layout,
-                                           log=log)
-
+        IsoRequestLayoutConverter.__init__(self, rack_layout, parent=parent)
         #: Defines if certain parameters are allowed to be missing (final
         #: concentration, reaagent name, reagent dil factor).
         self.__is_iso_request_layout = is_iso_request_layout
         #: Defines if certain parameters are allowed to be missing (ISO
         #: volume, ISO concentration).
         self.__is_mastermix_template = is_mastermix_template
-
-        # intermediate storage of invalid rack positions
+        # intermediate storage of invalid rack positions.
         self.__invalid_dil_factor = None
         self.__invalid_name = None
         self.__invalid_final_concentration = None
@@ -1186,25 +1167,11 @@ class TransfectionAssociationData(IsoRequestAssociationData):
     """
     ASSOCIATOR_CLS = TransfectionSectorAssociator
 
-    def __init__(self, layout, regard_controls, log):
-        """
-        Constructor:
-
-        :param layout: The ISO request layout whose sectors to associate.
-        :type layout: :class:`IsoRequestLayout`
-
-        :param regard_controls: Shall controls positions be regarded (*True*)
-            or be ignored (*False* - floating positions are always regarded)?
-        :type regard_controls: :class:`bool`
-
-        :param log: The log to write into (not stored in the object).
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        IsoRequestAssociationData.__init__(self, log=log, layout=layout,
-                                regard_controls=regard_controls)
-
+    def __init__(self, layout, tool, regard_controls):
+        IsoRequestAssociationData.__init__(self, layout, tool,
+                                           regard_controls)
         self.__iso_concentrations = None
-        self.__find_iso_concentrations(layout, log, regard_controls)
+        self.__find_iso_concentrations(layout, regard_controls)
 
     @property
     def iso_concentrations(self):
@@ -1213,18 +1180,13 @@ class TransfectionAssociationData(IsoRequestAssociationData):
         """
         return self.__iso_concentrations
 
-    def __find_iso_concentrations(self, transfection_layout, log,
-                                  regard_controls):
-        """
-        Finds the ISO concentration for each rack sector.
-        """
-        determiner = IsoRequestValueDeterminer(log=log,
-                                    iso_request_layout=transfection_layout,
-                                    attribute_name='iso_concentration',
-                                    number_sectors=self.number_sectors,
-                                    regard_controls=regard_controls)
+    def __find_iso_concentrations(self, transfection_layout, regard_controls):
+        # Finds the ISO concentration for each rack sector.
+        determiner = IsoRequestValueDeterminer(transfection_layout,
+                                               'iso_concentration',
+                                               self.number_sectors,
+                                               regard_controls)
         self.__iso_concentrations = determiner.get_result()
-
         if self.__iso_concentrations is None:
             msg = ', '.join(determiner.get_messages())
             raise ValueError(msg)

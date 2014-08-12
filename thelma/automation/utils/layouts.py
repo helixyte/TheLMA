@@ -4,7 +4,7 @@ Base classes for layout handling.
 AAB
 """
 from thelma.automation.semiconstants import get_positions_for_shape
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import get_converted_number
@@ -21,6 +21,7 @@ from thelma.models.racklayout import RackLayout
 from thelma.models.tagging import Tag
 from thelma.models.tagging import TaggedRackPositionSet
 from thelma.models.utils import get_user
+
 
 __docformat__ = "reStructuredText en"
 
@@ -42,9 +43,9 @@ __all__ = ['ParameterSet',
            'TransferParameters',
            'TransferPosition',
            'TransferLayout',
-           'LibraryLayoutParameters',
-           'LibraryLayoutPosition',
-           'LibraryLayout',
+           'LibraryBaseLayoutParameters',
+           'LibraryBaseLayoutPosition',
+           'LibraryBaseLayout',
            'BaseRackVerifier']
 
 
@@ -204,33 +205,28 @@ class WorkingPosition(object):
 
     **Equality condition**: must be implemented by subclasses
     """
-
     #: The parameter set this working position is associated with
     #: (subclass of :class:`ParameterSet`).
     PARAMETER_SET = ParameterSet
-
     #: String that is used for a tag if a value is *None*
     NONE_REPLACER = 'None'
-
     #: If *False* boolean parameters with a false value are not converted
     #: into tags (default: *True*).
     RECORD_FALSE_VALUES = True
 
     def __init__(self, rack_position):
         """
-        Constructor:
+        Constructor.
 
         :param rack_position: The rack position in the rack.
         :type rack_position: :class:`thelma.models.rack.RackPosition`
         """
-        if self.__class__ == WorkingPosition:
+        if self.__class__ is WorkingPosition:
             raise NotImplementedError('Abstract class.')
-
         if not isinstance(rack_position, RackPosition):
             msg = 'The rack position must be a RackPosition object ' \
                   '(obtained type: %s).' % (rack_position.__class__)
             raise TypeError(msg)
-
         #: The rack position (:class:`thelma.models.rack.RackPosition`).
         self.rack_position = rack_position
 
@@ -330,6 +326,18 @@ class WorkingPosition(object):
                              % (boolean_str))
         return values[boolean_str]
 
+    def clone(self):
+        """
+        Returns a clone of this working position.
+
+        This simply calls __new__ to create a new instance and populates it
+        with a copy of this instance's __dict__.
+        """
+        cloned_pos = self.__new__(self.__class__)
+        for attr_name, attr_val in self.__dict__.copy().iteritems():
+            setattr(cloned_pos, attr_name, attr_val)
+        return cloned_pos
+
     def __eq__(self, other):
         return isinstance(other, self.__class__) and \
                 self.rack_position == other.rack_position
@@ -380,7 +388,7 @@ class WorkingLayout(object):
         :param working_position: The working position to be added.
         :type working_position: :class:`WorkingPosition`
         :raises TypeError: If the added position is not a
-            :attr:`WORKING_POSITION_CLASS` object.
+            :attr:`POSITION_CLS` object.
         :raise KeyError: If the position is out of range for the in the layout
             :attr:`shape`.
         """
@@ -417,7 +425,7 @@ class WorkingLayout(object):
 
     def get_working_position(self, rack_position):
         """
-        Returns the working position for a certain working position (or *None*
+        Returns the working position for the given rack position (or *None*
         if there is none).
         """
         if self._position_map.has_key(rack_position):
@@ -991,7 +999,7 @@ class MoleculeDesignPoolPosition(WorkingPosition):
 
 class MoleculeDesignPoolLayout(WorkingLayout):
     """
-    An abstract base class for designs that store molecule design pool
+    Abstract base class for designs that store molecule design pool
     data.
     """
     POSITION_CLS = MoleculeDesignPoolPosition
@@ -1067,7 +1075,7 @@ class MoleculeDesignPoolLayout(WorkingLayout):
         :param working_position: The working position to be added.
         :type working_position: :class:`WorkingPosition`
         :raises ValueError: If the added position is not a
-            :attr:`WORKING_POSITION_CLASS` object.
+            :attr:`POSITION_CLS` object.
         :raises AttributeError: If the layout is closed.
         :raises TypeError: if the position has the wrong type
         """
@@ -1131,19 +1139,17 @@ class TransferTarget(object):
     #: string.
     INFO_DELIMITER = ':'
 
-    def __init__(self, rack_position, transfer_volume, target_rack_marker=None):
+    def __init__(self, rack_position, transfer_volume,
+                 target_rack_marker=None):
         """
-        Constructor:
+        Constructor.
 
         :param rack_position: The target position the liquid shall be added to.
         :type rack_position: :class:`thelma.models.rack.RackPosition` or
             (:class:`str`).
-
-        :param transfer_volume: The volume to be transferred.
-        :type transfer_volume: A number.
-
-        :param target_rack_marker: A marker for the target plate (optional).
-        :type target_rack_marker: :class:`str`
+        :param float transfer_volume: The volume to be transferred.
+        :param str target_rack_marker: A marker for the target plate
+            (optional).
         :default target_rack_marker: *None*
         """
         if isinstance(rack_position, RackPosition):
@@ -1295,9 +1301,10 @@ class TransferPosition(MoleculeDesignPoolPosition):
             lookup of the :attr:`PARAMETER_SET`.
         :type transfer_targets: list of :class:`TransferTarget` objects
         """
-        if self.__class__ == TransferPosition:
+        if self.__class__ is TransferPosition:
             raise NotImplementedError('Abstract class')
-        MoleculeDesignPoolPosition.__init__(self, rack_position=rack_position,
+        MoleculeDesignPoolPosition.__init__(
+                                    self, rack_position,
                                     molecule_design_pool=molecule_design_pool,
                                     position_type=position_type)
         #: The target positions and transfer volumes. Some subclasses require
@@ -1498,15 +1505,9 @@ class TransferLayout(MoleculeDesignPoolLayout):
                                     TRANSFER_TARGETS : False}
 
     def __init__(self, shape):
-        """
-        Constructor:
-
-        :param shape: The rack shape.
-        :type shape: :class:`thelma.models.rack.RackShape`
-        """
         if self.__class__ == TransferLayout:
             raise NotImplementedError('Abstract class')
-        MoleculeDesignPoolLayout.__init__(self, shape=shape)
+        MoleculeDesignPoolLayout.__init__(self, shape)
         #: The transfer targets for each transfer target parameter mapped
         #: onto rack positions.
         self._transfer_target_map = dict()
@@ -1555,7 +1556,7 @@ class TransferLayout(MoleculeDesignPoolLayout):
             del self._position_map[rack_position]
 
 
-class LibraryLayoutParameters(ParameterSet):
+class LibraryBaseLayoutParameters(ParameterSet):
     """
     Marks which position in library are reserved for library position.
     """
@@ -1568,7 +1569,7 @@ class LibraryLayoutParameters(ParameterSet):
     DOMAIN_MAP = {IS_LIBRARY_POS : DOMAIN}
 
 
-class LibraryLayoutPosition(WorkingPosition):
+class LibraryBaseLayoutPosition(WorkingPosition):
     """
     There is actually only one value for a position in a library layout
     and this is the availability for library samples.
@@ -1576,7 +1577,7 @@ class LibraryLayoutPosition(WorkingPosition):
     **Equality condition**: equal :attr:`rack_position` and
         :attr:`is_sample_pos`
     """
-    PARAMETER_SET = LibraryLayoutParameters
+    PARAMETER_SET = LibraryBaseLayoutParameters
     RECORD_FALSE_VALUES = False
 
     def __init__(self, rack_position, is_library_position=True):
@@ -1618,21 +1619,20 @@ class LibraryLayoutPosition(WorkingPosition):
         return str_format % params
 
 
-class LibraryLayout(WorkingLayout):
+class LibraryBaseLayout(WorkingLayout):
     """
     Defines which position in a library may contain library samples.
     """
-    WORKING_POSITION_CLASS = LibraryLayoutPosition
+    POSITION_CLS = LibraryBaseLayoutPosition
 
     def __init__(self, shape):
         """
-        Constructor:
+        Constructor.
 
         :param shape: The rack shape.
         :type shape: :class:`thelma.models.rack.RackShape`
         """
         WorkingLayout.__init__(self, shape)
-
         #: You cannot add new positions to a closed layout.
         self.is_closed = False
 
@@ -1644,7 +1644,7 @@ class LibraryLayout(WorkingLayout):
         :type working_position: :class:`LibraryBaseLayoutPosition`
 
         :raises ValueError: If the added position is not a
-            :attr:`WORKING_POSITION_CLASS` object.
+            :attr:`POSITION_CLS` object.
         :raises AttributeError: If the layout is closed.
         :raises TypeError: if the position has the wrong type
         """
@@ -1658,14 +1658,12 @@ class LibraryLayout(WorkingLayout):
         Removes all positions that may not contain samples.
         """
         if not self.is_closed:
-
             del_positions = []
             for rack_pos, libbase_pos in self._position_map.iteritems():
                 if not libbase_pos.is_library_position:
                     del_positions.append(rack_pos)
-
-            for rack_pos in del_positions: del self._position_map[rack_pos]
-
+            for rack_pos in del_positions:
+                del self._position_map[rack_pos]
             self.is_closed = True
 
     def create_rack_layout(self):
@@ -1676,7 +1674,7 @@ class LibraryLayout(WorkingLayout):
         return WorkingLayout.create_rack_layout(self)
 
 
-class BaseRackVerifier(BaseAutomationTool):
+class BaseRackVerifier(BaseTool):
     """
     An abstract base class for the comparison of racks and molecule design
     pool layouts.
@@ -1684,7 +1682,6 @@ class BaseRackVerifier(BaseAutomationTool):
 
     **Return Value:** boolean
     """
-
     #: The expected rack class (TubeRack, Plate or Rack).
     _RACK_CLS = Rack
     #: The expected class of the reference layout.
@@ -1692,34 +1689,21 @@ class BaseRackVerifier(BaseAutomationTool):
     #: Shall the volumes be checked, too? (Default: False).
     _CHECK_VOLUMES = False
 
-    def __init__(self, log, reference_layout=None):
+    def __init__(self, reference_layout=None, parent=None):
         """
-        Constructor:
-
-        :param log: The log the write in.
-        :type log: :class:`thelma.ThelmaLog`
+        Constructor.
 
         :param reference_layout: The layout containing the molecule design
             data. Can be set here or derived during the run.
         :type reference_layout:
             :class:`thelma.automation.tools.base.MoleculeDesignPoolLayout`
         :default reference_layout: *None*
-
-        :param check_volumes: Shall the volumes be checked, too?
-        :type check_volumes: :class:`bool`
-        :default check_volumes: *False*
         """
-        BaseAutomationTool.__init__(self, log=log)
-
-        #: The layout containing the molecule design data. Can be set here or
-        #: derived during the run.
+        BaseTool.__init__(self, parent=parent)
         self.reference_layout = reference_layout
-
         #: Indicates whether the rack-layout combination is a valid one
         #: (required to distinguish run time errors from verification errors).
         self.__is_compatible = None
-
-
         #: The rack to be checked.
         self._rack = None
         #: The expected layout as working layout.
@@ -1728,7 +1712,6 @@ class BaseRackVerifier(BaseAutomationTool):
         self._rack_md_map = None
         #: Maps current sample volumes onto rack positions.
         self._rack_volume_map = None
-
         #: Stores positions that are empty in the stock rack but not in the
         #: layout.
         self.__missing_positions = None
@@ -1742,10 +1725,7 @@ class BaseRackVerifier(BaseAutomationTool):
         self.__insufficient_volumes = None
 
     def reset(self):
-        """
-        Resets all values except for initialisation values.
-        """
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self.__is_compatible = True
         self._rack = None
         self._expected_layout = None
@@ -1757,12 +1737,8 @@ class BaseRackVerifier(BaseAutomationTool):
         self.__insufficient_volumes = []
 
     def run(self):
-        """
-        Runs the tool.
-        """
         self.reset()
         self.add_info('Start verification ...')
-
         self._check_input()
         if not self.has_errors():
             self.__check_rack_type()
@@ -1770,12 +1746,13 @@ class BaseRackVerifier(BaseAutomationTool):
                 self._fetch_expected_layout()
             else:
                 self._expected_layout = self.reference_layout
-        if not self.has_errors(): self.__compare_rack_shapes()
-        if not self.has_errors(): self.__create_rack_md_map()
+        if not self.has_errors():
+            self.__compare_rack_shapes()
+        if not self.has_errors():
+            self.__create_rack_md_map()
         if not self.has_errors():
             self.__compare_positions()
             self.__record_results()
-
         if not self.has_errors() or not self.__is_compatible:
             self.return_value = self.__is_compatible
             self.add_info('Verification completed.')
@@ -1794,15 +1771,12 @@ class BaseRackVerifier(BaseAutomationTool):
         Checks the input values.
         """
         self.add_debug('Check input values ...')
-
         if not self.reference_layout is None:
             self._check_input_class('reference layout', self.reference_layout,
                                     self._LAYOUT_CLS)
 
     def __check_rack_type(self):
-        """
-        Makes sure the rack to be checked has the correct type.
-        """
+        # Makes sure the rack to be checked has the correct type.
         self._set_rack()
         self._check_input_class('rack', self._rack, self._RACK_CLS)
 
@@ -1819,14 +1793,10 @@ class BaseRackVerifier(BaseAutomationTool):
         raise NotImplementedError('Abstract method.')
 
     def __compare_rack_shapes(self):
-        """
-        Compares the rack shape of rack and layout.
-        """
+        # Compares the rack shape of rack and layout.
         self.add_debug('Compare layout ...')
-
         rl_shape = self._expected_layout.shape
         rack_shape = self._rack.specs.shape
-
         if not rl_shape == rack_shape:
             msg = 'The rack shapes of the expected layout ' \
                   '(%s) and the rack (%s) do not match!' \
@@ -1835,17 +1805,13 @@ class BaseRackVerifier(BaseAutomationTool):
             self.__is_compatible = False
 
     def __create_rack_md_map(self):
-        """
-        Creates the :attr:`__rack_md_map` that maps rack molecule design IDs
-        onto positions.
-        """
+        # Creates the :attr:`__rack_md_map` mapping positions to rack
+        # molecule design IDs.
         self.add_debug('Create rack map ...')
-
         for rack_pos in get_positions_for_shape(self._rack.specs.shape):
             pos_label = rack_pos.label
             self._rack_md_map[pos_label] = None
             self._rack_volume_map[pos_label] = None
-
         for container in self._rack.containers:
             pos_label = container.location.position.label
             sample = container.sample
@@ -1865,17 +1831,15 @@ class BaseRackVerifier(BaseAutomationTool):
                     self._rack_md_map[pos_label].append(md_id)
 
     def __compare_positions(self):
-        """
-        Compares the molecule design IDs of the positions.
-        Library positions are ignored.
-        """
+        # Compares the molecule design IDs of the positions.
+        # Library positions are ignored.
         self.add_debug('Compare positions ...')
-
         for rack_pos in get_positions_for_shape(self._expected_layout.shape):
             pos_label = rack_pos.label
             pool_pos = self._expected_layout.get_working_position(rack_pos)
             rack_mds = self._rack_md_map[pos_label]
-            if not pool_pos is None and pool_pos.is_library: continue
+            if not pool_pos is None and pool_pos.is_library:
+                continue
             if pool_pos is None or pool_pos.is_empty or pool_pos.is_mock:
                 exp_mds = None
             else:
@@ -1889,19 +1853,19 @@ class BaseRackVerifier(BaseAutomationTool):
                 continue
             # in case of mismatch
             if rack_mds is None:
-                info = '%s (expected pool: %s (= mds: %s))' % (pos_label,
-                        exp_pool, self._get_joined_str(exp_mds, is_strs=False,
-                                                       separator='-'))
+                info = '%s (expected pool: %s (= mds: %s))' \
+                        % (pos_label,
+                           exp_pool,
+                           '-'.join([str(exp_md) for exp_md in exp_mds]))
                 self.__missing_positions.append(info)
             elif exp_mds is None:
                 self.__additional_positions.append(pos_label)
             else:
                 info = '%s (expected pool: %s (= mds: %s), rack mds: %s)' \
-                        % (pos_label, exp_pool,
-                           self._get_joined_str(exp_mds, is_strs=False,
-                                                separator='-'),
-                           self._get_joined_str(rack_mds, is_strs=False,
-                                                separator='-'))
+                        % (pos_label,
+                           exp_pool,
+                           '-'.join([str(exp_md) for exp_md in exp_mds]),
+                           '-'.join([str(exp_rmd) for exp_rmd in rack_mds]))
                 self.__mismatching_positions.append(info)
 
     def _get_expected_pool(self, pool_pos):
@@ -1917,20 +1881,26 @@ class BaseRackVerifier(BaseAutomationTool):
         Returns a list containing the IDs of the molecule designs in a pool.
         """
         if md_pool is None:
-            return None
-        ids = []
-        for md in md_pool:
-            ids.append(md.id)
-        return ids
+            result = None
+        else:
+            ids = []
+            for md in md_pool:
+                ids.append(md.id)
+            result = ids
+        return result
 
     def _are_matching_molecule_designs(self, rack_mds, exp_mds):
         """
         Checks whether the position molecule designs are compatible with
         the ones found in the rack.
         """
-        if rack_mds is None and exp_mds is None: return True
-        if rack_mds is None or exp_mds is None: return False
-        return (sorted(exp_mds) == sorted(rack_mds))
+        if rack_mds is None and exp_mds is None:
+            result = True
+        elif rack_mds is None or exp_mds is None:
+            result = False
+        else:
+            result = sorted(exp_mds) == sorted(rack_mds)
+        return result
 
     def _get_minimum_volume(self, pool_pos): # pylint: disable=W0613
         """
@@ -1940,12 +1910,10 @@ class BaseRackVerifier(BaseAutomationTool):
         return None
 
     def __check_volumes(self, exp_vol, pos_label):
-        """
-        The expected might be equal or larger than the found volume.
-        We have already checked the pools before, that means we either
-        have a volume for both rack and layout or we do not have a volume
-        for any.
-        """
+        # The expected might be equal or larger than the found volume.
+        # We have already checked the pools before, that means we either
+        # have a volume for both rack and layout or we do not have a volume
+        # for any.
         if not exp_vol is None:
             found_vol = self._rack_volume_map[pos_label]
             if is_smaller_than(found_vol, exp_vol):
@@ -1955,30 +1923,23 @@ class BaseRackVerifier(BaseAutomationTool):
                 self.__insufficient_volumes.append(info)
 
     def __record_results(self):
-        """
-        Records the results of the positions checks.
-        """
         self.add_debug('Record results ...')
-
         if len(self.__missing_positions) > 0:
             msg = 'Some expected molecule designs are missing in the rack: ' \
                   '%s.' % (', '.join(self.__missing_positions))
             self.add_error(msg)
             self.__is_compatible = False
-
         if len(self.__additional_positions) > 0:
             msg = 'Some positions in the rack contain molecule designs ' \
                   'although they should be empty: %s!' \
                    % (', '.join(self.__additional_positions))
             self.add_error(msg)
             self.__is_compatible = False
-
         if len(self.__mismatching_positions) > 0:
             msg = 'The molecule designs of the following positions do not ' \
                   'match: %s.' % (', '.join(self.__mismatching_positions))
             self.add_error(msg)
             self.__is_compatible = False
-
         if len(self.__insufficient_volumes) > 0:
             msg = 'The volumes for the following positions are insufficient: ' \
                   "%s." % (', '.join(self.__insufficient_volumes))

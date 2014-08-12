@@ -60,8 +60,8 @@ class ToolRunnerBase(object):
         raise NotImplementedError('Abstract method.')
 
     def _get_error_messages(self):
-        return self.__error_message_prefix \
-               + " -- ".join(self._tool.get_messages(logging.ERROR))
+        msgs = self._tool.get_messages(logging_level=logging.ERROR)
+        return self.__error_message_prefix + " -- ".join(msgs)
 
     def _get_warning_messages(self):
         return self.__warning_message_prefix \
@@ -87,7 +87,10 @@ class ToolRunner(ToolRunnerBase):
 
 class TracToolRunner(ToolRunnerBase):
     def run(self):
-        self._tool.send_request()
+        # We need to call get_result here to ensure the cleanup of the
+        # semiconstant caches...
+        # FIXME: Should use run here!
+        dummy = self._tool.get_result()
         if not self._tool.transaction_completed():
             raise HTTPBadRequest(self._get_error_messages())
 

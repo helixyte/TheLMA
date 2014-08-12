@@ -63,8 +63,6 @@
 #from thelma.models.sample import Sample
 #from thelma.models.utils import get_user
 #from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-#from thelma.tests.tools.tooltestingutils import SilentLog
-#from thelma.tests.tools.tooltestingutils import TestingLog
 #
 #
 #class LibraryCreationWriterTestCase(FileCreatorTestCase):
@@ -72,7 +70,6 @@
 #    def set_up(self):
 #        FileCreatorTestCase.set_up(self)
 #        self.libname = 'testlib'
-#        self.log = TestingLog()
 #        self.library_creation_iso = None
 #        self.layout_number = 4
 #        self.iso_label = '%s-%i' % (self.libname, self.layout_number)
@@ -126,7 +123,6 @@
 #
 #    def tear_down(self):
 #        FileCreatorTestCase.tear_down(self)
-#        del self.log
 #        del self.library_creation_iso
 #        del self.layout_number
 #        del self.iso_label
@@ -189,10 +185,9 @@
 #            self.library_layout.add_position(lib_pos)
 #
 #    def __create_worklist_series(self):
-#        generator = LibraryCreationWorklistGenerator(log=self.log,
-#                            base_layout=self.base_layout,
-#                            stock_concentration=self.stock_conc,
-#                            library_name=self.libname)
+#        generator = LibraryCreationWorklistGenerator(self.base_layout,
+#                                                     self.stock_conc,
+#                                                     self.libname)
 #        self.worklist_series = generator.get_result()
 #
 #    def _create_library_iso_request(self):
@@ -335,12 +330,11 @@
 #            self.tube_transfers.append(tt)
 #
 #    def _create_tool(self):
-#        self.tool = LibraryCreationXL20ReportWriter(log=self.log,
-#                            tube_transfers=self.tube_transfers,
-#                            library_name=self.libname,
-#                            layout_number=self.layout_number,
-#                            sector_index=self.sector_index,
-#                            source_rack_locations=self.rack_locations)
+#        self.tool = LibraryCreationXL20ReportWriter(self.tube_transfers,
+#                                                    self.libname,
+#                                                    self.layout_number,
+#                                                    self.sector_index,
+#                                                    self.rack_locations)
 #
 #    def test_result(self):
 #        self._create_tool()
@@ -385,10 +379,9 @@
 #        del self.txt_file
 #
 #    def _create_tool(self):
-#        self.tool = LibraryCreationCyBioOverviewWriter(log=self.log,
-#                            library_creation_iso=self.library_creation_iso,
-#                            pool_stock_racks=self.pool_stock_rack_barcodes,
-#                            tube_destination_racks=self.tube_destination_racks)
+#        self.tool = LibraryCreationCyBioOverviewWriter(self.library_creation_iso,
+#                                                       self.pool_stock_rack_barcodes,
+#                                                       self.tube_destination_racks)
 #
 #    def test_result(self):
 #        self._continue_setup()
@@ -687,8 +680,7 @@
 #            self.pos_sectors[3] = ['D2']
 #            del self.translated_positions[b4_label]
 #            self._continue_setup(session)
-#            converter = LibraryLayoutConverter(log=SilentLog(),
-#                                    rack_layout=self.library_iso.rack_layout)
+#            converter = LibraryLayoutConverter(self.library_iso.rack_layout)
 #            lib_layout = converter.get_result()
 #            pos_384 = get_rack_position_from_label(b4_label)
 #            lib_layout.del_position(pos_384)
@@ -805,8 +797,7 @@
 #    def test_missing_tubes(self):
 #        with RdbContextManager() as session:
 #            self._continue_setup(session)
-#            converter = LibraryLayoutConverter(log=SilentLog(),
-#                                    rack_layout=self.library_iso.rack_layout)
+#            converter = LibraryLayoutConverter(self.library_iso.rack_layout)
 #            lib_layout = converter.get_result()
 #            for lib_pos in lib_layout.working_positions():
 #                lib_pos.stock_tube_barcodes[0] = '122222'

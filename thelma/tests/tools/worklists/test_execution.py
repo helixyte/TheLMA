@@ -46,7 +46,6 @@ from thelma.models.rack import TubeRackSpecs
 from thelma.models.sample import Molecule
 from thelma.models.sample import Sample
 from thelma.models.sample import SampleMolecule
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 
@@ -201,9 +200,9 @@ class SourceSampleTestCase(_ExecutionHelperClassesTestCase):
         self.assert_equal(len(ts1.sample_components), 1)
         self.assert_equal(ss.total_transfer_volume, 1)
         # planned rack transfer
-        prst = PlannedRackSampleTransfer.get_entity(number_sectors=1,
-                                volume=2 / VOLUME_CONVERSION_FACTOR,
-                                  source_sector_index=0, target_sector_index=0)
+        prst = PlannedRackSampleTransfer.get_entity(
+                                        2 / VOLUME_CONVERSION_FACTOR,
+                                        1, 0, 0)
         ts2 = ss.create_and_add_transfer(prst)
         self.assert_is_not_none(ts2)
         self.assert_equal(ts2.volume, 2)
@@ -281,9 +280,9 @@ class TargetSampleTestCase(_ExecutionHelperClassesTestCase):
                                     target_position=rack_pos)
         self.assert_raises(TypeError, ts.create_and_add_transfer, pst)
         # planned rack sample transfers are not allowed
-        prst = PlannedRackSampleTransfer.get_entity(number_sectors=1,
-                                volume=5 / VOLUME_CONVERSION_FACTOR,
-                                source_sector_index=0, target_sector_index=0)
+        prst = PlannedRackSampleTransfer.get_entity(
+                                        5 / VOLUME_CONVERSION_FACTOR,
+                                        1, 0, 0)
         self.assert_raises(TypeError, ts.create_and_add_transfer, prst)
         # planned sample dilution
         psd = PlannedSampleDilution.get_entity(diluent_info='some',
@@ -367,7 +366,6 @@ class _LiquidTransferExecutorTestCase(ToolsAndUtilsTestCase):
 
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
-        self.log = TestingLog()
         self.executor_user = self._get_entity(IUser, 'it')
         self.target_rack = None
         self.target_plate = None
@@ -395,7 +393,6 @@ class _LiquidTransferExecutorTestCase(ToolsAndUtilsTestCase):
 
     def tear_down(self):
         ToolsAndUtilsTestCase.tear_down(self)
-        del self.log
         del self.target_rack
         del self.target_plate
         del self.target_tube_rack
@@ -597,13 +594,12 @@ class SampleDilutionWorklistExecutorTestCase(_WorklistExecutorTestCase):
 
     def _create_tool(self):
         self.tool = SampleDilutionWorklistExecutor(
-                      planned_worklist=self.worklist,
-                      target_rack=self.target_rack,
-                      user=self.executor_user,
-                      reservoir_specs=self.reservoir_specs,
-                      pipetting_specs=self.pipetting_specs,
-                      log=self.log,
-                      ignored_positions=self.ignored_positions)
+                                    self.worklist,
+                                    self.target_rack,
+                                    self.pipetting_specs,
+                                    self.executor_user,
+                                    self.reservoir_specs,
+                                    ignored_positions=self.ignored_positions)
 
     def _create_test_worklist(self):
         self.worklist = PlannedWorklist(label='sample dilution worklist',
@@ -755,10 +751,9 @@ class SampleDilutionWorklistExecutorTestCase(_WorklistExecutorTestCase):
 
     def test_invalid_transfer_type(self):
         self._continue_setup()
-        prst = PlannedRackSampleTransfer.get_entity(number_sectors=1,
-                                  volume=self.starting_volume_target,
-                                  source_sector_index=0,
-                                  target_sector_index=0)
+        prst = PlannedRackSampleTransfer.get_entity(
+                                            self.starting_volume_target,
+                                            1, 0, 0)
         self.worklist = PlannedWorklist(label='invalid worklist',
                                 planned_liquid_transfers=[prst],
                                 pipetting_specs=self.pipetting_specs,
@@ -819,14 +814,13 @@ class SampleTransferWorklistExecutorTestCase(_WorklistExecutorTestCase):
         del self.target_data
 
     def _create_tool(self):
-        self.log = TestingLog()
-        self.tool = SampleTransferWorklistExecutor(log=self.log,
-                            planned_worklist=self.worklist,
-                            target_rack=self.target_rack,
-                            user=self.executor_user,
-                            source_rack=self.source_rack,
-                            ignored_positions=self.ignored_positions,
-                            pipetting_specs=self.pipetting_specs)
+        self.tool = SampleTransferWorklistExecutor(
+                                self.worklist,
+                                self.target_rack,
+                                self.pipetting_specs,
+                                self.executor_user,
+                                self.source_rack,
+                                ignored_positions=self.ignored_positions)
 
     def _create_test_worklist(self):
         self.worklist = PlannedWorklist(label='sample transfer worklist',
@@ -1060,10 +1054,9 @@ class SampleTransferWorklistExecutorTestCase(_WorklistExecutorTestCase):
 
     def test_invalid_transfer_type(self):
         self._continue_setup()
-        prst = PlannedRackSampleTransfer.get_entity(number_sectors=1,
-                                  volume=self.starting_volume_target,
-                                  source_sector_index=0,
-                                  target_sector_index=0)
+        prst = PlannedRackSampleTransfer.get_entity(
+                                            self.starting_volume_target,
+                                            1, 0, 0)
         self.worklist = PlannedWorklist(label='invalid worklist',
                                 planned_liquid_transfers=[prst],
                                 pipetting_specs=self.pipetting_specs,
@@ -1183,10 +1176,12 @@ class RackSampleTransferExecutorTestCase(_LiquidTransferExecutorTestCase):
         del self.use_plates
 
     def _create_tool(self):
-        self.tool = RackSampleTransferExecutor(log=self.log,
-                planned_rack_sample_transfer=self.planned_rack_sample_transfer,
-                target_rack=self.target_rack, source_rack=self.source_rack,
-                user=self.executor_user, pipetting_specs=self.pipetting_specs)
+        self.tool = RackSampleTransferExecutor(
+                                        self.target_rack,
+                                        self.pipetting_specs,
+                                        self.executor_user,
+                                        self.planned_rack_sample_transfer,
+                                        self.source_rack)
 
     def _set_one_to_one_data(self):
         self.sector_number = 1
@@ -1222,11 +1217,10 @@ class RackSampleTransferExecutorTestCase(_LiquidTransferExecutorTestCase):
 
     def _create_test_worklist(self):
         self.planned_rack_sample_transfer = \
-                PlannedRackSampleTransfer.get_entity(
-                                volume=self.transfer_volume,
-                                source_sector_index=self.source_sector_index,
-                                target_sector_index=self.target_sector_index,
-                                number_sectors=self.sector_number)
+                PlannedRackSampleTransfer.get_entity(self.transfer_volume,
+                                                     self.sector_number,
+                                                     self.source_sector_index,
+                                                     self.target_sector_index)
 
     def _create_source_rack(self):
         self.source_rack = self.source_rack_specs.create_rack(
@@ -1490,13 +1484,6 @@ class RackSampleTransferExecutorTestCase(_LiquidTransferExecutorTestCase):
                         target_position=a1_pos)
         self._test_and_expect_errors('The planned rack sample transfer must ' \
                                      'be a PlannedRackSampleTransfer object')
-
-    def test_translator_init_failure(self):
-        self.sector_number = 3
-        self.source_sector_index = 1
-        self._continue_setup()
-        self._test_and_expect_errors('Error when trying to initialise rack ' \
-                                     'sector translator')
 
     def test_rack_shape_mismatch(self):
         self.sector_number = 1

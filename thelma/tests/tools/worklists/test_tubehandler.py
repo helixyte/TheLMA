@@ -2,9 +2,12 @@
 Test for tubehandler (XL20) related base classes.
 """
 from datetime import datetime
+
+from pkg_resources import resource_filename # pylint: disable=E0611,F0401
+import pytz
+
 from everest.repositories.rdb.testing import RdbContextManager
 from everest.repositories.rdb.testing import check_attributes
-from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 from thelma.automation.semiconstants import get_item_status_managed
 from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.worklists.tubehandler import TubeTransferData
@@ -20,9 +23,7 @@ from thelma.models.tubetransfer import TubeTransfer
 from thelma.models.utils import get_user
 from thelma.testing import ThelmaModelTestCase
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
-import pytz
 
 
 class TubeTransferDataTestCase(ThelmaModelTestCase):
@@ -55,7 +56,6 @@ class XL20WorklistWriterTestCase(FileCreatorTestCase):
 
     def set_up(self):
         FileCreatorTestCase.set_up(self)
-        self.log = TestingLog()
         self.WL_PATH = 'thelma:tests/tools/worklists/tubehandler/'
         self.tube_transfers = []
         # tube barcode, src rack barcode, src pos label, trg rack barcode,
@@ -67,13 +67,11 @@ class XL20WorklistWriterTestCase(FileCreatorTestCase):
 
     def tear_down(self):
         FileCreatorTestCase.tear_down(self)
-        del self.log
         del self.tube_transfers
         del self.transfer_data
 
     def _create_tool(self):
-        self.tool = XL20WorklistWriter(log=self.log,
-                                       tube_transfers=self.tube_transfers)
+        self.tool = XL20WorklistWriter(self.tube_transfers)
 
     def __continue_setup(self, create_tube_transfer_entities=False):
         if create_tube_transfer_entities:
@@ -129,7 +127,6 @@ class TubeTransferExecutorTestCase(ToolsAndUtilsTestCase):
 
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
-        self.log = TestingLog()
         self.tube_transfers = []
         self.executor_user = get_user('it')
         # tube barcode, src rack barcode, src pos label, trg rack barcode,
@@ -151,7 +148,6 @@ class TubeTransferExecutorTestCase(ToolsAndUtilsTestCase):
 
     def tear_down(self):
         ToolsAndUtilsTestCase.tear_down(self)
-        del self.log
         del self.tube_transfers
         del self.transfer_data
         del self.tube_ini_data
@@ -160,8 +156,8 @@ class TubeTransferExecutorTestCase(ToolsAndUtilsTestCase):
         del self.tube_specs
 
     def _create_tool(self):
-        self.tool = TubeTransferExecutor(tube_transfers=self.tube_transfers,
-                                         user=self.executor_user, log=self.log)
+        self.tool = TubeTransferExecutor(self.tube_transfers,
+                                         self.executor_user)
 
     def __continue_setup(self, session):
         self.__create_racks(session)

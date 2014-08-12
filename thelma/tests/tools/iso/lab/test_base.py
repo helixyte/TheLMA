@@ -31,7 +31,6 @@ from thelma.models.tagging import Tag
 from thelma.tests.tools.iso.lab.utils import LAB_ISO_TEST_CASES
 from thelma.tests.tools.iso.lab.utils import LabIsoTestCase2
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 from thelma.tests.tools.utils.utils import ConverterTestCase
 from thelma.tests.tools.utils.utils import MoleculeDesignPoolBaseTestCase
@@ -646,8 +645,8 @@ class LabIsoLayoutTestCase(_LabIsoClassesBaseTestCase):
         lip2 = self._get_layout_pos('a1', layout)
         lip2.stock_tube_barcode = self.POS_CLS.TEMP_STOCK_DATA
         self._expect_error(AttributeError, layout.create_rack_layout,
-                'There are still starting wells without stock data in the ' \
-                'layout!')
+                "There are still starting wells without stock data in the " \
+                "layout (positions: ['A1'])!")
 
 
 class _LabIsoLayoutBaseConverterTestCase(ConverterTestCase,
@@ -1071,7 +1070,6 @@ class _InstructionWriterTestCase(LabIsoTestCase2, FileCreatorTestCase):
 
     def set_up(self):
         LabIsoTestCase2.set_up(self)
-        self.log = TestingLog()
         self.rack_containers = []
         self.WL_PATH = LAB_ISO_TEST_CASES.INSTRUCTIONS_FILE_PATH
 
@@ -1080,9 +1078,9 @@ class _InstructionWriterTestCase(LabIsoTestCase2, FileCreatorTestCase):
         del self.rack_containers
 
     def _create_tool(self):
-        self.tool = create_instructions_writer(log=self.log, entity=self.entity,
-                        iso_request=self.iso_request,
-                        rack_containers=self.rack_containers)
+        self.tool = create_instructions_writer(self.entity,
+                                               self.iso_request,
+                                               self.rack_containers)
 
     def _continue_setup(self, file_name=None):
         LabIsoTestCase2._continue_setup(self, file_name=file_name)

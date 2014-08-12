@@ -8,6 +8,7 @@ from thelma.automation.tools.stock.tubepicking import TubePicker
 from thelma.automation.utils.base import CustomQuery
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.base import create_in_term_for_db_queries
+from collections import OrderedDict
 
 __docformat__ = 'reStructuredText en'
 
@@ -31,54 +32,27 @@ class StockSampleCreationTubePicker(TubePicker):
     NAME = 'Stock Sample Creation Optimizer'
 
     def __init__(self, molecule_design_pools, single_design_concentration,
-                 take_out_volume, log,
-                 excluded_racks=None, requested_tubes=None):
-        """
-        Constructor:
-
-        :param molecule_design_pools: The molecule design pool IDs for which
-            to run the query.
-        :type molecule_design_pools: :class:`set` of molecule design pool IDs
-
-        :param single_design_concentration: The stock concentration of the
-            single molecule design pools for the pool set in nM.
-        :type single_design_concentration: :class:`int` (positive number)
-
-        :param take_out_volume: The volume that shall be removed from the
-            single molecule design stock in ul.
-        :type take_out_volume: :class:`int`
-
-        :param log: The log to record events.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param requested_tubes: A list of barcodes from stock tubes that are
-            supposed to be used.
-        :type requested_tubes: A list of tube barcodes.
-
-        :param excluded_racks: A list of barcodes from stock racks that shall
-            not be used for molecule design picking.
-        :type excluded_racks: A list of rack barcodes
-        """
-        TubePicker.__init__(self, log=log,
-                            molecule_design_pools=molecule_design_pools,
-                            stock_concentration=single_design_concentration,
+                 take_out_volume, excluded_racks=None, requested_tubes=None,
+                 parent=None):
+        TubePicker.__init__(self, molecule_design_pools,
+                            single_design_concentration,
                             take_out_volume=take_out_volume,
                             excluded_racks=excluded_racks,
-                            requested_tubes=requested_tubes)
-
+                            requested_tubes=requested_tubes,
+                            parent=parent)
         #: The pool candidates mapped onto pool IDs.
         self.__pool_candidates = None
         #: Maps multi-pool IDs onto molecule design IDs. ATTENTION: a multi
         #: molecule design pool can point to several set pools! For this reason,
         #: multi-pool IDs are stored in lists.
         self.__md_map = None
-
         #: Maps molecule design IDs onto single molecule design pool IDs.
         self.__single_pool_map = None
-
         #: If an siRNA is used in several pools this map will store the data
         #: of which ISO candidate has been used for which one.
         self.__multi_pool_tube_candidates = None
+        #: Set of IDs that have been picked.
+        self.__picked_pool_ids = None
 
     def reset(self):
         TubePicker.reset(self)
@@ -87,6 +61,7 @@ class StockSampleCreationTubePicker(TubePicker):
         self.__md_map = dict()
         self.__single_pool_map = dict()
         self.__multi_pool_tube_candidates = dict()
+        self.__picked_pool_ids = set()
 
     def _create_pool_map(self):
         """
@@ -97,12 +72,9 @@ class StockSampleCreationTubePicker(TubePicker):
         self.__get_single_pools()
 
     def __create_pool_candidates(self):
-        """
-        Initialises empty pool candidates (without stock sample data and
-        candidates) for every pool to be generatef.
-        """
+        # Initialises empty pool candidates (without stock sample data and
+        #candidates) for every pool to be generate.
         self.add_debug('Initialise library candidates ...')
-
         for pool in self.molecule_design_pools:
             pool_cand = PoolCandidate(pool)
             self.__pool_candidates[pool.id] = pool_cand
@@ -110,16 +82,14 @@ class StockSampleCreationTubePicker(TubePicker):
                 add_list_map_element(self.__md_map, md_id, pool.id)
 
     def __get_single_pools(self):
-        """
-        Determines the single pool (ID) for each requested molecule design.
-        Uses the :class:`SingleDesignPoolQuery`.
-        """
+        # Determines the single pool (ID) for each requested molecule design.
+        # Uses the :class:`SingleDesignPoolQuery`.
         self.add_debug('Get single molecule design pool ...')
-
-        query = SingleDesignPoolQuery(molecule_design_ids=self.__md_map.keys())
-
-        self._run_query(query, base_error_msg='Error when trying to query ' \
-                                              'single molecule design pools: ')
+        query = \
+            SingleDesignPoolQuery(molecule_design_ids=self.__md_map.keys())
+        self._run_query(query,
+                        base_error_msg='Error when trying to query ' \
+                                        'single molecule design pools: ')
         if not self.has_errors():
             self.__single_pool_map = query.get_query_results()
             if not len(self.__single_pool_map) == len(self.__md_map):
@@ -135,10 +105,8 @@ class StockSampleCreationTubePicker(TubePicker):
                 self._pool_map = self.__single_pool_map
 
     def _store_candidate_data(self, tube_candidate):
-        """
-        Adds an ISO candidate to an library candidate and moves the
-        library candidate once it is completed.
-        """
+        # Adds an ISO candidate to an library candidate and moves the
+        # library candidate once it is completed.
         single_pool_id = tube_candidate.pool_id
         md_id = self.__single_pool_map[single_pool_id]
         pool_ids = self.__md_map[md_id]
@@ -153,17 +121,15 @@ class StockSampleCreationTubePicker(TubePicker):
                     pool_id = ambi_pool_id
                 if pool_id is None:
                     pool_id = pool_ids[0]
-
         pool_cand = self.__pool_candidates[pool_id]
         is_requested = tube_candidate.tube_barcode in self.requested_tubes
-
         if not pool_cand.has_tube_candidate(md_id):
             pool_cand.set_tube_candidate(md_id, tube_candidate)
         elif is_requested:
             pool_cand.replace_candidate(md_id, tube_candidate)
-
-        if pool_cand.is_completed() and \
-                                    not pool_cand in self._picked_candidates:
+        if pool_cand.is_completed() \
+           and not pool_cand.pool_id in self.__picked_pool_ids:
+            self.__picked_pool_ids.add(pool_cand.pool_id)
             self._picked_candidates.append(pool_cand)
 
     def _sort_candidates(self):
@@ -180,10 +146,9 @@ class PoolCandidate(object):
     A helper class storing the single design candidates for one particular pool
     (storage class, all values can only be set once).
     """
-
     def __init__(self, pool):
         """
-        Constructor:
+        Constructor.
 
         :param pool: The molecule design pools this candidate aims to create.
         :type pool:
@@ -195,8 +160,7 @@ class PoolCandidate(object):
         #: molecule design IDs (design of the :attr:`pool`).
         self.__single_pools = dict()
         #: Maps tube candidates onto molecule design IDs.
-        self.__candidates = dict()
-
+        self.__candidates = OrderedDict()
         for md in self.__pool:
             md_id = md.id
             self.__single_pools[md_id] = None
@@ -208,6 +172,10 @@ class PoolCandidate(object):
         The molecule design pools this candidate aims to create.
         """
         return self.__pool
+
+    @property
+    def pool_id(self):
+        return self.__pool.id
 
     def get_molecule_design_ids(self):
         """
@@ -229,7 +197,6 @@ class PoolCandidate(object):
             msg = 'Molecule design %i is not part of pool %i!' \
                    % (md_id, self.__pool.id)
             raise KeyError(msg)
-
         return (self.__candidates[md_id] is not None)
 
     def set_tube_candidate(self, md_id, candidate):
@@ -237,12 +204,9 @@ class PoolCandidate(object):
         Sets the tube stock sample candidate for a molecule design of the
         :attr:`pool`.
 
-        :param md_id: The ID of a molecule design in the pool to create.
-        :type md_id: :class:`int`
-
+        :param int md_id: The ID of a molecule design in the pool to create.
         :param candidate: The candidate for this molecule design.
         :type candidate: :class:`IsoCandidate`
-
         :Note: Use :func:`has_tube_candidate` to check whether there is already
             a candidate.
         :raises AttributeError: If the candidate has already been set.
@@ -251,7 +215,6 @@ class PoolCandidate(object):
             msg = 'The candidate for molecule design %i has already been set ' \
                   '(library pool %i).' % (md_id, self.__pool.id)
             raise AttributeError(msg)
-
         if self.__candidates[md_id] is None:
             self.__candidates[md_id] = candidate
 
@@ -267,10 +230,12 @@ class PoolCandidate(object):
         Checks whether there are ISO candidates for all molecule designs in
         the pool to create.
         """
+        result = True
         for candidate in self.__candidates.values():
-            if candidate is None: return False
-
-        return True
+            if candidate is None:
+                result = False
+                break
+        return result
 
     def get_tube_barcodes(self):
         """
@@ -280,9 +245,9 @@ class PoolCandidate(object):
         barcodes = []
         for md_id in sorted(self.__candidates.keys()):
             candidate = self.__candidates[md_id]
-            if candidate is None: continue
+            if candidate is None:
+                continue
             barcodes.append(candidate.tube_barcode)
-
         return barcodes
 
     def __eq__(self, other):
@@ -297,6 +262,16 @@ class PoolCandidate(object):
         params = (self.__class__.__name__, self.__pool.id,
                   '-'.join([str(md_id) for md_id in self.__candidates.keys()]))
         return str_format % params
+
+    def __getattr__(self, attr):
+        if attr in ('tube_barcode', 'rack_barcode', 'rack_position', 'volume'):
+            # This emulates a "normal" tube candidates for pools that are
+            # made up of only one single design.
+            if len(self.__candidates) > 1:
+                raise AttributeError(attr)
+            return getattr(self.__candidates.values()[0], attr)
+        else:
+            raise AttributeError(attr)
 
 
 class SingleDesignPoolQuery(CustomQuery):
@@ -347,46 +322,48 @@ class SingleDesignPoolQuery(CustomQuery):
 
 
 class PoolGenerationOptimizationQuery(OptimizingQuery):
-    """
-    This :class:`TubePickingQuery` aims find tubes for the single molecule
-    design pools required to generate the pools. At this, it tries to
-    minimise the number of racks that have to be used in the stock.
+    pass
 
-    Unlike as in the normal :class:`OptimizingQuery` we do not care for
-    sample volumes.
-
-    The results are converted into :class:`TubeCandidates` and stored in
-    a list.
-    """
-
-    QUERY_TEMPLATE = '''
-    SELECT DISTINCT stock_sample.molecule_design_set_id AS pool_id,
-           rack_tube_counts.rack_barcode AS rack_barcode,
-           containment.row AS row_index,
-           containment.col AS column_index,
-           container_barcode.barcode AS tube_barcode,
-           rack_tube_counts.desired_count AS total_candidates,
-           stock_sample.concentration AS concentration
-    FROM stock_sample, sample, container, container_barcode, containment,
-         (SELECT xr.rack_id, xr.barcode AS rack_barcode,
-                   COUNT(xc.container_id) AS desired_count
-          FROM rack xr, containment xrc, container xc, sample xs,
-               stock_sample xss
-          WHERE xr.rack_id = xrc.holder_id
-          AND xc.container_id = xrc.held_id
-          AND xc.container_id = xs.container_id
-          AND xs.sample_id = xss.sample_id
-          AND xs.sample_id IN %s
-          GROUP BY xr.rack_id, xr.barcode
-          HAVING COUNT(xc.container_id) > 0 ) AS rack_tube_counts
-    WHERE container.container_id = containment.held_id
-    AND containment.holder_id = rack_tube_counts.rack_id
-    AND container.container_id = sample.container_id
-    AND container_barcode.container_id = container.container_id
-    AND sample.sample_id = stock_sample.sample_id
-    AND sample.sample_id IN %s
-    ORDER BY rack_tube_counts.desired_count desc,
-        rack_tube_counts.rack_barcode;'''
-
-    COLUMN_NAMES = ['pool_id', 'rack_barcode', 'row_index', 'column_index',
-                    'tube_barcode', 'total_candidates', 'concentration']
+#    """
+#    This :class:`TubePickingQuery` aims find tubes for the single molecule
+#    design pools required to generate the pools. At this, it tries to
+#    minimise the number of racks that have to be used in the stock.
+#
+#    Unlike as in the normal :class:`OptimizingQuery` we do not care for
+#    sample volumes.
+#
+#    The results are converted into :class:`TubeCandidates` and stored in
+#    a list.
+#    """
+#
+#    QUERY_TEMPLATE = '''
+#    SELECT DISTINCT stock_sample.molecule_design_set_id AS pool_id,
+#           rack_tube_counts.rack_barcode AS rack_barcode,
+#           containment.row AS row_index,
+#           containment.col AS column_index,
+#           container_barcode.barcode AS tube_barcode,
+#           rack_tube_counts.desired_count AS total_candidates,
+#           stock_sample.concentration AS concentration
+#    FROM stock_sample, sample, container, container_barcode, containment,
+#         (SELECT xr.rack_id, xr.barcode AS rack_barcode,
+#                   COUNT(xc.container_id) AS desired_count
+#          FROM rack xr, containment xrc, container xc, sample xs,
+#               stock_sample xss
+#          WHERE xr.rack_id = xrc.holder_id
+#          AND xc.container_id = xrc.held_id
+#          AND xc.container_id = xs.container_id
+#          AND xs.sample_id = xss.sample_id
+#          AND xs.sample_id IN %s
+#          GROUP BY xr.rack_id, xr.barcode
+#          HAVING COUNT(xc.container_id) > 0 ) AS rack_tube_counts
+#    WHERE container.container_id = containment.held_id
+#    AND containment.holder_id = rack_tube_counts.rack_id
+#    AND container.container_id = sample.container_id
+#    AND container_barcode.container_id = container.container_id
+#    AND sample.sample_id = stock_sample.sample_id
+#    AND sample.sample_id IN %s
+#    ORDER BY rack_tube_counts.desired_count desc,
+#        rack_tube_counts.rack_barcode;'''
+#
+#    COLUMN_NAMES = ['pool_id', 'rack_barcode', 'row_index', 'column_index',
+#                    'tube_barcode', 'total_candidates', 'concentration']

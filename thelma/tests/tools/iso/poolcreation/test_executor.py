@@ -3,32 +3,34 @@ Tests for tools involved the execution of pool stock sample creation worklists.
 
 AAB
 """
+from thelma.automation.semiconstants import ITEM_STATUS_NAMES
+from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.iso.base import StockRackLayout
 from thelma.automation.tools.iso.base import StockRackPosition
-from thelma.models.iso import ISO_STATUS
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
-from thelma.automation.semiconstants import ITEM_STATUS_NAMES
-from thelma.models.racklayout import RackLayout
-from thelma.tests.tools.tooltestingutils import TestingLog
-from thelma.automation.tools.iso.poolcreation.execution import _StockSampleCreationStockLogFileWriter
 from thelma.automation.tools.iso.poolcreation import get_executor
-from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-from thelma.automation.tools.iso.poolcreation.execution import StockSampleCreationStockTransferReporter
-from thelma.automation.tools.iso.tracreporting import IsoStockTransferReporter
 from thelma.automation.tools.iso.poolcreation.base \
     import SingleDesignStockRackLayout
 from thelma.automation.tools.iso.poolcreation.base import LABELS
 from thelma.automation.tools.iso.poolcreation.execution \
-    import StockSampleCreationExecutor
+    import StockSampleCreationIsoExecutor
+from thelma.automation.tools.iso.poolcreation.execution \
+    import StockSampleCreationStockTransferReporter
+from thelma.automation.tools.iso.poolcreation.execution \
+    import _StockSampleCreationStockLogFileWriter
+from thelma.automation.tools.iso.tracreporting import IsoStockTransferReporter
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.layouts import TransferTarget
+from thelma.models.iso import ISO_STATUS
+from thelma.models.liquidtransfer import TRANSFER_TYPES
+from thelma.models.racklayout import RackLayout
 from thelma.models.utils import get_user
 from thelma.tests.tools.iso.poolcreation.utils \
     import StockSampleCreationTestCase3
 from thelma.tests.tools.iso.poolcreation.utils import SSC_TEST_DATA
+from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
+
 
 class _StockSampleCreationExecutorBaseTestCase(StockSampleCreationTestCase3):
 
@@ -157,7 +159,7 @@ class StockSampleCreationExecutorTestCase(
                                     _StockSampleCreationExecutorBaseTestCase):
 
     def _create_tool(self):
-        self.tool = StockSampleCreationExecutor(iso=self.iso,
+        self.tool = StockSampleCreationIsoExecutor(iso=self.iso,
                                                 user=self.executor_user)
 
     def _test_and_expect_errors(self, msg=None):
@@ -431,20 +433,18 @@ class StockSampleCreationStockLogFileWriterTestCase(FileCreatorTestCase,
     def set_up(self):
         _StockSampleCreationExecutorBaseTestCase.set_up(self)
         self.WL_PATH = SSC_TEST_DATA.WORKLIST_FILE_PATH
-        self.log = TestingLog()
         self.ssc_layout = None
         self.executed_worklists = None
 
     def tear_down(self):
         _StockSampleCreationExecutorBaseTestCase.tear_down(self)
-        del self.log
         del self.ssc_layout
         del self.executed_worklists
 
     def _create_tool(self):
-        self.tool = _StockSampleCreationStockLogFileWriter(log=self.log,
-                            stock_sample_creation_layout=self.ssc_layout,
-                            executed_worklists=self.executed_worklists)
+        self.tool = \
+            _StockSampleCreationStockLogFileWriter(self.ssc_layout,
+                                                   self.executed_worklists)
 
     def _continue_setup(self, file_name=None):
         _StockSampleCreationExecutorBaseTestCase._continue_setup(self,
@@ -530,7 +530,7 @@ class StockSampleCreationStockTransferReporterTestCase(FileCreatorTestCase,
 
     def __check_result(self):
         self._continue_setup()
-        self.tool.send_request()
+        self.tool.run()
         self.assert_true(self.tool.transaction_completed())
         tool_stream, comment = self.tool.return_value # unpack non-sequence pylint:disable=W0633
         self._compare_csv_file_stream(tool_stream, SSC_TEST_DATA.FILE_NAME_LOG)
@@ -557,7 +557,7 @@ class StockSampleCreationStockTransferReporterTestCase(FileCreatorTestCase,
         ori_executor = self.executor
         self.executor = None
         self._test_and_expect_errors('The executor must be a ' \
-                    'StockSampleCreationExecutor object (obtained: NoneType).')
+                    'StockSampleCreationIsoExecutor object (obtained: NoneType).')
         self.executor = ori_executor
         self.executor.add_error('test')
         self._test_and_expect_errors('The executor has errors!')

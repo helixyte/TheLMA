@@ -356,12 +356,12 @@ class StockRackRecyclerLabIso(_StockRackRecycler, _StockRackAssignerLabIso):
         #: The :class:`RackSectorTranslator`s translating 384-well target
         #: plate positins into stock rack positions mapped onto source
         #: sector indices (for sector data only).
-        self.__translators = None
+        self.__ssc_layout_map = None
     #pylint: enable=W0231
 
     def reset(self):
         _StockRackRecycler.reset(self)
-        self.__translators = dict()
+        self.__ssc_layout_map = dict()
 
     def _check_input(self):
         _StockRackRecycler._check_input(self)
@@ -487,14 +487,14 @@ class StockRackRecyclerLabIso(_StockRackRecycler, _StockRackAssignerLabIso):
                     stock_rack_positions.add(plate_pos.rack_position)
 
             else:
-                if self.__translators.has_key(sector_index):
-                    translator = self.__translators[sector_index]
+                if self.__ssc_layout_map.has_key(sector_index):
+                    translator = self.__ssc_layout_map[sector_index]
                 else:
                     translator = RackSectorTranslator(number_sectors=4,
                                     source_sector_index=sector_index,
                                     target_sector_index=0,
                                     behaviour=RackSectorTranslator.ONE_TO_MANY)
-                    self.__translators[sector_index] = translator
+                    self.__ssc_layout_map[sector_index] = translator
                 for plate_pos in positions:
                     base_msg = 'Error when trying to determine stock rack ' \
                                'position for position %s:' \

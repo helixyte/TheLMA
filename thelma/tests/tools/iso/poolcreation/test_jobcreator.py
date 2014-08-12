@@ -5,20 +5,20 @@ AAB
 """
 from everest.repositories.rdb.testing import RdbContextManager
 from thelma.automation.tools.iso import get_job_creator
-from thelma.automation.tools.iso.poolcreation.jobcreator import StockSampleCreationIsoJobCreator
 from thelma.automation.tools.iso.poolcreation.jobcreator \
     import StockSampleCreationIsoPopulator
 from thelma.automation.tools.iso.poolcreation.jobcreator \
     import StockSampleCreationIsoResetter
+from thelma.automation.tools.iso.poolcreation.jobcreator import StockSampleCreationIsoJobCreator
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.models.iso import ISO_STATUS
 from thelma.models.utils import get_user
 from thelma.tests.tools.iso.poolcreation.utils \
     import StockSampleCreationTestCase2
-from thelma.tests.tools.iso.poolcreation.utils import SSC_TEST_DATA
 from thelma.tests.tools.iso.poolcreation.utils \
     import StockSampleCreationTestCase3
-from thelma.tests.tools.tooltestingutils import TestingLog
+from thelma.tests.tools.iso.poolcreation.utils import SSC_TEST_DATA
+
 
 class _StockSampleCreationIsoTestCase(StockSampleCreationTestCase2):
 
@@ -131,20 +131,12 @@ class _StockSampleCreationIsoTestCase(StockSampleCreationTestCase2):
 
 class StockSampleCreationIsoPopulatorTestCase(_StockSampleCreationIsoTestCase):
 
-    def set_up(self):
-        _StockSampleCreationIsoTestCase.set_up(self)
-        self.log = TestingLog()
-
-    def tear_down(self):
-        _StockSampleCreationIsoTestCase.tear_down(self)
-        del self.log
-
     def _create_tool(self):
-        self.tool = StockSampleCreationIsoPopulator(log=self.log,
-                            iso_request=self.iso_request,
-                            number_isos=self.isos_to_generate,
-                            excluded_racks=self.excluded_racks,
-                            requested_tubes=self.requested_tubes)
+        self.tool = StockSampleCreationIsoPopulator(
+                                        self.iso_request,
+                                        self.isos_to_generate,
+                                        excluded_racks=self.excluded_racks,
+                                        requested_tubes=self.requested_tubes)
 
     def test_result_1_out_of_1(self):
         self._continue_setup()
@@ -223,14 +215,14 @@ class StockSampleCreationIsoJobCreatorTestCase(_StockSampleCreationIsoTestCase):
         del self.use_factory
 
     def _create_tool(self):
-        kw = dict(iso_request=self.iso_request, job_owner=self.job_owner,
-                number_isos=self.isos_to_generate,
-                excluded_racks=self.excluded_racks,
-                requested_tubes=self.requested_tubes)
         if self.use_factory:
-            self.tool = get_job_creator(**kw)
+            fac = get_job_creator
         else:
-            self.tool = StockSampleCreationIsoJobCreator(**kw)
+            fac = StockSampleCreationIsoJobCreator
+        self.tool = fac(self.iso_request, self.job_owner,
+                        self.isos_to_generate,
+                        excluded_racks=self.excluded_racks,
+                        requested_tubes=self.requested_tubes)
 
     def __check_result(self, exp_layout_nums, exp_warning):
         iso_job = self.tool.get_result()

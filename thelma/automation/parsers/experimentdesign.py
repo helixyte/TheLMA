@@ -142,36 +142,26 @@ class ExperimentDesignParser(ExcelMoleculeDesignPoolLayoutParser):
     """
     This is the actual parser class for Experimental Meta Data Excel files.
     """
-
-    #: name of the parser (requested by logs)
+    #: Name of the parser (requested by logs)
     NAME = 'Experiment Design Parser'
-
-    """ .. _shapes:""" #pylint: disable=W0105
-    #: list of valid rack dimensions
+    #: List of valid rack dimensions
     RACK_SHAPES = [(8, 12), (16, 24), (32, 48)]
 
-    def __init__(self, stream, log):
-        """
-        :param stream: open Excel file to be parsed
-
-        :param log: The ThelmaLog you want to write in.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        ExcelMoleculeDesignPoolLayoutParser.__init__(self, stream, log)
-
+    def __init__(self, stream, parent=None):
+        ExcelMoleculeDesignPoolLayoutParser.__init__(self, stream,
+                                                     parent=parent)
         #: The names of the sheets to be parsed (set by the handler).
         self.sheet_names = None
-
         #: A list of all tag predicates (factors) found in the file (to
         #: detect duplicates).
         self.tag_predicates = set()
 
-    def parse(self):
+    def run(self):
         """
         Parses the experiment design tabs of the specified file.
         """
         self.reset()
-        self.log.add_info('Start parsing ...')
+        self.add_info('Start parsing ...')
         if not self.has_errors():
             wb = self.open_workbook()
             sheets = self.__get_sheets(wb)

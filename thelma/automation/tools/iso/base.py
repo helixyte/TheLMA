@@ -37,15 +37,12 @@ class _ISO_LABELS_BASE(object):
     """
     #: The character used in the labels to separate the value parts.
     SEPARATING_CHAR = '_'
-    #: This character is used seperate running numbers from value parts.
+    #: This character is used separate running numbers from value parts.
     NUMBERING_CHAR = '#'
-
     #: Marker for worklist source racks in keyword dictionaries.
     MARKER_WORKLIST_SOURCE = 'source_rack_marker'
     #: Marker for worklist target racks in keyword dictionaries.
     MARKER_WORKLIST_TARGET = 'target_rack_marker'
-
-
     #: Marker for ISO or ISO job number.
     MARKER_ENTITY_NUM = 'entity_num'
     #: Marks the roles of a rack (e.g. stock rack, final plate). Is part
@@ -55,7 +52,6 @@ class _ISO_LABELS_BASE(object):
     MARKER_RACK_MARKER = 'rack_marker'
     #: Used to distinguish racks having the same role.
     MARKER_RACK_NUM = 'rack_num'
-
     #: For dilution worklists. Located after the target rack. In ISOs
     #: the diluent is always buffer.
     _FILL_WORKLIST_DILUTION = 'buffer'
@@ -72,9 +68,9 @@ class _ISO_LABELS_BASE(object):
             if isinstance(value, int):
                 value_str = cls._get_int_str(value)
                 value_parts[i] = value_str
-
         sep = cls.SEPARATING_CHAR
-        if for_numbering: sep = cls.NUMBERING_CHAR
+        if for_numbering:
+            sep = cls.NUMBERING_CHAR
         return sep.join(value_parts)
 
     @classmethod
@@ -85,9 +81,10 @@ class _ISO_LABELS_BASE(object):
         value_parts = [rack_role]
         if rack_number is not None:
             value_parts += [rack_number]
-            return cls._create_label(value_parts, for_numbering=True)
+            result = cls._create_label(value_parts, for_numbering=True)
         else:
-            return rack_role
+            result = rack_role
+        return result
 
     @classmethod
     def parse_rack_marker(cls, rack_marker):
@@ -113,7 +110,6 @@ class _ISO_LABELS_BASE(object):
         for iso_job in iso_request.iso_jobs:
             number = cls.__get_job_number(iso_job)
             highest_number = max(highest_number, number)
-
         return highest_number + 1
 
     @classmethod
@@ -156,14 +152,10 @@ class IsoRackContainer(object):
 
         :param rack: The rack or plate.
         :type rack: :class:`thelma.models.rack.Rack`
-
-        :param rack_marker: Contains the rack role and number
+        :param str rack_marker: Contains the rack role and number
             (see :func:`LABELS.create_rack_marker`).
-        :type rack_marker: :class:`basestring`
         :default rack_marker: *None* (is parsed from the :param:`label`).
-
-        :param label: The rack or stock rack label.
-        :type label: :class:`basestring`
+        :param str label: The rack or stock rack label.
         :default label: *None* (is taken from the :param:`rack`).
 
         :param role: Final, preparation or stock preparation plate or stock rack
@@ -173,16 +165,13 @@ class IsoRackContainer(object):
         """
         #: The rack or plate.
         self.rack = rack
-
         #: Contains the rack role and number (see
         #: :func:`LABELS.create_rack_marker`).
         self.rack_marker = rack_marker
-
         if label is None:
             label = rack.label
         #: The rack or stock rack label.
         self.label = label
-
         if role is None:
             values = _ISO_LABELS_BASE.parse_rack_marker(rack_marker)
             role = values[_ISO_LABELS_BASE.MARKER_RACK_ROLE]
@@ -208,7 +197,6 @@ class StockRackParameters(TransferParameters):
     """
     DOMAIN = 'stock_rack'
     ALLOWED_POSITION_TYPES = [FIXED_POSITION_TYPE, EMPTY_POSITION_TYPE]
-
     #: The molecule design pool (tag value: molecule design pool id).
     MOLECULE_DESIGN_POOL = TransferParameters.MOLECULE_DESIGN_POOL
     #: The barcode of the tube that is the source for a stock transfer.
@@ -217,10 +205,8 @@ class StockRackParameters(TransferParameters):
     # :class:`TransferTarget` objects).
     TRANSFER_TARGETS = TransferParameters.TRANSFER_TARGETS
     MUST_HAVE_TRANSFER_TARGETS = {TRANSFER_TARGETS : True}
-
     REQUIRED = [MOLECULE_DESIGN_POOL, TUBE_BARCODE, TRANSFER_TARGETS]
     ALL = REQUIRED
-
     ALIAS_MAP = dict(TransferParameters.ALIAS_MAP, **{
                                 TUBE_BARCODE : ['container_barcode']})
     DOMAIN_MAP = dict(TransferParameters.DOMAIN_MAP, **{TUBE_BARCODE : DOMAIN})
@@ -236,31 +222,17 @@ class StockRackPosition(TransferPosition):
     def __init__(self, rack_position, molecule_design_pool, tube_barcode,
                  transfer_targets):
         """
-        Constructor:
+        Constructor.
 
-        :param rack_position: The position within the rack.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`
-
-        :param molecule_design_pool: The molecule design pool for this position.
-        :type molecule_design_pool:  placeholder or
-            :class:`thelma.models.moleculedesign.MoleculeDesignPool`
-
-        :param tube_barcode: The tube expected at the given position.
-        :type tube_barcode: :class:`basestring`
-
-        :param transfer_targets: The volume required to supply all child wells
-            and the volume for the transfer to the ISO plate.
-        :type transfer_targets: :class:`list` of :class:`TransferTarget` objects
+        :param str tube_barcode: The tube expected at the given position.
         """
-        TransferPosition.__init__(self, rack_position=rack_position,
+        TransferPosition.__init__(self, rack_position,
                                   molecule_design_pool=molecule_design_pool,
                                   transfer_targets=transfer_targets)
-
         if not self.is_fixed:
             msg = 'ISO stock rack positions must be fixed positions!'
             raise ValueError(msg)
         self.position_type = None # we do not need position types here
-
         if not isinstance(tube_barcode, basestring):
             msg = 'The tube barcode must be a string (obtained: %s).' \
                    % (tube_barcode.__class__.__name__)
@@ -320,9 +292,6 @@ class StockRackLayout(TransferLayout):
     POSITION_CLS = StockRackPosition
 
     def __init__(self):
-        """
-        Constructor
-        """
         TransferLayout.__init__(self, shape=get_stock_rack_shape())
 
     def get_duplicate_molecule_design_pools(self):
@@ -337,7 +306,6 @@ class StockRackLayout(TransferLayout):
                 duplicate_pools.add(pool)
             else:
                 md_pools.add(pool.id)
-
         return list(duplicate_pools)
 
 
@@ -345,25 +313,13 @@ class StockRackLayoutConverter(TransferLayoutConverter):
     """
     Converts a rack layout into a :class:`StockRackLayout`
     """
-
     NAME = 'Stock Rack Layout Converter'
     PARAMETER_SET = StockRackParameters
     LAYOUT_CLS = StockRackLayout
     POSITION_CLS = StockRackPosition
 
-    def __init__(self, rack_layout, log):
-        """
-        Constructor:
-
-        :param rack_layout: The rack layout containing the transfer data.
-        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
-
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        TransferLayoutConverter.__init__(self, rack_layout=rack_layout, log=log)
-
+    def __init__(self, rack_layout, parent=None):
+        TransferLayoutConverter.__init__(self, rack_layout, parent=parent)
         # Intermediate error storage
         self.__missing_tube_barcode = None
 
@@ -411,28 +367,23 @@ class StockRackVerifier(BaseRackVerifier):
     Compares stock racks for ISOs and ISO jobs with stock racks layouts.
     """
     NAME = 'Lab ISO Stock Rack Verifier'
-
     _RACK_CLS = TubeRack
     _LAYOUT_CLS = StockRackLayout
     _CHECK_VOLUMES = True
 
-    def __init__(self, log, stock_rack, stock_rack_layout=None):
+    def __init__(self, stock_rack, stock_rack_layout=None, parent=None):
         """
-        Constructor:
-
-        :param log: The log the write in.
-        :type log: :class:`thelma.ThelmaLog`
+        Constructor.
 
         :param stock_rack: The stock rack to be checked.
         :type stock_rack: :class:`thelma.models.iso.StockRack`
-
         :param stock_rack_layout: The layout containing the molecule design
             and volume data. Can be set here or derived during the run.
         :type stock_rack_layout:  :class:`StockRackLayout`
         """
-        BaseRackVerifier.__init__(self, log=log,
-                                  reference_layout=stock_rack_layout)
-
+        BaseRackVerifier.__init__(self,
+                                  reference_layout=stock_rack_layout,
+                                  parent=parent)
         #: The stock rack to be checked.
         self.stock_rack = stock_rack
 
@@ -444,8 +395,8 @@ class StockRackVerifier(BaseRackVerifier):
         self._rack = self.stock_rack.rack
 
     def _fetch_expected_layout(self):
-        converter = StockRackLayoutConverter(log=self.log,
-                                     rack_layout=self.stock_rack.rack_layout)
+        converter = StockRackLayoutConverter(self.stock_rack.rack_layout,
+                                             parent=self)
         self._expected_layout = converter.get_result()
         if self._expected_layout is None:
             msg = 'Error when trying to convert stock rack layout!'
@@ -468,30 +419,20 @@ class StockTransferWriterExecutor(SerialWriterExecutorTool):
     **Return Value:** a zip stream for for printing mode or the entity
         for execution mode (can be overwritten)
     """
-
     #: The entity treated by the subclass.
     ENTITY_CLS = None
 
-    def __init__(self, entity, mode, user=None, **kw):
+    def __init__(self, entity, mode, user=None, parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param entity: The ISO job or ISO to process.
         :type entity: :class:`thelma.models.job.IsoJob` or
             :class:`thelma.models.iso.LabIso`.
-
-        :param mode: :attr:`MODE_EXECUTE` or :attr:`MODE_PRINT_WORKLISTS`
-        :type mode: str
-
-        :param user: The user who conducts the DB update (required for
-            execution mode).
-        :type user: :class:`thelma.models.user.User`
-        :default user: *None*
         """
-        SerialWriterExecutorTool.__init__(self, mode=mode, user=user, **kw)
+        SerialWriterExecutorTool.__init__(self, mode, user=user, parent=parent)
         #: The entity the transfer will be attached to (ISO or ISO job).
         self.entity = entity
-
         #: The executed stock transfer worklists (for reporting).
         self._executed_stock_worklists = None
 

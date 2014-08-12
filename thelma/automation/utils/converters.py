@@ -8,13 +8,13 @@ IsoPosition map).
 
 from everest.entities.utils import get_root_aggregate
 from thelma.automation.semiconstants import get_positions_for_shape
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.layouts import EMPTY_POSITION_TYPE
 from thelma.automation.utils.layouts import LIBRARY_POSITION_TYPE
-from thelma.automation.utils.layouts import LibraryLayout
-from thelma.automation.utils.layouts import LibraryLayoutParameters
-from thelma.automation.utils.layouts import LibraryLayoutPosition
+from thelma.automation.utils.layouts import LibraryBaseLayout
+from thelma.automation.utils.layouts import LibraryBaseLayoutParameters
+from thelma.automation.utils.layouts import LibraryBaseLayoutPosition
 from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
 from thelma.automation.utils.layouts import MoleculeDesignPoolLayout
 from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
@@ -36,10 +36,10 @@ __author__ = 'Anna-Antonia Berger'
 __all__ = ['BaseLayoutConverter',
            'TransferLayoutConverter',
            'MoleculeDesignPoolLayoutConverter',
-           'LibraryLayoutConverter']
+           'LibraryBaseLayoutConverter']
 
 
-class BaseLayoutConverter(BaseAutomationTool):
+class BaseLayoutConverter(BaseTool):
     """
     A super class for tools that generated working layouts
     (:class:`thelma.automation.utils.layouts.WorkingLayout`) from
@@ -62,31 +62,23 @@ class BaseLayoutConverter(BaseAutomationTool):
     # the conversion.
     _RACK_POSITION_KEY = 'rack_position'
 
-    def __init__(self, rack_layout, log):
+    def __init__(self, rack_layout, parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param rack_layout: The rack layout containing the ISO data.
         :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
-        :type log: :class:`thelma.ThelmaLog`
         """
-        BaseAutomationTool.__init__(self, log)
-
+        BaseTool.__init__(self, parent=parent)
         #: The rack layout containing the data for the working layout.
         self.rack_layout = rack_layout
-
         #: A map containing the validator objects for each parameter
         #: (:class:`thelma.automation.utils.base.ParameterAliasValidator`).
         self._parameter_validators = None
-
         #: Maps the derived WorkingPositions onto rack positions.
         self.__position_map = None
-
         #: Parameters which do not have to be specified in the layout at all.
         self._optional_parameters = None
-
         #: Lists for intermediate error storage.
         self._multiple_tags = None
 
@@ -94,7 +86,7 @@ class BaseLayoutConverter(BaseAutomationTool):
         """
         Resets all attributes except for the :attr:`rack_layout`.
         """
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self.__position_map = dict()
         self._parameter_validators = None
         self._optional_parameters = set()
@@ -207,12 +199,12 @@ class BaseLayoutConverter(BaseAutomationTool):
         """
         rack_pos = parameter_map[self._RACK_POSITION_KEY]
         kw = self._get_position_init_values(parameter_map, rack_pos)
-        if kw is None: return None
-        if not kw.has_key('rack_position'):
-            kw['rack_position'] = rack_pos
-
-        working_pos = self.POSITION_CLS(**kw) #pylint: disable=E1102
-        return working_pos
+        result = None
+        if not kw is None:
+            if not kw.has_key('rack_position'):
+                kw['rack_position'] = rack_pos
+            result = self.POSITION_CLS(**kw) #pylint: disable=E1102
+        return result
 
     def _get_position_init_values(self, parameter_map, rack_pos):
         """
@@ -318,30 +310,17 @@ class MoleculeDesignPoolLayoutConverter(BaseLayoutConverter):
     LAYOUT_CLS = MoleculeDesignPoolLayout
     POSITION_CLS = MoleculeDesignPoolPosition
 
-    def __init__(self, rack_layout, log):
-        """
-        Constructor:
-
-        :param rack_layout: The rack layout containing the ISO data.
-        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
-
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        BaseLayoutConverter.__init__(self, rack_layout=rack_layout, log=log)
-
-        if self.__class__ == MoleculeDesignPoolLayoutConverter:
+    def __init__(self, rack_layout, parent=None):
+        BaseLayoutConverter.__init__(self, rack_layout, parent=parent)
+        if self.__class__ is MoleculeDesignPoolLayoutConverter:
             msg = 'This is an abstract class!'
             self.add_error(msg)
-
         #: The molecule design pool aggregate
         #: (see :class:`thelma.models.aggregates.Aggregate`)
         #: used to obtain check the validity of molecule design pool IDs.
         self.__pool_aggregate = get_root_aggregate(IMoleculeDesignPool)
         #: Stores the molecule design pools for molecule design pool IDs.
         self.__pool_map = None
-
         # intermediate storage of invalid rack positions
         self.__unknown_pools = None
         self.__invalid_pos_type = None
@@ -513,23 +492,11 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter):
     LAYOUT_CLS = TransferLayout
     POSITION_CLS = TransferPosition
 
-    def __init__(self, rack_layout, log):
-        """
-        Constructor:
-
-        :param rack_layout: The rack layout containing the transfer data.
-        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
-
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        MoleculeDesignPoolLayoutConverter.__init__(self, log=log,
-                                                   rack_layout=rack_layout)
-
+    def __init__(self, rack_layout, parent=None):
+        MoleculeDesignPoolLayoutConverter.__init__(self, rack_layout,
+                                                   parent=parent)
         #: Stores the target wells (for consistency checking).
         self._transfer_targets = None
-
         # intermediate storage of invalid rack positions
         self.__invalid_target_string = None
         self.__duplicate_targets = None
@@ -666,31 +633,20 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter):
         error_dict.update(new_params)
 
 
-class LibraryLayoutConverter(BaseLayoutConverter):
+class LibraryBaseLayoutConverter(BaseLayoutConverter):
     """
     Converts a :class:`thelma.models.racklayout.RackLayout` into a
     :class:`LibraryBaseLayout`.
 
     """
-    NAME = 'Library Layout Converter'
+    NAME = 'Library Base Layout Converter'
 
-    PARAMETER_SET = LibraryLayoutParameters
-    POSITION_CLS = LibraryLayoutPosition
-    LAYOUT_CLS = LibraryLayout
+    PARAMETER_SET = LibraryBaseLayoutParameters
+    POSITION_CLS = LibraryBaseLayoutPosition
+    LAYOUT_CLS = LibraryBaseLayout
 
-    def __init__(self, rack_layout, log):
-        """
-        Constructor:
-
-        :param rack_layout: The rack layout containing the ISO data.
-        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
-
-        :param log: The ThelmaLog you want to write in. If the
-            log is None, the object will create a new log.
-        :type log: :class:`thelma.ThelmaLog`
-        """
-        BaseLayoutConverter.__init__(self, rack_layout, log=log)
-
+    def __init__(self, rack_layout, parent=None):
+        BaseLayoutConverter.__init__(self, rack_layout, parent=parent)
         # intermediate storage of invalid rack positions
         self.__invalid_flag = None
 

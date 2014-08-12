@@ -8,7 +8,7 @@ October 2011, AAB
 from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.automation.semiconstants import get_experiment_metadata_type
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.tools.metadata.base import TransfectionLayout
 from thelma.automation.tools.metadata.base import TransfectionParameters
 from thelma.automation.utils.base import add_list_map_element
@@ -87,7 +87,7 @@ class EXPERIMENT_WORKLIST_PARAMETERS(object):
                                  }
 
 
-class ExperimentWorklistGenerator(BaseAutomationTool):
+class ExperimentWorklistGenerator(BaseTool):
     """
     Generates the worklist series for the preparation of an experiment.
     This may include up to four worklists that can be split into 2 groups:
@@ -107,50 +107,34 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
     **Return Value:** updated experiment design (incl. all applicable
         worklist series)
     """
-
     NAME = 'Experiment Worklist Series Generator'
-
     #: The index for the optimem worklist within the experiment design series.
     OPTIMEM_WORKLIST_INDEX = 0
     #: The index for the reagent worklist within the experiment design series.
     REAGENT_WORKLIST_INDEX = 1
 
     def __init__(self, experiment_design, label, source_layout, scenario,
-                 supports_mastermix, log, design_rack_associations=None):
+                 supports_mastermix, design_rack_associations=None,
+                 parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param experiment_design: The experiment design for which to generate
             the worklist series.
         :type experiment_design:
             :class:`thelma.models.experiment.ExperimentDesign`
-
-        :param label: A label as prefix for the worklists.
-        :type label: :class:`basestring`
-
+        :param str label: A label as prefix for the worklists.
         :param source_layout: The source plate layout.
         :type source_layout: :class:`TransfectionLayout`
-
         :param scenario: the experiment metadata type - it defines the
             storage location for the cell plate preparation worklists.
         :type scenario: :class:`thelma.models.experiment.ExperimentMetadataType`
-
-        :param supports_mastermix: Shall the tool create worklists
-            for OptiMem and reagent dilution?
-        :type supports_mastermix: :class:`bool`
-
-        :param log: The ThelmaLog to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param design_rack_associations: Maps well association maps onto design
-            rack labels.
-        :type design_rack_associations: a map with key = design rack label, value =
-            the association maps for the design racks (create by the
-            :class:`WellAssociator`).
-
+        :param bool supports_mastermix: Flag indicating if the tool should
+            create worklists for OptiMem and reagent dilution.
+        :param design_rack_associations: Maps design rack labels to well
+            association maps (created by the :class:`WellAssociator`).
         """
-        BaseAutomationTool.__init__(self, log=log)
-
+        BaseTool.__init__(self, parent=parent)
         #: The experiment design for which to generate the worklist series.
         self.experiment_design = experiment_design
         #: A label as prefix for the worklist name.
@@ -164,7 +148,6 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
         self.supports_mastermix = supports_mastermix
         #: Maps well association maps onto design rack labels.
         self.design_rack_associations = design_rack_associations
-
         #: The worklist series for the experiment design (if applicable).
         self.__design_series = None
         #: The worklist series for each experiment design rack.
@@ -174,7 +157,7 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
         """
         Resets all values except for the initialisation values.
         """
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self.__design_series = None
         self.__rack_worklists = None
 
@@ -188,16 +171,15 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
         self.__check_input()
         if not self.has_errors() and self.supports_mastermix:
             self.__create_mastermix_series()
-        if not self.has_errors(): self.__create_cell_plate_worklists()
+        if not self.has_errors():
+            self.__create_cell_plate_worklists()
         if not self.has_errors():
             self.experiment_design.worklist_series = self.__design_series
             self.return_value = self.experiment_design
             self.add_info('Worklist series generations completed.')
 
     def __check_input(self):
-        """
-        Checks the input values.
-        """
+        # Checks the input values.
         self._check_input_class('experiment design', self.experiment_design,
                                 ExperimentDesign)
         self._check_input_class('label', self.label, basestring)
@@ -205,7 +187,6 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
                                 TransfectionLayout)
         self._check_input_class('"support mastermix" flag',
                                 self.supports_mastermix, bool)
-
         storage_location = None
         if self._check_input_class('experiment scenario', self.scenario,
                                    ExperimentMetadataType):
@@ -225,20 +206,15 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
                             'design rack layout', TransfectionLayout)
 
     def __create_mastermix_series(self):
-        """
-        Creates the worklist series for the mastermix preparation.
-        """
+        # Creates the worklist series for the mastermix preparation.
         self.add_debug('Create mastermix preparation worklist series ...')
-
         self.__design_series = WorklistSeries()
         self.__generate_optimem_worklist()
         self.__generate_reagent_worklist()
 
     def __generate_optimem_worklist(self):
-        """
-        Generates the optimem dilution worklist.
-        """
-        generator = _OptimemWorklistGenerator(log=self.log,
+        # Generates the optimem dilution worklist.
+        generator = _OptimemWorklistGenerator(
                                     experiment_metadata_label=self.label,
                                     transfection_layout=self.source_layout)
         worklist = generator.get_result()
@@ -255,31 +231,27 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
         """
         Generates the transfection reagent worklist.
         """
-        generator = _ReagentWorklistGenerator(log=self.log,
-                                        experiment_metadata_label=self.label,
-                                        transfection_layout=self.source_layout)
+        generator = _ReagentWorklistGenerator(self.label, self.source_layout,
+                                              parent=self)
         worklist = generator.get_result()
-
         if worklist is None:
             msg = 'Error when trying to generate transfection reagent ' \
                   'worklist.'
             self.add_error(msg)
         else:
+            # FIXME: Using instantiation for side effect.
             WorklistSeriesMember(planned_worklist=worklist,
                                  worklist_series=self.__design_series,
                                  index=self.REAGENT_WORKLIST_INDEX)
 
     def __create_cell_plate_worklists(self):
-        """
-        Creates the worklists for the cell suspension preparations.
-        """
+        # Creates the worklists for the cell suspension preparations.
         storage_location = EXPERIMENT_WORKLIST_PARAMETERS.STORAGE_LOCATIONS[
                                                             self.scenario.id]
         transfer_index = EXPERIMENT_WORKLIST_PARAMETERS.\
                             TRANSFER_WORKLIST_INDICES[storage_location]
         cell_index = EXPERIMENT_WORKLIST_PARAMETERS.\
                             CELL_WORKLIST_INDICES[storage_location]
-
         if storage_location == EXPERIMENT_WORKLIST_PARAMETERS.EXPERIMENT_DESIGN:
             self.__generate_cell_plate_worklist_for_experiment_design(
                                                     transfer_index, cell_index)
@@ -289,81 +261,67 @@ class ExperimentWorklistGenerator(BaseAutomationTool):
 
     def __generate_cell_plate_worklist_for_experiment_design(self,
                                                     transfer_index, cell_index):
-        """
-        Generates the cell plate worklists for the experiment design as
-        storage location.
-        """
+        # Generates the cell plate worklists for the experiment design as
+        # storage location.
         self.add_debug('Create cell plate worklists for experiment design ...')
-
         if self.__design_series is None:
             self.__design_series = WorklistSeries()
-
-        transfer_generator = _CybioTransferWorklistGenerator(log=self.log,
-                                    experiment_metadata_label=self.label)
+        transfer_generator = _CybioTransferWorklistGenerator(self.label,
+                                                             parent=self)
         self.__generate_transfer_worklist(transfer_generator, transfer_index,
                                           self.__design_series)
-
         for rack_pos, tf_pos in self.source_layout.iterpositions():
             tf_pos.cell_plate_positions = [rack_pos]
-
-        cell_generator = _CellSuspensionWorklistGenerator(log=self.log,
-                                        label=self.label,
-                                        transfection_layout=self.source_layout)
+        cell_generator = _CellSuspensionWorklistGenerator(self.label,
+                                                          self.source_layout,
+                                                          parent=self)
         self.__generate_cell_worklist(cell_generator, cell_index,
                                       self.__design_series)
 
     def __generate_cell_plate_worklist_for_racks(self, transfer_index,
                                                  cell_index):
-        """
-        Generates the cell plate worklists for the experiment design racks as
-        storage locations.
-        """
+        # Generates the cell plate worklists for the experiment design racks
+        # as storage locations.
         self.add_debug('Create cell plate worklists for design racks ...')
-
         for design_rack in self.experiment_design.experiment_design_racks:
             worklist_series = WorklistSeries()
             completed_layout = self.design_rack_associations[design_rack.label]
             label = '%s-%s' % (self.label, design_rack.label)
-
-            transfer_generator = _BiomekTransferWorklistGenerator(label=label,
-                            transfection_layout=completed_layout, log=self.log)
+            transfer_generator = \
+                    _BiomekTransferWorklistGenerator(label, completed_layout,
+                                                     parent=self)
             self.__generate_transfer_worklist(transfer_generator,
                                               transfer_index, worklist_series)
-
             cell_generator = _CellSuspensionWorklistGenerator(label,
-                                                    completed_layout, self.log)
+                                                              completed_layout,
+                                                              parent=self)
             self.__generate_cell_worklist(cell_generator, cell_index,
                                           worklist_series)
-
             design_rack.worklist_series = worklist_series
 
     def __generate_transfer_worklist(self, generator, worklist_index,
                                      worklist_series):
-        """
-        Generates the transfer worklist.
-        """
+        # Generates the transfer worklist.
         worklist = generator.get_result()
-
         if worklist is None:
             msg = 'Error when trying to generate transfer worklist for ' \
                   'screening scenario.'
             self.add_error(msg)
         else:
+            # FIXME: Using instantiation for side effect.
             WorklistSeriesMember(planned_worklist=worklist,
                                  worklist_series=worklist_series,
                                  index=worklist_index)
 
     def __generate_cell_worklist(self, generator, worklist_index,
                                  worklist_series):
-        """
-        Generates the cell suspension worklist.
-        """
+        # Generates the cell suspension worklist.
         worklist = generator.get_result()
-
         if worklist is None:
             msg = 'Error when trying to generate cell suspension worklist.'
             self.add_error(msg)
         else:
+            # FIXME: Using instantiation for side effect.
             WorklistSeriesMember(planned_worklist=worklist,
                                  worklist_series=worklist_series,
                                  index=worklist_index)
@@ -381,31 +339,24 @@ class _OptimemWorklistGenerator(PlannedWorklistGenerator):
 
     **Return Value:** :class:`PlannedWorklist` (type: SAMPLE_DILUTION)
     """
-
     NAME = 'Transfection OptiMem Worklist Generator'
-
     PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
     #: The suffix for the worklist label.
     WORKLIST_SUFFIX = '_optimem'
     #: The name of the diluent.
     DILUENT_INFO = 'optimem'
 
-    def __init__(self, experiment_metadata_label, transfection_layout, log):
+    def __init__(self, experiment_metadata_label, transfection_layout,
+                 parent=None):
         """
-        Constructor:
+        Constructor.
 
-        :param experiment_metadata_label: The label for the experiment metadata
-            the liquid transfer plan is generated for.
-        :type experiment_metadata_label: :class:`str`
-
+        :param str experiment_metadata_label: The label for the experiment
+            metadata the liquid transfer plan is generated for.
         :param transfection_layout: The source plate layout.
         :type transfection_layout: :class:`TransfectionLayout`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
         """
-        PlannedWorklistGenerator.__init__(self, log)
-
+        PlannedWorklistGenerator.__init__(self, parent=parent)
         #: The experiment metadata for which to generate the liquid transfer
         #: plan is generated.
         self.experiment_metadata_label = experiment_metadata_label
@@ -446,9 +397,7 @@ class _OptimemWorklistGenerator(PlannedWorklistGenerator):
             self._add_planned_transfer(psd)
 
     def __determine_volume(self, transfection_pos):
-        """
-        Determines the volume of the diluent.
-        """
+        # Determines the volume of the diluent.
         dil_factor = transfection_pos.optimem_dil_factor
         return float(transfection_pos.iso_volume) * (dil_factor - 1)
 
@@ -465,29 +414,22 @@ class _ReagentWorklistGenerator(PlannedWorklistGenerator):
 
     **Return Value:** planned worklist (type: SAMPLE_TRANSFER).
     """
-
     NAME = 'Transfection Reagent Worklist Generator'
     PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
-
     #: The suffix for the worklist label.
     WORKLIST_SUFFIX = '_reagent'
 
-    def __init__(self, experiment_metadata_label, transfection_layout, log):
+    def __init__(self, experiment_metadata_label, transfection_layout,
+                 parent=None):
         """
-        Constructor:
+        Constructor.
 
-        :param experiment_metadata_label: The label for the experiment metadata
-            the liquid transfer plan is generated for.
-        :type experiment_metadata_label: :class:`str`
-
+        :param str experiment_metadata_label: The label for the experiment
+            metadata the liquid transfer plan is generated for.
         :param transfection_layout: The source plate layout.
         :type transfection_layout: :class:`TransfectionLayout`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
         """
-        PlannedWorklistGenerator.__init__(self, log)
-
+        PlannedWorklistGenerator.__init__(self, parent=parent)
         #: The experiment metadata for which to generate the liquid transfer
         #: plan is generated.
         self.experiment_metadata_label = experiment_metadata_label
@@ -516,11 +458,10 @@ class _ReagentWorklistGenerator(PlannedWorklistGenerator):
         Generates the planned container dilutions for the worklist.
         """
         self.add_debug('Generate planned container dilutions ...')
-
         invalid_dil_factor = dict()
-
         for rack_pos, tf_pos in self.transfection_layout.iterpositions():
-            if tf_pos.is_empty: continue
+            if tf_pos.is_empty:
+                continue
             dil_volume = tf_pos.calculate_reagent_dilution_volume() \
                          / VOLUME_CONVERSION_FACTOR
             ini_dil_factor = TransfectionParameters.\
@@ -532,12 +473,10 @@ class _ReagentWorklistGenerator(PlannedWorklistGenerator):
                 continue
             rdf_str = get_trimmed_string(tf_pos.reagent_dil_factor)
             diluent_info = '%s (%s)' % (tf_pos.reagent_name, rdf_str)
-
             psd = PlannedSampleDilution.get_entity(volume=dil_volume,
                                            target_position=rack_pos,
                                            diluent_info=diluent_info)
             self._add_planned_transfer(psd)
-
         if len(invalid_dil_factor) > 0:
             msg = 'Invalid dilution reagent factor for rack positions: %s. ' \
                   'The factor would result in an initial dilution factor of ' \
@@ -557,29 +496,22 @@ class _BiomekTransferWorklistGenerator(PlannedWorklistGenerator):
 
     **Return Value:** PlannedWorklist (type: SAMPLE_TRANSFER)
     """
-
     NAME = 'Transfection BioMek Transfer Worklist Generator'
     PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
-
     #: The suffix for the worklist label.
     WORKLIST_SUFFIX = '_biomek_transfer'
 
-    def __init__(self, label, transfection_layout, log):
+    def __init__(self, label, transfection_layout, parent=None):
         """
-        Constructor:
+        Constructor.
 
-        :param label: The label to put in front of the :attr:`WORKLIST_SUFFIX`.
-        :type label: :class:`str`
-
+        :param str label: The label to put in front of the
+            :attr:`WORKLIST_SUFFIX`.
         :param transfection_layout: The layout (including target positions)
             for the corresponding design rack.
         :type transfection_layout: :class:`TransfectionLayout`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
         """
-        PlannedWorklistGenerator.__init__(self, log)
-
+        PlannedWorklistGenerator.__init__(self, parent=parent)
         #: The label to put in front of the :attr:`WORKLIST_SUFFIX`.
         self.label = label
         #: Contains the transfection layout for the design rack (that is:
@@ -606,12 +538,11 @@ class _BiomekTransferWorklistGenerator(PlannedWorklistGenerator):
         Generates the planned container transfers for the worklist.
         """
         self.add_debug('Generate planned container transfer ...')
-
         volume = TransfectionParameters.TRANSFER_VOLUME \
                  / VOLUME_CONVERSION_FACTOR
-
         for rack_pos, tf_pos in self.transfection_layout.iterpositions():
-            if tf_pos.is_empty: continue
+            if tf_pos.is_empty:
+                continue
             for target_pos in tf_pos.cell_plate_positions:
                 pst = PlannedSampleTransfer.get_entity(volume=volume,
                             source_position=rack_pos,
@@ -630,10 +561,8 @@ class _CybioTransferWorklistGenerator(PlannedWorklistGenerator):
 
     **Return Value:** PlannedWorklist (type: RACK_TRANSFER)
     """
-
     NAME = 'Transfection CyBio Transfer Worklist Generator'
     PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.CYBIO
-
     #: The suffix for the worklist label.
     WORKLIST_SUFFIX = '_cybio_transfer'
     #: The source sector index for the rack transfer.
@@ -643,19 +572,14 @@ class _CybioTransferWorklistGenerator(PlannedWorklistGenerator):
     #: The number of sectors for the rack transfer.
     SECTOR_NUMBER = 1
 
-    def __init__(self, experiment_metadata_label, log):
+    def __init__(self, experiment_metadata_label, parent=None):
         """
-        Constructor:
+        Constructor.
 
-        :param experiment_metadata_label: The label for the experiment metadata
-            the liquid transfer plan is generated for.
-        :type experiment_metadata_label: :class:`str`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
+        :param str experiment_metadata_label: The label for the experiment
+            metadata the liquid transfer plan is generated for.
         """
-        PlannedWorklistGenerator.__init__(self, log)
-
+        PlannedWorklistGenerator.__init__(self, parent=parent)
         #: The experiment metadata for which to generate the liquid transfer
         #: plan is generated.
         self.experiment_metadata_label = experiment_metadata_label
@@ -680,11 +604,20 @@ class _CybioTransferWorklistGenerator(PlannedWorklistGenerator):
         """
         volume = TransfectionParameters.TRANSFER_VOLUME \
                  / VOLUME_CONVERSION_FACTOR
-        prst = PlannedRackSampleTransfer.get_entity(volume=volume,
-                                  source_sector_index=self.SOURCE_SECTOR_INDEX,
-                                  target_sector_index=self.TARGET_SECTOR_INDEX,
-                                  number_sectors=self.SECTOR_NUMBER)
-        self._add_planned_transfer(prst)
+        try:
+            prst = PlannedRackSampleTransfer.get_entity(
+                                                    volume,
+                                                    self.SECTOR_NUMBER,
+                                                    self.SOURCE_SECTOR_INDEX,
+                                                    self.TARGET_SECTOR_INDEX)
+        except ValueError as err:
+            msg = 'Invalid planned rack sample transfer (%d->%d, total %d).' \
+                  'Details: %s.' \
+                  % (self.SOURCE_SECTOR_INDEX, self.TARGET_SECTOR_INDEX,
+                     self.SECTOR_NUMBER, err)
+            self.add_error(msg)
+        else:
+            self._add_planned_transfer(prst)
 
 
 class _CellSuspensionWorklistGenerator(PlannedWorklistGenerator):
@@ -701,28 +634,22 @@ class _CellSuspensionWorklistGenerator(PlannedWorklistGenerator):
     """
     NAME = 'Transfection Cell Suspension Worklist Generator'
     PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
-
     #: The suffix for the worklist label.
     WORKLIST_SUFFIX = '_cellsuspension'
     #: #: The name of the diluent.
     DILUENT_INFO = 'cellsuspension'
 
-    def __init__(self, label, transfection_layout, log):
+    def __init__(self, label, transfection_layout, parent=None):
         """
-        Constructor:
+        Constructor.
 
-        ::param label: The label to put in front of the :attr:`WORKLIST_SUFFIX`.
-        :type label: :class:`str`
-
+        ::param str label: The label to put in front of the
+            :attr:`WORKLIST_SUFFIX`.
         :param transfection_layout: The layout (including target positions)
             for the corresponding design rack.
         :type transfection_layout: :class:`TransfectionLayout`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
         """
-        PlannedWorklistGenerator.__init__(self, log)
-
+        PlannedWorklistGenerator.__init__(self, parent=parent)
         #: The label to put in front of the :attr:`WORKLIST_SUFFIX`.
         self.label = label
         #: Contains the transfection layout for the design rack (that is:
@@ -749,15 +676,14 @@ class _CellSuspensionWorklistGenerator(PlannedWorklistGenerator):
         Generates the planned container dilutions for the worklist.
         """
         self.add_debug('Generate planned container dilutions ...')
-
         volume = TransfectionParameters.TRANSFER_VOLUME * \
                  (TransfectionParameters.CELL_DILUTION_FACTOR - 1) \
                  / VOLUME_CONVERSION_FACTOR
         for tf_pos in self.transfection_layout.working_positions():
-            if tf_pos.is_empty: continue
+            if tf_pos.is_empty:
+                continue
             for target_pos in tf_pos.cell_plate_positions:
                 psd = PlannedSampleDilution.get_entity(volume=volume,
                                     target_position=target_pos,
                                     diluent_info=self.DILUENT_INFO)
                 self._add_planned_transfer(psd)
-

@@ -18,7 +18,7 @@ def create_mapper(iso_plate_mapper, iso_preparation_plate_tbl):
                inherits=iso_plate_mapper,
                properties=dict(
                     iso=relationship(Iso, uselist=False,
-                        back_populates='iso_preparation_plates'),
+                                     back_populates='iso_preparation_plates'),
                     rack_layout=relationship(RackLayout, uselist=False,
                         cascade='all,delete,delete-orphan',
                         single_parent=True)

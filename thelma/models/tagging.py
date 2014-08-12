@@ -1,11 +1,9 @@
 """
 Tagging model classes.
-
-FOG Nov 25, 2010, AAB
 """
-
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
+
 
 __docformat__ = "reStructuredText en"
 
@@ -24,12 +22,11 @@ class Tag(Entity):
     **Equality Condition**: equal :attr:`domain`, :attr:`predicate` and
     :attr:`value`
     """
-
-    #: The domain in which the predicate-value combination is unique.
+    #: Tag domain in which the predicate-value combination is unique.
     domain = None
-    #: A sort of parameter, e.g. *cell line*.
+    #: Tag predicate (e.g., *Cell line*).
     predicate = None
-    #: The value the parameter, e.g. *SKMC-33*.
+    #: Tag value (e.g.. *SKMC-33*).
     value = None
 
     def __init__(self, domain, predicate, value, **kw):
@@ -83,13 +80,8 @@ class Tag(Entity):
 
 class Tagging(Entity):
     """
-    This class records by whom a tag has been added to an object.
-    Taggings are ususally created upon instatiation of
-    :class:`Tagged` objects.
-
-    **Equality Condition**: Not implemented so far
+    Record for a single tagging event.
     """
-
     #: The associated tag (:class:`Tag`)
     tag = None
     #: The object to which the tag has been attached
@@ -99,6 +91,16 @@ class Tagging(Entity):
     user = None
 
     def __init__(self, tag, tagged, user, **kw):
+        """
+        Constructor.
+
+        :param tag: tag for this tagging.
+        :type tag: :class:`Tag`.
+        :param tagged: object to tag.
+        :type tagged: :class:`Tagged`
+        :param user: User performing the tagging.
+        :type user: class:`thelma.models.user.User`
+        """
         Entity.__init__(self, **kw)
         self.tag = tag
         self.tagged = tagged
@@ -113,13 +115,20 @@ class Tagged(Entity):
 
     **Equality Condition**: Not implemented so far
     """
-
-    #: A set of tags (:class:`Tag`).
+    #: `set` of tags (:class:`Tag`).
     tags = set()
-    #: A list of taggings (:class:`Tagging`).
+    #: `list` of taggings (:class:`Tagging`).
     taggings = None
 
     def __init__(self, tags, user):
+        """
+        Constructor.
+
+        :param set tags: Set of :class:`Tag` instances associated to the rack
+            positions.
+        :param user: User who creates the tagged object.
+        :type user: class:`thelma.models.user.User`
+        """
         Entity.__init__(self)
         if len(tags) < 1:
             raise ValueError('The tag list is empty!')
@@ -148,21 +157,16 @@ class TaggedRackPositionSet(Tagged):
     the rack position set (:class:`thelma.models.rack.RackPositionSet`)
 
     """
-
-    #: The associated rack position set
+    #: Associated rack position set
     #: (:class:`thelma.models.rack.RackPositionSet`).
     rack_position_set = None
 
     def __init__(self, tags, rack_position_set, user=None):
         """
-        :param tags: A set of tags associated to the rack positions.
-        :type tags: set of :class:`Tag`
+        Constructor.
 
-        :param rack_position_set: A rack position set.
+        :param rack_position_set: Rack position set.
         :type rack_position_set: class:`thelma.models.rack.RackPositionSet`
-
-        :param user: The user who has created the object.
-        :type user: class:`thelma.models.user.User`
         """
         Tagged.__init__(self, set(tags), user)
         self.rack_position_set = rack_position_set

@@ -18,7 +18,8 @@ def create_mapper(iso_mapper, stock_sample_creation_iso_tbl):
                inherits=iso_mapper,
                properties=dict(
                     iso_sector_preparation_plates=relationship(
-                        IsoSectorPreparationPlate, back_populates='iso',
+                        IsoSectorPreparationPlate,
+                        back_populates='iso',
                         cascade='all,delete,delete-orphan')),
                polymorphic_identity=ISO_TYPES.STOCK_SAMPLE_GENERATION)
 

@@ -19,7 +19,7 @@ from thelma.automation.semiconstants import get_pipetting_specs_biomek
 from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.semiconstants import get_rack_specs_from_reservoir_specs
 from thelma.automation.semiconstants import get_reservoir_spec
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.tools.iso.jobcreator import IsoProvider
 from thelma.automation.tools.iso.lab.base import DILUENT_INFO
 from thelma.automation.tools.iso.lab.base import FinalLabIsoLayout
@@ -399,7 +399,7 @@ class LabIsoBuilder(object):
                                              entity_label=iso.label)
             plate = plate_specs.create_rack(label=label,
                                             status=self.__plate_status)
-            iso.add_aliquot_plate(plate=plate)
+            iso.add_aliquot_plate(plate)
 
     def _complete_iso_preparation_layouts(self, floating_map):
         """
@@ -427,8 +427,7 @@ class LabIsoBuilder(object):
             plate_specs = self.plate_specs[plate_marker]
             plate = plate_specs.create_rack(label=label,
                                             status=self.__plate_status)
-            iso.add_preparation_plate(plate=plate,
-                                      rack_layout=layout.create_rack_layout())
+            iso.add_preparation_plate(plate, layout.create_rack_layout())
 
     def __strip_plate_marker(self, plate_marker, is_single_plate):
         """
@@ -494,7 +493,6 @@ class LabIsoBuilder(object):
         for plate_marker, layout in self.job_layouts.iteritems():
             copy_layout = self._create_layout_without_floatings(layout)
             completed_layouts[plate_marker] = copy_layout
-
         return completed_layouts
 
     def create_job_preparation_plates(self, iso_job, layouts):
@@ -507,8 +505,7 @@ class LabIsoBuilder(object):
                                              entity_label=iso_job.label)
             plate = plate_specs.create_rack(label=label,
                                             status=self.__plate_status)
-            iso_job.add_preparation_plate(plate=plate,
-                                      rack_layout=layout.create_rack_layout())
+            iso_job.add_preparation_plate(plate, layout.create_rack_layout())
 
     def __distribute_pools_to_job_stock_racks(self):
         """
@@ -661,7 +658,7 @@ class LabIsoBuilder(object):
             return False
         if plate_pos.stock_tube_barcode is None: return False
         if not from_final_plate: return True
-        return (plate_pos.from_job == from_job)
+        return (plate_pos.from_job == from_job) or not self.has_job_processing
 
     def __str__(self):
         return self.ticket_number
@@ -688,14 +685,13 @@ class LabIsoPlanner(IsoProvider):
 
     #: The CyBio is only used if it would transfer at the least the given
     #: number of pools.
-    _MIN_CYBIO_TRANSFER_NUMBER = 30
+    _MIN_CYBIO_TRANSFER_NUMBER = 384
 
-    def __init__(self, log, iso_request, number_isos,
-                       excluded_racks=None, requested_tubes=None):
-        IsoProvider.__init__(self, log=log, iso_request=iso_request,
-                             number_isos=number_isos,
+    def __init__(self, iso_request, number_isos,
+                 excluded_racks=None, requested_tubes=None, parent=None):
+        IsoProvider.__init__(self, iso_request, number_isos,
                              excluded_racks=excluded_racks,
-                             requested_tubes=requested_tubes)
+                             requested_tubes=requested_tubes, parent=parent)
         #: Contains the data about the ordered plate layout - the information
         #: are not specific to a particular ISO.
         self._iso_request_layout = None
@@ -788,8 +784,8 @@ class LabIsoPlanner(IsoProvider):
         """
         self.add_debug('Convert ISO request layout ...')
 
-        converter = IsoRequestLayoutConverter(log=self.log,
-                                    rack_layout=self.iso_request.rack_layout)
+        converter = IsoRequestLayoutConverter(self.iso_request.rack_layout,
+                                              parent=self)
         self._iso_request_layout = converter.get_result()
 
         if self._iso_request_layout is None:
@@ -926,12 +922,9 @@ class LabIsoPlanner(IsoProvider):
         if not self.has_errors() and not self.__association_data is None:
             if shape_size == 384: self._builder.has_job_processing = True
             sector_map = self.__get_sector_positions()
-            planner = SectorPlanner(log=self.log,
-                             iso_request=self.iso_request,
-                             builder=self._builder,
-                             association_data=self.__association_data,
-                             sector_positions=sector_map,
-                             stock_concentration=self.__floating_stock_conc)
+            planner = SectorPlanner(self.iso_request, self._builder,
+                                    self.__association_data, sector_map,
+                                    self.__floating_stock_conc, parent=self)
             self._builder = planner.get_result()
             if self._builder is None:
                 msg = 'Error when trying to plan sector routes.'
@@ -1003,9 +996,8 @@ class LabIsoPlanner(IsoProvider):
         pools to be transferred by it is at least equal to
         :attr:`_MIN_CYBIO_TRANSFER_NUMBER`.
         """
-        association_data, regard_controls = IsoRequestAssociationData.\
-                    find(log=self.log, layout=self._iso_request_layout)
-
+        association_data, regard_controls = \
+                IsoRequestAssociationData.find(self._iso_request_layout, self)
         if not association_data is None:
             if regard_controls:
                 modifier = 0
@@ -1057,9 +1049,8 @@ class LabIsoPlanner(IsoProvider):
         If there such positions we determine a preparation route for them.
         """
         self.add_debug('Assign ISO rack positions ...')
-
         regard_controls = True
-        if self.__controls_in_quadrants: regard_controls = False
+        if self.__controls_in_quadrants : regard_controls = False
         if self._has_floatings:
             shape_size = self._iso_request_layout.shape.size
             if self.__association_data is None and shape_size == 96:
@@ -1067,10 +1058,13 @@ class LabIsoPlanner(IsoProvider):
                 self.__cybio_use_aborted = True
             else:
                 regard_controls = False
-
+        elif self.__cybio_use_aborted:
+            # This is catching the case of an all-control ISO that aborted
+            # CyBio use. If we process controls in this case, we end up with
+            # duplicate transfers.
+            regard_controls = False
         if regard_controls or self.__cybio_use_aborted:
             containers = []
-
             for pool_container in self.__pool_containers:
                 pos_type = pool_container.position_type
                 if self.__cybio_use_aborted and \
@@ -1078,12 +1072,9 @@ class LabIsoPlanner(IsoProvider):
                     containers.append(pool_container)
                 elif regard_controls and pos_type == FIXED_POSITION_TYPE:
                     containers.append(pool_container)
-
-            if len(containers) > 1:
-                planner = RackPositionPlanner(log=self.log,
-                                    iso_request=self.iso_request,
-                                    builder=self._builder,
-                                    pool_containers=containers)
+            if len(containers) > 0:
+                planner = RackPositionPlanner(self.iso_request, self._builder,
+                                              containers)
                 self._builder = planner.get_result()
                 if self._builder is None:
                     msg = 'Error when trying to plan rack position routes.'
@@ -1100,12 +1091,12 @@ class LabIsoPlanner(IsoProvider):
 
         floating_take_out_vol = self.__determine_floating_take_out_volume()
         if not self.has_errors():
-            tube_picker = TubePicker(log=self.log,
-                 molecule_design_pools=self._queued_pools.values(),
-                 stock_concentration=self.__floating_stock_conc,
-                 take_out_volume=floating_take_out_vol,
-                 excluded_racks=self.excluded_racks,
-                 requested_tubes=self.requested_tubes)
+            tube_picker = TubePicker(self._queued_pools.values(),
+                                     self.__floating_stock_conc,
+                                     take_out_volume=floating_take_out_vol,
+                                     excluded_racks=self.excluded_racks,
+                                     requested_tubes=self.requested_tubes,
+                                     parent=self)
             sorted_candidates = tube_picker.get_result()
             if sorted_candidates is None:
                 msg = 'Error when trying to find floating tube candidates!'
@@ -1180,10 +1171,9 @@ class LabIsoPlanner(IsoProvider):
                                                             pool_container
 
         copy_number = self.__get_copy_number_for_job_position()
-        assigner = JobRackPositionPlanner(log=self.log,
-                      iso_request=self.iso_request, builder=self._builder,
-                      pool_containers=self.__job_pool_containers.values(),
-                      number_copies=copy_number)
+        assigner = JobRackPositionPlanner(self.iso_request, self._builder,
+                                          self.__job_pool_containers.values(),
+                                          copy_number, parent=self)
         self._builder = assigner.get_result()
         if self._builder is None:
             msg = 'Error when trying to plan rack position routes for ISO ' \
@@ -1272,10 +1262,10 @@ class LabIsoPlanner(IsoProvider):
 
         fixed_candidates = dict()
         for stock_conc, pools in conc_map.iteritems():
-            tube_picker = TubePicker(log=self.log, molecule_design_pools=pools,
-                                     stock_concentration=stock_conc,
+            tube_picker = TubePicker(pools, stock_conc,
                                      excluded_racks=self.excluded_racks,
-                                     requested_tubes=self.requested_tubes)
+                                     requested_tubes=self.requested_tubes,
+                                     parent=self)
             sorted_candidates = tube_picker.get_result()
             if sorted_candidates is None:
                 msg = 'Error when trying to find tube candidates for fixed ' \
@@ -2146,11 +2136,12 @@ class RackPositionContainer(_LocationContainer):
         Creates a particular :class:`FinalLabIsoPosition` for a final ISO
         plate layout.
         """
-        return self._to_iso_plate_position(pos_cls=FinalLabIsoPosition,
-                            rack_pos=self.rack_position,
-                            pool=self.pool, position_type=self.position_type,
-                            transfer_targets=transfer_targets,
-                            from_job=from_job)
+        return self._to_iso_plate_position(FinalLabIsoPosition,
+                                           self.rack_position,
+                                           self.pool,
+                                           self.position_type,
+                                           transfer_targets,
+                                           from_job=from_job)
 
     def create_preparation_position(self, preparation_targets, final_targets):
         """
@@ -3054,7 +3045,7 @@ def get_transfer_volume(source_conc, target_conc, target_vol, dil_factor=None):
     return target_vol / dil_factor
 
 
-class _LayoutPlanner(BaseAutomationTool):
+class _LayoutPlanner(BaseTool):
     """
     Abstract base class. The planner finds preparation routes for a bunch
     of :class:`_LocationContainers` (the classes depend on the subclass
@@ -3077,7 +3068,7 @@ class _LayoutPlanner(BaseAutomationTool):
     #: (default: BioMek).
     _PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.BIOMEK
 
-    def __init__(self, log, iso_request, builder):
+    def __init__(self, iso_request, builder, parent=None):
         """
         Constructor.
 
@@ -3086,7 +3077,7 @@ class _LayoutPlanner(BaseAutomationTool):
         :param builder: The builder collects the data of the picked assigner.
         :type builder: :class:`LabIsoBuilder`
         """
-        BaseAutomationTool.__init__(self, log=log)
+        BaseTool.__init__(self, parent=parent)
         #: The ISO request for which to create the ISOs.
         self.iso_request = iso_request
         #: The builder collects the data of the picked assigner.
@@ -3128,7 +3119,7 @@ class _LayoutPlanner(BaseAutomationTool):
         self._prep_plate_containers = None
 
     def reset(self):
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self._final_plate_dead_vol = None
         self._registered_containers = dict()
         self._final_containers = dict()
@@ -3143,11 +3134,14 @@ class _LayoutPlanner(BaseAutomationTool):
         self.add_info('Start analysis ...')
 
         self._check_input()
-        if not self.has_errors(): self._register_requested_plate_containers()
-        if not self.has_errors(): self.__find_preparation_routes()
+        if not self.has_errors():
+            self._register_requested_plate_containers()
+        if not self.has_errors():
+            self.__find_preparation_routes()
         if not self.has_errors() and self._picked_assigner is None:
             self.__pick_location_assigner()
-        if not self.has_errors(): self.__adjust_layout_builder()
+        if not self.has_errors():
+            self.__adjust_layout_builder()
         if not self.has_errors():
             self.return_value = self.builder
             self.add_info('Analysis completed.')
@@ -3411,10 +3405,10 @@ class SectorPlanner(_LayoutPlanner):
 
     _PIPETTING_SPECS_NAME = PIPETTING_SPECS_NAMES.CYBIO
 
-    def __init__(self, log, iso_request, builder, association_data,
-                 sector_positions, stock_concentration):
+    def __init__(self, iso_request, builder, association_data,
+                 sector_positions, stock_concentration, parent=None):
         """
-        Constructor
+        Constructor.
 
         :param association_data: Stores the determined values and relationship
             for the rack sectors.
@@ -3427,8 +3421,7 @@ class SectorPlanner(_LayoutPlanner):
             (usually the stock concentration for floatings) *in nM*.
         :type stock_concentration: positive number
         """
-        _LayoutPlanner.__init__(self, log=log, iso_request=iso_request,
-                                builder=builder)
+        _LayoutPlanner.__init__(self, iso_request, builder, parent=parent)
         #: Stores the determined values and relationship for the rack sectors.
         self.association_data = association_data
         #: All ISO request positions to be included mapped onto sector indices.
@@ -3725,7 +3718,7 @@ class RackPositionPlanner(_LayoutPlanner):
     #: positions.
     FROM_JOB = False
 
-    def __init__(self, log, iso_request, builder, pool_containers):
+    def __init__(self, iso_request, builder, pool_containers, parent=None):
         """
         Constructor.
 
@@ -3733,8 +3726,7 @@ class RackPositionPlanner(_LayoutPlanner):
             pool the planner shall regard in order of occurrence.
         :type pool_containers: :class:`list` of :class:`_PoolContainer` objects
         """
-        _LayoutPlanner.__init__(self, log, iso_request, builder)
-
+        _LayoutPlanner.__init__(self, iso_request, builder, parent=parent)
         #: The :class:`_PoolContainer` objects in order of occurrence.
         self.pool_containers = pool_containers
 
@@ -3843,8 +3835,8 @@ class JobRackPositionPlanner(RackPositionPlanner):
     _LOCATION_ASSIGNER_CLS = JobRackPositionAssigner
     FROM_JOB = True
 
-    def __init__(self, log, iso_request, builder, pool_containers,
-                 number_copies):
+    def __init__(self, iso_request, builder, pool_containers,
+                 number_copies, parent=None):
         """
         Constructor.
 
@@ -3853,8 +3845,8 @@ class JobRackPositionPlanner(RackPositionPlanner):
             the fixed position processing so far).
         :type number_copies: positive integer
         """
-        RackPositionPlanner.__init__(self, log, iso_request, builder,
-                                     pool_containers)
+        RackPositionPlanner.__init__(self, iso_request, builder,
+                                     pool_containers, parent=None)
         self._number_copies = number_copies
         #: Requested containers do only need to be recorded if there have not
         #: been covered by the sector preparation, that is, if the working
@@ -3964,7 +3956,7 @@ class LibraryIsoBuilder(LabIsoBuilder):
         #: use :func:`set_iso_request_layout` to set.
         self._iso_request_layout = None
         #: The picked library plates mapped onto layout numbers - use
-        #: :func:`set_library_platesset_library_plates` to set.
+        #: :func:`set_library_plates` to set.
         self._library_plates = None
 
     def set_iso_request_layout(self, iso_request_layout):
@@ -4050,12 +4042,13 @@ class LibraryIsoPlanner(LabIsoPlanner):
 
     _BUILDER_CLS = LibraryIsoBuilder
 
-    def __init__(self, log, iso_request, number_isos, excluded_racks=None,
-                 requested_tubes=None, requested_library_plates=None):
-        LabIsoPlanner.__init__(self, log=log, iso_request=iso_request,
-                               number_isos=number_isos,
+    def __init__(self, iso_request, number_isos, excluded_racks=None,
+                 requested_tubes=None, requested_library_plates=None,
+                 parent=None):
+        LabIsoPlanner.__init__(self, iso_request, number_isos,
                                excluded_racks=excluded_racks,
-                               requested_tubes=requested_tubes)
+                               requested_tubes=requested_tubes,
+                               parent=parent)
         #: The molecule design library used for the screen.
         self.__library = None
         #: The library plates (future aliquot plates) mapped onto layout

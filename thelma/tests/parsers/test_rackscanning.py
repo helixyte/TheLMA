@@ -57,16 +57,16 @@ class RackScanningTestCase(ParsingTestCase):
 class RackScanningParserTestCase(RackScanningTestCase):
 
     def _create_tool(self):
-        self.tool = RackScanningParser(stream=self.stream, log=self.log)
+        self.tool = RackScanningParser(self.stream)
 
     def __test_and_expect_errors(self, file_name, msg):
         self._continue_setup(file_name)
-        self.tool.parse()
+        self.tool.run()
         self.assert_true(self.tool.has_errors())
         self._check_error_messages(msg)
 
     def __check_result(self):
-        self.tool.parse()
+        self.tool.run()
         self.assert_false(self.tool.has_errors())
         self.assert_equal(self.tool.rack_barcode, self._get_expected_barcode())
         self.assert_equal(self.tool.timestamp, self._get_expected_timestamp())
@@ -97,7 +97,7 @@ class RackScanningParserTestCase(RackScanningTestCase):
         self._continue_setup()
         self.stream = 123
         self._create_tool()
-        self.tool.parse()
+        self.tool.run()
         self.assert_true(self.tool.has_errors())
         self._check_error_messages('Unknown type for stream')
 
@@ -132,8 +132,7 @@ class RackScanningParserTestCase(RackScanningTestCase):
 class CenixRackScanningParserHandlerTestCase(RackScanningTestCase):
 
     def _create_tool(self):
-        self.tool = CenixRackScanningParserHandler(log=self.log,
-                                                   stream=self.stream)
+        self.tool = CenixRackScanningParserHandler(self.stream)
 
     def test_result(self):
         self._continue_setup()

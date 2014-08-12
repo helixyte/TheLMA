@@ -20,7 +20,7 @@ from thelma.automation.tools.worklists.series import RackSampleTransferWriter
 from thelma.automation.tools.worklists.series import SampleDilutionJob
 from thelma.automation.tools.worklists.series import SampleTransferJob
 from thelma.automation.tools.worklists.series import SerialWriterExecutorTool
-from thelma.automation.tools.worklists.series import _SeriesExecutor
+from thelma.automation.tools.worklists.series import SeriesExecutor
 from thelma.automation.tools.worklists.series import _SeriesWorklistWriter
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
@@ -43,7 +43,6 @@ from thelma.models.user import User
 from thelma.models.utils import get_user
 from thelma.tests.tools.tooltestingutils import FileComparisonUtils
 from thelma.tests.tools.tooltestingutils import FileCreatorTestCase
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 
@@ -56,7 +55,6 @@ class _TransferJobTestCase(ToolsAndUtilsTestCase):
         self.index = 3
         self.target_rack = self._create_plate()
         self.pipetting_specs = get_pipetting_specs_biomek()
-        self.log = TestingLog()
         self.executor_user = get_user('sachse')
 
     def tear_down(self):
@@ -64,7 +62,6 @@ class _TransferJobTestCase(ToolsAndUtilsTestCase):
         del self.pipetting_specs
         del self.index
         del self.target_rack
-        del self.log
 
     def _get_init_data(self):
         pw = self._create_planned_worklist(label='test',
@@ -76,19 +73,19 @@ class _TransferJobTestCase(ToolsAndUtilsTestCase):
     def _test_get_writer(self):
         test_data = self.__prepare_get_tool_test()
         tj1, kw = test_data[0], test_data[1]
-        writer = tj1.get_worklist_writer(self.log)
+        writer = tj1.get_worklist_writer(None)
         self.assert_is_not_none(writer)
         check_attributes(writer, kw)
         # test unregistered pipetting technique
         self.pipetting_specs = self._create_pipetting_specs()
         test_data_no_writer = self.__prepare_get_tool_test()
         tj_no_writer = test_data_no_writer[0]
-        self.assert_is_none(tj_no_writer.get_worklist_writer(self.log))
+        self.assert_is_none(tj_no_writer.get_worklist_writer(None))
 
     def _test_get_executor(self, del_attributes=None, add_attributes=None):
         test_data = self.__prepare_get_tool_test(include_user=True)
         tj, kw = test_data[0], test_data[1]
-        executor = tj.get_executor(self.log, self.executor_user)
+        executor = tj.get_executor(None, self.executor_user)
         self.assert_is_not_none(executor)
         if not del_attributes is None:
             for attr_name in del_attributes: del kw[attr_name]
@@ -102,8 +99,8 @@ class _TransferJobTestCase(ToolsAndUtilsTestCase):
         tj = self.TRANSFER_JOB_CLS(**kw) #pylint: disable=E1102
         check_attributes(tj, kw)
         del kw['index']
-        kw['log'] = self.log
-        if include_user: kw['user'] = self.executor_user
+        if include_user:
+            kw['user'] = self.executor_user
         return (tj, kw)
 
 
@@ -189,7 +186,7 @@ class RackSampleTransferJobTestCase(_TransferJobTestCase):
         kw = self._get_init_data()
         tj = self.TRANSFER_JOB_CLS(**kw)
         check_attributes(tj, kw)
-        self.assert_is_none(tj.get_worklist_writer(self.log))
+        self.assert_is_none(tj.get_worklist_writer(None))
 
     def test_get_executor(self):
         add_attributes = dict(pipetting_specs=get_pipetting_specs_cybio())
@@ -203,20 +200,21 @@ class _SeriesWorklistWriterDummy(_SeriesWorklistWriter):
     pass
 
 
-class _SeriesExecutorDummy(_SeriesExecutor):
+class _SeriesExecutorDummy(SeriesExecutor):
     """
     Only serves for testing.
     """
-    pass
+    NAME = 'Dummy Series Executor'
 
 
 class _SerialWriterExecutorDummy(SerialWriterExecutorTool):
     """
     Only serves for testing. Does not add real functionality.
     """
-
+    NAME = 'Dummy Serial Writer Executor'
     FILE_NAME_RST = 'series_rack_transfer.txt'
     WORKLIST_LABEL_RST = 'rack_sample_transfer_wl'
+    NAME = 'Serial Writer Executor Dummy'
 
     def __init__(self, transfer_jobs, mode, user=None, **kw):
         SerialWriterExecutorTool.__init__(self, mode, user=user, **kw)
@@ -261,7 +259,6 @@ class _SeriesToolTestCase(FileCreatorTestCase):
     def set_up(self):
         FileCreatorTestCase.set_up(self)
         self.WL_PATH = 'thelma:tests/tools/worklists/series/'
-        self.log = TestingLog()
         self.transfer_jobs = None
         # transfer data
         self.dilution_data = dict(A1=80, A3=80)
@@ -300,7 +297,6 @@ class _SeriesToolTestCase(FileCreatorTestCase):
 
     def tear_down(self):
         FileCreatorTestCase.tear_down(self)
-        del self.log
         del self.transfer_jobs
         del self.dilution_data
         del self.transfer_data
@@ -341,9 +337,10 @@ class _SeriesToolTestCase(FileCreatorTestCase):
         self._create_tool()
 
     def __create_sample_dilution_worklist(self):
-        self.dilution_worklist = PlannedWorklist(label=self._DILUTION_WORKLIST,
-                            pipetting_specs=self.pipetting_specs_cd_ct,
-                            transfer_type=TRANSFER_TYPES.SAMPLE_DILUTION)
+        self.dilution_worklist = \
+                PlannedWorklist(self._DILUTION_WORKLIST,
+                                TRANSFER_TYPES.SAMPLE_DILUTION,
+                                self.pipetting_specs_cd_ct)
         for pos_label, transfer_volume in self.dilution_data.iteritems():
             volume = transfer_volume / VOLUME_CONVERSION_FACTOR
             target_pos = get_rack_position_from_label(pos_label)
@@ -353,10 +350,10 @@ class _SeriesToolTestCase(FileCreatorTestCase):
 
     def __create_rack_sample_transfer(self):
         self.rack_transfer = PlannedRackSampleTransfer.get_entity(
-                        volume=self.rack_transfer_volume,
-                        source_sector_index=self.source_sector,
-                        target_sector_index=self.target_sector,
-                        number_sectors=self.number_sectors)
+                                                self.rack_transfer_volume,
+                                                self.number_sectors,
+                                                self.source_sector,
+                                                self.target_sector)
 
     def __create_sample_transfer_worklist(self):
         self.transfer_worklist = PlannedWorklist(label=self._TRANSFER_WORKLIST,
@@ -445,8 +442,7 @@ class _SeriesToolTestCase(FileCreatorTestCase):
 class SeriesWorklistWriterTestCase(_SeriesToolTestCase):
 
     def _create_tool(self):
-        self.tool = _SeriesWorklistWriterDummy(log=self.log,
-                                               transfer_jobs=self.transfer_jobs)
+        self.tool = _SeriesWorklistWriterDummy(self.transfer_jobs)
 
     def _get_file_name_for_index(self, job_index):
         if job_index == self._DILUTION_INDEX:
@@ -470,11 +466,10 @@ class SeriesWorklistWriterTestCase(_SeriesToolTestCase):
     def test_result(self):
         self._continue_setup()
         transfer_writer = SampleTransferWorklistWriter(
-                    planned_worklist=self.transfer_worklist,
-                    target_rack=self.test_plate,
-                    source_rack=self.test_plate,
-                    log=self.log,
-                    ignored_positions=self.ignored_positions_ct)
+                                self.transfer_worklist,
+                                self.test_plate,
+                                self.test_plate,
+                                ignored_positions=self.ignored_positions_ct)
         self.assert_is_none(transfer_writer.get_result())
         self.__check_result()
 
@@ -506,8 +501,8 @@ class SeriesWorklistWriterTestCase(_SeriesToolTestCase):
 class SeriesExecutorTestCase(_SeriesToolTestCase):
 
     def _create_tool(self):
-        self.tool = _SeriesExecutorDummy(transfer_jobs=self.transfer_jobs,
-                                         user=self.executor_user, log=self.log)
+        self.tool = _SeriesExecutorDummy(self.transfer_jobs,
+                                         self.executor_user)
 
     def set_up(self):
         _SeriesToolTestCase.set_up(self)
@@ -551,13 +546,13 @@ class SeriesExecutorTestCase(_SeriesToolTestCase):
 
     def test_result(self):
         self._continue_setup()
-        transfer_executor = SampleTransferWorklistExecutor(user=self.user,
-                            planned_worklist=self.transfer_worklist,
-                            target_rack=self.test_plate,
-                            source_rack=self.test_plate,
-                            log=self.log,
-                            ignored_positions=self.ignored_positions_ct,
-                            pipetting_specs=self.pipetting_specs_cd_ct)
+        transfer_executor = SampleTransferWorklistExecutor(
+                                self.user,
+                                self.transfer_worklist,
+                                self.test_plate,
+                                self.test_plate,
+                                self.pipetting_specs_cd_ct,
+                                ignored_positions=self.ignored_positions_ct)
         self.assert_is_none(transfer_executor.get_result())
         execution_map = self.tool.get_result()
         self.assert_is_not_none(execution_map)
@@ -749,7 +744,6 @@ class RackSampleTransferWriterTestCase(FileCreatorTestCase):
 
     def set_up(self):
         FileCreatorTestCase.set_up(self)
-        self.log = TestingLog()
         self.rack_transfer_jobs = dict()
         self.WL_PATH = 'thelma:tests/tools/worklists/series/'
         self.TEST_FILE = 'rack_transfer_test.txt'
@@ -774,7 +768,6 @@ class RackSampleTransferWriterTestCase(FileCreatorTestCase):
     def tear_down(self):
         FileCreatorTestCase.tear_down(self)
         del self.rack_transfer_jobs
-        del self.log
         del self.TEST_FILE
         del self.position_data
         del self.volume1
@@ -793,8 +786,7 @@ class RackSampleTransferWriterTestCase(FileCreatorTestCase):
         del self.source_volume
 
     def _create_tool(self):
-        self.tool = RackSampleTransferWriter(log=self.log,
-                            rack_transfer_jobs=self.rack_transfer_jobs)
+        self.tool = RackSampleTransferWriter(self.rack_transfer_jobs)
 
     def _continue_setup(self):
         self.__create_plate_specs()
@@ -838,20 +830,14 @@ class RackSampleTransferWriterTestCase(FileCreatorTestCase):
         self.rep_plate.barcode = self.rep_plate_barcode
 
     def __create_transfer_jobs(self):
-        rt1 = PlannedRackSampleTransfer.get_entity(volume=self.volume1,
-               number_sectors=4, source_sector_index=0, target_sector_index=1)
-        rtj1 = RackSampleTransferJob(index=0, planned_rack_sample_transfer=rt1,
-                    target_rack=self.int_plate, source_rack=self.small_plate)
+        rt1 = PlannedRackSampleTransfer.get_entity(self.volume1, 4, 0, 1)
+        rtj1 = RackSampleTransferJob(0, rt1, self.int_plate, self.small_plate)
         self.rack_transfer_jobs[0] = rtj1
-        rt2 = PlannedRackSampleTransfer.get_entity(volume=self.volume2,
-               number_sectors=4, source_sector_index=1, target_sector_index=2)
-        rtj2 = RackSampleTransferJob(index=1, planned_rack_sample_transfer=rt2,
-                    target_rack=self.int_plate, source_rack=self.int_plate)
+        rt2 = PlannedRackSampleTransfer.get_entity(self.volume2, 4, 1, 2)
+        rtj2 = RackSampleTransferJob(1, rt2, self.int_plate, self.int_plate)
         self.rack_transfer_jobs[1] = rtj2
-        rt3 = PlannedRackSampleTransfer.get_entity(volume=self.volume3,
-               number_sectors=1, source_sector_index=0, target_sector_index=0)
-        rtj3 = RackSampleTransferJob(index=2, planned_rack_sample_transfer=rt3,
-                    target_rack=self.rep_plate, source_rack=self.int_plate)
+        rt3 = PlannedRackSampleTransfer.get_entity(self.volume3, 1, 0, 0)
+        rtj3 = RackSampleTransferJob(2, rt3, self.rep_plate, self.int_plate)
         self.rack_transfer_jobs[2] = rtj3
 
     def test_result(self):

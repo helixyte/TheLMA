@@ -18,8 +18,6 @@
 #from thelma.models.liquidtransfer import TRANSFER_TYPES
 #from thelma.models.moleculetype import MOLECULE_TYPE_IDS
 #from thelma.models.utils import get_user
-#from thelma.tests.tools.tooltestingutils import SilentLog
-#from thelma.tests.tools.tooltestingutils import TestingLog
 #from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 #
 #
@@ -144,22 +142,19 @@
 #
 #    def set_up(self):
 #        LibraryGenerationTestCase.set_up(self)
-#        self.log = TestingLog()
 #        self.stock_concentration = get_default_stock_concentration(
 #                                                        MOLECULE_TYPE_IDS.SIRNA)
 #        self.base_layout = None
 #
 #    def tear_down(self):
 #        LibraryGenerationTestCase.tear_down(self)
-#        del self.log
 #        del self.stock_concentration
 #        del self.base_layout
 #
 #    def _create_tool(self):
-#        self.tool = LibraryCreationWorklistGenerator(log=self.log,
-#                            base_layout=self.base_layout,
-#                            stock_concentration=self.stock_concentration,
-#                            library_name=self.library_name)
+#        self.tool = LibraryCreationWorklistGenerator(self.base_layout,
+#                                                     self.stock_concentration,
+#                                                     self.library_name)
 #
 #    def __continue_setup(self):
 #        self.__create_base_layout()
@@ -260,8 +255,7 @@
 #            for pos_label in label_list:
 #                rack_pos = get_rack_position_from_label(pos_label)
 #                exp_positions.append(rack_pos)
-#        converter = LibraryBaseLayoutConverter(log=SilentLog(),
-#                                            rack_layout=iso_request.iso_layout)
+#        converter = LibraryBaseLayoutConverter(iso_request.iso_layout)
 #        base_layout = converter.get_result()
 #        self.assert_equal(len(base_layout), len(exp_positions))
 #        self._compare_pos_sets(exp_positions, base_layout.get_positions())

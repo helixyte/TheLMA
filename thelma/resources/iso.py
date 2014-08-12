@@ -8,6 +8,7 @@ from datetime import datetime
 from everest.entities.interfaces import IEntity
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.querying.specifications import DescendingOrderSpecification
+from everest.querying.specifications import cntd
 from everest.representers.dataelements import DataElementAttributeProxy
 from everest.representers.interfaces import IDataElement
 from everest.resources.base import Collection
@@ -16,7 +17,7 @@ from everest.resources.descriptors import attribute_alias
 from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
-from everest.resources.staging import create_staging_collection
+from everest.resources.utils import get_root_collection
 from thelma.automation.tools.iso import get_job_creator
 from thelma.automation.tools.iso import lab
 from thelma.automation.tools.iso.lab import get_stock_rack_recyler
@@ -153,39 +154,23 @@ class LabIsoRequestMember(IsoRequestMember):
         return 'Lab ISO Request'
 
     def __getitem__(self, name):
-        if name == 'completed-iso-plates':
-            iso_plates = create_staging_collection(IPlate)
-            if self.iso_type == ISO_TYPES.LAB \
-               and self.experiment_metadata.experiment_metadata_type.id == \
-                                            EXPERIMENT_METADATA_TYPES.MANUAL:
-                # For standard, manual ISOs, the preparation plates are used
-                # to schedule the experiment jobs.
-                for iso in self.isos:
-                    if iso.status == ISO_STATUS.DONE:
-                        iso_plates.add(iso.iso_preparation_plate)
-            else:
-                # In all other cases the aliquot plates are used to schedule
-                # experiment jobs.
-                for iso in self.isos:
-                    for plate in iso.iso_aliquot_plates:
-                        if iso.status == ISO_STATUS.DONE:
-                            iso_plates.add(plate)
-            iso_plates.__parent__ = self
+        if name == 'completed-iso-plates' and self.iso_type == ISO_TYPES.LAB:
+            # These are the plates that can be used as input for experiment
+            # job scheduling.
+            iso_plate_bcs = []
+            for iso in self.isos:
+                if iso.status == ISO_STATUS.DONE:
+                    for plt in self.__get_completed_iso_plates_for_iso(iso):
+                        iso_plate_bcs.append(plt.barcode)
+            iso_plates = get_root_collection(IPlate)
+            iso_plates.filter = cntd(barcode=iso_plate_bcs)
             result = iso_plates
         else:
             result = Member.__getitem__(self, name)
         return result
 
     def update(self, data):
-        if IEntity.providedBy(data): # pylint: disable=E1101
-            raise SyntaxError('Remove this.')
-#            IsoRequestMember.update(self, data)
-#            self.get_entity().iso_layout = new_entity.iso_layout
-#            self.delivery_date = new_entity.delivery_date
-#            self.label = new_entity.label
-#            self.expected_number_isos = new_entity.expected_number_isos
-#            self.number_aliquots = new_entity.number_aliquots
-        else:
+        if not IEntity.providedBy(data): # pylint: disable=E1101
             prx = DataElementAttributeProxy(data)
             try:
                 new_owner = prx.owner
@@ -323,7 +308,8 @@ class LabIsoRequestMember(IsoRequestMember):
         if new_status == ISO_STATUS.CANCELLED \
            and iso.status != ISO_STATUS.DONE:
             # Release the reserved library plates again.
-            for lp in iso.library_plates:
+            while iso.library_plates:
+                lp = iso.library_plates.pop()
                 lp.has_been_used = False
 
     def __copy_iso(self, iso):
@@ -403,6 +389,19 @@ class LabIsoRequestMember(IsoRequestMember):
                    for iso_job in self.get_entity().iso_jobs
                    if iso_job.id == iso_job_id]
         return result
+
+    def __get_completed_iso_plates_for_iso(self, iso):
+        if self.experiment_metadata.experiment_metadata_type.id == \
+                                        EXPERIMENT_METADATA_TYPES.LIBRARY:
+            racks = [lp.rack for lp in iso.library_plates]
+        else:
+            # If we have aliquot plates, use them; if not, use the
+            # preparation plates.
+            if len(iso.aliquot_plates) > 0:
+                racks = [ap for ap in iso.aliquot_plates]
+            else:
+                racks = [pp for pp in iso.preparation_plates]
+        return racks
 
 
 class StockSampleCreationIsoRequestMember(IsoRequestMember):

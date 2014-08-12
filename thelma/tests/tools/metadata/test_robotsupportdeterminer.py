@@ -23,7 +23,6 @@ from thelma.automation.utils.layouts import UNTREATED_POSITION_TYPE
 from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeType
 from thelma.models.moleculetype import MOLECULE_TYPE_IDS
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 
@@ -31,7 +30,6 @@ class _RobotSupportDeterminerTestCase(ToolsAndUtilsTestCase):
 
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
-        self.log = TestingLog()
         self.source_layout = None
         self.layout_shape = None
         self.number_replicates = 2
@@ -47,7 +45,6 @@ class _RobotSupportDeterminerTestCase(ToolsAndUtilsTestCase):
 
     def tear_down(self):
         ToolsAndUtilsTestCase.tear_down(self)
-        del self.log
         del self.source_layout
         del self.layout_shape
         del self.number_replicates
@@ -283,10 +280,10 @@ class RobotSupportDeterminerOptiTestCase(_RobotSupportDeterminerTestCase):
         del self.design_rack_associations
 
     def _create_tool(self):
-        self.tool = RobotSupportDeterminatorOpti(log=self.log,
-                        source_layout=self.source_layout,
-                        number_replicates=self.number_replicates,
-                        design_rack_associations=self.design_rack_associations)
+        self.tool = \
+            RobotSupportDeterminatorOpti(self.source_layout,
+                                         self.number_replicates,
+                                         self.design_rack_associations)
 
     def _continue_setup(self):
         _RobotSupportDeterminerTestCase._continue_setup(self)
@@ -415,12 +412,11 @@ class RobotSupportDeterminerScreenTestCase(_RobotSupportDeterminerTestCase):
         del self.regard_controls
 
     def _create_tool(self):
-        self.tool = RobotSupportDeterminatorScreen(log=self.log,
-                    source_layout=self.source_layout,
-                    number_replicates=self.number_replicates,
-                    number_design_racks=self.number_design_racks,
-                    handler_iso_volume=self.handler_iso_volume,
-                    association_data=self.association_data)
+        self.tool = RobotSupportDeterminatorScreen(self.source_layout,
+                                                   self.number_replicates,
+                                                   self.number_design_racks,
+                                                   self.handler_iso_volume,
+                                                   self.association_data)
 
     def _continue_setup(self):
         _RobotSupportDeterminerTestCase._continue_setup(self)
@@ -436,9 +432,10 @@ class RobotSupportDeterminerScreenTestCase(_RobotSupportDeterminerTestCase):
 
     def __create_association_data(self):
         if self.layout_shape.name == RACK_SHAPE_NAMES.SHAPE_384:
-            self.association_data = TransfectionAssociationData(log=self.log,
-                                      layout=self.source_layout,
-                                      regard_controls=self.regard_controls)
+            self.association_data = \
+                        TransfectionAssociationData(self.source_layout,
+                                                    self.tool,
+                                                    self.regard_controls)
 
     def _continue_setup_deepwell(self):
         self.number_replicates = 10
@@ -599,12 +596,11 @@ class RobotSupportDeterminerLibraryTestCase(_RobotSupportDeterminerTestCase):
         del self.final_conc
 
     def _create_tool(self):
-        self.tool = RobotSupportDeterminatorLibrary(log=self.log,
-                                source_layout=self.source_layout,
-                                number_replicates=self.number_replicates,
-                                number_design_racks=self.number_design_racks,
-                                library=self.library,
-                                handler_final_concentration=self.final_conc)
+        self.tool = RobotSupportDeterminatorLibrary(self.source_layout,
+                                                    self.number_replicates,
+                                                    self.number_design_racks,
+                                                    self.library,
+                                                    self.final_conc)
 
     def _continue_setup(self):
         _RobotSupportDeterminerTestCase._continue_setup(self)

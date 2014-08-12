@@ -20,6 +20,7 @@ from thelma.automation.tools.iso.lab.base import DILUENT_INFO
 from thelma.automation.tools.iso.lab.base import FinalLabIsoLayout
 from thelma.automation.tools.iso.lab.base import FinalLabIsoLayoutConverter
 from thelma.automation.tools.iso.lab.base import FinalLabIsoPosition
+from thelma.automation.tools.iso.lab.base import LAB_ISO_ORDERS
 from thelma.automation.tools.iso.lab.base import LabIsoPrepLayout
 from thelma.automation.tools.iso.lab.base import LabIsoPrepLayoutConverter
 from thelma.automation.tools.iso.lab.base import LabIsoPrepPosition
@@ -31,8 +32,8 @@ from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.iso import IsoRequestLayout
 from thelma.automation.utils.iso import IsoRequestLayoutConverter
 from thelma.automation.utils.iso import IsoRequestPosition
-from thelma.automation.utils.layouts import LibraryLayout
-from thelma.automation.utils.layouts import LibraryLayoutPosition
+from thelma.automation.utils.layouts import LibraryBaseLayout
+from thelma.automation.utils.layouts import LibraryBaseLayoutPosition
 from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
 from thelma.automation.utils.layouts import TransferTarget
 from thelma.interfaces import IMoleculeDesignLibrary
@@ -51,11 +52,9 @@ from thelma.models.liquidtransfer import TRANSFER_TYPES
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 from thelma.models.organization import Organization
 from thelma.models.sample import StockSample
-from thelma.automation.tools.iso.lab.base import LAB_ISO_ORDERS
 from thelma.tests.tools.tooltestingutils \
     import ExperimentMetadataReadingTestCase
-from thelma.tests.tools.tooltestingutils import SilentLog
-from thelma.tests.tools.tooltestingutils import TestingLog
+
 
 #: This pool ID is used for tests in which we do not want to find an
 #: appropriate stock sample.
@@ -2193,8 +2192,7 @@ class LabIsoTestCase1(ExperimentMetadataReadingTestCase):
 
     def _compare_preparation_layout(self, layout_data, rack_layout, rack_label,
                                     is_job=False):
-        converter = LabIsoPrepLayoutConverter(log=TestingLog(),
-                                              rack_layout=rack_layout)
+        converter = LabIsoPrepLayoutConverter(rack_layout)
         layout = converter.get_result()
         if layout is None:
             raise AssertionError('Unable to convert layout for ' \
@@ -2243,8 +2241,7 @@ class LabIsoTestCase1(ExperimentMetadataReadingTestCase):
         self.assert_equal(sorted(tested_labels), sorted(layout_data.keys()))
 
     def _compare_final_iso_layout(self, layout_data, rack_layout, iso_label):
-        converter = FinalLabIsoLayoutConverter(rack_layout=rack_layout,
-                                               log=SilentLog())
+        converter = FinalLabIsoLayoutConverter(rack_layout)
         layout = converter.get_result()
         if layout is None:
             raise AssertionError('Unable to convert final ISO layout for ISO ' \
@@ -2380,8 +2377,7 @@ class LabIsoTestCase1(ExperimentMetadataReadingTestCase):
             raise AssertionError(msg)
 
     def _get_layout_from_iso_request(self):
-        converter = IsoRequestLayoutConverter(log=SilentLog(),
-                                      rack_layout=self.iso_request.rack_layout)
+        converter = IsoRequestLayoutConverter(self.iso_request.rack_layout)
         return converter.get_result()
 
 
@@ -2433,10 +2429,10 @@ class TestLibraryGenerator(object):
 
     @classmethod
     def get_library_layout(cls):
-        layout = LibraryLayout(shape=get_384_rack_shape())
+        layout = LibraryBaseLayout(shape=get_384_rack_shape())
         for pos_label in ('b3', 'b4', 'c3', 'c4'):
             rack_pos = get_rack_position_from_label(pos_label)
-            lib_pos = LibraryLayoutPosition(rack_position=rack_pos)
+            lib_pos = LibraryBaseLayoutPosition(rack_position=rack_pos)
             layout.add_position(lib_pos)
         return layout
 
@@ -2792,6 +2788,7 @@ class LabIsoTestCase2(LabIsoTestCase1):
                     for lib_plate in lib_plates:
                         if lib_plate.rack.label in final_plate_labels:
                             lib_plate.lab_iso = iso
+                            lib_plate.has_been_used = True
             else:
                 for label in final_plate_labels:
                     plate = self.rack_generator.get_plate(ps, label)
@@ -2860,9 +2857,10 @@ class LabIsoTestCase2(LabIsoTestCase1):
                           source_position=src_pos, target_position=trg_pos)
                 else:
                     vol = plt_info[0] / VOLUME_CONVERSION_FACTOR
-                    plt = PlannedRackSampleTransfer.get_entity(volume=vol,
-                          number_sectors=plt_info[2], target_sector_index=trg,
-                          source_sector_index=plt_info[1])
+                    plt = PlannedRackSampleTransfer.get_entity(vol,
+                                                               plt_info[2],
+                                                               plt_info[1],
+                                                               trg)
                 plts.append(plt)
             wl = self._create_planned_worklist(label=wl_label,
                 transfer_type=transfer_type, pipetting_specs=pipetting_specs,
@@ -2953,8 +2951,7 @@ class LabIsoTestCase2(LabIsoTestCase1):
                 self.stock_rack_layouts[rack_label] = layout
 
     def _compare_stock_rack_layout(self, layout_data, rack_layout, rack_label):
-        converter = StockRackLayoutConverter(rack_layout=rack_layout,
-                                             log=SilentLog())
+        converter = StockRackLayoutConverter(rack_layout)
         layout = converter.get_result()
         if layout is None:
             raise AssertionError('Unable to convert rack layout for stock ' \
@@ -3029,12 +3026,10 @@ class LabIsoTestCase2(LabIsoTestCase1):
     def _get_layout_from_iso(self, iso=None):
         if iso is None:
             iso = self.isos[self._USED_ISO_LABEL]
-        converter = FinalLabIsoLayoutConverter(rack_layout=iso.rack_layout,
-                                               log=SilentLog())
+        converter = FinalLabIsoLayoutConverter(iso.rack_layout)
         return converter.get_result()
 
     def _get_layout_from_preparation_plate(self, prep_plate):
-        converter = LabIsoPrepLayoutConverter(log=SilentLog(),
-                                          rack_layout=prep_plate.rack_layout)
+        converter = LabIsoPrepLayoutConverter(prep_plate.rack_layout)
         return converter.get_result()
 

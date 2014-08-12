@@ -29,7 +29,6 @@ from thelma.models.rack import RackPositionSet
 from thelma.models.racklayout import RackLayout
 from thelma.models.tagging import Tag
 from thelma.models.tagging import TaggedRackPositionSet
-from thelma.tests.tools.tooltestingutils import TestingLog
 from thelma.tests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 
@@ -205,7 +204,6 @@ class ConverterTestCase(ToolsAndUtilsTestCase):
         # pos_label = init values
         self.rack_layout = None
         self.shape = get_96_rack_shape()
-        self.log = TestingLog()
         # positions as labels mapped onto temp ID
         self.pos_set_data = dict()
         # tags mapped onto temp ID
@@ -217,7 +215,6 @@ class ConverterTestCase(ToolsAndUtilsTestCase):
         ToolsAndUtilsTestCase.tear_down(self)
         del self.rack_layout
         del self.shape
-        del self.log
         del self.pos_set_data
         del self.tag_data
         del self.tag_key_map
@@ -252,7 +249,7 @@ class ConverterTestCase(ToolsAndUtilsTestCase):
             self.tag_data[k].insert(i, None)
 
     def _get_kw(self):
-        return dict(rack_layout=self.rack_layout, log=self.log)
+        return dict(rack_layout=self.rack_layout)
 
     def _test_result(self, continue_setup=True):
         if continue_setup: self._continue_setup()
@@ -303,7 +300,6 @@ class RackSectorTestCase(ToolsAndUtilsTestCase):
 
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
-        self.log = TestingLog()
         self.layout = None
         self.number_sectors = 4
         self.attribute_name = None
@@ -316,7 +312,6 @@ class RackSectorTestCase(ToolsAndUtilsTestCase):
 
     def tear_down(self):
         ToolsAndUtilsTestCase.tear_down(self)
-        del self.log
         del self.layout
         del self.number_sectors
         del self.attribute_name
@@ -615,7 +610,6 @@ class VerifierTestCase(ToolsAndUtilsTestCase):
 
     def set_up(self):
         ToolsAndUtilsTestCase.set_up(self)
-        self.log = TestingLog()
         self.layout = None
         self.rack = None
         self.position_data = dict() # are added to both layout and rack
@@ -628,7 +622,6 @@ class VerifierTestCase(ToolsAndUtilsTestCase):
 
     def tear_down(self):
         ToolsAndUtilsTestCase.tear_down(self)
-        del self.log
         del self.layout
         del self.position_data
         del self.starting_sample_vol

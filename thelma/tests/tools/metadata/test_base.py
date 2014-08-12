@@ -27,7 +27,6 @@ from thelma.models.tagging import Tag
 from thelma.tests.tools.utils.test_iso import IsoRequestClassesBaseTestCase
 from thelma.tests.tools.utils.test_iso import _IsoRequestRackSectorToolTestCase
 from thelma.tests.tools.utils.utils import ConverterTestCase
-import logging
 
 
 class _TransfectionClassesBaseTestCase(IsoRequestClassesBaseTestCase):
@@ -714,9 +713,12 @@ class TransfectionLayoutConverterTestCase(ConverterTestCase,
         del self.is_mastermix_template
 
     def _create_tool(self):
-        self.tool = TransfectionLayoutConverter(rack_layout=self.rack_layout,
-                log=self.log, is_iso_request_layout=self.is_iso_request_layout,
-                is_mastermix_template=self.is_mastermix_template)
+        self.tool = \
+            TransfectionLayoutConverter(self.rack_layout,
+                                        is_iso_request_layout=
+                                                self.is_iso_request_layout,
+                                        is_mastermix_template=
+                                                self.is_mastermix_template)
 
     def test_result(self):
         self._test_result()
@@ -955,13 +957,15 @@ class _TransfectionRackSectorToolTestCase(_IsoRequestRackSectorToolTestCase):
             self.layout.add_position(ir_pos)
 
     def _create_sector_associator(self):
-        self.tool = TransfectionSectorAssociator(layout=self.layout,
-                        log=self.log, regard_controls=self.regard_controls,
-                        number_sectors=self.number_sectors)
+        self.tool = TransfectionSectorAssociator(self.layout,
+                                                 self.regard_controls,
+                                                 number_sectors=
+                                                    self.number_sectors)
 
     def _create_association_data(self):
-        return TransfectionAssociationData(layout=self.layout,
-                           regard_controls=self.regard_controls, log=self.log)
+        return TransfectionAssociationData(self.layout,
+                                           self.tool,
+                                           self.regard_controls)
 
     def _get_expected_associated_sectors(self):
         if not self.regard_controls and self.current_case_num == 1:
@@ -1109,7 +1113,6 @@ class TransfectionAssociationDataTestCase(_TransfectionRackSectorToolTestCase):
         self._continue_setup()
         self._expect_error(ValueError, self._create_association_data,
                     'Error when trying to find rack sector association.')
-        self.assert_equal(len(self.log.get_messages(logging.ERROR)), 0)
         self.regard_controls = False
         self._check_association_data_384()
         # check other cases - all floatings are treated the same way but
@@ -1123,19 +1126,19 @@ class TransfectionAssociationDataTestCase(_TransfectionRackSectorToolTestCase):
         self._adjust_pos_data_for_regard_control_test()
         self._continue_setup()
         self._expect_error(ValueError, self._create_association_data,
-                           'Error when trying to find rack sector association.')
-        self.assert_equal(len(self.log.get_messages(logging.ERROR)), 0)
+                           'Error when trying to find rack sector '
+                           'association.')
 
     def test_find(self):
         self._continue_setup()
-        ad, regard_controls = TransfectionAssociationData.find(log=self.log,
-                                       layout=self.layout)
+        ad, regard_controls = TransfectionAssociationData.find(self.layout,
+                                                               self.tool)
         self.assert_is_not_none(ad)
         self.assert_true(regard_controls)
         self._adjust_pos_data_for_regard_control_test()
         self._continue_setup()
-        ad, regard_controls = TransfectionAssociationData.find(log=self.log,
-                                       layout=self.layout)
+        ad, regard_controls = TransfectionAssociationData.find(self.layout,
+                                                               self.tool)
         self.assert_is_not_none(ad)
         self.assert_false(regard_controls)
         pp = None
@@ -1145,9 +1148,11 @@ class TransfectionAssociationDataTestCase(_TransfectionRackSectorToolTestCase):
             break
         ori_vol = pp.iso_volume
         pp.iso_volume = (2 * ori_vol)
-        self.assert_equal((None, None), TransfectionAssociationData.find(
-                          log=self.log, layout=self.layout))
+        self.assert_equal((None, None),
+                          TransfectionAssociationData.find(self.layout,
+                                                           self.tool))
         pp.iso_volume = ori_vol
         pp.iso_concentration = pp.iso_concentration * 2
-        self.assert_equal((None, None), TransfectionAssociationData.find(
-                                    log=self.log, layout=self.layout))
+        self.assert_equal((None, None),
+                          TransfectionAssociationData.find(self.layout,
+                                                           self.tool))

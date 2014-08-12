@@ -7,9 +7,6 @@ from everest.mime import ZipMime
 from everest.renderers import ResourceRenderer
 from everest.resources.interfaces import IResource
 from everest.views.base import WarnAndResubmitExecutor
-from thelma.automation.tools import experiment
-from thelma.automation.tools.experiment.batch import \
-    ExperimentBatchWorklistWriter
 from thelma.automation.tools.iso import lab
 from thelma.mime import ExperimentZippedWorklistMime
 from thelma.mime import IsoJobZippedWorklistMime
@@ -51,6 +48,21 @@ class CustomRenderer(ResourceRenderer):
         if not self._validate(context):
             raise ValueError('Invalid representation.')
         self._prepare_response(system)
+        # Extract options from parameters.
+        resource = value.get('context', system.get('context'))
+        request = system['request']
+        params = request.params
+        options = self._extract_from_params(params)
+        # Wrap execution of the _run method.
+        create_exec = WarnAndResubmitExecutor(self._run)
+        result = create_exec(resource, options)
+        if create_exec.do_continue:
+            result = self._handle_success(request, result)
+        else:
+            request.response = result
+            request.response.headers['x-tm'] = 'abort'
+            result = None
+        return result
 
     def _validate(self, value):
         return IResource in  provided_by(value)
@@ -62,66 +74,50 @@ class CustomRenderer(ResourceRenderer):
 #        if context.cache_for is not None:
 #            request.response_cache_for = context.cache_for
 
+    def _run(self, resource, options):
+        raise NotImplementedError('Abstract method.')
+
+    def _extract_from_params(self, params):
+        raise NotImplementedError('Abstract method.')
+
+    def _handle_success(self, request, result):
+        raise NotImplementedError('Abstract method.')
+
 
 class ExperimentWorklistRenderer(CustomRenderer):
     def __init__(self):
         CustomRenderer.__init__(self, ZipMime)
 
     def __call__(self, value, system):
-        CustomRenderer.__call__(self, value, system)
-        resource = value.get('context', system.get('context'))
-        request = system['request']
-        params = request.params
-        creat_exec = \
-            WarnAndResubmitExecutor(self.__create_experiment_worklist)
+        result = CustomRenderer.__call__(self, value, system)
         # We always want to roll back all changes.
+        request = system['request']
         request.response.headers['x-tm'] = 'abort'
-        result = creat_exec(resource, params)
-        if creat_exec.do_continue:
-            result = result.getvalue()
         return result
 
-    def __create_experiment_worklist(self, resource, params):
-        entity = resource.get_entity()
-        if params['type'] == 'ALL_WITH_ROBOT':
-            tool = ExperimentBatchWorklistWriter([entity.job])
-        elif params['type'] == 'ROBOT':
+    def _run(self, resource, options):
+        if options['type'] == 'ALL_WITH_ROBOT':
+            tool = resource.experiment_job.get_writer()
+        elif options['type'] == 'ROBOT':
             try:
-                tool = experiment.get_writer(experiment=entity)
+                tool = resource.get_writer()
             except TypeError as te:
                 raise HTTPBadRequest(str(te)).exception
         return run_tool(tool)
+
+    def _extract_from_params(self, params):
+        return params
+
+    def _handle_success(self, request, result):
+        return result.getvalue()
 
 
 class ZippedWorklistRenderer(CustomRenderer):
     def __init__(self):
         CustomRenderer.__init__(self, ZipMime)
 
-    def __call__(self, value, system):
-        CustomRenderer.__call__(self, value, system)
-        resource = value.get('context', system.get('context'))
-        request = system['request']
-        params = request.params
-        options = self._extract_from_params(params)
-        wl_type = params['type']
-        if wl_type == 'XL20':
-            options['rack_barcodes'] = \
-                        self._extract_stock_rack_barcodes(params)
-        create_exec = WarnAndResubmitExecutor(self.__create_worklist_stream)
-        result = create_exec(resource, options, wl_type)
-        if not create_exec.do_continue:
-            request.response = result
-            result = None
-            request.response.headers['x-tm'] = 'abort'
-        else:
-            result = result.getvalue()
-            if not wl_type == 'XL20':
-                # The transfer worklist writers simulate the transfers; we
-                # do not want to commit them just yet.
-                request.response.headers['x-tm'] = 'abort'
-        return result
-
     def _extract_from_params(self, params):
+        wl_type = params['type']
         optimizer_excluded_racks = params.get('optimizer_excluded_racks', '')
         optimizer_requested_tubes = params.get('optimizer_requested_tubes', '')
         if len(optimizer_excluded_racks) > 0:
@@ -133,18 +129,31 @@ class ZippedWorklistRenderer(CustomRenderer):
         else:
             optimizer_requested_tubes = None
         include_dummy_output = params.get('include_dummy_output') == 'true'
-        return dict(excluded_racks=optimizer_excluded_racks,
-                    requested_tubes=optimizer_requested_tubes,
-                    include_dummy_output=include_dummy_output)
+        options = dict(worklist_type=wl_type,
+                       excluded_racks=optimizer_excluded_racks,
+                       requested_tubes=optimizer_requested_tubes,
+                       include_dummy_output=include_dummy_output)
+        if wl_type == 'XL20':
+            options['rack_barcodes'] = \
+                        self._extract_stock_rack_barcodes(params)
+        return options
 
-    def __create_worklist_stream(self, resource, options, worklist_type):
-        if worklist_type == 'XL20':
+    def _run(self, resource, options):
+        wl_type = options.pop('worklist_type')
+        if wl_type == 'XL20':
             stream = self.__create_xl20_worklist_stream(resource, options)
-        elif worklist_type == 'PIPETTING':
+        elif wl_type == 'PIPETTING':
             stream = self.__create_pipetting_worklist_stream(resource)
         else:
-            raise HTTPBadRequest("Unknown work list type!")
+            raise HTTPBadRequest("Unknown work list type (%s)!" % wl_type)
         return stream
+
+    def _handle_success(self, request, result):
+        # The transfer worklist writers simulate the transfers; we
+        # do not want to commit them just yet.
+        if not request.params['type'] == 'XL20':
+            request.response.headers['x-tm'] = 'abort'
+        return result.getvalue()
 
     def __create_xl20_worklist_stream(self, resource, options):
         entity = resource.get_entity()
@@ -168,11 +177,12 @@ class ZippedWorklistRenderer(CustomRenderer):
         if params.has_key('rack'):
             bcs = [params['rack']]
         else:
-            barcode1 = params['rack1']
-            barcode2 = params['rack2']
-            barcode3 = params['rack3']
-            barcode4 = params['rack4']
-            bcs = [barcode1, barcode2, barcode3, barcode4]
+            # We must have at least one barcode.
+            bcs = [params['rack1']]
+            for key in ('rack2', 'rack3', 'rack4'):
+                bc = params.get(key)
+                if not bc is None:
+                    bcs.append(bc)
         return bcs
 
     def _prepare_for_xl20_worklist_creation(self, entity):

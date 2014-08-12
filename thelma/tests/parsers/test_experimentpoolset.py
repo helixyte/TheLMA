@@ -19,9 +19,8 @@ class ExperimentPoolSetExcelParserTest(ParsingTestCase):
         self.VALID_FILE = 'valid_list.xls'
         self.TEST_FILE_PATH = 'thelma:tests/parsers/experimentpoolset/'
 
-
     def _create_tool(self):
-        self.tool = ExperimentPoolSetParserHandler(self.stream, self.log)
+        self.tool = ExperimentPoolSetParserHandler(self.stream)
 
     def _test_and_expect_errors(self, msg=None):
         ParsingTestCase._test_and_expect_errors(self, msg=msg)

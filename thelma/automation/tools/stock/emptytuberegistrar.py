@@ -8,7 +8,7 @@ from everest.querying.specifications import eq
 from thelma.automation.parsers.rackscanning import RackScanningParser
 from thelma.automation.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from thelma.interfaces import IContainerSpecs
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import IRack
@@ -21,12 +21,13 @@ __all__ = ['EmptyTubeRegistrar',
            ]
 
 
-class EmptyTubeRegistrar(BaseAutomationTool):
+class EmptyTubeRegistrar(BaseTool):
     # FIXME: Make these configurable.
     STATUS = ITEM_STATUS_NAMES.MANAGED.lower()
     SPECS = 'matrix0500'
-    def __init__(self, scanfile_directory):
-        BaseAutomationTool.__init__(self, depending=False)
+    NAME = 'Empty Tube Registrar'
+    def __init__(self, scanfile_directory, parent=None):
+        BaseTool.__init__(self, parent=parent)
         self.__scanfile_directory = os.path.realpath(scanfile_directory)
 
     def run(self):
@@ -39,14 +40,14 @@ class EmptyTubeRegistrar(BaseAutomationTool):
         for scan_fn in glob.glob("%s/*.txt" % self.__scanfile_directory):
             strm = open(scan_fn, 'r')
             try:
-                prs = RackScanningParser(strm, self.log)
-                prs.parse()
+                prs = RackScanningParser(strm, parent=self)
+                prs.run()
             finally:
                 strm.close()
             if prs.has_errors():
                 raise RuntimeError('Could not parse rack scan file "%s". '
-                                   'Error log: %s' % (scan_fn,
-                                                      self.log.get_messages()))
+                                   'Error messages: %s'
+                                   % (scan_fn, self.get_messages()))
             rack_agg.filter = eq(barcode=prs.rack_barcode)
             try:
                 rack = rack_agg.iterator().next()

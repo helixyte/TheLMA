@@ -5,6 +5,13 @@ NP
 """
 
 from datetime import datetime
+from tractor import make_api_from_config
+
+from iso8601 import iso8601
+from lxml import etree
+import pytz
+import transaction
+
 from everest.mime import AtomMime
 from everest.repositories.rdb import Session
 from everest.repositories.rdb.testing import RdbContextManager
@@ -18,8 +25,7 @@ from everest.testing import EntityTestCase
 from everest.testing import FunctionalTestCase
 from everest.testing import ResourceCreatorMixin as EverestResourceCreatorMixin
 from everest.testing import ResourceTestCase
-from iso8601 import iso8601
-from lxml import etree
+from thelma.automation.tools.iso.libcreation.base import DEFAULT_PREPARATION_PLATE_VOLUME
 from thelma.interfaces import IContainer
 from thelma.interfaces import IDeviceType
 from thelma.interfaces import IExperiment
@@ -115,6 +121,7 @@ from thelma.models.racklayout import RackLayout
 from thelma.models.sample import Molecule
 from thelma.models.sample import Sample
 from thelma.models.sample import SampleMolecule
+from thelma.models.sample import StockSample
 from thelma.models.species import Species
 from thelma.models.stockinfo import StockInfo
 from thelma.models.subproject import Subproject
@@ -146,10 +153,7 @@ from thelma.resources.rackspecs import TubeRackSpecsMember
 from thelma.resources.species import SpeciesMember
 from thelma.resources.stockinfo import StockInfoMember
 from thelma.resources.subproject import SubprojectMember
-from tractor import make_api_from_config
-import pytz
-import transaction
-from thelma.models.sample import StockSample
+
 
 __docformat__ = 'reStructuredText en'
 
@@ -350,6 +354,8 @@ class EntityCreatorMixin(EverestEntityCreatorMixin):
             kw['stock_volume'] = 0.0001
         if not 'stock_concentration' in kw:
             kw['stock_concentration'] = 0.0001
+        if not 'preparation_plate_volume' in kw:
+            kw['preparation_plate_volume'] = DEFAULT_PREPARATION_PLATE_VOLUME
         if not 'number_designs' in kw:
             kw['number_designs'] = 2
         return self._create_entity(StockSampleCreationIsoRequest, kw)

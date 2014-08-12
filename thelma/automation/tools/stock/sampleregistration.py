@@ -3,6 +3,11 @@ Stock sample registrar.
 
 Created on September 06, 2012.
 """
+import datetime
+import glob
+import logging
+import os
+
 from everest.entities.base import Entity
 from everest.entities.utils import get_root_aggregate
 from everest.querying.specifications import cntd
@@ -15,7 +20,7 @@ from thelma.automation.handlers.rackscanning \
                                     import AnyRackScanningParserHandler
 from thelma.automation.handlers.rackscanning import RackScanningLayout
 from thelma.automation.semiconstants import ITEM_STATUS_NAMES
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from thelma.interfaces import IChemicalStructure
 from thelma.interfaces import IContainerSpecs
 from thelma.interfaces import IItemStatus
@@ -38,10 +43,7 @@ from thelma.models.sample import StockSample
 from thelma.models.suppliermoleculedesign import SupplierMoleculeDesign
 from thelma.resources.base import RELATION_BASE_URL
 from zope.interface import Interface # pylint: disable=E0611,F0401
-import datetime
-import glob
-import logging
-import os
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = []
@@ -341,9 +343,9 @@ class ReporterDispatcher(object):
             rep.run(data)
 
 
-class ReportingAutomationTool(BaseAutomationTool): # still abstract pylint: disable=W0223
-    def __init__(self, report_directory=None, **kw):
-        BaseAutomationTool.__init__(self, **kw)
+class ReportingAutomationTool(BaseTool): # still abstract pylint: disable=W0223
+    def __init__(self, report_directory=None, parent=None):
+        BaseTool.__init__(self, parent=parent)
         if report_directory is None:
             report_directory = os.getcwd()
         self.report_directory = report_directory
@@ -355,10 +357,10 @@ class ReportingAutomationTool(BaseAutomationTool): # still abstract pylint: disa
 
 class RegistrationTool(ReportingAutomationTool): # still abstract pylint: disable=W0223
     def __init__(self, registration_items, report_directory=None,
-                 depending=False, **kw):
+                 parent=None):
         ReportingAutomationTool.__init__(self,
                                          report_directory=report_directory,
-                                         depending=depending, **kw)
+                                         parent=parent)
         self.registration_items = registration_items
 
 
@@ -680,9 +682,8 @@ class SampleRegistrar(RegistrationTool):
             self.add_debug('Reading rack scanning file %s.'
                            % rack_scanning_filename)
             with open(rack_scanning_filename, 'rU') as rs_stream:
-                parser_handler = \
-                        AnyRackScanningParserHandler(log=self.log,
-                                                     stream=rs_stream)
+                parser_handler = AnyRackScanningParserHandler(rs_stream,
+                                                              parent=self)
                 file_rsl = parser_handler.get_result()
             if file_rsl is None:
                 msg = 'Error parsing rack scanning file "%s".' \
@@ -745,8 +746,7 @@ class SupplierSampleRegistrar(RegistrationTool):
                                  rack_specs_name=self.__rack_specs_name,
                                  container_specs_name=
                                         self.__container_specs_name,
-                                 depending=True,
-                                 log=self.log)
+                                 parent=self)
             sr.run()
             if sr.has_errors():
                 self.add_error(sr.get_messages(logging.ERROR))
@@ -842,10 +842,9 @@ class SupplierSampleRegistrar(RegistrationTool):
                   for sri in self.registration_items]
         mdp_registrar = \
                 MoleculeDesignPoolRegistrar(mdpris,
-                                            depending=True,
-                                            log=self.log,
                                             report_directory=
-                                                self.report_directory)
+                                                self.report_directory,
+                                            parent=self)
         mdp_registrar.run()
         if not mdp_registrar.has_errors():
             # Update sample registration items.
@@ -928,10 +927,10 @@ class MoleculeDesignPoolRegistrar(RegistrationTool):
                 mdri.molecule_type = mdpri.molecule_type
         # First, run the MoleculeDesignRegistrar to register all designs
         # that are not in the system yet.
-        md_reg = MoleculeDesignRegistrar(mdris, log=self.log)
+        md_reg = MoleculeDesignRegistrar(mdris, parent=self)
         md_reg.run()
         if md_reg.has_errors():
-            self.add_error.md_reg.get_messages(logging.ERROR)
+            self.add_error(md_reg.get_messages(logging.ERROR))
         else:
             self.return_value.update(md_reg.return_value)
             # Now that we have all designs, proceed to the pools.

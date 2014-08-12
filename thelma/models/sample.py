@@ -97,6 +97,7 @@ class Sample(Entity):
         Entity.__init__(self, **kw)
         self.volume = volume
         self.container = container
+        self.sample_type = SAMPLE_TYPES.BASIC
 
     def __repr__(self):
         str_format = '<%s id: %s, container: %s, volume: %s>'
@@ -170,6 +171,7 @@ class StockSample(Sample):
     def __init__(self, volume, container, molecule_design_pool, supplier,
                  molecule_type, concentration, **kw):
         Sample.__init__(self, volume, container, **kw)
+        self.sample_type = SAMPLE_TYPES.STOCK
         if molecule_design_pool.molecule_type != molecule_type:
             raise ValueError('The molecule types of molecule design pool '
                              'and stock sample differ.')

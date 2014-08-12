@@ -18,6 +18,7 @@ from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from thelma.automation.semiconstants import ITEM_STATUS_NAMES
+from thelma.automation.tools.experiment import get_batch_writer
 from thelma.automation.tools.experiment import get_executor
 from thelma.automation.tools.experiment import get_manual_executor
 from thelma.interfaces import IExperiment
@@ -78,6 +79,9 @@ class ExperimentJobMember(JobMember):
         else:
             JobMember.update(self, data)
 
+    def get_writer(self):
+        return get_batch_writer(experiments=self.get_entity().experiments)
+
     def __update_experiment_racks(self, exp_rack_nodes, exp_id):
         plate_node = exp_rack_nodes[0].plate
         # FIXME: hack - we are using a non-existent status link here.
@@ -99,19 +103,19 @@ class ExperimentJobMember(JobMember):
             except TypeError as te:
                 raise HTTPBadRequest(str(te)).exception
         if not tool is None:
-            new_experiment = tool.get_result()
-            if not new_experiment is None:
+            # FIXME: We don't care about the result here; still we must call
+            #        get_result for its side effects.
+            dummy = tool.get_result()
+            if tool.has_errors():
+                exc_msg = str(tool.get_messages(logging_level=logging.ERROR))
+                raise HTTPBadRequest('Could not update Database: %s' % exc_msg
+                                     ).exception
+            else:
                 status_agg = get_root_aggregate(IItemStatus)
                 status_managed = \
                     status_agg.get_by_slug(ITEM_STATUS_NAMES.MANAGED.lower())
-                for new_exp_rack in new_experiment.experiment_racks:
-                    new_exp_rack.rack.status = status_managed
-                exp_ent.source_rack = new_experiment.source_rack
-                exp_ent.experiment_racks = new_experiment.experiment_racks
-            if tool.has_errors():
-                exc_msg = str(tool.get_messages(logging.ERROR))
-                raise HTTPBadRequest('Could not update Database: %s' % exc_msg
-                                     ).exception
+                for exp_rack in exp_ent.experiment_racks:
+                    exp_rack.rack.status = status_managed
 
 
 class IsoJobMember(JobMember):

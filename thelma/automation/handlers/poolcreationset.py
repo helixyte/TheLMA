@@ -1,7 +1,7 @@
 """
 This handler converts the results of the library member parser into a
 molecule design set (:class:`thelma.models.molecule.MoleculeDesignSet`).
-At this, the handler tries to determine the stock sample molecule design ID
+The handler tries to determine the stock sample molecule design ID
 for every molecule design set. If there is no ID, a new ID is created.
 
 AAB
@@ -18,6 +18,7 @@ from thelma.interfaces import IMoleculeDesignPool
 from thelma.models.moleculedesign import MoleculeDesignPool
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
 
+
 __docformat__ = 'reStructuredText en'
 
 __all__ = ['PoolCreationSetParserHandler',
@@ -25,43 +26,30 @@ __all__ = ['PoolCreationSetParserHandler',
 
 class PoolCreationSetParserHandler(BaseParserHandler):
     """
-    Converts the results of the :class:`PoolCreationSet` into a
+    Converts the results of the :class:`PoolCreationSetParser` into a
     :class:`MoleculeDesignPoolSet`.
 
-    **Return Value:** :class:`PoolSet`
+    **Return Value:** :class:`MoleculeDesignPoolSet`
     """
     NAME = 'Stock Sample Pool Order Parser Handler'
-
     _PARSER_CLS = PoolCreationSetParser
 
-    def __init__(self, log, stream):
-        """
-        Constructor:
-
-        :param log: The ThelmaLog to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param stream: stream of the file to parse.
-        """
-        BaseParserHandler.__init__(self, log=log, stream=stream)
+    def __init__(self, stream, parent=None):
+        BaseParserHandler.__init__(self, stream=stream, parent=parent)
         #: The number of molecule designs per cell (list).
         self.__number_molecule_designs = None
         #: The expected molecule type for all molecule designs in the library.
         self.__molecule_type = None
-
         #: Maps molecule designs onto molecule design IDs.
         self.__md_map = None
         #: Maps pools onto pool IDs.
         self.__pool_map = None
-
         #: Stores set of single molecule design for which we still have to
         #: find the pool ID.
         self.__pools_to_find = None
-
         #: Contains the molecule design pool sets for the final
         #: ISO request pool set.
         self.__pools = None
-
         # Intermediate error storage.
         self.__invalid_number_designs = None
         self.__invalid_molecule_type = None
@@ -89,41 +77,34 @@ class PoolCreationSetParserHandler(BaseParserHandler):
         """
         return self._get_additional_value(self.__molecule_type)
 
-    def _convert_results_to_model_entity(self):
-        """
-        Converts the parsing results into a :class:`MoleculeDesignSet`.
-        """
+    def _convert_results_to_entity(self):
         self.add_info('Convert parser results ...')
-
-        if not self.has_errors(): self.__get_molecule_designs_and_pools()
-        if not self.has_errors(): self.__check_consistency()
-        if not self.has_errors(): self.__get_missing_molecule_design_pools()
         if not self.has_errors():
-            self.return_value = MoleculeDesignPoolSet(
-                                    molecule_type=self.__molecule_type,
-                                    molecule_design_pools=self.__pools)
+            self.__get_molecule_designs_and_pools()
+        if not self.has_errors():
+            self.__check_consistency()
+        if not self.has_errors():
+            self.__get_missing_molecule_design_pools()
+        if not self.has_errors():
+            self.return_value = \
+                MoleculeDesignPoolSet(self.__molecule_type,
+                                      molecule_design_pools=self.__pools)
             self.add_info('Conversion completed.')
 
     def __get_molecule_designs_and_pools(self):
-        """
-        Fetches the molecule designs for all molecule design IDs and pools for
-        all found pools.
-        """
+        # Fetches the molecule designs for all molecule design IDs and pools for
+        # all found pools.
         self.add_debug('Fetch molecule designs and pools for IDs ...')
-
         found_md_ids = set()
         found_pool_ids = set()
-
         i = 0
         while True:
             i += 1
             md_ids, pool_id = self.__get_ids_for_row(i)
             if md_ids is None and pool_id is None: break
-
             if pool_id is not None: found_pool_ids.add(pool_id)
             if md_ids is None: continue
             for md_id in md_ids: found_md_ids.add(md_id)
-
         if len(found_md_ids) > 0:
             md_filter = cntd(molecule_design_id=found_md_ids)
             self.__fetch_entities(IMoleculeDesign, md_filter, found_md_ids,
@@ -134,25 +115,16 @@ class PoolCreationSetParserHandler(BaseParserHandler):
                                   found_pool_ids, 'pool', self.__pool_map)
 
     def __fetch_entities(self, interface, agg_filter, ids, entity_name, lookup):
-        """
-        Convenience method fetch the entities for the given IDs from the DB.
-        Also records errors if an ID is unknown
-        """
+        # Convenience method fetch the entities for the given IDs from the DB.
+        # Also records errors if an ID is unknown
         agg = get_root_aggregate(interface)
         agg.filter = agg_filter
-        iterator = agg.iterator()
-
-        while True:
-            try:
-                entity = iterator.next()
-            except StopIteration:
-                break
-            else:
-                lookup[entity.id] = entity
-
+        for ent in agg:
+            lookup[ent.id] = ent
         missing_ids = []
         for exp_id in ids:
-            if not lookup.has_key(exp_id): missing_ids.append(exp_id)
+            if not lookup.has_key(exp_id):
+                missing_ids.append(exp_id)
         if len(missing_ids) > 0:
             msg = 'Unable to find %ss for the following IDs in the DB: %s.' \
                   % (entity_name,
@@ -161,10 +133,8 @@ class PoolCreationSetParserHandler(BaseParserHandler):
             self.add_error(msg)
 
     def __get_ids_for_row(self, row_index):
-        """
-        Convenience method fetching the IDs (if there are any) stated in the
-        given row.
-        """
+        # Convenience method fetching the IDs (if there are any) stated in the
+        # given row.
         md_ids = None
         if self.parser.molecule_design_lists.has_key(row_index):
             md_ids = self.parser.molecule_design_lists[row_index]
@@ -174,25 +144,21 @@ class PoolCreationSetParserHandler(BaseParserHandler):
         return md_ids, pool_id
 
     def __check_consistency(self):
-        """
-        Makes sure the number of designs and molecule types are common for
-        all designs and pools and that pools and design match each other.
-        """
+        # Makes sure the number of designs and molecule types are common for
+        # all designs and pools and that pools and design match each other.
         mismatch = []
-
         i = 0
         while True:
             i += 1
             md_ids, pool_id = self.__get_ids_for_row(i)
-            if md_ids is None and pool_id is None: break
-
+            if md_ids is None and pool_id is None:
+                break
             if self.__pool_map.has_key(pool_id):
                 pool = self.__pool_map[pool_id]
                 self.__check_number_designs(pool.number_designs, i)
                 self.__check_molecule_type(pool.molecule_type, i)
                 exp_ids = [md.id for md in pool]
-                if not md_ids is None and \
-                                        (not sorted(exp_ids) == sorted(md_ids)):
+                if not md_ids is None and sorted(exp_ids) != sorted(md_ids):
                     info = '%i (expected: %s, found in file: %s)' \
                             % (pool_id,
                                '-'.join([str(ei) for ei in sorted(exp_ids)]),
@@ -202,18 +168,15 @@ class PoolCreationSetParserHandler(BaseParserHandler):
                     self.__pools.add(pool)
             else:
                 self.__pools_to_find.append(md_ids)
-
             if not md_ids is None:
                 self.__check_number_designs(len(md_ids), i)
                 for md_id in md_ids:
                     md = self.__md_map[md_id]
                     self.__check_molecule_type(md.molecule_type, i)
-
         if len(mismatch) > 0:
             msg = 'In some rows the pools and the molecule designs you have ' \
                   'ordered to not match: %s.' % (', '.join(mismatch)) # no sort
             self.add_error(msg)
-
         if len(self.__invalid_number_designs) > 0:
             msg = 'The number of molecule designs must be the same for all ' \
                   'pools. The number of designs for the first pool is %i. ' \
@@ -221,7 +184,6 @@ class PoolCreationSetParserHandler(BaseParserHandler):
                   '%s.' % (self.__number_molecule_designs,
                    ', '.join([str(rn) for rn in self.__invalid_number_designs]))
             self.add_error(msg)
-
         if len(self.__invalid_molecule_type) > 0:
             msg = 'The molecule type must be the same for all pools. The ' \
                   'molecule type for the first pools is %s. The pools in the ' \
@@ -231,40 +193,31 @@ class PoolCreationSetParserHandler(BaseParserHandler):
             self.add_error(msg)
 
     def __check_number_designs(self, number_designs, row_index):
-        """
-        The number of designs must be the same for all pools.
-        """
+        # The number of designs must be the same for all pools.
         if self.__number_molecule_designs is None:
             self.__number_molecule_designs = number_designs
         elif not self.__number_molecule_designs == number_designs:
             self.__invalid_number_designs.append((row_index + 1))
 
     def __check_molecule_type(self, molecule_type, row_index):
-        """
-        The molecule type must be the same for all pools.
-        """
+        # The molecule type must be the same for all pools.
         if self.__molecule_type is None:
             self.__molecule_type = molecule_type
         elif not self.__molecule_type == molecule_type:
             self.__invalid_molecule_type.append((row_index + 1))
 
     def __get_missing_molecule_design_pools(self):
-        """
-        Fetches or creates the molecule design pools for the rows in which
-        there are only molecule designs given
-        (invokes :func:`MoleculeDesignPool.create_from_data`).
-        """
+        # Fetches or creates the molecule design pools for the rows in which
+        # there are only molecule designs given
+        # (invokes :func:`MoleculeDesignPool.create_from_data`).
         self.add_debug('Find pool IDs for molecule design sets ...')
-
         stock_conc = (get_default_stock_concentration(
                              molecule_type=self.__molecule_type,
                              number_designs=self.__number_molecule_designs)) \
                              / CONCENTRATION_CONVERSION_FACTOR
-
         for md_ids in self.__pools_to_find:
-            mds = set()
-            for md_id in md_ids: mds.add(self.__md_map[md_id])
-            pool = MoleculeDesignPool.create_from_data(dict(
-                                        molecule_designs=mds,
-                                        default_stock_concentration=stock_conc))
+            mds = set([self.__md_map[md_id] for md_id in md_ids])
+            mdp_data = dict(molecule_designs=mds,
+                            default_stock_concentration=stock_conc)
+            pool = MoleculeDesignPool.create_from_data(mdp_data)
             self.__pools.add(pool)

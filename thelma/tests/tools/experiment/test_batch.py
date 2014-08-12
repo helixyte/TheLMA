@@ -334,8 +334,7 @@ class ExperimentBatchWorklistWriterTestCase(_ExperimentBatchTestCase):
         self._load_scenario(_EXPERIMENT_BATCH_TEST_DATA.CASE_OPTI_MM)
         self.experiment_metadata.experiment_metadata_type = \
                                                 get_experiment_type_order()
-        self._test_and_expect_errors('Error when trying to fetch writer for ' \
-                'experiment "opti_mm_exp": This experiment type (ISO without ' \
+        self._test_and_expect_errors('This experiment type (ISO without ' \
                 'experiment) does not support robot worklists!')
 
     def test_worklist_generation_failure(self):
@@ -405,8 +404,7 @@ class ExperimentBatchExecutorTestCase(_ExperimentBatchTestCase):
         self._load_scenario(_EXPERIMENT_BATCH_TEST_DATA.CASE_OPTI_MM)
         self.experiment_metadata.experiment_metadata_type = \
                                                 get_experiment_type_order()
-        self._test_and_expect_errors('Error when trying to fetch executor for ' \
-                'experiment "opti_mm_exp": This experiment type (ISO without ' \
+        self._test_and_expect_errors('This experiment type (ISO without ' \
                 'experiment) does not support robot worklists!')
 
     def test_worklist_generation_failure(self):

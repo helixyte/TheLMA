@@ -5,11 +5,11 @@ AAB
 """
 from thelma.automation.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.semiconstants import get_item_status_managed
-from thelma.automation.semiconstants import get_pipetting_specs_cybio
 from thelma.automation.semiconstants import get_positions_for_shape
-from thelma.automation.tools.base import BaseAutomationTool
+from thelma.automation.tools.base import BaseTool
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.base import are_equal_values
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import is_larger_than
@@ -33,7 +33,7 @@ from thelma.models.rack import Rack
 from thelma.models.rack import RackPosition
 from thelma.models.user import User
 from thelma.utils import get_utc_time
-from thelma.automation.utils.base import add_list_map_element
+
 
 __docformat__ = 'reStructuredText en'
 
@@ -49,49 +49,40 @@ __all__ = ['LiquidTransferExecutor',
            'TargetSample']
 
 
-
-class LiquidTransferExecutor(BaseAutomationTool):
+class LiquidTransferExecutor(BaseTool):
     """
     An abstract tool for the execution of a planned liquid transfer or
     planned transfer worklist (rack-based).
 
     **Return Value*:* executed worklist or transfer
     """
-
     #: The transfer type supported by this class
     #: (see :class:`thelma.models.liquidtransfer.TRANSFER_TYPES`).
     TRANSFER_TYPE = None
 
-    def __init__(self, target_rack, user, pipetting_specs, log):
+    def __init__(self, target_rack, pipetting_specs, user, parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param target_rack: The rack into which the volumes will be dispensed.
         :type target_rack: :class:`thelma.models.rack.Rack`
-
         :param user: The user who has launched the execution.
         :type user: :class:`thelma.models.user.User`
-
         :param pipetting_specs: Pipetting specs define transfer properties and
             conditions like the transfer volume range.
         :type pipetting_specs:
             :class:`thelma.models.liquidtransfer.PipettingSpecs`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
         """
-        BaseAutomationTool.__init__(self, log=log)
-
+        BaseTool.__init__(self, parent=parent)
         #: The rack into which the volumes will be dispensed.
         self.target_rack = target_rack
-        #: The user who has launched the execution.
-        self.user = user
         #: Pipetting specs define transfer properties and conditions like
         #: the transfer volume range.
         self.pipetting_specs = pipetting_specs
-
+        #: The user who has launched the execution.
+        self.user = user
+        #: Execution time stamp.
         self.now = get_utc_time()
-
         #: Maps the containers of the source rack onto rack position.
         self._source_containers = None
         #: The minimum dead volume of source rack container in ul.
@@ -100,14 +91,11 @@ class LiquidTransferExecutor(BaseAutomationTool):
         self._target_containers = None
         #: The maximum volume of a target rack container in ul.
         self._target_max_volume = None
-
         #: The minimum transfer volume used in ul.
         self._min_transfer_volume = None
         #: The maximum transfer volume used in ul.
         self._max_transfer_volume = None
-
         # Intermediate storage of volumes and concentrations
-
         #: :class:`SourceSample` objects mapped onto rack positions.
         #: Note: Contains only data for samples that are going to be altered.
         self._source_samples = None
@@ -117,7 +105,6 @@ class LiquidTransferExecutor(BaseAutomationTool):
         # :ATTENTION: It is important not to include data of sample that
         # are not altered because otherwise we will get in trouble with
         # intra-rack transfers when target sample is overwritten by source data.
-
         # Intermediate storage of errors
         self._transfer_volume_too_small = None
         self._transfer_volume_too_large = None
@@ -130,7 +117,7 @@ class LiquidTransferExecutor(BaseAutomationTool):
         """
         Resets all values except for input values.
         """
-        BaseAutomationTool.reset(self)
+        BaseTool.reset(self)
         self._source_samples = dict()
         self._target_samples = dict()
         self._target_containers = dict()
@@ -146,31 +133,28 @@ class LiquidTransferExecutor(BaseAutomationTool):
         self._target_container_missing = []
 
     def run(self):
-        """
-        Runs the tool.
-        """
         self.reset()
         self.add_info('Start execution ...')
-
         self._check_input()
         if not self.has_errors():
             self._init_target_data()
             self._init_source_data()
-        if not self.has_errors(): self._register_planned_liquid_transfers()
+        if not self.has_errors():
+            self._register_planned_liquid_transfers()
         if not self.has_errors():
             self.__check_resulting_volumes()
             self._record_errors()
         if not self.has_errors():
             self.__execute_transfers()
             self.__update_target_rack_status()
-        if not self.has_errors(): self.add_info('Execution completed.')
+        if not self.has_errors():
+            self.add_info('Execution completed.')
 
     def _check_input(self):
         """
         Checks the input values.
         """
         self.add_debug('Check input values ...')
-
         self._check_input_class('target rack', self.target_rack, Rack)
         self._check_input_class('user', self.user, User)
         self._check_input_class('pipetting specs', self.pipetting_specs,
@@ -183,7 +167,6 @@ class LiquidTransferExecutor(BaseAutomationTool):
         for container in self.target_rack.containers:
             rack_pos = container.location.position
             self._target_containers[rack_pos] = container
-
         if isinstance(self.target_rack, Plate):
             well_specs = self.target_rack.specs.well_specs
             self._target_max_volume = well_specs.max_volume \
@@ -211,9 +194,9 @@ class LiquidTransferExecutor(BaseAutomationTool):
         else:
             target_container = self._target_containers[rack_pos]
             target_sample = TargetSample.from_sample(target_container.sample)
-            if target_sample is None: target_sample = TargetSample(volume=0)
+            if target_sample is None:
+                target_sample = TargetSample(volume=0)
             self._target_samples[rack_pos] = target_sample
-
         return target_sample
 
     def _get_source_sample(self, rack_pos):
@@ -227,19 +210,14 @@ class LiquidTransferExecutor(BaseAutomationTool):
             source_container = self._source_containers[rack_pos]
             source_sample = SourceSample.from_sample(source_container.sample)
             self._source_samples[rack_pos] = source_sample
-
         if source_sample is None:
             info = '%s (no sample)' % (rack_pos.label)
             self._source_volume_too_small.append(info)
-
         return source_sample
 
     def __check_resulting_volumes(self):
-        """
-        Checks the final volumes that would result from the execution.
-        """
+        # Checks the final volumes that would result from the execution.
         self.add_debug('Check resulting volumes ...')
-
         # checking the target samples
         for trg_pos, target_sample in self._target_samples.iteritems():
             max_volume = self.__get_max_volume_for_target_container(trg_pos)
@@ -249,7 +227,6 @@ class LiquidTransferExecutor(BaseAutomationTool):
                 info = '%s (final vol: %.1f ul, max vol: %.0f ul)' \
                         % (trg_pos.label, final_volume, max_volume)
                 self._target_volume_too_large.append(info)
-
         # checking the source samples
         for src_pos, source_sample in self._source_samples.iteritems():
             if source_sample is None: continue
@@ -265,10 +242,8 @@ class LiquidTransferExecutor(BaseAutomationTool):
                 self._source_volume_too_small.append(info)
 
     def __get_max_volume_for_target_container(self, target_position):
-        """
-        Returns the maximum volume for the container at the given
-        target position.
-        """
+        # Returns the maximum volume for the container at the given
+        # target position.
         if self._target_max_volume is None:
             if not self._target_containers.has_key(target_position):
                 self._target_container_missing.append(target_position.label)
@@ -279,10 +254,8 @@ class LiquidTransferExecutor(BaseAutomationTool):
             return self._target_max_volume
 
     def __get_dead_volume_for_source_container(self, source_position):
-        """
-        Returns the maximum volume for the container at the given
-        target position.
-        """
+        # Returns the maximum volume for the container at the given
+        # target position.
         if self._source_dead_volume is None:
             if not self._source_containers.has_key(source_position):
                 self._source_container_missing.add(source_position.label)
@@ -293,16 +266,13 @@ class LiquidTransferExecutor(BaseAutomationTool):
             return self._source_dead_volume
 
     def _is_valid_transfer_volume(self, planned_liquid_transfer):
-        """
-        Checks whether the volume is in valid range for Biomek transfers.
-        """
+        # Checks whether the volume is in valid range for Biomek transfers.
         if self._min_transfer_volume is None:
             self._min_transfer_volume = self.pipetting_specs.\
                                 min_transfer_volume * VOLUME_CONVERSION_FACTOR
         if self._max_transfer_volume is None:
             self._max_transfer_volume = self.pipetting_specs.\
                                 max_transfer_volume * VOLUME_CONVERSION_FACTOR
-
         transfer_volume = planned_liquid_transfer.volume \
                           * VOLUME_CONVERSION_FACTOR
         try:
@@ -318,27 +288,23 @@ class LiquidTransferExecutor(BaseAutomationTool):
         elif is_smaller_than(transfer_volume, self._min_transfer_volume):
             self._transfer_volume_too_small.append(info)
             return False
-
         return True
 
     def _record_errors(self):
         """
         Records errors that have been found during value list creation.
         """
-
         if len(self._source_volume_too_small) > 0:
             msg = 'Some source containers do not contain enough volume to ' \
                   'provide liquid for all target containers: %s ' \
                   '(the required volumes include dead volumes).' \
                   % (', '.join(sorted(self._source_volume_too_small)))
             self.add_error(msg)
-
         if len(self._source_container_missing) > 0:
             error_list = sorted(list(self._source_container_missing))
             msg = 'Could not find containers for the following source ' \
                   'positions: %s.' % (', '.join(error_list))
             self.add_error(msg)
-
         if len(self._target_volume_too_large) > 0:
             msg = 'Some target containers cannot take up the transfer volume: ' \
                   '%s. ' % (', '.join(sorted(self._target_volume_too_large)))
@@ -346,20 +312,17 @@ class LiquidTransferExecutor(BaseAutomationTool):
                 msg += 'Assumed maximum volume per target well: %s ul.' \
                        % (get_trimmed_string(self._target_max_volume))
             self.add_error(msg)
-
         if len(self._target_container_missing) > 0:
             msg = 'Could not find containers for the following target ' \
                   'positions: %s.' \
                    % (', '.join(sorted(self._target_container_missing)))
             self.add_error(msg)
-
         if len(self._transfer_volume_too_small) > 0:
             msg = 'Some transfer volumes are smaller than the allowed ' \
                   'minimum transfer volume of %s ul: %s.' % (
                    get_trimmed_string(self._min_transfer_volume),
                    ', '.join(sorted(self._transfer_volume_too_small)))
             self.add_error(msg)
-
         if len(self._transfer_volume_too_large) > 0:
             meth = self.add_error
             if self.TRANSFER_TYPE == TRANSFER_TYPES.SAMPLE_DILUTION:
@@ -371,18 +334,14 @@ class LiquidTransferExecutor(BaseAutomationTool):
             meth(msg)
 
     def __execute_transfers(self):
-        """
-        Updates the racks or containers and creates the executed liauid
-        transfers. This method has to set the return value.
-        """
+        # Updates the racks or containers and creates the executed liauid
+        # transfers. This method has to set the return value.
         self.add_debug('Execute transfers ...')
         self._update_racks()
         self._create_executed_items()
 
     def _update_racks(self):
-        """
-        Updates the racks involved in the transfer.
-        """
+        # Updates the racks involved in the transfer.
         self._update_rack(self.target_rack, self._target_samples)
 
     def _update_rack(self, rack, sample_data_map):
@@ -390,9 +349,17 @@ class LiquidTransferExecutor(BaseAutomationTool):
         Updates the racks sample for a particular rack.
         If the rack is a target rack, the sample molecules are updated as well.
         """
+        # FIXME: It is very inefficient to loop over all containers in the
+        #        rack when you only update a few containers.
+        #        Should do:
+        #        for pos, sample_data in sample_data_map.iteritems():
+        #            cnt = rack.container_locations[pos].container
+        #            upd_spl = sample_data.update_container_sample(cnt)
+        #            cnt.sample = upd_spl
         for container in rack.containers:
             rack_pos = container.location.position
-            if not sample_data_map.has_key(rack_pos): continue
+            if not sample_data_map.has_key(rack_pos):
+                continue
             sample_data = sample_data_map[rack_pos]
             updated_sample = sample_data.update_container_sample(container)
             container.sample = updated_sample
@@ -412,21 +379,16 @@ class LiquidTransferExecutor(BaseAutomationTool):
         raise NotImplementedError('Abstract method.')
 
     def __update_target_rack_status(self):
-        """
-        Sets the status of the target rack to "managed" if it has be "future"
-        before.
-        """
+        # Sets the status of the target rack to "managed" if it has be "future"
+        # before.
         self.add_debug('Update target rack status ...')
-
         if self.target_rack.status.name == ITEM_STATUS_NAMES.FUTURE:
             managed_status = get_item_status_managed()
             self.target_rack.status = managed_status
-
             is_plate = isinstance(self.target_rack, Plate)
             if is_plate:
                 for well in self.target_rack.containers:
                     well.status = managed_status
-
             else:
                 tubes = self._get_target_tubes()
                 for tube in tubes:
@@ -448,45 +410,28 @@ class WorklistExecutor(LiquidTransferExecutor):
         (:class:`thelma.models.liquidtransfer.ExecutedWorklist`).
     """
 
-    def __init__(self, planned_worklist, target_rack, user, pipetting_specs,
-                 log, ignored_positions=None):
+    def __init__(self, planned_worklist, target_rack, pipetting_specs, user,
+                 ignored_positions=None, parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param planned_worklist: The worklist to execute.
         :type planned_worklist:
             :class:`thelma.models.liquidtransfer.PlannedWorklist`
-
-        :param target_rack: The rack into which the volumes will be dispensed.
-        :type target_rack: :class:`thelma.models.rack.Rack`
-
-        :param user: The user who has launched the execution.
-        :type user: :class:`thelma.models.user.User`
-
-        :param pipetting_specs: Pipetting specs define transfer properties and
-            conditions like the transfer volume range.
-        :type pipetting_specs:
-            :class:`thelma.models.liquidtransfer.PipettingSpecs`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
         :param ignored_positions: A list of positions (target
             for dilutions and source for transfers) that are not included
             in the DB execution.
         :type ignored_positions: :class:`list` of :class:`RackPosition`
         """
-        LiquidTransferExecutor.__init__(self, log=log, user=user,
-                                        target_rack=target_rack,
-                                        pipetting_specs=pipetting_specs)
+        LiquidTransferExecutor.__init__(self, target_rack, pipetting_specs,
+                                        user, parent=parent)
         #: The planned worklist to execute.
         self.planned_worklist = planned_worklist
-
-        if ignored_positions is None: ignored_positions = []
+        if ignored_positions is None:
+            ignored_positions = []
         #: A list of positions that will not be included in the DB execution
         #: (even if there are planned liquid transfers for them).
         self.ignored_positions = ignored_positions
-
         #: The executed worklist.
         self._executed_worklist = None
 
@@ -509,31 +454,33 @@ class WorklistExecutor(LiquidTransferExecutor):
                                    self.ignored_positions, list):
             for rack_pos in self.ignored_positions:
                 if not self._check_input_class('ignored rack position',
-                                    rack_pos, RackPosition): break
+                                               rack_pos, RackPosition):
+                    break
 
     def _register_planned_liquid_transfers(self):
         """
         Registers the planned liquid transfers and checks the transfer volumes.
         """
         self.add_debug('Register transfers ...')
-
         for plt in self.planned_worklist.planned_liquid_transfers:
-            if not self.__is_valid_transfer_type(plt): break
-            if not self._is_valid_transfer_volume(plt): continue
+            if not self.__is_valid_transfer_type(plt):
+                break
+            if not self._is_valid_transfer_volume(plt):
+                continue
             self._register_transfer(plt)
 
     def __is_valid_transfer_type(self, planned_liquid_transfer):
-        """
-        Checks whether the passed planned liquid transfers has the correct type.
-        """
+        # Checks whether the passed planned liquid transfers has the correct
+        # type.
         if not planned_liquid_transfer.transfer_type == self.TRANSFER_TYPE:
             msg = 'Some transfers planned in the worklist are not supported: ' \
                   '%s. Supported type: %s.' \
                    % (planned_liquid_transfer.transfer_type, self.TRANSFER_TYPE)
             self.add_error(msg)
-            return False
-
-        return True
+            result = False
+        else:
+            result = True
+        return result
 
     def _register_transfer(self, planned_liquid_transfer):
         """
@@ -550,18 +497,15 @@ class WorklistExecutor(LiquidTransferExecutor):
         for plt in self.planned_worklist.planned_liquid_transfers:
             self._create_executed_liquid_transfer(plt)
 
-        if not self.has_errors(): self.return_value = self._executed_worklist
+        if not self.has_errors():
+            self.return_value = self._executed_worklist
 
     def _get_target_tubes(self):
         """
         Returns the tubes of the target container (for status updates).
         """
-        tubes = []
-        for pt in self.planned_worklist.planned_liquid_transfers:
-            tube = self._target_containers[pt.target_position]
-            tubes.append(tube)
-
-        return tubes
+        return [self._target_containers[pt.target_position]
+                for pt in self.planned_worklist.planned_liquid_transfers]
 
 
 class SampleDilutionWorklistExecutor(WorklistExecutor):
@@ -571,49 +515,22 @@ class SampleDilutionWorklistExecutor(WorklistExecutor):
     **Return Value:** An executed worklist
         (:class:`thelma.models.liquidtransfer.ExecutedWorklist`).
     """
-
-    NAME = 'Container Dilution Worklist Executor'
-
+    NAME = 'Sample Dilution Worklist Executor'
     TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_DILUTION
 
-    def __init__(self, planned_worklist, target_rack, user, reservoir_specs,
-                 pipetting_specs, log, ignored_positions=None):
+    def __init__(self, planned_worklist, target_rack, pipetting_specs, user,
+                 reservoir_specs, ignored_positions=None, parent=None):
         """
-        Constructor:
-
-        :param planned_worklist: The worklist to execute.
-        :type planned_worklist:
-            :class:`thelma.models.liquidtransfer.PlannedWorklist`
-
-        :param target_rack: The rack into which the volumes will be dispensed.
-        :type target_rack: :class:`thelma.models.rack.Rack`
-
-        :param user: The user who has launched the execution.
-        :type user: :class:`thelma.models.user.User`
+        Constructor.
 
         :param reservoir_specs: The specs for the source rack or reservoir.
         :type reservoir_specs:
             :class:`thelma.models.liquidtransfer.ReservoirSpecs`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param pipetting_specs: Pipetting specs define transfer properties and
-            conditions like the transfer volume range.
-        :type pipetting_specs:
-            :class:`thelma.models.liquidtransfer.PipettingSpecs`
-
-        :param ignored_positions: A list of positions (target
-            for dilutions and source for transfers) that are not included
-            in the DB execution.
-        :type ignored_positions: :class:`list` of :class:`RackPosition`
         """
-        WorklistExecutor.__init__(self, log=log, target_rack=target_rack,
-                                  planned_worklist=planned_worklist,
+        WorklistExecutor.__init__(self, planned_worklist, target_rack,
+                                  pipetting_specs, user,
                                   ignored_positions=ignored_positions,
-                                  pipetting_specs=pipetting_specs,
-                                  user=user)
-
+                                  parent=parent)
         #: The specs for the source rack or reservoir.
         self.reservoir_specs = reservoir_specs
 
@@ -635,7 +552,7 @@ class SampleDilutionWorklistExecutor(WorklistExecutor):
 
     def _register_transfer(self, planned_liquid_transfer):
         """
-        Planned liquid transfers are planned container dilutions.
+        Planned liquid transfers are planned sample dilutions.
         """
         trg_pos = planned_liquid_transfer.target_position
 
@@ -652,7 +569,6 @@ class SampleDilutionWorklistExecutor(WorklistExecutor):
         Creates the executed liquid transfer for a planned liquid transfer
         and stored it in the :attr:`_executed_worklist`.
         """
-
         target_pos = planned_liquid_transfer.target_position
         if not target_pos in self.ignored_positions:
             container = self._target_containers[target_pos]
@@ -671,48 +587,21 @@ class SampleTransferWorklistExecutor(WorklistExecutor):
     **Return Value:** An executed worklist
         (:class:`thelma.models.liquidtransfer.ExecutedWorklist`).
     """
-
-    NAME = 'Container Transfer Worklist Executor'
-
+    NAME = 'Sample Transfer Worklist Executor'
     TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_TRANSFER
 
-    def __init__(self, planned_worklist, user, target_rack, source_rack, log,
-                 pipetting_specs, ignored_positions=None):
+    def __init__(self, planned_worklist, target_rack, pipetting_specs, user,
+                 source_rack, ignored_positions=None, parent=None):
         """
-        Constructor:
-
-        :param planned_worklist: The worklist to execute.
-        :type planned_worklist:
-            :class:`thelma.models.liquidtransfer.PlannedWorklist`
-
-        :param user: The user who has launched the execution.
-        :type user: :class:`thelma.models.user.User`
-
-        :param target_rack: The rack into which the volumes will be dispensed.
-        :type target_rack: :class:`thelma.models.rack.Rack`
+        Constructor.
 
         :param source_rack: The source from which to take the volumes.
         :type source_rack: :class:`thelma.models.rack.Rack`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param pipetting_specs: Pipetting specs define transfer properties and
-            conditions like the transfer volume range.
-        :type pipetting_specs:
-            :class:`thelma.models.liquidtransfer.PipettingSpecs`
-
-        :param ignored_positions: A list of positions (target
-            for dilutions and source for transfers) that are not included
-            in the DB execution.
-        :type ignored_positions: :class:`list` of :class:`RackPosition`
         """
-        WorklistExecutor.__init__(self, log=log, target_rack=target_rack,
-                                  planned_worklist=planned_worklist,
+        WorklistExecutor.__init__(self, planned_worklist, target_rack,
+                                  pipetting_specs, user,
                                   ignored_positions=ignored_positions,
-                                  pipetting_specs=pipetting_specs,
-                                  user=user)
-
+                                  parent=parent)
         #: The source from which to take the volumes.
         self.source_rack = source_rack
 
@@ -721,7 +610,6 @@ class SampleTransferWorklistExecutor(WorklistExecutor):
         Checks the input values.
         """
         WorklistExecutor._check_input(self)
-
         self._check_input_class('source rack', self.source_rack, Rack)
 
     def _init_source_data(self):
@@ -731,7 +619,6 @@ class SampleTransferWorklistExecutor(WorklistExecutor):
         for container in self.source_rack.containers:
             rack_pos = container.location.position
             self._source_containers[rack_pos] = container
-
         if isinstance(self.source_rack, Plate):
             well_specs = self.source_rack.specs.well_specs
             self._source_dead_volume = well_specs.dead_volume \
@@ -770,7 +657,6 @@ class SampleTransferWorklistExecutor(WorklistExecutor):
         Creates the executed liquid transfer for a planned liquid transfer
         and stored it in the :attr:`_executed_worklist`.
         """
-
         source_pos = planned_liquid_transfer.source_position
         if not source_pos in self.ignored_positions:
             source_container = self._source_containers[source_pos]
@@ -793,57 +679,32 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
 
     *Return Value:* Executed Rack Sample Transfer
     """
-
     NAME = 'Rack Transfer Executor'
-
     TRANSFER_TYPE = TRANSFER_TYPES.RACK_SAMPLE_TRANSFER
 
-    def __init__(self, planned_rack_sample_transfer, target_rack, source_rack,
-                 user, log, pipetting_specs=None):
+    def __init__(self, target_rack, pipetting_specs, user,
+                 planned_rack_sample_transfer, source_rack, parent=None):
         """
-        Constructor:
+        Constructor.
 
         :param planned_rack_sample_transfer: The planned rack sample transfer
             to execute.
         :type planned_rack_sample_transfer:
             :class:`thelma.models.liquidtransfer.PlannedRackSampleTransfer`
-
-        :param target_rack: The rack into which the volumes will be dispensed.
-        :type target_rack: :class:`thelma.models.rack.Rack`
-
         :param source_rack: The source from which to take the volumes.
         :type source_rack: :class:`thelma.models.rack.Rack`
-
-        :param user: The user who has launched the execution.
-        :type user: :class:`thelma.models.user.User`
-
-        :param log: The ThelmaLog you want to write into.
-        :type log: :class:`thelma.ThelmaLog`
-
-        :param pipetting_specs: Pipetting specs define transfer properties and
-            conditions like the transfer volume range.
-        :type pipetting_specs:
-            :class:`thelma.models.liquidtransfer.PipettingSpecs`
-        :default pipetting_specs: None (CYBIO)
         """
-        LiquidTransferExecutor.__init__(self, target_rack=target_rack,
-                                        pipetting_specs=pipetting_specs,
-                                        user=user, log=log)
-
+        LiquidTransferExecutor.__init__(self, target_rack, pipetting_specs,
+                                        user, parent=parent)
         #: The planned rack sample transfer to execute.
         self.planned_rack_sample_transfer = planned_rack_sample_transfer
         #: The source from which to take the volumes.
         self.source_rack = source_rack
-
-        if self.pipetting_specs is None:
-            self.pipetting_specs = get_pipetting_specs_cybio()
-
         #: Translates the rack positions of one rack into another.
         self._translator = None
         #: The translation behaviour in case of sectors (see
         #: :class:`thelma.automation.tool.utils.racksector.RackSectorTranslator`)
         self.__translation_behaviour = None
-
         #: Is this a rack transfer within the same rack?
         self.__is_intra_rack_transfer = False
 
@@ -861,7 +722,6 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
         Checks the input values.
         """
         LiquidTransferExecutor._check_input(self)
-
         self._check_input_class('planned rack sample transfer',
                         self.planned_rack_sample_transfer,
                         PlannedRackSampleTransfer)
@@ -875,12 +735,10 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
         for container in self.source_rack.containers:
             rack_pos = container.location.position
             self._source_containers[rack_pos] = container
-
         if isinstance(self.source_rack, Plate):
             well_specs = self.source_rack.specs.well_specs
             self._source_dead_volume = well_specs.dead_volume \
                                       * VOLUME_CONVERSION_FACTOR
-
         if self.source_rack.barcode == self.target_rack.barcode:
             self.__is_intra_rack_transfer = True
         self.__setup_translator()
@@ -889,13 +747,10 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
             self._is_valid_transfer_volume(self.planned_rack_sample_transfer)
 
     def __setup_translator(self):
-        """
-        Initialises the rack position translator and sets the translation
-        method.
-        """
+        # Initialises the rack position translator and sets the translation
+        # method.
         src_shape = self.source_rack.rack_shape
         trg_shape = self.target_rack.rack_shape
-
         if self.__is_intra_rack_transfer:
             self.__translation_behaviour = RackSectorTranslator.MANY_TO_MANY
         else:
@@ -906,22 +761,18 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
                                        number_sectors)
 
         try:
-            self._translator = RackSectorTranslator.\
-                        from_planned_rack_sample_transfer(
-                        planned_rack_sample_transfer=\
-                                            self.planned_rack_sample_transfer,
-                        behaviour=self.__translation_behaviour)
+            self._translator = \
+                RackSectorTranslator.from_planned_rack_sample_transfer(
+                                    self.planned_rack_sample_transfer,
+                                    behaviour=self.__translation_behaviour)
         except ValueError as e:
             msg = 'Error when trying to initialise rack sector translator. ' \
                   'Details: %s' % (e)
             self.add_error(msg)
 
     def __check_shape_and_sector_match(self):
-        """
-        Checks whether the both rack (sectors) have a matching rack shape.
-        """
+        # Checks whether the both rack (sectors) have a matching rack shape.
         self.add_debug('Check rack shape matching ...')
-
         src_shape = self.source_rack.rack_shape
         trg_shape = self.target_rack.rack_shape
         shapes_match = check_rack_shape_match(source_shape=src_shape,
@@ -929,7 +780,6 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
                           row_count=self._translator.row_count,
                           col_count=self._translator.col_count,
                           translation_behaviour=self.__translation_behaviour)
-
         if not shapes_match:
             msg = 'The shapes of the rack sectors do not match the planned ' \
                   'rack transfer. Source rack shape: %s, target rack ' \
@@ -941,7 +791,6 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
                      self.planned_rack_sample_transfer.target_sector_index,
                      self.__translation_behaviour)
             self.add_error(msg)
-
         if self.__translation_behaviour == RackSectorTranslator.ONE_TO_MANY \
                 and not self.planned_rack_sample_transfer.\
                                                     target_sector_index == 0:
@@ -968,7 +817,6 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
         :func:`_init_source_data` method.
         """
         self.add_debug('Check rack transfer content ...')
-
         accept_positions = []
         if self.__translation_behaviour in (RackSectorTranslator.ONE_TO_MANY,
                                             RackSectorTranslator.ONE_TO_ONE):
@@ -977,29 +825,30 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
                         sector_index=prst.source_sector_index,
                         rack_shape=self.source_rack.specs.shape,
                         number_sectors=prst.number_sectors)
-
         for container in self.source_rack.containers:
-            if container.sample is None: continue
+            if container.sample is None:
+                continue
             sample = container.sample
-            if sample.volume == 0: continue
+            if sample.volume == 0:
+                continue
             source_pos = container.location.position
 
             try:
                 target_pos = self._translator.translate(source_pos)
             except ValueError as e:
-                if not source_pos in accept_positions: continue
+                if not source_pos in accept_positions:
+                    continue
                 # the container does not belong to the source sector
-                if self.__is_intra_rack_transfer: continue
+                if self.__is_intra_rack_transfer:
+                    continue
                 msg = 'Error when trying to find target position for ' \
                       'rack position: %s. Details: %s' \
                       % (str(source_pos), e)
                 self.add_error(msg)
                 break
-
             if not self._target_containers.has_key(target_pos):
                 self._target_container_missing.append(target_pos.label)
                 continue
-
             source_sample = self._get_source_sample(source_pos)
             if not source_sample is None:
                 transfer_sample = source_sample.create_and_add_transfer(
@@ -1037,8 +886,8 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
         Returns the tubes of the target container (for status updates).
         """
         if self.__translation_behaviour == RackSectorTranslator.ONE_TO_MANY:
-            target_positions = get_positions_for_shape(
-                                                    self.target_rack.rack_shape)
+            target_positions = \
+                    get_positions_for_shape(self.target_rack.rack_shape)
         else:
             target_positions = get_sector_positions(
                     sector_index=self.planned_rack_sample_transfer.\
@@ -1046,7 +895,6 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
                     rack_shape=self.target_rack.rack_shape,
                     number_sectors=self.planned_rack_sample_transfer.\
                                    number_sectors)
-
         tubes = []
         for rack_pos in target_positions:
             if self._target_containers.has_key(rack_pos):
@@ -1058,21 +906,21 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
 
 class SampleComponent(object):
     """
-    A helper class representing a component of a liquid (sample). It stores
-    a concentration and molecule. The volume is left at the sample, since
-    a sample might comprise several components.
+    Helper class representing a component of a liquid (sample).
+
+    Stores a concentration and molecule. The volume is left at the sample,
+    since a sample might comprise several components.
 
     :Note: This class is similar to :class:`thelma.models.sample.SampleMolecule`
     """
     def __init__(self, molecule, concentration):
         """
-        Constructor:
+        Constructor.
 
         :param molecule: The molecule being the component.
         :type molecule: :class:`thelma.models.sample.Molecule`
-
-        :param concentration: The concentration of the molecule *in M*.
-        :type concentration: positive number.
+        :param int concentration: The concentration of the molecule *in M*
+            (positive number).
         """
         #: The molecule being the component.
         self.molecule = molecule
@@ -1099,8 +947,10 @@ class SampleComponent(object):
 
 class SampleData(object):
     """
-    A container class storing all relevant data for the liquid involved
-    in the transfer. The liquid can either be the source sample, the
+    Container class storing all relevant data for the liquid involved
+    in the transfer.
+
+    The liquid can either be the source sample, the
     target sample or the volume that is actually transferred
     There are specialised subclasses for each case.
 
@@ -1111,17 +961,14 @@ class SampleData(object):
 
     def __init__(self, volume):
         """
-        Constructor:
+        Constructor.
 
-        :param volume: The volume of the liquid *in l*.
-        :type volume: positive number
+        :param int volume: The volume of the liquid *in l* (positive number).
         """
         if self.__class__ is SampleData:
             raise TypeError('Abstract class')
-
         #: The volume of the liquid *in ul*.
         self.volume = volume * VOLUME_CONVERSION_FACTOR
-
         #: The components making up that liquid (0-n).
         self._sample_components = dict()
 
@@ -1134,17 +981,16 @@ class SampleData(object):
 
         :param sample: The sample data object.
         :type sample: :class:`thelma.models.sample.Sample`
-
         :return: :class:`SampleData` object representing that sample.
         """
-        if sample is None: return None
-
-        sample_data = cls(volume=sample.volume)
-
-        for sm in sample.sample_molecules:
-            sample_data.add_sample_component(sm)
-
-        return sample_data
+        if sample is None:
+            result = None
+        else:
+            sample_data = cls(volume=sample.volume)
+            for sm in sample.sample_molecules:
+                sample_data.add_sample_component(sm)
+            result = sample_data
+        return result
 
     def add_sample_component(self, sample_molecule):
         """
@@ -1156,7 +1002,6 @@ class SampleData(object):
         """
         comp = SampleComponent(molecule=sample_molecule.molecule,
                                concentration=sample_molecule.concentration)
-
         md_id = sample_molecule.molecule.molecule_design.id
         if self._sample_components.has_key(md_id):
             raise ValueError('Duplicate sample component: %s' % (comp))
@@ -1181,19 +1026,10 @@ class SampleData(object):
 
 class TransferredSample(SampleData):
     """
-    A special :class:`SampleData` class for transferred volumes.
-    Transfer sample do not get updated.
+    Special :class:`SampleData` class for transferred volumes.
+
+    Transfer sample does not get updated.
     """
-
-    def __init__(self, volume):
-        """
-        Constructor:
-
-        :param volume: The volume of the liquid *in l*.
-        :type volume: positive number
-        """
-        SampleData.__init__(self, volume=volume)
-
     @property
     def sample_components(self):
         """
@@ -1227,8 +1063,9 @@ class TransferredSample(SampleData):
 
 class SourceSample(SampleData):
     """
-    A special :class:`SampleData` class for source sample. They might contain
-    any number of :class:`TransferredSample` object.
+    Special :class:`SampleData` class for source sample.
+
+    They might contain any number of :class:`TransferredSample` object.
 
     The class calculate the final volume of the sample using all registered
     :class:`TransferredSample` objects. :attr:`volume` refers to the original
@@ -1237,14 +1074,7 @@ class SourceSample(SampleData):
     """
 
     def __init__(self, volume):
-        """
-        Constructor:
-
-        :param volume: The volume of the liquid *in l*.
-        :type volume: positive number
-        """
-        SampleData.__init__(self, volume=volume)
-
+        SampleData.__init__(self, volume)
         #: All transfers using this sample as source.
         self.__transfers = []
 
@@ -1256,7 +1086,6 @@ class SourceSample(SampleData):
         total_transfer_volume = 0
         for transfer_sample in self.__transfers:
             total_transfer_volume += transfer_sample.volume
-
         return total_transfer_volume
 
     def create_and_add_transfer(self, planned_liquid_transfer):
@@ -1276,12 +1105,10 @@ class SourceSample(SampleData):
             msg = 'Unsupported type "%s"' \
                    % (planned_liquid_transfer.__class__.__name__)
             raise TypeError(msg)
-
         transfer_sample = TransferredSample(volume=\
                                             planned_liquid_transfer.volume)
         transfer_sample.add_source_sample_components(self._sample_components)
         self.__transfers.append(transfer_sample)
-
         return transfer_sample
 
     def update_container_sample(self, container):
@@ -1290,12 +1117,14 @@ class SourceSample(SampleData):
         execution. In case of source sample, we only need to adjust the
         volume.
         """
-        if container.sample is None: return None
-
-        final_volume = self.volume - self.total_transfer_volume
-        final_volume = round(final_volume, 1)
-        container.sample.volume = final_volume / VOLUME_CONVERSION_FACTOR
-        return container.sample
+        if container.sample is None:
+            result = None
+        else:
+            final_volume = self.volume - self.total_transfer_volume
+            final_volume = round(final_volume, 1)
+            container.sample.volume = final_volume / VOLUME_CONVERSION_FACTOR
+            result = container.sample
+        return result
 
     def __repr__(self):
         str_format = '<%s volume: %.1f ul, components: %s, number of ' \
@@ -1315,17 +1144,9 @@ class TargetSample(SampleData):
     :class:`TransferredSample` object. Also sample components are updated or
     added.
     """
-
     def __init__(self, volume):
-        """
-        Constructor:
-
-        :param volume: The volume of the liquid *in l*.
-        :type volume: positive number
-        """
-        SampleData.__init__(self, volume=volume)
-
-        #: The transfer using this sample as target.
+        SampleData.__init__(self, volume)
+        #: All transfers using this sample as source.
         self.__transfers = []
 
     @property
@@ -1333,11 +1154,14 @@ class TargetSample(SampleData):
         """
         The volume of the sample after the transfer.
         """
-        if len(self.__transfers) < 1: return self.volume
-        vol = self.volume
-        for transfer in self.__transfers:
-            vol += transfer.volume
-        return vol
+        if len(self.__transfers) < 1:
+            result = self.volume
+        else:
+            vol = self.volume
+            for transfer in self.__transfers:
+                vol += transfer.volume
+            result = vol
+        return result
 
     def create_and_add_transfer(self, planned_sample_dilution):
         """
@@ -1356,11 +1180,9 @@ class TargetSample(SampleData):
             msg = 'Unsupported type "%s"' \
                    % (planned_sample_dilution.__class__.__name__)
             raise TypeError(msg)
-
-        transfer_sample = TransferredSample(volume=\
+        transfer_sample = TransferredSample(volume=
                                             planned_sample_dilution.volume)
         self.add_transfer(transfer_sample)
-
         return transfer_sample
 
     def add_transfer(self, transfer_sample):
@@ -1383,7 +1205,6 @@ class TargetSample(SampleData):
             container.make_sample(conv_final_volume)
         else:
             container.sample.volume = conv_final_volume
-
         updated_mds = set()
         transfer_components = dict()
         md_transfers = dict()
@@ -1391,7 +1212,6 @@ class TargetSample(SampleData):
             for md_id, comp in transfer.sample_components.iteritems():
                 transfer_components[md_id] = comp
                 add_list_map_element(md_transfers, md_id, transfer)
-
         # update existing sample molecules
         for sm in container.sample.sample_molecules:
             md_id = sm.molecule.molecule_design.id
@@ -1405,39 +1225,33 @@ class TargetSample(SampleData):
             final_conc = self.__get_final_concentration(
                                     target_comp.concentration, transfer_conc)
             sm.concentration = final_conc / CONCENTRATION_CONVERSION_FACTOR
-
         # add new sample molecules
         for md_id, comp in transfer_components.iteritems():
-            if md_id in updated_mds: continue
+            if md_id in updated_mds:
+                continue
             transfers = md_transfers[md_id]
             final_conc = self.__get_final_concentration(0, comp.concentration,
                                                         transfers)
             conv_final_conc = final_conc / CONCENTRATION_CONVERSION_FACTOR
             container.sample.make_sample_molecule(comp.molecule,
                                                   conv_final_conc)
-
         return container.sample
 
     def __get_final_concentration(self, target_conc, transfer_conc,
                                   transfers=None):
-        """
-        Calculates the final concentration of a sample component using the
-        following formula:
-
-                    (targetConc * targetVol) + (transferConc * transferVol)
-        finalConc = -------------------------------------------------------
-                                        finalVol
-        """
+        # Calculates the final concentration of a sample component using the
+        # following formula:
+        #            (targetConc * targetVol) + (transferConc * transferVol)
+        # finalConc = -------------------------------------------------------
+        #                                finalVol
         transfer_volume = 0
         if transfers is None:
             transfers = self.__transfers
         for transfer in transfers:
             transfer_volume += transfer.volume
-
         target_product = target_conc * self.volume
         transfer_product = transfer_conc * transfer_volume
         final_conc = (target_product + transfer_product) / self.final_volume
-
         final_conc = round(final_conc, 2)
         return final_conc
 
