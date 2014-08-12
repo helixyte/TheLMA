@@ -24,7 +24,7 @@ class CellCultureWareMember(Member):
     title = attribute_alias('label')
     label = terminal_attribute(str, 'label')
     supplier = member_attribute(IOrganization, 'supplier_id')
-    size = terminal_attribute(str, 'size')
+    size = terminal_attribute(float, 'size')
     coating = terminal_attribute(str, 'coating')
 
 class CellCultureWareCollection(Collection):
