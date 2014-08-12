@@ -21,7 +21,7 @@ def create_mapper(species_tbl):
                       genes=relationship(Gene,
                                          back_populates='species'),
                       cell_line=relationship(CellLine,
-                                         back_populates='tissue'),
+                                         back_populates='species'),
                       ),
                   )
     return m
