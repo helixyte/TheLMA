@@ -9,6 +9,9 @@ from zope.interface import Interface # pylint: disable=E0611,F0401
 __docformat__ = 'reStructuredText en'
 
 __all__ = ['IBarcodePrintJob',
+           'ICellCultureWare',
+           'ICellLine',
+           'ICellLineBatch',
            'IChemicalStructure',
            'IChemicalStructureType',
            'IContainer',
@@ -73,6 +76,27 @@ __all__ = ['IBarcodePrintJob',
 class IBarcodePrintJob(Interface):
     """
     Marker interface indicating participation in barcode print job resources.
+    """
+
+
+class ICellCultureWare(Interface):
+    """
+    Marker interface indicating participation in cell culture ware resources
+    resources.
+    """
+
+
+class ICellLine(Interface):
+    """
+    Marker interface indicating participation in cell line resources
+    resources.
+    """
+
+
+class ICellLineBatch(Interface):
+    """
+    Marker interface indicating participation in cell line batch resources
+    resources.
     """
 
 
@@ -505,6 +529,12 @@ class ITaggedRackPositionSet(Interface):
     """
     Marker interface indicating participation in tagged rack position set
     resources.
+    """
+
+
+class ITissue(Interface):
+    """
+    Marker interface indicating participation in tissue resources.
     """
 
 
