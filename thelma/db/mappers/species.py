@@ -4,7 +4,7 @@ Species mapper.
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.cell_line import CellLine
+from thelma.models.cellline import CellLine
 from thelma.models.gene import Gene
 from thelma.models.species import Species
 

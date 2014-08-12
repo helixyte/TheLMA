@@ -49,13 +49,13 @@
         <representer content_type="everest.mime.XmlMime">
             <option
                 name="xml_schema"
-                value="thelma:schemata/Tissue.xsd" />
+                value="thelma:schemata/CellCultureWare.xsd" />
             <option
                 name="xml_ns"
                 value="http://schemata.cenix-bioscience.com/cellcultureware" />
             <option
                 name="xml_prefix"
-                value="tc" />
+                value="ccw" />
         </representer>
         <representer
             kind="member"
@@ -72,6 +72,80 @@
             <option
                 name="xml_tag"
                 value="cell_culture_wares" />
+        </representer>
+    </resource>
+
+    <!-- Cell Line -->
+
+    <resource
+        interface="thelma.interfaces.ICellLine"
+        member=".cellline.CellLineMember"
+        collection=".cellline.CellLineCollection"
+        entity="thelma.models.cellline.CellLine"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/CellLine.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/cellline" />
+            <option
+                name="xml_prefix"
+                value="cl" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="cell_line" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="cell_lines" />
+        </representer>
+    </resource>
+
+    <!-- Cell Line Batch -->
+
+    <resource
+        interface="thelma.interfaces.ICellLineBatch"
+        member=".cellline.CellLineBatchMember"
+        collection=".cellline.CellLineBatchCollection"
+        entity="thelma.models.cellline.CellLineBatch"
+    >
+        <representer content_type="everest.mime.XmlMime">
+            <option
+                name="xml_schema"
+                value="thelma:schemata/CellLineBatch.xsd" />
+            <option
+                name="xml_ns"
+                value="http://schemata.cenix-bioscience.com/cellline" />
+            <option
+                name="xml_prefix"
+                value="clb" />
+        </representer>
+        <representer
+            kind="member"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="cell_line_batch" />
+        </representer>
+        <representer
+            kind="collection"
+            content_type="everest.mime.XmlMime"
+        >
+            <option
+                name="xml_tag"
+                value="cell_line_batches" />
         </representer>
     </resource>
 

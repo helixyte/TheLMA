@@ -4,7 +4,7 @@ Cell culture ware mapper.
 from everest.repositories.rdb.utils import as_slug_expression, mapper
 from sqlalchemy.orm import relationship
 from thelma.models.cellcultureware import CellCultureWare
-from thelma.models.cell_line import CellLine
+from thelma.models.cellline import CellLine
 from thelma.models.organization import Organization
 
 __docformat__ = 'reStructuredText en'

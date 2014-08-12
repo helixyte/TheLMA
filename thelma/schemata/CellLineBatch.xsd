@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/cellcultureware"
+    targetNamespace="http://schemata.cenix-bioscience.com/cellline"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:ccw="http://schemata.cenix-bioscience.com/cellcultureware"
-    xmlns:g="http://schemata.cenix-bioscience.com/gene"
+    xmlns:cl="http://schemata.cenix-bioscience.com/cellline"
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
 >
     <import
@@ -12,14 +11,9 @@
         namespace="http://schemata.cenix-bioscience.com/shared"
     >
     </import>
-    <import
-        schemaLocation="CellLine.xsd"
-        namespace="http://schemata.cenix-bioscience.com/cellline"
-    >
-    </import>
 
     <complexType
-        name="CellCultureWareType"
+        name="CellLineType"
     >
         <complexContent>
             <extension
@@ -28,7 +22,7 @@
                 <choice>
                     <element
                         name="link"
-                        type="ccw:CellCultureWareLinkType"
+                        type="cl:CellLineType"
                     >
                     </element>
                     <sequence>
@@ -46,18 +40,18 @@
     </complexType>
 
     <complexType
-        name="CellCultureWareCollectionType"
+        name="CellLineCollectionType"
     >
          <choice>
              <element
-                 ref="ccw:cell_culture_ware"
+                 ref="cl:cell_line"
                  maxOccurs="unbounded"
                  minOccurs="0"
              >
              </element>
              <element
                  name="link"
-                 type="ccw:CellCultureWareCollectionLinkType"
+                 type="cl:CellLineCollectionLinkType"
                  maxOccurs="1"
                  minOccurs="0"
              >
@@ -66,7 +60,7 @@
     </complexType>
 
     <complexType
-        name="CellCultureWareLinkType"
+        name="CellLineLinkType"
     >
         <complexContent>
             <restriction
@@ -75,14 +69,14 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/cell_culture_ware"
+                    fixed="http://relations.cenix-bioscience.com/cell_line"
                 ></attribute>
             </restriction>
         </complexContent>
     </complexType>
 
     <complexType
-        name="CellCultureWareCollectionLinkType"
+        name="CellLineCollectionLinkType"
     >
         <complexContent>
             <restriction
@@ -91,21 +85,21 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/cell_culture_ware-collection"
+                    fixed="http://relations.cenix-bioscience.com/cell_line-collection"
                 ></attribute>
             </restriction>
         </complexContent>
     </complexType>
 
     <element
-        name="cell_culture_ware"
-        type="ccw:CellCultureWareType"
+        name="cell_line"
+        type="cl:CellLineType"
     >
     </element>
 
     <element
-        name="cell_cultre_wares"
-        type="ccw:CellCultureWareCollectionType"
+        name="cell_lines"
+        type="cl:CellLineCollectionType"
     ></element>
 
 </schema>
