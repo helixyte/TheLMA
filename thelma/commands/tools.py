@@ -181,7 +181,7 @@ class MetaToolCommand(type):
         cls = type.__new__(mcs, name, bases, class_dict)
         # This is the magic: If this is the command we are running,
         # set the new class as the target class of the ToolCommand.
-        if class_dict.get('name') == sys.argv[-2]:
+        if class_dict.get('name') == sys.argv[2]:
             ToolCommand.set_target_class(cls)
         return cls
 
@@ -265,19 +265,19 @@ class ToolCommand(Command):
     @classproperty
     def summary(cls):
         if cls.__target_class is None:
-            raise RuntimeError('Tool command "%s" not found!' % sys.argv[-2])
+            raise RuntimeError('Tool command "%s" not found!' % sys.argv[2])
         return cls.__target_class.summary
 
     @classproperty
     def usage(cls):
         if cls.__target_class is None:
-            raise RuntimeError('Tool command "%s" not found!' % sys.argv[-2])
+            raise RuntimeError('Tool command "%s" not found!' % sys.argv[2])
         return cls.__target_class.usage
 
     @classproperty
     def parser(cls):
         if cls.__target_class is None:
-            raise RuntimeError('Tool command "%s" not found!' % sys.argv[-2])
+            raise RuntimeError('Tool command "%s" not found!' % sys.argv[2])
         return cls.__target_class.parser
 
     def command(self):
