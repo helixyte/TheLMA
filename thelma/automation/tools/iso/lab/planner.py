@@ -2682,8 +2682,12 @@ class _LocationAssigner(object):
         target_conc = target_container.target_concentration
         target_vol = target_container.full_volume
         dil_factor = parent_conc / target_conc
-        min_transfer_vol = self.__min_transfer_volumes[self.__robot_specs_std]
-        max_dil_factor = self.__max_dilution_factors[self.__robot_specs_std]
+        if target_container.from_stock:
+            specs = self.__robot_specs_stock
+        else:
+            specs = self.__robot_specs_std
+        min_transfer_vol = self.__min_transfer_volumes[specs]
+        max_dil_factor = self.__max_dilution_factors[specs]
         dil_factor = min(dil_factor, max_dil_factor)
         transfer_vol = get_transfer_volume(parent_conc, target_conc,
                                            target_vol, dil_factor)
