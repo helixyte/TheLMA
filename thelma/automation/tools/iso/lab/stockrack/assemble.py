@@ -284,7 +284,7 @@ class _StockRackAssembler(_StockRackAssigner):
                     pool_map = score_pos_map[score]
                 else:
                     pool_map = dict()
-                    score_pos_map[score] = pool
+                    score_pos_map[score] = pool_map
                 add_list_map_element(pool_map, pref_pos, pool)
 
         # assign preferred positions to pools if possible
@@ -332,7 +332,7 @@ class _StockRackAssembler(_StockRackAssigner):
         for sector_index in range(4):
             translator = RackSectorTranslator(number_sectors=4,
                       source_sector_index=0, target_sector_index=sector_index,
-                      behaviour=RackSectorTranslator.ONE_TO_MANY)
+                      behaviour=RackSectorTranslator.MANY_TO_ONE)
             for pos96 in get_positions_for_shape(RACK_SHAPE_NAMES.SHAPE_96):
                 pos384 = translator.translate(pos96)
                 translation_map[pos384] = pos96
@@ -341,12 +341,17 @@ class _StockRackAssembler(_StockRackAssigner):
         transfer_targets = dict() # the transfer targets for each pool
         for container in containers:
             tts = []
-            pref_positions = dict()
+            cnt_pref_positions = dict()
             for plate_label, positions in container.plate_target_positions.\
                                           iteritems():
                 layout = self._plate_layouts[plate_label]
-                trg_plate_marker = self._rack_containers[plate_label].\
-                                   rack_marker
+                # For some reason, the rack container map has the marker as
+                # a key for final (aliquot) plates.
+                if plate_label != LABELS.ROLE_FINAL:
+                    trg_plate_marker = \
+                        self._rack_containers[plate_label].rack_marker
+                else:
+                    trg_plate_marker = plate_label
                 translate = (layout.shape.name == RACK_SHAPE_NAMES.SHAPE_384)
                 for plate_pos in positions:
                     rack_pos = plate_pos.rack_position
@@ -355,11 +360,11 @@ class _StockRackAssembler(_StockRackAssigner):
                         pref_pos = translation_map[rack_pos]
                     else:
                         pref_pos = rack_pos
-                    if not pref_positions.has_key(pref_pos):
-                        pref_positions[pref_pos] = 0
-                    pref_positions[pref_pos] += 1
+                    if not cnt_pref_positions.has_key(pref_pos):
+                        cnt_pref_positions[pref_pos] = 0
+                    cnt_pref_positions[pref_pos] += 1
             transfer_targets[container.pool] = tts
-            pref_positions[container.pool] = pref_positions
+            pref_positions[container.pool] = cnt_pref_positions
 
         return pref_positions, transfer_targets
 
@@ -558,7 +563,7 @@ class StockRackAssemblerIsoJob(_StockRackAssembler, _StockRackAssignerIsoJob):
         _StockRackAssignerIsoJob._clear_entity_stock_racks(self)
 
     def _create_stock_rack_entity(self, stock_rack_marker, base_kw):
-        return _StockRackAssignerIsoJob._create_stock_rack_entity(self,
+        return _StockRackAssignerIsoJob._create_stock_rack_entity(self, #pylint: disable=W0201
                                         stock_rack_marker, base_kw)
 
     def _create_output(self):
