@@ -68,7 +68,7 @@ class CellLineBatchMember(Member):
 
 class CellLineBatchCollection(Collection):
     title = 'CellLineBatches'
-    root_name = 'cell_lines'
+    root_name = 'cell_line_batches'
     description = 'Manage cell lines batches'
     default_order = AscendingOrderSpecification('freezing_date') \
                     & AscendingOrderSpecification('container_id')
