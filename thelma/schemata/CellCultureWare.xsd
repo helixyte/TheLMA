@@ -4,7 +4,6 @@
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
     xmlns:ccw="http://schemata.cenix-bioscience.com/cellcultureware"
-    xmlns:g="http://schemata.cenix-bioscience.com/gene"
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
 >
     <import
