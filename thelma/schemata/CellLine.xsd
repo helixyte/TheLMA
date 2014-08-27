@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/celllinebatch"
+    targetNamespace="http://schemata.cenix-bioscience.com/cellline"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:cl="http://schemata.cenix-bioscience.com/celllinebatch"
+    xmlns:ccw="http://schemata.cenix-bioscience.com/cellcultureware"
+    xmlns:cl="http://schemata.cenix-bioscience.com/cellline"
+    xmlns:o="http://schemata.cenix-bioscience.com/organization"
+    xmlns:sc="http://schemata.cenix-bioscience.com/species"
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
 >
     <import
@@ -11,9 +14,29 @@
         namespace="http://schemata.cenix-bioscience.com/shared"
     >
     </import>
+    <import
+        schemaLocation="CellLine.xsd"
+        namespace="http://schemata.cenix-bioscience.com/cellline"
+    >
+    </import>
+    <import
+        schemaLocation="CellLine.xsd"
+        namespace="http://schemata.cenix-bioscience.com/cellline"
+    >
+    </import>
+    <import
+        schemaLocation="Organization.xsd"
+        namespace="http://schemata.cenix-bioscience.com/organization"
+    >
+    </import>
+    <import
+        schemaLocation="Species.xsd"
+        namespace="http://schemata.cenix-bioscience.com/species"
+    >
+    </import>
 
     <complexType
-        name="CellLineBatchType"
+        name="CellLineType"
     >
         <complexContent>
             <extension
@@ -22,7 +45,7 @@
                 <choice>
                     <element
                         name="link"
-                        type="clb:CellLineBatchType"
+                        type="clb:CellLineLinkType"
                     >
                     </element>
                     <sequence>
@@ -33,6 +56,91 @@
                             maxOccurs="1"
                         >
                         </element>
+                        <element
+                            name="species"
+                            type="sc:SpeciesType"
+                        >
+                        </element>
+                        <element
+                            name="origin"
+                            type="string"
+                        >
+                        </element>
+                        <element
+                            name="tissue"
+                            type="tc:TissueType"
+                        >
+                        </element>
+                        <element
+                            name="supplier"
+                            type="o:OrganizationType"
+                        >
+                        </element>
+                        <element
+                            name="image"
+                            type="string"
+                        >
+                        </element>
+                        <element
+                            name="is_type_immortal"
+                            type="boolean"
+                        >
+                        </element>
+                        <element
+                            name="is_type_adherent"
+                            type="boolean"
+                        >
+                        </element>
+                        <element
+                            name="safety_level"
+                            type="int"
+                        >
+                        </element>
+                        <element
+                            name="protocol_splitting"
+                            type="string"
+                        >
+                        </element>
+                        <element
+                            name="protocol_media"
+                            type="string"
+                        >
+                        </element>
+                        <element
+                            name="protocol_thawing"
+                            type="string"
+                        >
+                        </element>
+                        <element
+                            name="cell_culture_ware"
+                            type="ccw:CellCultureWareType"
+                        >
+                        </element>
+                        <element
+                            name="maximum_passage"
+                            type="int"
+                        >
+                        </element>
+                        <element
+                            name="culture_conditions_temperature"
+                            type="double"
+                        >
+                        </element>
+                        <element
+                            name="culture_conditions_humidity"
+                            type="double"
+                        >
+                        </element>
+                        <element
+                            name="culture_conditions_co2"
+                            type="double"
+                        >
+                        </element>
+                        <element
+                            name="comments"
+                            type="string"
+                        >
+                        </element>
                     </sequence>
                 </choice>
             </extension>
@@ -40,18 +148,18 @@
     </complexType>
 
     <complexType
-        name="CellLineBatchCollectionType"
+        name="CellLineCollectionType"
     >
          <choice>
              <element
-                 ref="clb:cell_line_batch"
+                 ref="cl:cell_line"
                  maxOccurs="unbounded"
                  minOccurs="0"
              >
              </element>
              <element
                  name="link"
-                 type="clb:CellLineBatchCollectionLinkType"
+                 type="cl:CellLineCollectionLinkType"
                  maxOccurs="1"
                  minOccurs="0"
              >
@@ -60,7 +168,7 @@
     </complexType>
 
     <complexType
-        name="CellLineBatchLinkType"
+        name="CellLineLinkType"
     >
         <complexContent>
             <restriction
@@ -69,14 +177,14 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/cell_line_batch"
+                    fixed="http://relations.cenix-bioscience.com/cell_line"
                 ></attribute>
             </restriction>
         </complexContent>
     </complexType>
 
     <complexType
-        name="CellLineBatchCollectionLinkType"
+        name="CellLineCollectionLinkType"
     >
         <complexContent>
             <restriction
@@ -85,21 +193,21 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/cell_line_batch-collection"
+                    fixed="http://relations.cenix-bioscience.com/cell_line-collection"
                 ></attribute>
             </restriction>
         </complexContent>
     </complexType>
 
     <element
-        name="cell_line_batch"
-        type="clb:CellLineBatchType"
+        name="cell_line"
+        type="cl:CellLineType"
     >
     </element>
 
     <element
-        name="cell_line_batches"
-        type="clb:CellLineBatchCollectionType"
+        name="cell_lines"
+        type="cl:CellLineCollectionType"
     ></element>
 
 </schema>

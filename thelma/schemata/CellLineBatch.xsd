@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/cellline"
+    targetNamespace="http://schemata.cenix-bioscience.com/celllinebatch"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:cl="http://schemata.cenix-bioscience.com/cellline"
+    xmlns:clb="http://schemata.cenix-bioscience.com/celllinebatch"
+    xmlns:co="http://schemata.cenix-bioscience.com/container"
+    xmlns:p="http://schemata.cenix-bioscience.com/project"
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
 >
     <import
@@ -13,7 +15,7 @@
     </import>
 
     <complexType
-        name="CellLineType"
+        name="CellLineBatchType"
     >
         <complexContent>
             <extension
@@ -22,15 +24,79 @@
                 <choice>
                     <element
                         name="link"
-                        type="cl:CellLineType"
+                        type="clb:CellLineBatchType"
                     >
                     </element>
                     <sequence>
                         <element
-                            name="label"
-                            type="string"
+                            name="container"
+                            type="co:ContainerType"
                             minOccurs="1"
                             maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="cell_line"
+                            type="cl:CellLineType"
+                        >
+                        </element>
+                        <element
+                            name="subproject"
+                            type="p:ProjectType"
+                        >
+                        </element>
+                        <element
+                            name="freezing_date"
+                            type="date"
+                            minOccurs="1"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="defrosting_date"
+                            type="date"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        >
+                        </element>
+                        <element
+                            name="passage"
+                            type="int"
+                        >
+                        </element>
+                        <element
+                            name="is_master_stock"
+                            type="boolean"
+                        >
+                        </element>
+                        <element
+                            name="parent_cell_line_batch"
+                            type="clb:CellLineBatchType"
+                        >
+                        </element>
+                        <element
+                            name="cell_count"
+                            type="int"
+                        >
+                        </element>
+                        <element
+                            name="freezing_medium_dmso"
+                            type="double"
+                        >
+                        </element>
+                        <element
+                            name="freezing_medium_serum"
+                            type="double"
+                        >
+                        </element>
+                        <element
+                            name="freezing_medium_medium"
+                            type="double"
+                        >
+                        </element>
+                        <element
+                            name="comments"
+                            type="string"
                         >
                         </element>
                     </sequence>
@@ -40,18 +106,18 @@
     </complexType>
 
     <complexType
-        name="CellLineCollectionType"
+        name="CellLineBatchCollectionType"
     >
          <choice>
              <element
-                 ref="cl:cell_line"
+                 ref="clb:cell_line_batch"
                  maxOccurs="unbounded"
                  minOccurs="0"
              >
              </element>
              <element
                  name="link"
-                 type="cl:CellLineCollectionLinkType"
+                 type="clb:CellLineBatchCollectionLinkType"
                  maxOccurs="1"
                  minOccurs="0"
              >
@@ -60,7 +126,7 @@
     </complexType>
 
     <complexType
-        name="CellLineLinkType"
+        name="CellLineBatchLinkType"
     >
         <complexContent>
             <restriction
@@ -69,14 +135,14 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/cell_line"
+                    fixed="http://relations.cenix-bioscience.com/cell_line_batch"
                 ></attribute>
             </restriction>
         </complexContent>
     </complexType>
 
     <complexType
-        name="CellLineCollectionLinkType"
+        name="CellLineBatchCollectionLinkType"
     >
         <complexContent>
             <restriction
@@ -85,21 +151,21 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/cell_line-collection"
+                    fixed="http://relations.cenix-bioscience.com/cell_line_batch-collection"
                 ></attribute>
             </restriction>
         </complexContent>
     </complexType>
 
     <element
-        name="cell_line"
-        type="cl:CellLineType"
+        name="cell_line_batch"
+        type="clb:CellLineBatchType"
     >
     </element>
 
     <element
-        name="cell_lines"
-        type="cl:CellLineCollectionType"
+        name="cell_line_batches"
+        type="clb:CellLineBatchCollectionType"
     ></element>
 
 </schema>
