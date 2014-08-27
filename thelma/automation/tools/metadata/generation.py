@@ -1421,8 +1421,8 @@ class _RobotSupportDeterminator(BaseTool):
             self.add_error(msg)
         elif not self._has_compatible_concentrations:
             msg = 'The concentrations you have ordered to not allow ' \
-                  'robot-supported mastermix preparation. Worklist ' \
-                  'support is disabled now.'
+                  'robot-supported mastermix preparation. Transfection ' \
+                  'worklist support is disabled now.'
             self.add_warning(msg)
 
     def _check_iso_volumes(self):
@@ -1763,8 +1763,8 @@ class RobotSupportDeterminatorScreen(_RobotSupportDeterminator):
                                     self.__iso_concentrations[sector_index]):
                     self._has_compatible_concentrations = False
                     msg = 'The concentrations you have ordered to not allow ' \
-                          'robot-supported mastermix preparation. Worklist ' \
-                          'support is disabled now.'
+                          'robot-supported mastermix preparation. ' \
+                          'Transfection worklist support is disabled now.'
                     self.add_warning(msg)
                     break
         else:
@@ -1938,8 +1938,8 @@ class RobotSupportDeterminatorLibrary(_RobotSupportDeterminator):
                 rs_lib = get_reservoir_specs_from_rack_specs(ps_lib)
                 if not rs_lib == self._iso_reservoir_specs:
                     msg = 'The volume capacity of the library plates does ' \
-                          'not allow for standard mastermix support. Robot ' \
-                          'support for mastermix preparation is disabled now.'
+                          'not allow for standard mastermix support. ' \
+                          'Transfection worklist support is disabled now.'
                     self.add_warning(msg)
                     self.supports_mastermix = False
                 self._iso_reservoir_specs = rs_lib
@@ -1996,9 +1996,9 @@ class RobotSupportDeterminatorLibrary(_RobotSupportDeterminator):
                   'for the mastermix to be prepared in the source plate (it ' \
                   'requires an OptiMem dilution by the factor %.2f - the ' \
                   'allowed maximum dilution factor for robot support is ' \
-                  '%.2f). Robot support for mastermix preparation is disabled ' \
-                  'now. If you want robot support, increase the final ' \
-                  'concentration, please.' % (required_df, max_optimem_df)
+                  '%.2f). Transfection worklist support is disabled ' \
+                  'now. To activate it, please increase the final ' \
+                  'concentration.' % (required_df, max_optimem_df)
             self.add_warning(msg)
             self._has_compatible_concentrations = False
 
@@ -2023,9 +2023,9 @@ class RobotSupportDeterminatorLibrary(_RobotSupportDeterminator):
             msg = 'Currently, the mastermix in the source plate would not ' \
                   'provide enough volume for all experiment cell plates ' \
                   '(required volume: %s ul, available (excl. dead volume): ' \
-                  '%s ul). Robot support is disabled now. To activate it ' \
-                  'reduce the number of replicates, the number of ' \
-                  'design racks or the final concentration, please.' \
+                  '%s ul). Transfection worklist support is disabled now. ' \
+                  'To activate it, please reduce the number of replicates, ' \
+                  'the number of design racks or the final concentration.' \
                   % (get_trimmed_string(required_vol),
                      get_trimmed_string(available_vol))
             self.add_warning(msg)
