@@ -9,6 +9,21 @@
     xmlns:sh="http://schemata.cenix-bioscience.com/shared"
 >
     <import
+        schemaLocation="CellLineBatch.xsd"
+        namespace="http://schemata.cenix-bioscience.com/celllinebatch"
+    >
+    </import>
+    <import
+        schemaLocation="Container.xsd"
+        namespace="http://schemata.cenix-bioscience.com/container"
+    >
+    </import>
+    <import
+        schemaLocation="Project.xsd"
+        namespace="http://schemata.cenix-bioscience.com/project"
+    >
+    </import>
+    <import
         schemaLocation="Shared.xsd"
         namespace="http://schemata.cenix-bioscience.com/shared"
     >
