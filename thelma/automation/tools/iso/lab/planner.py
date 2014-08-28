@@ -2726,9 +2726,24 @@ class _LocationAssigner(object):
         an determines the maximum volume for all preparation containers.
         """
         if self.has_preparation_containers() and self.__volume_map is None:
+            self.__add_prep_containers_for_from_stock_containers()
             self.__sort_prep_container_by_generation()
             self.__adjust_container_dead_volumes()
             self.__create_volume_map()
+
+    def __add_prep_containers_for_from_stock_containers(self):
+        # Now we know that we have prep containers, we have to check if we
+        # have requested containers left that do not have a preparation
+        # container yet (because it was determined they do not need one). We
+        # want these containers on the preparation plate as well.
+        rqc_set = set(self.__requested_containers)
+        for idf, cnts in self.__identifier_map.iteritems():
+            for cnt in cnts:
+                if cnt in rqc_set and cnt.from_stock:
+                    prep_cnt = self.__create_new_prep_container(cnt)
+                    # Add to the containers for this identifier.
+                    self.__identifier_map[idf].append(prep_cnt)
+                    self.__preferred_locations[idf].append(cnt.location)
 
     def __sort_prep_container_by_generation(self):
         """
@@ -2915,7 +2930,8 @@ class _LocationAssigner(object):
             containers = self.__identifier_map[identifier]
             not_from_stock = []
             for container in containers:
-                if not container.location is None: continue
+                if not container.location is None:
+                    continue
                 if container.from_stock:
                     add_list_map_element(priority_scores, 1, container)
                 else:
