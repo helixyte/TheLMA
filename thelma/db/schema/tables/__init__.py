@@ -1,4 +1,7 @@
 from thelma.db.schema.tables import barcodedlocation
+from thelma.db.schema.tables import cellline
+from thelma.db.schema.tables import celllinebatch
+from thelma.db.schema.tables import cellcultureware
 from thelma.db.schema.tables import chemicalstructure
 from thelma.db.schema.tables import compound
 from thelma.db.schema.tables import container
@@ -93,6 +96,7 @@ from thelma.db.schema.tables import tag
 from thelma.db.schema.tables import tagged
 from thelma.db.schema.tables import taggedrackpositionset
 from thelma.db.schema.tables import tagging
+from thelma.db.schema.tables import tissue
 from thelma.db.schema.tables import tubetransfer
 from thelma.db.schema.tables import tubetransferworklist
 from thelma.db.schema.tables import tubetransferworklistmember
@@ -320,5 +324,12 @@ def initialize_tables(metadata):
                                         molecule_design_library_tbl, rack_tbl)
     iso_library_plate_tbl = labisolibraryplate.create_table(metadata, iso_tbl,
                                                             library_plate_tbl)
+    
+    tissue_tbl = tissue.create_table(metadata)
+    cell_culture_ware_tbl = cellcultureware.create_table(metadata, organization_tbl)
+    cell_line_tbl = cellline.create_table(metadata, species_tbl, tissue_tbl, 
+                                         organization_tbl, cell_culture_ware_tbl)
+    cell_line_batch_tbl = celllinebatch.create_table(metadata, container_tbl,
+                                                     cell_line_tbl, subproject_tbl)
 
 #pylint: enable=W0612

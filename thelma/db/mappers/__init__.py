@@ -334,3 +334,7 @@ def initialize_mappers(tables, views):
                                        tables['tube_transfer'],
                                        tables['tube_transfer_worklist_member'],
                                        tables['db_user'])
+    tissue.create_mapper(tables['tissue'])
+    cellcultureware.create_mapper(tables['cell_culture_ware'])
+    cellline.create_mapper(tables['cell_line'])
+    celllinebatch.create_mapper(tables['cell_line_batch'])
