@@ -279,38 +279,46 @@ class _StockRackAssembler(_StockRackAssigner):
         # sort pools by score
         score_pos_map = dict()
         for pool, pref_map in pref_positions.iteritems():
-            for pref_pos, score in pref_map.iteritems():
+            for pref_pos_key, score in pref_map.iteritems():
                 if score_pos_map.has_key(score):
                     pool_map = score_pos_map[score]
                 else:
                     pool_map = dict()
                     score_pos_map[score] = pool_map
-                add_list_map_element(pool_map, pref_pos, pool)
+                add_list_map_element(pool_map, pref_pos_key, pool)
 
         # assign preferred positions to pools if possible
+        # FIXME: This is hideously inefficient.
         assigned_pools = dict()
         remaining_pools = set(pref_positions.keys())
+        used_positions = set()
         for score in sorted(score_pos_map.keys()):
             pool_map = score_pos_map[score]
-            for pref_pos, pools in pool_map.iteritems():
+            for pref_pos_key, pools in pool_map.iteritems():
                 pool_applicants = []
                 for pool in pools:
                     if pool in remaining_pools:
                         pool_applicants.append(pool)
-                if len(pool_applicants) < 1: continue
+                if len(pool_applicants) < 1:
+                    continue
                 pool_applicants.sort(cmp=lambda p1, p2: cmp(p1.id, p2.id))
                 pool = pool_applicants[0]
-                assigned_pools[pool] = pref_pos
-                remaining_pools.remove(pool)
-
-        # Find positions for other pools
-        all_positions = get_positions_for_shape(RACK_SHAPE_NAMES.SHAPE_96)
-        used_positions = set(assigned_pools.values())
+                pref_pos = pref_pos_key[-1]
+                if not pref_pos in used_positions:
+                    assigned_pools[pool] = pref_pos
+                    remaining_pools.remove(pool)
+                    used_positions.add(pref_pos)
+        # Find positions for pools without preferred position or with
+        # duplicate positions.
+        remaining_positions = \
+            sorted(set(get_positions_for_shape(RACK_SHAPE_NAMES.SHAPE_96))
+                    .difference(used_positions))
         for pool in remaining_pools:
-            rack_pos = all_positions.pop(0)
-            if rack_pos in used_positions: continue
-            assigned_pools[pool] = rack_pos
-
+            if len(remaining_positions) > 0:
+                rack_pos = remaining_positions.pop(0)
+                assigned_pools[pool] = rack_pos
+            # FIXME: Should this record an error if not all pools can be
+            #        assigned to positions?
         # Create layout
         stock_rack_layout = StockRackLayout()
         for pool, rack_pos in assigned_pools.iteritems():
@@ -320,7 +328,6 @@ class _StockRackAssembler(_StockRackAssigner):
                            molecule_design_pool=pool, tube_barcode=tube_barcode,
                            transfer_targets=transfer_targets[pool])
             stock_rack_layout.add_position(sr_pos)
-
         self._stock_rack_layouts[stock_rack_marker] = stock_rack_layout
 
     def __find_preferred_stock_rack_positions(self, containers):
@@ -360,9 +367,10 @@ class _StockRackAssembler(_StockRackAssigner):
                         pref_pos = translation_map[rack_pos]
                     else:
                         pref_pos = rack_pos
-                    if not cnt_pref_positions.has_key(pref_pos):
-                        cnt_pref_positions[pref_pos] = 0
-                    cnt_pref_positions[pref_pos] += 1
+                    key = (trg_plate_marker, pref_pos)
+                    if not cnt_pref_positions.has_key(key):
+                        cnt_pref_positions[key] = 0
+                    cnt_pref_positions[key] += 1
             transfer_targets[container.pool] = tts
             pref_positions[container.pool] = cnt_pref_positions
 
@@ -555,7 +563,7 @@ class StockRackAssemblerIsoJob(_StockRackAssembler, _StockRackAssignerIsoJob):
         """
         self._create_stock_rack_layouts_with_biomek()
 
-    def _get_stock_transfer_pipetting_specs(self):
+    def _get_stock_transfer_pipetting_specs(self): # pylint:disable=W0201
         return _StockRackAssignerIsoJob._get_stock_transfer_pipetting_specs(
                                                                         self)
 
