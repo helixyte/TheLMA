@@ -14,7 +14,7 @@ __docformat__ = 'reStructuredText en'
 __all__ = ['create_table']
 
 
-def create_table(metadata, container_tbl, cell_line_tbl, project_tbl):
+def create_table(metadata, container_tbl, cell_line_tbl, subproject_tbl):
     "Table factory."
     tbl = Table('cell_line_batch', metadata,
         Column('cell_line_batch_id', Integer, primary_key=True),
@@ -25,16 +25,14 @@ def create_table(metadata, container_tbl, cell_line_tbl, project_tbl):
                ForeignKey(cell_line_tbl.c.cell_line_id),
                nullable=False),
         Column('subproject_id', Integer,
-               ForeignKey(project_tbl.c.subproject_id),
+               ForeignKey(subproject_tbl.c.subproject_id),
                nullable=False),
         Column('freezing_date', DateTime(timezone=False), nullable=False),
         Column('defrosting_date', DateTime(timezone=False), nullable=True),
         Column('is_master_stock', Boolean, nullable=False, default=True),
-        
-        Column('parent_cell_line_id', Integer,
-               ForeignKey(self.c.cell_culture_ware_id),
+        Column('parent_cell_line_batch_id', Integer,
+               ForeignKey('cell_line_batch.cell_line_batch_id'),
                nullable=False),
-                
         Column('cell_count', BigInteger, nullable=False),
         Column('freezing_medium_dmso', DOUBLE_PRECISION, nullable=False),
         Column('freezing_medium_serum', DOUBLE_PRECISION, nullable=False),

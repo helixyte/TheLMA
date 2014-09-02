@@ -3,6 +3,7 @@ Subproject mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+from thelma.models.cellline import CellLineBatch
 from thelma.models.project import Project
 from thelma.models.subproject import Subproject
 
@@ -19,6 +20,7 @@ def create_mapper(subproject_tbl):
           dict(project=relationship(Project, uselist=False,
                                     back_populates='subprojects',
                                     cascade='save-update'),
+               cell_line_batches=relationship(CellLineBatch, back_populates='subproject'),
 #               molecule_design_set=
 #                 relationship(MoleculeDesignSet,
 #                              uselist=False,

@@ -16,7 +16,7 @@ def create_mapper(tissue_tbl):
                id_attribute='tissue_id',
                slug_expression=lambda cls: as_slug_expression(cls.label),
                properties=dict(
-                      cell_line=relationship(CellLine,
+                      cell_lines=relationship(CellLine,
                                          back_populates='tissue'),
                       ),
                   )

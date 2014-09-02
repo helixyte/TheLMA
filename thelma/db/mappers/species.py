@@ -20,7 +20,7 @@ def create_mapper(species_tbl):
                properties=dict(
                       genes=relationship(Gene,
                                          back_populates='species'),
-                      cell_line=relationship(CellLine,
+                      cell_lines=relationship(CellLine,
                                          back_populates='species'),
                       ),
                   )

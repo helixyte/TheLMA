@@ -17,10 +17,10 @@ def create_mapper(cell_culture_ware_tbl):
                id_attribute='cell_culture_ware_id',
                slug_expression=lambda cls: as_slug_expression(cls.label),
                properties=dict(
-                      cell_line=relationship(CellLine,
+                      cell_lines=relationship(CellLine,
                                          back_populates='cell_culture_ware'),
-                      supplier=relationship(Organization,
-                                         back_populates='cell_culture_ware'),
+                      supplier=relationship(Organization, uselist=False,
+                                         back_populates='cell_culture_wares'),
                       ),
                   )
     return m

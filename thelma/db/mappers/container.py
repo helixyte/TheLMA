@@ -3,6 +3,7 @@ Container mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+from thelma.models.cellline import CellLineBatch
 from thelma.models.container import CONTAINER_TYPES
 from thelma.models.container import Container
 from thelma.models.container import ContainerLocation
@@ -32,6 +33,7 @@ def create_mapper(container_tbl):
                                      ),
                  #empty=True or False if it has no sample or volume is 0
                  status=relationship(ItemStatus, uselist=False),
+                 cell_line_batch=relationship(CellLineBatch, uselist=False),
                  ),
             polymorphic_on=container_tbl.c.container_type,
             polymorphic_identity=CONTAINER_TYPES.CONTAINER

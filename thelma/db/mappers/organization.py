@@ -7,6 +7,7 @@ from sqlalchemy.orm import column_property
 from sqlalchemy.orm import relationship
 from thelma.db.mappers.utils import CaseInsensitiveComparator
 from thelma.models.cellcultureware import CellCultureWare
+from thelma.models.cellline import CellLine
 from thelma.models.organization import Organization
 
 __docformat__ = "reStructuredText en"
@@ -23,8 +24,8 @@ def create_mapper(organization_tbl):
                           organization_tbl.c.name,
                           comparator_factory=CaseInsensitiveComparator
                           ),
-                      cell_culture_ware=relationship(CellCultureWare,
-                                         back_populates='supplier'),
+                      cell_lines=relationship(CellLine, back_populates='supplier'),
+                      cell_culture_wares=relationship(CellCultureWare, back_populates='supplier'),
                       ),
                   )
     return m
