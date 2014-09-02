@@ -3,7 +3,6 @@ Rack layout model classes.
 
 FOG Nov 26, 2010
 """
-
 from everest.entities.base import Entity
 
 __docformat__ = "reStructuredText en"
@@ -17,13 +16,10 @@ class RackLayout(Entity):
     shape. Each rack position can have multiple tags and each tag can be
     assigned to multiple rack positions. Best conceptualized as a stack of
     tag x rack position matrices.
-
-    **Equality Condition**: not implemented yet
     """
-
-    #: the dimension of the layout (:class:`thelma.model.rack.RackShape`).
+    #: Dimension of the layout (:class:`thelma.model.rack.RackShape`).
     shape = None
-
+    #: List of tagged rack position sets.
     tagged_rack_position_sets = None
 
     def __init__(self, shape=None, tagged_rack_position_sets=None, **kw):
@@ -32,6 +28,24 @@ class RackLayout(Entity):
         if tagged_rack_position_sets is None:
             tagged_rack_position_sets = []
         self.tagged_rack_position_sets = tagged_rack_position_sets
+        self.__tag_to_positions_map = {}
+        self.__position_to_tags_map = {}
+        self.__all_tags = set()
+        self.__all_positions = set()
+        #
+        for trps in tagged_rack_position_sets:
+            self.__process_tagged_rack_position_set(trps)
+
+    def add_tagged_rack_position_set(self, tagged_rack_position_set):
+        """
+        Adds the given rack position set to this rack layout.
+
+        @param tagged_rack_position_set: Tagged rack position set to tadd.
+        @type tagged_rack_position_set:
+                :class:`thelma.models.tagging.TaggedRackPositionSet`
+        """
+        self.tagged_rack_position_sets.append(tagged_rack_position_set)
+        self.__process_tagged_rack_position_set(tagged_rack_position_set)
 
     def get_tags(self):
         """
@@ -39,11 +53,7 @@ class RackLayout(Entity):
 
         :rtype: set of :class:`thelma.models.tagging.Tag`
         """
-        tags = set()
-        for tp in self.tagged_rack_position_sets:
-            for tag in tp.tags:
-                tags.add(tag)
-        return tags
+        return self.__all_tags
 
     def get_positions(self):
         """
@@ -51,11 +61,7 @@ class RackLayout(Entity):
 
         :rtype: set of :py:class:`thelma.models.rack.RackPosition`
         """
-        positions = set()
-        for trps in self.tagged_rack_position_sets:
-            for position in trps.rack_position_set:
-                positions.add(position)
-        return positions
+        return self.__all_positions
 
     def get_tags_for_position(self, position):
         """
@@ -63,15 +69,14 @@ class RackLayout(Entity):
 
         :param position: The rack position whose tags you want to get.
         :type position: :class:`thelma.models.rack.RackPosition`
-        :return: All tags for the given position.
+        :return: Set of all tags for the given position (empty set if there is
+            no tag associated with the given position).
         :rtype: set of :py:class:`thelma.models.tagging.Tag`
         """
-        tags = []
-        for tprs in self.tagged_rack_position_sets:
-            if position in tprs.rack_position_set:
-                for tag in tprs.tags:
-                    tags.append(tag)
-        return set(tags)
+        tags = self.__position_to_tags_map.get(position)
+        if tags is None:
+            tags = set()
+        return tags
 
     def get_positions_for_tag(self, tag):
         """
@@ -79,15 +84,14 @@ class RackLayout(Entity):
 
         :param tag: The tag whose positions you want to get.
         :type tag: :class:`thelma.models.tagging.Tag`
-        :return: All positions for the given tag.
+        :return: Set of all positions for the given tag (empty set if there is
+            no position associated with the given tag).
         :rtype: set of :class:`thelma.models.rack.RackPosition`
         """
-        positions = set()
-        for tp in self.tagged_rack_position_sets:
-            if tag in tp.tags:
-                for position in tp.rack_position_set.positions:
-                    positions.add(position)
-        return positions
+        poss = self.__tag_to_positions_map.get(tag)
+        if poss is None:
+            poss = set()
+        return poss
 
     def has_positions(self):
         """
@@ -96,18 +100,40 @@ class RackLayout(Entity):
         :return: Test result.
         :rtype: bool
         """
-        result = False
-        for trps in self.tagged_rack_position_sets:
-            if len(trps.rack_position_set) > 0:
-                result = True
-                break
-        return result
+        return len(self.__all_positions) > 0
+
+    def has_tags(self):
+        """
+        Checks if this rack layout has any tags.
+
+        :return: Test result.
+        :rtype: bool
+        """
+        return len(self.__all_tags) > 0
 
     def __str__(self):
         return '%s' % (self.id)
 
     def __repr__(self):
-        str_format = '<%s id: %s, shape: %s, No. of tagged positions sets: %i>'
+        str_format = '<%s id: %s, shape: %s, # tagged position sets: %i>'
         params = (self.__class__.__name__, self.id, self.shape,
                   len(self.tagged_rack_position_sets))
         return str_format % params
+
+    def __process_tagged_rack_position_set(self, tagged_rack_position_set):
+        tags = tagged_rack_position_set.tags
+        poss = tagged_rack_position_set.rack_position_set
+        for tag in tags:
+            tposs = self.__tag_to_positions_map.get(tag)
+            if tposs is None:
+                tposs = self.__tag_to_positions_map[tag] = \
+                        poss.positions.copy()
+            tposs.update(poss)
+        self.__all_positions.update(poss)
+        for rack_pos in poss:
+            rptags = self.__position_to_tags_map.get(rack_pos)
+            if rptags is None:
+                rptags = self.__position_to_tags_map[rack_pos] = tags
+            rptags.update(tags)
+        self.__all_tags.update(tags)
+

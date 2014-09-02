@@ -4,7 +4,6 @@ Tagging model classes.
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
 
-
 __docformat__ = "reStructuredText en"
 
 __all__ = ['Tag',
@@ -15,12 +14,12 @@ __all__ = ['Tag',
 
 class Tag(Entity):
     """
-    Objecs of this class represents machine tags. Machine tags have a
-    domain (namespace), a predicate, and a value.
-    See http://tagaholic.me/2009/03/26/what-are-machine-tags.html
+    Machine tag.
 
-    **Equality Condition**: equal :attr:`domain`, :attr:`predicate` and
-    :attr:`value`
+    Machine tags have a domain (namespace), a predicate, and a value;
+    see http://tagaholic.me/2009/03/26/what-are-machine-tags.html.
+
+    Equality is based on domain, predicate, and value.
     """
     #: Tag domain in which the predicate-value combination is unique.
     domain = None
@@ -82,12 +81,12 @@ class Tagging(Entity):
     """
     Record for a single tagging event.
     """
-    #: The associated tag (:class:`Tag`)
+    #: Tag (:class:`Tag`) to attach.
     tag = None
-    #: The object to which the tag has been attached
+    #:Object to attach the tag to.
     #: (:class:`Tagged`)
     tagged = None
-    #: The user (:class:`thelma.models.user.User`) who has attached the tag
+    #: User (:class:`thelma.models.user.User`) performing the taggign.
     user = None
 
     def __init__(self, tag, tagged, user, **kw):
@@ -109,11 +108,7 @@ class Tagging(Entity):
 
 class Tagged(Entity):
     """
-    This represents an object associated with a set of tags.
-    It contains all attributes of the parent entity plus a tag set
-    (:attr:`tags`).
-
-    **Equality Condition**: Not implemented so far
+    Object associated with a set of tags.
     """
     #: `set` of tags (:class:`Tag`).
     tags = set()
@@ -149,13 +144,12 @@ class Tagged(Entity):
 
 class TaggedRackPositionSet(Tagged):
     """
-    This class associated a set of rack positions within a layout
-    with a set of tags. The :attr:`tags` set is initialized by the
-    :class:`Tagged` constructor.
+    Associates a set of rack positions with a set of tags.
 
-    **Equality Condition**: equal :attr:`tags` and :attr:`hash_value` of
-    the rack position set (:class:`thelma.models.rack.RackPositionSet`)
+    The :attr:`tags` set is initialized by the :class:`Tagged` constructor.
 
+    Equality is determined using the tag set and the hash_value of the rack
+    position set.
     """
     #: Associated rack position set
     #: (:class:`thelma.models.rack.RackPositionSet`).

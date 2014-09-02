@@ -1,9 +1,3 @@
-"""
-test position set run length decoding
-
-AAB, May 06, 2011
-"""
-
 from everest.repositories.rdb.testing import RdbContextManager
 from everest.repositories.rdb.testing import persist
 from thelma.interfaces import IRackPositionSet
@@ -54,10 +48,10 @@ class TagModelTest(ThelmaModelTestCase):
             rl = RackLayout(rs)
             tag = set([Tag('experimentdata', 'factor1', 'level1')])
             positions = RackPositionSet.from_positions(
-                                         [RackPosition.from_label(label)
-                                         for label in ('A1', 'A2', 'B4', 'B5')])
+                                    [RackPosition.from_label(label)
+                                     for label in ('A1', 'A2', 'B4', 'B5')])
             trps = TaggedRackPositionSet(tag, positions, user)
-            rl.tagged_rack_position_sets.append(trps)
+            rl.add_tagged_rack_position_set(trps)
             session.add(type(rl), rl)
             session.commit()
             session.refresh(rl)
@@ -68,9 +62,8 @@ class TagModelTest(ThelmaModelTestCase):
             query = session.query(RackLayout)
             fetched_model = query.filter_by(id=model_id).one()
             self.assert_not_equal(fetched_model, None)
-            self.assert_equal(fetched_model.tagged_rack_position_sets[0], trps)
-#            attrs = dict('tags','positions')
-#            check_attributes(fetched_model, attrs)
+            self.assert_equal(fetched_model.tagged_rack_position_sets[0],
+                              trps)
 
     def test_tag_init(self):
         tag = Tag(self.tag_domain, 'cell line', 'SKMC-33')
@@ -172,7 +165,7 @@ class TaggedRackPositionSetModelTest(ThelmaModelTestCase):
                           self.__create_tag_set())
         rps = self._get_entity(IRackPositionSet)
         self.assert_equal(default_trps.rack_position_set, rps)
-        self.assert_raises(AttributeError, getattr, *(default_trps, 'user')) #pylint: disable=W0142
+        self.assert_raises(AttributeError, getattr, default_trps, 'user')
 
     def test_tprs_equality(self):
         default_trps = self.__get_default_trps()
