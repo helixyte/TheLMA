@@ -50,10 +50,8 @@ setup(name='TheLMA',
       entry_points="""\
       [paste.app_factory]
       app = thelma.run:app
-
       [paste.paster_command]
       runtool = thelma.commands.tools:ToolCommand
-
       [paste.filter_app_factory]
       flexfilter = everest.flexfilter:FlexFilter.paste_deploy_middleware
       """,
