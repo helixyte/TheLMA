@@ -20,7 +20,7 @@ def create_table(metadata, iso_request_tbl, molecule_design_pool_set_tbl):
                 Column('molecule_design_pool_set_id', Integer,
                        ForeignKey(molecule_design_pool_set_tbl.\
                                   c.molecule_design_pool_set_id),
-                       nullable=False),
+                       nullable=False, unique=True),
                 )
     PrimaryKeyConstraint(tbl.c.iso_request_id)
     return tbl

@@ -125,8 +125,8 @@ class Sample(Entity):
                              'and the same concentration.')
         from thelma.models.moleculedesign import MoleculeDesignPool
         mdp = MoleculeDesignPool.create_from_data(
-                            dict(molecule_designs=[mol.molecule_design
-                                                   for mol in mols]))
+                            dict(molecule_designs=set([mol.molecule_design
+                                                       for mol in mols])))
         # Setting attributes outside __init__ pylint: disable=W0201
         concentration = 0
         for sm in self.sample_molecules:

@@ -6,6 +6,7 @@ from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy.schema import CheckConstraint
+from sqlalchemy.schema import UniqueConstraint
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_table']
@@ -21,4 +22,5 @@ def create_table(metadata):
                        CheckConstraint('column_index >= 0'), nullable=False),
                 Column('label', String(4), nullable=False, unique=True),
                 )
+    UniqueConstraint(tbl.c.row_index, tbl.c.column_index)
     return tbl

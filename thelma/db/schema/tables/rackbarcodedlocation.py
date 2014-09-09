@@ -21,7 +21,7 @@ def create_table(metadata, rack_tbl, barcoded_location_tbl):
         Column('barcoded_location_id', Integer,
                ForeignKey(barcoded_location_tbl.c.barcoded_location_id,
                           onupdate='NO ACTION', ondelete='NO ACTION'),
-               nullable=False),
+               nullable=False, unique=True, index=True),
         Column('checkin_date', DateTime(timezone=True), nullable=False),
         )
     return tbl

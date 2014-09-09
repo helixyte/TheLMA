@@ -3,10 +3,12 @@ Container table.
 """
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
+from sqlalchemy import Index
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Table
 from thelma.models.container import CONTAINER_TYPES
+from thelma.automation.semiconstants import ITEM_STATUS_NAMES
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_table']
@@ -32,4 +34,7 @@ def create_table(metadata, container_specs_tbl, item_status_tbl):
                nullable=False, default=CONTAINER_TYPES.CONTAINER
                )
         )
+    Index('stock_container_idx', tbl.c.container_id,
+          postgresql_where=tbl.c.item_status == ITEM_STATUS_NAMES.MANAGED
+                            and tbl.c.container_specs_id == 8)
     return tbl

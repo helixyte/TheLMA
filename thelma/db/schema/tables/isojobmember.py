@@ -17,7 +17,8 @@ def create_table(metadata, job_tbl, iso_tbl):
                 Column('job_id', Integer,
                        ForeignKey(job_tbl.c.job_id), nullable=False),
                 Column('iso_id', Integer,
-                       ForeignKey(iso_tbl.c.iso_id), nullable=False)
+                       ForeignKey(iso_tbl.c.iso_id),
+                       nullable=False, unique=True)
                 )
     PrimaryKeyConstraint(tbl.c.job_id, tbl.c.iso_id)
     return tbl

@@ -18,7 +18,7 @@ def create_table(metadata, experiment_design_rack_tbl, worklist_series_tbl):
                        ForeignKey(experiment_design_rack_tbl.c.\
                                   experiment_design_rack_id,
                                   ondelete='CASCADE', onupdate='CASCADE'),
-                       nullable=False),
+                       nullable=False, unique=True),
                 Column('worklist_series_id', Integer,
                        ForeignKey(worklist_series_tbl.c.worklist_series_id,
                                   ondelete='CASCADE', onupdate='CASCADE'),

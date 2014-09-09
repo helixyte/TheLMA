@@ -15,7 +15,8 @@ def create_table(metadata, species_tbl):
     "Table factory."
     tbl = Table('refseq_gene', metadata,
         Column('gene_id', Integer, primary_key=True),
-        Column('accession', String(32), nullable=False, unique=True),
+        Column('accession', String(32),
+               nullable=False, unique=True, index=True),
         Column('locus_name', String(40), nullable=False, index=True),
         Column('species_id', Integer,
                ForeignKey(species_tbl.c.species_id,

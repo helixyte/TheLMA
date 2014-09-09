@@ -39,8 +39,7 @@ def create_table(metadata, device_tbl):
     "Table factory."
     tbl = Table('barcoded_location', metadata,
         Column('barcoded_location_id', Integer, primary_key=True),
-        Column('barcode', String(8), server_default='barcode',
-               unique=True, index=True),
+        Column('barcode', String(8), server_default='barcode', unique=True),
         Column('name', String, nullable=False, unique=True),
         Column('label', String(128), nullable=False),
         Column('type', String(12), nullable=False),

@@ -437,12 +437,12 @@ class LabIso(Iso):
     #        the ISO job.
     requested_library_plates = None
 
-    def __init__(self, label, number_stock_racks,
+    def __init__(self, label, number_stock_racks, rack_layout,
                  requested_library_plates=None, **kw):
         """
         Constructor
         """
-        Iso.__init__(self, label=label, number_stock_racks=number_stock_racks,
+        Iso.__init__(self, label, number_stock_racks, rack_layout,
                      iso_type=ISO_TYPES.LAB, **kw)
         self.library_plates = []
         self.requested_library_plates = requested_library_plates
@@ -565,9 +565,6 @@ class StockRack(Entity):
         self.rack = rack
         self.rack_layout = rack_layout
         self.worklist_series = worklist_series
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.id == other.id
 
     def __str__(self):
         return self.label

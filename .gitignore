@@ -4,3 +4,6 @@
 .pydevproject
 *.log
 /.externalToolBuilders
+/htmlcov
+.coveragerc
+.coverage

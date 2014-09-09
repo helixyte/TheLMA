@@ -15,6 +15,7 @@ def create_table(metadata):
     "Table factory."
     tbl = Table('organization', metadata,
         Column('organization_id', Integer, primary_key=True),
-        Column('name', String, CheckConstraint('length(name)>0'), unique=True),
+        Column('name', String, CheckConstraint('length(name)>0'),
+               nullable=False, unique=True),
         )
     return tbl

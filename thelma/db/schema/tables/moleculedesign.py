@@ -18,7 +18,7 @@ def create_table(metadata, molecule_type_tbl):
         Column('molecule_type', String(10),
                ForeignKey(molecule_type_tbl.c.molecule_type_id,
                           onupdate='CASCADE', ondelete='RESTRICT'),
-               key='molecule_type_id', nullable=False),
-        Column('structure_hash', String, nullable=False),
+               key='molecule_type_id', nullable=False, index=True),
+        Column('structure_hash', String, nullable=False, unique=True),
         )
     return tbl

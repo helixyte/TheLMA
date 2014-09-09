@@ -20,19 +20,22 @@ def create_table(metadata):
         Table('tag_domain', metadata,
               Column('tag_domain_id', Integer, primary_key=True),
               Column('domain', String,
-                     CheckConstraint('length(domain)>0'), nullable=False),
+                     CheckConstraint('length(domain)>0'),
+                     nullable=False, unique=True),
               )
     tag_predicate_tbl = \
         Table('tag_predicate', metadata,
               Column('tag_predicate_id', Integer, primary_key=True),
               Column('predicate', String,
-                     CheckConstraint('length(predicate)>0'), nullable=False),
+                     CheckConstraint('length(predicate)>0'),
+                     nullable=False, unique=True),
               )
     tag_value_tbl = \
         Table('tag_value', metadata,
               Column('tag_value_id', Integer, primary_key=True),
               Column('value', String,
-                     CheckConstraint('length(value)>0'), nullable=False)
+                     CheckConstraint('length(value)>0'),
+                     nullable=False, unique=True)
               )
     tag_tbl = \
         Table('tag', metadata,

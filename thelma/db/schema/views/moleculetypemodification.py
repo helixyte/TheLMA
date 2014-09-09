@@ -1,9 +1,12 @@
 """
 Molecule modification view.
 """
+from sqlalchemy.sql import and_
 from sqlalchemy.sql import select
+
 from thelma.db.view import view_factory
 from thelma.models.chemicalstructure import CHEMICAL_STRUCTURE_TYPE_IDS
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_view']
@@ -28,8 +31,9 @@ def create_view(metadata, molecule_design_tbl, molecule_design_structure_tbl,
               .join(mds,
                     mds.c.molecule_design_id == md.c.molecule_design_id) \
               .join(chs,
-                  [chs.c.chemical_structure_id == mds.c.chemical_structure_id,
-                   chs.c.structure_type_id ==
-                                CHEMICAL_STRUCTURE_TYPE_IDS.MODIFICATION])
+                    and_(chs.c.chemical_structure_id ==
+                                        mds.c.chemical_structure_id,
+                         chs.c.structure_type_id ==
+                                CHEMICAL_STRUCTURE_TYPE_IDS.MODIFICATION))
              )
     return view_factory(VIEW_NAME, metadata, modification)

@@ -46,12 +46,6 @@ class TubeTransfer(Entity):
         self.target_rack = target_rack
         self.target_position = target_position
 
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.id == other.id
-
-    def __ne__(self, other):
-        return not (self.__eq__(other))
-
     def __str__(self):
         return str(self.id)
 
@@ -96,13 +90,7 @@ class TubeTransferWorklist(Entity):
         return len(self.tube_transfers)
 
     def __iter__(self):
-        return self.tube_transfers
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.id == other.id
-
-    def __ne__(self, other):
-        return not (self.__eq__(other))
+        return iter(self.tube_transfers)
 
     def __str__(self):
         return self.id

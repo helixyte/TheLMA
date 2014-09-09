@@ -1,7 +1,6 @@
 """
 User table.
 """
-from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
 from sqlalchemy import Integer
 from sqlalchemy import String
@@ -16,8 +15,10 @@ def create_table(metadata):
     tbl = Table('db_user', metadata,
         Column('db_user_id', Integer, primary_key=True),
         Column('username', String,
-               CheckConstraint('length(username)>0'), unique=True),
-        Column('directory_user_id', String,
-               CheckConstraint('length(directory_user_id)>0'), unique=True),
+               nullable=False, unique=True),
+        Column('login', String, nullable=False, unique=True),
+        Column('password', String, nullable=False),
+        Column('email_addr', String, nullable=False, unique=True),
+        Column('directory_user_id', String, nullable=False, unique=True),
         )
     return tbl

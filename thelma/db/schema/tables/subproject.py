@@ -10,6 +10,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Table
+from sqlalchemy.schema import UniqueConstraint
 
 __docformat__ = "epytext"
 __all__ = ['create_table']
@@ -20,15 +21,14 @@ def create_table(metadata, project_tbl):
     tbl = Table('subproject', metadata,
                 Column('subproject_id', Integer, primary_key=True),
                 Column('label', String, CheckConstraint('length(label)>0'),
-                       nullable=False, unique=True
-                       ),
+                       nullable=False),
                 Column('project_id', Integer,
                        ForeignKey(project_tbl.c.project_id,
                                   onupdate='CASCADE', ondelete='CASCADE'),
                        nullable=False),
                 Column('creation_date', DateTime(timezone=True),
-                       default=datetime.now),
-                Column('active', Boolean),
-
+                       nullable=False, default=datetime.now),
+                Column('active', Boolean, nullable=False),
                 )
+    UniqueConstraint(tbl.c.project_id, tbl.c.label)
     return tbl

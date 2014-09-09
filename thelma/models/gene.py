@@ -19,21 +19,17 @@ class Gene(Entity):
 
     **Equality Condition**: equal :attr:`accession`
     """
-
-    #: The accession number of that gene.
+    #: Accession number.
     accession = None
-    #: The name of the gene locus.
+    #: Gene locus name.
     locus_name = None
-    #: The species (:class:`thelma.models.species.Species`)
-    #: this gene is taken from.
+    #: Species for this gene (:class:`thelma.models.species.Species`).
     species = None
-    #: A list of molecule designs targeting this gene.
+    #: List of molecule designs targeting this gene.
     #: (:class:`thelma.models.moleculedesign.MoleculeDesign`)
-    #: targeting that gene.
     molecule_designs = []
-    #: A list of molecule design pools targeting this gene.
+    #: List of molecule design pools targeting this gene.
     #: (:class:`thelma.models.moleculedesign.MoleculeDesignPool`)
-    #: targeting that gene.
     molecule_design_pools = []
 
     def __init__(self, accession, locus_name, species,
@@ -56,10 +52,6 @@ class Gene(Entity):
         return slug_from_string(self.accession)
 
     def __eq__(self, other):
-        """Equality operator
-
-        Equality is based on ID only
-        """
         return (isinstance(other, Gene) and self.accession == other.accession)
 
     def __str__(self):

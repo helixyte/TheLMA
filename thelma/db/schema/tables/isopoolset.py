@@ -16,7 +16,7 @@ def create_table(metadata, iso_tbl, iso_pool_set_tbl):
     tbl = Table('iso_pool_set', metadata,
                 Column('iso_id', Integer,
                        ForeignKey(iso_tbl.c.iso_id),
-                       nullable=False),
+                       nullable=False, unique=True),
                 Column('molecule_design_pool_set_id', Integer,
                        ForeignKey(
                             iso_pool_set_tbl.c.molecule_design_pool_set_id),

@@ -98,7 +98,7 @@ class LibraryPlate(Entity):
     #: The plate entity (:class:`thelma.models.rack.Rack`).
     rack = None
     #: The number of the layout this plate contains (a running number
-    #: within the library).
+    #: within the library, starting with 1).
     layout_number = None
     #: Marks whether a plate is still available for experiments.
     has_been_used = None
@@ -107,12 +107,13 @@ class LibraryPlate(Entity):
     lab_iso = None
 
     def __init__(self, molecule_design_library, rack, layout_number,
-                 has_been_used=False, **kw):
+                 has_been_used=False, lab_iso=None, **kw):
         Entity.__init__(self, **kw)
         self.molecule_design_library = molecule_design_library
         self.rack = rack
         self.layout_number = layout_number
         self.has_been_used = has_been_used
+        self.lab_iso = lab_iso
 
     def __str__(self):
         return self.rack

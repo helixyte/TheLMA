@@ -625,9 +625,6 @@ class WorklistSeries(Entity):
             sorted_worklists.append(worklist_map[i])
         return sorted_worklists
 
-    def __eq__(self, other):
-        return (isinstance(other, WorklistSeries) and self.id == other.id)
-
     def __repr__(self):
         str_format = '<%s id: %s, number of worklists: %i>'
         params = (self.__class__.__name__, self.id,
@@ -756,10 +753,11 @@ class ExecutedSampleDilution(ExecutedLiquidTransfer):
         """
         Constructor
         """
-        ExecutedLiquidTransfer.__init__(self, user=user, timestamp=timestamp,
-                                  planned_liquid_transfer=planned_sample_dilution,
-                                  transfer_type=TRANSFER_TYPES.SAMPLE_DILUTION,
-                                  **kw)
+        ExecutedLiquidTransfer.__init__(self, planned_sample_dilution, user,
+                                        timestamp=timestamp,
+                                        transfer_type=
+                                            TRANSFER_TYPES.SAMPLE_DILUTION,
+                                        **kw)
         self.target_container = target_container
         self.reservoir_specs = reservoir_specs
 
@@ -807,10 +805,11 @@ class ExecutedSampleTransfer(ExecutedLiquidTransfer):
         """
         Constructor
         """
-        ExecutedLiquidTransfer.__init__(self, user=user, timestamp=timestamp,
-                                  transfer_type=TRANSFER_TYPES.SAMPLE_TRANSFER,
-                                  planned_liquid_transfer=planned_sample_transfer,
-                                  **kw)
+        ExecutedLiquidTransfer.__init__(self, planned_sample_transfer, user,
+                                        timestamp=timestamp,
+                                        transfer_type=
+                                            TRANSFER_TYPES.SAMPLE_TRANSFER,
+                                        **kw)
         self.source_container = source_container
         self.target_container = target_container
 
@@ -862,12 +861,13 @@ class ExecutedRackSampleTransfer(ExecutedLiquidTransfer):
     def __init__(self, source_rack, target_rack, planned_rack_sample_transfer,
                  user, timestamp=None, **kw):
         """
-        Constructor
+        Constructor.
         """
-        ExecutedLiquidTransfer.__init__(self, user=user, timestamp=timestamp,
-                          transfer_type=TRANSFER_TYPES.RACK_SAMPLE_TRANSFER,
-                          planned_liquid_transfer=planned_rack_sample_transfer,
-                          **kw)
+        ExecutedLiquidTransfer.__init__(self, planned_rack_sample_transfer,
+                                        user, timestamp,
+                                        transfer_type=
+                                          TRANSFER_TYPES.RACK_SAMPLE_TRANSFER,
+                                        **kw)
         self.source_rack = source_rack
         self.target_rack = target_rack
 

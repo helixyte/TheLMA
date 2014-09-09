@@ -1,85 +1,150 @@
 """
 """
-from pytest import fixture # pylint: disable=E0611
+import collections
+from itertools import chain
 
-from thelma.models.rack import RackPosition
-from thelma.models.rack import RackPositionSet
-from thelma.models.rack import rack_shape_from_rows_columns
-from thelma.models.racklayout import RackLayout
-from thelma.models.tagging import Tag
-from thelma.models.tagging import TaggedRackPositionSet
-from thelma.models.user import User
+from _pytest.python import getfixturemarker
+import pytest
+
+from everest.entities.base import Entity
 
 
 __docformat__ = 'reStructuredText en'
 __all__ = []
 
 
-class EntityFactory(object):
-    def __init__(self, entity_generator_func, default_kw):
+class Fixture(object):
+    __count = 0
+    def __init__(self, value_cls, args=None, kw=None):
+        """
+        Constructor.
+
+        :param value_cls: Value class of the fixture.
+        :param tuple args: Positional arguments to pass to the factory.
+        :param dict kw: Keyword arguments to pass to the factory.
+        :note: The positional and keyword arguments may contain references to
+            other :class:`Fixture` objects which will be resolved when the
+            fixture is used for the first time.
+        """
+        #: Counter enabling sorting of fixtures by sequence of instantiation.
+        self.count = Fixture.__count
+        self.value_cls = value_cls
+        if args is None:
+            args = ()
+        self.args = args
+        if kw is None:
+            kw = {}
+        self.kw = kw
+        Fixture.__count += 1
+        self.__resolved = False
+
+    def resolve_parameters(self, request):
+        if (len(self.args) > 0 or len(self.kw) > 0) and not self.__resolved:
+            self.args = self.__resolve_parameters(self.args, request)
+            self.kw = self.__resolve_parameters(self.kw, request)
+            self.__resolved = True
+
+    def __resolve_parameters(self, params, request):
+        if isinstance(params, collections.Mapping):
+            result = dict(self.__resolve_parameters(params.items(), request))
+        else:
+            new_params = []
+            for param in params:
+                if isinstance(param, Fixture):
+                    fixture_func = getattr(request.module, param.name)
+                    new_param = \
+                        request.getfuncargvalue(fixture_func.func_name)
+                else:
+                    if isinstance(param, (list, tuple, set)):
+                        new_param = self.__resolve_parameters(param, request)
+                    elif not getfixturemarker(param) is None:
+                        new_param = request.getfuncargvalue(param.func_name)
+                    else:
+                        new_param = param
+                new_params.append(new_param)
+            result = type(params)(new_params)
+        return result
+
+
+class TestObjectFactory(object):
+    def __init__(self, entity_generator_func, args=None, kw=None):
         self.__entity_generator_func = entity_generator_func
-        self.__default_kw = default_kw
+        if args is None:
+            args = ()
+        self.__init_args = args
+        if kw is None:
+            kw = {}
+        self.__init_kw = kw
+        self.__instances = {}
 
-    def __call__(self, **kw):
-        opts = self.__default_kw.copy()
-        opts.update(kw)
-        return self.__entity_generator_func(**opts)
+    def __call__(self, *args, **kw):
+        _args = args + self.__init_args[len(args):]
+        _kw = self.__init_kw.copy()
+        _kw.update(kw)
+        key = tuple(chain((id(arg) for arg in _args),
+                          ((k, id(v)) for (k, v) in sorted(_kw.items()))))
+        try:
+            obj = self.__instances[key]
+        except KeyError:
+            obj = self.__entity_generator_func(*_args, **_kw)
+            self.__instances[key] = obj
+        return obj
 
+    def new(self, *args, **kw):
+        _args = args + self.__init_args[len(args):]
+        _kw = self.__init_kw.copy()
+        _kw.update(kw)
+        return self.__entity_generator_func(*_args, **_kw)
 
-@fixture
-def entity_fac(): # pylint: disable=W0613
-    return EntityFactory
+    @property
+    def init_args(self):
+        return self.__init_args
 
-
-@fixture
-def rack_shape_fac(entity_fac): # pylint: disable=W0621
-    return entity_fac(rack_shape_from_rows_columns,
-                          dict(number_rows=8, number_columns=12))
-
-
-@fixture
-def tag_fac(entity_fac): # pylint: disable=W0621
-    return entity_fac(Tag,
-                          dict(domain='test_domain',
-                               predicate='test_predicate',
-                               value='test_value'))
-
-
-@fixture
-def rack_position_fac(entity_fac): # pylint: disable=W0621
-    return entity_fac(RackPosition.from_indices,
-                          dict(row_index=0, column_index=0))
-
-
-@fixture
-def rack_position_set_fac(entity_fac, rack_position_fac): # pylint: disable=W0621
-    kw = dict(positions=set([rack_position_fac(row_index=pos[0],
-                                               column_index=pos[1])
-                             for pos in
-                                [(0, 1), (0, 2), (1, 0), (1, 1), (1, 3)]]))
-    return entity_fac(RackPositionSet.from_positions, kw)
+    @property
+    def init_kw(self):
+        return self.__init_kw.copy()
 
 
-@fixture
-def user_fac(entity_fac): # pylint: disable=W0621
-    return entity_fac(User,
-                          dict(username='testuser',
-                               directory_user_id='cenixadm',
-                               user_preferenceses=None))
+@pytest.fixture
+def test_object_fac(): # pylint: disable=W0613
+    return TestObjectFactory
 
 
-@fixture
-def tagged_rack_position_set_fac(
-        entity_fac, tag_fac, rack_position_set_fac, user_fac): # pylint: disable=W0621
-    return entity_fac(TaggedRackPositionSet,
-                          dict(tags=[tag_fac(value='value%d' % cnt)
-                                     for cnt in range(3)],
-                               rack_position_set=rack_position_set_fac(),
-                               user=user_fac()))
+def make_fixture(fixture):
+    @pytest.fixture(scope='function')
+    def func(request, fixture_factory_registry):
+        # Convert fixture parameters (args and kw).
+        fixture.resolve_parameters(request)
+        fac_fixture = fixture_factory_registry.get(fixture.value_cls)
+        if fac_fixture is None:
+            # If there is no factory, we use the specified value class
+            # directly (unless it is an entity subclass in which case we
+            # expect a factory to be registered).
+            if callable(fixture.value_cls) \
+               and not issubclass(fixture.value_cls, Entity):
+                value = fixture.value_cls(*fixture.args, **fixture.kw)
+            else:
+                raise RuntimeError('No factory registered for class %s.'
+                                   % fixture.value_cls)
+        else:
+            fac = request.getfuncargvalue(fac_fixture.func_name)
+            value = fac.new(*fixture.args, **fixture.kw)
+        return value
+    func.func_name = fixture.name
+    return func
 
 
-@fixture
-def rack_layout_fac(entity_fac, rack_shape_fac, tagged_rack_position_set_fac): # pylint: disable=W0621
-    kw = dict(shape=rack_shape_fac(),
-              tagged_rack_position_sets=[tagged_rack_position_set_fac()])
-    return entity_fac(RackLayout, kw)
+def pytest_pycollect_makemodule(path, parent):
+    mod = path.pyimport()
+    fixtures = getattr(mod, 'Fixtures', None)
+    if not fixtures is None:
+        fixture_map = dict([item
+                            for item in fixtures.__dict__.items()
+                            if isinstance(item[-1], Fixture)])
+        for fx_name, fx_inst in sorted(fixture_map.items(),
+                                       key=lambda item: item[-1].count):
+            fx_inst.name = fx_name
+            func = make_fixture(fx_inst)
+            # Make the newly created fixture discoverable by pytest.
+            setattr(mod, fx_name, func)
+    return pytest.Module(path, parent)

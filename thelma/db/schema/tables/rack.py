@@ -2,6 +2,8 @@
 Rack table.
 """
 from datetime import datetime
+
+from sqlalchemy import CHAR
 from sqlalchemy import Column
 from sqlalchemy import DateTime
 from sqlalchemy import ForeignKey
@@ -9,39 +11,21 @@ from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy.schema import DDL
+
+from thelma.db.utils import BarcodeSequence
 from thelma.models.rack import RACK_TYPES
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_table']
 
-
-BARCODE_SEQ_START = 2400000
 
 def _setup_postgres_ddl(table):
     """
     Barcode default for PostgreSQL and a sequence to support the legacy DB
     """
     DDL("""
-        CREATE SEQUENCE barcode_seq START WITH %s;
-        """ % BARCODE_SEQ_START,
-        on='postgres',
-        ).execute_at('after-create', table)
-
-    DDL("""
         ALTER TABLE %(table)s ALTER COLUMN barcode SET DATA TYPE cenix_barcode
-        """,
-        on='postgres'
-        ).execute_at('after-create', table)
-
-    DDL("""
-        ALTER TABLE %(table)s ALTER COLUMN barcode SET NOT NULL;
-        """,
-        on='postgres'
-        ).execute_at('after-create', table)
-
-    DDL("""
-        ALTER TABLE %(table)s ALTER COLUMN barcode SET DEFAULT
-            lpad((nextval('barcode_seq'::regclass))::text, 8, '0'::text)
         """,
         on='postgres'
         ).execute_at('after-create', table)
@@ -73,8 +57,9 @@ def create_table(metadata, item_status_tbl, rack_specs_tbl):
     "Table factory."
     tbl = Table('rack', metadata,
         Column('rack_id', Integer, primary_key=True),
-        Column('barcode', String(8), server_default='barcode',
-               unique=True, index=True),
+        Column('barcode', CHAR, BarcodeSequence('barcode_seq',
+                                                start=2400000),
+               nullable=False, unique=True, index=True),
         Column('creation_date', DateTime(timezone=True), nullable=False,
                default=datetime.now),
         Column('label', String, nullable=False, default=''),

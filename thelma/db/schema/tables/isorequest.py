@@ -18,7 +18,7 @@ def create_table(metadata):
                 Column('iso_request_id', Integer,
                        primary_key=True),
 
-                Column('label', String),
+                Column('label', String, nullable=False),
                 Column('expected_number_isos', Integer,
                        CheckConstraint('expected_number_isos > 0'),
                        nullable=False),
@@ -26,7 +26,7 @@ def create_table(metadata):
                        CheckConstraint('number_aliquots >= 0'),
                        nullable=False),
 
-                Column('owner', String),
+                Column('owner', String, nullable=False),
                 Column('iso_type', String,
                        CheckConstraint(
                          'iso_type IN (\'%s\', \'%s\', \'%s\')'

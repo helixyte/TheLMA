@@ -83,6 +83,10 @@ def check_set_sample_type(target, value, oldvalue, initiator): # pylint: disable
         if target.id is None:
             # We need a sample ID for the following execute statement to work.
             sess.flush()
+        mdp = target.molecule_design_pool
+        if mdp.id is None:
+            sess.add(type(mdp), mdp)
+            sess.flush()
         ss_tbl = class_mapper(StockSample).local_table
         sess.execute(insert(ss_tbl,
                             values=dict(sample_id=target.sample_id,

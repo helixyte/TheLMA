@@ -16,7 +16,6 @@ from thelma.db.schema.tables import executedworklistmember
 from thelma.db.schema.tables import experiment
 from thelma.db.schema.tables import experimentdesign
 from thelma.db.schema.tables import experimentdesignrack
-from thelma.db.schema.tables import experimentdesigntaggedrackpositionset
 from thelma.db.schema.tables import experimentmetadata
 from thelma.db.schema.tables import experimentmetadataisorequest
 from thelma.db.schema.tables import experimentmetadatatype
@@ -266,12 +265,6 @@ def initialize_tables(metadata):
     experiment_rack_tbl = experimentrack.create_table(metadata,
                         experiment_design_rack_tbl, experiment_tbl, rack_tbl)
     # FIXME: add and repair experiment racks#pylint: disable=W0511
-
-    experiment_design_tagged_rack_position_set_tbl = \
-        experimentdesigntaggedrackpositionset.create_table(metadata,
-                                                tagged_rack_position_set_tbl,
-                                                experiment_design_rack_tbl)
-
     worklist_series_iso_request_tbl = worklistseriesisorequest.create_table(
                                 metadata, iso_request_tbl, worklist_series_tbl)
     experiment_metadata_iso_request_tbl = experimentmetadataisorequest.\

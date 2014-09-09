@@ -20,7 +20,7 @@ def create_table(metadata, iso_tbl, rack_tbl):
                 Column('rack_id', Integer,
                        ForeignKey(rack_tbl.c.rack_id,
                                   ondelete='CASCADE', onupdate='CASCADE'),
-                       nullable=False),
+                       nullable=False, unique=True),
                 Column('iso_id', Integer,
                        ForeignKey(iso_tbl.c.iso_id,
                                   ondelete='CASCADE', onupdate='CASCADE'),
