@@ -990,18 +990,19 @@ class MoleculeDesignPoolRegistrar(RegistrationTool):
         new_mdp_hashes = \
                 set(mdpri_hash_map.keys()).difference(existing_mdp_map.keys())
         for new_mdp_hash in new_mdp_hashes:
-            mdpri = mdpri_hash_map[new_mdp_hash]
-            if not mdpri.molecule_design_pool is None:
-                # This is a case where we supplied both design pool ID *and*
-                # structure information in the data file and the two do not
-                # match (i.e., the structures were not found).
-                msg = 'The molecule design pool ID (%s) specified in the ' \
-                      'sample data does not match the design structure ' \
-                      'information associated with it.'
-                self.add_error(msg)
-                continue
-            key = self.__make_new_mdpri_key(mdpri)
-            new_mdpri_map.setdefault(key, []).append(mdpri)
+            mdpris = mdpri_hash_map[new_mdp_hash]
+            for mdpri in mdpris:
+                if not mdpri.molecule_design_pool is None:
+                    # This is a case where we supplied both design pool ID *and*
+                    # structure information in the data file and the two do not
+                    # match (i.e., the structures were not found).
+                    msg = 'The molecule design pool ID (%s) specified in the ' \
+                          'sample data does not match the design structure ' \
+                          'information associated with it.'
+                    self.add_error(msg)
+                    continue
+                key = self.__make_new_mdpri_key(mdpri)
+                new_mdpri_map.setdefault(key, []).append(mdpri)
         if len(new_mdpri_map) > 0:
             new_md_pools = []
             for mdpris in new_mdpri_map.values():
