@@ -20,10 +20,12 @@ def create_table(metadata, user_tbl):
                        ForeignKey(user_tbl.c.db_user_id,
                                   onupdate='CASCADE', ondelete='CASCADE'),
                        nullable=False),
-                Column('app_name', String, CheckConstraint('length(label)>0'),
+                Column('app_name', String,
+                       CheckConstraint('length(app_name)>0'),
                        nullable=False),
-                Column('preferences', String, CheckConstraint('length(preferences)>0'),
-                       nullable=False, unique=True
+                Column('preferences', String,
+                       CheckConstraint('length(preferences)>0'),
+                       nullable=False
                        ),
 
                 )

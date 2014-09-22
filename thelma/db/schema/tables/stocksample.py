@@ -28,7 +28,7 @@ def create_table(metadata, sample_tbl, organization_tbl,
                    nullable=False),
             Column('molecule_type', String(10),
                    ForeignKey(molecule_type_tbl.c.molecule_type_id),
-                   key='molecule_type_id', nullable=False),
+                   key='molecule_type_id', nullable=False, index=True),
             Column('concentration', Float,
                    CheckConstraint('concentration>0.0'), nullable=False),
             )

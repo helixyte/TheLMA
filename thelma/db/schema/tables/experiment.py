@@ -16,7 +16,7 @@ def create_table(metadata, experiment_design_tbl, job_tbl):
     # FIXME: need to retire the old experiment table.
     tbl = Table('new_experiment', metadata,
                 Column('experiment_id', Integer, primary_key=True),
-                Column('label', String, unique=True, nullable=False),
+                Column('label', String, nullable=False),
                 Column('experiment_design_id', Integer,
                        ForeignKey(experiment_design_tbl.c.experiment_design_id),
                        nullable=False),

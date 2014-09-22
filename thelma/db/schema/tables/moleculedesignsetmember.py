@@ -19,7 +19,7 @@ def create_table(metadata, molecule_design_tbl, molecule_design_set_tbl):
                 nullable=False),
             Column('molecule_design_id', Integer,
                    ForeignKey(molecule_design_tbl.c.molecule_design_id),
-                   nullable=False)
+                   nullable=False, index=True)
                 )
     PrimaryKeyConstraint(tbl.c.molecule_design_set_id,
                          tbl.c.molecule_design_id)

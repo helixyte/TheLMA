@@ -54,13 +54,6 @@ class Project(Entity):
         #: :attr:`label`.
         return slug_from_string(self.label)
 
-    def __eq__(self, other):
-        """Equality operator
-
-        Equality is based on ID only
-        """
-        return (isinstance(other, Project) and self.id == other.id)
-
     def __str__(self):
         return self.id
 

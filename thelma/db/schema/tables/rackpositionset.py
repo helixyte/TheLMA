@@ -16,6 +16,7 @@ def create_table(metadata):
     tbl = Table('rack_position_set', metadata,
                 Column('rack_position_set_id', Integer, primary_key=True),
                 Column('hash_value', String,
-                       CheckConstraint('length(hash_value)>0'), nullable=False)
+                       CheckConstraint('length(hash_value)>0'),
+                       nullable=False, unique=True, index=True)
                 )
     return tbl

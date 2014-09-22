@@ -36,10 +36,6 @@ class BarcodedLocationType(Entity):
         return slug_from_string(self.name)
 
     def __eq__(self, other):
-        """Equality operator
-
-        Equality is based on name only
-        """
         return (isinstance(other, BarcodedLocationType) and
                 self.name == other.name)
 
@@ -103,13 +99,6 @@ class BarcodedLocation(Entity):
         #: The slug for instances of this class is derived from the
         #: :attr:`name`.
         return slug_from_string(self.name)
-
-    def __eq__(self, other):
-        """Equality operator
-
-        Equality is based on ID only
-        """
-        return (isinstance(other, BarcodedLocation) and self.id == other.id)
 
     def __str__(self):
         return self.name

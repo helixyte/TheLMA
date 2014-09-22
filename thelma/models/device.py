@@ -43,13 +43,6 @@ class DeviceType(Entity):
         #: :attr:`name`.
         return slug_from_string(self.name)
 
-    def __eq__(self, other):
-        """Equality operator
-
-        Equality is based on ID only
-        """
-        return (isinstance(other, DeviceType) and self.id == other.id)
-
     def __str__(self):
         return self.name
 
@@ -99,13 +92,6 @@ class Device(Entity):
         #: The slug for instances of this class is derived from the
         #: :attr:`name`.
         return slug_from_string(self.name)
-
-    def __eq__(self, other):
-        """Equality operator
-
-        Equality is based on ID only
-        """
-        return (isinstance(other, Device) and self.id == other.id)
 
     def __str__(self):
         return self.name

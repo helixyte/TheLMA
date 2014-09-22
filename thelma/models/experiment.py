@@ -221,10 +221,6 @@ class ExperimentDesign(Entity):
 
         return experiment_jobs
 
-    def __eq__(self, other):
-        return (isinstance(other, ExperimentDesign) \
-                and other.id == self.id)
-
     def __str__(self):
         return self.id
 
@@ -278,10 +274,6 @@ class ExperimentDesignRack(Entity):
 #        for tag in tags_dict.values():
 #            tag_coll.add(tag)
         return tags_dict.values()
-
-    def __eq__(self, other):
-        return (isinstance(other, ExperimentDesignRack) \
-                and other.id == self.id)
 
     def __str__(self):
         return self.id

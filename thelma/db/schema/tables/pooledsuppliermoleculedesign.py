@@ -21,6 +21,6 @@ def create_table(metadata, supplier_molecule_design_tbl,
         Column('molecule_design_set_id', Integer,
                ForeignKey(molecule_design_set_tbl.c.molecule_design_set_id,
                           onupdate='CASCADE', ondelete='CASCADE'),
-               nullable=False),
+               nullable=False, index=True),
         )
     return tbl

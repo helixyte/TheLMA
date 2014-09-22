@@ -118,13 +118,6 @@ class Rack(Entity):
         return isinstance(barcode, basestring) \
                and RACK_BARCODE_REGEXP.match(barcode)
 
-    def __eq__(self, other):
-        """Equality operator
-
-        Equality is based on ID only
-        """
-        return (isinstance(other, Rack) and self.id == other.id)
-
     def __str__(self):
         return self.barcode
 
@@ -262,10 +255,10 @@ class Plate(Rack):
             except StopIteration:
                 break
             else:
-                well = Well.create_from_rack_and_position(specs=c_specs,
-                                                          status=self.status,
-                                                          rack=self,
-                                                          position=rack_pos)
+                well = Well.create_from_rack_and_position(c_specs,
+                                                          self.status,
+                                                          self,
+                                                          rack_pos)
                 containers.append(well)
         self.containers = containers
 
@@ -276,7 +269,7 @@ class RackShape(Entity):
     RackShape instance can easily obtained by the
     :class:`RackShapeFactory`.
 
-    **Equality Condition**: equal :attr:`number_rows` and :attr:`number_columns`
+    **Equality Condition**: equal :attr:`name`
     """
 
     #: Name of the rack shape.
@@ -329,10 +322,6 @@ class RackShape(Entity):
         return self.number_rows * self.number_columns
 
     def __eq__(self, other):
-        """Equality operator
-
-        Equality is based on ID only.
-        """
         return (isinstance(other, RackShape) and self.name == other.name)
 
     def __str__(self):
@@ -427,13 +416,6 @@ class RackSpecs(Entity):
         #: For instances of this class, the slug is derived from the
         #: :attr:`name`.
         return slug_from_string(self.name)
-
-    def __eq__(self, other):
-        """Equality operator
-
-        Equality is based on ID only
-        """
-        return (isinstance(other, RackSpecs) and self.id == other.id)
 
     def __str__(self):
         return self.name
@@ -748,9 +730,6 @@ class RackPositionSet(Entity):
         str_format = '<%s hash value: %s>'
         params = (self.__class__.__name__, self._hash_value)
         return str_format % params
-
-    def __calculate_hash_value(self):
-        self._hash_value = self.encode_rack_position_set(self.positions)
 
 
 class _PositionSetLengthEncoder(BinaryRunLengthEncoder):

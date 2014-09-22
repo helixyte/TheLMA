@@ -42,13 +42,6 @@ class ItemStatus(Entity):
         #: :attr:`name`.
         return slug_from_string(self.name)
 
-    def __eq__(self, other):
-        """Equality operator
-
-        Equality is based on ID only.
-        """
-        return (isinstance(other, ItemStatus) and self.id == other.id)
-
     def __str__(self):
         return self.id
 

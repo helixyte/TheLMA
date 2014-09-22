@@ -25,8 +25,8 @@ def create_table(metadata, organization_tbl, dbuser_tbl):
                        ForeignKey(organization_tbl.c.organization_id,
                                   onupdate='CASCADE', ondelete='RESTRICT'),
                        nullable=False),
-                Column('creation_date', DateTime(timezone=True), default=datetime.now),
-
+                Column('creation_date', DateTime(timezone=True),
+                       nullable=False, default=datetime.now),
                 Column('project_leader_id', Integer,
                        ForeignKey(dbuser_tbl.c.db_user_id),
                        nullable=False),

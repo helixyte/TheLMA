@@ -16,10 +16,10 @@ def create_table(metadata, molecule_design_tbl, chemical_structure_tbl):
         Column('molecule_design_id', Integer,
                ForeignKey(molecule_design_tbl.c.molecule_design_id,
                           onupdate='CASCADE', ondelete='CASCADE'),
-               nullable=False, primary_key=True),
+               nullable=False, primary_key=True, index=True),
         Column('chemical_structure_id', Integer,
                ForeignKey(chemical_structure_tbl.c.chemical_structure_id,
                           onupdate='CASCADE', ondelete='CASCADE'),
-               nullable=False, primary_key=True),
+               nullable=False, primary_key=True, index=True),
         )
     return tbl

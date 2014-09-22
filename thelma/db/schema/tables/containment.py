@@ -18,6 +18,7 @@ def create_table(metadata, container_tbl, rack_tbl):
         Column('holder_id', Integer,
                ForeignKey(rack_tbl.c.rack_id,
                           onupdate='CASCADE', ondelete='CASCADE'),
+               index=True,
                nullable=False),
         Column('held_id', Integer,
                ForeignKey(container_tbl.c.container_id,

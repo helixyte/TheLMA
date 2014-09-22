@@ -17,7 +17,7 @@ def create_table(metadata, iso_request_tbl, worklist_series_tbl):
                 Column('iso_request_id', Integer,
                        ForeignKey(iso_request_tbl.c.iso_request_id,
                                   ondelete='CASCADE', onupdate='CASCADE'),
-                       nullable=False),
+                       nullable=False, unique=True),
                 Column('worklist_series_id', Integer,
                        ForeignKey(worklist_series_tbl.c.worklist_series_id,
                                   ondelete='CASCADE', onupdate='CASCADE'),

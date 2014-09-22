@@ -156,17 +156,6 @@ class Container(Entity):
 
     position = property(__get_position, __set_position)
 
-    def __eq__(self, other):
-        """Equality operator
-
-        Equality is based on ID only
-        """
-        return (isinstance(other, self.__class__) and self.id == other.id)
-
-    def __ne__(self, other):
-        """Inequality operator"""
-        return not (self == other)
-
     def __str__(self):
         return str(self.id)
 
@@ -284,17 +273,6 @@ class ContainerSpecs(Entity):
         #: The slug for instances of this class is derived from the
         #: :attr:`name`.
         return slug_from_string(self.name)
-
-    def __eq__(self, other):
-        """Equality operator
-
-        Equality is based on ID only
-        """
-        return (isinstance(other, ContainerSpecs) and self.id == other.id)
-
-    def __ne__(self, other):
-        """Inequality operator"""
-        return not (self == other)
 
     def __str__(self):
         return self.name

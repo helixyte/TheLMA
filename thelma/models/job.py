@@ -152,7 +152,7 @@ class IsoJob(Job):
     @property
     def iso_request(self):
         """
-        This ISO request this job belongs to.
+        ISO request this job belongs to.
         """
         iso_request = None
         for iso in self.isos:

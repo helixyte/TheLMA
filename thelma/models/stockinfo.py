@@ -56,16 +56,5 @@ class StockInfo(Entity):
         self.maximum_volume = maximum_volume
         self.genes = []
 
-    @property
-    def slug(self):
-        return self.id
-
-    def __eq__(self, other):
-        """Equality operator
-
-        Equality is based on the slug.
-        """
-        return (isinstance(other, StockInfo) and self.slug == other.slug)
-
     def __str__(self):
         return self.slug

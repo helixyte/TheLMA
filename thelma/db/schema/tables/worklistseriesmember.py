@@ -21,7 +21,7 @@ def create_table(metadata, worklist_series_tbl, planned_worklist_tbl):
                        nullable=False),
                 Column('planned_worklist_id', Integer,
                        ForeignKey(planned_worklist_tbl.c.planned_worklist_id),
-                       nullable=False),
+                       nullable=False, unique=True),
                 Column('index', Integer, CheckConstraint('index>=0'),
                        nullable=False)
                 )

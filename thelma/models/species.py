@@ -17,18 +17,17 @@ class Species(Entity):
 
     **Equality Condition**: equal :attr:`name`
     """
-
-    #: The name of genus.
+    #: Genus name.
     genus_name = None
-    #: The name of the Species.
+    #: Species name.
     species_name = None
-    #: The common English name of the species.
+    #: Common English name of the species.
     common_name = None
-    #: An abbreviation.
+    #: Abbreviation.
     acronym = None
-    #: The taxological ID from the NCBI.
+    #: Taxonomic ID from the NCBI.
     ncbi_tax_id = None
-    #: A list of genes (:class:`thelma.models.gene.Genes`)
+    #: List of genes (:class:`thelma.models.gene.Genes`)
     #: stored in the database for this species.
     genes = []
 

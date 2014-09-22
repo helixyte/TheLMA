@@ -17,7 +17,7 @@ def create_table(metadata, rack_tbl, job_tbl, rack_layout_tbl):
                        primary_key=True),
                 Column('rack_id', Integer,
                        ForeignKey(rack_tbl.c.rack_id),
-                       nullable=False),
+                       nullable=False, unique=True),
                 Column('rack_layout_id', Integer,
                        ForeignKey(rack_layout_tbl.c.rack_layout_id,
                                   onupdate='CASCADE', ondelete='CASCADE'),

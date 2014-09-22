@@ -17,17 +17,17 @@ def create_table(metadata, subproject_tbl, experiment_metadata_type_tbl):
     "Table factory."
     tbl = Table('experiment_metadata', metadata,
                 Column('experiment_metadata_id', Integer, primary_key=True),
-                Column('label', String, nullable=False),
+                Column('label', String, nullable=False, unique=True),
                 Column('subproject_id', Integer,
                        ForeignKey(subproject_tbl.c.subproject_id),
                        nullable=False),
                 Column('number_replicates', Integer, nullable=False),
                 Column('creation_date', DateTime(timezone=True),
-                       default=datetime.now),
+                       default=datetime.now, nullable=False),
                 Column('experiment_metadata_type_id', String(10),
                        ForeignKey(experiment_metadata_type_tbl.c.
                                             experiment_metadata_type_id),
                        nullable=False),
-                Column('ticket_number', Integer, nullable=False),
+                Column('ticket_number', Integer, nullable=False, unique=True),
                 )
     return tbl

@@ -20,7 +20,7 @@ def create_table(metadata):
                primary_key=True),
         Column('name', String(20),
                CheckConstraint('length(name)>0'),
-               unique=True),
+               nullable=False, unique=True),
         Column('default_stock_concentration', Float,
                CheckConstraint('default_stock_concentration>0'),
                nullable=False),

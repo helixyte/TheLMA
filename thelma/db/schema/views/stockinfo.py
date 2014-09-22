@@ -3,11 +3,13 @@ Stock info view.
 """
 from sqlalchemy import String
 from sqlalchemy.schema import ForeignKey
+from sqlalchemy.sql import and_
 from sqlalchemy.sql import cast
 from sqlalchemy.sql import func
 from sqlalchemy.sql import literal
 from sqlalchemy.sql import select
 from sqlalchemy.sql.functions import coalesce
+
 from thelma.db.view import view_factory
 
 
@@ -40,22 +42,21 @@ def create_view(metadata, molecule_design_pool_tbl,
             # mdp.c.molecule_type_id is really mdp.c.molecule_type.
             mdp.c.molecule_type_id.label('molecule_type_id'),
             coalesce(ss.c.concentration, 0).label('concentration'),
-            coalesce(func.sum(c.c.container_id), 0).label('total_tubes'),
+            coalesce(func.count(c.c.container_id), 0).label('total_tubes'),
             coalesce(func.sum(s.c.volume), 0).label('total_volume'),
             coalesce(func.min(s.c.volume), 0).label('minimum_volume'),
             coalesce(func.max(s.c.volume), 0).label('maximum_volume')
             ],
-            from_obj=[
+            from_obj=
                 mdp.outerjoin(ss, ss.c.molecule_design_set_id ==
                                         mdp.c.molecule_design_set_id) \
                 .outerjoin(s, s.c.sample_id == ss.c.sample_id) \
                 .outerjoin(c,
-                           [c.c.container_id == s.c.container_id,
-                            c.c.item_status == _STOCK_CONTAINER_ITEM_STATUS])
-                          ]
+                           and_(c.c.container_id == s.c.container_id,
+                                c.c.item_status ==
+                                    _STOCK_CONTAINER_ITEM_STATUS))
                  ).group_by(mdp.c.molecule_design_set_id,
-                            ss.c.concentration,
-                            ss.c.molecule_type_id).alias('ssi')
+                            ss.c.concentration).alias('ssi')
     fkey_mds = ForeignKey(mdp.c.molecule_design_set_id)
     fkey_mds.parent = stock.c.molecule_design_set_id
     stock.c.molecule_design_set_id.foreign_keys.add(fkey_mds)

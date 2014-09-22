@@ -23,6 +23,6 @@ def create_table(metadata, planned_liquid_transfer_tbl, rack_position_tbl):
                        ForeignKey(rack_position_tbl.c.rack_position_id,
                                   onupdate='CASCADE'),
                        nullable=False),
-                Column('diluent_info', String, nullable=True)
+                Column('diluent_info', String, nullable=False)
                 )
     return tbl

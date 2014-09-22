@@ -7,6 +7,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Table
+from sqlalchemy.schema import UniqueConstraint
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_table']
@@ -26,4 +27,6 @@ def create_table(metadata, experiment_design_tbl, rack_layout_tbl):
                        ForeignKey(rack_layout_tbl.c.rack_layout_id),
                        nullable=False),
                 )
+    UniqueConstraint(tbl.c.experiment_design_id, tbl.c.label,
+                     name='unique_label_per_experiment_design')
     return tbl

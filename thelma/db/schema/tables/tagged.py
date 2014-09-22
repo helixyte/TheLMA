@@ -14,7 +14,7 @@ def create_table(metadata):
     "Table factory."
     tbl = Table('tagged', metadata,
                 Column('tagged_id', Integer, primary_key=True),
-                Column('type', String, CheckConstraint('length(label)>0'),
+                Column('type', String, CheckConstraint('length(type)>0'),
                        nullable=False),
                 )
     return tbl

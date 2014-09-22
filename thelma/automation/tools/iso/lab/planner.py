@@ -329,11 +329,11 @@ class LabIsoBuilder(object):
         iso_layouts = dict(prep_layouts, **{LABELS.ROLE_FINAL : final_layout})
         number_stock_racks = self.__distribute_pools_to_iso_stock_racks(
                                                                 iso_layouts)
-        iso = LabIso(label=label,
+        iso = LabIso(label,
+                     number_stock_racks,
+                     final_layout.create_rack_layout(),
                      iso_request=self.iso_request,
-                     number_stock_racks=number_stock_racks,
                      molecule_design_pool_set=pool_set,
-                     rack_layout=final_layout.create_rack_layout(),
                      optimizer_excluded_racks=self._exluded_racks,
                      optimizer_requested_tubes=self._requested_tubes)
         self.__add_final_iso_plates(iso)
@@ -3957,10 +3957,10 @@ class LibraryIsoBuilder(LabIsoBuilder):
         """
         final_layout = self.__make_final_layout()
         prep_layouts = self._complete_iso_preparation_layouts({})
-        iso = LabIso(label=label,
+        iso = LabIso(label,
+                     0,
+                     final_layout.create_rack_layout(),
                      iso_request=self.iso_request,
-                     number_stock_racks=0,
-                     rack_layout=final_layout.create_rack_layout(),
                      optimizer_excluded_racks=self._exluded_racks,
                      optimizer_requested_tubes=self._requested_tubes)
         if len(prep_layouts) > 0:

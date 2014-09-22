@@ -316,9 +316,9 @@ class LabIsoRequestMember(IsoRequestMember):
         # FIXME: We need to figure out what to do her (#563).
         raise NotImplementedError('Not implemented.')
 #        future = get_item_status_future()
-#        new_iso = LabIso(label=iso.label + '_copy',
-#                         number_stock_racks=iso.number_stock_racks,
-#                         rack_layout=iso.rack_layout,
+#        new_iso = LabIso(iso.label + '_copy',
+#                         iso.number_stock_racks,
+#                         iso.rack_layout,
 #                         iso_request=iso.iso_request,
 #                         molecule_design_pool_set=\
 #                                    iso.molecule_design_pool_set,

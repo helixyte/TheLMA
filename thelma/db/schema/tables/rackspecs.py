@@ -30,6 +30,7 @@ def create_table(metadata, organization_tbl, rack_shape_tbl):
         Column('manufacturer_id', Integer,
                ForeignKey(organization_tbl.c.organization_id)),
         Column('rack_shape_name', String,
-               ForeignKey(rack_shape_tbl.c.rack_shape_name)),
+               ForeignKey(rack_shape_tbl.c.rack_shape_name),
+               nullable=False),
         )
     return tbl
