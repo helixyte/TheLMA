@@ -1,6 +1,7 @@
 import pytest
 
 from everest.repositories.rdb.testing import check_attributes
+from everest.tests.fixtures import Fixture
 from thelma.models.container import Container
 from thelma.models.container import ContainerLocation
 from thelma.models.container import ContainerSpecs
@@ -12,7 +13,6 @@ from thelma.models.organization import Organization
 from thelma.models.rack import Plate
 from thelma.models.rack import RackPosition
 from thelma.models.rack import TubeRack
-from thelma.tests.conftest import Fixture
 from thelma.tests.entity.conftest import TestEntityBase
 
 

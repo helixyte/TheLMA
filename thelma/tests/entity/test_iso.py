@@ -5,13 +5,13 @@ import pytest
 from everest.entities.utils import slug_from_string
 from everest.repositories.rdb.testing import check_attributes
 from everest.repositories.rdb.testing import persist
+from everest.tests.fixtures import Fixture
 from thelma.models.iso import Iso
+from thelma.models.iso import IsoPlate
 from thelma.models.iso import IsoRequest
 from thelma.models.iso import StockRack
 from thelma.models.rack import Plate
-from thelma.tests.conftest import Fixture
 from thelma.tests.entity.conftest import TestEntityBase
-from thelma.models.iso import IsoPlate
 
 
 class Fixtures(object):

@@ -1,13 +1,13 @@
 from everest.repositories.rdb.testing import persist
+from everest.tests.fixtures import Fixture
 from thelma.models.rack import RackPosition
 from thelma.models.rack import RackPositionSet
 from thelma.models.racklayout import RackLayout
 from thelma.models.tagging import Tag
 from thelma.models.tagging import TaggedRackPositionSet
-from thelma.tests.conftest import Fixture
-from thelma.tests.entity.conftest import TestEntityBase
 from thelma.tests.entity.conftest \
     import rack_shape_8x12 as rack_shape_8x12_fixture
+from thelma.tests.entity.conftest import TestEntityBase
 
 
 class Fixtures(object):
