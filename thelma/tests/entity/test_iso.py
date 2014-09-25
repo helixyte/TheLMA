@@ -5,19 +5,17 @@ import pytest
 from everest.entities.utils import slug_from_string
 from everest.repositories.rdb.testing import check_attributes
 from everest.repositories.rdb.testing import persist
-from everest.tests.fixtures import Fixture
 from thelma.models.iso import Iso
 from thelma.models.iso import IsoPlate
 from thelma.models.iso import IsoRequest
 from thelma.models.iso import StockRack
-from thelma.models.rack import Plate
 from thelma.tests.entity.conftest import TestEntityBase
 
 
 class Fixtures(object):
-    iso_plate1 = Fixture(Plate, kw=dict(label='iso plate 1'))
-    iso_plate2 = Fixture(Plate, kw=dict(label='iso plate 2'))
-    iso_plate3 = Fixture(Plate, kw=dict(label='iso plate 3'))
+    iso_plate1 = lambda plate_fac: plate_fac(label='iso plate 1')
+    iso_plate2 = lambda plate_fac: plate_fac(label='iso plate 2')
+    iso_plate3 = lambda plate_fac: plate_fac(label='iso plate 3')
 
 
 class TestIsoRequestEntity(TestEntityBase):

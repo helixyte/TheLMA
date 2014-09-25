@@ -1,7 +1,6 @@
 import pytest
 
 from everest.repositories.rdb.testing import check_attributes
-from everest.tests.fixtures import Fixture
 from thelma.models.container import Container
 from thelma.models.container import ContainerLocation
 from thelma.models.container import ContainerSpecs
@@ -9,21 +8,17 @@ from thelma.models.container import Tube
 from thelma.models.container import TubeSpecs
 from thelma.models.container import Well
 from thelma.models.container import WellSpecs
-from thelma.models.organization import Organization
-from thelma.models.rack import Plate
-from thelma.models.rack import RackPosition
-from thelma.models.rack import TubeRack
 from thelma.tests.entity.conftest import TestEntityBase
 
 
 class Fixtures(object):
-    rack_position11 = Fixture(RackPosition,
-                              kw=dict(row_index=1, column_index=1))
-    tube_rack = Fixture(TubeRack)
-    plate = Fixture(Plate)
-    tube_specs = Fixture(TubeSpecs)
-    well_specs = Fixture(WellSpecs)
-    manufacturer = Fixture(Organization)
+    rack_position11 = lambda rack_position_fac: \
+                            rack_position_fac(row_index=1, column_index=1)
+    tube_rack = lambda tube_rack_fac: tube_rack_fac()
+    plate = lambda plate_fac: plate_fac()
+    tube_specs = lambda tube_specs_fac: tube_specs_fac()
+    well_specs = lambda well_specs_fac: well_specs_fac()
+    manufacturer = lambda organization_fac: organization_fac()
 
 
 class TestContainerEntity(TestEntityBase):

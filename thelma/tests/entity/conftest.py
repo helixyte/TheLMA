@@ -1,5 +1,5 @@
 """
-
+pytest fixtures for the entity test suite.
 """
 from pytest import fixture # pylint: disable=E0611
 from pytest import yield_fixture # pylint: disable=E0611
@@ -81,7 +81,6 @@ from thelma.models.rack import Plate
 from thelma.models.rack import PlateSpecs
 from thelma.models.rack import RackPosition
 from thelma.models.rack import RackPositionSet
-from thelma.models.rack import RackShape
 from thelma.models.rack import TubeRack
 from thelma.models.rack import TubeRackSpecs
 from thelma.models.rack import rack_shape_from_rows_columns
@@ -925,25 +924,6 @@ def tube_specs_matrix():
 def user_cenixadm():
     agg = get_root_aggregate(IUser)
     return agg.get_by_slug('cenixadm')
-
-
-@fixture(scope='module')
-def fixture_factory_registry():
-    fr = {}
-    fr[Organization] = organization_fac
-    fr[Plate] = plate_fac
-    fr[RackLayout] = rack_layout_fac
-    fr[RackPosition] = rack_position_fac
-    fr[RackPositionSet] = rack_position_set_fac
-    fr[RackShape] = rack_shape_fac
-    fr[Tag] = tag_fac
-    fr[TaggedRackPositionSet] = tagged_rack_position_set_fac
-    fr[Tube] = tube_fac
-    fr[TubeRack] = tube_rack_fac
-    fr[TubeRackSpecs] = tube_rack_specs_fac
-    fr[TubeSpecs] = tube_specs_fac
-    fr[WellSpecs] = well_specs_fac
-    return fr
 
 
 class SessionContextManager(object):

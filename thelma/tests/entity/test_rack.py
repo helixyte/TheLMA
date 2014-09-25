@@ -2,7 +2,6 @@ import pytest
 
 from everest.repositories.rdb.testing import check_attributes
 from everest.repositories.rdb.testing import persist
-from everest.tests.fixtures import Fixture
 from thelma.models.rack import Rack
 from thelma.models.rack import RackPosition
 from thelma.models.rack import RackSpecs
@@ -10,16 +9,23 @@ from thelma.tests.entity.conftest import TestEntityBase
 
 
 class Fixtures(object):
-    rpos_0_0 = Fixture(RackPosition, kw=dict(row_index=0, column_index=0))
-    rpos_0_1 = Fixture(RackPosition, kw=dict(row_index=0, column_index=1))
-    rpos_0_2 = Fixture(RackPosition, kw=dict(row_index=0, column_index=2))
-    rpos_1_0 = Fixture(RackPosition, kw=dict(row_index=1, column_index=0))
-    rpos_1_1 = Fixture(RackPosition, kw=dict(row_index=1, column_index=1))
-    rpos_1_3 = Fixture(RackPosition, kw=dict(row_index=1, column_index=3))
-    rpos_31_46 = Fixture(RackPosition, kw=dict(row_index=31, column_index=46))
-    rack_positions = Fixture(set,
-                             args=([rpos_0_1, rpos_0_2, rpos_1_0,
-                                    rpos_1_1, rpos_1_3],))
+    rpos_0_0 = lambda rack_position_fac: rack_position_fac(row_index=0,
+                                                           column_index=0)
+    rpos_0_1 = lambda rack_position_fac: rack_position_fac(row_index=0,
+                                                           column_index=1)
+    rpos_0_2 = lambda rack_position_fac: rack_position_fac(row_index=0,
+                                                           column_index=2)
+    rpos_1_0 = lambda rack_position_fac: rack_position_fac(row_index=1,
+                                                           column_index=0)
+    rpos_1_1 = lambda rack_position_fac: rack_position_fac(row_index=1,
+                                                           column_index=1)
+    rpos_1_3 = lambda rack_position_fac: rack_position_fac(row_index=1,
+                                                           column_index=3)
+    rpos_31_46 = lambda rack_position_fac: rack_position_fac(row_index=31,
+                                                           column_index=46)
+    rack_positions = \
+            lambda rpos_0_1, rpos_0_2, rpos_1_0, rpos_1_1, rpos_1_3: \
+                set([rpos_0_1, rpos_0_2, rpos_1_0, rpos_1_1, rpos_1_3])
 
 
 class TestRackEntity(TestEntityBase):
