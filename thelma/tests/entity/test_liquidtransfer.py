@@ -62,16 +62,20 @@ class TestPlannedWorklistEntity(TestEntityBase):
                                     worklist_series_member_fac,
                                     executed_worklist_fac):
         wsm = worklist_series_member_fac()
-        pw = wsm.planned_worklist
-        assert not pw.worklist_series is None
-        assert not pw.index is None
-        assert len(pw.executed_worklists) == 0
-        ewl = executed_worklist_fac(planned_worklist=pw)
-        assert ewl.planned_worklist is pw
-        assert len(pw.executed_worklists) == 1
-        attrs = worklist_series_member_fac.init_kw
-        wsm_from_storage = persist(nested_session, wsm, attrs, True)
-        assert len(wsm_from_storage.planned_worklist.executed_worklists) == 1
+        pwl = wsm.planned_worklist
+        assert not pwl.worklist_series is None
+        assert not pwl.index is None
+        assert len(pwl.executed_worklists) == 0
+        ewl = executed_worklist_fac(planned_worklist=pwl)
+        assert ewl.planned_worklist is pwl
+        assert len(pwl.executed_worklists) == 1
+        attrs = dict(executed_worklists=pwl.executed_worklists,
+                     index=pwl.index,
+                     worklist_series=pwl.worklist_series)
+        pwl_from_storage = persist(nested_session, pwl, attrs, True)
+        assert pwl_from_storage.worklist_series_member == wsm
+#        wsm_from_storage = persist(nested_session, wsm, attrs, True)
+#        assert len(wsm_from_storage.planned_worklist.executed_worklists) == 1
 
 
 class TestWorklistSeriesEntity(TestEntityBase):
@@ -96,10 +100,6 @@ class TestWorklistSeriesMemberEntity(TestEntityBase):
     def test_init(self, worklist_series_member_fac):
         wsm = worklist_series_member_fac()
         check_attributes(wsm, worklist_series_member_fac.init_kw)
-
-    def test_persist(self, nested_session, worklist_series_member_fac):
-        wsm = worklist_series_member_fac()
-        persist(nested_session, wsm, worklist_series_member_fac.init_kw, True)
 
 
 class TestReservoirSpecsEntity(TestEntityBase):
