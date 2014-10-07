@@ -698,6 +698,7 @@ class ExperimentMetadataGenerator(BaseTool):
                 # compliance already; we allow updating untreated positions
                 # in the layout and changing the design pool set.
                 existing_ir = self.experiment_metadata.lab_iso_request
+                existing_ir.label = self._iso_request.label
                 existing_ir.rack_layout = new_iso_rack_layout
                 existing_ir.expected_number_isos = \
                             self._iso_request.expected_number_isos
