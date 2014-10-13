@@ -288,17 +288,19 @@ class ToolCommand(Command):
         rsv = DottedNameResolver(None)
         tool_cls = rsv.resolve(self.__target_class.tool)
         arg_names = [od[1] for od in self.__target_class.option_defs]
-        kw = {}
         # Initializing lazy options. We pass the target class and the
         # options so the callback has access to them.
         opts = self.options # pylint: disable=E1101
-        kw = {}
         for arg_name in arg_names:
             arg_value = getattr(opts, arg_name)
             if isinstance(arg_value, LazyOptionCallback):
                 arg_value = arg_value.initialize(self.__target_class, opts)
                 setattr(opts, arg_name, arg_value)
-            kw[arg_name] = arg_value
+        # We only now do a final loop over the options so that lazy option
+        # callbacks get a chance to set dependent option values.
+        kw = {}
+        for arg_name in arg_names:
+            kw[arg_name] = getattr(opts, arg_name)
         # Remove options that are for command use only.
         for opt in self.parser.option_list:
             if opt.dest in kw and opt.pass_to_tool is False:

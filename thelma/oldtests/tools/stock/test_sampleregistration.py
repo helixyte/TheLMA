@@ -66,7 +66,7 @@ class _SampleRegistrationTestCase(ThelmaResourceTestCase):
 
 
 class SiRnaSampleRegistrationTestCase(_SampleRegistrationTestCase):
-    delivery_file = 'thelma:tests/tools/stock/registration/' \
+    delivery_file = 'thelma:oldtests/tools/stock/registration/' \
                     'ambion_delivery_samples.json'
 
     def test_delivery(self):
@@ -75,7 +75,7 @@ class SiRnaSampleRegistrationTestCase(_SampleRegistrationTestCase):
 
 
 class NewSiRnaSampleRegistrationTestCase(SiRnaSampleRegistrationTestCase):
-    delivery_file = 'thelma:tests/tools/stock/registration/' \
+    delivery_file = 'thelma:oldtests/tools/stock/registration/' \
                     'ambion_delivery_samples_new_only.json'
 
     def _check_registration_data(self, reg_data):
@@ -84,7 +84,7 @@ class NewSiRnaSampleRegistrationTestCase(SiRnaSampleRegistrationTestCase):
 
 
 class PrimerSampleRegistrationTestCase(_SampleRegistrationTestCase):
-    delivery_file = 'thelma:tests/tools/stock/registration/' \
+    delivery_file = 'thelma:oldtests/tools/stock/registration/' \
                     'metabion_delivery_samples.json'
 
     def test_delivery(self):
@@ -101,7 +101,7 @@ class PrimerSampleRegistrationTestCase(_SampleRegistrationTestCase):
 
 
 class DuplicateSampleRegistrationTestCase(_SampleRegistrationTestCase):
-    delivery_file = 'thelma:tests/tools/stock/registration/' \
+    delivery_file = 'thelma:oldtests/tools/stock/registration/' \
                     'ambion_delivery_samples_duplicates.json'
 
     def test_delivery(self):
@@ -114,7 +114,7 @@ class DuplicateSampleRegistrationTestCase(_SampleRegistrationTestCase):
 
 
 class SampleRegistrationWithLocationsTestCase(_SampleRegistrationTestCase):
-    delivery_file = 'thelma:tests/tools/stock/registration/' \
+    delivery_file = 'thelma:oldtests/tools/stock/registration/' \
                     'ambion_delivery_samples_with_locations.json'
 
     def test_delivery(self):
@@ -124,7 +124,7 @@ class SampleRegistrationWithLocationsTestCase(_SampleRegistrationTestCase):
 
 class SampleRegistrationWithInvalidLocationTestCase(
                                                 _SampleRegistrationTestCase):
-    delivery_file = 'thelma:tests/tools/stock/registration/' \
+    delivery_file = 'thelma:oldtests/tools/stock/registration/' \
                     'ambion_delivery_samples_with_locations.json'
 
     def test_delivery(self):
@@ -166,7 +166,7 @@ class _SampleRegistrationWithScanfileTestCase(
 class SampleRegistrationWithValidScanfileTestCase(
                                 _SampleRegistrationWithScanfileTestCase):
 
-    scan_file = 'thelma:tests/tools/stock/registration/' \
+    scan_file = 'thelma:oldtests/tools/stock/registration/' \
                 'valid_delivery_scan_file.txt'
 
     def test_delivery(self):
@@ -199,7 +199,7 @@ class SampleRegistrationWithValidScanfileTestCase(
 class SampleRegistrationWithInvalidScanfileTestCase(
                                 _SampleRegistrationWithScanfileTestCase):
 
-    scan_file = 'thelma:tests/tools/stock/registration/' \
+    scan_file = 'thelma:oldtests/tools/stock/registration/' \
                 'invalid_delivery_scan_file.txt'
 
     def test_delivery(self):
@@ -215,7 +215,7 @@ class SampleRegistrationWithInvalidScanfileTestCase(
 #class SampleRegistrarTestCase(ThelmaResourceTestCase):
 #    def set_up(self):
 #        ThelmaResourceTestCase.set_up(self)
-#        fn = resource_filename(*'thelma:tests/tools/stock/registration/'
+#        fn = resource_filename(*'thelma:oldtests/tools/stock/registration/'
 #                               'pool_registration.json'.split(':'))
 #        coll_cls = get_collection_class(ISampleRegistrationItem)
 #        rpr = as_representer(object.__new__(coll_cls), JsonMime)
