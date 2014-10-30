@@ -7,7 +7,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.expression import and_
 
 from everest.querying.base import EXPRESSION_KINDS
-from everest.repositories.rdb import Aggregate
+from everest.repositories.rdb.aggregate import RdbAggregate as Aggregate
 from everest.utils import get_filter_specification_visitor
 from thelma.models.container import Tube
 from thelma.models.location import BarcodedLocation
@@ -18,6 +18,7 @@ from thelma.models.rack import TubeRack
 from thelma.models.sample import Sample
 from thelma.models.sample import StockSample
 from thelma.models.suppliermoleculedesign import SupplierMoleculeDesign
+
 
 __docformat__ = 'reStructuredText en'
 __author__ = 'F Oliver Gathmann'

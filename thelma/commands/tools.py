@@ -18,7 +18,8 @@ from everest.mime import JsonMime
 from everest.querying.specifications import cntd
 from everest.querying.specifications import eq # pylint: disable=W0611
 from everest.repositories.interfaces import IRepositoryManager
-from everest.repositories.rdb import Session as session_maker
+from everest.repositories.rdb.session \
+    import ScopedSessionMaker as session_maker
 from everest.representers.utils import as_representer
 from everest.resources.interfaces import IMemberResource
 from everest.resources.interfaces import IService
@@ -32,7 +33,6 @@ from thelma.automation.tools.iso.libcreation.report import \
     LibraryCreationTicketWorklistUploader
 from thelma.automation.tools.iso.poolcreation.execution import \
     StockSampleCreationStockTransferReporter
-from thelma.interfaces import IMoleculeDesignPool
 from thelma.automation.tools.iso.poolcreation.writer \
     import StockSampleCreationTicketWorklistUploader
 from thelma.automation.tools.stock.sampleregistration import \
@@ -46,6 +46,7 @@ from thelma.automation.tools.stock.sampleregistration import \
 from thelma.automation.tools.writers import write_zip_archive
 from thelma.interfaces import IIsoJob
 from thelma.interfaces import IMoleculeDesignLibrary
+from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import IPipettingSpecs
 from thelma.interfaces import IPlannedWorklist
 from thelma.interfaces import IRack
