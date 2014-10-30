@@ -8,8 +8,8 @@ from alembic.environment import EnvironmentContext
 from alembic.script import ScriptDirectory
 
 from thelma.db import initialize_schema
-from .util import create_engine
-from .util import parse_config
+from thelma.db.schema.migrations.util import create_engine
+from thelma.db.schema.migrations.util import parse_config
 
 
 __docformat__ = 'reStructuredText en'
