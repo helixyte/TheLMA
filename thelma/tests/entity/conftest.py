@@ -7,7 +7,7 @@ import pytest
 
 from everest.entities.utils import get_root_aggregate
 from everest.entities.utils import slug_from_string
-from everest.repositories.rdb import Session
+from everest.repositories.rdb.session import ScopedSessionMaker as Session
 from everest.repositories.rdb.testing import RdbContextManager
 from thelma.automation.semiconstants import ITEM_STATUS_NAMES
 from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
@@ -23,6 +23,7 @@ from thelma.interfaces import IPlateSpecs
 from thelma.interfaces import IRackShape
 from thelma.interfaces import IReservoirSpecs
 from thelma.interfaces import ISpecies
+from thelma.interfaces import ITubeRackSpecs
 from thelma.interfaces import ITubeSpecs
 from thelma.interfaces import IUser
 from thelma.models.chemicalstructure import CHEMICAL_STRUCTURE_TYPE_IDS
@@ -74,7 +75,9 @@ from thelma.models.location import BarcodedLocationType
 from thelma.models.moleculedesign import CompoundDesign
 from thelma.models.moleculedesign import MoleculeDesignPool
 from thelma.models.moleculedesign import MoleculeDesignPoolSet
+from thelma.models.moleculedesign import MoleculeDesignSet
 from thelma.models.moleculedesign import SiRnaDesign
+from thelma.models.moleculetype import MoleculeType
 from thelma.models.organization import Organization
 from thelma.models.project import Project
 from thelma.models.rack import Plate
@@ -85,23 +88,20 @@ from thelma.models.rack import TubeRack
 from thelma.models.rack import TubeRackSpecs
 from thelma.models.rack import rack_shape_from_rows_columns
 from thelma.models.racklayout import RackLayout
-from thelma.models.subproject import Subproject
-from thelma.models.tagging import Tag
-from thelma.models.tagging import TaggedRackPositionSet
-from thelma.models.moleculedesign import MoleculeDesignSet
-from thelma.models.moleculetype import MoleculeType
-from thelma.interfaces import ITubeRackSpecs
 from thelma.models.sample import Molecule
 from thelma.models.sample import Sample
-from thelma.models.sample import StockSample
 from thelma.models.sample import SampleMolecule
+from thelma.models.sample import StockSample
 from thelma.models.species import Species
 from thelma.models.status import ItemStatus
 from thelma.models.stockinfo import StockInfo
+from thelma.models.subproject import Subproject
+from thelma.models.tagging import Tag
 from thelma.models.tagging import Tagged
+from thelma.models.tagging import TaggedRackPositionSet
 from thelma.models.tubetransfer import TubeTransfer
-from thelma.models.user import User
 from thelma.models.tubetransfer import TubeTransferWorklist
+from thelma.models.user import User
 from thelma.models.user import UserPreferences
 
 
