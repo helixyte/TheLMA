@@ -22,19 +22,18 @@ class RackLayout(Entity):
     #: List of tagged rack position sets.
     tagged_rack_position_sets = None
 
+    __initialized = False
+
     def __init__(self, shape=None, tagged_rack_position_sets=None, **kw):
         Entity.__init__(self, **kw)
         self.shape = shape
         if tagged_rack_position_sets is None:
             tagged_rack_position_sets = []
         self.tagged_rack_position_sets = tagged_rack_position_sets
-        self.__tag_to_positions_map = {}
-        self.__position_to_tags_map = {}
-        self.__all_tags = set()
-        self.__all_positions = set()
-        #
-        for trps in tagged_rack_position_sets:
-            self.__process_tagged_rack_position_set(trps)
+        self.__tag_to_positions_map = None
+        self.__position_to_tags_map = None
+        self.__all_tags = None
+        self.__all_positions = None
 
     def add_tagged_rack_position_set(self, tagged_rack_position_set):
         """
@@ -44,6 +43,8 @@ class RackLayout(Entity):
         @type tagged_rack_position_set:
                 :class:`thelma.models.tagging.TaggedRackPositionSet`
         """
+        if not self.__initialized:
+            self.__initialize()
         self.tagged_rack_position_sets.append(tagged_rack_position_set)
         self.__process_tagged_rack_position_set(tagged_rack_position_set)
 
@@ -53,6 +54,8 @@ class RackLayout(Entity):
 
         :rtype: set of :class:`thelma.models.tagging.Tag`
         """
+        if not self.__initialized:
+            self.__initialize()
         return self.__all_tags
 
     def get_positions(self):
@@ -61,6 +64,8 @@ class RackLayout(Entity):
 
         :rtype: set of :py:class:`thelma.models.rack.RackPosition`
         """
+        if not self.__initialized:
+            self.__initialize()
         return self.__all_positions
 
     def get_tags_for_position(self, position):
@@ -73,6 +78,8 @@ class RackLayout(Entity):
             no tag associated with the given position).
         :rtype: set of :py:class:`thelma.models.tagging.Tag`
         """
+        if not self.__initialized:
+            self.__initialize()
         tags = self.__position_to_tags_map.get(position)
         if tags is None:
             tags = set()
@@ -88,6 +95,8 @@ class RackLayout(Entity):
             no position associated with the given tag).
         :rtype: set of :class:`thelma.models.rack.RackPosition`
         """
+        if not self.__initialized:
+            self.__initialize()
         poss = self.__tag_to_positions_map.get(tag)
         if poss is None:
             poss = set()
@@ -100,6 +109,8 @@ class RackLayout(Entity):
         :return: Test result.
         :rtype: bool
         """
+        if not self.__initialized:
+            self.__initialize()
         return len(self.__all_positions) > 0
 
     def has_tags(self):
@@ -109,6 +120,8 @@ class RackLayout(Entity):
         :return: Test result.
         :rtype: bool
         """
+        if not self.__initialized:
+            self.__initialize()
         return len(self.__all_tags) > 0
 
     def __str__(self):
@@ -119,6 +132,14 @@ class RackLayout(Entity):
         params = (self.__class__.__name__, self.id, self.shape,
                   len(self.tagged_rack_position_sets))
         return str_format % params
+
+    def __initialize(self):
+        self.__all_tags = set()
+        self.__all_positions = set()
+        self.__position_to_tags_map = {}
+        self.__tag_to_positions_map = {}
+        for trps in self.tagged_rack_position_sets:
+            self.__process_tagged_rack_position_set(trps)
 
     def __process_tagged_rack_position_set(self, tagged_rack_position_set):
         tags = tagged_rack_position_set.tags

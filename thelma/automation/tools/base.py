@@ -3,7 +3,7 @@
 :Author: AAB, berger at cenix-bioscience dot com
 """
 
-from everest.repositories.rdb.session import RdbSession as Session
+from everest.repositories.rdb.session import ScopedSessionMaker as Session
 from thelma.automation.messagerecorder import MessageRecorder
 from thelma.automation.semiconstants import clear_semiconstant_caches
 from thelma.automation.semiconstants import initialize_semiconstant_caches
