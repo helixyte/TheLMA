@@ -8,14 +8,9 @@ import glob
 import logging
 import os
 
-from everest.entities.base import Entity
 from everest.entities.utils import get_root_aggregate
 from everest.querying.specifications import cntd
 from everest.querying.specifications import eq
-from everest.resources.base import Member
-from everest.resources.descriptors import collection_attribute
-from everest.resources.descriptors import member_attribute
-from everest.resources.descriptors import terminal_attribute
 from thelma.automation.handlers.rackscanning \
                                     import AnyRackScanningParserHandler
 from thelma.automation.handlers.rackscanning import RackScanningLayout
@@ -26,10 +21,7 @@ from thelma.interfaces import IContainerSpecs
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IMoleculeDesignPool
-from thelma.interfaces import IMoleculeType
-from thelma.interfaces import IOrganization
 from thelma.interfaces import IRack
-from thelma.interfaces import IRackPosition
 from thelma.interfaces import IRackSpecs
 from thelma.interfaces import IStockSample
 from thelma.interfaces import ISupplierMoleculeDesign
@@ -41,219 +33,10 @@ from thelma.models.rack import Plate
 from thelma.models.rack import TubeRack
 from thelma.models.sample import StockSample
 from thelma.models.suppliermoleculedesign import SupplierMoleculeDesign
-from thelma.resources.base import RELATION_BASE_URL
-from zope.interface import Interface # pylint: disable=E0611,F0401
 
 
 __docformat__ = 'reStructuredText en'
 __all__ = []
-
-
-#class Delivery(Entity):
-#    receiver_user = None
-#    receipt_time_stamp = None
-#    registrar_user = None
-#    registration_time_stamp = None
-#    sample_registration_items = None
-
-
-class IMoleculeDesignPoolRegistrationItem(Interface): # pylint: disable=W0232
-    pass
-
-
-class IMoleculeDesignRegistrationItem(Interface): # pylint: disable=W0232
-    pass
-
-
-class ISampleRegistrationItem(Interface): # pylint: disable=W0232
-    pass
-
-
-class ISupplierSampleRegistrationItem(Interface): # pylint: disable=W0232
-    pass
-
-
-class MoleculeDesignRegistrationItemBase(Entity):
-    """
-    Base class for molecule design registration items.
-    """
-    #: Molecule type for the molecule design to register.
-    molecule_type = None
-
-    def __init__(self, molecule_type, **kw):
-        Entity.__init__(self, **kw)
-        self.molecule_type = molecule_type
-
-    @classmethod
-    def create_from_data(cls, data):
-        if not 'molecule_type' in data:
-            # We allow the creation without a molecule type or else we would
-            # have to specify it in each registration item (rather than once
-            # for a whole registrar run).
-            data['molecule_type'] = None
-        return cls(**data)
-
-
-class MoleculeDesignRegistrationItem(MoleculeDesignRegistrationItemBase):
-    """
-    Item in a molecule design registration.
-    """
-    #: Structures for the molecule design to register.
-    chemical_structures = None
-    #: Molecule design to register (set during the registration process).
-    molecule_design = None
-
-    def __init__(self, molecule_type, chemical_structures, **kw):
-        MoleculeDesignRegistrationItemBase.__init__(self, molecule_type, **kw)
-        self.chemical_structures = chemical_structures
-
-
-class MoleculeDesignRegistrationItemMember(Member):
-    relation = "%s/molecule-design-registration-item" % RELATION_BASE_URL
-    molecule_type = member_attribute(IMoleculeType, 'molecule_type')
-    chemical_structures = collection_attribute(IChemicalStructure,
-                                               'chemical_structures')
-
-
-class MoleculeDesignPoolRegistrationItem(MoleculeDesignRegistrationItemBase):
-    """
-    Item in a molecule design pool registration.
-    """
-    #: Molecule designs to register.
-    molecule_design_registration_items = None
-    #: Molecule design pool for the molecule design to register (set during
-    #: the registration process).
-    molecule_design_pool = None
-
-    def __init__(self, molecule_type, molecule_design_registration_items,
-                 **kw):
-        MoleculeDesignRegistrationItemBase.__init__(self, molecule_type, **kw)
-        self.molecule_design_registration_items = \
-                                        molecule_design_registration_items
-
-
-class MoleculeDesignPoolRegistrationItemMember(Member):
-    relation = "%s/molecule-design-pool-registration-item" % RELATION_BASE_URL
-    molecule_type = member_attribute(IMoleculeType, 'molecule_type')
-    molecule_design_registration_items = \
-                collection_attribute(IMoleculeDesignRegistrationItem,
-                                     'molecule_design_registration_items')
-
-
-class SampleData(Entity):
-    #: Supplier for the sample to register.
-    supplier = None
-    #: Concentration for the sample to register.
-    concentration = None
-    #: Volume for the sample to register.
-    volume = None
-    #: Molecule type of the sample to register.
-    molecule_type = None
-    #: The molecule design pool associated with the sample to register.
-    molecule_design_pool = None
-    #: Barcode of the tube containing the sample to register. This is
-    #: ``None`` if the samples are kept in wells.
-    tube_barcode = None
-    #: The barcode of the rack this sample is located in (optional;
-    #: requires `rack_position` to be given as well). If the rack does
-    #: not exist, it is created.
-    rack_barcode = None
-    #: The rack position in the rack this sample is located in (optional;
-    #: requires `rack` to be given as well).
-    rack_position = None
-
-    def __init__(self, supplier, concentration, volume, molecule_type,
-                 molecule_design_pool, tube_barcode=None, rack_barcode=None,
-                 rack_position=None, **kw):
-        Entity.__init__(self, **kw)
-        self.supplier = supplier
-        self.concentration = concentration
-        self.volume = volume
-        self.molecule_type = molecule_type
-        self.molecule_design_pool = molecule_design_pool
-        if (not rack_barcode is None and rack_position is None) \
-           or (not rack_position is None and rack_barcode is None):
-            raise ValueError('If a value for the `rack` parameter is given, '
-                             '`rack_position` needs to be given as well, and '
-                             'vice versa.')
-        self.tube_barcode = tube_barcode
-        self.rack_barcode = rack_barcode
-        self.rack_position = rack_position
-
-    @property
-    def has_rack_location(self):
-        return not self.rack_barcode is None
-
-
-class SampleRegistrationItem(SampleData):
-    """
-    Item in a sample registration.
-    """
-    #: The stock sample created for the sample to register (created during
-    #: the registration process).
-    stock_sample = None
-    #: The container associated with the sample to register (set during the
-    #: registration process).
-    container = None
-
-    def __init__(self, supplier, concentration, volume, molecule_design_pool,
-                 **kw):
-        # For an internal sample registration, the pool is always known in
-        # advance, so we can extract the molecule type from the pool.
-        SampleData.__init__(self, supplier, concentration, volume,
-                            molecule_design_pool.molecule_type,
-                            molecule_design_pool, **kw)
-
-
-class SampleRegistrationItemMember(Member):
-    relation = "%s/sample-registration-item" % RELATION_BASE_URL
-    supplier = member_attribute(IOrganization, 'supplier')
-    concentration = terminal_attribute(float, 'concentration')
-    volume = terminal_attribute(float, 'volume')
-    tube_barcode = terminal_attribute(str, 'tube_barcode')
-    rack_barcode = terminal_attribute(str, 'rack_barcode')
-    rack_position = member_attribute(IRackPosition, 'rack_position')
-    molecule_design_pool = member_attribute(IMoleculeDesignPool,
-                                            'molecule_design_pool')
-
-
-class SupplierSampleRegistrationItem(SampleData):
-    #: Product ID (from the supplier) for the sample to register to
-    #: register.
-    product_id = None
-    #: Molecule design pool information for the sample to register.
-    molecule_design_pool_registration_item = None
-    #: The supplier molecule design associated with the sample to register
-    #: (set during the registration process).
-    supplier_molecule_design = None
-
-    def __init__(self, supplier, product_id, concentration, volume,
-                 molecule_type, molecule_design_pool_registration_item, **kw):
-        # Typically, the molecule design pool is defined by the molecule
-        # design pool registration item; in some cases, we have a pool and
-        # want to make sure we have matching structure information.
-        molecule_design_pool = kw.pop('molecule_design_pool', None)
-        SampleData.__init__(self, supplier, concentration, volume,
-                            molecule_type, molecule_design_pool, **kw)
-        self.supplier = supplier
-        self.product_id = product_id
-        self.molecule_design_pool_registration_item = \
-                            molecule_design_pool_registration_item
-
-
-class SupplierSampleRegistrationItemMember(SampleRegistrationItemMember):
-    relation = "%s/supplier-sample-registration-item" % RELATION_BASE_URL
-    supplier = member_attribute(IOrganization, 'supplier')
-    product_id = terminal_attribute(str, 'product_id')
-    concentration = terminal_attribute(float, 'concentration')
-    volume = terminal_attribute(float, 'volume')
-    tube_barcode = terminal_attribute(str, 'tube_barcode')
-    rack_barcode = terminal_attribute(str, 'rack_barcode')
-    rack_position = member_attribute(IRackPosition, 'rack_position')
-    molecule_type = member_attribute(IMoleculeType, 'molecule_type')
-    molecule_design_pool_registration_item = \
-            member_attribute(IMoleculeDesignPoolRegistrationItem,
-                             'molecule_design_pool_registration_item')
 
 
 class Reporter(object):

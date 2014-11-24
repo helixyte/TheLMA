@@ -201,7 +201,6 @@ class ILabIso(IIso):
     Marker interface indicating participation in lab ISO resources.
     """
 
-
 class IStockSampleCreationIso(IIso):
     """
     Marker interface indication participation of stock sample creation
@@ -301,6 +300,13 @@ class IMoleculeDesign(Interface):
     """
 
 
+class IMoleculeDesignRegistrationItem(Interface):
+    """
+    Marker interface indicating participation in molecule design registration
+    item resources.
+    """
+
+
 class IMoleculeDesignSet(Interface):
     """
     Marker interface indicating participation in the molecule design set
@@ -312,6 +318,13 @@ class IMoleculeDesignPool(IMoleculeDesignSet):
     """
     Marker interface indicating participation in molecule design pool
     resources.
+    """
+
+
+class IMoleculeDesignPoolRegistrationItem(Interface):
+    """
+    Marker interface indicating participation in molecule design pool
+    registration item resources.
     """
 
 
@@ -461,6 +474,20 @@ class ISampleMolecule(Interface):
     """
     Marker interface indicating participation in sample molecule
     resources.
+    """
+
+
+class ISampleRegistrationItem(Interface):
+    """
+    Marker interface indicating participation in sample registration item
+    resources.
+    """
+
+
+class ISupplierSampleRegistrationItem(Interface):
+    """
+    Marker interface indicating participation in supplier sample registration
+    item resources.
     """
 
 

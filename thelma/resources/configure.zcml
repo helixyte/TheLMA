@@ -3111,9 +3111,9 @@
     <!-- SampleRegistrationItem -->
 
     <resource
-        interface="thelma.automation.tools.stock.sampleregistration.ISampleRegistrationItem"
-        member="thelma.automation.tools.stock.sampleregistration.SampleRegistrationItemMember"
-        entity="thelma.automation.tools.stock.sampleregistration.SampleRegistrationItem"
+        interface="thelma.interfaces.ISampleRegistrationItem"
+        member="thelma.resources.sampleregistration.SampleRegistrationItemMember"
+        entity="thelma.models.sampleregistration.SampleRegistrationItem"
         expose="false"
         repository="MEMORY"
     >
@@ -3122,10 +3122,10 @@
     <!-- SupplierSampleRegistrationItem -->
 
     <resource
-        interface="thelma.automation.tools.stock.sampleregistration.ISupplierSampleRegistrationItem"
-        member="thelma.automation.tools.stock.sampleregistration.SupplierSampleRegistrationItemMember"
-        entity="thelma.automation.tools.stock.sampleregistration.SupplierSampleRegistrationItem"
-        expose="false"
+        interface="thelma.interfaces.ISupplierSampleRegistrationItem"
+        member="thelma.resources.sampleregistration.SupplierSampleRegistrationItemMember"
+        entity="thelma.models.sampleregistration.SupplierSampleRegistrationItem"
+        collection_root_name="supplier-sample-registration-items"
         repository="MEMORY"
     >
         <representer content_type="everest.mime.JsonMime">
@@ -3154,9 +3154,9 @@
     <!-- MoleculeDesignRegistrationItem -->
 
     <resource
-        interface="thelma.automation.tools.stock.sampleregistration.IMoleculeDesignRegistrationItem"
-        member="thelma.automation.tools.stock.sampleregistration.MoleculeDesignRegistrationItemMember"
-        entity="thelma.automation.tools.stock.sampleregistration.MoleculeDesignRegistrationItem"
+        interface="thelma.interfaces.IMoleculeDesignRegistrationItem"
+        member="thelma.resources.sampleregistration.MoleculeDesignRegistrationItemMember"
+        entity="thelma.models.sampleregistration.MoleculeDesignRegistrationItem"
         expose="false"
         repository="MEMORY"
     >
@@ -3172,9 +3172,9 @@
     <!-- MoleculeDesignPoolRegistrationItem -->
 
     <resource
-        interface="thelma.automation.tools.stock.sampleregistration.IMoleculeDesignPoolRegistrationItem"
-        member="thelma.automation.tools.stock.sampleregistration.MoleculeDesignPoolRegistrationItemMember"
-        entity="thelma.automation.tools.stock.sampleregistration.MoleculeDesignPoolRegistrationItem"
+        interface="thelma.interfaces.IMoleculeDesignPoolRegistrationItem"
+        member="thelma.resources.sampleregistration.MoleculeDesignPoolRegistrationItemMember"
+        entity="thelma.models.sampleregistration.MoleculeDesignPoolRegistrationItem"
         expose="false"
         repository="MEMORY"
     >
