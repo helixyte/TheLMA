@@ -72,6 +72,7 @@ def parse_config():
     app_config_uri = 'config:%s' % app_ini_file_name
     return appconfig(app_config_uri, 'thelma', relative_to=app_ini_file_dir)
 
+print('STARTING TEST DATABASE CREATION:')
 
 print('Parsing configuration.')
 settings = parse_config()
@@ -276,3 +277,5 @@ run_command(PG_DUMP_CMD)
 
 print('Fixing sequence values.')
 tgt_session.execute(FIX_SEQUENCES_SQL)
+
+print('DONE WITH TEST DATABASE CREATION.')
