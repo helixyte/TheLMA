@@ -33,20 +33,22 @@ from thelma.models.container import ContainerSpecs
 from thelma.models.device import Device
 from thelma.models.device import DeviceType
 from thelma.models.experiment import ExperimentMetadataType
+from thelma.models.liquidtransfer import PipettingSpecs
 from thelma.models.liquidtransfer import ReservoirSpecs
 from thelma.models.moleculetype import MoleculeType
 from thelma.models.organization import Organization
 from thelma.models.project import Project
+from thelma.models.rack import PlateSpecs
 from thelma.models.rack import Rack
 from thelma.models.rack import RackPosition
 from thelma.models.rack import RackShape
 from thelma.models.rack import RackSpecs
 from thelma.models.rack import TubeRack
+from thelma.models.rack import TubeRackSpecs
 from thelma.models.species import Species
 from thelma.models.status import ItemStatus
 from thelma.models.user import User
 from thelma.run import create_config
-from thelma.models.liquidtransfer import PipettingSpecs
 
 
 __docformat__ = 'reStructuredText en'
@@ -183,10 +185,22 @@ class ProjectPreTraverser(EntityTraverser):
         getattr(project_, 'subprojects', None)
 
 
+class PlateSpecsPreTraverser(EntityTraverser):
+    def traverse(self, plate_):
+        getattr(plate_, 'well_specs')
+
+
+class TubeRackSpecsPreTraverser(EntityTraverser):
+    def traverse(self, tube_rack_):
+        getattr(tube_rack_, 'tube_specs')
+
+
 class EntityTransferer(object):
     __pre_trv_map = {Rack:RackPreTraverser,
                      TubeRack:RackPreTraverser,
 #                     Project:ProjectPreTraverser,
+                     PlateSpecs:PlateSpecsPreTraverser,
+                     TubeRackSpecs:TubeRackSpecsPreTraverser
                      }
     __post_trv_map = {}
     def __init__(self, src_sess, tgt_sess):
@@ -265,6 +279,14 @@ rack_bcs = [
             '02503989', # 0 tubes
             '02500565', # 0 tubes
             '02500558', # 0 tubes
+            '02490439', # 0 tubes
+            '02488242', # 0 tubes
+            '02503032', # 0 tubes
+            '02490469', # 0 tubes
+            '02503920', # 0 tubes
+            '02488447', # 0 tubes
+            '02501359', # 0 tubes
+            '02501366', # 0 tubes
             ]
 for rack in rq.filter(Rack.barcode.in_(rack_bcs)).all():
     print ('Transferring rack %s to target database.' % rack.barcode)
@@ -272,10 +294,10 @@ for rack in rq.filter(Rack.barcode.in_(rack_bcs)).all():
 
 tgt_session.commit()
 
-print('Exporting data to SQL file "%s".' % EXPORT_DATA_FILE)
-run_command(PG_DUMP_CMD)
-
 print('Fixing sequence values.')
 tgt_session.execute(FIX_SEQUENCES_SQL)
+
+print('Exporting data to SQL file "%s".' % EXPORT_DATA_FILE)
+run_command(PG_DUMP_CMD)
 
 print('DONE WITH TEST DATABASE CREATION.')

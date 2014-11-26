@@ -13,7 +13,7 @@ import pytz
 import transaction
 
 from everest.mime import AtomMime
-from everest.repositories.rdb import Session
+from everest.repositories.rdb.session import ScopedSessionMaker as Session
 from everest.repositories.rdb.testing import RdbContextManager
 from everest.repositories.rdb.testing import check_attributes
 from everest.repositories.rdb.testing import persist

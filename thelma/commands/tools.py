@@ -35,24 +35,20 @@ from thelma.automation.tools.iso.poolcreation.execution import \
     StockSampleCreationStockTransferReporter
 from thelma.automation.tools.iso.poolcreation.writer \
     import StockSampleCreationTicketWorklistUploader
-from thelma.automation.tools.stock.sampleregistration import \
-    IMoleculeDesignPoolRegistrationItem
-from thelma.automation.tools.stock.sampleregistration import \
-    IMoleculeDesignRegistrationItem
-from thelma.automation.tools.stock.sampleregistration import \
-    ISampleRegistrationItem
-from thelma.automation.tools.stock.sampleregistration import \
-    ISupplierSampleRegistrationItem
 from thelma.automation.tools.writers import write_zip_archive
 from thelma.interfaces import IIsoJob
 from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeDesignPool
+from thelma.interfaces import IMoleculeDesignPoolRegistrationItem
+from thelma.interfaces import IMoleculeDesignRegistrationItem
 from thelma.interfaces import IPipettingSpecs
 from thelma.interfaces import IPlannedWorklist
 from thelma.interfaces import IRack
 from thelma.interfaces import IReservoirSpecs
+from thelma.interfaces import ISampleRegistrationItem
 from thelma.interfaces import IStockSampleCreationIso
 from thelma.interfaces import IStockSampleCreationIsoRequest
+from thelma.interfaces import ISupplierSampleRegistrationItem
 from thelma.interfaces import ITube
 from thelma.interfaces import ITubeTransferWorklist
 from thelma.interfaces import IUser

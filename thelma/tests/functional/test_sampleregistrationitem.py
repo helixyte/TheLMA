@@ -1,11 +1,12 @@
-from everest.mime import JsonMime
-from pyramid.httpexceptions import HTTPCreated
+"""
+Created on Nov 22, 2014.
+"""
 import json
 
+from pyramid.httpexceptions import HTTPCreated
 
-class TestFunctionalBase(object):
-    package_name = 'thelma'
-    app_name = 'thelma'
+from everest.mime import JsonMime
+from thelma.tests.functional.conftest import TestFunctionalBase
 
 
 class TestSampleRegistrationItemFunctional(TestFunctionalBase):
