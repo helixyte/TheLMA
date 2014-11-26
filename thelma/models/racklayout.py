@@ -147,14 +147,14 @@ class RackLayout(Entity):
         for tag in tags:
             tposs = self.__tag_to_positions_map.get(tag)
             if tposs is None:
-                tposs = self.__tag_to_positions_map[tag] = \
-                        poss.positions.copy()
-            tposs.update(poss)
+                self.__tag_to_positions_map[tag] = poss.positions.copy()
+            else:
+                tposs.update(poss)
         self.__all_positions.update(poss)
         for rack_pos in poss:
             rptags = self.__position_to_tags_map.get(rack_pos)
             if rptags is None:
-                rptags = self.__position_to_tags_map[rack_pos] = tags
-            rptags.update(tags)
+                self.__position_to_tags_map[rack_pos] = tags.copy()
+            else:
+                rptags.update(tags)
         self.__all_tags.update(tags)
-
