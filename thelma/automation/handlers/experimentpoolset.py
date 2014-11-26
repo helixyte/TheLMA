@@ -15,7 +15,7 @@ from thelma.automation.handlers.base import BaseParserHandler
 from thelma.automation.parsers.experimentpoolset import ExperimentPoolSetParser
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeDesignPool
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
+from thelma.entities.moleculedesign import MoleculeDesignPoolSet
 
 
 __docformat__ = 'reStructuredText en'

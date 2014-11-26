@@ -1,5 +1,5 @@
 """
-Rack model classes.
+Rack entity classes.
 """
 from everest.entities.base import Entity
 from everest.entities.utils import get_root_aggregate
@@ -8,10 +8,10 @@ from everest.querying.specifications import eq
 from everest.querying.specifications import lt
 from thelma.interfaces import IRackPosition
 from thelma.interfaces import IRackPositionSet
-from thelma.models.container import ContainerLocation
-from thelma.models.container import Well
-from thelma.models.utils import BinaryRunLengthEncoder
-from thelma.models.utils import number_from_label
+from thelma.entities.container import ContainerLocation
+from thelma.entities.container import Well
+from thelma.entities.utils import BinaryRunLengthEncoder
+from thelma.entities.utils import number_from_label
 from thelma.utils import get_utc_time
 import re
 
@@ -65,13 +65,13 @@ class Rack(Entity):
     barcode = None
     # FIXME: rack_specs should be made private/protected
     specs = None
-    #: The location (:class:`thelma.models.location.BarcodedLocation`)
+    #: The location (:class:`thelma.entities.location.BarcodedLocation`)
     #: at which the rack is stored at the moment.
     location = None
-    #: The item status (:class:`thelma.models.status.ItemStatus`) of the rack.
+    #: The item status (:class:`thelma.entities.status.ItemStatus`) of the rack.
     status = None
     #: A list of container (currently) present in the rack
-    #: (:class:`thelma.models.container.Container`).
+    #: (:class:`thelma.entities.container.Container`).
     #: This is mapped automatically by SQLAlchemy ORM.
     containers = None
     total_containers = None
@@ -133,7 +133,7 @@ class Rack(Entity):
 class TubeRack(Rack):
     """
     This class represents tube racks (racks harboring movable,
-    barcoded tubes (:class:`thelma.models.container.Tube`)).
+    barcoded tubes (:class:`thelma.entities.container.Tube`)).
     """
 
     def __init__(self, label, specs, status, **kw):
@@ -155,7 +155,7 @@ class TubeRack(Rack):
         Checks if the given position is empty (i.e., does not have a tube).
 
         :param position: position to check
-        :type position: `thelma.models.RackPosition`
+        :type position: `thelma.entities.RackPosition`
         """
         return not self.container_locations.has_key(position)
 
@@ -165,9 +165,9 @@ class TubeRack(Rack):
         position (both on this rack).
 
         :param start_position: position to move from
-        :type start_position: `thelma.models.RackPosition`
+        :type start_position: `thelma.entities.RackPosition`
         :param dest_position: position to move to
-        :type dest_position: `thelma.models.RackPosition`
+        :type dest_position: `thelma.entities.RackPosition`
         :raises ValueError: if the given start position is empty or the given
           destination position is not empty.
         """
@@ -186,9 +186,9 @@ class TubeRack(Rack):
         Adds the given tube to the given position on this rack.
 
         :param tube: tube to add
-        :type tube: `thelma.models.container.Tube`
+        :type tube: `thelma.entities.container.Tube`
         :param position: position to place the tube at
-        :type position: `thelma.models.RackPosition`
+        :type position: `thelma.entities.RackPosition`
         :raises ValueError: If the given tube already has a location (only
           floating tubes can be added to a rack) or if the given position
           is already occupied.
@@ -211,7 +211,7 @@ class TubeRack(Rack):
         Removes the given tube from this rack.
 
         :param tube: tube to remove
-        :type tube: `thelma.models.container.Tube`
+        :type tube: `thelma.entities.container.Tube`
         :raises ValueError: If the given tube does not have a location or
           has a location that is not on this rack.
         """
@@ -231,7 +231,7 @@ class TubeRack(Rack):
 class Plate(Rack):
     """
     This class represents plate racks (racks harboring immobile,
-    unbarcoded wells (:class:`thelma.models.container.Well`)).
+    unbarcoded wells (:class:`thelma.entities.container.Well`)).
     """
 
     def __init__(self, label, specs, status, **kw):
@@ -385,7 +385,7 @@ class RackSpecs(Entity):
     #: :class:`Plate` instances).
     has_tubes = None
     #: The manufacturer of this type of racks
-    #: (:class:`thelma.models.organization.Organization`).
+    #: (:class:`thelma.entities.organization.Organization`).
     manufacturer = None
     # FIXME: number_rows + number_columns are redundant # pylint:disable=W0511
     #: The number of rows of these rack specs.
@@ -632,7 +632,7 @@ class RackPositionSet(Entity):
     derived from the underlying (immutable) set of rack positions.
 
     Rack position sets are used by, for instance,
-    :class:`thelma.models.tagging.TaggedRackPositionSet`.
+    :class:`thelma.entities.tagging.TaggedRackPositionSet`.
     """
     #: The rack positions (:class:`RackPosition`) as set - immutable.
     _positions = None

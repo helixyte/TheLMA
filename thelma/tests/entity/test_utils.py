@@ -1,5 +1,5 @@
-from thelma.models.utils import label_from_number
-from thelma.models.utils import number_from_label
+from thelma.entities.utils import label_from_number
+from thelma.entities.utils import number_from_label
 
 
 class TestLabelFromNumber(object):

@@ -31,8 +31,8 @@ from thelma.automation.tools.metadata.worklist import _ReagentWorklistGenerator
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeType
 from thelma.interfaces import IUser
-from thelma.models.liquidtransfer import PlannedWorklist
-from thelma.models.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.liquidtransfer import PlannedWorklist
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
 from thelma.oldtests.tools.tooltestingutils import FileReadingTestCase
 
 

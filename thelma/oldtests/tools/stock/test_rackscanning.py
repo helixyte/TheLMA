@@ -24,10 +24,10 @@ from thelma.interfaces import IPlateSpecs
 from thelma.interfaces import IRack
 from thelma.interfaces import ITubeRackSpecs
 from thelma.interfaces import ITubeSpecs
-from thelma.models.container import ContainerLocation
-from thelma.models.container import Tube
-from thelma.models.rack import TubeRack
-from thelma.models.utils import get_user
+from thelma.entities.container import ContainerLocation
+from thelma.entities.container import Tube
+from thelma.entities.rack import TubeRack
+from thelma.entities.utils import get_user
 from thelma.oldtests.tools.tooltestingutils import FileCreatorTestCase
 
 

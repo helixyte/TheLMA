@@ -3,10 +3,10 @@ Molecule design set mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.moleculedesign import MOLECULE_DESIGN_SET_TYPES
-from thelma.models.moleculedesign import MoleculeDesign
-from thelma.models.moleculedesign import MoleculeDesignSetBase
-from thelma.models.sample import StockSample
+from thelma.entities.moleculedesign import MOLECULE_DESIGN_SET_TYPES
+from thelma.entities.moleculedesign import MoleculeDesign
+from thelma.entities.moleculedesign import MoleculeDesignSetBase
+from thelma.entities.sample import StockSample
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

@@ -6,8 +6,8 @@ from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import column_property
 from sqlalchemy.orm import relationship
 from thelma.db.mappers.utils import CaseInsensitiveComparator
-from thelma.models.user import User
-from thelma.models.user import UserPreferences
+from thelma.entities.user import User
+from thelma.entities.user import UserPreferences
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

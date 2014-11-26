@@ -21,10 +21,10 @@
 #from thelma.automation.tools.libcreation.writer \
 #    import LibraryCreationWorklistWriter
 #from thelma.interfaces import IOrganization
-#from thelma.models.library import LibraryCreationIso
-#from thelma.models.racklayout import RackLayout
-#from thelma.models.sample import Molecule
-#from thelma.models.utils import get_user
+#from thelma.entities.library import LibraryCreationIso
+#from thelma.entities.racklayout import RackLayout
+#from thelma.entities.sample import Molecule
+#from thelma.entities.utils import get_user
 #from thelma.oldtests.tools.iso.test_uploadreport import StockTransferReportTestCase
 #from thelma.oldtests.tools.libcreation.test_execution \
 #    import LibraryCreationExecutorBaseTestCase

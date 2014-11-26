@@ -5,8 +5,8 @@ AAB
 """
 from thelma.automation.tools.experiment.manual import ExperimentManualExecutor
 from thelma.automation.tools.metadata.base import TransfectionLayoutConverter
-from thelma.models.racklayout import RackLayout
-from thelma.models.utils import get_user
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.utils import get_user
 from thelma.oldtests.tools.experiment.utils import EXPERIMENT_TEST_DATA
 from thelma.oldtests.tools.experiment.utils import ExperimentTestCase
 

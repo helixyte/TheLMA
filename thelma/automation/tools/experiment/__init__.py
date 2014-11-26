@@ -27,10 +27,10 @@ def get_manual_executor(experiment, user, **kw):
 
     :param experiment: The experiment for which to generate the BioMek
         worklists.
-    :type experiment: :class:`thelma.models.experiment.Experiment`
+    :type experiment: :class:`thelma.entities.experiment.Experiment`
 
     :param user: The user who has committed the update.
-    :type user: :class:`thelma.models.user.User`
+    :type user: :class:`thelma.entities.user.User`
     """
     kw.update(dict(experiment=experiment, user=user))
     return ExperimentManualExecutor(**kw)
@@ -42,7 +42,7 @@ def get_writer(experiment, **kw):
     Invokes :func:`get_experiment_writer`.
 
     :param experiment: The experiment for which to generate the robot worklists.
-    :type experiment: :class:`thelma.models.experiment.Experiment`
+    :type experiment: :class:`thelma.entities.experiment.Experiment`
     """
     return get_experiment_writer(experiment=experiment, **kw)
 
@@ -53,10 +53,10 @@ def get_executor(experiment, user, **kw):
     Invokes :func:`get_experiment_executor`.
 
     :param experiment: The experiment for which to generate the robot worklists.
-    :type experiment: :class:`thelma.models.experiment.Experiment`
+    :type experiment: :class:`thelma.entities.experiment.Experiment`
 
     :param user: The user who conducts the DB update.
-    :type user: :class:`thelma.models.user.User`
+    :type user: :class:`thelma.entities.user.User`
     """
     return get_experiment_executor(experiment=experiment, user=user, **kw)
 
@@ -68,10 +68,10 @@ def get_batch_manual_executor(experiments, user, **kw):
 
     :param experiments: A list of experiments that all belong to the
         same experiment design.
-    :type experiments: :class:`list` of :class:`thelma.models.job.Experiment`
+    :type experiments: :class:`list` of :class:`thelma.entities.job.Experiment`
 
     :param user: The user who has committed the update.
-    :type user: :class:`thelma.models.user.User`
+    :type user: :class:`thelma.entities.user.User`
     """
     kw.update(dict(experiments=experiments, user=user))
     return ExperimentBatchManualExecutor(**kw)
@@ -84,7 +84,7 @@ def get_batch_writer(experiments, **kw):
 
     :param experiments: A list of experiments that all belong to the
         same experiment design.
-    :type experiments: :class:`list` of :class:`thelma.models.job.Experiment`
+    :type experiments: :class:`list` of :class:`thelma.entities.job.Experiment`
     """
     kw.update(dict(experiments=experiments))
     return ExperimentBatchWorklistWriter(**kw)
@@ -97,9 +97,9 @@ def get_batch_executor(experiments, user, **kw):
 
     :param experiments: A list of experiments that all belong to the
         same experiment design.
-    :type experiments: :class:`list` of :class:`thelma.models.job.Experiment`
+    :type experiments: :class:`list` of :class:`thelma.entities.job.Experiment`
 
     :param user: The user who has committed the update.
-    :type user: :class:`thelma.models.user.User`
+    :type user: :class:`thelma.entities.user.User`
     """
     return ExperimentBatchExecutor(experiments, user, **kw)

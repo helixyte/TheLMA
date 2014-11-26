@@ -3,7 +3,7 @@ Item status mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from everest.repositories.rdb.utils import as_slug_expression
-from thelma.models.status import ItemStatus
+from thelma.entities.status import ItemStatus
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

@@ -26,10 +26,10 @@ from thelma.automation.tools.iso.poolcreation.base import VolumeCalculator
 from thelma.automation.tools.iso.poolcreation.tubepicking \
     import StockSampleCreationTubePicker
 from thelma.automation.tools.stock.base import get_default_stock_concentration
-from thelma.models.iso import ISO_STATUS
-from thelma.models.iso import ISO_TYPES
-from thelma.models.iso import StockSampleCreationIso
-from thelma.models.racklayout import RackLayout
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.iso import ISO_TYPES
+from thelma.entities.iso import StockSampleCreationIso
+from thelma.entities.racklayout import RackLayout
 
 __docformat__ = 'reStructuredText en'
 
@@ -275,7 +275,7 @@ class StockSampleCreationIsoJobCreator(IsoJobCreator):
     """
     ISO job creator for stock samples creation ISOs.
 
-    **Return Value:** :class:`thelma.models.job.IsoJob` with all populated
+    **Return Value:** :class:`thelma.entities.job.IsoJob` with all populated
         ISOs
     """
 

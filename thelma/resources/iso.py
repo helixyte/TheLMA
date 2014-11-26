@@ -39,10 +39,10 @@ from thelma.interfaces import IRack
 from thelma.interfaces import IRackLayout
 from thelma.interfaces import IStockRack
 from thelma.interfaces import IUser
-from thelma.models.experiment import EXPERIMENT_METADATA_TYPES
-from thelma.models.iso import ISO_STATUS
-from thelma.models.iso import ISO_TYPES
-from thelma.models.utils import get_current_user
+from thelma.entities.experiment import EXPERIMENT_METADATA_TYPES
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.iso import ISO_TYPES
+from thelma.entities.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
 from thelma.utils import run_tool
 from thelma.utils import run_trac_tool

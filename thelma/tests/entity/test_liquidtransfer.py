@@ -5,7 +5,7 @@ import pytest
 from everest.entities.utils import slug_from_string
 from everest.repositories.rdb.testing import check_attributes
 from everest.repositories.rdb.testing import persist
-from thelma.models.liquidtransfer import PlannedLiquidTransfer
+from thelma.entities.liquidtransfer import PlannedLiquidTransfer
 from thelma.tests.entity.conftest import TestEntityBase
 
 
@@ -158,7 +158,7 @@ class TestExecutedLiquidTransferEntity(TestEntityBase):
         persist(nested_session, elt, fac.init_kw, True)
 
 
-class TestExecutedWorklistModelTest(TestEntityBase):
+class TestExecutedWorklistEntity(TestEntityBase):
 
     def test_init(self, executed_worklist_fac):
         ewl = executed_worklist_fac()

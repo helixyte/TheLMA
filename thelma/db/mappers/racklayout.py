@@ -3,9 +3,9 @@ Rack layout mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.rack import RackShape
-from thelma.models.racklayout import RackLayout
-from thelma.models.tagging import TaggedRackPositionSet
+from thelma.entities.rack import RackShape
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.tagging import TaggedRackPositionSet
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

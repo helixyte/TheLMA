@@ -5,11 +5,11 @@ from everest.repositories.rdb.utils import mapper
 from sqlalchemy import event
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.session import object_session
-from thelma.models.gene import Gene
-from thelma.models.moleculedesign import MOLECULE_DESIGN_SET_TYPES
-from thelma.models.moleculedesign import MoleculeDesignPool
-from thelma.models.moleculetype import MoleculeType
-from thelma.models.suppliermoleculedesign import SupplierMoleculeDesign
+from thelma.entities.gene import Gene
+from thelma.entities.moleculedesign import MOLECULE_DESIGN_SET_TYPES
+from thelma.entities.moleculedesign import MoleculeDesignPool
+from thelma.entities.moleculetype import MoleculeType
+from thelma.entities.suppliermoleculedesign import SupplierMoleculeDesign
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

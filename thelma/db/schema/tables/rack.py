@@ -13,7 +13,7 @@ from sqlalchemy import Table
 from sqlalchemy.schema import DDL
 
 from thelma.db.utils import BarcodeSequence
-from thelma.models.rack import RACK_TYPES
+from thelma.entities.rack import RACK_TYPES
 
 
 __docformat__ = 'reStructuredText en'

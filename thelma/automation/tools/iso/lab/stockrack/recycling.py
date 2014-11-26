@@ -22,7 +22,7 @@ from thelma.automation.utils.base import get_nested_dict
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import is_smaller_than
 from thelma.automation.utils.racksector import RackSectorTranslator
-from thelma.models.sample import StockSample
+from thelma.entities.sample import StockSample
 
 __docformat__ = 'reStructuredText en'
 

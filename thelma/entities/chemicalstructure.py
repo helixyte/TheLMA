@@ -1,5 +1,5 @@
 """
-Chemical structure model classes.
+Chemical structure entity classes.
 """
 from everest.entities.base import Entity
 from everest.entities.utils import get_root_aggregate
@@ -7,8 +7,8 @@ from everest.entities.utils import slug_from_string
 from everest.querying.specifications import cntd
 from thelma.interfaces import IChemicalStructureType
 from thelma.interfaces import IMoleculeType
-from thelma.models.cacheloaderregistry import cache_loader_registry
-from thelma.models.moleculetype import MOLECULE_TYPE_IDS
+from thelma.entities.cacheloaderregistry import cache_loader_registry
+from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
 import re
 
 __docformat__ = 'reStructuredText en'
@@ -105,7 +105,7 @@ class ChemicalStructure(Entity):
     (structure type, representation).
     """
     #: ID of the chemical structure type (one of the attributes of
-    #: :class:`thelma.models.chemicalstructure.CHEMICAL_STRUCTURE_TYPE_IDS`).
+    #: :class:`thelma.entities.chemicalstructure.CHEMICAL_STRUCTURE_TYPE_IDS`).
     structure_type_id = None
     #: Representation string for the structure.
     representation = None

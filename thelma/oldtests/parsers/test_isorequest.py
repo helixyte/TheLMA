@@ -23,9 +23,9 @@ from thelma.automation.utils.layouts import FLOATING_POSITION_TYPE
 from thelma.automation.utils.layouts import LIBRARY_POSITION_TYPE
 from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
 from thelma.automation.utils.layouts import UNTRANSFECTED_POSITION_TYPE
-from thelma.models.iso import LabIsoRequest
-from thelma.models.library import MoleculeDesignLibrary
-from thelma.models.utils import get_user
+from thelma.entities.iso import LabIsoRequest
+from thelma.entities.library import MoleculeDesignLibrary
+from thelma.entities.utils import get_user
 from thelma.oldtests.tools.tooltestingutils import ParsingTestCase
 
 

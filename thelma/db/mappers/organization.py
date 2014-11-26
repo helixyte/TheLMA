@@ -5,7 +5,7 @@ from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import column_property
 from thelma.db.mappers.utils import CaseInsensitiveComparator
-from thelma.models.organization import Organization
+from thelma.entities.organization import Organization
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

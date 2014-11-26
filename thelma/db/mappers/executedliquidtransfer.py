@@ -3,10 +3,10 @@ Executed liquid transfer mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.liquidtransfer import ExecutedLiquidTransfer
-from thelma.models.liquidtransfer import PlannedLiquidTransfer
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.user import User
+from thelma.entities.liquidtransfer import ExecutedLiquidTransfer
+from thelma.entities.liquidtransfer import PlannedLiquidTransfer
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.user import User
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

@@ -40,7 +40,7 @@ class LibraryBaseLayoutParserHandler(LayoutParserHandler):
     def _convert_results_to_entity(self):
         """
         Converts the parsing results into a :class:`LibraryBaseLayout`
-        (no model class).
+        (no entity class).
         """
         self.add_info('Convert parser results ...')
         if not self.has_errors():

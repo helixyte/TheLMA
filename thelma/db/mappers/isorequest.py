@@ -5,11 +5,11 @@ from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import column_property
 from sqlalchemy.orm import relationship
 from thelma.db.mappers.utils import CaseInsensitiveComparator
-from thelma.models.iso import ISO_TYPES
-from thelma.models.iso import Iso
-from thelma.models.iso import IsoRequest
-from thelma.models.liquidtransfer import WorklistSeries
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
+from thelma.entities.iso import ISO_TYPES
+from thelma.entities.iso import Iso
+from thelma.entities.iso import IsoRequest
+from thelma.entities.liquidtransfer import WorklistSeries
+from thelma.entities.moleculedesign import MoleculeDesignPoolSet
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

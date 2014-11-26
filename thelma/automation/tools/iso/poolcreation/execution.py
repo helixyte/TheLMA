@@ -30,9 +30,9 @@ from thelma.automation.tools.writers import CsvWriter
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.base import get_trimmed_string
-from thelma.models.iso import ISO_STATUS
-from thelma.models.iso import StockSampleCreationIso
-from thelma.models.liquidtransfer import ExecutedWorklist
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.iso import StockSampleCreationIso
+from thelma.entities.liquidtransfer import ExecutedWorklist
 
 
 __docformat__ = 'reStructuredText en'
@@ -64,9 +64,9 @@ class StockSampleCreationIsoExecutor(StockTransferWriterExecutor):
 
         :param iso: The stock sample creation ISO for which to execute the
             worklists.
-        :type iso: :class:`thelma.models.iso.StockSampleCreationIso`
+        :type iso: :class:`thelma.entities.iso.StockSampleCreationIso`
         :param user: The user conducting the execution.
-        :type user: :class:`thelma.models.user.User`
+        :type user: :class:`thelma.entities.user.User`
         """
         StockTransferWriterExecutor.__init__(self, user=user, entity=iso,
                             mode=StockTransferWriterExecutor.MODE_EXECUTE, **kw)

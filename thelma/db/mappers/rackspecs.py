@@ -9,10 +9,10 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import case
 from sqlalchemy.sql import literal
 from sqlalchemy.sql import select
-from thelma.models.organization import Organization
-from thelma.models.rack import RACK_SPECS_TYPES
-from thelma.models.rack import RackShape
-from thelma.models.rack import RackSpecs
+from thelma.entities.organization import Organization
+from thelma.entities.rack import RACK_SPECS_TYPES
+from thelma.entities.rack import RackShape
+from thelma.entities.rack import RackSpecs
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

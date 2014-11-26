@@ -24,9 +24,9 @@ from thelma.automation.tools.worklists.tubehandler import XL20Executor
 from thelma.interfaces import ITubeRack
 from thelma.interfaces import ITubeRackSpecs
 from thelma.interfaces import ITubeSpecs
-from thelma.models.container import Tube
-from thelma.models.iso import ISO_TYPES
-from thelma.models.iso import StockSampleCreationIsoRequest
+from thelma.entities.container import Tube
+from thelma.entities.iso import ISO_TYPES
+from thelma.entities.iso import StockSampleCreationIsoRequest
 from thelma.tests.functional.conftest import TestFunctionalBase
 
 

@@ -256,7 +256,7 @@ def get_experiment_writer(experiment, parent=None, **kw):
     in printing mode.
 
     :param experiment: The experiment for which to generate the robot worklists.
-    :type experiment: :class:`thelma.models.experiment.Experiment`
+    :type experiment: :class:`thelma.entities.experiment.Experiment`
     :param parent: The parent tool.
     :type parent: :class:`thelma.automation.tools.base.BaseTool`
     :default parent: *None*
@@ -271,9 +271,9 @@ def get_experiment_executor(experiment, user, parent=None, **kw):
     in execution mode.
 
     :param experiment: The experiment to execute.
-    :type experiment: :class:`thelma.models.experiment.Experiment`
+    :type experiment: :class:`thelma.entities.experiment.Experiment`
     :param user: The user who conducts the DB update.
-    :type user: :class:`thelma.models.user.User`
+    :type user: :class:`thelma.entities.user.User`
     :param parent: The parent tool.
     :type parent: :class:`thelma.automation.tools.base.BaseTool`
     :default parent: *None*

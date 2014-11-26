@@ -14,7 +14,7 @@ retrieving, adding and removing entities.
 The actual work is delegated to an instance of to allow for
 runtime selection of :ref:`implementations <implementations>`.
 
-.. currentmodule:: thelma.models.aggregates
+.. currentmodule:: thelma.entities.aggregates
 
 Aggregates and Aggregate Interfaces
 ...................................
@@ -32,7 +32,7 @@ attributes:
       The default aggregate mplementation (:class:`AggregateImpl`)
       for this aggregate class.
 
-.. currentmodule: thelma.models.interfaces
+.. currentmodule: thelma.entities.interfaces
 
 Furthermore, they must implement an marker interface that inherits from
 :class:`IAggregate`:
@@ -40,7 +40,7 @@ Furthermore, they must implement an marker interface that inherits from
 .. autoclass:: IAggregate
 
 
-.. currentmodule:: thelma.models.aggregates
+.. currentmodule:: thelma.entities.aggregates
 
 The following sections provides the documentation of the aggregatebase class.
 However, most of its methods are actually delegated by to the aggregates

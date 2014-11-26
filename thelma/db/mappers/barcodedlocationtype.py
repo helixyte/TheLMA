@@ -4,7 +4,7 @@ Barcoded location type mapper.
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.sql import select
 from everest.repositories.rdb.utils import as_slug_expression
-from thelma.models.location import BarcodedLocationType
+from thelma.entities.location import BarcodedLocationType
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

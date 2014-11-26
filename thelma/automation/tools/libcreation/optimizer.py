@@ -12,7 +12,7 @@ from thelma.automation.tools.stock.base import STOCK_ITEM_STATUS
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.base import create_in_term_for_db_queries
 from thelma.automation.utils.base import is_valid_number
-from thelma.models.moleculedesign import MoleculeDesignPool
+from thelma.entities.moleculedesign import MoleculeDesignPool
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 
@@ -315,7 +315,7 @@ class LibraryCandidate(object):
 
         :param pool: The molecule design pools this candidate aims to create.
         :type pool:
-            :class:`thelma.models.moleculedesign.MoleculeDesignPool`
+            :class:`thelma.entities.moleculedesign.MoleculeDesignPool`
         """
         #: The molecule design pools this candidate aims to create.
         self.__pool = pool

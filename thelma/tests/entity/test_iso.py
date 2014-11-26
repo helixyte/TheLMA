@@ -5,10 +5,10 @@ import pytest
 from everest.entities.utils import slug_from_string
 from everest.repositories.rdb.testing import check_attributes
 from everest.repositories.rdb.testing import persist
-from thelma.models.iso import Iso
-from thelma.models.iso import IsoPlate
-from thelma.models.iso import IsoRequest
-from thelma.models.iso import StockRack
+from thelma.entities.iso import Iso
+from thelma.entities.iso import IsoPlate
+from thelma.entities.iso import IsoRequest
+from thelma.entities.iso import StockRack
 from thelma.tests.entity.conftest import TestEntityBase
 
 

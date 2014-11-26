@@ -233,9 +233,9 @@ class RackSectorTranslator(object):
 
         :param int number_sectors: The number of sectors.
         :param source_shape: The rack shape of the source rack.
-        :type source_shape: :class:`thelma.models.rack.RackShape`
+        :type source_shape: :class:`thelma.entities.rack.RackShape`
         :param target_shape: The rack shape of the target rack.
-        :type target_shape: :class:`thelma.models.rack.RackShape`
+        :type target_shape: :class:`thelma.entities.rack.RackShape`
         """
 
         if number_sectors == 1:
@@ -264,7 +264,7 @@ class RackSectorTranslator(object):
         :param planned_rack_sample_transfer: The planned rack transfer for which
             to initialise the translator.
         :type planned_rack_transfer:
-            :class:`thelma.models.liquidtransfer.PlannedRackSampleTransfer`
+            :class:`thelma.entities.liquidtransfer.PlannedRackSampleTransfer`
         :param int row_count: The number of sector rows - if you do not
             provide a number the row number is calculated assuming a square
             setup.
@@ -291,7 +291,7 @@ class RackSectorTranslator(object):
         (the translation method has been determined during initialisation).
 
         :param rack_position: The rack position in the source rack.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`
+        :type rack_position: :class:`thelma.entities.rack.RackPosition`
         :raises ValueError: If the rack position cannot be translated.
         :return: associated rack position in the target rack
         """
@@ -377,9 +377,9 @@ def check_rack_shape_match(source_shape, target_shape,
     :Note: One-to-one translations can not be discovered automatically.
 
     :param source_shape: The rack shape of the source rack.
-    :type source_shape: :class:`thelma.models.rack.RackShape`
+    :type source_shape: :class:`thelma.entities.rack.RackShape`
     :param target_shape: The rack shape of the target rack.
-    :type target_shape: :class:`thelma.models.rack.RackShape`
+    :type target_shape: :class:`thelma.entities.rack.RackShape`
     :param int row_count: The number of sector rows.
     :param int col_count: The number of sector columns.
     :param translation_behaviour: The translation behaviour if known
@@ -417,7 +417,7 @@ def get_sector_positions(sector_index, rack_shape, number_sectors,
     :param int sector_index: Sector index assuming Z-configuration.
     :param int number_sectors: The total number of sectors.
     :param rack_shape: The rack shape to be considered.
-    :type rack_shape: :class:`thelma.models.rack.RackShape
+    :type rack_shape: :class:`thelma.entities.rack.RackShape
     :param int row_count: The number of sector rows - if you do not provide
         a number the row number is calculated assuming a square setup.
     :param int col_count: The number of sector columns - if you do not provide
@@ -476,7 +476,7 @@ class QuadrantIterator(object):
         Returns the positions of the requested quadrant as map.
 
         :param sector_zero_position: The rack position of sector zero.
-        :type sector_zero_position: :class:`thelma.models.rack.RackPosition`
+        :type sector_zero_position: :class:`thelma.entities.rack.RackPosition`
         :returns: A map with the rack positions mapped onto sector indices.
         """
         quadrant_positions = dict()
@@ -493,7 +493,7 @@ class QuadrantIterator(object):
         :Note: Invokes :func:`get_quadrant_positions`
 
         :param sector_zero_position: The rack position of sector zero.
-        :type sector_zero_position: :class:`thelma.models.rack.RackPosition`
+        :type sector_zero_position: :class:`thelma.entities.rack.RackPosition`
         :param working_layout: The working layout whose positions to fetch.
         :type working_layout: :class:`WorkingLayout`
         :returns: A map with the working positions mapped onto sector indices.
@@ -519,7 +519,7 @@ class QuadrantIterator(object):
         :param rack_shape: The rack shape to iterate over - gets overwritten
             by the working_layout shape if there is any, thus, it needs
             only to be specified if there is no working layout.
-        :type rack_shape: :class:`thelma.models.rack.RackShape`
+        :type rack_shape: :class:`thelma.entities.rack.RackShape`
         :return: A list of quadrant maps
             (see :func:`get_quadrant_working_positions`).
         """

@@ -10,23 +10,23 @@ from thelma.automation.semiconstants import get_min_transfer_volume
 from thelma.automation.semiconstants import get_pipetting_specs_biomek
 from thelma.automation.semiconstants import get_pipetting_specs_manual
 from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.models.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
 from thelma.automation.tools.worklists.biomek \
     import SampleDilutionWorklistWriter
 from thelma.automation.tools.worklists.biomek \
     import SampleTransferWorklistWriter
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IRackShape
-from thelma.models.container import Tube
-from thelma.models.container import TubeSpecs
-from thelma.models.container import WellSpecs
-from thelma.models.liquidtransfer import PlannedRackSampleTransfer
-from thelma.models.liquidtransfer import PlannedSampleDilution
-from thelma.models.liquidtransfer import PlannedSampleTransfer
-from thelma.models.liquidtransfer import PlannedWorklist
-from thelma.models.liquidtransfer import ReservoirSpecs
-from thelma.models.rack import PlateSpecs
-from thelma.models.rack import TubeRackSpecs
+from thelma.entities.container import Tube
+from thelma.entities.container import TubeSpecs
+from thelma.entities.container import WellSpecs
+from thelma.entities.liquidtransfer import PlannedRackSampleTransfer
+from thelma.entities.liquidtransfer import PlannedSampleDilution
+from thelma.entities.liquidtransfer import PlannedSampleTransfer
+from thelma.entities.liquidtransfer import PlannedWorklist
+from thelma.entities.liquidtransfer import ReservoirSpecs
+from thelma.entities.rack import PlateSpecs
+from thelma.entities.rack import TubeRackSpecs
 from thelma.oldtests.tools.tooltestingutils import FileCreatorTestCase
 
 

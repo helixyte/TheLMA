@@ -3,8 +3,8 @@ Subproject mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.project import Project
-from thelma.models.subproject import Subproject
+from thelma.entities.project import Project
+from thelma.entities.subproject import Subproject
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

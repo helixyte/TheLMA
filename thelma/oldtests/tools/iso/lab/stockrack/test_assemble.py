@@ -37,7 +37,7 @@ from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
 from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
 from thelma.automation.utils.layouts import TransferTarget
 from thelma.interfaces import IUser
-from thelma.models.container import Tube
+from thelma.entities.container import Tube
 from thelma.oldtests.tools.iso.lab.stockrack.utils import LabIsoStockRackTestCase
 from thelma.oldtests.tools.iso.lab.utils import LAB_ISO_TEST_CASES
 from thelma.oldtests.tools.iso.lab.utils import TestTubeGenerator

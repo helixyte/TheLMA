@@ -24,9 +24,9 @@ from thelma.automation.tools.metadata.ticket import IsoRequestTicketReopener
 from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.interfaces import IProject
 from thelma.interfaces import IUser
-from thelma.models.experiment import ExperimentMetadata
-from thelma.models.iso import ISO_STATUS
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
+from thelma.entities.experiment import ExperimentMetadata
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.moleculedesign import MoleculeDesignPoolSet
 from thelma.oldtests.tools.tooltestingutils \
     import ExperimentMetadataReadingTestCase
 from thelma.oldtests.tools.tooltestingutils import FileCreatorTestCase

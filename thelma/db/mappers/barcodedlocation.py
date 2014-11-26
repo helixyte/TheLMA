@@ -8,9 +8,9 @@ from sqlalchemy.sql import exists
 from sqlalchemy.sql import select
 from thelma.db.mappers.utils import CaseInsensitiveComparator
 from everest.repositories.rdb.utils import as_slug_expression
-from thelma.models.device import Device
-from thelma.models.location import BarcodedLocation
-from thelma.models.rack import Rack
+from thelma.entities.device import Device
+from thelma.entities.location import BarcodedLocation
+from thelma.entities.rack import Rack
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

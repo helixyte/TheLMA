@@ -14,12 +14,12 @@ from thelma.automation.tools.iso.poolcreation.base import \
 from thelma.automation.tools.worklists.series import RackSampleTransferJob
 from thelma.automation.tools.worklists.series import SampleDilutionJob
 from thelma.automation.tools.worklists.series import SeriesExecutor
-from thelma.models.iso import ISO_STATUS
-from thelma.models.iso import StockSampleCreationIso
-from thelma.models.liquidtransfer import ExecutedWorklist
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.iso import StockSampleCreationIso
+from thelma.entities.liquidtransfer import ExecutedWorklist
 from thelma.automation.tools.iso.base import StockTransferWriterExecutor
 from thelma.automation.tools.worklists.series import SampleTransferJob
-from thelma.models.library import LibraryPlate
+from thelma.entities.library import LibraryPlate
 
 
 __docformat__ = 'reStructuredText en'

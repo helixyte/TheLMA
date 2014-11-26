@@ -13,8 +13,8 @@ from thelma.automation.tools.metadata.base import TransfectionLayout
 from thelma.automation.tools.metadata.base import TransfectionPosition
 from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
 from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
-from thelma.models.rack import RACK_TYPES
-from thelma.models.racklayout import RackLayout
+from thelma.entities.rack import RACK_TYPES
+from thelma.entities.racklayout import RackLayout
 from thelma.oldtests.tools.experiment.utils import EXPERIMENT_TEST_DATA
 from thelma.oldtests.tools.tooltestingutils import FileCreatorTestCase
 from thelma.oldtests.tools.tooltestingutils import FileReadingTestCase

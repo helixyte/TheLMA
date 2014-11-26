@@ -25,7 +25,7 @@ from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.base import create_in_term_for_db_queries
 from thelma.automation.utils.base import is_valid_number
-from thelma.models.moleculedesign import MoleculeDesignPool
+from thelma.entities.moleculedesign import MoleculeDesignPool
 
 
 __docformat__ = 'reStructuredText en'
@@ -197,7 +197,7 @@ class TubeCandidate(object):
         a long time if there is a large number of tube candidates.
 
         :param pool: The molecule design pool entity.
-        :type pool: :class:`thelma.models.moleculedesign.MoleculeDesignPool`
+        :type pool: :class:`thelma.entities.moleculedesign.MoleculeDesignPool`
         :raises ValueError: If the ID of the pool does not match the candidate
             pool ID.
         """
@@ -562,7 +562,7 @@ class TubePicker(SessionTool):
         Constructor.
 
         :param set molecule_design_pools: Set of molecule design pools
-            (:class:`thelma.models.moleculedesign.MoleculeDesignPool`) for
+            (:class:`thelma.entities.moleculedesign.MoleculeDesignPool`) for
             which to run the query.
         :type molecule_design_pools: :class:`set` of molecule design pools
 

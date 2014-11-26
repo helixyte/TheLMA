@@ -8,7 +8,7 @@ from tractor import create_wrapper_for_ticket_update
 
 from thelma.automation.tools.iso.base import StockTransferWriterExecutor
 from thelma.automation.tracbase import BaseTracTool
-from thelma.models.liquidtransfer import ExecutedWorklist
+from thelma.entities.liquidtransfer import ExecutedWorklist
 
 
 __docformat__ = 'reStructuredText en'

@@ -34,8 +34,8 @@ from thelma.automation.tools.writers import LINEBREAK_CHAR
 from thelma.automation.tools.writers import TxtWriter
 from thelma.interfaces import ITube
 from thelma.interfaces import ITubeRack
-from thelma.models.iso import ISO_STATUS
-from thelma.models.liquidtransfer import PlannedWorklist
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.liquidtransfer import PlannedWorklist
 
 __docformat__ = 'reStructuredText en'
 
@@ -85,7 +85,7 @@ class LibraryCreationWorklistWriter(BaseTool):
         :param library_creation_iso: The library creation ISO for which to
             generate the worklist files.
         :type library_creation_iso:
-            :class:`thelma.models.library.LibraryCreationIso`
+            :class:`thelma.entities.library.LibraryCreationIso`
 
         :param tube_destination_racks: The barcodes for the destination
             rack for the single molecule design tube (these racks have to be
@@ -685,7 +685,7 @@ class LibraryCreationCyBioOverviewWriter(TxtWriter):
         :param library_creation_iso: The library creation ISO for which to
             generate the file.
         :type library_creation_iso:
-            :class:`thelma.models.library.LibraryCreationIso`
+            :class:`thelma.entities.library.LibraryCreationIso`
         :param tube_destination_racks: The barcodes for the destination
             rack for the single molecule design tube (these racks have to be
             empty).

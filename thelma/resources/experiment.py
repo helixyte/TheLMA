@@ -45,8 +45,8 @@ from thelma.interfaces import IRackLayout
 from thelma.interfaces import IRackShape
 from thelma.interfaces import ISubproject
 from thelma.interfaces import ITag
-from thelma.models.racklayout import RackLayout
-from thelma.models.utils import get_current_user
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
 
 

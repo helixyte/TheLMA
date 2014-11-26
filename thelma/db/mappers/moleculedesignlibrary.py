@@ -4,11 +4,11 @@ Molecule design library mapper.
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.iso import StockSampleCreationIsoRequest
-from thelma.models.library import LibraryPlate
-from thelma.models.library import MoleculeDesignLibrary
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
-from thelma.models.racklayout import RackLayout
+from thelma.entities.iso import StockSampleCreationIsoRequest
+from thelma.entities.library import LibraryPlate
+from thelma.entities.library import MoleculeDesignLibrary
+from thelma.entities.moleculedesign import MoleculeDesignPoolSet
+from thelma.entities.racklayout import RackLayout
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

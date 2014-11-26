@@ -5,8 +5,8 @@ AAB
 """
 from thelma.automation.utils.base import CustomQuery
 from thelma.automation.utils.base import create_in_term_for_db_queries
-from thelma.models.moleculetype import MOLECULE_TYPE_IDS
-from thelma.models.moleculetype import MoleculeType
+from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
+from thelma.entities.moleculetype import MoleculeType
 from thelma.automation.semiconstants import RACK_SHAPE_NAMES
 
 
@@ -43,7 +43,7 @@ STOCKMANAGEMENT_USER = 'stockmanagement'
 
 def get_stock_rack_shape():
     """
-    Returns the :class:`thelma.models.rack.RackShape` for stock racks.
+    Returns the :class:`thelma.entities.rack.RackShape` for stock racks.
     """
     return RACK_SHAPE_NAMES.from_name(STOCK_RACK_SHAPE_NAME)
 
@@ -84,7 +84,7 @@ class STOCK_CONCENTRATIONS(object):
 
         :param molecule_type: The molecule types whose stock concentration
             you want to know.
-        :type molecule_type: :class:`thelma.models.moleculetype.MoleculeType`
+        :type molecule_type: :class:`thelma.entities.moleculetype.MoleculeType`
             or :class:`str` (molecule type ID)
 
         :param number_designs: The number of designs in a pool (at the moment

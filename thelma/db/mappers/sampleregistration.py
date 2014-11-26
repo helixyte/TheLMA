@@ -3,8 +3,8 @@ Sample mapper.
 """
 from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.sample import SampleRegistration
-from thelma.models.sample import StockSample
+from thelma.entities.sample import SampleRegistration
+from thelma.entities.sample import StockSample
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

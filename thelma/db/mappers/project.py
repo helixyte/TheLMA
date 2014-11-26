@@ -4,10 +4,10 @@ Project mapper.
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.organization import Organization
-from thelma.models.project import Project
-from thelma.models.subproject import Subproject
-from thelma.models.user import User
+from thelma.entities.organization import Organization
+from thelma.entities.project import Project
+from thelma.entities.subproject import Subproject
+from thelma.entities.user import User
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

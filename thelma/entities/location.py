@@ -1,5 +1,5 @@
 """
-Location model classes.
+Location entity classes.
 
 NP
 """
@@ -67,10 +67,10 @@ class BarcodedLocation(Entity):
     #: The type of the location
     #: (:class:`BarcodedLocationType`).
     type = None
-    #: The device (:class:`thelma.models.device.Device`), if the location
+    #: The device (:class:`thelma.entities.device.Device`), if the location
     #: is associated with one (as it might be the case for e.g. robots).
     device = None
-    #: The rack (:class:`thelma.models.rack.Rack`) stored at the location.
+    #: The rack (:class:`thelma.entities.rack.Rack`) stored at the location.
     rack = None
     #: An identifier for a section within a robot, drawer etc.
     index = None

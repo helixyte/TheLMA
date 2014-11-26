@@ -32,6 +32,6 @@ MOLECULE_TYPES = (
     )
 
 def create_data():
-    from thelma.models.moleculetype import MoleculeType # pylint: disable=W0404
+    from thelma.entities.moleculetype import MoleculeType # pylint: disable=W0404
     return dict([(args[0], MoleculeType(*args)) # pylint: disable=W0142
                  for args in MOLECULE_TYPES])

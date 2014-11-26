@@ -6,7 +6,7 @@ AAB
 from everest.entities.utils import get_root_aggregate
 from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.interfaces import ITubeRack
-from thelma.models.racklayout import RackLayout
+from thelma.entities.racklayout import RackLayout
 from thelma.oldtests.tools.iso.lab.utils import LAB_ISO_TEST_CASES
 from thelma.oldtests.tools.iso.lab.utils import LabIsoTestCase2
 

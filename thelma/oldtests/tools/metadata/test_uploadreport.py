@@ -20,8 +20,8 @@ from thelma.automation.tools.metadata.uploadreport \
 from thelma.automation.tools.worklists.base import RESERVOIR_SPECS_NAMES
 from thelma.automation.tools.worklists.base import get_reservoir_spec
 from thelma.interfaces import ISubproject
-from thelma.models.experiment import ExperimentMetadata
-from thelma.models.utils import get_user
+from thelma.entities.experiment import ExperimentMetadata
+from thelma.entities.utils import get_user
 from thelma.oldtests.tools.tooltestingutils \
     import ExperimentMetadataReadingTestCase
 from thelma.oldtests.tools.tooltestingutils import FileCreatorTestCase

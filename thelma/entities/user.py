@@ -1,5 +1,5 @@
 """
-User model classes.
+User entity classes.
 
 TR, AAB
 """
@@ -24,7 +24,7 @@ class User(Entity):
     username = None
     #: Organization wide directory ID of the user.
     directory_user_id = None
-    #: List of preferences (:class:`thelma.models.user.UserPreferences`)
+    #: List of preferences (:class:`thelma.entities.user.UserPreferences`)
     #: belonging to this user.
     user_preferenceses = None
 
@@ -55,7 +55,7 @@ class UserPreferences(Entity):
     """
 
     #: The user who this preferences belong to
-    #: (:class:`thelma.models.user.User`).
+    #: (:class:`thelma.entities.user.User`).
     user = None
     #: The name of the associated application
     app_name = None

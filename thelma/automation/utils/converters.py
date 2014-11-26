@@ -27,7 +27,7 @@ from thelma.automation.utils.layouts import WorkingLayout
 from thelma.automation.utils.layouts import WorkingPosition
 from thelma.automation.utils.layouts import is_valid_number
 from thelma.interfaces import IMoleculeDesignPool
-from thelma.models.racklayout import RackLayout
+from thelma.entities.racklayout import RackLayout
 
 __docformat__ = 'reStructuredText en'
 
@@ -43,7 +43,7 @@ class BaseLayoutConverter(BaseTool):
     """
     A super class for tools that generated working layouts
     (:class:`thelma.automation.utils.layouts.WorkingLayout`) from
-    rack layouts (:class:`thelma.models.racklayout.RackLayout`).
+    rack layouts (:class:`thelma.entities.racklayout.RackLayout`).
     Each converter is associated to special working layout class.
 
     **Return Value:** :class:`thelma.automation.utils.layouts.WorkingLayout`
@@ -67,7 +67,7 @@ class BaseLayoutConverter(BaseTool):
         Constructor.
 
         :param rack_layout: The rack layout containing the ISO data.
-        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
+        :type rack_layout: :class:`thelma.entities.racklayout.RackLayout`
         """
         BaseTool.__init__(self, parent=parent)
         #: The rack layout containing the data for the working layout.
@@ -295,7 +295,7 @@ class BaseLayoutConverter(BaseTool):
 
 class MoleculeDesignPoolLayoutConverter(BaseLayoutConverter):
     """
-    Abstract class converting a :class:`thelma.models.racklayout.RackLayout`
+    Abstract class converting a :class:`thelma.entities.racklayout.RackLayout`
     into an molecule design pool layout
     (:class:`thelma.automation.utils.layouts.MoleculeDesignPoolLayout`).
 
@@ -316,7 +316,7 @@ class MoleculeDesignPoolLayoutConverter(BaseLayoutConverter):
             msg = 'This is an abstract class!'
             self.add_error(msg)
         #: The molecule design pool aggregate
-        #: (see :class:`thelma.models.aggregates.Aggregate`)
+        #: (see :class:`thelma.entities.aggregates.Aggregate`)
         #: used to obtain check the validity of molecule design pool IDs.
         self.__pool_aggregate = get_root_aggregate(IMoleculeDesignPool)
         #: Stores the molecule design pools for molecule design pool IDs.
@@ -635,7 +635,7 @@ class TransferLayoutConverter(MoleculeDesignPoolLayoutConverter):
 
 class LibraryBaseLayoutConverter(BaseLayoutConverter):
     """
-    Converts a :class:`thelma.models.racklayout.RackLayout` into a
+    Converts a :class:`thelma.entities.racklayout.RackLayout` into a
     :class:`LibraryBaseLayout`.
 
     """

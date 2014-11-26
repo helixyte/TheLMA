@@ -2,9 +2,9 @@ import pytest
 
 from everest.repositories.rdb.testing import check_attributes
 from everest.repositories.rdb.testing import persist
-from thelma.models.moleculedesign import DoubleStrandedDesign
-from thelma.models.moleculedesign import MoleculeDesign
-from thelma.models.moleculedesign import SingleStrandedDesign
+from thelma.entities.moleculedesign import DoubleStrandedDesign
+from thelma.entities.moleculedesign import MoleculeDesign
+from thelma.entities.moleculedesign import SingleStrandedDesign
 from thelma.tests.entity.conftest import TestEntityBase
 
 

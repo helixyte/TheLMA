@@ -3,9 +3,9 @@ Worklist series member mapper.
 """
 from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.liquidtransfer import PlannedWorklist
-from thelma.models.liquidtransfer import WorklistSeries
-from thelma.models.liquidtransfer import WorklistSeriesMember
+from thelma.entities.liquidtransfer import PlannedWorklist
+from thelma.entities.liquidtransfer import WorklistSeries
+from thelma.entities.liquidtransfer import WorklistSeriesMember
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

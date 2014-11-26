@@ -21,11 +21,11 @@ from thelma.automation.utils.racksector import QuadrantIterator
 from thelma.automation.utils.racksector import RackSectorTranslator
 from thelma.automation.utils.racksector import get_sector_positions
 from thelma.interfaces import ITubeRack
-from thelma.models.iso import ISO_STATUS
-from thelma.models.iso import StockSampleCreationIso
-from thelma.models.liquidtransfer import ExecutedWorklist
-from thelma.models.rack import TubeRack
-from thelma.models.user import User
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.iso import StockSampleCreationIso
+from thelma.entities.liquidtransfer import ExecutedWorklist
+from thelma.entities.rack import TubeRack
+from thelma.entities.user import User
 
 
 __docformat__ = 'reStructuredText en'
@@ -58,9 +58,9 @@ class LibraryCreationExecutor(BaseTool):
         :param stock_sample_creation_iso: The pool stock sample creation ISO
             for which to execute the worklists.
         :type stock_sample_creation_iso:
-            :class:`thelma.models.iso.StockSampleCreationIso`
+            :class:`thelma.entities.iso.StockSampleCreationIso`
         :param user: The user conducting the execution.
-        :type user: :class:`thelma.models.user.User`
+        :type user: :class:`thelma.entities.user.User`
         """
         BaseTool.__init__(self, parent=parent)
         #: The stock sample creation ISO for which to execute the worklists.
@@ -679,10 +679,10 @@ class LibraryCreationBufferWorklistTransferJobCreator(BaseTool):
         :param stock_sample_creation_iso: The library creation ISO for which to
             generate the transfer jobs.
         :type stock_sample_creation_iso:
-            :class:`thelma.models.library.LibraryCreationIso`
+            :class:`thelma.entities.library.LibraryCreationIso`
         :param pool_stock_racks: The pool stock racks mapped onto sector
             indices (these racks have to have empty tubes in defined positions).
-        :type pool_stock_racks: :class:`thelma.models.rack.TubeRack`
+        :type pool_stock_racks: :class:`thelma.entities.rack.TubeRack`
         :param ignored_positions: Target positions that shall be ignored
             during worklist execution (because there is no library position
             for them). Regard that sectors which are not omitted completely

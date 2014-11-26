@@ -1,5 +1,5 @@
 """
-Stock info model classes.
+Stock info entity classes.
 
 NP, AAB
 """
@@ -20,9 +20,9 @@ class StockInfo(Entity):
     """
 
     #: The molecule design set requested for this stock info item.
-    #: (:class:`thelma.models.moleculedesign.MoleculeDesignPool`)
+    #: (:class:`thelma.entities.moleculedesign.MoleculeDesignPool`)
     molecule_design_pool = None
-    #: A list of genes (:class:`thelma.models.gene.Gene`) targeted by the
+    #: A list of genes (:class:`thelma.entities.gene.Gene`) targeted by the
     #: designs in the pool.
     genes = None
     #: The concentration requested for this stock info item.
@@ -39,7 +39,7 @@ class StockInfo(Entity):
     #: The maximum acceptable volume for candidates matching this stock info
     #: item.
     maximum_volume = None
-    #: The molecule type (:class:`thelma.models.moleculetype.MoleculeType`)
+    #: The molecule type (:class:`thelma.entities.moleculetype.MoleculeType`)
     #: for the molecule designs in this stock info item..
     molecule_type = None
 

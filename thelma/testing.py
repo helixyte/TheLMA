@@ -26,6 +26,78 @@ from everest.testing import FunctionalTestCase
 from everest.testing import ResourceCreatorMixin as EverestResourceCreatorMixin
 from everest.testing import ResourceTestCase
 from thelma.automation.tools.iso.libcreation.base import DEFAULT_PREPARATION_PLATE_VOLUME
+from thelma.entities.barcode import BarcodePrintJob
+from thelma.entities.chemicalstructure import NucleicAcidChemicalStructure
+from thelma.entities.container import ContainerLocation
+from thelma.entities.container import Tube
+from thelma.entities.container import TubeSpecs
+from thelma.entities.container import Well
+from thelma.entities.container import WellSpecs
+from thelma.entities.device import Device
+from thelma.entities.device import DeviceType
+from thelma.entities.experiment import Experiment
+from thelma.entities.experiment import ExperimentDesign
+from thelma.entities.experiment import ExperimentDesignRack
+from thelma.entities.experiment import ExperimentMetadata
+from thelma.entities.experiment import ExperimentRack
+from thelma.entities.gene import Gene
+from thelma.entities.iso import IsoAliquotPlate
+from thelma.entities.iso import IsoJobPreparationPlate
+from thelma.entities.iso import IsoJobStockRack
+from thelma.entities.iso import IsoPreparationPlate
+from thelma.entities.iso import IsoSectorPreparationPlate
+from thelma.entities.iso import IsoSectorStockRack
+from thelma.entities.iso import IsoStockRack
+from thelma.entities.iso import LabIso
+from thelma.entities.iso import LabIsoRequest
+from thelma.entities.iso import StockSampleCreationIso
+from thelma.entities.iso import StockSampleCreationIsoRequest
+from thelma.entities.job import ExperimentJob
+from thelma.entities.job import IsoJob
+from thelma.entities.library import LibraryPlate
+from thelma.entities.library import MoleculeDesignLibrary
+from thelma.entities.liquidtransfer import ExecutedRackSampleTransfer
+from thelma.entities.liquidtransfer import ExecutedSampleDilution
+from thelma.entities.liquidtransfer import ExecutedSampleTransfer
+from thelma.entities.liquidtransfer import ExecutedWorklist
+from thelma.entities.liquidtransfer import PipettingSpecs
+from thelma.entities.liquidtransfer import PlannedRackSampleTransfer
+from thelma.entities.liquidtransfer import PlannedSampleDilution
+from thelma.entities.liquidtransfer import PlannedSampleTransfer
+from thelma.entities.liquidtransfer import PlannedWorklist
+from thelma.entities.liquidtransfer import ReservoirSpecs
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.liquidtransfer import WorklistSeries
+from thelma.entities.liquidtransfer import WorklistSeriesMember
+from thelma.entities.location import BarcodedLocation
+from thelma.entities.location import BarcodedLocationType
+from thelma.entities.moleculedesign import MoleculeDesignPool
+from thelma.entities.moleculedesign import MoleculeDesignPoolSet
+from thelma.entities.moleculedesign import MoleculeDesignSet
+from thelma.entities.moleculedesign import SiRnaDesign
+from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
+from thelma.entities.moleculetype import MoleculeType
+from thelma.entities.organization import Organization
+from thelma.entities.project import Project
+from thelma.entities.rack import Plate
+from thelma.entities.rack import PlateSpecs
+from thelma.entities.rack import RackShape
+from thelma.entities.rack import TubeRack
+from thelma.entities.rack import TubeRackSpecs
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.sample import Molecule
+from thelma.entities.sample import Sample
+from thelma.entities.sample import SampleMolecule
+from thelma.entities.sample import StockSample
+from thelma.entities.species import Species
+from thelma.entities.stockinfo import StockInfo
+from thelma.entities.subproject import Subproject
+from thelma.entities.suppliermoleculedesign import SupplierMoleculeDesign
+from thelma.entities.tagging import Tag
+from thelma.entities.tagging import TaggedRackPositionSet
+from thelma.entities.tubetransfer import TubeTransfer
+from thelma.entities.tubetransfer import TubeTransferWorklist
+from thelma.entities.user import UserPreferences
 from thelma.interfaces import IContainer
 from thelma.interfaces import IDeviceType
 from thelma.interfaces import IExperiment
@@ -59,78 +131,6 @@ from thelma.interfaces import ITubeSpecs
 from thelma.interfaces import IUser
 from thelma.interfaces import IWell
 from thelma.interfaces import IWellSpecs
-from thelma.models.barcode import BarcodePrintJob
-from thelma.models.chemicalstructure import NucleicAcidChemicalStructure
-from thelma.models.container import ContainerLocation
-from thelma.models.container import Tube
-from thelma.models.container import TubeSpecs
-from thelma.models.container import Well
-from thelma.models.container import WellSpecs
-from thelma.models.device import Device
-from thelma.models.device import DeviceType
-from thelma.models.experiment import Experiment
-from thelma.models.experiment import ExperimentDesign
-from thelma.models.experiment import ExperimentDesignRack
-from thelma.models.experiment import ExperimentMetadata
-from thelma.models.experiment import ExperimentRack
-from thelma.models.gene import Gene
-from thelma.models.iso import IsoAliquotPlate
-from thelma.models.iso import IsoJobPreparationPlate
-from thelma.models.iso import IsoJobStockRack
-from thelma.models.iso import IsoPreparationPlate
-from thelma.models.iso import IsoSectorPreparationPlate
-from thelma.models.iso import IsoSectorStockRack
-from thelma.models.iso import IsoStockRack
-from thelma.models.iso import LabIso
-from thelma.models.iso import LabIsoRequest
-from thelma.models.iso import StockSampleCreationIso
-from thelma.models.iso import StockSampleCreationIsoRequest
-from thelma.models.job import ExperimentJob
-from thelma.models.job import IsoJob
-from thelma.models.library import LibraryPlate
-from thelma.models.library import MoleculeDesignLibrary
-from thelma.models.liquidtransfer import ExecutedRackSampleTransfer
-from thelma.models.liquidtransfer import ExecutedSampleDilution
-from thelma.models.liquidtransfer import ExecutedSampleTransfer
-from thelma.models.liquidtransfer import ExecutedWorklist
-from thelma.models.liquidtransfer import PipettingSpecs
-from thelma.models.liquidtransfer import PlannedRackSampleTransfer
-from thelma.models.liquidtransfer import PlannedSampleDilution
-from thelma.models.liquidtransfer import PlannedSampleTransfer
-from thelma.models.liquidtransfer import PlannedWorklist
-from thelma.models.liquidtransfer import ReservoirSpecs
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.liquidtransfer import WorklistSeries
-from thelma.models.liquidtransfer import WorklistSeriesMember
-from thelma.models.location import BarcodedLocation
-from thelma.models.location import BarcodedLocationType
-from thelma.models.moleculedesign import MoleculeDesignPool
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
-from thelma.models.moleculedesign import MoleculeDesignSet
-from thelma.models.moleculedesign import SiRnaDesign
-from thelma.models.moleculetype import MOLECULE_TYPE_IDS
-from thelma.models.moleculetype import MoleculeType
-from thelma.models.organization import Organization
-from thelma.models.project import Project
-from thelma.models.rack import Plate
-from thelma.models.rack import PlateSpecs
-from thelma.models.rack import RackShape
-from thelma.models.rack import TubeRack
-from thelma.models.rack import TubeRackSpecs
-from thelma.models.racklayout import RackLayout
-from thelma.models.sample import Molecule
-from thelma.models.sample import Sample
-from thelma.models.sample import SampleMolecule
-from thelma.models.sample import StockSample
-from thelma.models.species import Species
-from thelma.models.stockinfo import StockInfo
-from thelma.models.subproject import Subproject
-from thelma.models.suppliermoleculedesign import SupplierMoleculeDesign
-from thelma.models.tagging import Tag
-from thelma.models.tagging import TaggedRackPositionSet
-from thelma.models.tubetransfer import TubeTransfer
-from thelma.models.tubetransfer import TubeTransferWorklist
-from thelma.models.user import UserPreferences
 from thelma.resources.barcode import BarcodePrintJobMember
 from thelma.resources.container import TubeMember
 from thelma.resources.device import DeviceMember
@@ -162,7 +162,7 @@ __date__ = '$Date: 2013-05-08 17:42:10 +0200 (Wed, 08 May 2013) $'
 __revision__ = '$Rev: 13330 $'
 __source__ = '$URL: http://svn/cenix/TheLMA/trunk/thelma/testing.py $'
 
-__all__ = ['ThelmaModelTestCase',
+__all__ = ['ThelmaEntityTestCase',
            'ThelmaResourceTestCase',
            ]
 
@@ -877,7 +877,7 @@ class EntityCreatorMixin(EverestEntityCreatorMixin):
         return self._create_entity(WorklistSeriesMember, kw)
 
 
-class ThelmaModelTestCase(EntityTestCase, EntityCreatorMixin):
+class ThelmaEntityTestCaseBase(EntityTestCase, EntityCreatorMixin):
     """
     Test class for entity classes.
     """
@@ -897,9 +897,9 @@ class ThelmaModelTestCase(EntityTestCase, EntityCreatorMixin):
         EntityTestCase.tear_down(self)
 
 
-class ThelmaEntityTestCase(ThelmaModelTestCase):
+class ThelmaEntityTestCase(ThelmaEntityTestCaseBase):
 
-    model_class = None
+    entity_class = None
 
     def _get_data(self):
         raise NotImplementedError('Abstract method')
@@ -908,26 +908,26 @@ class ThelmaEntityTestCase(ThelmaModelTestCase):
         if attrs is None:
             attrs = self._get_data()
         if abstract_class:
-            self.assert_raises(NotImplementedError, self.model_class, **attrs)
+            self.assert_raises(NotImplementedError, self.entity_class, **attrs)
         else:
-            entity = self.model_class(**attrs) #pylint: disable=E1102
+            entity = self.entity_class(**attrs) #pylint: disable=E1102
             self.assert_is_not_none(entity)
-            self.assert_true(isinstance(entity, self.model_class))
+            self.assert_true(isinstance(entity, self.entity_class))
             check_attributes(entity, attrs)
             return entity
 
     def _test_load(self, num_entities=2):
         with RdbContextManager() as session:
-            query = session.query(self.model_class)
+            query = session.query(self.entity_class)
             entities = query.limit(num_entities).all()
             self.assert_equal(len(entities), num_entities)
             for entity in entities:
-                self.assert_equal(entity.__class__, self.model_class)
+                self.assert_equal(entity.__class__, self.entity_class)
 
     def _test_persist(self):
         with RdbContextManager() as session:
             attrs = self._get_data()
-            persist(session, self.model_class, attrs, True)
+            persist(session, self.entity_class, attrs, True)
 
     def _test_id_based_equality(self, create_meth, alt_create_meth=None):
         ent1 = create_meth(id=-1)

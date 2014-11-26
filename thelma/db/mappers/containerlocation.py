@@ -7,10 +7,10 @@ from sqlalchemy.orm import composite
 from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.descriptor_props import CompositeProperty
-from thelma.models.container import Container
-from thelma.models.container import ContainerLocation
-from thelma.models.rack import Rack
-from thelma.models.rack import RackPosition
+from thelma.entities.container import Container
+from thelma.entities.container import ContainerLocation
+from thelma.entities.rack import Rack
+from thelma.entities.rack import RackPosition
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

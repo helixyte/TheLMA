@@ -1,5 +1,5 @@
 """
-Item status model classes.
+Item status entity classes.
 
 NP, AAB
 """

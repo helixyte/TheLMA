@@ -3,9 +3,9 @@ Job mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.job import JOB_TYPES
-from thelma.models.job import Job
-from thelma.models.user import User
+from thelma.entities.job import JOB_TYPES
+from thelma.entities.job import Job
+from thelma.entities.user import User
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

@@ -4,7 +4,7 @@ Experiment metadata type mapper.
 
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy import func
-from thelma.models.experiment import ExperimentMetadataType
+from thelma.entities.experiment import ExperimentMetadataType
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

@@ -10,7 +10,7 @@ from thelma.automation.handlers.poolcreationset \
 from thelma.automation.parsers.poolcreationset import PoolCreationSetParser
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeType
-from thelma.models.moleculetype import MOLECULE_TYPE_IDS
+from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
 from thelma.oldtests.tools.tooltestingutils import ParsingTestCase
 
 class PoolCreationSetParsingTestCase(ParsingTestCase):

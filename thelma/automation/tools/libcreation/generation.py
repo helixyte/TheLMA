@@ -36,14 +36,14 @@ from thelma.automation.utils.base import is_valid_number
 from thelma.automation.utils.racksector import QuadrantIterator
 from thelma.automation.utils.racksector import RackSectorTranslator
 from thelma.interfaces import IMoleculeType
-from thelma.models.iso import ISO_TYPES
-from thelma.models.iso import IsoRequest
-from thelma.models.library import MoleculeDesignLibrary
-from thelma.models.liquidtransfer import PlannedRackSampleTransfer
-from thelma.models.liquidtransfer import PlannedSampleDilution
-from thelma.models.liquidtransfer import PlannedWorklist
-from thelma.models.liquidtransfer import WorklistSeries
-from thelma.models.user import User
+from thelma.entities.iso import ISO_TYPES
+from thelma.entities.iso import IsoRequest
+from thelma.entities.library import MoleculeDesignLibrary
+from thelma.entities.liquidtransfer import PlannedRackSampleTransfer
+from thelma.entities.liquidtransfer import PlannedSampleDilution
+from thelma.entities.liquidtransfer import PlannedWorklist
+from thelma.entities.liquidtransfer import WorklistSeries
+from thelma.entities.user import User
 
 
 __docformat__ = 'reStructuredText en'
@@ -59,7 +59,7 @@ class LibraryGenerator(BaseTool):
     molecule design for the pools to be created.
     The worklists for the samples transfers a created here as well.
 
-    **Return Value:** :class:`thelma.models.library.MoleculeDesignLibrary`
+    **Return Value:** :class:`thelma.entities.library.MoleculeDesignLibrary`
     """
     NAME = 'Library Generation'
 
@@ -73,7 +73,7 @@ class LibraryGenerator(BaseTool):
             base layout and one with the molecule design data.
         :param requester: This user will be owner and reporter of the ISO
             trac tickets.
-        :type requester: :class:`thelma.models.user.User`
+        :type requester: :class:`thelma.entities.user.User`
         """
         BaseTool.__init__(self, parent=parent)
         #: The name of the library to be created.
@@ -231,7 +231,7 @@ class LibraryCreationWorklistGenerator(BaseTool):
      5. rack transfer from preparation plates to aliquot plate
 
     **Return Value:**  worklist series
-        (:class:`thelma.models.liquidtransfer.WorklistSeries`).
+        (:class:`thelma.entities.liquidtransfer.WorklistSeries`).
     """
     NAME = 'Library Creation Worklist Generator'
 

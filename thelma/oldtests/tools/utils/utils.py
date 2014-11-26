@@ -24,11 +24,11 @@ from thelma.automation.utils.layouts import UNTREATED_POSITION_TYPE
 from thelma.automation.utils.layouts import WorkingLayout
 from thelma.automation.utils.layouts import WorkingPosition
 from thelma.interfaces import IMoleculeDesignPool
-from thelma.models.rack import RACK_TYPES
-from thelma.models.rack import RackPositionSet
-from thelma.models.racklayout import RackLayout
-from thelma.models.tagging import Tag
-from thelma.models.tagging import TaggedRackPositionSet
+from thelma.entities.rack import RACK_TYPES
+from thelma.entities.rack import RackPositionSet
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.tagging import Tag
+from thelma.entities.tagging import TaggedRackPositionSet
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 

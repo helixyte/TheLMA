@@ -23,10 +23,10 @@ from thelma.automation.tools.writers import create_zip_archive
 from thelma.automation.tools.writers import merge_csv_streams
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.racksector import RackSectorTranslator
-from thelma.models.liquidtransfer import ExecutedWorklist
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.user import User
-from thelma.models.utils import get_user
+from thelma.entities.liquidtransfer import ExecutedWorklist
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.user import User
+from thelma.entities.utils import get_user
 
 
 __docformat__ = 'reStructuredText en'
@@ -50,7 +50,7 @@ class _LiquidTransferJob(object):
     :Note: There are no checks carried out here.
     """
     #: The transfer type supported by this class
-    #: (see :class:`thelma.models.liquidtransfer.TRANSFER_TYPES`).
+    #: (see :class:`thelma.entities.liquidtransfer.TRANSFER_TYPES`).
     SUPPORTED_TRANSFER_TYPE = None
     #: The executor class supported by this transfer job class.
     EXECUTOR_CLS = None
@@ -64,11 +64,11 @@ class _LiquidTransferJob(object):
         :param index: The index of the transfer job within the series.
         :type index: :class:`int`
         :param target_rack: The rack taking up the volumes.
-        :type target_rack: :class:`thelma.models.rack.Rack`
+        :type target_rack: :class:`thelma.entities.rack.Rack`
         :param pipetting_specs: Defines the properties (like the
             transfer volume range, etc.)
         :type pipetting_specs: :class:`basestring` (pipetting specs name) or
-            :class:`thelma.models.liquidtransfer.PipettingSpecs`
+            :class:`thelma.entities.liquidtransfer.PipettingSpecs`
         """
         #: The index of the transfer job within the series.
         self.index = index
@@ -86,7 +86,7 @@ class _LiquidTransferJob(object):
         :param tool: The parent tool.
         :type tool: :class:`thelma.automation.tools.base.BaseTool`
         :param user: The DB user executing the transfers.
-        :type user: :class:`thelma.models.user.User`
+        :type user: :class:`thelma.entities.user.User`
         :return: configured :class:`LiquidTransferExecutor`
         """
         kw = self._get_kw_for_executor(tool, user)
@@ -155,10 +155,10 @@ class SampleDilutionJob(_LiquidTransferJob):
         :param planned_worklist: The worklist containing the planned liquid
             transfers.
         :type planned_worklist:
-            :class:`thelma.models.liquidtransfer.PlannedWorklist`
+            :class:`thelma.entities.liquidtransfer.PlannedWorklist`
         :param reservoir_specs: The specs for the source reservoir or rack.
         :type reservoir_specs:
-            :class:`thelma.models.liquidtransfer.ResevoirSpecs`
+            :class:`thelma.entities.liquidtransfer.ResevoirSpecs`
         :param source_rack_barcode: The barcode of the source reservoir or
             rack (only required for worklist file generation.
         :type source_rack_barcode: :class:`basestring`
@@ -231,9 +231,9 @@ class SampleTransferJob(_LiquidTransferJob):
         :param planned_worklist: The worklist containing the planned liquid
             transfers.
         :type planned_worklist:
-            :class:`thelma.models.liquidtransfer.PlannedWorklist`
+            :class:`thelma.entities.liquidtransfer.PlannedWorklist`
         :param source_rack: The rack providing the volumes.
-        :type source_rack: :class:`thelma.models.rack.Rack`
+        :type source_rack: :class:`thelma.entities.rack.Rack`
         :param ignored_positions: A list of rack positions whose planned
             transfers should be ignored (refers to target positions).
         :type ignored_positions: :class:`list` of :class:`RackPosition`
@@ -297,9 +297,9 @@ class RackSampleTransferJob(_LiquidTransferJob):
         :param planned_rack_sample_transfer: The data for the planned liquid
             transfer.
         :type planned_rack_sample_transfer:
-            :class:`thelma.models.liquidtransfer.PlannedRackSampleTransfer`
+            :class:`thelma.entities.liquidtransfer.PlannedRackSampleTransfer`
         :param source_rack: The rack providing the volumes.
-        :type source_rack: :class:`thelma.models.rack.Rack`
+        :type source_rack: :class:`thelma.entities.rack.Rack`
         """
         _LiquidTransferJob.__init__(self, index, target_rack,
                                    PIPETTING_SPECS_NAMES.CYBIO)
@@ -357,7 +357,7 @@ class _SeriesTool(BaseTool):
         :param dict transfer_jobs: maps job indices to
             :class:`LiquidTransferJob` objects.
         :param user: The user used for the simulated executions.
-        :type user: :class:`thelma.models.user.User`
+        :type user: :class:`thelma.entities.user.User`
         :default user: None
         """
         BaseTool.__init__(self, parent=parent)
@@ -820,7 +820,7 @@ class SerialWriterExecutorTool(BaseTool):
         :type mode: str
         :param user: The user who conducts the DB update (required for
             execution mode).
-        :type user: :class:`thelma.models.user.User`
+        :type user: :class:`thelma.entities.user.User`
         :default user: *None*
         """
         BaseTool.__init__(self, parent=parent)

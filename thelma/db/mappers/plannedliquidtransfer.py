@@ -3,8 +3,8 @@ Planned liquid transfer mapper.
 """
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
-from thelma.models.liquidtransfer import PlannedLiquidTransfer
-from thelma.models.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.liquidtransfer import PlannedLiquidTransfer
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

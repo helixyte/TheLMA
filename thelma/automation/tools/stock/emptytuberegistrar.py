@@ -12,7 +12,7 @@ from thelma.automation.tools.base import BaseTool
 from thelma.interfaces import IContainerSpecs
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import IRack
-from thelma.models.container import Tube
+from thelma.entities.container import Tube
 import glob
 import os
 

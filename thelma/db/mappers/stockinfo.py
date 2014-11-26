@@ -4,10 +4,10 @@ Stock info mapper.
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.gene import Gene
-from thelma.models.moleculedesign import MoleculeDesignPool
-from thelma.models.moleculetype import MoleculeType
-from thelma.models.stockinfo import StockInfo
+from thelma.entities.gene import Gene
+from thelma.entities.moleculedesign import MoleculeDesignPool
+from thelma.entities.moleculetype import MoleculeType
+from thelma.entities.stockinfo import StockInfo
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

@@ -2,7 +2,7 @@
 General
 .......
 
-.. currentmodule:: thelma.models.liquidtransfer
+.. currentmodule:: thelma.entities.liquidtransfer
 
 With this parser one can derive the data for a sample transfer worklist
 series from an XLS file (see :class:`WorklistSeries`).

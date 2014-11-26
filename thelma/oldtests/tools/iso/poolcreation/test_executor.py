@@ -22,10 +22,10 @@ from thelma.automation.tools.iso.tracreporting import IsoStockTransferReporter
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.layouts import TransferTarget
-from thelma.models.iso import ISO_STATUS
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.racklayout import RackLayout
-from thelma.models.utils import get_user
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.utils import get_user
 from thelma.oldtests.tools.iso.poolcreation.utils \
     import StockSampleCreationTestCase3
 from thelma.oldtests.tools.iso.poolcreation.utils import SSC_TEST_DATA

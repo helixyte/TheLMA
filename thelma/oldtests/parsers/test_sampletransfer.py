@@ -15,8 +15,8 @@ from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.semiconstants import get_item_status_future
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IRack
-from thelma.models.liquidtransfer import PlannedSampleDilution
-from thelma.models.liquidtransfer import PlannedSampleTransfer
+from thelma.entities.liquidtransfer import PlannedSampleDilution
+from thelma.entities.liquidtransfer import PlannedSampleTransfer
 from thelma.oldtests.tools.tooltestingutils import ParsingTestCase
 
 

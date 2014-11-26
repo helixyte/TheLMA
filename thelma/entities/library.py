@@ -1,5 +1,5 @@
 """
-Model classes related to molecule design libraries
+Entity classes related to molecule design libraries.
 """
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
@@ -28,14 +28,14 @@ class MoleculeDesignLibrary(Entity):
     final_concentration = None
     #: The number of different layouts for this molecule design library.
     number_layouts = None
-    #: The rack layout (:class:`thelma.models.racklayout.RackLayout`, working
+    #: The rack layout (:class:`thelma.entities.racklayout.RackLayout`, working
     #: layout type: :class:`LibraryLayout`) defines which rack position are
     #: reserved for library samples.
     rack_layout = None
     #: The library plates for this library (:class:`LibraryPlate`).
     library_plates = None
     #: The ISO request used to generate this library (optional,
-    #: :class:`thelma.models.iso.StockSampleCreationIsoRequest`).
+    #: :class:`thelma.entities.iso.StockSampleCreationIsoRequest`).
     creation_iso_request = None
 
     def __init__(self, molecule_design_pool_set, label, final_volume,
@@ -53,7 +53,7 @@ class MoleculeDesignLibrary(Entity):
     @property
     def plate_specs(self):
         """
-        The :class:`thelma.models.rack.PlateSpecs` for the library plates.
+        The :class:`thelma.entities.rack.PlateSpecs` for the library plates.
         """
         if len(self.library_plates) is None: return None
         lp = self.library_plates[0]
@@ -95,7 +95,7 @@ class LibraryPlate(Entity):
     """
     #: The library this plate belongs to (:class:`MoleculeDesignLibrary`).
     molecule_design_library = None
-    #: The plate entity (:class:`thelma.models.rack.Rack`).
+    #: The plate entity (:class:`thelma.entities.rack.Rack`).
     rack = None
     #: The number of the layout this plate contains (a running number
     #: within the library, starting with 1).
@@ -103,7 +103,7 @@ class LibraryPlate(Entity):
     #: Marks whether a plate is still available for experiments.
     has_been_used = None
     #: Library plates can be used by lab ISOs instead of aliquot plates
-    #: (:class:`thelma.models.iso.LabIso`).
+    #: (:class:`thelma.entities.iso.LabIso`).
     lab_iso = None
 
     def __init__(self, molecule_design_library, rack, layout_number,

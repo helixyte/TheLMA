@@ -19,8 +19,8 @@
 #from thelma.automation.tools.semiconstants import get_96_rack_shape
 #from thelma.automation.tools.semiconstants import get_rack_position_from_label
 #from thelma.interfaces import IMoleculeDesignPool
-#from thelma.models.racklayout import RackLayout
-#from thelma.models.tagging import Tag
+#from thelma.entities.racklayout import RackLayout
+#from thelma.entities.tagging import Tag
 #from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 #
 #

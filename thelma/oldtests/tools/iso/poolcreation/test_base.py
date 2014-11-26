@@ -26,9 +26,9 @@ from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IMoleculeType
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
-from thelma.models.moleculetype import MOLECULE_TYPE_IDS
-from thelma.models.tagging import Tag
+from thelma.entities.moleculedesign import MoleculeDesignPoolSet
+from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
+from thelma.entities.tagging import Tag
 from thelma.oldtests.tools.iso.test_base \
     import _StockRackLayoutConverterBaseTestCase
 from thelma.oldtests.tools.iso.test_base import _StockRackClassesBaseTestCase

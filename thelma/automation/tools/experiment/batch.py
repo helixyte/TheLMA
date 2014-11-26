@@ -11,8 +11,8 @@ from thelma.automation.tools.experiment.mastermix import get_experiment_executor
 from thelma.automation.tools.experiment.mastermix import get_experiment_writer
 from thelma.automation.tools.writers import create_zip_archive
 from thelma.automation.tools.writers import read_zip_archive
-from thelma.models.experiment import Experiment
-from thelma.models.user import User
+from thelma.entities.experiment import Experiment
+from thelma.entities.user import User
 
 __docformat__ = 'reStructuredText en'
 
@@ -35,7 +35,7 @@ class ExperimentBatchTool(BaseTool):
         :param experiments: A list of experiments that all belong
             to the same experiment design.
         :type experiments: :class:`list` of
-            :class:`thelma.models.experiment.Experiment`
+            :class:`thelma.entities.experiment.Experiment`
         """
         BaseTool.__init__(self, parent=parent)
         #: A list of experiments that all belong to the same experiment design.
@@ -122,7 +122,7 @@ class ExperimentBatchManualExecutor(ExperimentBatchTool):
         Constructor.
 
         :param user: The user who has committed the update.
-        :type user: :class:`thelma.models.user.User`
+        :type user: :class:`thelma.entities.user.User`
         """
         ExperimentBatchTool.__init__(self, experiments, parent=parent)
         #: The user who has committed the update.
@@ -231,7 +231,7 @@ class ExperimentBatchExecutor(ExperimentBatchTool):
         Constructor.
 
         :param user: The user who has committed the update.
-        :type user: :class:`thelma.models.user.User`
+        :type user: :class:`thelma.entities.user.User`
         """
         ExperimentBatchTool.__init__(self, experiments, parent=parent)
         #: The user who has committed the update.

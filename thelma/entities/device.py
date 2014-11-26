@@ -1,5 +1,5 @@
 """
-Device model classes.
+Device entity classes.
 
 NP
 """
@@ -66,7 +66,7 @@ class Device(Entity):
     #: The device type (:class:`DeviceType`).
     type = None
     #: The manufacturer of this device
-    #: (:class:`thelma.models.organization.Organization`).
+    #: (:class:`thelma.entities.organization.Organization`).
     manufacturer = None
     #: Model of the device.
     model = None

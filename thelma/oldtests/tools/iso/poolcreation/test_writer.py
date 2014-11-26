@@ -25,9 +25,9 @@ from thelma.automation.tools.iso.poolcreation.writer \
 from thelma.automation.tools.worklists.tubehandler import TubeTransferData
 from thelma.automation.tools.worklists.tubehandler import XL20WorklistWriter
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.models.iso import ISO_STATUS
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.racklayout import RackLayout
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.racklayout import RackLayout
 from thelma.oldtests.tools.iso.poolcreation.utils \
     import StockSampleCreationTestCase3
 from thelma.oldtests.tools.iso.poolcreation.utils import SSC_TEST_DATA

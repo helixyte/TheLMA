@@ -9,7 +9,7 @@ from thelma.automation.utils.converters import BaseLayoutConverter
 from thelma.automation.utils.layouts import ParameterSet
 from thelma.automation.utils.layouts import WorkingLayout
 from thelma.automation.utils.layouts import WorkingPosition
-from thelma.models.moleculetype import MOLECULE_TYPE_IDS
+from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
 
 
 __docformat__ = 'reStructuredText en'
@@ -112,7 +112,7 @@ class LibraryBaseLayoutPosition(WorkingPosition):
         Constructor:
 
         :param rack_position: The rack position.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`.
+        :type rack_position: :class:`thelma.entities.rack.RackPosition`.
 
         :param is_sample_position: Is this position available for samples?
         :type is_sample_position: :class:`bool`
@@ -156,7 +156,7 @@ class LibraryBaseLayout(WorkingLayout):
         Constructor:
 
         :param shape: The rack shape.
-        :type shape: :class:`thelma.models.rack.RackShape`
+        :type shape: :class:`thelma.entities.rack.RackShape`
         """
         WorkingLayout.__init__(self, shape)
 
@@ -205,7 +205,7 @@ class LibraryBaseLayout(WorkingLayout):
 
 class LibraryBaseLayoutConverter(BaseLayoutConverter):
     """
-    Converts a :class:`thelma.models.racklayout.RackLayout` into a
+    Converts a :class:`thelma.entities.racklayout.RackLayout` into a
     :class:`LibraryBaseLayout`.
     """
 
@@ -269,7 +269,7 @@ class LibraryLayout(StockSampleCreationLayout):
         Constructor:
 
         :param shape: The rack shape.
-        :type shape: :class:`thelma.models.rack.RackShape`
+        :type shape: :class:`thelma.entities.rack.RackShape`
         """
         StockSampleCreationLayout.__init__(self, shape)
 

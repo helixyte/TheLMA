@@ -10,10 +10,10 @@ from thelma.automation.tools.iso.lab.base import LABELS
 from thelma.automation.tools.iso.lab.planner import LabIsoBuilder
 from thelma.automation.tools.iso.lab.planner import LabIsoPlanner
 from thelma.automation.tools.iso.lab.planner import LibraryIsoPlanner
-from thelma.models.iso import ISO_TYPES
-from thelma.models.liquidtransfer import PlannedWorklist
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.liquidtransfer import WorklistSeries
+from thelma.entities.iso import ISO_TYPES
+from thelma.entities.liquidtransfer import PlannedWorklist
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.liquidtransfer import WorklistSeries
 
 
 __docformat__ = 'reStructuredText en'
@@ -26,7 +26,7 @@ class LabIsoJobCreator(IsoJobCreator):
     """
     ISO job creator for stock samples creation ISOs.
 
-    **Return Value:** :class:`thelma.models.job.IsoJob` with all new ISOs
+    **Return Value:** :class:`thelma.entities.job.IsoJob` with all new ISOs
     """
     NAME = 'Lab ISO Job Creator'
 
@@ -42,7 +42,7 @@ class LabIsoJobCreator(IsoJobCreator):
         #: The :class:`LabIsoBuilder` used to generate the ISOs.
         self.__builder = None
         #: The worklist series for the ISO job (if there is one,
-        #: :class:`thelma.models.liquidtransfer.WorklistSeries`).
+        #: :class:`thelma.entities.liquidtransfer.WorklistSeries`).
         self.__job_worklist_series = None
         #: List of requested library plates if this is a library ISO job.
         self.requested_library_plates = requested_library_plates
@@ -157,7 +157,7 @@ class _LabIsoWorklistSeriesGenerator(BaseTool):
     lab ISO generation process (for an lab ISO or ISO job entity).
 
     **Return Value:** a map containining the worklist series
-        (:class:`thelma.models.liquidtransfer.WorklistSeries`)
+        (:class:`thelma.entities.liquidtransfer.WorklistSeries`)
         for ISO processing and ISO job
     """
     NAME = 'Lab ISO Worklist Series Generator'

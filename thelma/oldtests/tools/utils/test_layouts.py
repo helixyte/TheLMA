@@ -33,9 +33,9 @@ from thelma.automation.utils.layouts import WorkingLayout
 from thelma.automation.utils.layouts import WorkingPosition
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import IMoleculeType
-from thelma.models.moleculetype import MOLECULE_TYPE_IDS
-from thelma.models.rack import RackPosition
-from thelma.models.tagging import Tag
+from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
+from thelma.entities.rack import RackPosition
+from thelma.entities.tagging import Tag
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 from thelma.oldtests.tools.utils.utils import ConverterTestCase
 from thelma.oldtests.tools.utils.utils import MoleculeDesignPoolBaseTestCase

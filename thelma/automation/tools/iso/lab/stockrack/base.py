@@ -15,14 +15,14 @@ from thelma.automation.tools.iso.lab.base import LabIsoPrepLayoutConverter
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import add_list_map_element
 from thelma.interfaces import ITubeRack
-from thelma.models.iso import IsoJobStockRack
-from thelma.models.iso import IsoSectorStockRack
-from thelma.models.iso import IsoStockRack
-from thelma.models.iso import LabIso
-from thelma.models.job import IsoJob
-from thelma.models.liquidtransfer import PlannedWorklist
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.liquidtransfer import WorklistSeries
+from thelma.entities.iso import IsoJobStockRack
+from thelma.entities.iso import IsoSectorStockRack
+from thelma.entities.iso import IsoStockRack
+from thelma.entities.iso import LabIso
+from thelma.entities.job import IsoJob
+from thelma.entities.liquidtransfer import PlannedWorklist
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.liquidtransfer import WorklistSeries
 from thelma.automation.tools.iso.lab.base import FinalLabIsoPosition
 from thelma.automation.tools.iso.lab.base import LAB_ISO_ORDERS
 from thelma.automation.tools.iso.lab.base import get_entity_cls_displayname
@@ -633,7 +633,7 @@ class StockTubeContainer(object):
 
         :param pool: The molecule design pool the stock tube sample should
             contain.
-        :type pool: :class:`thelma.models.moleculedesign.MoleculeDesignPool`
+        :type pool: :class:`thelma.entities.moleculedesign.MoleculeDesignPool`
         :param position_type: The types of the positions in the layouts
             (must be the same for all positions).
         :type position_type: see :class:`MoleculeDesignPoolParameters`
@@ -677,7 +677,7 @@ class StockTubeContainer(object):
     def pool(self):
         """
         The molecule design pool the stock tube sample should contain
-        (:class:`thelma.models.moleculedesign.MoleculeDesignPool`).
+        (:class:`thelma.entities.moleculedesign.MoleculeDesignPool`).
         """
         return self.__pool
 

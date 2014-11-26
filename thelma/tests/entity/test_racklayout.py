@@ -1,5 +1,5 @@
 from everest.repositories.rdb.testing import persist
-from thelma.models.racklayout import RackLayout
+from thelma.entities.racklayout import RackLayout
 from thelma.tests.entity.conftest import TestEntityBase
 
 

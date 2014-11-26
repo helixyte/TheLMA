@@ -4,7 +4,7 @@ Short cuts for tools involved in ISO processing.
 from thelma.automation.tools.iso.lab.jobcreator import LabIsoJobCreator
 from thelma.automation.tools.iso.poolcreation.jobcreator import \
     StockSampleCreationIsoJobCreator
-from thelma.models.iso import ISO_TYPES
+from thelma.entities.iso import ISO_TYPES
 
 
 
@@ -21,9 +21,9 @@ def get_job_creator(iso_request, job_owner, number_isos,
     request.
 
     :param iso_request: The ISO request that will take up the ISOs.
-    :type iso_request: :class:`thelma.models.iso.IsoRequest` subclass
+    :type iso_request: :class:`thelma.entities.iso.IsoRequest` subclass
     :param job_owner: The job owner will be set as user for the ISO job.
-    :type job_owner: :class:`thelma.models.user.User`
+    :type job_owner: :class:`thelma.entities.user.User`
     :param number_isos: The number of ISOs ordered.
     :type number_isos: :class:`int`
     :param excluded_racks: A list of barcodes from stock racks that should

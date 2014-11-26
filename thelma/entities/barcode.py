@@ -1,5 +1,5 @@
 """
-BarcodePrintJob model classes.
+BarcodePrintJob entity classes.
 
 TR
 """

@@ -4,8 +4,8 @@ Device type mapper.
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
 from everest.repositories.rdb.utils import as_slug_expression
-from thelma.models.device import Device
-from thelma.models.device import DeviceType
+from thelma.entities.device import Device
+from thelma.entities.device import DeviceType
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

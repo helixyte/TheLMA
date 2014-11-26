@@ -6,11 +6,11 @@ from sqlalchemy.orm import column_property
 from sqlalchemy.orm import relationship
 from thelma.db.mappers.utils import CaseInsensitiveComparator
 from everest.repositories.rdb.utils import as_slug_expression
-from thelma.models.experiment import ExperimentDesign
-from thelma.models.experiment import ExperimentMetadata
-from thelma.models.experiment import ExperimentMetadataType
-from thelma.models.subproject import Subproject
-from thelma.models.iso import LabIsoRequest
+from thelma.entities.experiment import ExperimentDesign
+from thelma.entities.experiment import ExperimentMetadata
+from thelma.entities.experiment import ExperimentMetadataType
+from thelma.entities.subproject import Subproject
+from thelma.entities.iso import LabIsoRequest
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

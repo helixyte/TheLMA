@@ -12,7 +12,7 @@ from thelma.automation.tools.metadata.base import TransfectionLayoutConverter
 from thelma.automation.tools.metadata.base import TransfectionParameters
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.models.racklayout import RackLayout
+from thelma.entities.racklayout import RackLayout
 
 
 __docformat__ = 'reStructuredText en'

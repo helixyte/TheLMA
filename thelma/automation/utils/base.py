@@ -101,7 +101,7 @@ def sort_rack_positions(rack_positions):
     Returns a list of rack positions sorted by row.
 
     :param rack_positions: The rack positions to be sorted.
-    :type rack_positions: Iterable of :class:`thelma.models.rack.RackPosition`
+    :type rack_positions: Iterable of :class:`thelma.entities.rack.RackPosition`
     :return: sorted list
     """
 

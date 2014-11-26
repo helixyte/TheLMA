@@ -9,9 +9,9 @@ from thelma.automation.handlers.base import BaseParserHandler
 from thelma.automation.parsers.rackscanning import RackScanningParser
 from thelma.automation.semiconstants import get_96_rack_shape
 from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.models.rack import RACK_BARCODE_REGEXP
-from thelma.models.rack import RACK_POSITION_REGEXP
-from thelma.models.rack import TubeRack
+from thelma.entities.rack import RACK_BARCODE_REGEXP
+from thelma.entities.rack import RACK_POSITION_REGEXP
+from thelma.entities.rack import TubeRack
 from thelma.utils import get_utc_time
 
 __docformat__ = 'reStructuredText en'
@@ -69,7 +69,7 @@ class _RackScanningParserHandler(BaseParserHandler):
     def _convert_results_to_entity(self):
         """
         Converts the parsing results into a :class:`RackScanningLayout`
-        (no model class).
+        (no entity class).
         """
         self.add_info('Convert parser results ...')
         self._check_rack_barcode()
@@ -177,7 +177,7 @@ class RackScanningLayout(object):
         #: The timestamp of the scanning file.
         self.timestamp = timestamp
 
-        #: The shape of the layout (:class:`thelma.models.rack.RackShape`)
+        #: The shape of the layout (:class:`thelma.entities.rack.RackShape`)
         self.shape = get_96_rack_shape()
         #: Maps tube barcodes onto rack positions.
         self._position_map = dict()
@@ -189,7 +189,7 @@ class RackScanningLayout(object):
             rack.
 
         :param tube_rack: The tube rack to create the layout for.
-        :type tube_rack: :class:`thelma.models.rack.TubeRack`
+        :type tube_rack: :class:`thelma.entities.rack.TubeRack`
         :raises TypeError: If the tube rack is the wrong type (incl. other
             rack types).
         :return: :class:`RackScanningLayout`
@@ -212,7 +212,7 @@ class RackScanningLayout(object):
         Adds the values to the position map.
 
         :param rack_position: The rack position.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`.
+        :type rack_position: :class:`thelma.entities.rack.RackPosition`.
 
         :param tube_barcode: The tube barcode.
         :type tube_barcode: :class:`basestring`.
@@ -236,7 +236,7 @@ class RackScanningLayout(object):
         Returns the tube barcode for the given position (or None).
 
         :param rack_position: The rack position.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`.
+        :type rack_position: :class:`thelma.entities.rack.RackPosition`.
         :return: The tube barcode or None.
         """
         if not self._position_map.has_key(rack_position): return None
@@ -262,7 +262,7 @@ class RackScanningLayout(object):
         :type tube_barcode: :class:`str`
 
         :return: The position of the tube within the layout.
-        :rtype: :class:`thelma.models.rack.RackPosition`
+        :rtype: :class:`thelma.entities.rack.RackPosition`
         """
         for rack_pos, stored_barcode in self._position_map.iteritems():
             if stored_barcode == tube_barcode: return rack_pos

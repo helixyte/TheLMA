@@ -22,7 +22,7 @@ GENES = [
     ]
 
 def create_demo(species):
-    from thelma.models.gene import Gene
+    from thelma.entities.gene import Gene
     demo = {}
     for accession, locus_name, species_name in GENES:
         demo[accession] = Gene(accession, locus_name, species[species_name])

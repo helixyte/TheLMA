@@ -13,7 +13,7 @@ from thelma.automation.utils.iso import IsoRequestSectorAssociator
 from thelma.automation.utils.iso import IsoRequestValueDeterminer
 from thelma.automation.utils.layouts import LIBRARY_POSITION_TYPE
 from thelma.automation.utils.layouts import UNTREATED_POSITION_TYPE
-from thelma.models.tagging import Tag
+from thelma.entities.tagging import Tag
 from thelma.oldtests.tools.utils.utils import ConverterTestCase
 from thelma.oldtests.tools.utils.utils import MoleculeDesignPoolBaseTestCase
 from thelma.oldtests.tools.utils.utils import RackSectorTestCase

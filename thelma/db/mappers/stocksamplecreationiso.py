@@ -4,9 +4,9 @@ Stock sample creation ISO mapper.
 
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.iso import ISO_TYPES
-from thelma.models.iso import StockSampleCreationIso
-from thelma.models.iso import IsoSectorPreparationPlate
+from thelma.entities.iso import ISO_TYPES
+from thelma.entities.iso import StockSampleCreationIso
+from thelma.entities.iso import IsoSectorPreparationPlate
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

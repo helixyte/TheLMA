@@ -20,10 +20,10 @@ from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
 from thelma.automation.utils.layouts import UNTREATED_POSITION_TYPE
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import IUser
-from thelma.models.moleculetype import MOLECULE_TYPE_IDS
-from thelma.models.rack import RackPositionSet
-from thelma.models.racklayout import RackLayout
-from thelma.models.tagging import Tag
+from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
+from thelma.entities.rack import RackPositionSet
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.tagging import Tag
 from thelma.oldtests.tools.utils.test_iso import IsoRequestClassesBaseTestCase
 from thelma.oldtests.tools.utils.test_iso import _IsoRequestRackSectorToolTestCase
 from thelma.oldtests.tools.utils.utils import ConverterTestCase

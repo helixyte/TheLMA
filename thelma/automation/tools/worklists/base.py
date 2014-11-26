@@ -7,7 +7,7 @@ from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
 from thelma.automation.semiconstants import get_positions_for_shape
 from thelma.automation.semiconstants import get_reservoir_spec
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.models.liquidtransfer import ReservoirSpecs
+from thelma.entities.liquidtransfer import ReservoirSpecs
 
 __docformat__ = 'reStructuredText en'
 
@@ -51,7 +51,7 @@ def get_dynamic_dead_volume(target_well_number,
 
     :param reservoir_specs: The reservoir specs you are assuming.
     :type reservoir_specs: a :class:`RESERVOIR_SPECS_NAMES` element or
-        a :class:`thelma.models.liquidtransfer.ReservoirSpecs` object
+        a :class:`thelma.entities.liquidtransfer.ReservoirSpecs` object
     :default reservoir_specs: RESERVOIR_SPECS_NAMES.STANDARD_96
 
     :Note: At the moment corrections are only applied to plates.
@@ -101,7 +101,7 @@ class EmptyPositionManager(object):
         Constructor:
 
         :param rack_shape: The rack shape of the managed layout.
-        :type rack_shape: :class:`thelma.models.rack.RackShape`
+        :type rack_shape: :class:`thelma.entities.rack.RackShape`
         """
         #: The rack shape of the managed layout.
         self.rack_shape = rack_shape
@@ -132,7 +132,7 @@ class EmptyPositionManager(object):
         Adds an empty position.
 
         :param rack_pos: The new empty rack pos.
-        :type rack_pos: :class:`thelma.models.rack.RackPosition`
+        :type rack_pos: :class:`thelma.entities.rack.RackPosition`
         """
         self._all_empty_positions.add(rack_pos)
 

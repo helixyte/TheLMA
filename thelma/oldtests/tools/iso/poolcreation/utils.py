@@ -34,13 +34,13 @@ from thelma.automation.tracbase import BaseTracTool
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import are_equal_values
 from thelma.interfaces import ITubeRack
-from thelma.models.liquidtransfer import PlannedSampleDilution
-from thelma.models.liquidtransfer import PlannedSampleTransfer
-from thelma.models.liquidtransfer import PlannedWorklist
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.moleculedesign import MoleculeDesign
-from thelma.models.moleculedesign import MoleculeDesignPool
-from thelma.models.moleculetype import MOLECULE_TYPE_IDS
+from thelma.entities.liquidtransfer import PlannedSampleDilution
+from thelma.entities.liquidtransfer import PlannedSampleTransfer
+from thelma.entities.liquidtransfer import PlannedWorklist
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.moleculedesign import MoleculeDesign
+from thelma.entities.moleculedesign import MoleculeDesignPool
+from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
 from thelma.oldtests.tools.tooltestingutils import FileReadingTestCase
 from thelma.oldtests.tools.tooltestingutils import TracToolTestCase
 

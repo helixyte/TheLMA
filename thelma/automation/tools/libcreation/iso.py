@@ -38,11 +38,11 @@ from thelma.automation.tools.writers import CsvColumnParameters
 from thelma.automation.tools.writers import CsvWriter
 from thelma.automation.utils.base import is_valid_number
 from thelma.automation.utils.racksector import QuadrantIterator
-from thelma.models.iso import ISO_STATUS
-from thelma.models.iso import IsoAliquotPlate
-from thelma.models.iso import IsoSectorPreparationPlate
-from thelma.models.iso import StockSampleCreationIso
-from thelma.models.library import MoleculeDesignLibrary
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.iso import IsoAliquotPlate
+from thelma.entities.iso import IsoSectorPreparationPlate
+from thelma.entities.iso import StockSampleCreationIso
+from thelma.entities.library import MoleculeDesignLibrary
 
 
 __docformat__ = 'reStructuredText en'
@@ -73,7 +73,7 @@ class LibraryCreationIsoPopulator(BaseTool):
         :param molecule_design_library: The molecule design library for which to
             populate the ISO.
         :type molecule_design_library:
-            :class:`thelma.models.library.MoleculeDesignLibrary`
+            :class:`thelma.entities.library.MoleculeDesignLibrary`
         :param number_isos: The number of ISOs ordered.
         :type number_isos: :class:`int`
         :param excluded_racks: A list of barcodes from stock racks that shall
@@ -100,7 +100,7 @@ class LibraryCreationIsoPopulator(BaseTool):
         self.requested_tubes = requested_tubes
 
         #: The ISO request defining the ISO layout
-        #: (:class:`thelma.models.iso.IsoRequest`)
+        #: (:class:`thelma.entities.iso.IsoRequest`)
         self._iso_request = None
 
         #: The library pools for which to pick tubes.
@@ -388,7 +388,7 @@ class LibraryCreationIsoLayoutWriter(CsvWriter):
         :param stock_sample_creation_iso: The ISO whose library layout you want
             to print.
         :type stock_sample_creation_iso:
-            :class:`thelma.models.iso.StockSampleCreationIso`
+            :class:`thelma.entities.iso.StockSampleCreationIso`
         """
         CsvWriter.__init__(self, parent=parent)
 

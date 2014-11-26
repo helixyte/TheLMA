@@ -2,8 +2,8 @@
 Nucleic acid chemical structure mapper.
 """
 from sqlalchemy.orm import mapper
-from thelma.models.chemicalstructure import CHEMICAL_STRUCTURE_TYPE_IDS
-from thelma.models.chemicalstructure import UnknownChemicalStructure
+from thelma.entities.chemicalstructure import CHEMICAL_STRUCTURE_TYPE_IDS
+from thelma.entities.chemicalstructure import UnknownChemicalStructure
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

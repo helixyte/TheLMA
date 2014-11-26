@@ -8,10 +8,10 @@ from thelma.automation.tools.base import BaseTool
 from thelma.automation.tools.writers import CsvColumnParameters
 from thelma.automation.tools.writers import CsvWriter
 from thelma.automation.utils.base import add_list_map_element
-from thelma.models.rack import TubeRack
-from thelma.models.tubetransfer import TubeTransfer
-from thelma.models.tubetransfer import TubeTransferWorklist
-from thelma.models.user import User
+from thelma.entities.rack import TubeRack
+from thelma.entities.tubetransfer import TubeTransfer
+from thelma.entities.tubetransfer import TubeTransferWorklist
+from thelma.entities.user import User
 from thelma.utils import get_utc_time
 
 
@@ -38,10 +38,10 @@ class TubeTransferData(object):
         :param str tube_barcode: The barcode of the tube to be moved.
         :param str src_rack_barcode: The barcode of the donor rack.
         :param src_pos: The rack position of the tube in the source rack.
-        :type src_pos: :class:`thelma.models.rack.RackPosition`
+        :type src_pos: :class:`thelma.entities.rack.RackPosition`
         :param str trg_rack_barcode: The barcode of the receiver rack.
         :param trg_pos: The rack position of the tube in the target rack.
-        :type trg_pos: :class:`thelma.models.rack.RackPosition`
+        :type trg_pos: :class:`thelma.entities.rack.RackPosition`
         """
         #: The barcode of the tube to be moved.
         self.tube_barcode = tube_barcode
@@ -62,7 +62,7 @@ class TubeTransferData(object):
         :class:`TubeTransfer` entity.
 
         :param tube_transfer: The tube transfer entity.
-        :type tube_transfer: :class:`thelma.models.tubetransfer.TubeTransfer`
+        :type tube_transfer: :class:`thelma.entities.tubetransfer.TubeTransfer`
         :rtype: :class:`TubeTransferData`
         """
         return TubeTransferData(tube_transfer.tube.barcode,
@@ -264,7 +264,7 @@ class TubeTransferExecutor(BaseTool):
             to execute.
         :type tube_transfer: :class:`list`
         :param user: The user conducting the update.
-        :type user: :class:`thelma.models.user.User`
+        :type user: :class:`thelma.entities.user.User`
         """
         BaseTool.__init__(self, parent=parent)
         #: The tube transfer entities to execute.
@@ -415,7 +415,7 @@ class XL20Executor(BaseTool):
         :param output_file_stream: The content of the XL20 output file, as
             :class:`basestring`, file or :class:`StringIO`.
         :param user: The user who wants to update the DB.
-        :type user: :class:`thelma.models.user.User`
+        :type user: :class:`thelma.entities.user.User`
         """
         BaseTool.__init__(self, parent=parent)
         #: The XL20 output file.

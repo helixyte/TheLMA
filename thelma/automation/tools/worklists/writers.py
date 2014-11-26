@@ -8,12 +8,12 @@ from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import is_larger_than
 from thelma.automation.utils.base import is_smaller_than
-from thelma.models.liquidtransfer import PipettingSpecs
-from thelma.models.liquidtransfer import PlannedWorklist
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.rack import Plate
-from thelma.models.rack import Rack
-from thelma.models.rack import RackPosition
+from thelma.entities.liquidtransfer import PipettingSpecs
+from thelma.entities.liquidtransfer import PlannedWorklist
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.rack import Plate
+from thelma.entities.rack import Rack
+from thelma.entities.rack import RackPosition
 
 
 __docformat__ = 'reStructuredText en'
@@ -29,7 +29,7 @@ class WorklistWriter(CsvWriter):
     """
 
     #: The transfer type supported by this class
-    #: (see :class:`thelma.models.liquidtransfer.TRANSFER_TYPES`).
+    #: (see :class:`thelma.entities.liquidtransfer.TRANSFER_TYPES`).
     TRANSFER_TYPE = None
 
     def __init__(self, planned_worklist, target_rack, pipetting_specs,
@@ -40,13 +40,13 @@ class WorklistWriter(CsvWriter):
         :param planned_worklist: The worklist for which to create a
             worklist file.
         :type planned_worklist:
-            :class:`thelma.models.liquidtransfer.PlannedWorklist`
+            :class:`thelma.entities.liquidtransfer.PlannedWorklist`
         :param target_rack: The rack into which the volumes will be dispensed.
-        :type target_rack: :class:`thelma.models.rack.Rack`
+        :type target_rack: :class:`thelma.entities.rack.Rack`
         :param pipetting_specs: Pipetting specs define transfer properties and
             conditions like the transfer volume range.
         :type pipetting_specs:
-            :class:`thelma.models.liquidtransfer.PipettingSpecs`
+            :class:`thelma.entities.liquidtransfer.PipettingSpecs`
         :param list ignored_positions: A list of positions (target
             for dilutions and source for transfers; :class:`RackPosition`)
             that are not included in the worklist file.

@@ -34,11 +34,11 @@ from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
 from thelma.automation.utils.racksector import RackSectorTranslator
-from thelma.models.iso import IsoSectorStockRack
-from thelma.models.iso import LabIso
-from thelma.models.job import IsoJob
-from thelma.models.moleculedesign import MoleculeDesignPool
-from thelma.models.rack import RackShape
+from thelma.entities.iso import IsoSectorStockRack
+from thelma.entities.iso import LabIso
+from thelma.entities.job import IsoJob
+from thelma.entities.moleculedesign import MoleculeDesignPool
+from thelma.entities.rack import RackShape
 
 __docformat__ = 'reStructuredText en'
 
@@ -1137,7 +1137,7 @@ class LabIsoStockRackOptimizer(BiomekLayoutOptimizer):
         :param dict stock_tube_containers: The stock tube containers mapped
             onto pools. Each container must have a tube candidate.
         :param target_rack_shape: The shape of the target plates.
-        :type target_rack_shape: :class:`thelma.models.rack.RackShape`
+        :type target_rack_shape: :class:`thelma.entities.rack.RackShape`
         :param str stock_rack_marker: The rack marker for each rack label that
             can occur in the :attr:`stock_tube_containers`.
         :param dict rack_marker_map: The rack marker for each plate label that

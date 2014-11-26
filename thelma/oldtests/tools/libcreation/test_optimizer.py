@@ -16,8 +16,8 @@
 #from thelma.automation.tools.utils.base \
 #    import CONCENTRATION_CONVERSION_FACTOR
 #from thelma.interfaces import IMoleculeDesign
-#from thelma.models.moleculedesign import MoleculeDesignPool
-#from thelma.models.moleculetype import MOLECULE_TYPE_IDS
+#from thelma.entities.moleculedesign import MoleculeDesignPool
+#from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
 #from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 #
 #

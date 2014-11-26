@@ -1,5 +1,5 @@
 """
-Sample model classes.
+Sample entity classes.
 """
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_integer
@@ -26,18 +26,18 @@ class Molecule(Entity):
     This class represents molecule (solutions).
 
     :note: Molecules sharing the same molecule design
-            (:class:`thelma.models.moleculedesign.MoleculeDesign`) can be
+            (:class:`thelma.entities.moleculedesign.MoleculeDesign`) can be
             listed differently if they are provided by different suppliers
-            (:class:`thelma.models.organization.Organization`).
+            (:class:`thelma.entities.organization.Organization`).
     """
     #: The date at which the molecule has been inserted into the database.
     insert_date = None
     #: The molecule design
-    #: (:class:`thelma.models.moleculedesign.MoleculeDesign`) for this
+    #: (:class:`thelma.entities.moleculedesign.MoleculeDesign`) for this
     #: molecule.
     molecule_design = None
     #: The supplier of this molecule
-    #: (:class:`thelma.models.organization.Organization`).
+    #: (:class:`thelma.entities.organization.Organization`).
     supplier = None
     #: A list of samples (:class:`Sample`) using this molecule.
     samples = None
@@ -79,7 +79,7 @@ class Sample(Entity):
     """
     #: The sample volume.
     volume = None
-    #: The container (:class:`thelma.models.container.Container`) holding
+    #: The container (:class:`thelma.entities.container.Container`) holding
     #: the sample.
     container = None
     #: The molecules present in this sample
@@ -87,7 +87,7 @@ class Sample(Entity):
     sample_molecules = None
     #: All samples which are aliquots of a `StockSample` reference the ID
     #: of the stock sample's
-    #: :class:`thelma.models.moleculedesign.MoleculeDesignPool`. This
+    #: :class:`thelma.entities.moleculedesign.MoleculeDesignPool`. This
     #: attribute may be `None` for samples that are created by mixing several
     #: stock samples; it will certainly be `None` if the designs of the
     #: sample molecules have not all the same molecule type.
@@ -123,7 +123,7 @@ class Sample(Entity):
             raise ValueError('All molecule designs in a stock sample must '
                              'have the same supplier, the same molecule type '
                              'and the same concentration.')
-        from thelma.models.moleculedesign import MoleculeDesignPool
+        from thelma.entities.moleculedesign import MoleculeDesignPool
         mdp = MoleculeDesignPool.create_from_data(
                             dict(molecule_designs=set([mol.molecule_design
                                                        for mol in mols])))
@@ -151,7 +151,7 @@ class StockSample(Sample):
      * All sample molecules have the same concentration.
 
     The molecule designs of all molecules in a stock sample are kept in a
-    :class:`thelma.models.moleculedesign.MoleculeDesignPool`.
+    :class:`thelma.entities.moleculedesign.MoleculeDesignPool`.
     """
     #: The supplier for all sample molecules.
     supplier = None

@@ -1,5 +1,5 @@
 """
-Pipetting models (liquid transfers)
+Pipetting entity classes (liquid transfers).
 
 Oct 2011, AAB
 """
@@ -181,7 +181,7 @@ class PlannedSampleDilution(PlannedLiquidTransfer):
     **Equality Condition**: equal :attr:`hash_value`
     """
 
-    #: The rack position (:class:`thelma.models.rack.RackPosition`) to which
+    #: The rack position (:class:`thelma.entities.rack.RackPosition`) to which
     #: the volume is added.
     _target_position = None
     #: Further information (e.g. name and concentration) of the diluent as
@@ -210,7 +210,7 @@ class PlannedSampleDilution(PlannedLiquidTransfer):
         :param str diluent_info: Further information (e.g. name and
             concentration) of the diluent.
         :param target_position: The rack position to which the volume is added.
-        :type target_position: :class:`thelma.models.rack.RackPosition`
+        :type target_position: :class:`thelma.entities.rack.RackPosition`
         :returns: :class:`PlannedSampleDilution`
         """
         data = dict(diluent_info=diluent_info,
@@ -230,7 +230,7 @@ class PlannedSampleDilution(PlannedLiquidTransfer):
         :param str diluent_info: Further information (e.g. name and
             concentration) of the diluent.
         :param target_position: The rack position to which the volume is added.
-        :type target_position: :class:`thelma.models.rack.RackPosition`
+        :type target_position: :class:`thelma.entities.rack.RackPosition`
 
         :return: The sample dilution hash value for the passed values.
         """
@@ -242,7 +242,7 @@ class PlannedSampleDilution(PlannedLiquidTransfer):
     @property
     def target_position(self):
         """
-        The rack position (:class:`thelma.models.rack.RackPosition`) to which
+        The rack position (:class:`thelma.entities.rack.RackPosition`) to which
         the volume is added.
         """
         return self._target_position
@@ -273,10 +273,10 @@ class PlannedSampleTransfer(PlannedLiquidTransfer):
     **Equality Condition**: equal :attr:`hash_value`
     """
 
-    #: The rack position (:class:`thelma.models.rack.RackPosition`) from which
+    #: The rack position (:class:`thelma.entities.rack.RackPosition`) from which
     #: the volume is taken.
     _source_position = None
-    #: The rack position (:class:`thelma.models.rack.RackPosition`) to which
+    #: The rack position (:class:`thelma.entities.rack.RackPosition`) to which
     #: the volume is added.
     _target_position = None
 
@@ -296,7 +296,7 @@ class PlannedSampleTransfer(PlannedLiquidTransfer):
     @property
     def source_position(self):
         """
-        The rack position (:class:`thelma.models.rack.RackPosition`) from which
+        The rack position (:class:`thelma.entities.rack.RackPosition`) from which
         the volume is taken.
         """
         return self._source_position
@@ -304,7 +304,7 @@ class PlannedSampleTransfer(PlannedLiquidTransfer):
     @property
     def target_position(self):
         """
-        The rack position (:class:`thelma.models.rack.RackPosition`) to which
+        The rack position (:class:`thelma.entities.rack.RackPosition`) to which
         the volume is added.
         """
         return self._target_position
@@ -321,10 +321,10 @@ class PlannedSampleTransfer(PlannedLiquidTransfer):
 
         :param source_position: The rack position from which the volume is
             taken.
-        :type source_position: :class:`thelma.models.rack.RackPosition`
+        :type source_position: :class:`thelma.entities.rack.RackPosition`
 
         :param target_position: The rack position to which the volume is added.
-        :type target_position: :class:`thelma.models.rack.RackPosition`
+        :type target_position: :class:`thelma.entities.rack.RackPosition`
 
         :return: :class:`PlannedSampleTransfer`
         """
@@ -346,10 +346,10 @@ class PlannedSampleTransfer(PlannedLiquidTransfer):
 
         :param source_position: The rack position from which the volume is
             taken.
-        :type source_position: :class:`thelma.models.rack.RackPosition`
+        :type source_position: :class:`thelma.entities.rack.RackPosition`
 
         :param target_position: The rack position to which the volume is added.
-        :type target_position: :class:`thelma.models.rack.RackPosition`
+        :type target_position: :class:`thelma.entities.rack.RackPosition`
 
         :return: The sample dilution hash value for the passed values.
         """
@@ -697,7 +697,7 @@ class ExecutedLiquidTransfer(Entity):
     #: (:class:`PlannedLiquidTransfer`).
     planned_liquid_transfer = None
     #: The user who has carried out the transfer
-    #: (:class:thelma.models.user.User`).
+    #: (:class:thelma.entities.user.User`).
     user = None
     #: The time stamp is set upon entity creation. It represents the time
     #: the transfer has been executed on DB level.
@@ -743,7 +743,7 @@ class ExecutedSampleDilution(ExecutedLiquidTransfer):
     """
 
     #: The container the volume has been dispensed into
-    #: (:class:`thelma.models.container.Container`).
+    #: (:class:`thelma.entities.container.Container`).
     target_container = None
     #: The specs of the source reservoir (:class:`ReservoirSpecs`).
     reservoir_specs = None
@@ -794,10 +794,10 @@ class ExecutedSampleTransfer(ExecutedLiquidTransfer):
     """
 
     #: The container the volume has been taken from
-    #: (:class:`thelma.models.container.Container`).
+    #: (:class:`thelma.entities.container.Container`).
     source_container = None
     #: The container the volume has been dispensed into
-    #: (:class:`thelma.models.container.Container`).
+    #: (:class:`thelma.entities.container.Container`).
     target_container = None
 
     def __init__(self, source_container, target_container,
@@ -852,10 +852,10 @@ class ExecutedRackSampleTransfer(ExecutedLiquidTransfer):
     **Equality Condition**: equal :attr:`id`
     """
 
-    #: The rack the volumes are taken from (:class:`thelma.models.rack.Rack`).
+    #: The rack the volumes are taken from (:class:`thelma.entities.rack.Rack`).
     source_rack = None
     #: The rack the volumes are dispensed into
-    #: (:class:`thelma.models.rack.Rack`).
+    #: (:class:`thelma.entities.rack.Rack`).
     target_rack = None
 
     def __init__(self, source_rack, target_rack, planned_rack_sample_transfer,
@@ -1041,7 +1041,8 @@ class ReservoirSpecs(Entity):
     _name = None
     #: Contains a little more information than the :attr:`name`.
     _description = None
-    #: The rack shape of the reservoir (:class:`thelma.model.Rack.RackShape`).
+    #: The rack shape of the reservoir
+    #: (:class:`thelma.entities.Rack.RackShape`).
     _rack_shape = None
     #: The maximum volume of a rack container *in liters*.
     _max_volume = None
@@ -1087,7 +1088,8 @@ class ReservoirSpecs(Entity):
     @property
     def rack_shape(self):
         """
-        The rack shape of the reservoir (:class:`thelma.model.Rack.RackShape`).
+        The rack shape of the reservoir
+        (:class:`thelma.entities.Rack.RackShape`).
         """
         return self._rack_shape
 

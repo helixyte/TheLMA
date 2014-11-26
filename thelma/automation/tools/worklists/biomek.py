@@ -14,10 +14,10 @@ from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import round_up
 from thelma.automation.utils.base import sort_rack_positions
-from thelma.models.liquidtransfer import ReservoirSpecs
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.rack import Plate
-from thelma.models.rack import Rack
+from thelma.entities.liquidtransfer import ReservoirSpecs
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.rack import Plate
+from thelma.entities.rack import Rack
 
 
 __docformat__ = 'reStructuredText en'
@@ -122,7 +122,7 @@ class SampleTransferWorklistWriter(BiomekWorklistWriter):
         Constructor.
 
         :param source_rack: The rack from which to take the volumes.
-        :type source_rack: :class:`thelma.models.rack.Rack`
+        :type source_rack: :class:`thelma.entities.rack.Rack`
         """
         BiomekWorklistWriter.__init__(self, planned_worklist,
                                       target_rack, pipetting_specs,

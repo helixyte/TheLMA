@@ -3,9 +3,9 @@ ISO plate mapper
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.iso import ISO_PLATE_TYPES
-from thelma.models.iso import IsoPlate
-from thelma.models.rack import Rack
+from thelma.entities.iso import ISO_PLATE_TYPES
+from thelma.entities.iso import IsoPlate
+from thelma.entities.rack import Rack
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

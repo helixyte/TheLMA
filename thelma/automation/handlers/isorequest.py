@@ -43,9 +43,9 @@ from thelma.automation.utils.layouts import UNTREATED_POSITION_TYPE
 from thelma.automation.utils.racksector import QuadrantIterator
 from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeDesignPool
-from thelma.models.iso import LabIsoRequest
-from thelma.models.tagging import TaggedRackPositionSet
-from thelma.models.user import User
+from thelma.entities.iso import LabIsoRequest
+from thelma.entities.tagging import TaggedRackPositionSet
+from thelma.entities.user import User
 
 
 __docformat__ = 'reStructuredText en'
@@ -64,7 +64,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
     metadata file. There are special subclass for the different experiment
     scenarios.
 
-    **Return Value:** ISO request (:class:`thelma.models.iso.IsoRequest`).
+    **Return Value:** ISO request (:class:`thelma.entities.iso.IsoRequest`).
     """
     NAME = 'ISO Request Parser Handler'
     _PARSER_CLS = IsoRequestParser
@@ -115,7 +115,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         Constructor.
 
         :param requester: the user requesting the ISO
-        :type requester: :class:`thelma.models.user.User`
+        :type requester: :class:`thelma.entities.user.User`
         """
         MoleculeDesignPoolLayoutParserHandler.__init__(self, stream,
                                                        parent=parent)
@@ -130,7 +130,7 @@ class IsoRequestParserHandler(MoleculeDesignPoolLayoutParserHandler):
         #: Stores the molecule design pools for molecule design set IDs.
         self._pool_map = dict()
         # The molecule design pool aggregate
-        # (see :class:`thelma.models.aggregates.Aggregate`)
+        # (see :class:`thelma.entities.aggregates.Aggregate`)
         # used to obtain check the validity of molecule design pool IDs.
         self._pool_aggregate = get_root_aggregate(IMoleculeDesignPool)
         #: The tagged rack position sets for tags that are not part of the
@@ -1028,7 +1028,7 @@ class IsoRequestParserHandlerOpti(IsoRequestParserHandler):
     """
     A IsoRequestParserHandler for optimisation experiments.
 
-    **Return Value:** ISO request (:class:`thelma.models.iso.IsoRequest`).
+    **Return Value:** ISO request (:class:`thelma.entities.iso.IsoRequest`).
     """
     SUPPORTED_SCENARIO = EXPERIMENT_SCENARIOS.OPTIMISATION
 
@@ -1112,7 +1112,7 @@ class IsoRequestParserHandlerScreen(IsoRequestParserHandler):
     """
     A IsoRequestParserHandler for screening experiments.
 
-    **Return Value:** ISO request (:class:`thelma.models.iso.IsoRequest`).
+    **Return Value:** ISO request (:class:`thelma.entities.iso.IsoRequest`).
     """
     SUPPORTED_SCENARIO = EXPERIMENT_SCENARIOS.SCREENING
     ALLOWED_POSITION_TYPES = {FIXED_POSITION_TYPE, FLOATING_POSITION_TYPE,
@@ -1188,7 +1188,7 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
     """
     A IsoRequestParserHandler for library screening experiments.
 
-    **Return Value:** ISO request (:class:`thelma.models.iso.IsoRequest`).
+    **Return Value:** ISO request (:class:`thelma.entities.iso.IsoRequest`).
     """
     SUPPORTED_SCENARIO = EXPERIMENT_SCENARIOS.LIBRARY
     ALLOWED_POSITION_TYPES = {FIXED_POSITION_TYPE, EMPTY_POSITION_TYPE,
@@ -1220,7 +1220,7 @@ class IsoRequestParserHandlerLibrary(IsoRequestParserHandler):
         IsoRequestParserHandler.__init__(self, stream, requester,
                                          parent=parent)
         #: The molecule design library used
-        #: (:class:`thelma.models.library.MoleculeDesignLibrary`)
+        #: (:class:`thelma.entities.library.MoleculeDesignLibrary`)
         self.__library = None
         #: Contains the sample positions blocked by the library.
         self.__lib_base_layout = None
@@ -1385,7 +1385,7 @@ class IsoRequestParserHandlerManual(IsoRequestParserHandler):
     There are no transfection values in the layout. Only fixed positions
     are allowed but besides there are no restrictions to the layout.
 
-    **Return Value:** ISO request (:class:`thelma.models.iso.IsoRequest`).
+    **Return Value:** ISO request (:class:`thelma.entities.iso.IsoRequest`).
     """
     SUPPORTED_SCENARIO = EXPERIMENT_SCENARIOS.MANUAL
     ALLOWED_POSITION_TYPES = {FIXED_POSITION_TYPE, EMPTY_POSITION_TYPE}
@@ -1441,7 +1441,7 @@ class IsoRequestParserHandlerOrder(IsoRequestParserHandler):
     pools are ordered in stock concentration and may occur only once
     per layout.
 
-    **Return Value:** ISO request (:class:`thelma.models.iso.IsoRequest`).
+    **Return Value:** ISO request (:class:`thelma.entities.iso.IsoRequest`).
     """
     SUPPORTED_SCENARIO = EXPERIMENT_SCENARIOS.ORDER_ONLY
 

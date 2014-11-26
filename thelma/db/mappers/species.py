@@ -4,8 +4,8 @@ Species mapper.
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.gene import Gene
-from thelma.models.species import Species
+from thelma.entities.gene import Gene
+from thelma.entities.species import Species
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

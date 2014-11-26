@@ -13,10 +13,10 @@
     <rdb_repository
         make_default="true"
         metadata_factory="thelma.db.create_metadata"
-        aggregate_class="thelma.models.aggregates.ThelmaRdbAggregate" />
+        aggregate_class="thelma.entities.aggregates.ThelmaRdbAggregate" />
 
     <memory_repository
-        cache_loader="thelma.models.cacheloaderregistry.cache_loader_registry"
+        cache_loader="thelma.entities.cacheloaderregistry.cache_loader_registry"
         />
 
     <!-- MESSAGING -->

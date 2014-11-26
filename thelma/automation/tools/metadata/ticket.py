@@ -16,10 +16,10 @@ from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
 from thelma.automation.tools.base import BaseTool
 from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.automation.tracbase import BaseTracTool
-from thelma.models.experiment import ExperimentMetadata
-from thelma.models.iso import ISO_STATUS
-from thelma.models.iso import IsoRequest
-from thelma.models.user import User
+from thelma.entities.experiment import ExperimentMetadata
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.iso import IsoRequest
+from thelma.entities.user import User
 
 
 __docformat__ = 'reStructuredText en'
@@ -59,9 +59,9 @@ class IsoRequestTicketCreator(BaseTracTool):
 
         :param experiment_metadata_label: The new experiment metadata.
         :type experiment_metadata_label:
-            :class:`thelma.models.experiment.ExperimentMetadata`
+            :class:`thelma.entities.experiment.ExperimentMetadata`
         :param requester: The user who will be owner and reporter of the ticket.
-        :type requester: :class:`thelma.models.user.User`
+        :type requester: :class:`thelma.entities.user.User`
         """
         BaseTracTool.__init__(self, parent=parent)
 
@@ -149,8 +149,8 @@ class IsoRequestTicketUpdateTool(BaseTracTool):
 
         :param id_providing_entity: The entity providing the ticket ID.
         :type id_providing_entity:
-            :class:`thelma.models.experiment.ExperimentMetadata` or
-            :class:`thelma.models.iso.IsoRequest`
+            :class:`thelma.entities.experiment.ExperimentMetadata` or
+            :class:`thelma.entities.iso.IsoRequest`
         """
         BaseTracTool.__init__(self, parent=parent)
         #: The experiment metadata or ISO request object the ticket belongs to.
@@ -439,7 +439,7 @@ class IsoRequestTicketDescriptionBuilder(BaseTool):
 
         :param experiment_metadata: The update experiment metadata.
         :type experiment_metadata:
-            :class:`thelma.models.experiment.ExperimentMetadata`
+            :class:`thelma.entities.experiment.ExperimentMetadata`
         :param str experiment_metadata_link: Link to the experiment metadata
             in TheLMA.
         :param str iso_request_link: Link to the ISO request in TheLMA.
@@ -662,7 +662,7 @@ class IsoRequestTicketReassigner(IsoRequestTicketUpdateTool):
         Constructor.
 
         :param iso_request: The ISO request to be accepted.
-        :type iso_request: :class:`thelma.models.iso.IsoRequest`
+        :type iso_request: :class:`thelma.entities.iso.IsoRequest`
         :param bool completed: Flag indicating if the ISO was completed.
         """
         IsoRequestTicketUpdateTool.__init__(self, iso_request, parent=parent)

@@ -7,9 +7,9 @@ from sqlalchemy.sql import case
 from sqlalchemy.sql import literal
 from sqlalchemy.sql import select
 from everest.repositories.rdb.utils import as_slug_expression
-from thelma.models.container import CONTAINER_SPECS_TYPES
-from thelma.models.container import ContainerSpecs
-from thelma.models.organization import Organization
+from thelma.entities.container import CONTAINER_SPECS_TYPES
+from thelma.entities.container import ContainerSpecs
+from thelma.entities.organization import Organization
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

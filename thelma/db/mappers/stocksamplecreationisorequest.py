@@ -3,9 +3,9 @@ Lab ISO request mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.iso import ISO_TYPES
-from thelma.models.iso import StockSampleCreationIsoRequest
-from thelma.models.library import MoleculeDesignLibrary
+from thelma.entities.iso import ISO_TYPES
+from thelma.entities.iso import StockSampleCreationIsoRequest
+from thelma.entities.library import MoleculeDesignLibrary
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

@@ -3,12 +3,12 @@ ISO job mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.iso import Iso
-from thelma.models.iso import IsoJobStockRack
-from thelma.models.job import IsoJob
-from thelma.models.job import JOB_TYPES
-from thelma.models.iso import IsoJobPreparationPlate
-from thelma.models.liquidtransfer import WorklistSeries
+from thelma.entities.iso import Iso
+from thelma.entities.iso import IsoJobStockRack
+from thelma.entities.job import IsoJob
+from thelma.entities.job import JOB_TYPES
+from thelma.entities.iso import IsoJobPreparationPlate
+from thelma.entities.liquidtransfer import WorklistSeries
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

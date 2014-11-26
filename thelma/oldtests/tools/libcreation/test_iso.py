@@ -16,10 +16,10 @@
 #from thelma.automation.tools.semiconstants import get_384_rack_shape
 #from thelma.automation.tools.semiconstants import get_rack_position_from_label
 #from thelma.interfaces import IMoleculeDesignPool
-#from thelma.models.library import LibraryCreationIso
-#from thelma.models.moleculedesign import MoleculeDesignPoolSet
-#from thelma.models.racklayout import RackLayout
-#from thelma.models.utils import get_user
+#from thelma.entities.library import LibraryCreationIso
+#from thelma.entities.moleculedesign import MoleculeDesignPoolSet
+#from thelma.entities.racklayout import RackLayout
+#from thelma.entities.utils import get_user
 #from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 #
 #

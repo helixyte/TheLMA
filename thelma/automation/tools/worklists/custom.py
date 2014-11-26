@@ -10,7 +10,7 @@ from thelma.automation.tools.worklists.series import SampleDilutionJob
 from thelma.automation.tools.worklists.series import SampleTransferJob
 from thelma.automation.tools.worklists.series import SerialWriterExecutorTool
 from thelma.automation.utils.base import add_list_map_element
-from thelma.models.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
 
 __docformat__ = 'reStructuredText en'
 
@@ -43,7 +43,7 @@ class CustomLiquidTransferTool(SerialWriterExecutorTool):
 
         :param user: The user who conducts the DB update (required for
             execution mode).
-        :type user: :class:`thelma.models.user.User`
+        :type user: :class:`thelma.entities.user.User`
         :default user: *None*
         """
         SerialWriterExecutorTool.__init__(self, mode=mode, user=user, **kw)

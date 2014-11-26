@@ -21,9 +21,9 @@ from thelma.automation.tools.worklists.tubehandler import TubeTransferExecutor
 from thelma.automation.tools.writers import TxtWriter
 from thelma.automation.tools.writers import read_zip_archive
 from thelma.interfaces import IRack
-from thelma.models.rack import TubeRack
-from thelma.models.tubetransfer import TubeTransfer
-from thelma.models.user import User
+from thelma.entities.rack import TubeRack
+from thelma.entities.tubetransfer import TubeTransfer
+from thelma.entities.user import User
 from thelma.utils import get_utc_time
 
 
@@ -81,7 +81,7 @@ class RackScanningAdjuster(BaseTool):
         :default adjust_database: *False*
         :param user: The user who wants to update the DB - must not be *None* if
             :attr:`adjust_database` is *True*.
-        :type user: :class:`thelma.models.user.User`
+        :type user: :class:`thelma.entities.user.User`
         :default user: *None*
         """
         BaseTool.__init__(self, parent=parent)
@@ -399,7 +399,7 @@ class RackScanningAdjuster(BaseTool):
 
     def __execute_transfers(self):
         # Updates the tube locations and generates a
-        # :class:`thelma.models.tubetransfer.TubeTransferWorklist` entity.
+        # :class:`thelma.entities.tubetransfer.TubeTransferWorklist` entity.
         self.add_debug('Execute transfers ...')
         executor = TubeTransferExecutor(self.__tube_transfers, self.user,
                                         parent=self)

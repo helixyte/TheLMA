@@ -15,8 +15,8 @@ from thelma.automation.tools.iso.lab.stockrack.recycling \
 from thelma.automation.tools.iso.lab.stockrack.recycling \
     import StockRackRecyclerLabIso
 from thelma.automation.tools.worklists.series import SerialWriterExecutorTool
-from thelma.models.iso import LabIso
-from thelma.models.job import IsoJob
+from thelma.entities.iso import LabIso
+from thelma.entities.job import IsoJob
 
 __docformat__ = 'reStructuredText en'
 
@@ -110,8 +110,8 @@ def get_worklist_writer(entity, **kw):
     lab ISO or ISO job.
 
     :param entity: The ISO job or ISO to process.
-    :type entity: :class:`thelma.models.job.IsoJob` or
-        :class:`thelma.models.iso.LabIso`.
+    :type entity: :class:`thelma.entities.job.IsoJob` or
+        :class:`thelma.entities.iso.LabIso`.
 
     :raises TypeError: if the entity has an unexpected class.
     """
@@ -125,12 +125,12 @@ def get_worklist_executor(entity, user, **kw):
     lab ISO or ISO job.
 
     :param entity: The ISO job or ISO to process.
-    :type entity: :class:`thelma.models.job.IsoJob` or
-        :class:`thelma.models.iso.LabIso`.
+    :type entity: :class:`thelma.entities.job.IsoJob` or
+        :class:`thelma.entities.iso.LabIso`.
 
     :param user: The user who conducts the DB update (required for
         execution mode).
-    :type user: :class:`thelma.models.user.User`
+    :type user: :class:`thelma.entities.user.User`
 
     :raises TypeError: if the entity has an unexpected class.
     """

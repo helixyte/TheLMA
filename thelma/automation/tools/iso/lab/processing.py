@@ -23,17 +23,17 @@ from thelma.automation.tools.worklists.series import SampleTransferJob
 from thelma.automation.tools.writers import merge_csv_streams
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.layouts import BaseRackVerifier
-from thelma.models.iso import ISO_STATUS
-from thelma.models.iso import IsoAliquotPlate
-from thelma.models.iso import IsoJobPreparationPlate
-from thelma.models.iso import IsoPlate
-from thelma.models.iso import IsoPreparationPlate
-from thelma.models.iso import LabIso
-from thelma.models.job import IsoJob
-from thelma.models.library import LibraryPlate
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.rack import Plate
-from thelma.models.status import ITEM_STATUSES
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.iso import IsoAliquotPlate
+from thelma.entities.iso import IsoJobPreparationPlate
+from thelma.entities.iso import IsoPlate
+from thelma.entities.iso import IsoPreparationPlate
+from thelma.entities.iso import LabIso
+from thelma.entities.job import IsoJob
+from thelma.entities.library import LibraryPlate
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.rack import Plate
+from thelma.entities.status import ITEM_STATUSES
 
 
 __docformat__ = 'reStructuredText en'
@@ -76,15 +76,15 @@ class _LabIsoWriterExecutorTool(StockTransferWriterExecutor):
         Constructor:
 
         :param entity: The ISO job or ISO to process.
-        :type entity: :class:`thelma.models.job.IsoJob` or
-            :class:`thelma.models.iso.LabIso`.
+        :type entity: :class:`thelma.entities.job.IsoJob` or
+            :class:`thelma.entities.iso.LabIso`.
 
         :param mode: :attr:`MODE_EXECUTE` or :attr:`MODE_PRINT_WORKLISTS`
         :type mode: str
 
         :param user: The user who conducts the DB update (required for
             execution mode).
-        :type user: :class:`thelma.models.user.User`
+        :type user: :class:`thelma.entities.user.User`
         :default user: *None*
         """
         StockTransferWriterExecutor.__init__(self, entity=entity, mode=mode,
@@ -671,14 +671,14 @@ class WriterExecutorIsoJob(_LabIsoWriterExecutorTool):
         Constructor:
 
         :param iso_job: The ISO job to process.
-        :type iso_job: :class:`thelma.models.job.IsoJob`.
+        :type iso_job: :class:`thelma.entities.job.IsoJob`.
 
         :param mode: :attr:`MODE_EXECUTE` or :attr:`MODE_PRINT_WORKLISTS`
         :type mode: str
 
         :param user: The user who conducts the DB update (required for
             execution mode).
-        :type user: :class:`thelma.models.user.User`
+        :type user: :class:`thelma.entities.user.User`
         :default user: *None*
         """
         _LabIsoWriterExecutorTool.__init__(self, entity=iso_job,
@@ -745,14 +745,14 @@ class WriterExecutorLabIso(_LabIsoWriterExecutorTool):
         Constructor:
 
         :param iso: The lab ISO to process.
-        :type iso: :class:`thelma.models.iso.LabIso`.
+        :type iso: :class:`thelma.entities.iso.LabIso`.
 
         :param mode: :attr:`MODE_EXECUTE` or :attr:`MODE_PRINT_WORKLISTS`
         :type mode: str
 
         :param user: The user who conducts the DB update (required for
             execution mode).
-        :type user: :class:`thelma.models.user.User`
+        :type user: :class:`thelma.entities.user.User`
         :default user: *None*
         """
         _LabIsoWriterExecutorTool.__init__(self, entity=iso, user=user,

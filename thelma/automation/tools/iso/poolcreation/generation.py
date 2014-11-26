@@ -37,14 +37,14 @@ from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import is_valid_number
-from thelma.models.iso import StockSampleCreationIso
-from thelma.models.iso import StockSampleCreationIsoRequest
-from thelma.models.liquidtransfer import PlannedSampleDilution
-from thelma.models.liquidtransfer import PlannedWorklist
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.liquidtransfer import WorklistSeries
-from thelma.models.racklayout import RackLayout
-from thelma.models.user import User
+from thelma.entities.iso import StockSampleCreationIso
+from thelma.entities.iso import StockSampleCreationIsoRequest
+from thelma.entities.liquidtransfer import PlannedSampleDilution
+from thelma.entities.liquidtransfer import PlannedWorklist
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.liquidtransfer import WorklistSeries
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.user import User
 
 
 __docformat__ = 'reStructuredText en'
@@ -65,7 +65,7 @@ class StockSampleCreationIsoRequestGenerator(BaseTool):
 
     The buffer worklist is created here as well.
 
-    **Return Value:** :class:`thelma.models.iso.StockSampleCreationIsoRequest`
+    **Return Value:** :class:`thelma.entities.iso.StockSampleCreationIsoRequest`
     """
     NAME = 'Stock Sample Creation ISO Request Generator'
 
@@ -254,7 +254,7 @@ class StockSampleCreationWorklistGenerator(BaseTool):
     create planned sample dilutions for all positions of a 8x12 rack shape.
 
     **Return Value:**  worklist series
-        (:class:`thelma.models.liquidtransfer.WorklistSeries`).
+        (:class:`thelma.entities.liquidtransfer.WorklistSeries`).
     """
     NAME = 'Pool Creation Worklist Generator'
     #: The index for the buffer worklist within the series.
@@ -360,7 +360,7 @@ class StockSampleCreationTicketGenerator(BaseTracTool):
         Constructor.
 
         :param requester: The user who will be owner and reporter of the ticket.
-        :type requester: :class:`thelma.models.user.User`
+        :type requester: :class:`thelma.entities.user.User`
         :param str iso_label: The label of the ISO this ticket belongs to.
         :param int layout_number: References the serial number ID of the ISO
             (within the ISO request space).
@@ -465,7 +465,7 @@ class StockSampleCreationIsoGenerator(BaseTool):
 
         :param iso_request: The ISO request for which to generate the ISOs.
         :type iso_request:
-            :class:`thelma.models.iso.StockSampleGenerationIsoRequest`
+            :class:`thelma.entities.iso.StockSampleGenerationIsoRequest`
         :param ticket_numbers: The user might specify ticket numbers for the
             ISO tickets. The number of ticket number must either be 1 (in
             which case all ISOs get the same ticket number) or equal to the
@@ -477,7 +477,7 @@ class StockSampleCreationIsoGenerator(BaseTool):
         :param reporter: This user will become reporter of the tickets (if
             new tickets are created). If you do not want to create tickets,
             the user might be *None*.
-        :type reporter: :class:`thelma.models.user.User`
+        :type reporter: :class:`thelma.entities.user.User`
         :default reporter: *None*
         """
         BaseTool.__init__(self, parent=parent)

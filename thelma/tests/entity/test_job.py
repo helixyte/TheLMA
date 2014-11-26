@@ -2,8 +2,8 @@ import pytest
 
 from everest.repositories.rdb.testing import check_attributes
 from everest.repositories.rdb.testing import persist
-from thelma.models.job import JOB_TYPES
-from thelma.models.job import Job
+from thelma.entities.job import JOB_TYPES
+from thelma.entities.job import Job
 from thelma.tests.entity.conftest import TestEntityBase
 
 

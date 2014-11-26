@@ -15,12 +15,12 @@ from thelma.automation.tools.metadata.base import TransfectionPosition
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.base import is_valid_number
 from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
-from thelma.models.experiment import ExperimentDesign
-from thelma.models.experiment import ExperimentDesignRack
-from thelma.models.experiment import ExperimentMetadataType
-from thelma.models.racklayout import RackLayout
-from thelma.models.tagging import TaggedRackPositionSet
-from thelma.models.user import User
+from thelma.entities.experiment import ExperimentDesign
+from thelma.entities.experiment import ExperimentDesignRack
+from thelma.entities.experiment import ExperimentMetadataType
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.tagging import TaggedRackPositionSet
+from thelma.entities.user import User
 
 
 
@@ -89,7 +89,7 @@ class ExperimentDesignParserHandler(MoleculeDesignPoolLayoutParserHandler):
     scenarios.
 
     **Return Value:** Experiment Design
-        (:class:`thelma.models.experiment.ExperimentDesign`)
+        (:class:`thelma.entities.experiment.ExperimentDesign`)
     """
     NAME = 'Experiment Design Parser Handler'
 
@@ -107,11 +107,11 @@ class ExperimentDesignParserHandler(MoleculeDesignPoolLayoutParserHandler):
         Constructor.
 
         :param requester: the user uploading the experiment design
-        :type requester: :class:`thelma.models.user.User`
+        :type requester: :class:`thelma.entities.user.User`
         :param scenario: The scenario (experiment metadata types) defines the
             mandatory and forbidden parameters for a design rack layout and the
             names of the sheets to be parsed.
-        :type scenario: :class:`thelma.models.experiment.ExperimentMetadataType`
+        :type scenario: :class:`thelma.entities.experiment.ExperimentMetadataType`
         """
         MoleculeDesignPoolLayoutParserHandler.__init__(self, stream,
                                                        parent=parent)

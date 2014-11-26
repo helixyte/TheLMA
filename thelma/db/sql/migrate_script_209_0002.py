@@ -2,7 +2,7 @@ from everest.repositories.rdb import Session
 from sqlalchemy.engine import create_engine
 from sqlalchemy.orm import joinedload
 from thelma.db import create_metadata
-from thelma.models.moleculedesign import MoleculeDesignPool
+from thelma.entities.moleculedesign import MoleculeDesignPool
 import os
 import sys
 

@@ -2,9 +2,9 @@ import pytest
 
 from everest.repositories.rdb.testing import check_attributes
 from everest.repositories.rdb.testing import persist
-from thelma.models.rack import Rack
-from thelma.models.rack import RackPosition
-from thelma.models.rack import RackSpecs
+from thelma.entities.rack import Rack
+from thelma.entities.rack import RackPosition
+from thelma.entities.rack import RackSpecs
 from thelma.tests.entity.conftest import TestEntityBase
 
 

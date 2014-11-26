@@ -1,28 +1,28 @@
-.. _models_package:
+.. _entities_package:
 
-Models
-------
+Entities
+--------
 
-=============
-Model Classes
-=============
+==============
+Entity Classes
+==============
 
-Models represent entities from the database. All entity classes inherit
+Entities represent entities from the database. All entity classes inherit
 from the following superclass:
 
-	.. currentmodule:: thelma.models.base
+	.. currentmodule:: thelma.entities.base
 
 	.. class:: Entity
 
-		The Abstract base class for all model entities. It implements the
+		The Abstract base class for all entity entities. It implements the
 		BFG marker interface :class:`IEntity`.
 
-Furthermore, each model class implements a particular marker interface for
-BFG. The marker interface a usually called \'I[*class name*]\'.
-All models that can  be as resources as well must have a so-called \'slug\',
+Furthermore, each entity class implements a particular marker interface. 
+The marker interface a usually called \'I[*class name*]\'.
+All entities that can  be as resources as well must have a so-called \'slug\',
 that is a :class:`string` identifier that can be used in an URL.
 
-TheLMA knows the following models (sorted by application area):
+TheLMA knows the following entities (sorted by application area):
 
 	- `Projects and Administration`_
 	- `Experiments`_
@@ -34,7 +34,7 @@ TheLMA knows the following models (sorted by application area):
 	- `Marker Classes`_
 	- `Others`_
 
-All model classes in alphabetical order:
+All entity classes in alphabetical order:
 
 	- BarcodedLocation_
 	- BarcodedLocationType_
@@ -95,19 +95,19 @@ All model classes in alphabetical order:
 Projects and Administration
 ...........................
 
-.. currentmodule:: thelma.models.project
+.. currentmodule:: thelma.entities.project
 .. _Project:
 .. autoclass:: Project
 
-.. currentmodule:: thelma.models.subproject
+.. currentmodule:: thelma.entities.subproject
 .. _Subproject:
 .. autoclass:: Subproject
 
-.. currentmodule:: thelma.models.user
+.. currentmodule:: thelma.entities.user
 .. _User:
 .. autoclass:: User
 
-.. currentmodule:: thelma.models.job
+.. currentmodule:: thelma.entities.job
 .. _Job:
 .. autoclass:: Job
 
@@ -117,7 +117,7 @@ Projects and Administration
 Experiments
 ...........
 
-.. currentmodule:: thelma.models.experiment
+.. currentmodule:: thelma.entities.experiment
 .. _ExperimentMetaData:
 .. autoclass:: ExperimentMetaData
 
@@ -133,14 +133,14 @@ Experiments
 .. _ExperimentRack:
 .. autoclass:: ExperimentRack
 
-.. currentmodule:: thelma.models.sample
+.. currentmodule:: thelma.entities.sample
 .. _Sample:
 .. autoclass:: Sample
 
 .. _SampleMolecule:
 .. autoclass:: SampleMolecule
 
-.. currentmodule:: thelma.models.iso
+.. currentmodule:: thelma.entities.iso
 .. _IsoRequest:
 .. autoclass:: IsoRequest
 
@@ -153,7 +153,7 @@ Experiments
 	There are also several subclasses of :class:`IsoPosition` that
 	mainly serve as :ref:`marker classes <isopos>`.
 
-.. currentmodule:: thelma.models.stockinfo
+.. currentmodule:: thelma.entities.stockinfo
 .. _StockInfo:
 .. autoclass:: StockInfo
 
@@ -161,7 +161,7 @@ Experiments
 Genes and Targets
 .................
 
-.. currentmodule:: thelma.models.gene
+.. currentmodule:: thelma.entities.gene
 .. _Gene:
 .. autoclass:: Gene
 
@@ -174,7 +174,7 @@ Genes and Targets
 .. _TargetSet:
 .. autoclass:: TargetSet
 
-.. currentmodule:: thelma.models.species
+.. currentmodule:: thelma.entities.species
 .. _Species:
 .. autoclass:: Species
 
@@ -182,7 +182,7 @@ Genes and Targets
 Tagging
 .......
 
-.. currentmodule:: thelma.models.tagging
+.. currentmodule:: thelma.entities.tagging
 .. _Tag:
 .. autoclass:: Tag
 
@@ -198,36 +198,36 @@ Tagging
 Locations
 .........
 
-.. currentmodule:: thelma.models.location
+.. currentmodule:: thelma.entities.location
 .. _BarcodedLocation:
 .. autoclass:: BarcodedLocation
 
 .. _BarcodedLocationType:
 .. autoclass:: BarcodedLocationType
 
-.. currentmodule:: thelma.models.container
+.. currentmodule:: thelma.entities.container
 .. _ContainerLocation:
 .. autoclass:: ContainerLocation
 
-.. currentmodule:: thelma.models.rack
+.. currentmodule:: thelma.entities.rack
 .. _RackPosition:
 .. autoclass:: RackPosition
 
 .. _RackPositionSet:
 .. autoclass:: RackPositionSet
 
-.. currentmodule:: thelma.models.racklayout
+.. currentmodule:: thelma.entities.racklayout
 .. _RackLayout:
 .. autoclass:: RackLayout
 
-.. currentmodule:: thelma.models.iso
+.. currentmodule:: thelma.entities.iso
 .. _IsoRackLayout:
 .. autoclass:: IsoRackLayout
 
 Vessels and Vessel Types
 ........................
 
-.. currentmodule:: thelma.models.rack
+.. currentmodule:: thelma.entities.rack
 .. _Rack:
 .. autoclass:: Rack
 
@@ -237,14 +237,14 @@ Vessels and Vessel Types
 .. _RackSpecs:
 .. autoclass:: RackSpecs
 
-.. currentmodule:: thelma.models.container
+.. currentmodule:: thelma.entities.container
 .. _Container:
 .. autoclass:: Container
 
 .. _ContainerSpecs:
 .. autoclass:: ContainerSpecs
 
-.. currentmodule:: thelma.models.rack
+.. currentmodule:: thelma.entities.rack
 .. _Plate:
 .. autoclass:: Plate
 
@@ -257,7 +257,7 @@ Vessels and Vessel Types
 .. _TubeRackSpecs:
 .. autoclass:: TubeRackSpecs
 
-.. currentmodule:: thelma.models.container
+.. currentmodule:: thelma.entities.container
 .. _Tube:
 .. autoclass:: Tube
 
@@ -274,7 +274,7 @@ Vessels and Vessel Types
 Molecule Designs and Modifications
 ..................................
 
-.. currentmodule:: thelma.models.sequence
+.. currentmodule:: thelma.entities.sequence
 .. _Sequence:
 .. autoclass:: Sequence
 	:members:
@@ -282,19 +282,19 @@ Molecule Designs and Modifications
 	There are also several subclasses of :class:`Sequence` that
 	mainly serve as :ref:`marker classes <smc>`.
 
-.. currentmodule:: thelma.models.sample
+.. currentmodule:: thelma.entities.sample
 .. _Molecule:
 .. autoclass:: Molecule
 
-.. currentmodule:: thelma.models.moleculetype
+.. currentmodule:: thelma.entities.moleculetype
 .. _MoleculeType:
 .. autoclass:: MoleculeType
 
-.. currentmodule:: thelma.models.moleculemodification
+.. currentmodule:: thelma.entities.moleculemodification
 .. _MoleculeModification:
 .. autoclass:: MoleculeModification
 
-.. currentmodule:: thelma.models.moleculedesign
+.. currentmodule:: thelma.entities.moleculedesign
 .. _MoleculeDesign:
 .. autoclass:: MoleculeDesign
 	:members:
@@ -303,16 +303,16 @@ Molecule Designs and Modifications
 	mainly serve as :ref:`marker classes <mdmc>`.
 
 .. _MoleculeDesignSet:
-.. autoclass:: thelma.models.moleculedesign.MoleculeDesignSet
+.. autoclass:: thelma.entities.moleculedesign.MoleculeDesignSet
 
 Marker Classes
 ..............
 
-.. currentmodule:: thelma.models.iso
+.. currentmodule:: thelma.entities.iso
 
 .. _isopos:
 
-Subclasses of :class:`thelma.models.iso.IsoPosition`:
+Subclasses of :class:`thelma.entities.iso.IsoPosition`:
 
 .. autoclass:: FixedIsoPosition
 
@@ -321,22 +321,22 @@ Subclasses of :class:`thelma.models.iso.IsoPosition`:
 .. autoclass:: EmptyIsoPosition
 
 
-.. currentmodule:: thelma.models.sequence
+.. currentmodule:: thelma.entities.sequence
 
 .. _smc:
 
-Subclasses of :class:`thelma.models.sequence.Sequence`:
+Subclasses of :class:`thelma.entities.sequence.Sequence`:
 
 .. autoclass:: DnaSequence
 
 .. autoclass:: RnaSequence
 
 
-.. currentmodule:: thelma.models.moleculedesign
+.. currentmodule:: thelma.entities.moleculedesign
 
 .. _mdmc:
 
-Subclasses of :class:`thelma.models.moleculedesign.MoleculeDesign`:
+Subclasses of :class:`thelma.entities.moleculedesign.MoleculeDesign`:
 
 .. autoclass:: AmpliconDesign
 
@@ -372,18 +372,18 @@ Subclasses of :class:`thelma.models.moleculedesign.MoleculeDesign`:
 Others
 ......
 
-.. currentmodule:: thelma.models.device
+.. currentmodule:: thelma.entities.device
 .. _Device:
 .. autoclass:: Device
 
 .. _DeviceType:
 .. autoclass:: DeviceType
 
-.. currentmodule:: thelma.models.status
+.. currentmodule:: thelma.entities.status
 .. _ItemStatus:
 .. autoclass:: ItemStatus
 
-.. currentmodule:: thelma.models.organization
+.. currentmodule:: thelma.entities.organization
 .. _Organization:
 .. autoclass:: Organization
 
@@ -392,7 +392,7 @@ Others
 Base Interfaces
 ===============
 
-.. currentmodule:: thelma.models.interfaces
+.. currentmodule:: thelma.entities.interfaces
 
 .. autoclass:: IEntity
 
@@ -401,7 +401,7 @@ Base Interfaces
 Utility Functions and Classes
 =============================
 
-.. currentmodule:: thelma.models.utils
+.. currentmodule:: thelma.entities.utils
 
 .. autofunction:: get_aggregate
 
@@ -415,13 +415,13 @@ Utility Functions and Classes
 
 .. autofunction:: slug_from_integer
 
-.. currentmodule:: thelma.models.rack
+.. currentmodule:: thelma.entities.rack
 .. autofunction:: encode_rack_position_set
 
-.. currentmodule:: thelma.models.utils
+.. currentmodule:: thelma.entities.utils
 .. autoclass:: BinaryRunLengthEncoder
 
-.. currentmodule:: thelma.models.rack
+.. currentmodule:: thelma.entities.rack
 .. autoclass:: RackShapeFactory
 
 .. autoclass:: RackPositionFactory
@@ -430,7 +430,7 @@ Utility Functions and Classes
 Aliases
 .......
 
-.. currentmodule:: thelma.models.rack
+.. currentmodule:: thelma.entities.rack
 
 .. autofunction:: rack_shape_from_rows_columns
 

@@ -15,9 +15,9 @@
 #from thelma.automation.tools.semiconstants import get_384_rack_shape
 #from thelma.automation.tools.semiconstants import get_rack_position_from_label
 #from thelma.automation.tools.stock.base import get_default_stock_concentration
-#from thelma.models.liquidtransfer import TRANSFER_TYPES
-#from thelma.models.moleculetype import MOLECULE_TYPE_IDS
-#from thelma.models.utils import get_user
+#from thelma.entities.liquidtransfer import TRANSFER_TYPES
+#from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
+#from thelma.entities.utils import get_user
 #from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 #
 #

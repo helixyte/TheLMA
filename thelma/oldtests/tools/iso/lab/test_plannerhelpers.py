@@ -39,8 +39,8 @@ from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
 from thelma.automation.utils.layouts import FLOATING_POSITION_TYPE
 from thelma.automation.utils.layouts import TransferTarget
 from thelma.interfaces import IPlannedSampleDilution
-from thelma.models.liquidtransfer import PlannedRackSampleTransfer
-from thelma.models.liquidtransfer import PlannedSampleTransfer
+from thelma.entities.liquidtransfer import PlannedRackSampleTransfer
+from thelma.entities.liquidtransfer import PlannedSampleTransfer
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 

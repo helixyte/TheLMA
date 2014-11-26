@@ -1,5 +1,5 @@
 """
-.. currentmodule:: thelma.models.rack
+.. currentmodule:: thelma.entities.rack
 
 General
 .......

@@ -3,13 +3,13 @@ Lab ISO request mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.experiment import ExperimentMetadata
-from thelma.models.iso import ISO_TYPES
-from thelma.models.iso import LabIsoRequest
-from thelma.models.library import MoleculeDesignLibrary
-from thelma.models.liquidtransfer import ReservoirSpecs
-from thelma.models.racklayout import RackLayout
-from thelma.models.user import User
+from thelma.entities.experiment import ExperimentMetadata
+from thelma.entities.iso import ISO_TYPES
+from thelma.entities.iso import LabIsoRequest
+from thelma.entities.library import MoleculeDesignLibrary
+from thelma.entities.liquidtransfer import ReservoirSpecs
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.user import User
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

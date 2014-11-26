@@ -1,5 +1,5 @@
 """
-Experiment model classes.
+Experiment entity classes.
 
 FOG Nov 26, 2010
 """
@@ -75,7 +75,7 @@ class Experiment(Entity):
     """
     #: The label of the experiment.
     label = None
-    #: The source rack (:class:`thelma.models.rack.Rack`)
+    #: The source rack (:class:`thelma.entities.rack.Rack`)
     #: used for this experiment.
     source_rack = None
     #: The :class:`ExperimentDesign` containing
@@ -84,7 +84,7 @@ class Experiment(Entity):
     #: List of the experiment racks
     #: (:class:`ExperimentRack`; cell plate racks).
     experiment_racks = None
-    #: The experiment job (:class:`thelma.models.job.ExperimentJob`) this
+    #: The experiment job (:class:`thelma.entities.job.ExperimentJob`) this
     #: experiment belongs to.
     job = None
 
@@ -117,7 +117,7 @@ class Experiment(Entity):
 class ExperimentRack(Entity):
     """
     An experiment rack is a physical cell plate rack
-    (:class:`thelma.models.rack.Rack`) used in an
+    (:class:`thelma.entities.rack.Rack`) used in an
     experiment (:class:`Experiment`).
 
     **Equality Condition**: equal :attr:`id`
@@ -129,7 +129,7 @@ class ExperimentRack(Entity):
     #: (:class:`ExperimentDesignRack`) defining the
     #: layout for this rack.
     design_rack = None
-    #: The physical rack (:class:`thelma.models.rack.Rack`) being this
+    #: The physical rack (:class:`thelma.entities.rack.Rack`) being this
     #: experimental rack.
     rack = None
 
@@ -158,7 +158,7 @@ class ExperimentRack(Entity):
     @property
     def source_rack(self):
         """
-        Returns the source rack (:class:`thelma.models.rack.Rack`)
+        Returns the source rack (:class:`thelma.entities.rack.Rack`)
         rack is derived from.
         """
         return self.experiment.source_rack
@@ -175,7 +175,7 @@ class ExperimentDesign(Entity):
     #: The domain for experiment design tags.
     DOMAIN = 'experiment_design'
 
-    #: The shape (:class:`thelma.models.rack.RackShape`) of all
+    #: The shape (:class:`thelma.entities.rack.RackShape`) of all
     #: experiment racks (:class:`ExperimentRack`)
     #: covered by this experiment design.
     rack_shape = None
@@ -187,7 +187,7 @@ class ExperimentDesign(Entity):
     experiment_metadata = None
     #: The worklist series containing worklists for the mastermix
     #: preparation and other non-design-rack-specific tasks
-    #: (:class:`thelma.models.liquidtransfer.WorklistSeries`).
+    #: (:class:`thelma.entities.liquidtransfer.WorklistSeries`).
     worklist_series = None
     #: The experiments schedule for this design (:class:`Experiment`).
     experiments = []
@@ -233,7 +233,7 @@ class ExperimentDesign(Entity):
 class ExperimentDesignRack(Entity):
     """
     An experiment design rack defines a all tag and position data
-    (:class:`thelma.models.tagging.TaggedRackPositionSet`)
+    (:class:`thelma.entities.tagging.TaggedRackPositionSet`)
     instances of a cell plate rack (:class:`ExperimentRack`).
     Design racks are virtual, they do *not* exist as physical racks.
 
@@ -243,7 +243,7 @@ class ExperimentDesignRack(Entity):
     id = None
     #: A label of this experiment design rack.
     label = None
-    #: The layout (:class:`thelma.models.racklayout.RackLayout`),
+    #: The layout (:class:`thelma.entities.racklayout.RackLayout`),
     #: i.e. the tag-and-positions information.
     rack_layout = None
     #: The experiment design (:class:`ExperimentDesign`) this design rack
@@ -252,7 +252,7 @@ class ExperimentDesignRack(Entity):
     #: The worklist series containing design rack specific worklists
     #: (ISO to experiment plate transfer and cell suspension addition
     #: for non-screening cases,
-    #: :class:`thelma.models.liquidtransfer.WorklistSeries`).
+    #: :class:`thelma.entities.liquidtransfer.WorklistSeries`).
     worklist_series = None
 
     def __init__(self, label, rack_layout, experiment_design=None,
@@ -288,11 +288,11 @@ class ExperimentDesignRack(Entity):
 class ExperimentMetadata(Entity):
     """
     The experiment metadata comprises all data required for an experiment,
-    i.e. the internal sample order (:class:`thelma.models.iso.IsoRequest`), the
-    experiment design (:class:`thelma.models.experiment.ExperimentDesign`),
-    the target set (:class:`thelma.models.gene.TargetSet`), the molecule
-    design set (:class:`thelma.models.moleculedesign.MoleculeDesign`) and
-    the subproject (:class:`thelma.models.subproject.Subproject`) all this
+    i.e. the internal sample order (:class:`thelma.entities.iso.IsoRequest`), the
+    experiment design (:class:`thelma.entities.experiment.ExperimentDesign`),
+    the target set (:class:`thelma.entities.gene.TargetSet`), the molecule
+    design set (:class:`thelma.entities.moleculedesign.MoleculeDesign`) and
+    the subproject (:class:`thelma.entities.subproject.Subproject`) all this
     is related to.
 
     **Equality Condition**: equal :attr:`subproject` and :attr:`label`
@@ -300,13 +300,13 @@ class ExperimentMetadata(Entity):
 
     #: The (human-readable) name of the experiment metadata.
     label = None
-    #: The subproject (:class:`thelma.models.subproject.Subproject`)
+    #: The subproject (:class:`thelma.entities.subproject.Subproject`)
     #: this experiment metadata belongs to.
     subproject = None
     #: The experiment design containing the met    a data for the
-    #: experiments (:class:`thelma.models.experiment.ExperimentDesign`)
+    #: experiments (:class:`thelma.entities.experiment.ExperimentDesign`)
     experiment_design = None
-    #: The sample plan (:class:`thelma.models.iso.LabIsoRequest`) storing
+    #: The sample plan (:class:`thelma.entities.iso.LabIsoRequest`) storing
     #: the ISO layouts.
     lab_iso_request = None
     #: The number of replicate plates (cell plates).
@@ -345,7 +345,7 @@ class ExperimentMetadata(Entity):
     def molecule_design_pool_set(self):
         """
         The molecule design pool used to test the targets
-        (:class:`thelma.models.moleculedesign.MoleculeDesignPoolSet`).
+        (:class:`thelma.entities.moleculedesign.MoleculeDesignPoolSet`).
         """
         if self.lab_iso_request is None: return None
         return self.lab_iso_request.molecule_design_pool_set

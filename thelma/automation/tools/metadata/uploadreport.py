@@ -26,7 +26,7 @@ from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import sort_rack_positions
-from thelma.models.liquidtransfer import ReservoirSpecs
+from thelma.entities.liquidtransfer import ReservoirSpecs
 
 
 __docformat__ = 'reStructuredText en'
@@ -378,7 +378,7 @@ The ISO volumes and ISO concentrations for this metadata have been set manually.
             mastermix preparation.
         :param reservoir_specs: The reservoir specs of the ISO plate.
         :type reservoir_specs:
-            :class:`thelma.models.liquidtransfer.ReservoirSpecs`
+            :class:`thelma.entities.liquidtransfer.ReservoirSpecs`
         """
         TxtWriter.__init__(self, parent=parent)
         #: The experiment metadata generator.

@@ -1,6 +1,6 @@
 """
 This handler converts the results of the library member parser into a
-molecule design set (:class:`thelma.models.molecule.MoleculeDesignSet`).
+molecule design set (:class:`thelma.entities.molecule.MoleculeDesignSet`).
 The handler tries to determine the stock sample molecule design ID
 for every molecule design set. If there is no ID, a new ID is created.
 
@@ -15,8 +15,8 @@ from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IMoleculeDesignPool
-from thelma.models.moleculedesign import MoleculeDesignPool
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
+from thelma.entities.moleculedesign import MoleculeDesignPool
+from thelma.entities.moleculedesign import MoleculeDesignPoolSet
 
 
 __docformat__ = 'reStructuredText en'

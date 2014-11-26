@@ -12,15 +12,15 @@ from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import is_smaller_than
 from thelma.automation.utils.base import is_valid_number
 from thelma.automation.utils.base import sort_rack_positions
-from thelma.models.moleculedesign import MoleculeDesignPool
-from thelma.models.moleculetype import MoleculeType
-from thelma.models.rack import Rack
-from thelma.models.rack import RackPosition
-from thelma.models.rack import RackPositionSet
-from thelma.models.racklayout import RackLayout
-from thelma.models.tagging import Tag
-from thelma.models.tagging import TaggedRackPositionSet
-from thelma.models.utils import get_user
+from thelma.entities.moleculedesign import MoleculeDesignPool
+from thelma.entities.moleculetype import MoleculeType
+from thelma.entities.rack import Rack
+from thelma.entities.rack import RackPosition
+from thelma.entities.rack import RackPositionSet
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.tagging import Tag
+from thelma.entities.tagging import TaggedRackPositionSet
+from thelma.entities.utils import get_user
 
 
 __docformat__ = "reStructuredText en"
@@ -219,7 +219,7 @@ class WorkingPosition(object):
         Constructor.
 
         :param rack_position: The rack position in the rack.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`
+        :type rack_position: :class:`thelma.entities.rack.RackPosition`
         """
         if self.__class__ is WorkingPosition:
             raise NotImplementedError('Abstract class.')
@@ -227,7 +227,7 @@ class WorkingPosition(object):
             msg = 'The rack position must be a RackPosition object ' \
                   '(obtained type: %s).' % (rack_position.__class__)
             raise TypeError(msg)
-        #: The rack position (:class:`thelma.models.rack.RackPosition`).
+        #: The rack position (:class:`thelma.entities.rack.RackPosition`).
         self.rack_position = rack_position
 
     def get_parameter_value(self, parameter):
@@ -290,7 +290,7 @@ class WorkingPosition(object):
         Checks whether a working position complies to a given tag.
 
         :param tag: The tag to be compared.
-        :type tag: :class:`thelma.models.tagging.Tag`
+        :type tag: :class:`thelma.entities.tagging.Tag`
 
         :return: :class:`boolean`
         """
@@ -366,19 +366,19 @@ class WorkingLayout(object):
         Constructor:
 
         :param shape: The rack shape.
-        :type shape: :class:`thelma.models.rack.RackShape`
+        :type shape: :class:`thelma.entities.rack.RackShape`
         """
         if self.__class__ == WorkingLayout:
             raise NotImplementedError('Abstract class.')
 
 
-        #: The dimension of the layout (:class:`thelma.model.rack.RackShape`).
+        #: The dimension of the layout (:class:`thelma.entities.rack.RackShape`).
         self.shape = shape
         #: A map storing the :class:`IsoPosition` objects for all rack positions
         #: of the layout.
         self._position_map = dict()
         #: The default user for the tagged position set creation
-        #: (:class:`IT_USER` - object of :class:`thelma.models.user.User`).
+        #: (:class:`IT_USER` - object of :class:`thelma.entities.user.User`).
         self._user = get_user('it')
 
     def add_position(self, working_position):
@@ -437,7 +437,7 @@ class WorkingLayout(object):
         """
         Returns all tags in this layout.
 
-        :rtype: set of :class:`thelma.models.tagging.Tag`
+        :rtype: set of :class:`thelma.entities.tagging.Tag`
         """
         tags = set()
         for working_position in self._position_map.values():
@@ -449,7 +449,7 @@ class WorkingLayout(object):
         """
         Returns all rack positions in this layout.
 
-        :rtype: set of :py:class:`thelma.models.rack.RackPosition`
+        :rtype: set of :py:class:`thelma.entities.rack.RackPosition`
         """
         return self._position_map.keys()
 
@@ -458,9 +458,9 @@ class WorkingLayout(object):
         Returns all tags for the given rack position.
 
         :param rack_position: The rack position whose tags you want to get.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`
+        :type rack_position: :class:`thelma.entities.rack.RackPosition`
         :return: All tags for the given position.
-        :rtype: set of :py:class:`thelma.models.tagging.Tag`
+        :rtype: set of :py:class:`thelma.entities.tagging.Tag`
         """
 
         if self._position_map.has_key(rack_position):
@@ -473,9 +473,9 @@ class WorkingLayout(object):
         Returns all rack position having the given tag.
 
         :param tag: The tag whose positions you want to get.
-        :type tag: :class:`thelma.models.tagging.Tag`
+        :type tag: :class:`thelma.entities.tagging.Tag`
         :return: All positions for the given tag.
-        :rtype: set of :class:`thelma.models.rack.RackPosition`
+        :rtype: set of :class:`thelma.entities.rack.RackPosition`
         """
 
         rack_positions = set()
@@ -793,7 +793,7 @@ class MoleculeDesignPoolPosition(WorkingPosition):
         :param molecule_design_pool: The molecule design pool for this position
             or a valid placeholder.
         :type molecule_design_pool:
-            :class:`thelma.models.moleculedesign.MoleculeDesignPool`
+            :class:`thelma.entities.moleculedesign.MoleculeDesignPool`
             or :class:`basestring`
         :param position_type: influences valid values for other parameters
         :type position_type: :class:`str
@@ -841,7 +841,7 @@ class MoleculeDesignPoolPosition(WorkingPosition):
         Creates a transfection position representing an empty well.
 
         :param rack_position: The rack position.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`.
+        :type rack_position: :class:`thelma.entities.rack.RackPosition`.
         :return: A transfection position.
         """
         return cls(rack_position=rack_position)
@@ -1029,7 +1029,7 @@ class MoleculeDesignPoolLayout(WorkingLayout):
         be read from the pool.
 
         :param molecule_type: The molecule type for the floating positions.
-        :type molecule_type: :class:`thelma.models.moleculetype.MoleculeType`
+        :type molecule_type: :class:`thelma.entities.moleculetype.MoleculeType`
         """
         if not isinstance(molecule_type, MoleculeType):
             msg = 'The molecule type must be a %s (obtained: %s).' \
@@ -1145,7 +1145,7 @@ class TransferTarget(object):
         Constructor.
 
         :param rack_position: The target position the liquid shall be added to.
-        :type rack_position: :class:`thelma.models.rack.RackPosition` or
+        :type rack_position: :class:`thelma.entities.rack.RackPosition` or
             (:class:`str`).
         :param float transfer_volume: The volume to be transferred.
         :param str target_rack_marker: A marker for the target plate
@@ -1585,7 +1585,7 @@ class LibraryBaseLayoutPosition(WorkingPosition):
         Constructor:
 
         :param rack_position: The rack position.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`.
+        :type rack_position: :class:`thelma.entities.rack.RackPosition`.
 
         :param is_library_position: Is this position reserved for library
             positions?
@@ -1630,7 +1630,7 @@ class LibraryBaseLayout(WorkingLayout):
         Constructor.
 
         :param shape: The rack shape.
-        :type shape: :class:`thelma.models.rack.RackShape`
+        :type shape: :class:`thelma.entities.rack.RackShape`
         """
         WorkingLayout.__init__(self, shape)
         #: You cannot add new positions to a closed layout.

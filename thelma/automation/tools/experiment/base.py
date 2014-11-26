@@ -33,9 +33,9 @@ from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import round_up
 from thelma.automation.utils.layouts import BaseRackVerifier
-from thelma.models.experiment import Experiment
-from thelma.models.iso import LabIsoRequest
-from thelma.models.rack import Plate
+from thelma.entities.experiment import Experiment
+from thelma.entities.iso import LabIsoRequest
+from thelma.entities.rack import Plate
 
 __docformat__ = 'reStructuredText en'
 
@@ -91,21 +91,21 @@ class ExperimentTool(SerialWriterExecutorTool):
         Constructor.
 
         :param experiment: The experiment to process.
-        :type experiment: :class:`thelma.models.experiment.Experiment`
+        :type experiment: :class:`thelma.entities.experiment.Experiment`
         """
         SerialWriterExecutorTool.__init__(self, mode,
                                           user=user, parent=parent, **kw)
         #: The experiment for which to generate the rack.
         self.experiment = experiment
         #: The experiment metadata type
-        #: (:class:`thelma.models.experiment.ExperimentMetadataType`).
+        #: (:class:`thelma.entities.experiment.ExperimentMetadataType`).
         self._scenario = None
         #: The worklist series of the experiment design
-        #: (:class:`thelma.models.liquidtransfer.WorklistSeries`).
+        #: (:class:`thelma.entities.liquidtransfer.WorklistSeries`).
         self._design_series = None
         #: The worklist series for the design racks mapped onto design
         #: racks labels (if there are any).
-        #: (:class:`thelma.models.liquidtransfer.WorklistSeries`).
+        #: (:class:`thelma.entities.liquidtransfer.WorklistSeries`).
         self._design_rack_series_map = None
         #: The index of the transfer worklist within a valid design rack series.
         self._transfer_worklist_index = None
@@ -534,9 +534,9 @@ class SourceRackVerifier(BaseRackVerifier):
         Constructor.
 
         :param iso_request: The ISO request the plate must represent.
-        :type iso_request: :class:`thelma.models.iso.isoRequest`
+        :type iso_request: :class:`thelma.entities.iso.isoRequest`
         :param source_plate: The plate to be checked.
-        :type source_plate: :class:`thelma.models.rack.Plate`
+        :type source_plate: :class:`thelma.entities.rack.Plate`
         """
         BaseRackVerifier.__init__(self, parent=parent)
         #: The ISO request the plate must represent.

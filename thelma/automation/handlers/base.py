@@ -2,8 +2,8 @@
 :Date: 2011-05
 :Author: AAB, berger at cenix-bioscience dot com
 
-Parser handler base classes. Handlers initializes and run parsers and transform
-their results into model entities, if the parser was completed successfully.
+Parser handler base classes. Handlers initializes and run parsers and
+transform their results to entities, if the parser was completed successfully.
 Handlers can also access the parsing message recordings.
 """
 
@@ -14,8 +14,8 @@ from thelma.automation.semiconstants import get_rack_position_from_indices
 from thelma.automation.tools.base import BaseTool
 from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
 from thelma.interfaces import IRackShape
-from thelma.models.rack import RackPositionSet
-from thelma.models.tagging import Tag
+from thelma.entities.rack import RackPositionSet
+from thelma.entities.tagging import Tag
 
 
 __docformat__ = 'reStructuredText en'
@@ -28,8 +28,8 @@ class BaseParserHandler(BaseTool):
     """
     Abstract base class for all parser handlers in TheLMA.
 
-    Handlers initializes and run parsers and transform their results into
-    model entities, if the parser was completed successfully.
+    Handlers initializes and run parsers and transform their results to
+    entities, if the parser was completed successfully.
     """
     _PARSER_CLS = None
 
@@ -94,7 +94,7 @@ class BaseParserHandler(BaseTool):
 
     def _convert_results_to_entity(self):
         """
-        Converts the parsing results into a model entity of the model class.
+        Converts the parsing results into an entity.
         """
         raise NotImplementedError('Abstract method.')
 
@@ -137,7 +137,7 @@ class LayoutParserHandler(BaseParserHandler): #pylint: disable=W0223
     def _convert_to_rack_shape(self, rack_shape_container):
         """
         Converts a :class:`RackShapeParsingContainer` into a
-        :class:`thelma.models.rack.RackShape`.
+        :class:`thelma.entities.rack.RackShape`.
         """
         rack_shape_aggregate = get_root_aggregate(IRackShape)
         rack_shape = \

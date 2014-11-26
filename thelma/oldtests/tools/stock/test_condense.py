@@ -17,21 +17,21 @@ from thelma.automation.tools.stock.condense import StockCondenseRack
 from thelma.automation.tools.stock.condense import StockCondenseReportWriter
 from thelma.automation.tools.stock.condense import StockCondenser
 from thelma.automation.tools.worklists.tubehandler import XL20WorklistWriter
-from thelma.models.rack import RACK_TYPES
-from thelma.testing import ThelmaModelTestCase
+from thelma.entities.rack import RACK_TYPES
+from thelma.testing import ThelmaEntityTestCase
 from thelma.oldtests.tools.tooltestingutils import FileComparisonUtils
 from thelma.oldtests.tools.tooltestingutils import FileCreatorTestCase
 
 
-class StockCondenseRackTestCase(ThelmaModelTestCase):
+class StockCondenseRackTestCase(ThelmaEntityTestCase):
 
     def set_up(self):
-        ThelmaModelTestCase.set_up(self)
+        ThelmaEntityTestCase.set_up(self)
         self.rack_barcode = '09999999'
         self.tube_count = 4
 
     def tear_down(self):
-        ThelmaModelTestCase.tear_down(self)
+        ThelmaEntityTestCase.tear_down(self)
         del self.rack_barcode
         del self.tube_count
 
@@ -127,10 +127,10 @@ class StockCondenseRackTestCase(ThelmaModelTestCase):
                 self.assert_true(rack_pos in free_positions)
 
 
-class CondenseRackQueryTestCase(ThelmaModelTestCase):
+class CondenseRackQueryTestCase(ThelmaEntityTestCase):
 
     def tear_down(self):
-        ThelmaModelTestCase.tear_down(self)
+        ThelmaEntityTestCase.tear_down(self)
         CondenseRackQuery.shut_down()
 
     def test_singleton(self):
@@ -149,7 +149,7 @@ class CondenseRackQueryTestCase(ThelmaModelTestCase):
             self.assert_not_equal(len(query.get_query_results()), 0)
 
 
-class RackContainerQueryTestCase(ThelmaModelTestCase):
+class RackContainerQueryTestCase(ThelmaEntityTestCase):
 
     def __select_racks(self, session):
         query = 'SELECT DISTINCT r.barcode AS rack_barcode ' \

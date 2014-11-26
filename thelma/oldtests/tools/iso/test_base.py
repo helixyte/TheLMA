@@ -24,9 +24,9 @@ from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
 from thelma.automation.utils.layouts import TransferTarget
 from thelma.interfaces import IPlate
 from thelma.interfaces import ITubeRack
-from thelma.models.liquidtransfer import PlannedSampleTransfer
-from thelma.models.rack import RACK_TYPES
-from thelma.models.tagging import Tag
+from thelma.entities.liquidtransfer import PlannedSampleTransfer
+from thelma.entities.rack import RACK_TYPES
+from thelma.entities.tagging import Tag
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 from thelma.oldtests.tools.utils.utils import ConverterTestCase
 from thelma.oldtests.tools.utils.utils import MoleculeDesignPoolBaseTestCase

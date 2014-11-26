@@ -25,7 +25,7 @@ from thelma.automation.tools.metadata.transfectionlayoutfinder \
 from thelma.automation.tools.metadata.transfectionlayoutfinder \
     import _TransfectionTransferItem
 from thelma.interfaces import IMoleculeDesignPool
-from thelma.models.utils import get_user
+from thelma.entities.utils import get_user
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 

@@ -10,8 +10,8 @@ from thelma.automation.tools.experiment.mastermix \
     import ExperimentOptimisationWriterExecutor
 from thelma.automation.tools.experiment.mastermix \
     import ExperimentScreeningWriterExecutor
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.utils import get_user
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.utils import get_user
 from thelma.oldtests.tools.experiment.utils import EXPERIMENT_TEST_DATA
 from thelma.oldtests.tools.experiment.utils import ExperimentTestCase
 

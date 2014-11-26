@@ -22,5 +22,5 @@ SPECIES = (
     )
 
 def create_data():
-    from thelma.models.species import Species
+    from thelma.entities.species import Species
     return dict([(args[2], Species(*args)) for args in SPECIES])

@@ -8,7 +8,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Table
-from thelma.models.sample import SAMPLE_TYPES
+from thelma.entities.sample import SAMPLE_TYPES
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_table']

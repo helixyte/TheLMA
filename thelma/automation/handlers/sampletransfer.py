@@ -1,5 +1,5 @@
 """
-.. currentmodule:: thelma.models.liquidtransfer
+.. currentmodule:: thelma.entities.liquidtransfer
 
 Handler for the :class:`GenericSampleTransferPlanParser`.
 Converts the data into a :class:`WorklistSeries`
@@ -23,12 +23,12 @@ from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import add_list_map_element
 from thelma.interfaces import IRack
 from thelma.interfaces import IRackShape
-from thelma.models.liquidtransfer import PlannedSampleDilution
-from thelma.models.liquidtransfer import PlannedSampleTransfer
-from thelma.models.liquidtransfer import PlannedWorklist
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.liquidtransfer import WorklistSeries
-from thelma.models.rack import TubeRack
+from thelma.entities.liquidtransfer import PlannedSampleDilution
+from thelma.entities.liquidtransfer import PlannedSampleTransfer
+from thelma.entities.liquidtransfer import PlannedWorklist
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.liquidtransfer import WorklistSeries
+from thelma.entities.rack import TubeRack
 
 __docformat__ = 'reStructuredText en'
 
@@ -388,7 +388,7 @@ class RackOrReservoirItem(object):
         :param reservoir_specs: contains rack shape, maximum and dead volumes
             for the object (it easier to use unified specs)
         :type reservoir_specs:
-            :class:`thelma.models.liquidtransfer.ReservoirSpecs`
+            :class:`thelma.entities.liquidtransfer.ReservoirSpecs`
         :param str identifier: The identifier used in the excel sheet.
         """
         #: Does the object represent a rack (*True*) or a reservoir (*False*)?
@@ -400,7 +400,7 @@ class RackOrReservoirItem(object):
         self.identifier = identifier
         #: The barcode (if there is one specified).
         self.barcode = None
-        #: The :class:`thelma.models.rack.Rack` entity (if :attr:`is_rack`
+        #: The :class:`thelma.entities.rack.Rack` entity (if :attr:`is_rack`
         #; is *True*).
         self.rack = None
         #: List of :class:`PlannedWorklist`s for which this item is a source
@@ -434,7 +434,7 @@ class RackOrReservoirItem(object):
             (see :class:`thelma.automation.tools.worklists.TRANSFER_ROLES`)
         :type role: :class:`str`
         :param worklist: a worklist in which this rack or reservoir occurs
-        :type worklist: :class:`thelma.models.liquidtransfer.PlannedWorklist`
+        :type worklist: :class:`thelma.entities.liquidtransfer.PlannedWorklist`
         """
         add_list_map_element(self.__worklists, role, worklist)
 

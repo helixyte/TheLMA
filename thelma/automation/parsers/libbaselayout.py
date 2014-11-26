@@ -16,7 +16,7 @@ AAB
 from thelma.automation.parsers.base import ExcelFileParser
 from thelma.automation.parsers.base import RackPositionParsingContainer
 from thelma.automation.parsers.base import RackShapeParsingContainer
-from thelma.models.utils import label_from_number
+from thelma.entities.utils import label_from_number
 
 __docformat__ = "reStructuredText en"
 

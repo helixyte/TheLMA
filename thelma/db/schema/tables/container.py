@@ -7,7 +7,7 @@ from sqlalchemy import Index
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Table
-from thelma.models.container import CONTAINER_TYPES
+from thelma.entities.container import CONTAINER_TYPES
 from thelma.automation.semiconstants import ITEM_STATUS_NAMES
 
 __docformat__ = "reStructuredText en"

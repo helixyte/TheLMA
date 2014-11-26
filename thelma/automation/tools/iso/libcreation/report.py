@@ -15,8 +15,8 @@ from thelma.automation.tools.writers import CsvWriter
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.base import get_trimmed_string
-from thelma.models.iso import IsoSectorStockRack
-from thelma.models.liquidtransfer import ExecutedWorklist
+from thelma.entities.iso import IsoSectorStockRack
+from thelma.entities.liquidtransfer import ExecutedWorklist
 
 
 __docformat__ = 'reStructuredText en'

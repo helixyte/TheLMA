@@ -27,7 +27,7 @@ from thelma.automation.utils.layouts import LIBRARY_POSITION_TYPE
 from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
 from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
 from thelma.automation.utils.layouts import TransferTarget
-from thelma.models.tagging import Tag
+from thelma.entities.tagging import Tag
 from thelma.oldtests.tools.iso.lab.utils import LAB_ISO_TEST_CASES
 from thelma.oldtests.tools.iso.lab.utils import LabIsoTestCase2
 from thelma.oldtests.tools.tooltestingutils import FileCreatorTestCase

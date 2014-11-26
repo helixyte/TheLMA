@@ -3,9 +3,9 @@ Tube specs mapper.
 """
 from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.container import CONTAINER_SPECS_TYPES
-from thelma.models.container import TubeSpecs
-from thelma.models.rack import TubeRackSpecs
+from thelma.entities.container import CONTAINER_SPECS_TYPES
+from thelma.entities.container import TubeSpecs
+from thelma.entities.rack import TubeRackSpecs
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

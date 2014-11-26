@@ -17,8 +17,8 @@ from thelma.automation.utils.base import are_equal_values
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import is_smaller_than
 from thelma.interfaces import ITube
-from thelma.models.moleculedesign import MoleculeDesignPool
-from thelma.models.sample import StockSample
+from thelma.entities.moleculedesign import MoleculeDesignPool
+from thelma.entities.sample import StockSample
 
 
 __docformat__ = 'reStructuredText en'

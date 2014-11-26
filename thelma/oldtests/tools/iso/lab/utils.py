@@ -40,18 +40,18 @@ from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import ISubproject
 from thelma.interfaces import IUser
-from thelma.models.container import Tube
-from thelma.models.experiment import ExperimentMetadata
-from thelma.models.job import IsoJob
-from thelma.models.library import LibraryPlate
-from thelma.models.library import MoleculeDesignLibrary
-from thelma.models.liquidtransfer import PlannedRackSampleTransfer
-from thelma.models.liquidtransfer import PlannedSampleDilution
-from thelma.models.liquidtransfer import PlannedSampleTransfer
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
-from thelma.models.organization import Organization
-from thelma.models.sample import StockSample
+from thelma.entities.container import Tube
+from thelma.entities.experiment import ExperimentMetadata
+from thelma.entities.job import IsoJob
+from thelma.entities.library import LibraryPlate
+from thelma.entities.library import MoleculeDesignLibrary
+from thelma.entities.liquidtransfer import PlannedRackSampleTransfer
+from thelma.entities.liquidtransfer import PlannedSampleDilution
+from thelma.entities.liquidtransfer import PlannedSampleTransfer
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.moleculedesign import MoleculeDesignPoolSet
+from thelma.entities.organization import Organization
+from thelma.entities.sample import StockSample
 from thelma.oldtests.tools.tooltestingutils \
     import ExperimentMetadataReadingTestCase
 

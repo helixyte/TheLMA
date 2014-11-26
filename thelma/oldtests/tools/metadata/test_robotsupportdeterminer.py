@@ -22,7 +22,7 @@ from thelma.automation.tools.metadata.generation \
 from thelma.automation.utils.layouts import UNTREATED_POSITION_TYPE
 from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeType
-from thelma.models.moleculetype import MOLECULE_TYPE_IDS
+from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 

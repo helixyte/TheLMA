@@ -5,7 +5,7 @@ AAB
 """
 from thelma.automation.semiconstants import get_pipetting_specs
 from thelma.automation.tools.base import BaseTool
-from thelma.models.liquidtransfer import PlannedWorklist
+from thelma.entities.liquidtransfer import PlannedWorklist
 
 
 __docformat__ = "reStructuredText en"
@@ -17,9 +17,9 @@ __all__ = ['PlannedWorklistGenerator'
 class PlannedWorklistGenerator(BaseTool):
     """
     This is an abstract tool generating a worklist
-    (:class:`thelma.models.liquidtransfer.PlannedWorklist`).
+    (:class:`thelma.entities.liquidtransfer.PlannedWorklist`).
 
-    **Return Value**: :class:`thelma.models.liquidtransfer.PlannedWorklist`
+    **Return Value**: :class:`thelma.entities.liquidtransfer.PlannedWorklist`
     """
     #: The name of the pipetting specs assumed for the worklist.
     PIPETTING_SPECS_NAME = None

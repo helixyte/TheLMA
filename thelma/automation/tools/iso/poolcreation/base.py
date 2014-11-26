@@ -24,8 +24,8 @@ from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
 from thelma.automation.utils.layouts import MoleculeDesignPoolLayout
 from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
 from thelma.automation.utils.layouts import MoleculeDesignPoolPosition
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
-from thelma.models.tagging import Tag
+from thelma.entities.moleculedesign import MoleculeDesignPoolSet
+from thelma.entities.tagging import Tag
 
 
 __docformat__ = 'reStructuredText en'
@@ -193,7 +193,7 @@ class VolumeCalculator(object):
 
         :param iso_request: Contains all required numbers.
         :type iso_request:
-            :class:`thelma.models.iso.StockSampleCreationIsoRequest`
+            :class:`thelma.entities.iso.StockSampleCreationIsoRequest`
         """
         pool_set = iso_request.molecule_design_pool_set
         single_design_stock_concentration = \
@@ -372,11 +372,11 @@ class StockSampleCreationPosition(MoleculeDesignPoolPosition):
                  stock_tube_barcodes):
         """
         :param rack_position: The source rack position in the source rack.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`
+        :type rack_position: :class:`thelma.entities.rack.RackPosition`
 
         :param molecule_design_pool: A molecule design pool to generate.
         :type molecule_design_pool:
-            :class:`thelma.models.moleculedesign.MoleculeDesignPool`
+            :class:`thelma.entities.moleculedesign.MoleculeDesignPool`
 
         :param stock_tube_barcodes: The stock tube barcodes for the single
             molecule design tubes used to generate this pool.
@@ -519,7 +519,7 @@ class StockSampleCreationLayout(MoleculeDesignPoolLayout):
 
         :param shape: The rack shape - usually a 96-well plate, but you can
             overwrite that.
-        :type shape: :class:`thelma.models.rack.RackShape`
+        :type shape: :class:`thelma.entities.rack.RackShape`
         :default shape: *None* (96-well)
         """
         if shape is None:
@@ -532,7 +532,7 @@ class StockSampleCreationLayout(MoleculeDesignPoolLayout):
 
         :param molecule_type: The type of the pools in the set is derived
             from the molecule type of the stock sample creation ISO request.
-        :type molecule_type: :class:`thelma.models.moleculetype.MoleculeType`
+        :type molecule_type: :class:`thelma.entities.moleculetype.MoleculeType`
         """
         pools = set([lp.pool for lp in self._position_map.values()])
         return MoleculeDesignPoolSet(molecule_type=molecule_type,
@@ -541,7 +541,7 @@ class StockSampleCreationLayout(MoleculeDesignPoolLayout):
 
 class StockSampleCreationLayoutConverter(MoleculeDesignPoolLayoutConverter):
     """
-    Converts a :class:`thelma.models.racklayout.RackLayout` into a
+    Converts a :class:`thelma.entities.racklayout.RackLayout` into a
     :class:`StockSampleCreationLayout`.
     """
     NAME = 'Stock Sample Creation Layout Converter'

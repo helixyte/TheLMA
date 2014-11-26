@@ -7,7 +7,7 @@
 #from thelma.automation.handlers.libmembers import LibraryMemberParserHandler
 #from thelma.automation.parsers.libmembers import LibraryMemberParser
 #from thelma.interfaces import IMoleculeType
-#from thelma.models.moleculetype import MOLECULE_TYPE_IDS
+#from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
 #from thelma.oldtests.tools.tooltestingutils import ParsingTestCase
 #
 #

@@ -52,14 +52,14 @@ from thelma.automation.utils.layouts import TransferTarget
 from thelma.automation.utils.racksector import QuadrantIterator
 from thelma.automation.utils.racksector import RackSectorTranslator
 from thelma.interfaces import ILibraryPlate
-from thelma.models.iso import ISO_STATUS
-from thelma.models.iso import ISO_TYPES
-from thelma.models.iso import LabIso
-from thelma.models.iso import LabIsoRequest
-from thelma.models.liquidtransfer import PlannedRackSampleTransfer
-from thelma.models.liquidtransfer import PlannedSampleDilution
-from thelma.models.liquidtransfer import PlannedSampleTransfer
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.iso import ISO_TYPES
+from thelma.entities.iso import LabIso
+from thelma.entities.iso import LabIsoRequest
+from thelma.entities.liquidtransfer import PlannedRackSampleTransfer
+from thelma.entities.liquidtransfer import PlannedSampleDilution
+from thelma.entities.liquidtransfer import PlannedSampleTransfer
+from thelma.entities.moleculedesign import MoleculeDesignPoolSet
 
 
 __docformat__ = 'reStructuredText en'
@@ -102,7 +102,7 @@ class LabIsoBuilder(object):
         Constructor.
 
         :param iso_request: The ISO request the ISOs shall belong to.
-        :type iso_request: :class:`thelma.models.iso.LabIsoRequest`
+        :type iso_request: :class:`thelma.entities.iso.LabIsoRequest`
         :param excluded_racks: A list of barcodes from stock racks that shall
             not be used for stock sample picking.
         :type excluded_racks: A list of rack barcodes
@@ -1326,7 +1326,7 @@ class _PoolContainer(object):
         Constructor.
 
         :param pool: The pool these position deal with.
-        :type pool: :class:`thelma.models.moleculedesign.MoleculeDesignPool`
+        :type pool: :class:`thelma.entities.moleculedesign.MoleculeDesignPool`
 
         :param position_type: The types of the positions in the layouts
             (must be the same for all positions and layouts).
@@ -2082,7 +2082,7 @@ class RackPositionContainer(_LocationContainer):
         Constructor
 
         :param pool: the molecule design pool for this position
-        :type pool: :class:`thelma.models.moleculedesig.MoleculeDesignPool`
+        :type pool: :class:`thelma.entities.moleculedesig.MoleculeDesignPool`
         :param position_type: see :class:`MoleculeDesignPoolParameters`
         :type position_type: :class:`str`
         """
@@ -3042,7 +3042,7 @@ class _LayoutPlanner(BaseTool):
         Constructor.
 
         :param iso_request: The ISO request for which to create the ISOs.
-        :type iso_request: :class:`thelma.models.iso.LabIsoRequest`
+        :type iso_request: :class:`thelma.entities.iso.LabIsoRequest`
         :param builder: The builder collects the data of the picked assigner.
         :type builder: :class:`LabIsoBuilder`
         """
@@ -3589,7 +3589,7 @@ class _TranslatorStore(object):
         Constructor.
 
         :param aliquot_shape: The rack shape of the aliquot plate layout.
-        :type aliquot_shape: :class:`thelma.models.rack.RackShape`
+        :type aliquot_shape: :class:`thelma.entities.rack.RackShape`
         """
         #: The rack shape of the preparation layouts.
         self.__prep_shape = None
@@ -3603,7 +3603,7 @@ class _TranslatorStore(object):
         Sets the preparation layout shape.
 
         :param prep_shape: The rack shape of the preparation layouts.
-        :type prep_shape: :class:`thelma.models.rack.RackShape`
+        :type prep_shape: :class:`thelma.entities.rack.RackShape`
         """
         self.__prep_shape = prep_shape
 

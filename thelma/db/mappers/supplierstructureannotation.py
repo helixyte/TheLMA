@@ -3,9 +3,9 @@ Chemical structure mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.suppliermoleculedesign import SupplierMoleculeDesign
-from thelma.models.suppliermoleculedesign import SupplierStructureAnnotation
-from thelma.models.chemicalstructure import ChemicalStructure
+from thelma.entities.suppliermoleculedesign import SupplierMoleculeDesign
+from thelma.entities.suppliermoleculedesign import SupplierStructureAnnotation
+from thelma.entities.chemicalstructure import ChemicalStructure
 
 
 __docformat__ = 'reStructuredText en'

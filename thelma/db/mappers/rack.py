@@ -9,13 +9,13 @@ from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy.sql import func
 from sqlalchemy.sql import select
 from thelma.db.mappers.utils import CaseInsensitiveComparator
-from thelma.models.container import Container
-from thelma.models.container import ContainerLocation
-from thelma.models.location import BarcodedLocation
-from thelma.models.rack import RACK_TYPES
-from thelma.models.rack import Rack
-from thelma.models.rack import RackSpecs
-from thelma.models.status import ItemStatus
+from thelma.entities.container import Container
+from thelma.entities.container import ContainerLocation
+from thelma.entities.location import BarcodedLocation
+from thelma.entities.rack import RACK_TYPES
+from thelma.entities.rack import Rack
+from thelma.entities.rack import RackSpecs
+from thelma.entities.status import ItemStatus
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

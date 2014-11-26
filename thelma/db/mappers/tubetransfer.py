@@ -5,10 +5,10 @@ AAB
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.container import Tube
-from thelma.models.rack import RackPosition
-from thelma.models.rack import TubeRack
-from thelma.models.tubetransfer import TubeTransfer
+from thelma.entities.container import Tube
+from thelma.entities.rack import RackPosition
+from thelma.entities.rack import TubeRack
+from thelma.entities.tubetransfer import TubeTransfer
 
 __docformat__ = 'reStructuredText en'
 

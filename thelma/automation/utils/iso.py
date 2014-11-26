@@ -88,12 +88,12 @@ class IsoRequestPosition(MoleculeDesignPoolPosition):
         Constructor:
 
         :param rack_position: The rack position.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`.
+        :type rack_position: :class:`thelma.entities.rack.RackPosition`.
 
         :param molecule_design_pool: The molecule design pool for this position
             or a valid placeholder.
         :type molecule_design_pool:
-            :class:`thelma.models.moleculedesign.MoleculeDesignPool`
+            :class:`thelma.entities.moleculedesign.MoleculeDesignPool`
             or :class:`basestring`
 
         :param position_type: influences valid values for other parameters

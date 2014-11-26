@@ -12,8 +12,8 @@ from thelma.automation.tools.iso.lab.tracreporting \
     import LabIsoStockTransferReporter
 from thelma.automation.tools.iso.tracreporting import IsoStockTransferReporter
 from thelma.automation.utils.layouts import TransferTarget
-from thelma.models.iso import ISO_STATUS
-from thelma.models.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
 from thelma.oldtests.tools.iso.lab.test_processing \
     import _LabIsoWriterExecutorToolTestCase
 from thelma.oldtests.tools.iso.lab.utils import LAB_ISO_TEST_CASES

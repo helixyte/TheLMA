@@ -57,7 +57,7 @@ from thelma.automation.tools.worklists.optimiser import BiomekLayoutOptimizer
 from thelma.automation.tools.worklists.optimiser import TransferItem
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.iso import IsoRequestParameters
-from thelma.models.experiment import ExperimentDesign
+from thelma.entities.experiment import ExperimentDesign
 
 __docformat__ = 'reStructuredText en'
 
@@ -86,7 +86,7 @@ class TransfectionLayoutFinder(BaseTool):
 
         :param experiment_design: The experiment containing the data for the
                 ISO layout.
-        :type experiment_design: :class:`thelma.models.experiment.ExperimentDesign`
+        :type experiment_design: :class:`thelma.entities.experiment.ExperimentDesign`
         """
         BaseTool.__init__(self, parent=parent)
         self.experiment_design = experiment_design

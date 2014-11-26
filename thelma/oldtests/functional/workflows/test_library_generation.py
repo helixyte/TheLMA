@@ -21,11 +21,11 @@ from thelma.interfaces import ITubeRack
 from thelma.interfaces import ITubeRackSpecs
 from thelma.interfaces import ITubeSpecs
 from thelma.interfaces import IUser
-from thelma.models.container import Tube
-from thelma.models.iso import ISO_TYPES
-from thelma.testing import ThelmaModelTestCase
+from thelma.entities.container import Tube
+from thelma.entities.iso import ISO_TYPES
+from thelma.testing import ThelmaEntityTestCase
 from thelma.automation.tools.worklists.tubehandler import XL20Executor
-from thelma.models.iso import StockSampleCreationIsoRequest
+from thelma.entities.iso import StockSampleCreationIsoRequest
 
 
 __docformat__ = 'reStructuredText en'
@@ -33,7 +33,7 @@ __all__ = ['TestLibraryGeneration',
            ]
 
 
-class TestLibraryGeneration(ThelmaModelTestCase):
+class TestLibraryGeneration(ThelmaEntityTestCase):
     __session = None
 
     def test_workflow(self):

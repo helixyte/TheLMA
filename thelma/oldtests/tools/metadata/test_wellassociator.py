@@ -17,8 +17,8 @@ from thelma.automation.tools.metadata.base import TransfectionPosition
 from thelma.automation.tools.metadata.generation \
     import WellAssociatorOptimisation
 from thelma.automation.tools.metadata.generation import WellAssociatorManual
-from thelma.models.racklayout import RackLayout
-from thelma.models.utils import get_user
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.utils import get_user
 from thelma.oldtests.tools.tooltestingutils import FileReadingTestCase
 
 

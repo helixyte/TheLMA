@@ -20,7 +20,7 @@ Each plate (rack) has a layout. The layout defines which experimental
 parameters are applied to which well. Parameters are stated as machine tags
 (triple tags).
 
-.. currentmodule:: thelma.models.tagging
+.. currentmodule:: thelma.entities.tagging
 
 A machine tag (see :class:`Tag`) is composed of three parts:
 
@@ -39,7 +39,7 @@ do not need to be present in the DB before.
 :Note: Predicates of ISO layout parameter tags must comply with the referring
     naming conditions. However, ISO layouts can also be specified separately.
 
-.. currentmodule:: thelma.models.experiment
+.. currentmodule:: thelma.entities.experiment
 
 The complete set of value/position-pairs for all tags of one rack defines
 an :class:`ExperimentDesignRack`.
@@ -65,7 +65,7 @@ The parsing will proceed as follows:
 
 The parsed data is stored in :class:`ParsingContainer` objects. It will be
 employed by the parser's handler later on to generate an experiment design
-object (:class:`thelma.models.experiment.ExperimentDesign`).
+object (:class:`thelma.entities.experiment.ExperimentDesign`).
 
 Composition of Source Files
 ...........................

@@ -27,14 +27,14 @@ from thelma.interfaces import IRackPosition
 from thelma.interfaces import IRackShape
 from thelma.interfaces import IRackSpecs
 from thelma.interfaces import IReservoirSpecs
-from thelma.models.experiment import ExperimentMetadataType
-from thelma.models.liquidtransfer import PipettingSpecs
-from thelma.models.liquidtransfer import ReservoirSpecs
-from thelma.models.rack import RACK_POSITION_REGEXP
-from thelma.models.rack import RackShape
-from thelma.models.rack import RackSpecs
-from thelma.models.status import ITEM_STATUSES
-from thelma.models.utils import label_from_number
+from thelma.entities.experiment import ExperimentMetadataType
+from thelma.entities.liquidtransfer import PipettingSpecs
+from thelma.entities.liquidtransfer import ReservoirSpecs
+from thelma.entities.rack import RACK_POSITION_REGEXP
+from thelma.entities.rack import RackShape
+from thelma.entities.rack import RackSpecs
+from thelma.entities.status import ITEM_STATUSES
+from thelma.entities.utils import label_from_number
 
 
 __docformat__ = 'reStructuredText en'
@@ -181,7 +181,7 @@ class SemiconstantCache(object):
 
 class ITEM_STATUS_NAMES(SemiconstantCache):
     """
-    Caching and shortcuts for :class:`thelma.models.status.ItemStatus` entities.
+    Caching and shortcuts for :class:`thelma.entities.status.ItemStatus` entities.
     """
     MANAGED = ITEM_STATUSES.MANAGED
     FUTURE = ITEM_STATUSES.FUTURE
@@ -206,7 +206,7 @@ def get_item_status_future():
 class EXPERIMENT_SCENARIOS(SemiconstantCache):
     """
     Caching and shortcuts for
-    :class:`thelma.models.experiment.ExperimentMetadataType` entities.
+    :class:`thelma.entities.experiment.ExperimentMetadataType` entities.
     """
     OPTIMISATION = 'OPTI'
     SCREENING = 'SCREEN'
@@ -277,7 +277,7 @@ def get_experiment_type_order():
 
 class RACK_SHAPE_NAMES(SemiconstantCache):
     """
-    Caching and shortcuts for :class:`thelma.models.rack.RackShape` entities.
+    Caching and shortcuts for :class:`thelma.entities.rack.RackShape` entities.
     """
     SHAPE_96 = '8x12'
     SHAPE_384 = '16x24'
@@ -330,7 +330,7 @@ class RACK_SHAPE_NAMES(SemiconstantCache):
         The positions are cached.
 
         :param rack_shape: A rack shape or its name:
-        :type rack_shape: :class:`thelma.models.rack.RackShape` or
+        :type rack_shape: :class:`thelma.entities.rack.RackShape` or
             :class:`basestring`
 
         :param vertical_sorting: Set to *True* for vertical sorting and to
@@ -406,7 +406,7 @@ def get_positions_for_shape(rack_shape, vertical_sorting=False):
 class PIPETTING_SPECS_NAMES(SemiconstantCache):
     """
     Caching and shortcuts for
-    :class:`thelma.models.liquidtransfer.PipettingSpecs` entities.
+    :class:`thelma.entities.liquidtransfer.PipettingSpecs` entities.
     """
     MANUAL = 'manual'
     CYBIO = 'CyBio'
@@ -455,7 +455,7 @@ class PIPETTING_SPECS_NAMES(SemiconstantCache):
         :param pipetting_specs: The pipetting specs whose minimum volume you
             want to get or its name.
         :type pipetting_specs: :class:`basestring` or
-            :class:`thelma.models.liquidtransfer.PipettingSpecs`
+            :class:`thelma.entities.liquidtransfer.PipettingSpecs`
         :return: The converted values.
         """
         if cls.__value_cache is None or len(cls.__value_cache) < 1:
@@ -481,7 +481,7 @@ class PIPETTING_SPECS_NAMES(SemiconstantCache):
         :param pipetting_specs: The pipetting specs whose minimum volume you
             want to get or its name.
         :type pipetting_specs: :class:`basestring` or
-            :class:`thelma.models.liquidtransfer.PipettingSpecs`
+            :class:`thelma.entities.liquidtransfer.PipettingSpecs`
         :return: The minimum transfer volume in ul.
         :raises ValueError: if the specs are unknown
         """
@@ -496,7 +496,7 @@ class PIPETTING_SPECS_NAMES(SemiconstantCache):
         :param pipetting_specs: The pipetting specs whose maximum volume you
             want to get or its name.
         :type pipetting_specs: :class:`basestring` or
-            :class:`thelma.models.liquidtransfer.PipettingSpecs`
+            :class:`thelma.entities.liquidtransfer.PipettingSpecs`
         :return: The minimum transfer volume in ul.
         :raises ValueError: if the specs are unknown
         """
@@ -513,7 +513,7 @@ class PIPETTING_SPECS_NAMES(SemiconstantCache):
         :param pipetting_specs: The pipetting specs whose maximum dilution
             factor you want to get or its name.
         :type pipetting_specs: :class:`basestring` or
-            :class:`thelma.models.liquidtransfer.PipettingSpecs`
+            :class:`thelma.entities.liquidtransfer.PipettingSpecs`
         :return: The maximum dilution factor for a single transfer.
         :raises ValueError: if the specs are unknown
         """
@@ -551,7 +551,7 @@ get_max_dilution_factor = PIPETTING_SPECS_NAMES.get_max_dilution_factor
 class RESERVOIR_SPECS_NAMES(SemiconstantCache):
     """
     Caching and shortcuts for
-    :class:`thelma.models.liquidtransfer.ResevoirSpecs` entities.
+    :class:`thelma.entities.liquidtransfer.ResevoirSpecs` entities.
     """
     QUARTER_MODULAR = 'quarter mod'
     TUBE_24 = 'microfuge rack'
@@ -615,7 +615,7 @@ def get_reservoir_specs_standard_384():
 
 class RACK_SPECS_NAMES(SemiconstantCache):
     """
-    Caching and shortcuts for :class:`thelma.models.rack.RackSpecs` entities.
+    Caching and shortcuts for :class:`thelma.entities.rack.RackSpecs` entities.
     """
     STANDARD_96 = 'BIOMEK96STD'
     STANDARD_384 = 'STD384'
@@ -644,13 +644,13 @@ class RACK_SPECS_NAMES(SemiconstantCache):
         :param reservoir_specs: The reservoir specs whose rack specs
             you want to get.
         :type reservoir_specs: :class:`str` (name of reservoir specs) or
-            :class:`thelma.models.liquidtransfer.ReservoirSpecs`
+            :class:`thelma.entities.liquidtransfer.ReservoirSpecs`
 
         :raises TypeError: If the type of reservoir specs is unexpected.
         :raises ValueError: If the reservoir specs is unknown or belongs to
             a stock rack.
 
-        :return: :class:`thelma.models.rack.RackSpecs`
+        :return: :class:`thelma.entities.rack.RackSpecs`
         """
         if isinstance(reservoir_specs, basestring):
             rs_name = reservoir_specs
@@ -679,13 +679,13 @@ class RACK_SPECS_NAMES(SemiconstantCache):
         :param rack_specs: the rack specs whose reservoir specs you want
             to get.
         :type rack_specs: :class:`basestring` or
-            :class:`thelma.models.rack.RackSpecs`
+            :class:`thelma.entities.rack.RackSpecs`
 
         :raises TypeError: If the type of rack specs is unexpected.
         :raises ValueError: If the rack specs is unknown or there is no
             reservoir specs stored for it.
 
-        :return: :class:`thelma.models.liquidtransfer.ReservoirSpecs`
+        :return: :class:`thelma.entities.liquidtransfer.ReservoirSpecs`
         """
         if isinstance(rack_specs, basestring):
             ps_name = rack_specs
@@ -720,7 +720,7 @@ get_reservoir_specs_from_rack_specs = RACK_SPECS_NAMES.to_reservoir_specs
 
 class RACK_POSITION_LABELS(SemiconstantCache):
     """
-    Caching and shortcuts for :class:`thelma.models.rack.RackPosition` entities.
+    Caching and shortcuts for :class:`thelma.entities.rack.RackPosition` entities.
     Unlike in other caches there are no default values and the cache is not
     initialised.
     """

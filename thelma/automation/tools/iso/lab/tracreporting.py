@@ -11,9 +11,9 @@ from thelma.automation.tools.writers import CsvWriter
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.base import get_trimmed_string
-from thelma.models.container import Tube
-from thelma.models.liquidtransfer import ExecutedWorklist
-from thelma.models.job import IsoJob
+from thelma.entities.container import Tube
+from thelma.entities.liquidtransfer import ExecutedWorklist
+from thelma.entities.job import IsoJob
 from thelma.automation.tools.iso.lab.base import LAB_ISO_ORDERS
 
 

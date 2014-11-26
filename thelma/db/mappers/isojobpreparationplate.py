@@ -3,10 +3,10 @@ ISO job preparation plate mapper
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.iso import IsoJobPreparationPlate
-from thelma.models.job import IsoJob
-from thelma.models.rack import Rack
-from thelma.models.racklayout import RackLayout
+from thelma.entities.iso import IsoJobPreparationPlate
+from thelma.entities.job import IsoJob
+from thelma.entities.rack import Rack
+from thelma.entities.racklayout import RackLayout
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

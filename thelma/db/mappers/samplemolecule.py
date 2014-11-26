@@ -3,9 +3,9 @@ Sample molecule mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.sample import Molecule
-from thelma.models.sample import Sample
-from thelma.models.sample import SampleMolecule
+from thelma.entities.sample import Molecule
+from thelma.entities.sample import Sample
+from thelma.entities.sample import SampleMolecule
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

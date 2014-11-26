@@ -1,5 +1,5 @@
 """
-Tagging model classes.
+Tagging entity classes.
 """
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
@@ -86,7 +86,7 @@ class Tagging(Entity):
     #:Object to attach the tag to.
     #: (:class:`Tagged`)
     tagged = None
-    #: User (:class:`thelma.models.user.User`) performing the taggign.
+    #: User (:class:`thelma.entities.user.User`) performing the taggign.
     user = None
 
     def __init__(self, tag, tagged, user, **kw):
@@ -98,7 +98,7 @@ class Tagging(Entity):
         :param tagged: object to tag.
         :type tagged: :class:`Tagged`
         :param user: User performing the tagging.
-        :type user: class:`thelma.models.user.User`
+        :type user: class:`thelma.entities.user.User`
         """
         Entity.__init__(self, **kw)
         self.tag = tag
@@ -122,7 +122,7 @@ class Tagged(Entity):
         :param set tags: Set of :class:`Tag` instances associated to the rack
             positions.
         :param user: User who creates the tagged object.
-        :type user: class:`thelma.models.user.User`
+        :type user: class:`thelma.entities.user.User`
         """
         Entity.__init__(self)
         if len(tags) < 1:
@@ -152,7 +152,7 @@ class TaggedRackPositionSet(Tagged):
     position set.
     """
     #: Associated rack position set
-    #: (:class:`thelma.models.rack.RackPositionSet`).
+    #: (:class:`thelma.entities.rack.RackPositionSet`).
     rack_position_set = None
 
     def __init__(self, tags, rack_position_set, user=None):
@@ -160,7 +160,7 @@ class TaggedRackPositionSet(Tagged):
         Constructor.
 
         :param rack_position_set: Rack position set.
-        :type rack_position_set: class:`thelma.models.rack.RackPositionSet`
+        :type rack_position_set: class:`thelma.entities.rack.RackPositionSet`
         """
         Tagged.__init__(self, set(tags), user)
         self.rack_position_set = rack_position_set

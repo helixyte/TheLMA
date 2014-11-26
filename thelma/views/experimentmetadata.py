@@ -12,8 +12,8 @@ from thelma.automation.tools.metadata.generation import \
     ExperimentMetadataGenerator
 from thelma.automation.tools.metadata.uploadreport import \
     ExperimentMetadataReportUploader
-from thelma.models.experiment import ExperimentMetadata
-from thelma.models.utils import get_current_user
+from thelma.entities.experiment import ExperimentMetadata
+from thelma.entities.utils import get_current_user
 from thelma.utils import run_tool
 from thelma.utils import run_trac_tool
 

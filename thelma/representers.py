@@ -8,7 +8,7 @@ from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.threadlocal import get_current_registry
 import logging
 from thelma.mime import BioMicroLabXl20TextOutputMime
-from thelma.models.utils import get_current_user
+from thelma.entities.utils import get_current_user
 from thelma.automation.tools.worklists.tubehandler import XL20Executor
 
 __docformat__ = 'reStructuredText en'

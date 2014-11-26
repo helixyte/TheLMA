@@ -21,13 +21,13 @@ from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import get_converted_number
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import ITractor
-from thelma.models.rack import RackPosition
-from thelma.models.racklayout import RackLayout
-from thelma.models.sample import StockSample
-from thelma.models.tagging import Tag
-from thelma.models.tagging import TaggedRackPositionSet
-from thelma.models.utils import get_user
-from thelma.testing import ThelmaModelTestCase
+from thelma.entities.rack import RackPosition
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.sample import StockSample
+from thelma.entities.tagging import Tag
+from thelma.entities.tagging import TaggedRackPositionSet
+from thelma.entities.utils import get_user
+from thelma.testing import ThelmaEntityTestCase
 
 
 CONF_FILE = 'thelma:tests/tools/logging.conf'
@@ -81,10 +81,10 @@ class FileComparisonUtils(object):
         return stripped_lines
 
 
-class ToolsAndUtilsTestCase(ThelmaModelTestCase):
+class ToolsAndUtilsTestCase(ThelmaEntityTestCase):
 
     def set_up(self):
-        ThelmaModelTestCase.set_up(self)
+        ThelmaEntityTestCase.set_up(self)
         initialize_semiconstant_caches()
         self.tool = None
         self.user = None
@@ -93,7 +93,7 @@ class ToolsAndUtilsTestCase(ThelmaModelTestCase):
         self.supplier = self._create_organization(name='testsupplier')
 
     def tear_down(self):
-        ThelmaModelTestCase.tear_down(self)
+        ThelmaEntityTestCase.tear_down(self)
         del self.tool
         del self.user
         del self.executor_user
@@ -387,7 +387,7 @@ class TracToolTestCase(ToolsAndUtilsTestCase):
         self.check_tractor_api(self.tractor_api)
 
     def tear_down(self):
-        ThelmaModelTestCase.tear_down(self)
+        ThelmaEntityTestCase.tear_down(self)
         self.tear_down_as_add_on()
 
     def tear_down_as_add_on(self):

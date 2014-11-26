@@ -13,7 +13,7 @@ The exact constraints depend on the experiment type of the associated metadata.
 ISO
 ...
 
-.. currentmodule:: thelma.models.moleculedesign
+.. currentmodule:: thelma.entities.moleculedesign
 
 ISOs (= \'*internal sample orders*\') define the positions of molecule design
 set on an experiment source plate. There four possible types of well types:
@@ -28,7 +28,7 @@ set on an experiment source plate. There four possible types of well types:
         A well containing a molecule design set that is not specified. The
         available molecule design to fill this position are stored
         in the :class:`MoleculeDesignSet` of a subproject
-        (:class:`thelma.models.subproject.Subproject`).
+        (:class:`thelma.entities.subproject.Subproject`).
     * **Mock position**
         A well containing transfection reagent but not molecule designs.
 
@@ -44,7 +44,7 @@ The ISOs are specified in 2D layouts and stored as atomic values and in
 :class:`ParsingContainer` objects. These data will then be converted into
 a ISO request object by the parsers handler. At this, the handler will store
 information as :ref:`machine tags <machinetags>`
-(:class:`thelma.models.tagging.Tag`).
+(:class:`thelma.entities.tagging.Tag`).
 
 There are always **up to 7** machine tags per ISO layout position:
 
@@ -67,7 +67,7 @@ There are always **up to 7** machine tags per ISO layout position:
 Machine Tags
 ............
 
-.. currentmodule:: thelma.models.tagging
+.. currentmodule:: thelma.entities.tagging
 
 A machine tag (triple tag, see: :class:`Tag`) is composed of three parts:
 
@@ -90,7 +90,7 @@ They are the actual values for the parameters.
 Parsing Notes
 .............
 
-.. currentmodule:: thelma.models.iso
+.. currentmodule:: thelma.entities.iso
 
 ISO layouts are specified on a separate sheet of experimental meta data
 Excel files (see :mod:`thelma.automation.tools.metadata.generation`).
@@ -118,7 +118,7 @@ in the \'*iso_request*\' table.
 
 All intermediate data is stored in parsing container object (see:
 :class:`ExcelParsingContainer`)
-first since it cannot be converted into model objects due to the
+first since it cannot be converted into entity objects due to the
 different hierarchical structure.
 
 Composition of Source Files

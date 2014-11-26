@@ -16,7 +16,7 @@ from thelma.automation.tools.iso.poolcreation.generation \
 from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.models.utils import get_user
+from thelma.entities.utils import get_user
 from thelma.oldtests.tools.iso.poolcreation.utils \
     import StockSampleCreationTestCase1
 from thelma.oldtests.tools.iso.poolcreation.utils \

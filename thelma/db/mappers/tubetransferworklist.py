@@ -5,9 +5,9 @@ AAB
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.tubetransfer import TubeTransfer
-from thelma.models.tubetransfer import TubeTransferWorklist
-from thelma.models.user import User
+from thelma.entities.tubetransfer import TubeTransfer
+from thelma.entities.tubetransfer import TubeTransferWorklist
+from thelma.entities.user import User
 
 __docformat__ = 'reStructuredText en'
 

@@ -3,10 +3,10 @@ Library plate mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.iso import LabIso
-from thelma.models.library import LibraryPlate
-from thelma.models.library import MoleculeDesignLibrary
-from thelma.models.rack import Rack
+from thelma.entities.iso import LabIso
+from thelma.entities.library import LibraryPlate
+from thelma.entities.library import MoleculeDesignLibrary
+from thelma.entities.rack import Rack
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

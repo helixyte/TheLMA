@@ -4,8 +4,8 @@ Reservoir specs mapper.
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.liquidtransfer import ReservoirSpecs
-from thelma.models.rack import RackShape
+from thelma.entities.liquidtransfer import ReservoirSpecs
+from thelma.entities.rack import RackShape
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

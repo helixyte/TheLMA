@@ -1,7 +1,7 @@
 import logging
 
 from thelma.automation.messagerecorder import MessageRecorder
-from thelma.testing import ThelmaModelTestCase
+from thelma.testing import ThelmaEntityTestCase
 
 
 class _MessageRecorderExampleClass(MessageRecorder):
@@ -53,10 +53,10 @@ class _NestedMessageRecorderExampleClass(MessageRecorder):
         self.add_critical_error(_MessageRecorderExampleClass.CRIT_MSG_IN)
 
 
-class EventRecordingTestCase(ThelmaModelTestCase):
+class EventRecordingTestCase(ThelmaEntityTestCase):
 
     def set_up(self):
-        ThelmaModelTestCase.set_up(self)
+        ThelmaEntityTestCase.set_up(self)
         self.test_tool = _MessageRecorderExampleClass()
         self.test_tool.run()
         self.DEBUG_MSG_IN = _MessageRecorderExampleClass.DEBUG_MSG_IN
@@ -74,7 +74,7 @@ class EventRecordingTestCase(ThelmaModelTestCase):
                     self.ERR_MSG_OUT, self.CRIT_MSG_OUT]
 
     def tear_down(self):
-        ThelmaModelTestCase.tear_down(self)
+        ThelmaEntityTestCase.tear_down(self)
         del self.test_tool
         del self.DEBUG_MSG_IN
         del self.DEBUG_MSG_OUT

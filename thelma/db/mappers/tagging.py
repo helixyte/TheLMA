@@ -2,8 +2,8 @@
 Tagging mapper.
 """
 from sqlalchemy.orm import mapper, relationship
-from thelma.models.tagging import Tag, Tagging, Tagged
-from thelma.models.user import User
+from thelma.entities.tagging import Tag, Tagging, Tagged
+from thelma.entities.user import User
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

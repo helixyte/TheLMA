@@ -15,10 +15,10 @@ from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
 from thelma.automation.utils.layouts import TransferLayout
 from thelma.automation.utils.layouts import TransferParameters
 from thelma.automation.utils.layouts import TransferPosition
-from thelma.models.iso import StockRack
-from thelma.models.liquidtransfer import PlannedSampleTransfer
-from thelma.models.rack import TubeRack
-from thelma.models.job import IsoJob
+from thelma.entities.iso import StockRack
+from thelma.entities.liquidtransfer import PlannedSampleTransfer
+from thelma.entities.rack import TubeRack
+from thelma.entities.job import IsoJob
 
 __docformat__ = 'reStructuredText en'
 
@@ -151,7 +151,7 @@ class IsoRackContainer(object):
         Constructor:
 
         :param rack: The rack or plate.
-        :type rack: :class:`thelma.models.rack.Rack`
+        :type rack: :class:`thelma.entities.rack.Rack`
         :param str rack_marker: Contains the rack role and number
             (see :func:`LABELS.create_rack_marker`).
         :default rack_marker: *None* (is parsed from the :param:`label`).
@@ -376,7 +376,7 @@ class StockRackVerifier(BaseRackVerifier):
         Constructor.
 
         :param stock_rack: The stock rack to be checked.
-        :type stock_rack: :class:`thelma.models.iso.StockRack`
+        :type stock_rack: :class:`thelma.entities.iso.StockRack`
         :param stock_rack_layout: The layout containing the molecule design
             and volume data. Can be set here or derived during the run.
         :type stock_rack_layout:  :class:`StockRackLayout`
@@ -427,8 +427,8 @@ class StockTransferWriterExecutor(SerialWriterExecutorTool):
         Constructor.
 
         :param entity: The ISO job or ISO to process.
-        :type entity: :class:`thelma.models.job.IsoJob` or
-            :class:`thelma.models.iso.LabIso`.
+        :type entity: :class:`thelma.entities.job.IsoJob` or
+            :class:`thelma.entities.iso.LabIso`.
         """
         SerialWriterExecutorTool.__init__(self, mode, user=user, parent=parent)
         #: The entity the transfer will be attached to (ISO or ISO job).

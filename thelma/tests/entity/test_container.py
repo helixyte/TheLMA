@@ -1,13 +1,13 @@
 import pytest
 
 from everest.repositories.rdb.testing import check_attributes
-from thelma.models.container import Container
-from thelma.models.container import ContainerLocation
-from thelma.models.container import ContainerSpecs
-from thelma.models.container import Tube
-from thelma.models.container import TubeSpecs
-from thelma.models.container import Well
-from thelma.models.container import WellSpecs
+from thelma.entities.container import Container
+from thelma.entities.container import ContainerLocation
+from thelma.entities.container import ContainerSpecs
+from thelma.entities.container import Tube
+from thelma.entities.container import TubeSpecs
+from thelma.entities.container import Well
+from thelma.entities.container import WellSpecs
 from thelma.tests.entity.conftest import TestEntityBase
 
 

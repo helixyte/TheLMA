@@ -6,12 +6,12 @@ AAB
 """
 from thelma.automation.tools.base import BaseTool
 from thelma.automation.utils.base import is_valid_number
-from thelma.models.iso import ISO_TYPES
-from thelma.models.iso import IsoRequest
-from thelma.models.iso import LabIsoRequest
-from thelma.models.iso import StockSampleCreationIsoRequest
-from thelma.models.job import IsoJob
-from thelma.models.user import User
+from thelma.entities.iso import ISO_TYPES
+from thelma.entities.iso import IsoRequest
+from thelma.entities.iso import LabIsoRequest
+from thelma.entities.iso import StockSampleCreationIsoRequest
+from thelma.entities.job import IsoJob
+from thelma.entities.user import User
 
 
 __docformat__ = 'reStructuredText en'
@@ -26,10 +26,10 @@ class IsoJobCreator(BaseTool):
     in an ISO job. The class is abstract - however, sub class only need to
     provide the :class:`IsoProvider` class.
 
-    **Return Value:** :class:`thelma.models.job.IsoJob` with all new ISOs
+    **Return Value:** :class:`thelma.entities.job.IsoJob` with all new ISOs
     """
     NAME = 'ISO Job Creator'
-    #: The supported ISO type (see :class:`thelma.models.iso.ISO_TYPES`).
+    #: The supported ISO type (see :class:`thelma.entities.iso.ISO_TYPES`).
     _ISO_TYPE = None
     __ISO_REQUEST_CLS = {ISO_TYPES.LAB : LabIsoRequest,
             ISO_TYPES.STOCK_SAMPLE_GENERATION : StockSampleCreationIsoRequest}
@@ -40,9 +40,9 @@ class IsoJobCreator(BaseTool):
         Constructor.
 
         :param iso_request: The ISO request that will take up the ISOs.
-        :type iso_request: :class:`thelma.models.iso.IsoRequest` subclass
+        :type iso_request: :class:`thelma.entities.iso.IsoRequest` subclass
         :param job_owner: The job owner will be set as user for the ISO job.
-        :type job_owner: :class:`thelma.models.user.User`
+        :type job_owner: :class:`thelma.entities.user.User`
         :param int number_isos: The number of ISOs ordered (positive number).
         :param excluded_racks: A list of barcodes from stock racks that shall
             not be used for stock sample picking.
@@ -175,7 +175,7 @@ class IsoProvider(BaseTool):
 
     **Return Value:** depends on the subclass
     """
-    #: The supported ISO type (see :class:`thelma.models.iso.ISO_TYPES`).
+    #: The supported ISO type (see :class:`thelma.entities.iso.ISO_TYPES`).
     _ISO_TYPE = None
     __ISO_REQUEST_CLS = {ISO_TYPES.LAB : LabIsoRequest,
             ISO_TYPES.STOCK_SAMPLE_GENERATION : StockSampleCreationIsoRequest}
@@ -187,7 +187,7 @@ class IsoProvider(BaseTool):
 
         :param iso_request: The ISO request containing the ISO layout for the
             ISO (and experiment metadata with the molecule design pools).
-        :type iso_request: :class:`thelma.models.iso.IsoRequest`
+        :type iso_request: :class:`thelma.entities.iso.IsoRequest`
         :param int number_isos: The number of ISOs ordered.
         :param excluded_racks: A list of barcodes from stock racks that shall
             not be used for stock sample picking.
@@ -198,7 +198,7 @@ class IsoProvider(BaseTool):
         """
         BaseTool.__init__(self, parent=parent)
         #: The ISO request defining the ISO layout
-        #: (:class:`thelma.models.iso.IsoRequest`)
+        #: (:class:`thelma.entities.iso.IsoRequest`)
         self.iso_request = iso_request
         #: The number of ISOs ordered.
         self.number_isos = number_isos

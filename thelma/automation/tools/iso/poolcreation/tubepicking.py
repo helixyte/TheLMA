@@ -152,7 +152,7 @@ class PoolCandidate(object):
 
         :param pool: The molecule design pools this candidate aims to create.
         :type pool:
-            :class:`thelma.models.moleculedesign.MoleculeDesignPool`
+            :class:`thelma.entities.moleculedesign.MoleculeDesignPool`
         """
         #: The molecule design pools this candidate aims to create.
         self.__pool = pool

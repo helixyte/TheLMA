@@ -1,13 +1,13 @@
 """
-Molecule design model classes.
+Molecule design entity classes.
 """
 from collections import Counter
 from everest.entities.base import Entity
 from everest.entities.utils import get_root_aggregate
 from everest.querying.specifications import eq
 from md5 import md5
-from thelma.models.chemicalstructure import CHEMICAL_STRUCTURE_TYPE_IDS
-from thelma.models.moleculetype import MOLECULE_TYPE_IDS
+from thelma.entities.chemicalstructure import CHEMICAL_STRUCTURE_TYPE_IDS
+from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['AmpliconDesign',
@@ -37,14 +37,14 @@ class MoleculeDesign(Entity):
     chemical structures.
     """
 
-    #: The kind (:class:`thelma.models.moleculetype.MoleculeType`)
+    #: The kind (:class:`thelma.entities.moleculetype.MoleculeType`)
     #: of the molecule design.
     molecule_type = None
     #: Chemical structures for this molecule design.
     chemical_structures = None
     #: Supplier molecule designs for this molecule design.
     supplier_molecule_designs = None
-    #: The genes (:class:`thelma.models.gene.Gene`) this molecule design
+    #: The genes (:class:`thelma.entities.gene.Gene`) this molecule design
     #: targets.
     genes = None
     #: A hash value built from the chemical structure records for this design
@@ -157,7 +157,7 @@ class MoleculeDesign(Entity):
         molecule design.
 
         :param chemical_structures: Sequence of
-          `thelma.model.chemical_structure.ChemicalStructure` instances to
+          `thelma.entities.chemical_structure.ChemicalStructure` instances to
           check.
         :rtype: Boolean
         """
@@ -175,7 +175,7 @@ class MoleculeDesign(Entity):
         Validates the given chemical structures for this molecule design.
 
         :param chemical_structures: Sequence of
-          `thelma.model.chemical_structure.ChemicalStructure` instances to
+          `thelma.entities.chemical_structure.ChemicalStructure` instances to
           validate.
         :raises ValueError: If the given chemical structures are not valid for
           this design.
@@ -618,7 +618,7 @@ class MoleculeDesignPoolSet(Entity):
     molecule_design_pools = None
 
     #: The molecule type of the pools in the set
-    #: (:class:`thelma.models.moleculetype.MoleculeType`).
+    #: (:class:`thelma.entities.moleculetype.MoleculeType`).
     molecule_type = None
 
     def __init__(self, molecule_type, molecule_design_pools=None, **kw):

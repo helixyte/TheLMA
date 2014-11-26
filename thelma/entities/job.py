@@ -1,13 +1,13 @@
 """
-Job model classes.
+Job entity classes.
 
 AAB, Created on Jun 22, 2011
 """
 
 from everest.entities.base import Entity
 from thelma.automation.semiconstants import get_item_status_managed
-from thelma.models.iso import ISO_STATUS
-from thelma.models.iso import IsoJobPreparationPlate
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.iso import IsoJobPreparationPlate
 from thelma.utils import get_utc_time
 
 
@@ -51,7 +51,7 @@ class Job(Entity):
     job_type = None
     #: The (human-readable) label of this job.
     label = None
-    #: The user this job is assigned to (:class:`thelma.models.user.User`)
+    #: The user this job is assigned to (:class:`thelma.entities.user.User`)
     user = None
     #: A timestamp storing the time of creation.
     creation_time = None
@@ -125,15 +125,15 @@ class IsoJob(Job):
     number_stock_racks = None
     #: The rack containing the stock tubes for the controls that are
     #: used in this job (not every ISO job needs some, list of
-    #: :class:`thelma.models.iso.IsoJobStockRack`)
+    #: :class:`thelma.entities.iso.IsoJobStockRack`)
     iso_job_stock_racks = None
     #: The plates used to predilute controls before there are transferred
     #: to the ISO plates. The samples in this plate serve as source for all
     #: ISOs in this job (not every ISO job needs some, list of
-    #: :class:`thelma.models.iso.IsoJobPreparationPlate`).
+    #: :class:`thelma.entities.iso.IsoJobPreparationPlate`).
     iso_job_preparation_plates = None
     #: Contains the worklists specific to the (lab) ISO job processing. Can
-    #: be *None*; :class:`thelma.models.liquidtransfer.WorklistSeries`
+    #: be *None*; :class:`thelma.entities.liquidtransfer.WorklistSeries`
     worklist_series = None
 
     def __init__(self, label, user, isos, number_stock_racks,
@@ -171,10 +171,10 @@ class IsoJob(Job):
         Adds an :class:`IsoJobPreparationPlate`.
 
         :param plate: The plate to be added.
-        :type plate: :class:`thelma.models.rack.Plate`
+        :type plate: :class:`thelma.entities.rack.Plate`
 
         :param rack_layout: The rack layout containing the plate data.
-        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
+        :type rack_layout: :class:`thelma.entities.racklayout.RackLayout`
         """
         IsoJobPreparationPlate(iso_job=self, rack=plate,
                                rack_layout=rack_layout)

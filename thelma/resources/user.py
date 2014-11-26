@@ -13,7 +13,7 @@ from everest.resources.descriptors import terminal_attribute
 from pyramid.exceptions import Forbidden
 from thelma.interfaces import IUserPreferences
 from thelma.resources.base import RELATION_BASE_URL
-from thelma.models.utils import get_current_user
+from thelma.entities.utils import get_current_user
 
 
 __docformat__ = 'reStructuredText en'

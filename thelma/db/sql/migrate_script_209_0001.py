@@ -6,22 +6,22 @@ from sqlalchemy.orm.exc import NoResultFound
 from sqlalchemy.sql import func
 from sqlalchemy.sql.expression import select
 from thelma.db import create_metadata
-from thelma.models.chemicalstructure import CHEMICAL_STRUCTURE_TYPE_IDS
-from thelma.models.chemicalstructure import ChemicalStructure
-from thelma.models.chemicalstructure import CompoundChemicalStructure
-from thelma.models.chemicalstructure import ModificationChemicalStructure
-from thelma.models.chemicalstructure import NucleicAcidChemicalStructure
-from thelma.models.moleculedesign import AntiMirDesign
-from thelma.models.moleculedesign import CompoundDesign
-from thelma.models.moleculedesign import DoubleStrandedDesign
-from thelma.models.moleculedesign import MiRnaInhibitorDesign
-from thelma.models.moleculedesign import MiRnaMimicDesign
-from thelma.models.moleculedesign import MoleculeDesign
-from thelma.models.moleculedesign import SingleStrandedDesign
-from thelma.models.moleculetype import MoleculeType
-from thelma.models.organization import Organization
-from thelma.models.suppliermoleculedesign import SingleSupplierMoleculeDesign
-from thelma.models.suppliermoleculedesign import SupplierStructureAnnotation
+from thelma.entities.chemicalstructure import CHEMICAL_STRUCTURE_TYPE_IDS
+from thelma.entities.chemicalstructure import ChemicalStructure
+from thelma.entities.chemicalstructure import CompoundChemicalStructure
+from thelma.entities.chemicalstructure import ModificationChemicalStructure
+from thelma.entities.chemicalstructure import NucleicAcidChemicalStructure
+from thelma.entities.moleculedesign import AntiMirDesign
+from thelma.entities.moleculedesign import CompoundDesign
+from thelma.entities.moleculedesign import DoubleStrandedDesign
+from thelma.entities.moleculedesign import MiRnaInhibitorDesign
+from thelma.entities.moleculedesign import MiRnaMimicDesign
+from thelma.entities.moleculedesign import MoleculeDesign
+from thelma.entities.moleculedesign import SingleStrandedDesign
+from thelma.entities.moleculetype import MoleculeType
+from thelma.entities.organization import Organization
+from thelma.entities.suppliermoleculedesign import SingleSupplierMoleculeDesign
+from thelma.entities.suppliermoleculedesign import SupplierStructureAnnotation
 
 # List of warnings recorded during the migration.
 WARNINGS = []

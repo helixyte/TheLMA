@@ -31,21 +31,21 @@ from thelma.interfaces import IOrganization
 from thelma.interfaces import IReservoirSpecs
 from thelma.interfaces import ITubeSpecs
 from thelma.interfaces import IUser
-from thelma.models.container import ContainerLocation
-from thelma.models.container import Tube
-from thelma.models.container import TubeSpecs
-from thelma.models.container import WellSpecs
-from thelma.models.liquidtransfer import PlannedRackSampleTransfer
-from thelma.models.liquidtransfer import PlannedSampleDilution
-from thelma.models.liquidtransfer import PlannedSampleTransfer
-from thelma.models.liquidtransfer import PlannedWorklist
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.rack import Plate
-from thelma.models.rack import PlateSpecs
-from thelma.models.rack import TubeRackSpecs
-from thelma.models.sample import Molecule
-from thelma.models.sample import Sample
-from thelma.models.sample import SampleMolecule
+from thelma.entities.container import ContainerLocation
+from thelma.entities.container import Tube
+from thelma.entities.container import TubeSpecs
+from thelma.entities.container import WellSpecs
+from thelma.entities.liquidtransfer import PlannedRackSampleTransfer
+from thelma.entities.liquidtransfer import PlannedSampleDilution
+from thelma.entities.liquidtransfer import PlannedSampleTransfer
+from thelma.entities.liquidtransfer import PlannedWorklist
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.rack import Plate
+from thelma.entities.rack import PlateSpecs
+from thelma.entities.rack import TubeRackSpecs
+from thelma.entities.sample import Molecule
+from thelma.entities.sample import Sample
+from thelma.entities.sample import SampleMolecule
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 

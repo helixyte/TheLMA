@@ -1,7 +1,5 @@
 """
-Models involved in XL20 run storage
-
-AAB
+Entity classes involved in XL20 run storage.
 """
 from everest.entities.base import Entity
 from thelma.utils import get_utc_time
@@ -21,17 +19,17 @@ class TubeTransfer(Entity):
     **Equality Condition:** equal :attr:`id`
     """
 
-    #: The transferred tube (:class:`thelma.models.container.Tube`).
+    #: The transferred tube (:class:`thelma.entities.container.Tube`).
     tube = None
-    #: The source rack (:class:`thelma.models.rack.TubeRack`).
+    #: The source rack (:class:`thelma.entities.rack.TubeRack`).
     source_rack = None
     #: The rack position in the source rack
-    #: (:class:`thelma.models.rack.RackPosition`).
+    #: (:class:`thelma.entities.rack.RackPosition`).
     source_position = None
-    #: The target rack (:class:`thelma.models.rack.TubeRack`).
+    #: The target rack (:class:`thelma.entities.rack.TubeRack`).
     target_rack = None
     #: The rack position in the target rack
-    #: (:class:`thelma.models.rack.RackPosition`).
+    #: (:class:`thelma.entities.rack.RackPosition`).
     target_position = None
 
     def __init__(self, tube, source_rack, source_position, target_rack,
@@ -67,7 +65,7 @@ class TubeTransferWorklist(Entity):
     #: The tube transfers being part of the worklist (:class:`TubeTransfer`).
     tube_transfers = None
     #: The user who has carried out the transfer
-    #: (:class:thelma.models.user.User`).
+    #: (:class:thelma.entities.user.User`).
     user = None
     #: The time stamp is set upon entity creation. It represents the time
     #: the transfer has been executed on DB level.

@@ -26,13 +26,13 @@ from thelma.interfaces import IRackSpecs
 from thelma.interfaces import IStockSample
 from thelma.interfaces import ISupplierMoleculeDesign
 from thelma.interfaces import ITube
-from thelma.models.container import Tube
-from thelma.models.moleculedesign import MoleculeDesign
-from thelma.models.moleculedesign import MoleculeDesignPool
-from thelma.models.rack import Plate
-from thelma.models.rack import TubeRack
-from thelma.models.sample import StockSample
-from thelma.models.suppliermoleculedesign import SupplierMoleculeDesign
+from thelma.entities.container import Tube
+from thelma.entities.moleculedesign import MoleculeDesign
+from thelma.entities.moleculedesign import MoleculeDesignPool
+from thelma.entities.rack import Plate
+from thelma.entities.rack import TubeRack
+from thelma.entities.sample import StockSample
+from thelma.entities.suppliermoleculedesign import SupplierMoleculeDesign
 
 
 __docformat__ = 'reStructuredText en'

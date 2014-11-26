@@ -1,5 +1,5 @@
 """
-Supplier molecule design model classes.
+Supplier molecule design entity classes.
 """
 from everest.entities.base import Entity
 from thelma.utils import get_utc_time

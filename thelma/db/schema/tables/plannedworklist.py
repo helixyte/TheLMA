@@ -6,7 +6,7 @@ from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy.schema import CheckConstraint
-from thelma.models.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
 from sqlalchemy.schema import ForeignKey
 
 __docformat__ = 'reStructuredText en'

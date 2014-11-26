@@ -4,11 +4,11 @@ Experiment mapper.
 from sqlalchemy.orm import relationship
 
 from everest.repositories.rdb.utils import mapper
-from thelma.models.experiment import Experiment
-from thelma.models.experiment import ExperimentDesign
-from thelma.models.experiment import ExperimentRack
-from thelma.models.job import ExperimentJob
-from thelma.models.rack import Rack
+from thelma.entities.experiment import Experiment
+from thelma.entities.experiment import ExperimentDesign
+from thelma.entities.experiment import ExperimentRack
+from thelma.entities.job import ExperimentJob
+from thelma.entities.rack import Rack
 
 
 __docformat__ = "reStructuredText en"

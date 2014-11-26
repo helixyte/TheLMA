@@ -15,7 +15,7 @@ from thelma.automation.tools.base import BaseTool
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.base import is_valid_number
-from thelma.models.utils import label_from_number
+from thelma.entities.utils import label_from_number
 
 
 __docformat__ = 'reStructuredText en'
@@ -83,7 +83,7 @@ class ParsingContainer(object):
     """
     Abstract class for intermediate data storage classes. ParsingContainers
     store intermediate data, i.e. data that cannot directly be converted
-    into model objects upon parsing.
+    into entity objects upon parsing.
     """
     #: The parser class this container is designed for.
     _PARSER_CLS = BaseParser

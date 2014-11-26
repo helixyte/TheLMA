@@ -29,14 +29,14 @@ from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.racksector import RackSectorTranslator
 from thelma.interfaces import ITube
 from thelma.interfaces import ITubeRack
-from thelma.models.iso import ISO_STATUS
-from thelma.models.iso import IsoSectorStockRack
-from thelma.models.iso import StockSampleCreationIso
-from thelma.models.liquidtransfer import PlannedRackSampleTransfer
-from thelma.models.liquidtransfer import PlannedSampleTransfer
-from thelma.models.liquidtransfer import PlannedWorklist
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.liquidtransfer import WorklistSeries
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.iso import IsoSectorStockRack
+from thelma.entities.iso import StockSampleCreationIso
+from thelma.entities.liquidtransfer import PlannedRackSampleTransfer
+from thelma.entities.liquidtransfer import PlannedSampleTransfer
+from thelma.entities.liquidtransfer import PlannedWorklist
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.liquidtransfer import WorklistSeries
 
 
 __docformat__ = 'reStructuredText en'
@@ -505,7 +505,7 @@ class LibraryCreationXL20ReportWriter(TxtWriter):
         :param iso: The library creation ISO for which to
             generate the file.
         :type iso:
-            :class:`thelma.models.iso.StockSampleCreationIso`
+            :class:`thelma.entities.iso.StockSampleCreationIso`
         :param tube_transfers: Define which tube goes where.
         :type tube_transfers: :class:`TubeTransfer`#
         :param int sector_index: Sector of the rack being created. If this
@@ -645,7 +645,7 @@ class LibraryCreationCyBioOverviewWriter(TxtWriter):
         :param iso: The library creation ISO for which to
             generate the file.
         :type iso:
-            :class:`thelma.models.iso.StockSampleCreationIso`
+            :class:`thelma.entities.iso.StockSampleCreationIso`
         :param dict single_stock_rack_map: The barcodes for the destination
             rack for the single molecule design tube (these racks have to be
             empty).

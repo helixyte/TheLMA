@@ -4,8 +4,8 @@ Molecule type mapper.
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.chemicalstructure import ChemicalStructure
-from thelma.models.moleculetype import MoleculeType
+from thelma.entities.chemicalstructure import ChemicalStructure
+from thelma.entities.moleculetype import MoleculeType
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

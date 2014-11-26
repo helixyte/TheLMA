@@ -7,10 +7,10 @@ from everest.repositories.rdb.utils import synonym
 from sqlalchemy.orm import column_property
 from sqlalchemy.orm import relationship
 from thelma.db.mappers.utils import CaseInsensitiveComparator
-from thelma.models.gene import Gene
-from thelma.models.moleculedesign import MoleculeDesign
-from thelma.models.moleculedesign import MoleculeDesignPool
-from thelma.models.species import Species
+from thelma.entities.gene import Gene
+from thelma.entities.moleculedesign import MoleculeDesign
+from thelma.entities.moleculedesign import MoleculeDesignPool
+from thelma.entities.species import Species
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

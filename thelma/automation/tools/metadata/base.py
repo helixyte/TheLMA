@@ -24,10 +24,10 @@ from thelma.automation.utils.iso import IsoRequestSectorAssociator
 from thelma.automation.utils.iso import IsoRequestValueDeterminer
 from thelma.automation.utils.layouts import LIBRARY_POSITION_TYPE
 from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
-from thelma.models.moleculetype import MOLECULE_TYPE_IDS
-from thelma.models.moleculetype import MoleculeType
-from thelma.models.racklayout import RackLayout
-from thelma.models.tagging import TaggedRackPositionSet
+from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
+from thelma.entities.moleculetype import MoleculeType
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.tagging import TaggedRackPositionSet
 
 __docformat__ = "reStructuredText en"
 
@@ -146,7 +146,7 @@ class TransfectionParameters(IsoRequestParameters):
 
         :param iso_reservoir_spec: The reservoir specs to be assumed.
         :type iso_reservoir_spec:
-            :class:`thelma.models.liquidtransfer.ReservoirSpecs`
+            :class:`thelma.entities.liquidtransfer.ReservoirSpecs`
         :return: The ISO volume that should be ordered in the ISO to generate
             an sufficient amount of mastermix solution.
 
@@ -173,7 +173,7 @@ class TransfectionParameters(IsoRequestParameters):
         type name.
 
         :param molecule_type: The molecule types for the molecule design pool.
-        :type molecule_type: :class:`thelma.models.moleculetype.MoleculeType`
+        :type molecule_type: :class:`thelma.entities.moleculetype.MoleculeType`
             or :class:`str` (molecule type ID)
         :raises TypeError: For molecule types of the wrong class.
         :raises ValueError: If the molecule type is unknown.
@@ -231,7 +231,7 @@ class TransfectionParameters(IsoRequestParameters):
 
         :param iso_reservoir_spec: The reservoir specs to be assumed.
         :type iso_reservoir_spec:
-            :class:`thelma.models.liquidtransfer.ReservoirSpecs`
+            :class:`thelma.entities.liquidtransfer.ReservoirSpecs`
 
         :param pipetting_specs: Defines whether to use a static dead volume
             or a dynamic dead volume correction (e.g. for Biomek).
@@ -420,12 +420,12 @@ class TransfectionPosition(IsoRequestPosition):
                  final_concentration=None, optimem_dil_factor=None):
         """
         :param rack_position: The rack position.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`.
+        :type rack_position: :class:`thelma.entities.rack.RackPosition`.
 
         :param molecule_design_pool: The molecule design pool or placeholder for
             the RNAi reagent.
         :type molecule_design_pool: :class`int` (ID), :class:`str` (placeholder)
-            or :class:`thelma.models.moleculedesign.StockSampleMoleculeDesign`
+            or :class:`thelma.entities.moleculedesign.StockSampleMoleculeDesign`
 
         :param position_type: influences valid values for other parameters
         :type position_type: :class:`str
@@ -459,7 +459,7 @@ class TransfectionPosition(IsoRequestPosition):
 
         #: Stores the position in the cell plate that are filled by this
         #: source positions (:class:`set` of
-        #: :class:`thelma.models.rack.RackPosition` objects).
+        #: :class:`thelma.entities.rack.RackPosition` objects).
         self.cell_plate_positions = set()
 
         #: The name of the RNAi reagent.
@@ -735,8 +735,8 @@ class TransfectionLayout(IsoRequestLayout):
 
         :param user: The user creating the tag, usually the request of
             the ISO request.
-        :type user: :class:`thelma.models.user.User`
-        :return: the completed :class:`thelma.models.racklayout.RackLayout`
+        :type user: :class:`thelma.entities.user.User`
+        :return: the completed :class:`thelma.entities.racklayout.RackLayout`
         """
         if len(additional_trps) < 1: return self.create_rack_layout()
 
@@ -771,12 +771,12 @@ class TransfectionLayout(IsoRequestLayout):
         ISO data (ISO volume and ISO concentration) is excluded.
 
         :param exp_rack_layout: The rack layout to complete.
-        :type exp_rack_layout: :class:`thelma.models.racklayout.RackLayout`
+        :type exp_rack_layout: :class:`thelma.entities.racklayout.RackLayout`
 
         :param iso_request_rack_layout: The rack layout of the ISO request
             (which might contain customized tags).
         :type iso_request_rack_layout:
-            :class:`thelma.models.racklayout.RackLayout`
+            :class:`thelma.entities.racklayout.RackLayout`
         """
         trps_map = \
                 dict([(trps.rack_position_set.hash_value, trps)

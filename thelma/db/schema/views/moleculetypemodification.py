@@ -5,7 +5,7 @@ from sqlalchemy.sql import and_
 from sqlalchemy.sql import select
 
 from thelma.db.view import view_factory
-from thelma.models.chemicalstructure import CHEMICAL_STRUCTURE_TYPE_IDS
+from thelma.entities.chemicalstructure import CHEMICAL_STRUCTURE_TYPE_IDS
 
 
 __docformat__ = 'reStructuredText en'

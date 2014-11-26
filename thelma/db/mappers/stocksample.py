@@ -7,12 +7,12 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import distinct
 from sqlalchemy.sql import select
 from sqlalchemy.sql.expression import and_
-from thelma.models.moleculedesign import MoleculeDesignPool
-from thelma.models.moleculetype import MoleculeType
-from thelma.models.organization import Organization
-from thelma.models.sample import SAMPLE_TYPES
-from thelma.models.sample import SampleRegistration
-from thelma.models.sample import StockSample
+from thelma.entities.moleculedesign import MoleculeDesignPool
+from thelma.entities.moleculetype import MoleculeType
+from thelma.entities.organization import Organization
+from thelma.entities.sample import SAMPLE_TYPES
+from thelma.entities.sample import SampleRegistration
+from thelma.entities.sample import StockSample
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

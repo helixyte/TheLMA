@@ -25,12 +25,12 @@ from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import add_list_map_element
 from thelma.automation.utils.base import get_trimmed_string
 from thelma.automation.utils.racksector import RackSectorTranslator
-from thelma.models.iso import IsoSectorStockRack
-from thelma.models.iso import StockSampleCreationIso
-from thelma.models.library import MoleculeDesignLibrary
-from thelma.models.liquidtransfer import ExecutedWorklist
-from thelma.models.racklayout import RackLayout
-from thelma.models.user import User
+from thelma.entities.iso import IsoSectorStockRack
+from thelma.entities.iso import StockSampleCreationIso
+from thelma.entities.library import MoleculeDesignLibrary
+from thelma.entities.liquidtransfer import ExecutedWorklist
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.user import User
 
 
 __docformat__ = 'reStructuredText en'
@@ -68,7 +68,7 @@ class LibraryCreationTicketGenerator(BaseTracTool):
         Constructor.
 
         :param requester: The user who will be owner and reporter of the ticket.
-        :type requester: :class:`thelma.models.user.User`
+        :type requester: :class:`thelma.entities.user.User`
         :param str iso_label: The label of the ISO this ticket belongs to.
         :param int layout_number: References the library layout the ISO is
             created for.
@@ -178,7 +178,7 @@ class LibraryCreationIsoCreator(BaseTool):
         :param molecule_design_library: The molecule design library for which to
             generate the ISOs.
         :type molecule_design_library:
-            :class:`thelma.models.library.MoleculeDesignLibrary`
+            :class:`thelma.entities.library.MoleculeDesignLibrary`
         """
         BaseTool.__init__(self, parent=parent)
         #: The molecule design library for which to generate an ISO.
@@ -277,7 +277,7 @@ class LibraryCreationTicketWorklistUploader(BaseTracTool):
         :param stock_sample_creation_iso: The stock sample creation ISO the
           worklists belong to (also contains the ticket ID).
         :type stock_sample_creation_iso:
-            :class:`thelma.models.library.LibraryCreationIso`
+            :class:`thelma.entities.library.LibraryCreationIso`
 
         :param file_map: The streams for the worklists files mapped onto
             file names.

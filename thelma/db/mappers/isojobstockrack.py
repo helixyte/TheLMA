@@ -3,9 +3,9 @@ ISO job stock rack mapper
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.iso import IsoJobStockRack
-from thelma.models.iso import STOCK_RACK_TYPES
-from thelma.models.job import IsoJob
+from thelma.entities.iso import IsoJobStockRack
+from thelma.entities.iso import STOCK_RACK_TYPES
+from thelma.entities.job import IsoJob
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

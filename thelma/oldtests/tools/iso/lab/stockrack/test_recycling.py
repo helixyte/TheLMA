@@ -12,7 +12,7 @@ from thelma.automation.tools.iso.lab.stockrack.recycling \
 from thelma.automation.tools.iso.lab.stockrack.recycling \
     import StockRackRecyclerIsoJob
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.models.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
 from thelma.oldtests.tools.iso.lab.stockrack.utils import LabIsoStockRackTestCase
 from thelma.oldtests.tools.iso.lab.utils import LAB_ISO_TEST_CASES
 from thelma.oldtests.tools.iso.lab.utils import TestTubeGenerator

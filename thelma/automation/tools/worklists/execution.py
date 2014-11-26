@@ -17,21 +17,21 @@ from thelma.automation.utils.base import is_smaller_than
 from thelma.automation.utils.racksector import RackSectorTranslator
 from thelma.automation.utils.racksector import check_rack_shape_match
 from thelma.automation.utils.racksector import get_sector_positions
-from thelma.models.liquidtransfer import ExecutedRackSampleTransfer
-from thelma.models.liquidtransfer import ExecutedSampleDilution
-from thelma.models.liquidtransfer import ExecutedSampleTransfer
-from thelma.models.liquidtransfer import ExecutedWorklist
-from thelma.models.liquidtransfer import PipettingSpecs
-from thelma.models.liquidtransfer import PlannedRackSampleTransfer
-from thelma.models.liquidtransfer import PlannedSampleDilution
-from thelma.models.liquidtransfer import PlannedSampleTransfer
-from thelma.models.liquidtransfer import PlannedWorklist
-from thelma.models.liquidtransfer import ReservoirSpecs
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.rack import Plate
-from thelma.models.rack import Rack
-from thelma.models.rack import RackPosition
-from thelma.models.user import User
+from thelma.entities.liquidtransfer import ExecutedRackSampleTransfer
+from thelma.entities.liquidtransfer import ExecutedSampleDilution
+from thelma.entities.liquidtransfer import ExecutedSampleTransfer
+from thelma.entities.liquidtransfer import ExecutedWorklist
+from thelma.entities.liquidtransfer import PipettingSpecs
+from thelma.entities.liquidtransfer import PlannedRackSampleTransfer
+from thelma.entities.liquidtransfer import PlannedSampleDilution
+from thelma.entities.liquidtransfer import PlannedSampleTransfer
+from thelma.entities.liquidtransfer import PlannedWorklist
+from thelma.entities.liquidtransfer import ReservoirSpecs
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.rack import Plate
+from thelma.entities.rack import Rack
+from thelma.entities.rack import RackPosition
+from thelma.entities.user import User
 from thelma.utils import get_utc_time
 
 
@@ -57,7 +57,7 @@ class LiquidTransferExecutor(BaseTool):
     **Return Value*:* executed worklist or transfer
     """
     #: The transfer type supported by this class
-    #: (see :class:`thelma.models.liquidtransfer.TRANSFER_TYPES`).
+    #: (see :class:`thelma.entities.liquidtransfer.TRANSFER_TYPES`).
     TRANSFER_TYPE = None
 
     def __init__(self, target_rack, pipetting_specs, user, parent=None):
@@ -65,13 +65,13 @@ class LiquidTransferExecutor(BaseTool):
         Constructor.
 
         :param target_rack: The rack into which the volumes will be dispensed.
-        :type target_rack: :class:`thelma.models.rack.Rack`
+        :type target_rack: :class:`thelma.entities.rack.Rack`
         :param user: The user who has launched the execution.
-        :type user: :class:`thelma.models.user.User`
+        :type user: :class:`thelma.entities.user.User`
         :param pipetting_specs: Pipetting specs define transfer properties and
             conditions like the transfer volume range.
         :type pipetting_specs:
-            :class:`thelma.models.liquidtransfer.PipettingSpecs`
+            :class:`thelma.entities.liquidtransfer.PipettingSpecs`
         """
         BaseTool.__init__(self, parent=parent)
         #: The rack into which the volumes will be dispensed.
@@ -407,7 +407,7 @@ class WorklistExecutor(LiquidTransferExecutor):
     This is abstract tool for the execution of planned worklists.
 
     **Return Value:** An executed worklist
-        (:class:`thelma.models.liquidtransfer.ExecutedWorklist`).
+        (:class:`thelma.entities.liquidtransfer.ExecutedWorklist`).
     """
 
     def __init__(self, planned_worklist, target_rack, pipetting_specs, user,
@@ -417,7 +417,7 @@ class WorklistExecutor(LiquidTransferExecutor):
 
         :param planned_worklist: The worklist to execute.
         :type planned_worklist:
-            :class:`thelma.models.liquidtransfer.PlannedWorklist`
+            :class:`thelma.entities.liquidtransfer.PlannedWorklist`
         :param ignored_positions: A list of positions (target
             for dilutions and source for transfers) that are not included
             in the DB execution.
@@ -513,7 +513,7 @@ class SampleDilutionWorklistExecutor(WorklistExecutor):
     An executor for sample dilution worklists.
 
     **Return Value:** An executed worklist
-        (:class:`thelma.models.liquidtransfer.ExecutedWorklist`).
+        (:class:`thelma.entities.liquidtransfer.ExecutedWorklist`).
     """
     NAME = 'Sample Dilution Worklist Executor'
     TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_DILUTION
@@ -525,7 +525,7 @@ class SampleDilutionWorklistExecutor(WorklistExecutor):
 
         :param reservoir_specs: The specs for the source rack or reservoir.
         :type reservoir_specs:
-            :class:`thelma.models.liquidtransfer.ReservoirSpecs`
+            :class:`thelma.entities.liquidtransfer.ReservoirSpecs`
         """
         WorklistExecutor.__init__(self, planned_worklist, target_rack,
                                   pipetting_specs, user,
@@ -585,7 +585,7 @@ class SampleTransferWorklistExecutor(WorklistExecutor):
     An executor for sample transfer worklists.
 
     **Return Value:** An executed worklist
-        (:class:`thelma.models.liquidtransfer.ExecutedWorklist`).
+        (:class:`thelma.entities.liquidtransfer.ExecutedWorklist`).
     """
     NAME = 'Sample Transfer Worklist Executor'
     TRANSFER_TYPE = TRANSFER_TYPES.SAMPLE_TRANSFER
@@ -596,7 +596,7 @@ class SampleTransferWorklistExecutor(WorklistExecutor):
         Constructor.
 
         :param source_rack: The source from which to take the volumes.
-        :type source_rack: :class:`thelma.models.rack.Rack`
+        :type source_rack: :class:`thelma.entities.rack.Rack`
         """
         WorklistExecutor.__init__(self, planned_worklist, target_rack,
                                   pipetting_specs, user,
@@ -690,9 +690,9 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
         :param planned_rack_sample_transfer: The planned rack sample transfer
             to execute.
         :type planned_rack_sample_transfer:
-            :class:`thelma.models.liquidtransfer.PlannedRackSampleTransfer`
+            :class:`thelma.entities.liquidtransfer.PlannedRackSampleTransfer`
         :param source_rack: The source from which to take the volumes.
-        :type source_rack: :class:`thelma.models.rack.Rack`
+        :type source_rack: :class:`thelma.entities.rack.Rack`
         """
         LiquidTransferExecutor.__init__(self, target_rack, pipetting_specs,
                                         user, parent=parent)
@@ -911,14 +911,14 @@ class SampleComponent(object):
     Stores a concentration and molecule. The volume is left at the sample,
     since a sample might comprise several components.
 
-    :Note: This class is similar to :class:`thelma.models.sample.SampleMolecule`
+    :Note: This class is similar to :class:`thelma.entities.sample.SampleMolecule`
     """
     def __init__(self, molecule, concentration):
         """
         Constructor.
 
         :param molecule: The molecule being the component.
-        :type molecule: :class:`thelma.models.sample.Molecule`
+        :type molecule: :class:`thelma.entities.sample.Molecule`
         :param int concentration: The concentration of the molecule *in M*
             (positive number).
         """
@@ -980,7 +980,7 @@ class SampleData(object):
         :Note: The sample is allowed to be *None*.
 
         :param sample: The sample data object.
-        :type sample: :class:`thelma.models.sample.Sample`
+        :type sample: :class:`thelma.entities.sample.Sample`
         :return: :class:`SampleData` object representing that sample.
         """
         if sample is None:
@@ -1094,8 +1094,8 @@ class SourceSample(SampleData):
         a planned liquid transfer as input.
 
         :param planned_liquid_transfer: The planned liquid transfer.
-        :type: :class:`thelma.models.liquidtransfer.PlannedSampleTransfer` or
-            :class:`thelma.models.liquidtransfer.PlannedRackSampleTransfer`
+        :type: :class:`thelma.entities.liquidtransfer.PlannedSampleTransfer` or
+            :class:`thelma.entities.liquidtransfer.PlannedRackSampleTransfer`
         :raises TypeErrors: in case of invalid planned transfer type
 
         :return: The generated :class:`TransferredSample` object.
@@ -1171,7 +1171,7 @@ class TargetSample(SampleData):
         :Note: invokes :func:`add_transfer`
 
         :param planned_sample_dilution: The planned container dilution.
-        :type: :class:`thelma.models.liquidtransfer.PlannedSampleDilution`
+        :type: :class:`thelma.entities.liquidtransfer.PlannedSampleDilution`
         :raises TypeErrors: in case of invalid transfer type
 
         :return: The generated :class:`TransferredSample` object.

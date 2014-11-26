@@ -16,13 +16,13 @@ from thelma.automation.tools.worklists.generation \
                 import PlannedWorklistGenerator
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.automation.utils.base import get_trimmed_string
-from thelma.models.experiment import ExperimentDesign
-from thelma.models.experiment import ExperimentMetadataType
-from thelma.models.liquidtransfer import PlannedRackSampleTransfer
-from thelma.models.liquidtransfer import PlannedSampleDilution
-from thelma.models.liquidtransfer import PlannedSampleTransfer
-from thelma.models.liquidtransfer import WorklistSeries
-from thelma.models.liquidtransfer import WorklistSeriesMember
+from thelma.entities.experiment import ExperimentDesign
+from thelma.entities.experiment import ExperimentMetadataType
+from thelma.entities.liquidtransfer import PlannedRackSampleTransfer
+from thelma.entities.liquidtransfer import PlannedSampleDilution
+from thelma.entities.liquidtransfer import PlannedSampleTransfer
+from thelma.entities.liquidtransfer import WorklistSeries
+from thelma.entities.liquidtransfer import WorklistSeriesMember
 
 __docformat__ = 'reStructuredText en'
 
@@ -122,13 +122,13 @@ class ExperimentWorklistGenerator(BaseTool):
         :param experiment_design: The experiment design for which to generate
             the worklist series.
         :type experiment_design:
-            :class:`thelma.models.experiment.ExperimentDesign`
+            :class:`thelma.entities.experiment.ExperimentDesign`
         :param str label: A label as prefix for the worklists.
         :param source_layout: The source plate layout.
         :type source_layout: :class:`TransfectionLayout`
         :param scenario: the experiment metadata type - it defines the
             storage location for the cell plate preparation worklists.
-        :type scenario: :class:`thelma.models.experiment.ExperimentMetadataType`
+        :type scenario: :class:`thelma.entities.experiment.ExperimentMetadataType`
         :param bool supports_mastermix: Flag indicating if the tool should
             create worklists for OptiMem and reagent dilution.
         :param design_rack_associations: Maps design rack labels to well

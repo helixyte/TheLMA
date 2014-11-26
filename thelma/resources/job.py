@@ -27,7 +27,7 @@ from thelma.interfaces import IItemStatus
 from thelma.interfaces import IPlate
 from thelma.interfaces import IStockRack
 from thelma.interfaces import IUser
-from thelma.models.utils import get_current_user
+from thelma.entities.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
 
 

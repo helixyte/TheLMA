@@ -29,25 +29,25 @@ from sqlalchemy.orm import subqueryload_all
 from everest.repositories.constants import REPOSITORY_TYPES
 from everest.repositories.interfaces import IRepositoryManager
 from paste.deploy import appconfig # pylint: disable=E0611,F0401
-from thelma.models.container import ContainerSpecs
-from thelma.models.device import Device
-from thelma.models.device import DeviceType
-from thelma.models.experiment import ExperimentMetadataType
-from thelma.models.liquidtransfer import PipettingSpecs
-from thelma.models.liquidtransfer import ReservoirSpecs
-from thelma.models.moleculetype import MoleculeType
-from thelma.models.organization import Organization
-from thelma.models.project import Project
-from thelma.models.rack import PlateSpecs
-from thelma.models.rack import Rack
-from thelma.models.rack import RackPosition
-from thelma.models.rack import RackShape
-from thelma.models.rack import RackSpecs
-from thelma.models.rack import TubeRack
-from thelma.models.rack import TubeRackSpecs
-from thelma.models.species import Species
-from thelma.models.status import ItemStatus
-from thelma.models.user import User
+from thelma.entities.container import ContainerSpecs
+from thelma.entities.device import Device
+from thelma.entities.device import DeviceType
+from thelma.entities.experiment import ExperimentMetadataType
+from thelma.entities.liquidtransfer import PipettingSpecs
+from thelma.entities.liquidtransfer import ReservoirSpecs
+from thelma.entities.moleculetype import MoleculeType
+from thelma.entities.organization import Organization
+from thelma.entities.project import Project
+from thelma.entities.rack import PlateSpecs
+from thelma.entities.rack import Rack
+from thelma.entities.rack import RackPosition
+from thelma.entities.rack import RackShape
+from thelma.entities.rack import RackSpecs
+from thelma.entities.rack import TubeRack
+from thelma.entities.rack import TubeRackSpecs
+from thelma.entities.species import Species
+from thelma.entities.status import ItemStatus
+from thelma.entities.user import User
 from thelma.run import create_config
 
 

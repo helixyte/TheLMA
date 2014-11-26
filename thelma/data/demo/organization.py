@@ -25,5 +25,5 @@ ORGANIZATIONS = [
     ]
 
 def create_demo():
-    from thelma.models.organization import Organization
+    from thelma.entities.organization import Organization
     return dict([(name, Organization(name)) for name in ORGANIZATIONS])

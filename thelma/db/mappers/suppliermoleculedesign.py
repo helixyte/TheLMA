@@ -3,11 +3,11 @@ Supplier molecule design mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.moleculedesign import MoleculeDesign
-from thelma.models.moleculedesign import MoleculeDesignPool
-from thelma.models.organization import Organization
-from thelma.models.suppliermoleculedesign import SupplierMoleculeDesign
-from thelma.models.suppliermoleculedesign import SupplierStructureAnnotation
+from thelma.entities.moleculedesign import MoleculeDesign
+from thelma.entities.moleculedesign import MoleculeDesignPool
+from thelma.entities.organization import Organization
+from thelma.entities.suppliermoleculedesign import SupplierMoleculeDesign
+from thelma.entities.suppliermoleculedesign import SupplierStructureAnnotation
 
 
 __docformat__ = 'reStructuredText en'

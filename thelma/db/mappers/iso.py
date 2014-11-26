@@ -4,16 +4,16 @@ ISO mapper.
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.iso import ISO_TYPES
-from thelma.models.iso import Iso
-from thelma.models.iso import IsoAliquotPlate
-from thelma.models.iso import IsoPreparationPlate
-from thelma.models.iso import IsoRequest
-from thelma.models.iso import IsoStockRack
-from thelma.models.job import IsoJob
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
-from thelma.models.racklayout import RackLayout
-from thelma.models.iso import IsoSectorStockRack
+from thelma.entities.iso import ISO_TYPES
+from thelma.entities.iso import Iso
+from thelma.entities.iso import IsoAliquotPlate
+from thelma.entities.iso import IsoPreparationPlate
+from thelma.entities.iso import IsoRequest
+from thelma.entities.iso import IsoStockRack
+from thelma.entities.job import IsoJob
+from thelma.entities.moleculedesign import MoleculeDesignPoolSet
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.iso import IsoSectorStockRack
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

@@ -46,13 +46,13 @@ from thelma.automation.utils.base import is_larger_than
 from thelma.automation.utils.base import is_smaller_than
 from thelma.automation.utils.base import is_valid_number
 from thelma.automation.utils.racksector import QuadrantIterator
-from thelma.models.experiment import ExperimentDesign
-from thelma.models.experiment import ExperimentMetadata
-from thelma.models.iso import ISO_STATUS
-from thelma.models.iso import LabIsoRequest
-from thelma.models.library import MoleculeDesignLibrary
-from thelma.models.moleculetype import MOLECULE_TYPE_IDS
-from thelma.models.user import User
+from thelma.entities.experiment import ExperimentDesign
+from thelma.entities.experiment import ExperimentMetadata
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.iso import LabIsoRequest
+from thelma.entities.library import MoleculeDesignLibrary
+from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
+from thelma.entities.user import User
 
 
 __docformat__ = 'reStructuredText en'
@@ -86,7 +86,7 @@ class ExperimentMetadataGenerator(BaseTool):
     TODO: simulate ISO
 
     **Return Value:** experiment metadata
-        (:class:`thelma.models.experiment.ExperimentMetadata`)
+        (:class:`thelma.entities.experiment.ExperimentMetadata`)
     """
     NAME = 'Experiment Metadata Generator'
 
@@ -108,9 +108,9 @@ class ExperimentMetadataGenerator(BaseTool):
         :param stream: The content of the experiment metadata file.
         :param experiment_metadata: The experiment metadata to update.
         :type experiment_metadata:
-            :class:`thelma.models.experiment.ExperimentMetadata`
+            :class:`thelma.entities.experiment.ExperimentMetadata`
         :param requester: The user uploading the file.
-        :type requester: :class:`thelma.models.user.User`
+        :type requester: :class:`thelma.entities.user.User`
         """
         BaseTool.__init__(self, parent=parent)
         #: the open excelerator file
@@ -710,7 +710,7 @@ class ExperimentMetadataGeneratorOpti(ExperimentMetadataGenerator):
     An experiment metadata generator for optimisation scenarios.
 
     **Return Value:** experiment metadata
-        (:class:`thelma.models.experiment.ExperimentMetadata`)
+        (:class:`thelma.entities.experiment.ExperimentMetadata`)
     """
     SUPPORTED_EXPERIMENT_TYPE = EXPERIMENT_SCENARIOS.OPTIMISATION
 
@@ -893,7 +893,7 @@ class ExperimentMetadataGeneratorScreen(ExperimentMetadataGenerator):
     An experiment metadata generator for screening scenarios.
 
     **Return Value:** experiment metadata
-        (:class:`thelma.models.experiment.ExperimentMetadata`)
+        (:class:`thelma.entities.experiment.ExperimentMetadata`)
     """
     SUPPORTED_EXPERIMENT_TYPE = EXPERIMENT_SCENARIOS.SCREENING
 
@@ -1018,7 +1018,7 @@ class ExperimentMetadataGeneratorLibrary(ExperimentMetadataGenerator):
     sample positions are already defined by the library.
 
     **Return Value:** experiment metadata
-        (:class:`thelma.models.experiment.ExperimentMetadata`)
+        (:class:`thelma.entities.experiment.ExperimentMetadata`)
     """
     SUPPORTED_EXPERIMENT_TYPE = EXPERIMENT_SCENARIOS.LIBRARY
     HAS_POOL_SET = False
@@ -1028,7 +1028,7 @@ class ExperimentMetadataGeneratorLibrary(ExperimentMetadataGenerator):
                                              experiment_metadata, requester,
                                              parent=parent)
         #: The molecule design library used
-        #: (:class:`thelma.models.library.MoleculeDesignLibrary`)
+        #: (:class:`thelma.entities.library.MoleculeDesignLibrary`)
         self.__library = None
         #: Since all value except for the pool ID must be the same for all
         #: parameters we pass them as dictionary with the parameter names
@@ -1135,7 +1135,7 @@ class ExperimentMetadataGeneratorManual(ExperimentMetadataGenerator):
     An experiment metadata generator for manual optimisation scenarios.
 
     **Return Value:** experiment metadata
-        (:class:`thelma.models.experiment.ExperimentMetadata`)
+        (:class:`thelma.entities.experiment.ExperimentMetadata`)
     """
     SUPPORTED_EXPERIMENT_TYPE = EXPERIMENT_SCENARIOS.MANUAL
     HAS_POOL_SET = False
@@ -1190,7 +1190,7 @@ class ExperimentMetadataGeneratorIsoless(ExperimentMetadataGenerator):
     An experiment metadata generator for ISO-less scenarios.
 
     **Return Value:** experiment metadata
-        (:class:`thelma.models.experiment.ExperimentMetadata`)
+        (:class:`thelma.entities.experiment.ExperimentMetadata`)
     """
     SUPPORTED_EXPERIMENT_TYPE = EXPERIMENT_SCENARIOS.ISO_LESS
     HAS_POOL_SET = False
@@ -1204,7 +1204,7 @@ class ExperimentMetadataGeneratorOrder(ExperimentMetadataGenerator):
     experiment data.
 
     **Return Value:** experiment metadata
-        (:class:`thelma.models.experiment.ExperimentMetadata`)
+        (:class:`thelma.entities.experiment.ExperimentMetadata`)
     """
     SUPPORTED_EXPERIMENT_TYPE = EXPERIMENT_SCENARIOS.ORDER_ONLY
     HAS_EXPERIMENT_DESIGN = False
@@ -1884,7 +1884,7 @@ class RobotSupportDeterminatorLibrary(_RobotSupportDeterminator):
 
         :param int number_design_racks: The number of design racks.
         :param library: The molecule design library to be screened.
-        :type library: class:`thelma.models.library.MoleculeDesignLibrary`.
+        :type library: class:`thelma.entities.library.MoleculeDesignLibrary`.
         :param float handler_final_concentration: The final concentration
             parsed  from the ISO request parser handler (positive number).
         """
@@ -2080,7 +2080,7 @@ class _WellAssociator(BaseTool):
         :param experiment_design: The experiment design containing the
             design racks.
         :type experiment_design:
-            :class:`thelma.models.experiment.ExperimentDesign`
+            :class:`thelma.entities.experiment.ExperimentDesign`
         :param source_layout: The transfection layout storing the ISO plate
             data.
         :type source_layout: :class:`TransfectionLayout`

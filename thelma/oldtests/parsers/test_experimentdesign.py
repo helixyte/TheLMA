@@ -19,8 +19,8 @@ from thelma.automation.semiconstants import get_experiment_type_screening
 from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.automation.tools.metadata.base import TransfectionParameters
 from thelma.automation.utils.layouts import UNTREATED_POSITION_TYPE
-from thelma.models.tagging import Tag
-from thelma.models.utils import get_user
+from thelma.entities.tagging import Tag
+from thelma.entities.utils import get_user
 from thelma.oldtests.tools.tooltestingutils import ParsingTestCase
 
 

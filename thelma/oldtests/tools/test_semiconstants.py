@@ -38,12 +38,12 @@ from thelma.automation.semiconstants import get_reservoir_specs_from_rack_specs
 from thelma.automation.semiconstants import get_reservoir_specs_standard_384
 from thelma.automation.semiconstants import get_reservoir_specs_standard_96
 from thelma.interfaces import IRackSpecs
-from thelma.models.experiment import ExperimentMetadataType
-from thelma.models.liquidtransfer import PipettingSpecs
-from thelma.models.liquidtransfer import ReservoirSpecs
-from thelma.models.rack import RackShape
-from thelma.models.rack import RackSpecs
-from thelma.models.status import ItemStatus
+from thelma.entities.experiment import ExperimentMetadataType
+from thelma.entities.liquidtransfer import PipettingSpecs
+from thelma.entities.liquidtransfer import ReservoirSpecs
+from thelma.entities.rack import RackShape
+from thelma.entities.rack import RackSpecs
+from thelma.entities.status import ItemStatus
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 

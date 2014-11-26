@@ -1,6 +1,6 @@
 """
 This handler converts the results of the library member parser into a
-molecule design set (:class:`thelma.models.molecule.MoleculeDesignSet`).
+molecule design set (:class:`thelma.entities.molecule.MoleculeDesignSet`).
 At this, the handler tries to determine the stock sample molecule design ID
 for every molecule design set. If there is no ID, a new ID is created.
 
@@ -11,8 +11,8 @@ from everest.querying.specifications import cntd
 from thelma.automation.handlers.base import BaseParserHandler
 from thelma.automation.parsers.libmembers import LibraryMemberParser
 from thelma.interfaces import IMoleculeDesignPool
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
-from thelma.models.moleculetype import MoleculeType
+from thelma.entities.moleculedesign import MoleculeDesignPoolSet
+from thelma.entities.moleculetype import MoleculeType
 
 
 __docformat__ = 'reStructuredText en'
@@ -41,7 +41,7 @@ class LibraryMemberParserHandler(BaseParserHandler):
             per cell (list).
         :param molecule_type: The expected molecule type for all molecule
             designs in the library.
-        :type molecule_type: :class:`thelma.models.moleculetype.MoleculeType`
+        :type molecule_type: :class:`thelma.entities.moleculetype.MoleculeType`
         """
         BaseParserHandler.__init__(self, stream=stream, parent=parent)
         self.number_molecule_designs = number_molecule_designs

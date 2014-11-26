@@ -39,7 +39,7 @@ def get_iso_request_generator(iso_request_label, stream, requester,
     :param requester: This user will be the reporter and owner of the ISO
         trac tickets and requester for the ISO request. The owner of the
         request however, will be the stock management.
-    :type requester: :class:`thelma.models.user.User`
+    :type requester: :class:`thelma.entities.user.User`
 
     :param target_volume: The final volume for the new pool stock tubes
         in ul.
@@ -65,7 +65,7 @@ def get_iso_generator(iso_request, ticket_numbers=None, reporter=None, **kw):
 
     :param iso_request: The ISO request for which to generate the ISOs.
     :type iso_request:
-        :class:`thelma.models.iso.StockSampleGenerationIsoRequest`
+        :class:`thelma.entities.iso.StockSampleGenerationIsoRequest`
 
     :param ticket_numbers: The user might specify ticket numbers for the
         ISO tickets. The number of ticket number must either be 1 (in
@@ -79,7 +79,7 @@ def get_iso_generator(iso_request, ticket_numbers=None, reporter=None, **kw):
     :param reporter: This user will become reporter of the tickets (if
         new tickets are created). If you do not want to create tickets,
         the user might be *None*.
-    :type reporter: :class:`thelma.models.user.User`
+    :type reporter: :class:`thelma.entities.user.User`
     :default reporter: *None*
     """
     kw.update(dict(iso_request=iso_request, ticket_numbers=ticket_numbers,
@@ -97,7 +97,7 @@ def get_worklist_writer(iso, single_stock_racks, pool_stock_rack_barcode,
 
     :param iso: The pool stock sample creation ISO for which to generate
         the worklist files.
-    :type iso: :class:`thelma.models.iso.StockSampleCreationIso`
+    :type iso: :class:`thelma.entities.iso.StockSampleCreationIso`
 
     :param single_stock_racks: The barcodes for the destination
         racks for the single molecule design tubes (these racks have to be
@@ -140,10 +140,10 @@ def get_executor(iso, user, **kw):
 
     :param iso: The stock sample creation ISO for which to execute the
         worklists.
-    :type iso: :class:`thelma.models.iso.StockSampleCreationIso`
+    :type iso: :class:`thelma.entities.iso.StockSampleCreationIso`
 
     :param user: The user conducting the execution.
-    :type user: :class:`thelma.models.user.User`
+    :type user: :class:`thelma.entities.user.User`
     """
     kw.update(iso=iso, user=user)
     return StockSampleCreationIsoExecutor(**kw)

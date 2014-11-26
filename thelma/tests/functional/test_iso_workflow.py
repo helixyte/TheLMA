@@ -41,10 +41,10 @@ from thelma.interfaces import IRack
 from thelma.interfaces import IStockSample
 from thelma.interfaces import ISubproject
 from thelma.interfaces import ITubeRack
-from thelma.models.experiment import ExperimentMetadata
-from thelma.models.iso import LabIso
-from thelma.models.racklayout import RackLayout
-from thelma.models.utils import get_current_user
+from thelma.entities.experiment import ExperimentMetadata
+from thelma.entities.iso import LabIso
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.utils import get_current_user
 from thelma.tests.functional.conftest import TestFunctionalBase
 from thelma.automation.semiconstants import get_experiment_metadata_type
 

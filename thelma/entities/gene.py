@@ -1,5 +1,5 @@
 """
-Gene model classes.
+Gene entity classes.
 
 NP, AAB
 """
@@ -23,13 +23,13 @@ class Gene(Entity):
     accession = None
     #: Gene locus name.
     locus_name = None
-    #: Species for this gene (:class:`thelma.models.species.Species`).
+    #: Species for this gene (:class:`thelma.entities.species.Species`).
     species = None
     #: List of molecule designs targeting this gene.
-    #: (:class:`thelma.models.moleculedesign.MoleculeDesign`)
+    #: (:class:`thelma.entities.moleculedesign.MoleculeDesign`)
     molecule_designs = []
     #: List of molecule design pools targeting this gene.
-    #: (:class:`thelma.models.moleculedesign.MoleculeDesignPool`)
+    #: (:class:`thelma.entities.moleculedesign.MoleculeDesignPool`)
     molecule_design_pools = []
 
     def __init__(self, accession, locus_name, species,

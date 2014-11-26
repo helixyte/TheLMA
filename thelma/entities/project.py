@@ -1,5 +1,5 @@
 """
-Project model classes.
+Project entity classes.
 
 FOG 11.2010, AAB
 """
@@ -24,13 +24,13 @@ class Project(Entity):
     #: Equals the :attr:`label`. Titles are required for atom templates.
     title = None
     #: The customer who ordered the project
-    #: (:class:`thelma.models.organization.Organization`).
+    #: (:class:`thelma.entities.organization.Organization`).
     customer = None
     #: The date the project was created in the database.
     creation_date = None
-    #: The official project leader at Cenix (:class:`thelma.models.user.User`).
+    #: The official project leader at Cenix (:class:`thelma.entities.user.User`).
     leader = None
-    #: Subprojects (:class:`thelma.models.subproject.Subproject`) belonging
+    #: Subprojects (:class:`thelma.entities.subproject.Subproject`) belonging
     #: to this project.
     subprojects = None
 

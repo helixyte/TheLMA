@@ -1,5 +1,5 @@
 """
-Rack layout model classes.
+Rack layout entity classes.
 
 FOG Nov 26, 2010
 """
@@ -17,7 +17,7 @@ class RackLayout(Entity):
     assigned to multiple rack positions. Best conceptualized as a stack of
     tag x rack position matrices.
     """
-    #: Dimension of the layout (:class:`thelma.model.rack.RackShape`).
+    #: Dimension of the layout (:class:`thelma.entities.rack.RackShape`).
     shape = None
     #: List of tagged rack position sets.
     tagged_rack_position_sets = None
@@ -41,7 +41,7 @@ class RackLayout(Entity):
 
         @param tagged_rack_position_set: Tagged rack position set to tadd.
         @type tagged_rack_position_set:
-                :class:`thelma.models.tagging.TaggedRackPositionSet`
+                :class:`thelma.entities.tagging.TaggedRackPositionSet`
         """
         if not self.__initialized:
             self.__initialize()
@@ -52,7 +52,7 @@ class RackLayout(Entity):
         """
         Returns all tags in this layout.
 
-        :rtype: set of :class:`thelma.models.tagging.Tag`
+        :rtype: set of :class:`thelma.entities.tagging.Tag`
         """
         if not self.__initialized:
             self.__initialize()
@@ -62,7 +62,7 @@ class RackLayout(Entity):
         """
         Returns all rack positions in this layout.
 
-        :rtype: set of :py:class:`thelma.models.rack.RackPosition`
+        :rtype: set of :py:class:`thelma.entities.rack.RackPosition`
         """
         if not self.__initialized:
             self.__initialize()
@@ -73,10 +73,10 @@ class RackLayout(Entity):
         Returns all tags for the given rack position.
 
         :param position: The rack position whose tags you want to get.
-        :type position: :class:`thelma.models.rack.RackPosition`
+        :type position: :class:`thelma.entities.rack.RackPosition`
         :return: Set of all tags for the given position (empty set if there is
             no tag associated with the given position).
-        :rtype: set of :py:class:`thelma.models.tagging.Tag`
+        :rtype: set of :py:class:`thelma.entities.tagging.Tag`
         """
         if not self.__initialized:
             self.__initialize()
@@ -90,10 +90,10 @@ class RackLayout(Entity):
         Returns all rack position having the given tag.
 
         :param tag: The tag whose positions you want to get.
-        :type tag: :class:`thelma.models.tagging.Tag`
+        :type tag: :class:`thelma.entities.tagging.Tag`
         :return: Set of all positions for the given tag (empty set if there is
             no position associated with the given tag).
-        :rtype: set of :class:`thelma.models.rack.RackPosition`
+        :rtype: set of :class:`thelma.entities.rack.RackPosition`
         """
         if not self.__initialized:
             self.__initialize()

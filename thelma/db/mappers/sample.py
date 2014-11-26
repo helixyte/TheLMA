@@ -17,11 +17,11 @@ from sqlalchemy.sql.expression import insert
 from sqlalchemy.sql.expression import null
 from sqlalchemy.sql.functions import coalesce
 from thelma.db.utils import string_agg
-from thelma.models.container import Container
-from thelma.models.sample import SAMPLE_TYPES
-from thelma.models.sample import Sample
-from thelma.models.sample import SampleMolecule
-from thelma.models.sample import StockSample
+from thelma.entities.container import Container
+from thelma.entities.sample import SAMPLE_TYPES
+from thelma.entities.sample import Sample
+from thelma.entities.sample import SampleMolecule
+from thelma.entities.sample import StockSample
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

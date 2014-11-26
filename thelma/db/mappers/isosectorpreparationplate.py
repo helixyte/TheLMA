@@ -3,10 +3,10 @@ ISO sector preparation plate mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.iso import ISO_PLATE_TYPES
-from thelma.models.iso import IsoSectorPreparationPlate
-from thelma.models.iso import StockSampleCreationIso
-from thelma.models.racklayout import RackLayout
+from thelma.entities.iso import ISO_PLATE_TYPES
+from thelma.entities.iso import IsoSectorPreparationPlate
+from thelma.entities.iso import StockSampleCreationIso
+from thelma.entities.racklayout import RackLayout
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

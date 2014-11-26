@@ -1,5 +1,5 @@
 """
-Subproject model classes.
+Subproject entity classes.
 
 FOG 11.2010, AAB
 """
@@ -20,7 +20,7 @@ class Subproject(Entity):
 
     #: The (human-readable) label of this subproject.
     label = None
-    #: The project (:class:`thelma.models.project.Project`) this subproject
+    #: The project (:class:`thelma.entities.project.Project`) this subproject
     #: belongs to. It is backreferenced by ORM.
     project = None
     #: The date the subproject was created in the database.

@@ -1,10 +1,10 @@
 How to Add a New Plugin
 -----------------------
 
-Plugin must exhibit implementations for the different layers of the BFG
-frameworks, i.e.:
+Plugin must exhibit implementations for the different layers of the pyramid
+framework, i.e.:
 
-   1. :ref:`Models <model>` and :ref:`aggregates <aggregate>` for the
+   1. :ref:`Entities <entity>` and :ref:`aggregates <aggregate>` for the
       *entity* layer
 
    2. :ref:`DB schemes <schema>` and :ref:`mappers <mapper>` for
@@ -19,25 +19,25 @@ Furthermore all components must be :ref:`registered <registration>`,
 :ref:`tested <test>` and :ref:`documented <documentation>`.
 
 
-.. _model:
+.. _entity:
 
-1.) Implementing the Model Class
-................................
+1.) Implementing the Entity Class
+.................................
 
-The model needs to be a subclass of :class:`thelma.models.base.Entity`.
-Furthermore, it must implement a marker interface for BFG. These interfaces
+The entity needs to be a subclass of :class:`thelma.entities.base.Entity`.
+Furthermore, it must implement a marker interface. These interfaces
 are, in the case of TheLMA, stored in a module called
-:doc:`thelma.model.interfaces <../api/models>`. The must be a subclass of
-:class:`thelma.models.interfaces.IEntity`.
+:doc:`thelma.interfaces <../api/entitiess>`. They must be a subclass of
+:class:`thelma.entities.interfaces.IEntity`.
 
 *Example*: ::
 
-   from rest_app.models.interfaces import IEntity
+   from rest_app.interfaces import IEntity
 
    class IExample(IEntity):
       """ No body required """
 
-If the models is to be represented as :ref:`resource <resource>`,
+If the entity is to be represented as :ref:`resource <resource>`,
 too, you have to specify an attribute called :attr:`slug`. The slug should
 be a unique identifier for an objects of this class (within the namespace of all
 objects of this class) that can be used as part of a URL as well.
@@ -47,7 +47,7 @@ objects of this class) that can be used as part of a URL as well.
 
 *Example*: ::
 
-   from rest_app.models.interfaces import IExample
+   from rest_app.interfaces import IExample
 
    class Example(Entity):
       implements(IExample)
@@ -85,71 +85,10 @@ objects of this class) that can be used as part of a URL as well.
 
 .. _aggregate:
 
-2.) Implementing the Aggregates
-...............................
-
-:doc:`Aggregates <../api/aggregates>` are repositories holding
-:ref:`model objects <model>` of the same type. In addition, aggregate
-provide wrapper around the repositories enabling
-for instance filtering, sorting, adding of entities, etc.
-
-Aggregates must inherit from :class:`thelma.models.aggregates.Aggregate`.
-Also, they must implement a marker interface for BFG. These interfaces
-are, in the case of TheLMA, stored in a module called
-:doc:`thelma.model.interfaces <../api/models>`. The must be a subclass of
-:class:`thelma.models.interfaces.IAggregate`.
-
-*Example*::
-
-   from rest_app.models.interfaces import IExampleAggregate
-
-   class IExampleAggregate(IAggregate):
-      """ No body required """
-
-When implementing a new aggregate class, make sure to define the following
-attributes:
-
-   :attr:`entity_class`
-      The model/entity class the aggregate class is designed for.
-   :attr:`name`
-      The name of the aggregate class.
-
-
-You then have to implement at least one **aggregate implementation**
-(usually the ORM implementation). To this end, create a class inheriting
-from :class:`thelma.models.aggregates.AggregateImpl` or the referring
-specialized subclass (e.g. :class:`thelma.models.aggregates.OrmAggregateImpl`).
-The implementation does not have add extra code, unless you have
-special requirements.
-
-*Example*::
-
-   from rest_app.models.aggregates import ExampleOrmAggregateImpl
-
-   class ExampleOrmAggregateImpl(ExampleAggregateImpl):
-      pass
-
-In the end, you have have to set an default implementation for your
-aggregates. This done by specifying the referring implementation class
-as value for the :attr:`default_implementation` attribute of your
-aggregate.
-
-*Example*::
-
-   from rest_app.models.aggregates import Aggregate, ExampleOrmAggregateImpl
-   from rest_app.models.interfaces import IExampleAggregate
-
-   class ExampleAggregate(Aggregate):
-      entity_class = example
-      name = 'examples.aggregate'
-
-      default_implementation = ExampleOrmAggregateImpl
-      implements(IExampleAggregate)
-
 
 .. _schema:
 
-3.) Implementing the DB Schema
+2.) Implementing the DB Schema
 ..............................
 
 The DB schema defines the database table associated with a class of
@@ -191,11 +130,11 @@ indirectly by :mod:`rest_app.db.__init__` (via
 
 .. _mapper:
 
-4.) Implementing the Mapper
+3.) Implementing the Mapper
 ...........................
 
 Mappers map the columns of an :ref:`DB schema table <schema>` onto
-the :ref:`model <model>` attributes.
+the :ref:`entity <entity>` attributes.
 
 Similar to the DB schema tables, you have to implement a factory function,
 first. Use the module :mod:`sqlalchemy.orm` to do so.
@@ -206,8 +145,8 @@ first. Use the module :mod:`sqlalchemy.orm` to do so.
 *Example*: ::
 
    from sqlalchemy.orm import mapper, relationship, synonym
-   from rest_app.models.example import Example
-   from rest_app.models.thing import Thing
+   from rest_app.entities.example import Example
+   from rest_app.entities.thing import Thing
 
    def create_mapper(example_tbl):
 
@@ -232,11 +171,11 @@ in turn is called by application :mod:`db.__init__` module.
 
 .. _resource:
 
-5.) Implementing the Resource Classes
+4.) Implementing the Resource Classes
 .....................................
 
 Resources contain the business logic required for the exposure of a
-:ref:`model <model>`. A resource can either represent an single model.
+:ref:`entity <entity>`. A resource can either represent a single entity.
 In this case it is called **Member**. On the other hand, it may contain several
 member resources of the same type. This type of resource is called
 **Collection**.
@@ -265,11 +204,11 @@ attributes:
    :attr:`relation`
       This attributes the traversal path for resources of this class.
    :attr:`entity_class`
-      The :ref:`model class <model>` this resource member class is
+      The :ref:`entity class <entity>` this resource member class is
       associated with.
 
 You then need to define the relations between the resource attributes and
-the model attributes. Use the predefined :doc:`descriptors <../api/resources>`
+the entity attributes. Use the predefined :doc:`descriptors <../api/resources>`
 to do so.
 
 Finally, you have to create an **adapter** for the BFG framework that points
@@ -354,7 +293,7 @@ a collection from a given :ref:`aggregate <aggregate>`.
 
 .. _xsd:
 
-6. Defining an XSD Schema
+5. Defining an XSD Schema
 .........................
 
 XSD schemas define how the hiearchy and tag names of XML elements presenting
@@ -363,8 +302,8 @@ in a :doc:`separate chapter <xsdschemas>`.
 
 .. _representer:
 
-7. Setting up the Representer
-.............................
+6. Setting up Representers
+..........................
 
 Once you have created an :ref:`XML schema <xsd>` for the resource, you can
 set up the representer. To this end, you have to add some classes in the
@@ -415,7 +354,7 @@ and (optional) further mappings.
 
 .. _registration:
 
-8. Registration
+7. Registration
 ...............
 
 Finally, you have to register in the BFG framework. To this end, you have
@@ -441,7 +380,7 @@ to add the following declaration in :mod:`thelma.resources.configure.zcml`:
 
     <collection_resource
         resource=".example.ExampleCollection"
-        aggregate="thelma.models.aggregates.ExampleAggregate" />
+        aggregate="thelma.entities.aggregates.ExampleAggregate" />
 
 3. **tag name:** *representer*
       :attr:`for` attribute:
@@ -494,18 +433,18 @@ to add the following declaration in :mod:`thelma.resources.configure.zcml`:
 
 .. _test:
 
-9.) Unit Tests
+8.) Unit Tests
 ..............
 
-Implement :doc:`unit tests <unittests>` for the model, resource,
+Implement :doc:`unit tests <unittests>` for the entity, resource,
 the DB access and the representers.
 
 .. _documentation:
 
-10.) Documentation
+9.) Documentation
 ..................
 
 Do not forget to add a documentation for the plugin. In the case of
-TheLMA you have to add a link to the reffering model class in
-*docs/api/models.rst* (both in the alpabetical header section and
+TheLMA you have to add a link to the reffering entity class in
+*docs/api/entities.rst* (both in the alpabetical header section and
 in the details section below).

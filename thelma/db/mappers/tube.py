@@ -13,9 +13,9 @@ from sqlalchemy.sql.expression import delete
 from sqlalchemy.sql.expression import insert
 
 from everest.repositories.rdb.utils import mapper
-from thelma.models.container import CONTAINER_TYPES
-from thelma.models.container import Tube
-#from thelma.models.sample import StockSample
+from thelma.entities.container import CONTAINER_TYPES
+from thelma.entities.container import Tube
+#from thelma.entities.sample import StockSample
 
 
 __docformat__ = 'reStructuredText en'

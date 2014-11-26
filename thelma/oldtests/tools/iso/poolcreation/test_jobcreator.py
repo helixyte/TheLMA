@@ -11,8 +11,8 @@ from thelma.automation.tools.iso.poolcreation.jobcreator \
     import StockSampleCreationIsoResetter
 from thelma.automation.tools.iso.poolcreation.jobcreator import StockSampleCreationIsoJobCreator
 from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.models.iso import ISO_STATUS
-from thelma.models.utils import get_user
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.utils import get_user
 from thelma.oldtests.tools.iso.poolcreation.utils \
     import StockSampleCreationTestCase2
 from thelma.oldtests.tools.iso.poolcreation.utils \

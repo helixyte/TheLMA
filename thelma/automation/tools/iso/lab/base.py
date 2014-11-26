@@ -22,12 +22,12 @@ from thelma.automation.utils.layouts import TransferTarget
 from thelma.automation.utils.layouts import get_converted_number
 from thelma.automation.utils.layouts import get_trimmed_string
 from thelma.automation.utils.layouts import is_valid_number
-from thelma.models.iso import IsoSectorStockRack
-from thelma.models.iso import LabIso
-from thelma.models.iso import LabIsoRequest
-from thelma.models.job import IsoJob
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.moleculedesign import MoleculeDesignPool
+from thelma.entities.iso import IsoSectorStockRack
+from thelma.entities.iso import LabIso
+from thelma.entities.iso import LabIsoRequest
+from thelma.entities.job import IsoJob
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.moleculedesign import MoleculeDesignPool
 
 
 __all__ = ['get_stock_takeout_volume',
@@ -485,7 +485,7 @@ class LabIsoPosition(TransferPosition):
         Returns an ISO plate position with mock molecule design pool.
 
         :param rack_position: The position within the rack.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`
+        :type rack_position: :class:`thelma.entities.rack.RackPosition`
 
         :param volume: The maximum volume in the plate (after all dilutions
             but before usage as source well).
@@ -1055,7 +1055,7 @@ class FinalLabIsoPosition(LabIsoPosition):
         The samples are already present in the plates.
 
         :param rack_position: The position within the rack.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`
+        :type rack_position: :class:`thelma.entities.rack.RackPosition`
         :param concentration: The pool concentration in the plate *in nM*.
         :type concentration: positive number, unit nM
         :param volume: The volume in the plate *in ul*.
@@ -1170,10 +1170,10 @@ class LabIsoPrepPosition(LabIsoPosition):
         Constructor:
 
         :param rack_position: The position within the rack.
-        :type rack_position: :class:`thelma.models.rack.RackPosition`
+        :type rack_position: :class:`thelma.entities.rack.RackPosition`
         :param molecule_design_pool: The molecule design pool for this position.
         :type molecule_design_pool:  placeholder or
-            :class:`thelma.models.moleculedesign.MoleculeDesignPool`
+            :class:`thelma.entities.moleculedesign.MoleculeDesignPool`
         :param str position_type: The position type (fixed, floating or mock).
         :param float concentration: The target concentration in the plate after
             all additions and dilutions (positive number in nM).
@@ -1264,8 +1264,8 @@ class LabIsoPrepLayoutConverter(LabIsoLayoutConverter):
 
 def get_entity_cls_displayname(entity_cls):
     """
-    Returns the displaynames for :class:`thelma.models.iso.LabIso` and
-    :class:`thelma.models.job.IsoJob`.
+    Returns the displaynames for :class:`thelma.entities.iso.LabIso` and
+    :class:`thelma.entities.job.IsoJob`.
     """
     if entity_cls == LabIso:
         return 'lab ISO'
@@ -1300,8 +1300,8 @@ class LAB_ISO_ORDERS(object):
 
         :param iso_or_iso_job: The lab ISO or a lab ISO job whose order you
             want to know.
-        :type iso_or_iso_job: :class:`thelma.models.iso.LabIso` or
-            :class:`thelma.models.job.IsoJob`
+        :type iso_or_iso_job: :class:`thelma.entities.iso.LabIso` or
+            :class:`thelma.entities.job.IsoJob`
         :return: The order constant (see class variables).
         """
         iso_request = iso_or_iso_job.iso_request
@@ -1324,8 +1324,8 @@ class LAB_ISO_ORDERS(object):
 
         :param iso_or_iso_job: The lab ISO or a lab ISO job whose order you
             want to know.
-        :type iso_or_iso_job: :class:`thelma.models.iso.LabIso` or
-            :class:`thelma.models.job.IsoJob`
+        :type iso_or_iso_job: :class:`thelma.entities.iso.LabIso` or
+            :class:`thelma.entities.job.IsoJob`
         :rtype: :class:`bool`.
         """
         iso_job = iso_or_iso_job
@@ -1342,7 +1342,7 @@ class LAB_ISO_ORDERS(object):
         specific ISO plates) are added to.
 
         :param iso_job: The ISO job whose processing worklists you want to get.
-        :type iso_job: :class:`thelma.models.job.IsoJob`
+        :type iso_job: :class:`thelma.entities.job.IsoJob`
 
         :param processing_order: Explain whether to process ISO job and
             lab ISO plates and which has to be done first
@@ -1374,7 +1374,7 @@ class LAB_ISO_ORDERS(object):
         handled by the job).
 
         :param iso: The lab ISO whose processing worklists you want to get.
-        :type iso: :class:`thelma.models.iso.LabIso`
+        :type iso: :class:`thelma.entities.iso.LabIso`
 
         :param processing_order: Explain whether to process ISO job and
             lab ISO plates and which has to be done first
@@ -1474,7 +1474,7 @@ class _InstructionsWriter(TxtWriter):
         :type entity: :class:`LabIso` or :class:`IsoJob`
             (see :attr:`_ENTITY_CLS).
         :param iso_request: The lab ISO request the job belongs to.
-        :type iso_request: :class:`thelma.models.iso.LabIsoRequest`
+        :type iso_request: :class:`thelma.entities.iso.LabIsoRequest`
         :param rack_containers: The :class:`IsoRackContainer` objects for all
             racks and plates involved in the processing of the entity.
         :type rack_containers: list of :class:`IsoRackContainer`
@@ -1871,7 +1871,7 @@ def create_instructions_writer(entity, iso_request, rack_containers,
     :type entity: :class:`LabIso` or :class:`IsoJob`
         (see :attr:`_ENTITY_CLS).
     :param iso_request: The lab ISO request the job belongs to.
-    :type iso_request: :class:`thelma.models.iso.LabIsoRequest`
+    :type iso_request: :class:`thelma.entities.iso.LabIsoRequest`
     :param rack_containers: The :class:`IsoRackContainer` objects for all
         racks and plates involved in the processing of the entity.
     :type rack_containers: list of :class:`IsoRackContainer`

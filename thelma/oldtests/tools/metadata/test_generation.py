@@ -33,13 +33,13 @@ from thelma.automation.utils.iso import IsoRequestParameters
 from thelma.interfaces import IPlate
 from thelma.interfaces import ISubproject
 from thelma.interfaces import IUser
-from thelma.models.experiment import ExperimentMetadata
-from thelma.models.iso import ISO_TYPES
-from thelma.models.rack import RackPositionSet
-from thelma.models.racklayout import RackLayout
-from thelma.models.tagging import Tag
-from thelma.models.tagging import TaggedRackPositionSet
-from thelma.models.utils import get_user
+from thelma.entities.experiment import ExperimentMetadata
+from thelma.entities.iso import ISO_TYPES
+from thelma.entities.rack import RackPositionSet
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.tagging import Tag
+from thelma.entities.tagging import TaggedRackPositionSet
+from thelma.entities.utils import get_user
 from thelma.oldtests.tools.tooltestingutils import FileReadingTestCase
 
 

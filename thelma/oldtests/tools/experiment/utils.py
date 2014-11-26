@@ -23,12 +23,12 @@ from thelma.automation.utils.layouts import LibraryBaseLayout
 from thelma.automation.utils.layouts import LibraryBaseLayoutPosition
 from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeDesignPool
-from thelma.models.library import LibraryPlate
-from thelma.models.library import MoleculeDesignLibrary
-from thelma.models.moleculedesign import MoleculeDesignPoolSet
-from thelma.models.racklayout import RackLayout
+from thelma.entities.library import LibraryPlate
+from thelma.entities.library import MoleculeDesignLibrary
+from thelma.entities.moleculedesign import MoleculeDesignPoolSet
+from thelma.entities.racklayout import RackLayout
 from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
-from thelma.models.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
 from thelma.oldtests.tools.tooltestingutils \
     import ExperimentMetadataReadingTestCase
 from thelma.oldtests.tools.tooltestingutils import FileCreatorTestCase

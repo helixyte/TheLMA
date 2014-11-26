@@ -2,9 +2,9 @@
 Plate specs mapper.
 """
 from sqlalchemy.orm import mapper, relationship
-from thelma.models.container import WellSpecs
-from thelma.models.rack import PlateSpecs
-from thelma.models.rack import RACK_SPECS_TYPES
+from thelma.entities.container import WellSpecs
+from thelma.entities.rack import PlateSpecs
+from thelma.entities.rack import RACK_SPECS_TYPES
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

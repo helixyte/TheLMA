@@ -3,9 +3,9 @@ Tagged mapper.
 """
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.tagging import Tag
-from thelma.models.tagging import Tagged
-from thelma.models.tagging import Tagging
+from thelma.entities.tagging import Tag
+from thelma.entities.tagging import Tagged
+from thelma.entities.tagging import Tagging
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

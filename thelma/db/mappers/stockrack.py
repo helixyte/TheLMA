@@ -4,11 +4,11 @@ Stock rack mapper
 
 from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
-from thelma.models.iso import STOCK_RACK_TYPES
-from thelma.models.iso import StockRack
-from thelma.models.liquidtransfer import WorklistSeries
-from thelma.models.rack import Rack
-from thelma.models.racklayout import RackLayout
+from thelma.entities.iso import STOCK_RACK_TYPES
+from thelma.entities.iso import StockRack
+from thelma.entities.liquidtransfer import WorklistSeries
+from thelma.entities.rack import Rack
+from thelma.entities.racklayout import RackLayout
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

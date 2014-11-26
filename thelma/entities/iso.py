@@ -1,5 +1,5 @@
 """
-ISO request model classes
+ISO request entity classes
 
 Jun 2011, AAB
 """
@@ -61,10 +61,10 @@ class IsoRequest(Entity):
     expected_number_isos = None
     #: The number of aliquot plates requested for each single ISO. Can be 0.
     number_aliquots = None
-    #: The worklist series (:class:`thelma.models.liquidtransfer.WorklistSeries`)
+    #: The worklist series (:class:`thelma.entities.liquidtransfer.WorklistSeries`)
     #: contains the worklists for the ISO processing.
     worklist_series = None
-    #: The pool set (:class:`thelma.models.moleculedesign.MoleculeDesignPoolSet`)
+    #: The pool set (:class:`thelma.entities.moleculedesign.MoleculeDesignPoolSet`)
     #: for the request is optional. The type of pools included depends on the
     #: derived class.
     molecule_design_pool_set = None
@@ -126,10 +126,10 @@ class LabIsoRequest(IsoRequest):
     #: The person requesting the soultions.
     requester = None
     #: The experiment metadata
-    #: (:class:`thelma.models.experiment.ExperimentMetadata`)
+    #: (:class:`thelma.entities.experiment.ExperimentMetadata`)
     #: this lab ISO request belongs to.
     experiment_metadata = None
-    #: The ISO rack layout (:class:`thelma.models.racklayout.RackLayout`,
+    #: The ISO rack layout (:class:`thelma.entities.racklayout.RackLayout`,
     #: working layout type: :class:`TransfectionLayout`) contains data about
     #: the plate positions. The data applies to all ISOs.
     rack_layout = None
@@ -140,14 +140,14 @@ class LabIsoRequest(IsoRequest):
     #: The reservoir specs for the plates to be generated
     #: (:attr:`iso_aliquot_plates` of the :class:`Iso`) define the volume
     #: properties for the plates (important for calculations,
-    #: :class:`thelma.models.liquidtransfer.ReservoirSpecs`).
+    #: :class:`thelma.entities.liquidtransfer.ReservoirSpecs`).
     iso_plate_reservoir_specs = None
     #: Shall the ISO job be processed first (before the ISO-specific
     #: preparations?). Default: True. If there is no ISO job processing this
     #: value is ignored.
     process_job_first = None
     #: The molecule design library whose plates are used for this ISO request
-    #: (:class:`thelma.models.library.MoleculeDesignLibrary`, optional).
+    #: (:class:`thelma.entities.library.MoleculeDesignLibrary`, optional).
     molecule_design_library = None
 
     def __init__(self, label, requester, rack_layout, delivery_date=None,
@@ -201,7 +201,7 @@ class StockSampleCreationIsoRequest(IsoRequest):
     #: The number of single molecule designs each new pool will consist of.
     number_designs = None
     #: The molecule design library created with this ISO request
-    #: (:class:`thelma.models.library.MoleculeDesignLibrary`, optional).
+    #: (:class:`thelma.entities.library.MoleculeDesignLibrary`, optional).
     molecule_design_library = None
 
     def __init__(self, label, stock_volume, stock_concentration,
@@ -271,7 +271,7 @@ class Iso(Entity):
     status = None
     #: The ISO request holding general data for this ISO (:class:`IsoRequest`).
     iso_request = None
-    #: The rack layout (:class:`thelma.models.racklayout.RackLayout`)
+    #: The rack layout (:class:`thelma.entities.racklayout.RackLayout`)
     #: containing specific information for the rack to be created. The structure
     #: of the layout depends on the :class:`iso_type`.
     rack_layout = None
@@ -387,7 +387,7 @@ class Iso(Entity):
         Adds an :class:`IsoAliquotPlate`.
 
         :param plate: The plate to be added.
-        :type plate: :class:`thelma.models.rack.Plate`
+        :type plate: :class:`thelma.entities.rack.Plate`
         """
         iap = IsoAliquotPlate(None, plate)
         self.iso_aliquot_plates.append(iap)
@@ -397,9 +397,9 @@ class Iso(Entity):
         Adds an :class:`IsoPreparationPlate`.
 
         :param plate: The plate to be added.
-        :type plate: :class:`thelma.models.rack.Plate`
+        :type plate: :class:`thelma.entities.rack.Plate`
         :param rack_layout: The rack layout containing the plate data.
-        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
+        :type rack_layout: :class:`thelma.entities.racklayout.RackLayout`
         """
         ipp = IsoPreparationPlate(None, plate, rack_layout)
         self.iso_preparation_plates.append(ipp)
@@ -430,7 +430,7 @@ class LabIso(Iso):
     **Equality condition**: equal :attr:`iso_request` and equal :attr:`label`
     """
     #: In case of library ISOs we use pre-existing library plates instead of
-    #: creating aliquot plates (:class:`thelma.models.library.LibraryPlate`).
+    #: creating aliquot plates (:class:`thelma.entities.library.LibraryPlate`).
     library_plates = None
     #: A list of requested library plate barcodes if this is a library ISO.
     # FIXME: Like the optimizer parameters, this should actually be part of
@@ -495,9 +495,9 @@ class StockSampleCreationIso(Iso):
         Adds a :class:`IsoSectorPreparationPlate`.
 
         :param plate: The plate to be added.
-        :type plate: :class:`thelma.models.rack.Plate`
+        :type plate: :class:`thelma.entities.rack.Plate`
         :param rack_layout: The rack layout containing the plate data.
-        :type rack_layout: :class:`thelma.models.racklayout.RackLayout`
+        :type rack_layout: :class:`thelma.entities.racklayout.RackLayout`
         :param int sector_index: Sector index for this sector preparation
             plate.
         """
@@ -541,12 +541,12 @@ class StockRack(Entity):
     #: The label of the stock rack entity is not equal to the rack label.
     #: The entity label contains data that is parsed for ISO processing.
     label = None
-    #: The stock rack (:class:`thelma.models.rack.TubeRack`).
+    #: The stock rack (:class:`thelma.entities.rack.TubeRack`).
     rack = None
     #: The rack layout containing the molecule design pool and transfer data
     #: (:class:`StockRackLayout`).
     rack_layout = None
-    #: The series (:class:`thelma.models.liquidtransfer.WorklistSeries`)
+    #: The series (:class:`thelma.entities.liquidtransfer.WorklistSeries`)
     #: used to transfer volumes from the stock tubes to a target container -
     #: the worklists are always a :class:`SAMPLE TRANSFER` types even if we
     #: use a CyBio, because tubes in stock racks can move and the rack state
@@ -584,7 +584,7 @@ class IsoJobStockRack(StockRack):
 
     **Equality Condition**: equal :attr:`id`
     """
-    #: The ISO job this rack belongs to (:class:`thelma.models.job.IsoJob`).
+    #: The ISO job this rack belongs to (:class:`thelma.entities.job.IsoJob`).
     iso_job = None
 
     def __init__(self, iso_job, label, rack, rack_layout, worklist_series,
@@ -682,7 +682,7 @@ class IsoPlate(Entity):
     iso_plate_type = None
     #: The ISO this plate belongs to.
     iso = None
-    #: The actual plate (:class:`thelma.models.rack.Plate`)
+    #: The actual plate (:class:`thelma.entities.rack.Plate`)
     rack = None
 
     def __init__(self, iso, rack, iso_plate_type=None, **kw):
@@ -796,9 +796,9 @@ class IsoJobPreparationPlate(Entity):
 
     **Equality Condition**: equal :attr:`iso_job` and equal :attr:`rack`
     """
-    #: The ISO job this plate belongs to (:class:`thelma.models.job.IsoJob`).
+    #: The ISO job this plate belongs to (:class:`thelma.entities.job.IsoJob`).
     iso_job = None
-    #: The actual plate (:class:`thelma.models.rack.Plate`)
+    #: The actual plate (:class:`thelma.entities.rack.Plate`)
     rack = None
     #: The rack layout containing the molecule design pool and transfer data
     #: (:class:`IsoPlateLayout`).

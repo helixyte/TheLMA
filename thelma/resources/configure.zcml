@@ -6,7 +6,7 @@
         interface="thelma.interfaces.IBarcodePrintJob"
         member=".barcode.BarcodePrintJobMember"
         collection=".barcode.BarcodePrintJobCollection"
-        entity="thelma.models.barcode.BarcodePrintJob"
+        entity="thelma.entities.barcode.BarcodePrintJob"
         repository="MEMORY"
     >
         <representer content_type="everest.mime.XmlMime">
@@ -44,7 +44,7 @@
         interface="thelma.interfaces.IChemicalStructureType"
         member=".chemicalstructure.ChemicalStructureTypeMember"
         collection_root_name='chemical-structure-types'
-        entity="thelma.models.chemicalstructure.ChemicalStructureType"
+        entity="thelma.entities.chemicalstructure.ChemicalStructureType"
         repository="MEMORY"
     >
         <representer content_type="everest.mime.XmlMime">
@@ -109,7 +109,7 @@
         interface="thelma.interfaces.IChemicalStructure"
         member=".chemicalstructure.ChemicalStructureMember"
         collection_root_name='chemical-structures'
-        entity="thelma.models.chemicalstructure.ChemicalStructure"
+        entity="thelma.entities.chemicalstructure.ChemicalStructure"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -171,7 +171,7 @@
         interface="thelma.interfaces.IContainer"
         member=".container.ContainerMember"
         collection=".container.ContainerCollection"
-        entity="thelma.models.container.Container"
+        entity="thelma.entities.container.Container"
         expose="false"
     >
         <representer content_type="everest.mime.XmlMime">
@@ -217,7 +217,7 @@
         interface="thelma.interfaces.ITube"
         member=".container.TubeMember"
         collection=".container.TubeCollection"
-        entity="thelma.models.container.Tube"
+        entity="thelma.entities.container.Tube"
     >
         <representer
             kind="member"
@@ -287,7 +287,7 @@
         interface="thelma.interfaces.IWell"
         member=".container.WellMember"
         collection=".container.WellCollection"
-        entity="thelma.models.container.Well"
+        entity="thelma.entities.container.Well"
         expose="false"
     >
         <representer
@@ -317,7 +317,7 @@
         interface="thelma.interfaces.IContainerSpecs"
         member=".containerspecs.ContainerSpecsMember"
         collection=".containerspecs.ContainerSpecsCollection"
-        entity="thelma.models.container.ContainerSpecs"
+        entity="thelma.entities.container.ContainerSpecs"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -362,7 +362,7 @@
         interface="thelma.interfaces.ITubeSpecs"
         member=".containerspecs.TubeSpecsMember"
         collection=".containerspecs.TubeSpecsCollection"
-        entity="thelma.models.container.TubeSpecs"
+        entity="thelma.entities.container.TubeSpecs"
     >
 
         <representer
@@ -389,7 +389,7 @@
         interface="thelma.interfaces.IWellSpecs"
         member=".containerspecs.WellSpecsMember"
         collection=".containerspecs.WellSpecsCollection"
-        entity="thelma.models.container.WellSpecs"
+        entity="thelma.entities.container.WellSpecs"
     >
         <representer
             kind="member"
@@ -413,7 +413,7 @@
         interface="thelma.interfaces.IDevice"
         member=".device.DeviceMember"
         collection=".device.DeviceCollection"
-        entity="thelma.models.device.Device"
+        entity="thelma.entities.device.Device"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -469,7 +469,7 @@
         interface="thelma.interfaces.IDeviceType"
         member=".devicetype.DeviceTypeMember"
         collection=".devicetype.DeviceTypeCollection"
-        entity="thelma.models.device.DeviceType"
+        entity="thelma.entities.device.DeviceType"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -523,7 +523,7 @@
         interface="thelma.interfaces.IExperiment"
         member=".experiment.ExperimentMember"
         collection=".experiment.ExperimentCollection"
-        entity="thelma.models.experiment.Experiment"
+        entity="thelma.entities.experiment.Experiment"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -574,7 +574,7 @@
         interface="thelma.interfaces.IExperimentDesign"
         member=".experiment.ExperimentDesignMember"
         collection=".experiment.ExperimentDesignCollection"
-        entity="thelma.models.experiment.ExperimentDesign"
+        entity="thelma.entities.experiment.ExperimentDesign"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -816,7 +816,7 @@
         interface="thelma.interfaces.IExperimentDesignRack"
         member=".experiment.ExperimentDesignRackMember"
         collection=".experiment.ExperimentDesignRackCollection"
-        entity="thelma.models.experiment.ExperimentDesignRack"
+        entity="thelma.entities.experiment.ExperimentDesignRack"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -878,7 +878,7 @@
         interface="thelma.interfaces.IExperimentMetadata"
         member=".experiment.ExperimentMetadataMember"
         collection=".experiment.ExperimentMetadataCollection"
-        entity="thelma.models.experiment.ExperimentMetadata"
+        entity="thelma.entities.experiment.ExperimentMetadata"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -1041,7 +1041,7 @@
         interface="thelma.interfaces.IExperimentMetadataType"
         member=".experiment.ExperimentMetadataTypeMember"
         collection_root_name="experiment-metadata-types"
-        entity="thelma.models.experiment.ExperimentMetadataType"
+        entity="thelma.entities.experiment.ExperimentMetadataType"
     >
 
         <representer content_type="everest.mime.XmlMime">
@@ -1080,7 +1080,7 @@
         interface="thelma.interfaces.IExperimentRack"
         member=".experiment.ExperimentRackMember"
         collection=".experiment.ExperimentRackCollection"
-        entity="thelma.models.experiment.ExperimentRack"
+        entity="thelma.entities.experiment.ExperimentRack"
         expose="false"
     >
         <representer content_type="everest.mime.XmlMime">
@@ -1157,7 +1157,7 @@
         interface="thelma.interfaces.IGene"
         member=".gene.GeneMember"
         collection=".gene.GeneCollection"
-        entity="thelma.models.gene.Gene"
+        entity="thelma.entities.gene.Gene"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -1215,7 +1215,7 @@
         interface="thelma.interfaces.IIso"
         member=".iso.IsoMember"
         collection=".iso.IsoCollection"
-        entity="thelma.models.iso.Iso"
+        entity="thelma.entities.iso.Iso"
         expose="false"
     >
         <representer content_type="everest.mime.XmlMime">
@@ -1371,7 +1371,7 @@
         interface="thelma.interfaces.ILabIso"
         member=".iso.LabIsoMember"
         collection=".iso.LabIsoCollection"
-        entity="thelma.models.iso.LabIso"
+        entity="thelma.entities.iso.LabIso"
     >
         <representer content_type="everest.mime.XmlMime">
             <attribute name="library_plates">
@@ -1426,7 +1426,7 @@
         interface="thelma.interfaces.IStockSampleCreationIso"
         member=".iso.StockSampleCreationIsoMember"
         collection_root_name="stock-sample-creation-isos"
-        entity="thelma.models.iso.StockSampleCreationIso"
+        entity="thelma.entities.iso.StockSampleCreationIso"
     >
     </resource>
 
@@ -1436,7 +1436,7 @@
         interface="thelma.interfaces.IIsoRequest"
         member=".iso.IsoRequestMember"
         collection=".iso.IsoRequestCollection"
-        entity="thelma.models.iso.IsoRequest"
+        entity="thelma.entities.iso.IsoRequest"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -1486,7 +1486,7 @@
         interface="thelma.interfaces.ILabIsoRequest"
         member=".iso.LabIsoRequestMember"
         collection=".iso.LabIsoRequestCollection"
-        entity="thelma.models.iso.LabIsoRequest"
+        entity="thelma.entities.iso.LabIsoRequest"
     >
         <representer content_type="everest.mime.XmlMime">
             <attribute name="requester">
@@ -1574,7 +1574,7 @@
         interface="thelma.interfaces.IStockSampleCreationIsoRequest"
         member=".iso.StockSampleCreationIsoRequestMember"
         collection=".iso.StockSampleIsoRequestCollection"
-        entity="thelma.models.iso.StockSampleCreationIsoRequest"
+        entity="thelma.entities.iso.StockSampleCreationIsoRequest"
     >
     </resource>
 
@@ -1584,7 +1584,7 @@
         interface="thelma.interfaces.IStockRack"
         member=".iso.StockRackMember"
         collection=".iso.StockRackCollection"
-        entity="thelma.models.iso.StockRack"
+        entity="thelma.entities.iso.StockRack"
         expose="false"
     >
         <representer content_type="everest.mime.XmlMime">
@@ -1619,7 +1619,7 @@
     <resource
         interface="thelma.interfaces.IIsoJobStockRack"
         member=".iso.IsoJobStockRackMember"
-        entity="thelma.models.iso.IsoJobStockRack"
+        entity="thelma.entities.iso.IsoJobStockRack"
         expose="false"
     >
         <representer content_type="everest.mime.XmlMime">
@@ -1651,7 +1651,7 @@
     <resource
         interface="thelma.interfaces.IIsoStockRack"
         member=".iso.IsoStockRackMember"
-        entity="thelma.models.iso.IsoStockRack"
+        entity="thelma.entities.iso.IsoStockRack"
         expose="false"
     >
         <representer content_type="everest.mime.XmlMime">
@@ -1683,7 +1683,7 @@
     <resource
         interface="thelma.interfaces.IIsoSectorStockRack"
         member=".iso.IsoSectorStockRackMember"
-        entity="thelma.models.iso.IsoSectorStockRack"
+        entity="thelma.entities.iso.IsoSectorStockRack"
         expose="false"
     >
         <representer
@@ -1710,7 +1710,7 @@
         interface="thelma.interfaces.IItemStatus"
         member=".itemstatus.ItemStatusMember"
         collection=".itemstatus.ItemStatusCollection"
-        entity="thelma.models.status.ItemStatus"
+        entity="thelma.entities.status.ItemStatus"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -1748,7 +1748,7 @@
         interface="thelma.interfaces.IJob"
         member=".job.JobMember"
         collection=".job.JobCollection"
-        entity="thelma.models.job.Job"
+        entity="thelma.entities.job.Job"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -1791,7 +1791,7 @@
         interface="thelma.interfaces.IIsoJob"
         member=".job.IsoJobMember"
         collection=".job.IsoJobCollection"
-        entity="thelma.models.job.IsoJob"
+        entity="thelma.entities.job.IsoJob"
         expose="true"
     >
         <representer
@@ -1850,7 +1850,7 @@
         interface="thelma.interfaces.IExperimentJob"
         member=".job.ExperimentJobMember"
         collection=".job.ExperimentJobCollection"
-        entity="thelma.models.job.ExperimentJob"
+        entity="thelma.entities.job.ExperimentJob"
     >
 
         <representer
@@ -1939,7 +1939,7 @@
         interface="thelma.interfaces.ILocation"
         member=".location.LocationMember"
         collection=".location.LocationCollection"
-        entity="thelma.models.location.BarcodedLocation"
+        entity="thelma.entities.location.BarcodedLocation"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -1977,7 +1977,7 @@
         interface="thelma.interfaces.ILocationType"
         member=".locationtype.LocationTypeMember"
         collection=".locationtype.LocationTypeCollection"
-        entity="thelma.models.location.BarcodedLocationType"
+        entity="thelma.entities.location.BarcodedLocationType"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -2025,7 +2025,7 @@
         interface="thelma.interfaces.IMolecule"
         member=".sample.MoleculeMember"
         collection=".sample.MoleculeCollection"
-        entity="thelma.models.sample.Molecule"
+        entity="thelma.entities.sample.Molecule"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -2063,7 +2063,7 @@
         interface="thelma.interfaces.IMoleculeDesign"
         member=".moleculedesign.MoleculeDesignMember"
         collection=".moleculedesign.MoleculeDesignCollection"
-        entity="thelma.models.moleculedesign.MoleculeDesign"
+        entity="thelma.entities.moleculedesign.MoleculeDesign"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -2128,7 +2128,7 @@
         interface="thelma.interfaces.IMoleculeDesignLibrary"
         member=".library.MoleculeDesignLibraryMember"
         collection_root_name="molecule-design-libraries"
-        entity="thelma.models.library.MoleculeDesignLibrary"
+        entity="thelma.entities.library.MoleculeDesignLibrary"
     >
     </resource>
 
@@ -2137,7 +2137,7 @@
     <resource
         interface="thelma.interfaces.ILibraryPlate"
         member=".library.LibraryPlateMember"
-        entity="thelma.models.library.LibraryPlate"
+        entity="thelma.entities.library.LibraryPlate"
         expose="false"
     >
         <representer
@@ -2178,7 +2178,7 @@
         interface="thelma.interfaces.IMoleculeDesignSet"
         member=".moleculedesign.MoleculeDesignSetMember"
         collection=".moleculedesign.MoleculeDesignSetCollection"
-        entity="thelma.models.moleculedesign.MoleculeDesignSet"
+        entity="thelma.entities.moleculedesign.MoleculeDesignSet"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -2214,7 +2214,7 @@
     <resource
         interface="thelma.interfaces.IMoleculeDesignPool"
         member=".moleculedesign.MoleculeDesignPoolMember"
-        entity="thelma.models.moleculedesign.MoleculeDesignPool"
+        entity="thelma.entities.moleculedesign.MoleculeDesignPool"
         collection_root_name="molecule-design-pools"
         expose="true"
     >
@@ -2325,7 +2325,7 @@
     <resource
         interface="thelma.interfaces.IMoleculeDesignPoolSet"
         member=".moleculedesign.MoleculeDesignPoolSetMember"
-        entity="thelma.models.moleculedesign.MoleculeDesignPoolSet"
+        entity="thelma.entities.moleculedesign.MoleculeDesignPoolSet"
         collection_root_name='molecule-design-pool-sets'
         expose="false"
     >
@@ -2396,7 +2396,7 @@
         interface="thelma.interfaces.IMoleculeType"
         member=".moleculetype.MoleculeTypeMember"
         collection=".moleculetype.MoleculeTypeCollection"
-        entity="thelma.models.moleculetype.MoleculeType"
+        entity="thelma.entities.moleculetype.MoleculeType"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -2472,7 +2472,7 @@
         interface="thelma.interfaces.IOrganization"
         member=".organization.OrganizationMember"
         collection=".organization.OrganizationCollection"
-        entity="thelma.models.organization.Organization"
+        entity="thelma.entities.organization.Organization"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -2509,7 +2509,7 @@
         interface="thelma.interfaces.IPipettingSpecs"
         member=".liquidtransfer.PipettingSpecsMember"
         collection_root_name="pipetting-specs"
-        entity="thelma.models.liquidtransfer.PipettingSpecs" />
+        entity="thelma.entities.liquidtransfer.PipettingSpecs" />
 
     <!-- Planned Liquid Transfer -->
 
@@ -2517,7 +2517,7 @@
         interface="thelma.interfaces.IPlannedLiquidTransfer"
         member=".liquidtransfer.PlannedLiquidTransferMember"
         collection_root_name="planned-liquid-transfers"
-        entity="thelma.models.liquidtransfer.PlannedLiquidTransfer" />
+        entity="thelma.entities.liquidtransfer.PlannedLiquidTransfer" />
 
     <!-- Planned Sample Dilution -->
 
@@ -2525,7 +2525,7 @@
         interface="thelma.interfaces.IPlannedSampleDilution"
         member=".liquidtransfer.PlannedSampleDilutionMember"
         collection_root_name="planned-sample-dilutions"
-        entity="thelma.models.liquidtransfer.PlannedSampleDilution" />
+        entity="thelma.entities.liquidtransfer.PlannedSampleDilution" />
 
     <!-- Planned Sample Transfer -->
 
@@ -2533,7 +2533,7 @@
         interface="thelma.interfaces.IPlannedSampleTransfer"
         member=".liquidtransfer.PlannedSampleTransferMember"
         collection_root_name="planned-sample-transfers"
-        entity="thelma.models.liquidtransfer.PlannedSampleTransfer" />
+        entity="thelma.entities.liquidtransfer.PlannedSampleTransfer" />
 
     <!-- Planned Sample Transfer -->
 
@@ -2541,7 +2541,7 @@
         interface="thelma.interfaces.IPlannedRackSampleTransfer"
         member=".liquidtransfer.PlannedRackSampleTransferMember"
         collection_root_name="planned-rack-sample-transfers"
-        entity="thelma.models.liquidtransfer.PlannedRackSampleTransfer" />
+        entity="thelma.entities.liquidtransfer.PlannedRackSampleTransfer" />
 
 
     <!-- Project -->
@@ -2550,7 +2550,7 @@
         interface="thelma.interfaces.IProject"
         member=".project.ProjectMember"
         collection=".project.ProjectCollection"
-        entity="thelma.models.project.Project"
+        entity="thelma.entities.project.Project"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -2611,7 +2611,7 @@
         interface="thelma.interfaces.IRack"
         member=".rack.RackMember"
         collection=".rack.RackCollection"
-        entity="thelma.models.rack.Rack"
+        entity="thelma.entities.rack.Rack"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -2664,7 +2664,7 @@
         interface="thelma.interfaces.ITubeRack"
         member=".rack.TubeRackMember"
         collection=".rack.TubeRackCollection"
-        entity="thelma.models.rack.TubeRack"
+        entity="thelma.entities.rack.TubeRack"
     >
         <representer
             kind="member"
@@ -2698,7 +2698,7 @@
         interface="thelma.interfaces.IPlate"
         member=".rack.PlateMember"
         collection=".rack.PlateCollection"
-        entity="thelma.models.rack.Plate"
+        entity="thelma.entities.rack.Plate"
     >
         <representer
             kind="member"
@@ -2741,7 +2741,7 @@
         interface="thelma.interfaces.IRackLayout"
         member=".racklayout.RackLayoutMember"
         collection=".racklayout.RackLayoutCollection"
-        entity="thelma.models.racklayout.RackLayout"
+        entity="thelma.entities.racklayout.RackLayout"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -2815,7 +2815,7 @@
         interface="thelma.interfaces.IRackPosition"
         member=".rack.RackPositionMember"
         collection_root_name="rack-positions"
-        entity="thelma.models.rack.RackPosition"
+        entity="thelma.entities.rack.RackPosition"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -2861,7 +2861,7 @@
         interface="thelma.interfaces.IRackPositionSet"
         member=".rack.RackPositionSetMember"
         collection=".rack.RackPositionSetCollection"
-        entity="thelma.models.rack.RackPositionSet"
+        entity="thelma.entities.rack.RackPositionSet"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -2908,7 +2908,7 @@
         interface="thelma.interfaces.IRackShape"
         member=".rack.RackShapeMember"
         collection=".rack.RackShapeCollection"
-        entity="thelma.models.rack.RackShape"
+        entity="thelma.entities.rack.RackShape"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -2946,7 +2946,7 @@
         interface="thelma.interfaces.IRackSpecs"
         member=".rackspecs.RackSpecsMember"
         collection=".rackspecs.RackSpecsCollection"
-        entity="thelma.models.rack.RackSpecs"
+        entity="thelma.entities.rack.RackSpecs"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -2991,7 +2991,7 @@
         interface="thelma.interfaces.ITubeRackSpecs"
         member=".rackspecs.TubeRackSpecsMember"
         collection=".rackspecs.TubeRackSpecsCollection"
-        entity="thelma.models.rack.TubeRackSpecs"
+        entity="thelma.entities.rack.TubeRackSpecs"
     >
         <representer
             kind="member"
@@ -3015,7 +3015,7 @@
         interface="thelma.interfaces.IPlateSpecs"
         member=".rackspecs.PlateSpecsMember"
         collection=".rackspecs.PlateSpecsCollection"
-        entity="thelma.models.rack.PlateSpecs"
+        entity="thelma.entities.rack.PlateSpecs"
     >
         <representer
             kind="member"
@@ -3036,7 +3036,7 @@
         interface="thelma.interfaces.IReservoirSpecs"
         member=".liquidtransfer.ReservoirSpecsMember"
         collection=".liquidtransfer.ReservoirSpecsCollection"
-        entity="thelma.models.liquidtransfer.ReservoirSpecs" />
+        entity="thelma.entities.liquidtransfer.ReservoirSpecs" />
 
 
     <!-- Sample -->
@@ -3044,7 +3044,7 @@
     <resource
         interface="thelma.interfaces.ISample"
         member=".sample.SampleMember"
-        entity="thelma.models.sample.Sample"
+        entity="thelma.entities.sample.Sample"
         expose="false"
     >
     </resource>
@@ -3055,7 +3055,7 @@
     <resource
         interface="thelma.interfaces.IStockSample"
         member=".sample.StockSampleMember"
-        entity="thelma.models.sample.StockSample"
+        entity="thelma.entities.sample.StockSample"
         expose="false"
     >
     </resource>
@@ -3067,7 +3067,7 @@
         interface="thelma.interfaces.ISampleMolecule"
         member=".sample.SampleMoleculeMember"
         collection=".sample.SampleMoleculeCollection"
-        entity="thelma.models.sample.SampleMolecule"
+        entity="thelma.entities.sample.SampleMolecule"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -3113,7 +3113,7 @@
     <resource
         interface="thelma.interfaces.ISampleRegistrationItem"
         member="thelma.resources.sampleregistration.SampleRegistrationItemMember"
-        entity="thelma.models.sampleregistration.SampleRegistrationItem"
+        entity="thelma.entities.sampleregistration.SampleRegistrationItem"
         expose="false"
         repository="MEMORY"
     >
@@ -3124,7 +3124,7 @@
     <resource
         interface="thelma.interfaces.ISupplierSampleRegistrationItem"
         member="thelma.resources.sampleregistration.SupplierSampleRegistrationItemMember"
-        entity="thelma.models.sampleregistration.SupplierSampleRegistrationItem"
+        entity="thelma.entities.sampleregistration.SupplierSampleRegistrationItem"
         collection_root_name="supplier-sample-registration-items"
         repository="MEMORY"
     >
@@ -3156,7 +3156,7 @@
     <resource
         interface="thelma.interfaces.IMoleculeDesignRegistrationItem"
         member="thelma.resources.sampleregistration.MoleculeDesignRegistrationItemMember"
-        entity="thelma.models.sampleregistration.MoleculeDesignRegistrationItem"
+        entity="thelma.entities.sampleregistration.MoleculeDesignRegistrationItem"
         expose="false"
         repository="MEMORY"
     >
@@ -3174,7 +3174,7 @@
     <resource
         interface="thelma.interfaces.IMoleculeDesignPoolRegistrationItem"
         member="thelma.resources.sampleregistration.MoleculeDesignPoolRegistrationItemMember"
-        entity="thelma.models.sampleregistration.MoleculeDesignPoolRegistrationItem"
+        entity="thelma.entities.sampleregistration.MoleculeDesignPoolRegistrationItem"
         expose="false"
         repository="MEMORY"
     >
@@ -3193,7 +3193,7 @@
         interface="thelma.interfaces.ISpecies"
         member=".species.SpeciesMember"
         collection=".species.SpeciesCollection"
-        entity="thelma.models.species.Species"
+        entity="thelma.entities.species.Species"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -3241,7 +3241,7 @@
         interface="thelma.interfaces.IStockInfo"
         member=".stockinfo.StockInfoMember"
         collection=".stockinfo.StockInfoCollection"
-        entity="thelma.models.stockinfo.StockInfo"
+        entity="thelma.entities.stockinfo.StockInfo"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -3315,7 +3315,7 @@
         interface="thelma.interfaces.IStockSample"
         member=".sample.StockSampleMember"
         collection_root_name="stock-samples"
-        entity="thelma.models.sample.StockSample"
+        entity="thelma.entities.sample.StockSample"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -3352,7 +3352,7 @@
         interface="thelma.interfaces.ISubproject"
         member=".subproject.SubprojectMember"
         collection=".subproject.SubprojectCollection"
-        entity="thelma.models.subproject.Subproject"
+        entity="thelma.entities.subproject.Subproject"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -3394,7 +3394,7 @@
     <resource
         interface='thelma.interfaces.ISupplierMoleculeDesign'
         member='.suppliermoleculedesign.SupplierMoleculeDesignMember'
-        entity='thelma.models.suppliermoleculedesign.SupplierMoleculeDesign'
+        entity='thelma.entities.suppliermoleculedesign.SupplierMoleculeDesign'
         expose='false'
     >
         <representer content_type="everest.mime.XmlMime">
@@ -3437,7 +3437,7 @@
         interface="thelma.interfaces.ITag"
         member=".tagging.TagMember"
         collection=".tagging.TagCollection"
-        entity="thelma.models.tagging.Tag"
+        entity="thelma.entities.tagging.Tag"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -3475,7 +3475,7 @@
         interface="thelma.interfaces.ITaggedRackPositionSet"
         member=".tagging.TaggedRackPositionSetMember"
         collection=".tagging.TaggedRackPositionSetCollection"
-        entity="thelma.models.tagging.TaggedRackPositionSet"
+        entity="thelma.entities.tagging.TaggedRackPositionSet"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -3529,7 +3529,7 @@
         interface="thelma.interfaces.IUser"
         member=".user.UserMember"
         collection=".user.UserCollection"
-        entity="thelma.models.user.User"
+        entity="thelma.entities.user.User"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -3575,7 +3575,7 @@
         interface="thelma.interfaces.ITubeTransfer"
         member=".tubetransfer.TubeTransferMember"
         collection_root_name="tube-transfers"
-        entity="thelma.models.tubetransfer.TubeTransfer"
+        entity="thelma.entities.tubetransfer.TubeTransfer"
         expose="false"
     >
         <representer content_type="everest.mime.XmlMime">
@@ -3614,7 +3614,7 @@
         interface="thelma.interfaces.ITubeTransferWorklist"
         member=".tubetransfer.TubeTransferWorklistMember"
         collection_root_name="tube-transfer-worklists"
-        entity="thelma.models.tubetransfer.TubeTransferWorklist"
+        entity="thelma.entities.tubetransfer.TubeTransferWorklist"
     >
         <representer content_type="everest.mime.XmlMime">
             <option
@@ -3652,7 +3652,7 @@
         interface="thelma.interfaces.IUserPreferences"
         member=".user.UserPreferencesMember"
         collection=".user.UserPreferencesCollection"
-        entity="thelma.models.user.UserPreferences"
+        entity="thelma.entities.user.UserPreferences"
     >
         <representer content_type="everest.mime.XmlMime">
             <option

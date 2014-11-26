@@ -9,8 +9,8 @@ from sqlalchemy.orm.interfaces import MapperExtension
 from sqlalchemy.sql import select
 from sqlalchemy.sql.expression import func
 from sqlalchemy.sql.expression import insert
-from thelma.models.tagging import Tag
-from thelma.models.tagging import Tagged
+from thelma.entities.tagging import Tag
+from thelma.entities.tagging import Tagged
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

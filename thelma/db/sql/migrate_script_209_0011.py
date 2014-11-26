@@ -1,8 +1,8 @@
 from everest.repositories.rdb import Session
 from sqlalchemy.engine import create_engine
 from thelma.db import create_metadata
-from thelma.models.rack import RackPosition
-from thelma.models.utils import label_from_number
+from thelma.entities.rack import RackPosition
+from thelma.entities.utils import label_from_number
 
 
 # If this is set to True, the changes will be committed when the script

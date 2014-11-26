@@ -1,5 +1,5 @@
 """
-.. currentmodule:: thelma.models.tubetransfer
+.. currentmodule:: thelma.entities.tubetransfer
 
 This handler converts the result of the tubehandler output file parser
 (:class:`XL20OutputParser`) into a list of :class:`TubeTransfer` entities
@@ -11,7 +11,7 @@ from thelma.automation.handlers.base import BaseParserHandler
 from thelma.automation.parsers.tubehandler import XL20OutputParser
 from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.interfaces import ITubeRack
-from thelma.models.tubetransfer import TubeTransfer
+from thelma.entities.tubetransfer import TubeTransfer
 
 __docformat__ = 'reStructuredText en'
 

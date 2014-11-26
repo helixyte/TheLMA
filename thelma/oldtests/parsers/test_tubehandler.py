@@ -17,9 +17,9 @@ from thelma.automation.semiconstants import get_item_status_managed
 from thelma.automation.semiconstants import get_rack_position_from_label
 from thelma.interfaces import ITubeRackSpecs
 from thelma.interfaces import ITubeSpecs
-from thelma.models.container import ContainerLocation
-from thelma.models.container import Tube
-from thelma.models.rack import TubeRack
+from thelma.entities.container import ContainerLocation
+from thelma.entities.container import Tube
+from thelma.entities.rack import TubeRack
 from thelma.oldtests.tools.tooltestingutils import ParsingTestCase
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 

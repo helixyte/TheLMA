@@ -1,12 +1,12 @@
 """
-Container model classes.
+Container entity classes.
 
 NP
 """
 
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
-from thelma.models.sample import Sample
+from thelma.entities.sample import Sample
 
 __docformat__ = 'reStructuredText en'
 
@@ -41,10 +41,10 @@ class ContainerLocation(Entity):
     **Equality Condition**: equal :attr:`rack` and :attr:`position`
     """
 
-    #: A rack or plate (:class:`thelma.models.rack.Rack`).
+    #: A rack or plate (:class:`thelma.entities.rack.Rack`).
     rack = None
     #: The position on the rack or plate
-    #: (:class:`thelma.models.rack.RackPosition`).
+    #: (:class:`thelma.entities.rack.RackPosition`).
     position = None
     #: back referenced by SQLAlchemy ORM.
     container = None
@@ -79,7 +79,7 @@ class Container(Entity):
     """
     #: Defines the container specs (:class:`ContainerSpecs`).
     specs = None
-    #: The item status (:class:`thelma.models.status.ItemStatus`) of the
+    #: The item status (:class:`thelma.entities.status.ItemStatus`) of the
     #: container.
     status = None
      # FIXME: pylint:disable=W0511
@@ -88,7 +88,7 @@ class Container(Entity):
     #: Container locations are a combination of rack, container, and position
     #: (:class:`ContainerLocation`).
     location = None
-    #: The sample (:class:`thelma.models.sample.Sample`) associated with this
+    #: The sample (:class:`thelma.entities.sample.Sample`) associated with this
     #: container; may be *None*.
     sample = None
 
@@ -121,14 +121,14 @@ class Container(Entity):
     def rack_position(self):
         """
         The position of a container in the rack
-        (:class:`thelma.models.rack.RackPosition`).
+        (:class:`thelma.entities.rack.RackPosition`).
         """
         return self.location.position
 
     @property
     def rack(self):
         """
-        The :class:`thelma.models.rack.Rack` the container is located in.
+        The :class:`thelma.entities.rack.Rack` the container is located in.
         """
         return self.location.rack
 
@@ -136,7 +136,7 @@ class Container(Entity):
         """
         Creates a new sample for this container.
 
-        :returns: :class:`thelma.models.sample.Sample`
+        :returns: :class:`thelma.entities.sample.Sample`
         """
         return Sample(volume, self, **kw)
 
@@ -246,7 +246,7 @@ class ContainerSpecs(Entity):
     max_volume = None
     #: The dead volume that cannot be remove from that kind of container.
     dead_volume = None
-    #: The manufacturer (:class:`thelma.models.organization.Organization`).
+    #: The manufacturer (:class:`thelma.entities.organization.Organization`).
     manufacturer = None
     #: Specifies whether containers of these type have barcodes.
     has_barcode = None
@@ -294,7 +294,7 @@ class TubeSpecs(ContainerSpecs):
     """
 
     #: A list of tube racks sorts
-    #: (:class:`thelma.models.rack.TubeRackSpecs`)
+    #: (:class:`thelma.entities.rack.TubeRackSpecs`)
     #: this tube can be stored in.
     tube_rack_specs = None
 

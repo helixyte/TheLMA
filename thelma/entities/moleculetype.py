@@ -1,5 +1,5 @@
 """
-MoleculeType model classes.
+MoleculeType entity classes.
 
 NP, AAB
 """
@@ -52,7 +52,7 @@ class MoleculeType(Entity):
     #: thaw.
     thaw_time = None
     #: A list of modification chemical structures
-    #: (:class:`thelma.models.chemicalstructure.ChemicalStructure`)
+    #: (:class:`thelma.entities.chemicalstructure.ChemicalStructure`)
     #: that are associated with this molecule type.
     modifications = None
     #: The default stock concentration for this molecule type.

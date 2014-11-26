@@ -33,14 +33,14 @@ from thelma.automation.utils.base import is_valid_number
 from thelma.automation.utils.racksector import \
     get_sector_layouts_for_384_layout
 from thelma.interfaces import IMoleculeType
-from thelma.models.iso import StockSampleCreationIsoRequest
-from thelma.models.library import MoleculeDesignLibrary
-from thelma.models.liquidtransfer import PlannedRackSampleTransfer
-from thelma.models.liquidtransfer import PlannedSampleDilution
-from thelma.models.liquidtransfer import PlannedWorklist
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.liquidtransfer import WorklistSeries
-from thelma.models.user import User
+from thelma.entities.iso import StockSampleCreationIsoRequest
+from thelma.entities.library import MoleculeDesignLibrary
+from thelma.entities.liquidtransfer import PlannedRackSampleTransfer
+from thelma.entities.liquidtransfer import PlannedSampleDilution
+from thelma.entities.liquidtransfer import PlannedWorklist
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.liquidtransfer import WorklistSeries
+from thelma.entities.user import User
 
 
 __docformat__ = 'reStructuredText en'
@@ -56,7 +56,7 @@ class LibraryCreationIsoRequestGenerator(BaseTool):
     molecule design for the pools to be created.
     The worklists for the sample transfers a created as well.
 
-    **Return Value:** :class:`thelma.models.library.MoleculeDesignLibrary`
+    **Return Value:** :class:`thelma.entities.library.MoleculeDesignLibrary`
     """
     NAME = 'Library Generation'
 
@@ -75,7 +75,7 @@ class LibraryCreationIsoRequestGenerator(BaseTool):
             library base layout and one with the molecule design data.
         :param requester: This user will be owner and reporter of the ISO
             trac tickets.
-        :type requester: :class:`thelma.models.user.User`
+        :type requester: :class:`thelma.entities.user.User`
         :param str molecule_type: Molecule type to use for the library.
         :param int number_designs: Number of designs contained in the
             library pools to create.
@@ -294,7 +294,7 @@ class LibraryCreationWorklistGenerator(BaseTool):
     plate (with the buffer volume adjusted accordingly).
 
     **Return Value:**  worklist series
-        (:class:`thelma.models.liquidtransfer.WorklistSeries`).
+        (:class:`thelma.entities.liquidtransfer.WorklistSeries`).
     """
     NAME = 'Library Creation Worklist Generator'
     #: Name pattern for the worklists that add annealing buffer to the pool

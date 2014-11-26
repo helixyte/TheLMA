@@ -17,16 +17,16 @@ from thelma.automation.tools.worklists.tubehandler import XL20WorklistWriter
 from thelma.interfaces import IPlateSpecs
 from thelma.interfaces import ITubeRackSpecs
 from thelma.interfaces import ITubeSpecs
-from thelma.models.container import Tube
-from thelma.models.rack import TubeRack
-from thelma.models.tubetransfer import TubeTransfer
-from thelma.models.utils import get_user
-from thelma.testing import ThelmaModelTestCase
+from thelma.entities.container import Tube
+from thelma.entities.rack import TubeRack
+from thelma.entities.tubetransfer import TubeTransfer
+from thelma.entities.utils import get_user
+from thelma.testing import ThelmaEntityTestCase
 from thelma.oldtests.tools.tooltestingutils import FileCreatorTestCase
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 
-class TubeTransferDataTestCase(ThelmaModelTestCase):
+class TubeTransferDataTestCase(ThelmaEntityTestCase):
 
     def __get_init_data(self):
         return dict(tube_barcode='0001', src_rack_barcode='09999999',

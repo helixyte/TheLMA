@@ -14,10 +14,10 @@ from thelma.automation.tools.stock.sampleregistration import \
 from thelma.interfaces import IContainerSpecs
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import ITube
-from thelma.models.container import Tube
-from thelma.models.rack import Rack
-from thelma.models.rack import RackPosition
-from thelma.models.status import ITEM_STATUSES
+from thelma.entities.container import Tube
+from thelma.entities.rack import Rack
+from thelma.entities.rack import RackPosition
+from thelma.entities.status import ITEM_STATUSES
 from thelma.testing import ThelmaResourceTestCase
 import glob
 import logging

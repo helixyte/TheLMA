@@ -1,5 +1,5 @@
 """
-Organization model class
+Organization entity classes.
 
 NP, AAB
 """

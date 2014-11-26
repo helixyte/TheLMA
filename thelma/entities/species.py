@@ -1,5 +1,5 @@
 """
-Species model classes.
+Species entity classes.
 
 NP, AAB
 """
@@ -27,7 +27,7 @@ class Species(Entity):
     acronym = None
     #: Taxonomic ID from the NCBI.
     ncbi_tax_id = None
-    #: List of genes (:class:`thelma.models.gene.Genes`)
+    #: List of genes (:class:`thelma.entities.gene.Genes`)
     #: stored in the database for this species.
     genes = []
 

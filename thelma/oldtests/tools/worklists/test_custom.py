@@ -15,8 +15,8 @@ from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IOrganization
 from thelma.interfaces import IPlate
 from thelma.interfaces import IUser
-from thelma.models.liquidtransfer import TRANSFER_TYPES
-from thelma.models.sample import Molecule
+from thelma.entities.liquidtransfer import TRANSFER_TYPES
+from thelma.entities.sample import Molecule
 from thelma.oldtests.tools.tooltestingutils import FileCreatorTestCase
 from thelma.oldtests.tools.tooltestingutils import FileReadingTestCase
 

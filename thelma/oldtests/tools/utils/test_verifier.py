@@ -19,15 +19,15 @@
 #from thelma.interfaces import IMoleculeDesignPool
 #from thelma.interfaces import IRackShape
 #from thelma.interfaces import IUser
-#from thelma.models.container import TubeSpecs
-#from thelma.models.container import WellSpecs
-#from thelma.models.iso import Iso
-#from thelma.models.iso import IsoRequest
-#from thelma.models.rack import PlateSpecs
-#from thelma.models.rack import TubeRackSpecs
-#from thelma.models.racklayout import RackLayout
-#from thelma.models.sample import Molecule
-#from thelma.models.sample import Sample
+#from thelma.entities.container import TubeSpecs
+#from thelma.entities.container import WellSpecs
+#from thelma.entities.iso import Iso
+#from thelma.entities.iso import IsoRequest
+#from thelma.entities.rack import PlateSpecs
+#from thelma.entities.rack import TubeRackSpecs
+#from thelma.entities.racklayout import RackLayout
+#from thelma.entities.sample import Molecule
+#from thelma.entities.sample import Sample
 #from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 #
 #
