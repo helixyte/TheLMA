@@ -16,6 +16,7 @@ from thelma.entities.rack import RACK_TYPES
 from thelma.entities.rack import Rack
 from thelma.entities.rack import RackSpecs
 from thelma.entities.status import ItemStatus
+from thelma.entities.location import BarcodedLocationRack
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
@@ -41,8 +42,13 @@ def create_mapper(rack_tbl, rack_barcoded_location_tbl,
                                innerjoin=True, uselist=False),
             status=relationship(ItemStatus,
                                 innerjoin=True, uselist=False),
-            location=relationship(BarcodedLocation,
-                uselist=False, back_populates='rack', secondary=rbl,
+            location_rack=relationship(BarcodedLocationRack,
+                                         uselist=False,
+                                         back_populates='rack',
+                                         cascade='all,delete,delete-orphan'),
+            location=relationship(BarcodedLocation, viewonly=True,
+                uselist=False,
+                secondary=rbl,
                 foreign_keys=(rbl.c.rack_id, rbl.c.barcoded_location_id),
                 ),
             total_containers=column_property(

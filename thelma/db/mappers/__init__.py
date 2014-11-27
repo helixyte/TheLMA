@@ -1,6 +1,7 @@
 from thelma.db.mappers import amplicondesign
 from thelma.db.mappers import antimirdesign
 from thelma.db.mappers import barcodedlocation
+from thelma.db.mappers import barcodedlocationrack
 from thelma.db.mappers import barcodedlocationtype
 from thelma.db.mappers import chemicalstructure
 from thelma.db.mappers import cloneddsdnadesign
@@ -12,10 +13,10 @@ from thelma.db.mappers import containerspecs
 from thelma.db.mappers import device
 from thelma.db.mappers import devicetype
 from thelma.db.mappers import esirnadesign
+from thelma.db.mappers import executedliquidtransfer
+from thelma.db.mappers import executedracksampletransfer
 from thelma.db.mappers import executedsampledilution
 from thelma.db.mappers import executedsampletransfer
-from thelma.db.mappers import executedracksampletransfer
-from thelma.db.mappers import executedliquidtransfer
 from thelma.db.mappers import executedworklist
 from thelma.db.mappers import experiment
 from thelma.db.mappers import experimentdesign
@@ -55,10 +56,10 @@ from thelma.db.mappers import moleculetype
 from thelma.db.mappers import nucleicacidchemicalstructure
 from thelma.db.mappers import organization
 from thelma.db.mappers import pipettingspecs
+from thelma.db.mappers import plannedliquidtransfer
+from thelma.db.mappers import plannedracksampletransfer
 from thelma.db.mappers import plannedsampledilution
 from thelma.db.mappers import plannedsampletransfer
-from thelma.db.mappers import plannedracksampletransfer
-from thelma.db.mappers import plannedliquidtransfer
 from thelma.db.mappers import plannedworklist
 from thelma.db.mappers import plate
 from thelma.db.mappers import platespecs
@@ -132,8 +133,8 @@ def initialize_mappers(tables, views):
                              tables['rack_specs_container_specs'])
     devicetype.create_mapper(tables['device_type'])
     device.create_mapper(tables['device'])
-    barcodedlocation.create_mapper(tables['barcoded_location'],
-                                   tables['rack_barcoded_location'])
+    barcodedlocation.create_mapper(tables['barcoded_location'])
+    barcodedlocationrack.create_mapper(tables['rack_barcoded_location'])
     barcodedlocationtype.create_mapper(tables['barcoded_location'])
     moleculetype.create_mapper(tables['molecule_type'],
                                views['molecule_type_modification_view'],

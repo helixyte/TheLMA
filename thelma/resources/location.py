@@ -35,7 +35,7 @@ class LocationMember(Member):
     type = terminal_attribute(str, 'type')
     device = member_attribute(IDevice, 'device')
     index = terminal_attribute(int, 'index')
-    rack = member_attribute(IRack, 'rack')
+    rack = member_attribute(IRack, 'location_rack.rack')
     empty = terminal_attribute(bool, 'empty')
 
     def update(self, data):

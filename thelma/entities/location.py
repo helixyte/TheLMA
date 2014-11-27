@@ -6,11 +6,13 @@ NP
 
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
+import datetime
 
 __docformat__ = 'reStructuredText en'
 
 __all__ = ['BarcodedLocation',
-           'BarcodedLocationType'
+           'BarcodedLocationType',
+           'BarcodedLocationRack',
            ]
 
 
@@ -50,14 +52,13 @@ class BarcodedLocationType(Entity):
 
 class BarcodedLocation(Entity):
     """
-    This class represents a barcoded location. A location can store a rack.
+    This class represents a barcoded location.
+
+    A barcoded location may hold a rack.
 
     :Note: The location represents a unique, unambiguous location, e.g.
            not a complete drawer, but a certain position within the drawer.
-
-    **Equality Condition**: equal :attr:`id`
     """
-
     #: The barcode of the location.
     barcode = None
     #: The name of the location (unique).
@@ -70,18 +71,13 @@ class BarcodedLocation(Entity):
     #: The device (:class:`thelma.entities.device.Device`), if the location
     #: is associated with one (as it might be the case for e.g. robots).
     device = None
-    #: The rack (:class:`thelma.entities.rack.Rack`) stored at the location.
-    rack = None
     #: An identifier for a section within a robot, drawer etc.
     index = None
-    #: Indicates whether there is a rack stored at this location.
-    empty = True
-    #: The date a rack was last checked into this location. This is `None` if
-    #: the location is empty.
-    checkin_date = None
+    #: Associated rack checked in at this barcoded location.
+    location_rack = None
 
-    def __init__(self, name, label, type, barcode, # redef type pylint: disable=W0622
-                 device=None, index=None, rack=None, checkin_date=None, **kw):
+    def __init__(self, name, label, type, barcode, location_rack=None, # redef type pylint: disable=W0622
+                 device=None, index=None, **kw):
         Entity.__init__(self, **kw)
         #FIXME: #pylint: disable=W0511
         #       this awaits proper handling of character ids on DB level
@@ -89,10 +85,9 @@ class BarcodedLocation(Entity):
         self.label = label
         self.type = type
         self.device = device
-        self.rack = rack
         self.index = index
         self.barcode = barcode
-        self.checkin_date = checkin_date
+        self.location_rack = location_rack
 
     @property
     def slug(self):
@@ -104,27 +99,73 @@ class BarcodedLocation(Entity):
         return self.name
 
     def __repr__(self):
-        str_format = '<%s id: %s, barcode: %s, name: %s, label: %s, ' \
-                     'type: %s, device: %s, index: %s, rack: %s>'
-        params = (self.__class__.__name__, self.id, self.barcode, self.name,
-                  self.label, self.type, self.device, self.index, self.rack)
+        str_format = '<%s barcode: %s, name: %s, label: %s, ' \
+                     'type: %s, device: %s, index: %s>'
+        params = (self.__class__.__name__, self.barcode, self.name,
+                  self.label, self.type, self.device, self.index)
+        if not self.location_rack is None:
+            str_format += ', rack barcode: %s'
+            params += (self.location_rack.rack.barcode,)
+        else:
+            str_format += ', empty: True'
         return str_format % params
 
     def checkin_rack(self, rack):
         """
         Checks in the given rack at this barcoded location.
         """
-        if not self.rack is None:
+        if not self.location_rack is None:
             raise RuntimeError('Can not check in a rack in an occupied '
                                'location.')
-        self.rack = rack
-        self.rack.check_in()
+        self.location_rack = BarcodedLocationRack(rack, self)
+        rack.check_in()
 
     def checkout_rack(self):
         """
         Checks out the rack held at this barcoded location.
         """
-        if self.rack is None:
+        if self.location_rack is None:
             raise RuntimeError('Location does not have a rack to check out.')
-        self.rack.check_out()
-        self.rack = None
+        self.location_rack.rack.check_out()
+        self.location_rack = None
+
+    @property
+    def empty(self):
+        return self.location_rack is None
+
+    @property
+    def rack(self):
+        if self.location_rack is None:
+            result = None
+        else:
+            result = self.location_rack.rack
+        return result
+
+    @property
+    def rack_checkin_date(self):
+        if self.location_rack is None:
+            result = None
+        else:
+            result = self.location_rack.checkin_date
+        return result
+
+
+class BarcodedLocationRack(Entity):
+    """
+    Information about a rack held in a barcoded location.
+    """
+    #: Rrack (:class:`thelma.entities.rack.Rack`) stored at the location.
+    rack = None
+    #: Barcoded location holding the rack.
+    location = None
+    #: Date a rack was last checked into this location. This is `None` if
+    #: the location is empty.
+    checkin_date = None
+
+    def __init__(self, rack, location, checkin_date=None, **kw):
+        Entity.__init__(self, **kw)
+        self.rack = rack
+        self.location = location
+        if checkin_date is None:
+            checkin_date = datetime.datetime.now()
+        self.checkin_date = checkin_date

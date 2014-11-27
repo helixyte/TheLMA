@@ -178,6 +178,9 @@ class RackPreTraverser(EntityTraverser):
             spl = getattr(cnt, 'sample', None)
             if not spl is None:
                 getattr(spl, 'molecule_design_pool', None)
+        loc_rack = getattr(rack_, 'location_rack', None)
+        if not loc_rack is None:
+            getattr(loc_rack, 'location', None)
 
 
 class ProjectPreTraverser(EntityTraverser):
@@ -200,15 +203,21 @@ class EntityTransferer(object):
                      TubeRack:RackPreTraverser,
 #                     Project:ProjectPreTraverser,
                      PlateSpecs:PlateSpecsPreTraverser,
-                     TubeRackSpecs:TubeRackSpecsPreTraverser
+                     TubeRackSpecs:TubeRackSpecsPreTraverser,
+#                     BarcodedLocation:BarcodedLocationPreTraverser
                      }
     __post_trv_map = {}
+
     def __init__(self, src_sess, tgt_sess):
         self.__src_session = src_sess
         self.__tgt_session = tgt_sess
 
+    @classmethod
+    def get_traverser(cls, entity_class):
+        return cls.__pre_trv_map.get(entity_class)
+
     def transfer(self, entity):
-        pre_trv_cls = self.__pre_trv_map.get(type(entity))
+        pre_trv_cls = self.get_traverser(type(entity))
         if not pre_trv_cls is None:
             pre_trv = pre_trv_cls(self)
             pre_trv.traverse(entity)

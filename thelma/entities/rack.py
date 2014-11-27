@@ -143,7 +143,7 @@ class TubeRack(Rack):
     def check_in(self):
         for container in self.containers:
             if not container.sample is None:
-                container.sample.check_out()
+                container.sample.check_in()
 
     def check_out(self):
         for container in self.containers:

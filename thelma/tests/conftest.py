@@ -102,6 +102,9 @@ from thelma.entities.tubetransfer import TubeTransfer
 from thelma.entities.tubetransfer import TubeTransferWorklist
 from thelma.entities.user import User
 from thelma.entities.user import UserPreferences
+from thelma.entities.barcode import BarcodePrintJob
+from thelma.interfaces import IRackPosition
+from thelma.interfaces import IDeviceType
 
 
 __docformat__ = 'reStructuredText en'
@@ -110,6 +113,14 @@ __all__ = []
 # By design, we have to use fixtures defined in the module scope as
 # parameters in other fixture function declarations.
 # pylint: disable=W0621
+
+@fixture
+def barcode_print_job_fac(test_object_fac):
+    kw = dict(barcodes='02480532',
+              labels='TestBarcode',
+              printer='DUMMY',
+              type='UNIRACK')
+    return test_object_fac(BarcodePrintJob, kw=kw)
 
 
 @fixture
@@ -827,6 +838,12 @@ def chemical_structure_type_nucleic_acid():
 
 
 @fixture
+def device_type_printer():
+    agg = get_root_aggregate(IDeviceType)
+    return agg.get_by_slug('printer')
+
+
+@fixture
 def experiment_metadata_type_manual():
     agg = get_root_aggregate(IExperimentMetadataType)
     return agg.get_by_slug(EXPERIMENT_METADATA_TYPES.MANUAL.lower())
@@ -872,6 +889,12 @@ def pipetting_specs_biomek():
 def plate_specs_std96():
     agg = get_root_aggregate(IPlateSpecs)
     return agg.get_by_slug('std96')
+
+
+@fixture
+def rack_position_a1():
+    agg = get_root_aggregate(IRackPosition)
+    return agg.get_by_slug('a1')
 
 
 @fixture
