@@ -7,3 +7,6 @@
 /htmlcov
 .coveragerc
 .coverage
+/exported_data_unidb_unit_test_empty.sql
+
+exported_data_unidb_unit_test_empty.sql
