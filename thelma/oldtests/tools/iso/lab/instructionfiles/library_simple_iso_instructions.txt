@@ -1,5 +1,0 @@
-Processing Instructions for ISO "123_iso_01"
-============================================
-
-
-There is no ISO processing required for this ISO preparation. All required steps are performed via the job.

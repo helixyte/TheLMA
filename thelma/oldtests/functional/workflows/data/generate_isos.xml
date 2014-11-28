@@ -1,7 +1,0 @@
-<isor:lab_iso_request xmlns:iso="http://schemata.cenix-bioscience.com/iso" xmlns:isor="http://schemata.cenix-bioscience.com/isorequest">
-  <iso:isos>
-    <iso:lab_iso>
-      <iso:status>NEW</iso:status>
-    </iso:lab_iso>
-  </iso:isos>
-</isor:lab_iso_request>

@@ -1,4 +1,0 @@
-Molecule Design Pool ID,Stock Tube Barcode,Volume (ul),Target Rack Barcode,Target Position
-205205,1000205205,1,09999911,C2
-205206,1000205206,1,09999911,C3
-205207,1000205207,1,09999911,C4

@@ -1,6 +1,0 @@
-A stock transfer has been executed by Michael Brehm (see file: attachment:stock_transfer_testlib-4.csv).
-
-Type: samples
-
-Library source (preparation) plates (quadrants):
-09990000 (Q1), 09990001 (Q2), 09990002 (Q3), 09990003 (Q4).

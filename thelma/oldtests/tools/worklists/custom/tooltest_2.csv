@@ -1,9 +1,0 @@
-SourcePlateBarcode,SourcePlateWell,DestinationPlateBarcode,DestinationPlateWell,Volume,DiluentInformation
-R2,A1,09999998,B2,2,medium
-R2,A1,09999998,B3,2,medium
-R2,A1,09999998,E2,2,medium
-R2,A1,09999998,E3,2,medium
-R2,A1,09999999,B2,2,medium
-R2,A1,09999999,B3,2,medium
-R2,A1,09999999,E2,2,medium
-R2,A1,09999999,E3,2,medium
