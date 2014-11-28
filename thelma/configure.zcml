@@ -12,7 +12,7 @@
 
     <rdb_repository
         make_default="true"
-        metadata_factory="thelma.db.create_metadata"
+        metadata_factory="thelma.repositories.rdb.create_metadata"
         aggregate_class="thelma.entities.aggregates.ThelmaRdbAggregate" />
 
     <memory_repository
