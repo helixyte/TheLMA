@@ -43,7 +43,7 @@
     <!-- RENDERERS -->
     
     <renderer
-        name="service"
+        name="louice"
         factory=".renderers.ThelmaRendererFactory" />
 
     <renderer
