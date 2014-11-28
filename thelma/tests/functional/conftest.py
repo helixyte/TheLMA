@@ -17,7 +17,7 @@ class TestFunctionalBase(object):
 
 @pytest.fixture
 def sample_registration_data():
-    fn = 'thelma:oldtests/tools/stock/registration/' + \
+    fn = 'thelma:tests/functional/data/' + \
          'ambion_delivery_samples_with_locations.json'
     ftokens = fn.split(':')
     fn = resource_filename(*ftokens)
