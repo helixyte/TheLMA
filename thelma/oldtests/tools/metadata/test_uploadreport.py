@@ -2,23 +2,23 @@
 Tests for metadata report tools.
 """
 
-from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.semiconstants import get_experiment_metadata_type
-from thelma.automation.tools.metadata.ticket import IsoRequestTicketCreator
-from thelma.automation.tools.metadata.uploadreport \
+from thelma.tools.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.tools.semiconstants import get_experiment_metadata_type
+from thelma.tools.metadata.ticket import IsoRequestTicketCreator
+from thelma.tools.metadata.uploadreport \
     import ExperimentMetadataAssignmentWriter
-from thelma.automation.tools.metadata.uploadreport \
+from thelma.tools.metadata.uploadreport \
     import ExperimentMetadataInfoWriter
-from thelma.automation.tools.metadata.uploadreport \
+from thelma.tools.metadata.uploadreport \
     import ExperimentMetadataInfoWriterLibrary
-from thelma.automation.tools.metadata.uploadreport \
+from thelma.tools.metadata.uploadreport \
     import ExperimentMetadataInfoWriterWarningOnly
-from thelma.automation.tools.metadata.uploadreport \
+from thelma.tools.metadata.uploadreport \
     import ExperimentMetadataIsoPlateWriter
-from thelma.automation.tools.metadata.uploadreport \
+from thelma.tools.metadata.uploadreport \
     import ExperimentMetadataReportUploader
-from thelma.automation.tools.worklists.base import RESERVOIR_SPECS_NAMES
-from thelma.automation.tools.worklists.base import get_reservoir_spec
+from thelma.tools.worklists.base import RESERVOIR_SPECS_NAMES
+from thelma.tools.worklists.base import get_reservoir_spec
 from thelma.interfaces import ISubproject
 from thelma.entities.experiment import ExperimentMetadata
 from thelma.entities.utils import get_user

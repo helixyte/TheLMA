@@ -4,13 +4,13 @@ Tests for tools involved in the population of stock sample generation ISOs.
 AAB
 """
 from everest.repositories.rdb.testing import RdbContextManager
-from thelma.automation.tools.iso import get_job_creator
-from thelma.automation.tools.iso.poolcreation.jobcreator \
+from thelma.tools.iso import get_job_creator
+from thelma.tools.iso.poolcreation.jobcreator \
     import StockSampleCreationIsoPopulator
-from thelma.automation.tools.iso.poolcreation.jobcreator \
+from thelma.tools.iso.poolcreation.jobcreator \
     import StockSampleCreationIsoResetter
-from thelma.automation.tools.iso.poolcreation.jobcreator import StockSampleCreationIsoJobCreator
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.iso.poolcreation.jobcreator import StockSampleCreationIsoJobCreator
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.entities.iso import ISO_STATUS
 from thelma.entities.utils import get_user
 from thelma.oldtests.tools.iso.poolcreation.utils \

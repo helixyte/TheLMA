@@ -25,7 +25,7 @@ from everest.testing import EntityTestCase
 from everest.testing import FunctionalTestCase
 from everest.testing import ResourceCreatorMixin as EverestResourceCreatorMixin
 from everest.testing import ResourceTestCase
-from thelma.automation.tools.iso.libcreation.base import DEFAULT_PREPARATION_PLATE_VOLUME
+from thelma.tools.iso.libcreation.base import DEFAULT_PREPARATION_PLATE_VOLUME
 from thelma.entities.barcode import BarcodePrintJob
 from thelma.entities.chemicalstructure import NucleicAcidChemicalStructure
 from thelma.entities.container import ContainerLocation

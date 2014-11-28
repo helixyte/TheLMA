@@ -4,13 +4,13 @@ Tests for custom liquid transfer plan tools.
 AAB
 """
 from everest.entities.utils import get_root_aggregate
-from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
-from thelma.automation.semiconstants import get_item_status_future
-from thelma.automation.semiconstants import get_rack_specs_from_reservoir_specs
-from thelma.automation.semiconstants import get_reservoir_spec
-from thelma.automation.tools.worklists.custom import CustomLiquidTransferTool
-from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.tools.semiconstants import get_item_status_future
+from thelma.tools.semiconstants import get_rack_specs_from_reservoir_specs
+from thelma.tools.semiconstants import get_reservoir_spec
+from thelma.tools.worklists.custom import CustomLiquidTransferTool
+from thelma.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IOrganization
 from thelma.interfaces import IPlate

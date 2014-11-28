@@ -2,26 +2,26 @@
 Tests ISO request ticket tools.
 """
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
-from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.semiconstants import get_experiment_metadata_type
-from thelma.automation.tools.metadata.generation \
+from thelma.tools.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.tools.semiconstants import get_experiment_metadata_type
+from thelma.tools.metadata.generation \
     import ExperimentMetadataGenerator
-from thelma.automation.tools.metadata.ticket \
+from thelma.tools.metadata.ticket \
     import IsoRequestTicketAccepter
-from thelma.automation.tools.metadata.ticket \
+from thelma.tools.metadata.ticket \
     import IsoRequestTicketActivator
-from thelma.automation.tools.metadata.ticket \
+from thelma.tools.metadata.ticket \
     import IsoRequestTicketCreator
-from thelma.automation.tools.metadata.ticket \
+from thelma.tools.metadata.ticket \
     import IsoRequestTicketDescriptionBuilder
-from thelma.automation.tools.metadata.ticket \
+from thelma.tools.metadata.ticket \
     import IsoRequestTicketDescriptionRemover
-from thelma.automation.tools.metadata.ticket \
+from thelma.tools.metadata.ticket \
     import IsoRequestTicketDescriptionUpdater
-from thelma.automation.tools.metadata.ticket \
+from thelma.tools.metadata.ticket \
     import IsoRequestTicketReassigner
-from thelma.automation.tools.metadata.ticket import IsoRequestTicketReopener
-from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
+from thelma.tools.metadata.ticket import IsoRequestTicketReopener
+from thelma.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.interfaces import IProject
 from thelma.interfaces import IUser
 from thelma.entities.experiment import ExperimentMetadata

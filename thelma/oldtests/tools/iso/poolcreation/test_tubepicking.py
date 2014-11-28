@@ -4,13 +4,13 @@ Deals with tube picking optimisation for pool stock sample creations.
 AAB
 """
 from everest.repositories.rdb.testing import RdbContextManager
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.iso.poolcreation.tubepicking \
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.iso.poolcreation.tubepicking \
     import StockSampleCreationTubePicker
-from thelma.automation.tools.iso.poolcreation.tubepicking import PoolCandidate
-from thelma.automation.tools.stock.tubepicking import TubeCandidate
-from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.iso.poolcreation.tubepicking import PoolCandidate
+from thelma.tools.stock.tubepicking import TubeCandidate
+from thelma.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeDesign
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 

@@ -4,28 +4,28 @@ Transfer execution test cases.
 AAB
 """
 from everest.repositories.rdb.testing import check_attributes
-from thelma.automation.semiconstants import ITEM_STATUS_NAMES
-from thelma.automation.semiconstants import get_384_rack_shape
-from thelma.automation.semiconstants import get_96_rack_shape
-from thelma.automation.semiconstants import get_item_status_future
-from thelma.automation.semiconstants import get_item_status_managed
-from thelma.automation.semiconstants import get_pipetting_specs_biomek
-from thelma.automation.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.semiconstants import get_pipetting_specs_manual
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.worklists.execution \
+from thelma.tools.semiconstants import ITEM_STATUS_NAMES
+from thelma.tools.semiconstants import get_384_rack_shape
+from thelma.tools.semiconstants import get_96_rack_shape
+from thelma.tools.semiconstants import get_item_status_future
+from thelma.tools.semiconstants import get_item_status_managed
+from thelma.tools.semiconstants import get_pipetting_specs_biomek
+from thelma.tools.semiconstants import get_pipetting_specs_cybio
+from thelma.tools.semiconstants import get_pipetting_specs_manual
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.worklists.execution \
     import RackSampleTransferExecutor
-from thelma.automation.tools.worklists.execution \
+from thelma.tools.worklists.execution \
     import SampleDilutionWorklistExecutor
-from thelma.automation.tools.worklists.execution \
+from thelma.tools.worklists.execution \
     import SampleTransferWorklistExecutor
-from thelma.automation.tools.worklists.execution import SampleComponent
-from thelma.automation.tools.worklists.execution import SampleData
-from thelma.automation.tools.worklists.execution import SourceSample
-from thelma.automation.tools.worklists.execution import TargetSample
-from thelma.automation.tools.worklists.execution import TransferredSample
-from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.worklists.execution import SampleComponent
+from thelma.tools.worklists.execution import SampleData
+from thelma.tools.worklists.execution import SourceSample
+from thelma.tools.worklists.execution import TargetSample
+from thelma.tools.worklists.execution import TransferredSample
+from thelma.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IOrganization
 from thelma.interfaces import IReservoirSpecs

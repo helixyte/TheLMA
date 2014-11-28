@@ -7,22 +7,22 @@ AAB Aug 03, 2011
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 
 from everest.repositories.rdb.testing import check_attributes
-from thelma.automation.handlers.experimentdesign import \
+from thelma.tools.handlers.experimentdesign import \
         ExperimentDesignParserHandler
-from thelma.automation.semiconstants \
+from thelma.tools.semiconstants \
     import get_experiment_type_robot_optimisation
-from thelma.automation.semiconstants import get_384_rack_shape
-from thelma.automation.semiconstants import get_96_rack_shape
-from thelma.automation.semiconstants import get_positions_for_shape
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.metadata.base import TransfectionLayoutConverter
-from thelma.automation.tools.metadata.base import TransfectionParameters
-from thelma.automation.tools.metadata.base import TransfectionPosition
-from thelma.automation.tools.metadata.transfectionlayoutfinder \
+from thelma.tools.semiconstants import get_384_rack_shape
+from thelma.tools.semiconstants import get_96_rack_shape
+from thelma.tools.semiconstants import get_positions_for_shape
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.metadata.base import TransfectionLayoutConverter
+from thelma.tools.metadata.base import TransfectionParameters
+from thelma.tools.metadata.base import TransfectionPosition
+from thelma.tools.metadata.transfectionlayoutfinder \
     import TransfectionLayoutFinder
-from thelma.automation.tools.metadata.transfectionlayoutfinder \
+from thelma.tools.metadata.transfectionlayoutfinder \
     import _TransfectionLayoutOptimizer
-from thelma.automation.tools.metadata.transfectionlayoutfinder \
+from thelma.tools.metadata.transfectionlayoutfinder \
     import _TransfectionTransferItem
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.entities.utils import get_user

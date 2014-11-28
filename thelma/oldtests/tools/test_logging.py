@@ -1,6 +1,6 @@
 import logging
 
-from thelma.automation.messagerecorder import MessageRecorder
+from thelma.tools.messagerecorder import MessageRecorder
 from thelma.testing import ThelmaEntityTestCase
 
 
@@ -87,6 +87,9 @@ class EventRecordingTestCase(ThelmaEntityTestCase):
         del self.CRIT_MSG_IN
         del self.CRIT_MSG_OUT
         del self.ALL
+
+    def _get_data(self):
+        ThelmaEntityTestCase._get_data(self)
 
     def test_has_errors(self):
         self.assert_true(self.test_tool.has_errors())

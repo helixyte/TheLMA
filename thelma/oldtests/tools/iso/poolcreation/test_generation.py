@@ -4,18 +4,18 @@ ISO requests.
 
 AAB
 """
-from thelma.automation.tools.iso.poolcreation.base import VolumeCalculator
-from thelma.automation.tools.iso.poolcreation.generation \
+from thelma.tools.iso.poolcreation.base import VolumeCalculator
+from thelma.tools.iso.poolcreation.generation \
     import StockSampleCreationIsoGenerator
-from thelma.automation.tools.iso.poolcreation.generation \
+from thelma.tools.iso.poolcreation.generation \
     import StockSampleCreationIsoRequestGenerator
-from thelma.automation.tools.iso.poolcreation.generation \
+from thelma.tools.iso.poolcreation.generation \
     import StockSampleCreationWorklistGenerator
-from thelma.automation.tools.iso.poolcreation.generation \
+from thelma.tools.iso.poolcreation.generation \
     import StockSampleCreationTicketGenerator
-from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
-from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.stock.base import STOCKMANAGEMENT_USER
+from thelma.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.entities.utils import get_user
 from thelma.oldtests.tools.iso.poolcreation.utils \
     import StockSampleCreationTestCase1

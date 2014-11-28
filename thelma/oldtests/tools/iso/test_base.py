@@ -6,22 +6,22 @@ AAB
 """
 from everest.repositories.rdb.testing import RdbContextManager
 from everest.repositories.rdb.testing import check_attributes
-from thelma.automation.semiconstants import RACK_SHAPE_NAMES
-from thelma.automation.semiconstants import get_384_rack_shape
-from thelma.automation.semiconstants import get_item_status_managed
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.iso.base import IsoRackContainer
-from thelma.automation.tools.iso.base import StockRackLayout
-from thelma.automation.tools.iso.base import StockRackLayoutConverter
-from thelma.automation.tools.iso.base import StockRackParameters
-from thelma.automation.tools.iso.base import StockRackPosition
-from thelma.automation.tools.iso.base import StockRackVerifier
-from thelma.automation.tools.iso.base import _ISO_LABELS_BASE
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
-from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
-from thelma.automation.utils.layouts import MoleculeDesignPoolParameters
-from thelma.automation.utils.layouts import TransferTarget
+from thelma.tools.semiconstants import RACK_SHAPE_NAMES
+from thelma.tools.semiconstants import get_384_rack_shape
+from thelma.tools.semiconstants import get_item_status_managed
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.iso.base import IsoRackContainer
+from thelma.tools.iso.base import StockRackLayout
+from thelma.tools.iso.base import StockRackLayoutConverter
+from thelma.tools.iso.base import StockRackParameters
+from thelma.tools.iso.base import StockRackPosition
+from thelma.tools.iso.base import StockRackVerifier
+from thelma.tools.iso.base import _ISO_LABELS_BASE
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.utils.layouts import FIXED_POSITION_TYPE
+from thelma.tools.utils.layouts import MOCK_POSITION_TYPE
+from thelma.tools.utils.layouts import MoleculeDesignPoolParameters
+from thelma.tools.utils.layouts import TransferTarget
 from thelma.interfaces import IPlate
 from thelma.interfaces import ITubeRack
 from thelma.entities.liquidtransfer import PlannedSampleTransfer
@@ -31,7 +31,7 @@ from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 from thelma.oldtests.tools.utils.utils import ConverterTestCase
 from thelma.oldtests.tools.utils.utils import MoleculeDesignPoolBaseTestCase
 from thelma.oldtests.tools.utils.utils import VerifierTestCase
-from thelma.automation.semiconstants import RACK_SPECS_NAMES
+from thelma.tools.semiconstants import RACK_SPECS_NAMES
 
 
 class _LABELS_DUMMY(_ISO_LABELS_BASE):

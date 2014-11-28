@@ -4,27 +4,27 @@ ISOs.
 
 AAB
 """
-from thelma.automation.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.semiconstants import get_positions_for_shape
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.iso.poolcreation import get_worklist_uploader
-from thelma.automation.tools.iso.poolcreation import get_worklist_writer
-from thelma.automation.tools.iso.poolcreation.writer import StockSampleCreationInstructionsWriter
-from thelma.automation.tools.iso.poolcreation.base \
+from thelma.tools.semiconstants import get_pipetting_specs_cybio
+from thelma.tools.semiconstants import get_positions_for_shape
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.iso.poolcreation import get_worklist_uploader
+from thelma.tools.iso.poolcreation import get_worklist_writer
+from thelma.tools.iso.poolcreation.writer import StockSampleCreationInstructionsWriter
+from thelma.tools.iso.poolcreation.base \
     import StockSampleCreationLayout
-from thelma.automation.tools.iso.poolcreation.base \
+from thelma.tools.iso.poolcreation.base \
     import StockSampleCreationPosition
-from thelma.automation.tools.iso.poolcreation.writer \
+from thelma.tools.iso.poolcreation.writer \
     import StockSampleCreationIsoLayoutWriter
-from thelma.automation.tools.iso.poolcreation.writer \
+from thelma.tools.iso.poolcreation.writer \
     import StockSampleCreationIsoWorklistWriter
-from thelma.automation.tools.iso.poolcreation.writer \
+from thelma.tools.iso.poolcreation.writer \
     import _SingleRackTransferWorklistWriter
-from thelma.automation.tools.iso.poolcreation.writer \
+from thelma.tools.iso.poolcreation.writer \
     import _StockSampleCreationXL20ReportWriter
-from thelma.automation.tools.worklists.tubehandler import TubeTransferData
-from thelma.automation.tools.worklists.tubehandler import XL20WorklistWriter
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.worklists.tubehandler import TubeTransferData
+from thelma.tools.worklists.tubehandler import XL20WorklistWriter
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.entities.iso import ISO_STATUS
 from thelma.entities.liquidtransfer import TRANSFER_TYPES
 from thelma.entities.racklayout import RackLayout

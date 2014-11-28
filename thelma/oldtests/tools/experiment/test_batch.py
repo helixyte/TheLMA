@@ -3,13 +3,13 @@ Test for batch experiment tools.
 
 AAB
 """
-from thelma.automation.semiconstants import ITEM_STATUS_NAMES
-from thelma.automation.semiconstants import RACK_SPECS_NAMES
-from thelma.automation.semiconstants import get_96_rack_shape
-from thelma.automation.semiconstants import get_experiment_type_order
-from thelma.automation.tools.experiment import get_batch_executor
-from thelma.automation.tools.experiment import get_batch_manual_executor
-from thelma.automation.tools.experiment import get_batch_writer
+from thelma.tools.semiconstants import ITEM_STATUS_NAMES
+from thelma.tools.semiconstants import RACK_SPECS_NAMES
+from thelma.tools.semiconstants import get_96_rack_shape
+from thelma.tools.semiconstants import get_experiment_type_order
+from thelma.tools.experiment import get_batch_executor
+from thelma.tools.experiment import get_batch_manual_executor
+from thelma.tools.experiment import get_batch_writer
 from thelma.entities.racklayout import RackLayout
 from thelma.entities.utils import get_user
 from thelma.oldtests.tools.experiment.utils import EXPERIMENT_TEST_DATA

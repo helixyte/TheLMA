@@ -12,7 +12,7 @@ from everest.mime import ZipMime
 from everest.renderers import ResourceRenderer
 from everest.resources.interfaces import IResource
 from everest.views.base import WarnAndResubmitExecutor
-from thelma.automation.tools.iso import lab
+from thelma.tools.iso import lab
 from thelma.mime import ExperimentZippedWorklistMime
 from thelma.mime import IsoJobZippedWorklistMime
 from thelma.mime import IsoZippedWorklistMime

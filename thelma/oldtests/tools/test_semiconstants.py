@@ -5,38 +5,38 @@ AAB
 """
 from everest.entities.utils import get_root_aggregate
 from everest.repositories.rdb.utils import as_slug_expression
-from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.semiconstants import ITEM_STATUS_NAMES
-from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
-from thelma.automation.semiconstants import RACK_SHAPE_NAMES
-from thelma.automation.semiconstants import RACK_SPECS_NAMES
-from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
-from thelma.automation.semiconstants import get_384_rack_shape
-from thelma.automation.semiconstants import get_96_rack_shape
-from thelma.automation.semiconstants import get_experiment_metadata_type
-from thelma.automation.semiconstants import get_experiment_type_isoless
-from thelma.automation.semiconstants import get_experiment_type_library
-from thelma.automation.semiconstants \
+from thelma.tools.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.tools.semiconstants import ITEM_STATUS_NAMES
+from thelma.tools.semiconstants import PIPETTING_SPECS_NAMES
+from thelma.tools.semiconstants import RACK_SHAPE_NAMES
+from thelma.tools.semiconstants import RACK_SPECS_NAMES
+from thelma.tools.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.tools.semiconstants import get_384_rack_shape
+from thelma.tools.semiconstants import get_96_rack_shape
+from thelma.tools.semiconstants import get_experiment_metadata_type
+from thelma.tools.semiconstants import get_experiment_type_isoless
+from thelma.tools.semiconstants import get_experiment_type_library
+from thelma.tools.semiconstants \
     import get_experiment_type_manual_optimisation
-from thelma.automation.semiconstants import get_experiment_type_order
-from thelma.automation.semiconstants \
+from thelma.tools.semiconstants import get_experiment_type_order
+from thelma.tools.semiconstants \
     import get_experiment_type_robot_optimisation
-from thelma.automation.semiconstants import get_experiment_type_screening
-from thelma.automation.semiconstants import get_item_status
-from thelma.automation.semiconstants import get_item_status_future
-from thelma.automation.semiconstants import get_item_status_managed
-from thelma.automation.semiconstants import get_pipetting_specs
-from thelma.automation.semiconstants import get_pipetting_specs_biomek
-from thelma.automation.semiconstants import get_pipetting_specs_biomek_stock
-from thelma.automation.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.semiconstants import get_pipetting_specs_manual
-from thelma.automation.semiconstants import get_positions_for_shape
-from thelma.automation.semiconstants import get_rack_specs_from_reservoir_specs
-from thelma.automation.semiconstants import get_reservoir_spec
-from thelma.automation.semiconstants import get_reservoir_specs_deep_96
-from thelma.automation.semiconstants import get_reservoir_specs_from_rack_specs
-from thelma.automation.semiconstants import get_reservoir_specs_standard_384
-from thelma.automation.semiconstants import get_reservoir_specs_standard_96
+from thelma.tools.semiconstants import get_experiment_type_screening
+from thelma.tools.semiconstants import get_item_status
+from thelma.tools.semiconstants import get_item_status_future
+from thelma.tools.semiconstants import get_item_status_managed
+from thelma.tools.semiconstants import get_pipetting_specs
+from thelma.tools.semiconstants import get_pipetting_specs_biomek
+from thelma.tools.semiconstants import get_pipetting_specs_biomek_stock
+from thelma.tools.semiconstants import get_pipetting_specs_cybio
+from thelma.tools.semiconstants import get_pipetting_specs_manual
+from thelma.tools.semiconstants import get_positions_for_shape
+from thelma.tools.semiconstants import get_rack_specs_from_reservoir_specs
+from thelma.tools.semiconstants import get_reservoir_spec
+from thelma.tools.semiconstants import get_reservoir_specs_deep_96
+from thelma.tools.semiconstants import get_reservoir_specs_from_rack_specs
+from thelma.tools.semiconstants import get_reservoir_specs_standard_384
+from thelma.tools.semiconstants import get_reservoir_specs_standard_96
 from thelma.interfaces import IRackSpecs
 from thelma.entities.experiment import ExperimentMetadataType
 from thelma.entities.liquidtransfer import PipettingSpecs

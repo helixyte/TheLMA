@@ -3,21 +3,21 @@ Tests the classes related in transfection.
 
 AAB
 """
-from thelma.automation.semiconstants import get_96_rack_shape
-from thelma.automation.semiconstants import get_min_transfer_volume
-from thelma.automation.semiconstants import get_pipetting_specs_biomek
-from thelma.automation.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.semiconstants import get_reservoir_specs_standard_96
-from thelma.automation.tools.metadata.base import TransfectionAssociationData
-from thelma.automation.tools.metadata.base import TransfectionLayout
-from thelma.automation.tools.metadata.base import TransfectionLayoutConverter
-from thelma.automation.tools.metadata.base import TransfectionParameters
-from thelma.automation.tools.metadata.base import TransfectionPosition
-from thelma.automation.tools.metadata.base import TransfectionSectorAssociator
-from thelma.automation.utils.layouts import LIBRARY_POSITION_TYPE
-from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
-from thelma.automation.utils.layouts import UNTREATED_POSITION_TYPE
+from thelma.tools.semiconstants import get_96_rack_shape
+from thelma.tools.semiconstants import get_min_transfer_volume
+from thelma.tools.semiconstants import get_pipetting_specs_biomek
+from thelma.tools.semiconstants import get_pipetting_specs_cybio
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.semiconstants import get_reservoir_specs_standard_96
+from thelma.tools.metadata.base import TransfectionAssociationData
+from thelma.tools.metadata.base import TransfectionLayout
+from thelma.tools.metadata.base import TransfectionLayoutConverter
+from thelma.tools.metadata.base import TransfectionParameters
+from thelma.tools.metadata.base import TransfectionPosition
+from thelma.tools.metadata.base import TransfectionSectorAssociator
+from thelma.tools.utils.layouts import LIBRARY_POSITION_TYPE
+from thelma.tools.utils.layouts import MOCK_POSITION_TYPE
+from thelma.tools.utils.layouts import UNTREATED_POSITION_TYPE
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import IUser
 from thelma.entities.moleculetype import MOLECULE_TYPE_IDS

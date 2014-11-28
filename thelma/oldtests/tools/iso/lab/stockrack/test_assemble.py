@@ -5,37 +5,37 @@ involved in ISO processing.
 AAB
 """
 from everest.repositories.rdb.testing import RdbContextManager
-from thelma.automation.semiconstants import clear_semiconstant_caches
-from thelma.automation.semiconstants import get_384_rack_shape
-from thelma.automation.semiconstants import get_96_rack_shape
-from thelma.automation.semiconstants import get_item_status_managed
-from thelma.automation.semiconstants import get_positions_for_shape
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.semiconstants import initialize_semiconstant_caches
-from thelma.automation.tools.iso.lab.base import FinalLabIsoPosition
-from thelma.automation.tools.iso.lab.base import LABELS
-from thelma.automation.tools.iso.lab.stockrack.assemble \
+from thelma.tools.semiconstants import clear_semiconstant_caches
+from thelma.tools.semiconstants import get_384_rack_shape
+from thelma.tools.semiconstants import get_96_rack_shape
+from thelma.tools.semiconstants import get_item_status_managed
+from thelma.tools.semiconstants import get_positions_for_shape
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.semiconstants import initialize_semiconstant_caches
+from thelma.tools.iso.lab.base import FinalLabIsoPosition
+from thelma.tools.iso.lab.base import LABELS
+from thelma.tools.iso.lab.stockrack.assemble \
     import LabIsoStockRackOptimizer
-from thelma.automation.tools.iso.lab.stockrack.assemble \
+from thelma.tools.iso.lab.stockrack.assemble \
     import LabIsoXL20SummaryWriter
-from thelma.automation.tools.iso.lab.stockrack.assemble \
+from thelma.tools.iso.lab.stockrack.assemble \
     import LabIsoXL20WorklistWriter
-from thelma.automation.tools.iso.lab.stockrack.assemble \
+from thelma.tools.iso.lab.stockrack.assemble \
     import StockRackAssemblerIsoJob
-from thelma.automation.tools.iso.lab.stockrack.assemble \
+from thelma.tools.iso.lab.stockrack.assemble \
     import StockRackAssemblerLabIso
-from thelma.automation.tools.iso.lab.stockrack.base import StockTubeContainer
-from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
-from thelma.automation.tools.stock.base import STOCK_RACK_SHAPE_NAME
-from thelma.automation.tools.stock.tubepicking import SinglePoolQuery
-from thelma.automation.tools.stock.tubepicking import TubeCandidate
-from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.utils.base import add_list_map_element
-from thelma.automation.utils.base import is_smaller_than
-from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
-from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
-from thelma.automation.utils.layouts import TransferTarget
+from thelma.tools.iso.lab.stockrack.base import StockTubeContainer
+from thelma.tools.stock.base import STOCK_DEAD_VOLUME
+from thelma.tools.stock.base import STOCK_RACK_SHAPE_NAME
+from thelma.tools.stock.tubepicking import SinglePoolQuery
+from thelma.tools.stock.tubepicking import TubeCandidate
+from thelma.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.utils.base import add_list_map_element
+from thelma.tools.utils.base import is_smaller_than
+from thelma.tools.utils.layouts import FIXED_POSITION_TYPE
+from thelma.tools.utils.layouts import MOCK_POSITION_TYPE
+from thelma.tools.utils.layouts import TransferTarget
 from thelma.interfaces import IUser
 from thelma.entities.container import Tube
 from thelma.oldtests.tools.iso.lab.stockrack.utils import LabIsoStockRackTestCase

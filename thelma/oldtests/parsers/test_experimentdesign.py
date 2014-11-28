@@ -4,21 +4,21 @@ tests the experiment meta data excel file parser
 AAB May 12, 2011
 """
 
-from thelma.automation.handlers.experimentdesign \
+from thelma.tools.handlers.experimentdesign \
     import ExperimentDesignParserHandler
-from thelma.automation.parsers.experimentdesign import ExperimentDesignParser
-from thelma.automation.semiconstants \
+from thelma.tools.parsers.experimentdesign import ExperimentDesignParser
+from thelma.tools.semiconstants \
     import get_experiment_type_manual_optimisation
-from thelma.automation.semiconstants \
+from thelma.tools.semiconstants \
     import get_experiment_type_robot_optimisation
-from thelma.automation.semiconstants import RACK_SHAPE_NAMES
-from thelma.automation.semiconstants import get_experiment_type_isoless
-from thelma.automation.semiconstants import get_experiment_type_library
-from thelma.automation.semiconstants import get_experiment_type_order
-from thelma.automation.semiconstants import get_experiment_type_screening
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.metadata.base import TransfectionParameters
-from thelma.automation.utils.layouts import UNTREATED_POSITION_TYPE
+from thelma.tools.semiconstants import RACK_SHAPE_NAMES
+from thelma.tools.semiconstants import get_experiment_type_isoless
+from thelma.tools.semiconstants import get_experiment_type_library
+from thelma.tools.semiconstants import get_experiment_type_order
+from thelma.tools.semiconstants import get_experiment_type_screening
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.metadata.base import TransfectionParameters
+from thelma.tools.utils.layouts import UNTREATED_POSITION_TYPE
 from thelma.entities.tagging import Tag
 from thelma.entities.utils import get_user
 from thelma.oldtests.tools.tooltestingutils import ParsingTestCase

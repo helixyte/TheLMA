@@ -4,30 +4,30 @@ Base classes for experiment tests.
 AAB
 """
 from everest.entities.utils import get_root_aggregate
-from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.semiconstants import ITEM_STATUS_NAMES
-from thelma.automation.semiconstants import RACK_SPECS_NAMES
-from thelma.automation.semiconstants import get_384_rack_shape
-from thelma.automation.semiconstants import get_96_rack_shape
-from thelma.automation.semiconstants import get_experiment_metadata_type
-from thelma.automation.semiconstants import get_experiment_type_order
-from thelma.automation.semiconstants import get_item_status_future
-from thelma.automation.semiconstants import get_item_status_managed
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.semiconstants import get_rack_specs_from_reservoir_specs
-from thelma.automation.tools.iso.lab.base import FinalLabIsoLayout
-from thelma.automation.tools.iso.lab.base import FinalLabIsoPosition
-from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.utils.layouts import LibraryBaseLayout
-from thelma.automation.utils.layouts import LibraryBaseLayoutPosition
+from thelma.tools.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.tools.semiconstants import ITEM_STATUS_NAMES
+from thelma.tools.semiconstants import RACK_SPECS_NAMES
+from thelma.tools.semiconstants import get_384_rack_shape
+from thelma.tools.semiconstants import get_96_rack_shape
+from thelma.tools.semiconstants import get_experiment_metadata_type
+from thelma.tools.semiconstants import get_experiment_type_order
+from thelma.tools.semiconstants import get_item_status_future
+from thelma.tools.semiconstants import get_item_status_managed
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.semiconstants import get_rack_specs_from_reservoir_specs
+from thelma.tools.iso.lab.base import FinalLabIsoLayout
+from thelma.tools.iso.lab.base import FinalLabIsoPosition
+from thelma.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.utils.layouts import LibraryBaseLayout
+from thelma.tools.utils.layouts import LibraryBaseLayoutPosition
 from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.entities.library import LibraryPlate
 from thelma.entities.library import MoleculeDesignLibrary
 from thelma.entities.moleculedesign import MoleculeDesignPoolSet
 from thelma.entities.racklayout import RackLayout
-from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
+from thelma.tools.semiconstants import PIPETTING_SPECS_NAMES
 from thelma.entities.liquidtransfer import TRANSFER_TYPES
 from thelma.oldtests.tools.tooltestingutils \
     import ExperimentMetadataReadingTestCase

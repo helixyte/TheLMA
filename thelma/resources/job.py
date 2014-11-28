@@ -17,10 +17,10 @@ from everest.resources.base import Member
 from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
-from thelma.automation.semiconstants import ITEM_STATUS_NAMES
-from thelma.automation.tools.experiment import get_batch_writer
-from thelma.automation.tools.experiment import get_executor
-from thelma.automation.tools.experiment import get_manual_executor
+from thelma.tools.semiconstants import ITEM_STATUS_NAMES
+from thelma.tools.experiment import get_batch_writer
+from thelma.tools.experiment import get_executor
+from thelma.tools.experiment import get_manual_executor
 from thelma.interfaces import IExperiment
 from thelma.interfaces import IIso
 from thelma.interfaces import IItemStatus

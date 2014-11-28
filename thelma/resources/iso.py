@@ -18,15 +18,15 @@ from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from everest.resources.utils import get_root_collection
-from thelma.automation.tools.iso import get_job_creator
-from thelma.automation.tools.iso import lab
-from thelma.automation.tools.iso.lab import get_stock_rack_recyler
-from thelma.automation.tools.iso.lab import get_worklist_executor
-from thelma.automation.tools.iso.lab.tracreporting import LabIsoStockTransferReporter
-from thelma.automation.tools.metadata.ticket import IsoRequestTicketAccepter
-from thelma.automation.tools.metadata.ticket import IsoRequestTicketReassigner
-from thelma.automation.tools.metadata.ticket import IsoRequestTicketReopener
-from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
+from thelma.tools.iso import get_job_creator
+from thelma.tools.iso import lab
+from thelma.tools.iso.lab import get_stock_rack_recyler
+from thelma.tools.iso.lab import get_worklist_executor
+from thelma.tools.iso.lab.tracreporting import LabIsoStockTransferReporter
+from thelma.tools.metadata.ticket import IsoRequestTicketAccepter
+from thelma.tools.metadata.ticket import IsoRequestTicketReassigner
+from thelma.tools.metadata.ticket import IsoRequestTicketReopener
+from thelma.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.interfaces import IExperimentMetadata
 from thelma.interfaces import IIsoJob
 from thelma.interfaces import ILabIso
@@ -48,7 +48,7 @@ from thelma.utils import run_tool
 from thelma.utils import run_trac_tool
 
 
-#from thelma.automation.tools.libcreation.iso import LibraryCreationIsoPopulator
+#from thelma.tools.libcreation.iso import LibraryCreationIsoPopulator
 __docformat__ = 'reStructuredText en'
 
 __all__ = ['IsoCollection',

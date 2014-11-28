@@ -5,7 +5,7 @@ AAB, Created on Jun 22, 2011
 """
 
 from everest.entities.base import Entity
-from thelma.automation.semiconstants import get_item_status_managed
+from thelma.tools.semiconstants import get_item_status_managed
 from thelma.entities.iso import ISO_STATUS
 from thelma.entities.iso import IsoJobPreparationPlate
 from thelma.utils import get_utc_time

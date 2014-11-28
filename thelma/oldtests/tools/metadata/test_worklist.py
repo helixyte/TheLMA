@@ -4,31 +4,31 @@ AAB Aug 08, 2011
 """
 
 from everest.entities.utils import get_root_aggregate
-from thelma.automation.handlers.experimentdesign \
+from thelma.tools.handlers.experimentdesign \
     import ExperimentDesignParserHandler
-from thelma.automation.handlers.isorequest import IsoRequestParserHandler
-from thelma.automation.semiconstants \
+from thelma.tools.handlers.isorequest import IsoRequestParserHandler
+from thelma.tools.semiconstants \
     import get_experiment_type_robot_optimisation
-from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
-from thelma.automation.semiconstants import get_experiment_type_library
-from thelma.automation.semiconstants import get_experiment_type_screening
-from thelma.automation.tools.metadata.base import TransfectionParameters
-from thelma.automation.tools.metadata.generation \
+from thelma.tools.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.tools.semiconstants import PIPETTING_SPECS_NAMES
+from thelma.tools.semiconstants import get_experiment_type_library
+from thelma.tools.semiconstants import get_experiment_type_screening
+from thelma.tools.metadata.base import TransfectionParameters
+from thelma.tools.metadata.generation \
     import WellAssociatorOptimisation
-from thelma.automation.tools.metadata.worklist \
+from thelma.tools.metadata.worklist \
     import EXPERIMENT_WORKLIST_PARAMETERS
-from thelma.automation.tools.metadata.worklist \
+from thelma.tools.metadata.worklist \
     import ExperimentWorklistGenerator
-from thelma.automation.tools.metadata.worklist \
+from thelma.tools.metadata.worklist \
     import _BiomekTransferWorklistGenerator
-from thelma.automation.tools.metadata.worklist \
+from thelma.tools.metadata.worklist \
     import _CellSuspensionWorklistGenerator
-from thelma.automation.tools.metadata.worklist \
+from thelma.tools.metadata.worklist \
     import _CybioTransferWorklistGenerator
-from thelma.automation.tools.metadata.worklist import _OptimemWorklistGenerator
-from thelma.automation.tools.metadata.worklist import _ReagentWorklistGenerator
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.metadata.worklist import _OptimemWorklistGenerator
+from thelma.tools.metadata.worklist import _ReagentWorklistGenerator
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeType
 from thelma.interfaces import IUser
 from thelma.entities.liquidtransfer import PlannedWorklist

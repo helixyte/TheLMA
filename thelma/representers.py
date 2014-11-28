@@ -9,7 +9,7 @@ from pyramid.threadlocal import get_current_registry
 import logging
 from thelma.mime import BioMicroLabXl20TextOutputMime
 from thelma.entities.utils import get_current_user
-from thelma.automation.tools.worklists.tubehandler import XL20Executor
+from thelma.tools.worklists.tubehandler import XL20Executor
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['Xl20OutputRepresenter',

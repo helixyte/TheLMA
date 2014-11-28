@@ -5,20 +5,20 @@
 #"""
 #from everest.repositories.rdb.testing import RdbContextManager
 #from pkg_resources import resource_filename # pylint: disable=E0611,F0401
-#from thelma.automation.tools.libcreation.execution \
+#from thelma.tools.libcreation.execution \
 #    import LibraryCreationExecutor
-#from thelma.automation.tools.libcreation.generation import LibraryGenerator
-#from thelma.automation.tools.libcreation.ticket \
+#from thelma.tools.libcreation.generation import LibraryGenerator
+#from thelma.tools.libcreation.ticket \
 #    import LibraryCreationIsoCreator
-#from thelma.automation.tools.libcreation.ticket \
+#from thelma.tools.libcreation.ticket \
 #    import LibraryCreationStockLogFileWriter
-#from thelma.automation.tools.libcreation.ticket \
+#from thelma.tools.libcreation.ticket \
 #    import LibraryCreationStockTransferReporter
-#from thelma.automation.tools.libcreation.ticket \
+#from thelma.tools.libcreation.ticket \
 #    import LibraryCreationTicketGenerator
-#from thelma.automation.tools.libcreation.ticket \
+#from thelma.tools.libcreation.ticket \
 #    import LibraryCreationTicketWorklistUploader
-#from thelma.automation.tools.libcreation.writer \
+#from thelma.tools.libcreation.writer \
 #    import LibraryCreationWorklistWriter
 #from thelma.interfaces import IOrganization
 #from thelma.entities.library import LibraryCreationIso

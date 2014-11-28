@@ -5,31 +5,31 @@ AAB Aug 08, 2011
 
 from datetime import date
 from thelma.interfaces import IMoleculeDesignLibrary
-from thelma.automation.handlers.experimentdesign \
+from thelma.tools.handlers.experimentdesign \
     import ExperimentDesignParserHandler
-from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.semiconstants import get_96_rack_shape
-from thelma.automation.semiconstants import get_experiment_metadata_type
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.semiconstants import get_reservoir_specs_deep_96
-from thelma.automation.semiconstants import get_reservoir_specs_standard_384
-from thelma.automation.semiconstants import get_reservoir_specs_standard_96
-from thelma.automation.tools.metadata.base import TransfectionParameters
-from thelma.automation.tools.metadata.generation \
+from thelma.tools.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.tools.semiconstants import get_96_rack_shape
+from thelma.tools.semiconstants import get_experiment_metadata_type
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.semiconstants import get_reservoir_specs_deep_96
+from thelma.tools.semiconstants import get_reservoir_specs_standard_384
+from thelma.tools.semiconstants import get_reservoir_specs_standard_96
+from thelma.tools.metadata.base import TransfectionParameters
+from thelma.tools.metadata.generation \
     import ExperimentMetadataGenerator
-from thelma.automation.tools.metadata.generation \
+from thelma.tools.metadata.generation \
     import ExperimentMetadataGeneratorIsoless
-from thelma.automation.tools.metadata.generation \
+from thelma.tools.metadata.generation \
     import ExperimentMetadataGeneratorLibrary
-from thelma.automation.tools.metadata.generation \
+from thelma.tools.metadata.generation \
     import ExperimentMetadataGeneratorManual
-from thelma.automation.tools.metadata.generation \
+from thelma.tools.metadata.generation \
     import ExperimentMetadataGeneratorOpti
-from thelma.automation.tools.metadata.generation \
+from thelma.tools.metadata.generation \
     import ExperimentMetadataGeneratorOrder
-from thelma.automation.tools.metadata.generation \
+from thelma.tools.metadata.generation \
 import ExperimentMetadataGeneratorScreen
-from thelma.automation.utils.iso import IsoRequestParameters
+from thelma.tools.utils.iso import IsoRequestParameters
 from thelma.interfaces import IPlate
 from thelma.interfaces import ISubproject
 from thelma.interfaces import IUser

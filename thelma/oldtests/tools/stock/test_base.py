@@ -5,15 +5,15 @@ AAB
 """
 from everest.entities.utils import get_root_aggregate
 from everest.repositories.rdb.testing import RdbContextManager
-from thelma.automation.tools.stock.base import RackLocationQuery
-from thelma.automation.tools.stock.base import get_default_stock_concentration
-from thelma.automation.tools.stock.base import get_stock_tube_specs_db_term
+from thelma.tools.stock.base import RackLocationQuery
+from thelma.tools.stock.base import get_default_stock_concentration
+from thelma.tools.stock.base import get_stock_tube_specs_db_term
 from thelma.interfaces import IMoleculeType
 from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
-from thelma.automation.tools.stock.base import get_stock_rack_shape
-from thelma.automation.semiconstants import get_96_rack_shape
-from thelma.automation.tools.stock.base import get_stock_rack_size
+from thelma.tools.stock.base import get_stock_rack_shape
+from thelma.tools.semiconstants import get_96_rack_shape
+from thelma.tools.stock.base import get_stock_rack_size
 
 class StockBaseFunctionsTestCase(ToolsAndUtilsTestCase):
 

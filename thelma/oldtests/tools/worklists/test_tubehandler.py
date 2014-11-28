@@ -8,12 +8,12 @@ import pytz
 
 from everest.repositories.rdb.testing import RdbContextManager
 from everest.repositories.rdb.testing import check_attributes
-from thelma.automation.semiconstants import get_item_status_managed
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.worklists.tubehandler import TubeTransferData
-from thelma.automation.tools.worklists.tubehandler import TubeTransferExecutor
-from thelma.automation.tools.worklists.tubehandler import XL20Executor
-from thelma.automation.tools.worklists.tubehandler import XL20WorklistWriter
+from thelma.tools.semiconstants import get_item_status_managed
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.worklists.tubehandler import TubeTransferData
+from thelma.tools.worklists.tubehandler import TubeTransferExecutor
+from thelma.tools.worklists.tubehandler import XL20Executor
+from thelma.tools.worklists.tubehandler import XL20WorklistWriter
 from thelma.interfaces import IPlateSpecs
 from thelma.interfaces import ITubeRackSpecs
 from thelma.interfaces import ITubeSpecs

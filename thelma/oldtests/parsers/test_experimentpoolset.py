@@ -5,9 +5,9 @@ AAB July 1a, 2011
 """
 
 from thelma.oldtests.tools.tooltestingutils import ParsingTestCase
-from thelma.automation.handlers.experimentpoolset \
+from thelma.tools.handlers.experimentpoolset \
     import ExperimentPoolSetParserHandler
-from thelma.automation.parsers.experimentpoolset import ExperimentPoolSetParser
+from thelma.tools.parsers.experimentpoolset import ExperimentPoolSetParser
 
 
 class ExperimentPoolSetExcelParserTest(ParsingTestCase):

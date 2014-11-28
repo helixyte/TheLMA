@@ -6,12 +6,12 @@ AAB
 from datetime import datetime
 from everest.repositories.rdb.testing import check_attributes
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
-from thelma.automation.handlers.rackscanning import RackScanningLayout
-from thelma.automation.handlers.rackscanning import \
+from thelma.tools.handlers.rackscanning import RackScanningLayout
+from thelma.tools.handlers.rackscanning import \
                                             CenixRackScanningParserHandler
-from thelma.automation.parsers.rackscanning import RackScanningParser
-from thelma.automation.semiconstants import RACK_SHAPE_NAMES
-from thelma.automation.semiconstants import get_rack_position_from_label
+from thelma.tools.parsers.rackscanning import RackScanningParser
+from thelma.tools.semiconstants import RACK_SHAPE_NAMES
+from thelma.tools.semiconstants import get_rack_position_from_label
 from thelma.oldtests.tools.tooltestingutils import ParsingTestCase
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 import pytz

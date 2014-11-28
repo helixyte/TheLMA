@@ -4,26 +4,26 @@ Tests for worklist series tools.
 AAB
 """
 from everest.repositories.rdb.testing import check_attributes
-from thelma.automation.semiconstants import get_384_rack_shape
-from thelma.automation.semiconstants import get_96_rack_shape
-from thelma.automation.semiconstants import get_item_status_managed
-from thelma.automation.semiconstants import get_pipetting_specs_biomek
-from thelma.automation.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.semiconstants import get_pipetting_specs_manual
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.worklists.biomek \
+from thelma.tools.semiconstants import get_384_rack_shape
+from thelma.tools.semiconstants import get_96_rack_shape
+from thelma.tools.semiconstants import get_item_status_managed
+from thelma.tools.semiconstants import get_pipetting_specs_biomek
+from thelma.tools.semiconstants import get_pipetting_specs_cybio
+from thelma.tools.semiconstants import get_pipetting_specs_manual
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.worklists.biomek \
     import SampleTransferWorklistWriter
-from thelma.automation.tools.worklists.execution \
+from thelma.tools.worklists.execution \
     import SampleTransferWorklistExecutor
-from thelma.automation.tools.worklists.series import RackSampleTransferJob
-from thelma.automation.tools.worklists.series import RackSampleTransferWriter
-from thelma.automation.tools.worklists.series import SampleDilutionJob
-from thelma.automation.tools.worklists.series import SampleTransferJob
-from thelma.automation.tools.worklists.series import SerialWriterExecutorTool
-from thelma.automation.tools.worklists.series import SeriesExecutor
-from thelma.automation.tools.worklists.series import _SeriesWorklistWriter
-from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.worklists.series import RackSampleTransferJob
+from thelma.tools.worklists.series import RackSampleTransferWriter
+from thelma.tools.worklists.series import SampleDilutionJob
+from thelma.tools.worklists.series import SampleTransferJob
+from thelma.tools.worklists.series import SerialWriterExecutorTool
+from thelma.tools.worklists.series import SeriesExecutor
+from thelma.tools.worklists.series import _SeriesWorklistWriter
+from thelma.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IOrganization
 from thelma.interfaces import IReservoirSpecs

@@ -4,11 +4,11 @@ Tests job creation of lab ISO requests.
 AAB
 """
 from everest.repositories.rdb.testing import RdbContextManager
-from thelma.automation.tools.iso.lab.base import LABELS
-from thelma.automation.tools.iso.lab.jobcreator import LabIsoJobCreator
-from thelma.automation.tools.iso.lab.planner import LabIsoPlanner
-from thelma.automation.tools.iso.lab.planner import LibraryIsoPlanner
-from thelma.automation.utils.layouts import FLOATING_POSITION_TYPE
+from thelma.tools.iso.lab.base import LABELS
+from thelma.tools.iso.lab.jobcreator import LabIsoJobCreator
+from thelma.tools.iso.lab.planner import LabIsoPlanner
+from thelma.tools.iso.lab.planner import LibraryIsoPlanner
+from thelma.tools.utils.layouts import FLOATING_POSITION_TYPE
 from thelma.interfaces import IUser
 from thelma.entities.iso import ISO_STATUS
 from thelma.entities.iso import IsoAliquotPlate
@@ -22,7 +22,7 @@ from thelma.entities.racklayout import RackLayout
 from thelma.oldtests.tools.iso.lab.utils import LAB_ISO_TEST_CASES
 from thelma.oldtests.tools.iso.lab.utils import LabIsoTestCase1
 from thelma.oldtests.tools.iso.lab.utils import POOL_WITHOUT_STOCK_SAMPLE
-from thelma.automation.tools.iso.lab.base import LAB_ISO_ORDERS
+from thelma.tools.iso.lab.base import LAB_ISO_ORDERS
 
 
 # TODO: in some cases the process job first flag is not set correctly during

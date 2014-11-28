@@ -22,14 +22,14 @@ from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from everest.resources.utils import get_root_collection
 from everest.resources.utils import url_to_resource
-from thelma.automation.semiconstants import get_experiment_metadata_type
-from thelma.automation.tools.experiment import get_writer
-from thelma.automation.tools.metadata.ticket \
+from thelma.tools.semiconstants import get_experiment_metadata_type
+from thelma.tools.experiment import get_writer
+from thelma.tools.metadata.ticket \
     import IsoRequestTicketDescriptionUpdater
-from thelma.automation.tools.metadata.ticket import IsoRequestTicketActivator
-from thelma.automation.tools.metadata.ticket import IsoRequestTicketCreator
-from thelma.automation.tools.metadata.ticket import IsoRequestTicketDescriptionRemover
-from thelma.automation.tools.stock.base import STOCKMANAGEMENT_USER
+from thelma.tools.metadata.ticket import IsoRequestTicketActivator
+from thelma.tools.metadata.ticket import IsoRequestTicketCreator
+from thelma.tools.metadata.ticket import IsoRequestTicketDescriptionRemover
+from thelma.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.interfaces import IExperiment
 from thelma.interfaces import IExperimentDesign
 from thelma.interfaces import IExperimentDesignRack

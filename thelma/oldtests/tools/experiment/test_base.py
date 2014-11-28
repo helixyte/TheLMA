@@ -3,16 +3,16 @@ Tests for base tools dealing with experiment job handling.
 
 AAB
 """
-from thelma.automation.semiconstants import RACK_SPECS_NAMES
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.experiment.base import ReagentPreparationWriter
-from thelma.automation.tools.experiment.base import SourceRackVerifier
-from thelma.automation.tools.iso.lab.base import FinalLabIsoLayout
-from thelma.automation.tools.iso.lab.base import FinalLabIsoPosition
-from thelma.automation.tools.metadata.base import TransfectionLayout
-from thelma.automation.tools.metadata.base import TransfectionPosition
-from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
-from thelma.automation.utils.layouts import MOCK_POSITION_TYPE
+from thelma.tools.semiconstants import RACK_SPECS_NAMES
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.experiment.base import ReagentPreparationWriter
+from thelma.tools.experiment.base import SourceRackVerifier
+from thelma.tools.iso.lab.base import FinalLabIsoLayout
+from thelma.tools.iso.lab.base import FinalLabIsoPosition
+from thelma.tools.metadata.base import TransfectionLayout
+from thelma.tools.metadata.base import TransfectionPosition
+from thelma.tools.utils.layouts import FIXED_POSITION_TYPE
+from thelma.tools.utils.layouts import MOCK_POSITION_TYPE
 from thelma.entities.rack import RACK_TYPES
 from thelma.entities.racklayout import RackLayout
 from thelma.oldtests.tools.experiment.utils import EXPERIMENT_TEST_DATA

@@ -5,10 +5,10 @@ AAB
 """
 
 from everest.entities.utils import get_root_aggregate
-from thelma.automation.handlers.poolcreationset \
+from thelma.tools.handlers.poolcreationset \
     import PoolCreationSetParserHandler
-from thelma.automation.parsers.poolcreationset import PoolCreationSetParser
-from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.tools.parsers.poolcreationset import PoolCreationSetParser
+from thelma.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
 from thelma.interfaces import IMoleculeType
 from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
 from thelma.oldtests.tools.tooltestingutils import ParsingTestCase

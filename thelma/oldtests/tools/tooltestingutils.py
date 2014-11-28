@@ -10,15 +10,15 @@ import zipfile
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
 from pyramid.threadlocal import get_current_registry
 
-from thelma.automation.semiconstants import clear_semiconstant_caches
-from thelma.automation.semiconstants import initialize_semiconstant_caches
-from thelma.automation.tools.base import BaseTool
-from thelma.automation.tools.metadata.generation \
+from thelma.tools.semiconstants import clear_semiconstant_caches
+from thelma.tools.semiconstants import initialize_semiconstant_caches
+from thelma.tools.base import BaseTool
+from thelma.tools.metadata.generation \
     import ExperimentMetadataGenerator
-from thelma.automation.tools.writers import LINEBREAK_CHAR
-from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.utils.base import get_converted_number
+from thelma.tools.writers import LINEBREAK_CHAR
+from thelma.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.utils.base import get_converted_number
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import ITractor
 from thelma.entities.rack import RackPosition

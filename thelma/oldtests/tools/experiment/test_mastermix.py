@@ -3,12 +3,12 @@ Test classes for experiment tools that provide mastermix support.
 
 AAB
 """
-from thelma.automation.tools.experiment import get_executor
-from thelma.automation.tools.experiment import get_writer
-from thelma.automation.tools.experiment.base import ExperimentTool
-from thelma.automation.tools.experiment.mastermix \
+from thelma.tools.experiment import get_executor
+from thelma.tools.experiment import get_writer
+from thelma.tools.experiment.base import ExperimentTool
+from thelma.tools.experiment.mastermix \
     import ExperimentOptimisationWriterExecutor
-from thelma.automation.tools.experiment.mastermix \
+from thelma.tools.experiment.mastermix \
     import ExperimentScreeningWriterExecutor
 from thelma.entities.liquidtransfer import TRANSFER_TYPES
 from thelma.entities.utils import get_user

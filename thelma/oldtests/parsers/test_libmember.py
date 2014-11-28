@@ -4,8 +4,8 @@
 #AAB
 #"""
 #from everest.entities.utils import get_root_aggregate
-#from thelma.automation.handlers.libmembers import LibraryMemberParserHandler
-#from thelma.automation.parsers.libmembers import LibraryMemberParser
+#from thelma.tools.handlers.libmembers import LibraryMemberParserHandler
+#from thelma.tools.parsers.libmembers import LibraryMemberParser
 #from thelma.interfaces import IMoleculeType
 #from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
 #from thelma.oldtests.tools.tooltestingutils import ParsingTestCase

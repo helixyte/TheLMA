@@ -5,16 +5,16 @@ AAB
 """
 from everest.repositories.rdb.testing import RdbContextManager
 from everest.repositories.rdb.testing import check_attributes
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.stock.tubepicking import MultiPoolQuery
-from thelma.automation.tools.stock.tubepicking import OptimizingQuery
-from thelma.automation.tools.stock.tubepicking import SinglePoolQuery
-from thelma.automation.tools.stock.tubepicking import StockSampleQuery
-from thelma.automation.tools.stock.tubepicking import TubeCandidate
-from thelma.automation.tools.stock.tubepicking import TubePicker
-from thelma.automation.tools.stock.tubepicking import TubePoolQuery
-from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.stock.tubepicking import MultiPoolQuery
+from thelma.tools.stock.tubepicking import OptimizingQuery
+from thelma.tools.stock.tubepicking import SinglePoolQuery
+from thelma.tools.stock.tubepicking import StockSampleQuery
+from thelma.tools.stock.tubepicking import TubeCandidate
+from thelma.tools.stock.tubepicking import TubePicker
+from thelma.tools.stock.tubepicking import TubePoolQuery
+from thelma.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 

@@ -4,13 +4,13 @@ Tests for rack sector classes.
 AAB
 """
 from everest.repositories.rdb.testing import check_attributes
-from thelma.automation.semiconstants import get_384_rack_shape
-from thelma.automation.semiconstants import get_96_rack_shape
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.utils.racksector import QuadrantIterator
-from thelma.automation.utils.racksector import RackSectorTranslator
-from thelma.automation.utils.racksector import check_rack_shape_match
-from thelma.automation.utils.racksector import get_sector_positions
+from thelma.tools.semiconstants import get_384_rack_shape
+from thelma.tools.semiconstants import get_96_rack_shape
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.utils.racksector import QuadrantIterator
+from thelma.tools.utils.racksector import RackSectorTranslator
+from thelma.tools.utils.racksector import check_rack_shape_match
+from thelma.tools.utils.racksector import get_sector_positions
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 

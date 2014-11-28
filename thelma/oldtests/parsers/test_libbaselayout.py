@@ -3,12 +3,12 @@ Tests the library base layout parser and handler.
 
 AAB
 """
-from thelma.automation.handlers.libbaselayout \
+from thelma.tools.handlers.libbaselayout \
     import LibraryBaseLayoutParserHandler
-from thelma.automation.parsers.libbaselayout import LibraryBaseLayoutParser
-from thelma.automation.semiconstants import get_384_rack_shape
-from thelma.automation.semiconstants import get_rack_position_from_indices
-from thelma.automation.semiconstants import get_rack_position_from_label
+from thelma.tools.parsers.libbaselayout import LibraryBaseLayoutParser
+from thelma.tools.semiconstants import get_384_rack_shape
+from thelma.tools.semiconstants import get_rack_position_from_indices
+from thelma.tools.semiconstants import get_rack_position_from_label
 from thelma.oldtests.tools.tooltestingutils import ParsingTestCase
 
 

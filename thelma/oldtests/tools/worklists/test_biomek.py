@@ -3,19 +3,19 @@ Test for BioMek worklist writers.
 
 AAB
 """
-from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
-from thelma.automation.semiconstants import get_96_rack_shape
-from thelma.automation.semiconstants import get_item_status_managed
-from thelma.automation.semiconstants import get_min_transfer_volume
-from thelma.automation.semiconstants import get_pipetting_specs_biomek
-from thelma.automation.semiconstants import get_pipetting_specs_manual
-from thelma.automation.semiconstants import get_rack_position_from_label
+from thelma.tools.semiconstants import PIPETTING_SPECS_NAMES
+from thelma.tools.semiconstants import get_96_rack_shape
+from thelma.tools.semiconstants import get_item_status_managed
+from thelma.tools.semiconstants import get_min_transfer_volume
+from thelma.tools.semiconstants import get_pipetting_specs_biomek
+from thelma.tools.semiconstants import get_pipetting_specs_manual
+from thelma.tools.semiconstants import get_rack_position_from_label
 from thelma.entities.liquidtransfer import TRANSFER_TYPES
-from thelma.automation.tools.worklists.biomek \
+from thelma.tools.worklists.biomek \
     import SampleDilutionWorklistWriter
-from thelma.automation.tools.worklists.biomek \
+from thelma.tools.worklists.biomek \
     import SampleTransferWorklistWriter
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.interfaces import IRackShape
 from thelma.entities.container import Tube
 from thelma.entities.container import TubeSpecs

@@ -4,20 +4,20 @@
 #AAB
 #"""
 #from everest.testing import check_attributes
-#from thelma.automation.tools.libcreation.base \
+#from thelma.tools.libcreation.base \
 #    import get_source_plate_transfer_volume
-#from thelma.automation.tools.libcreation.base \
+#from thelma.tools.libcreation.base \
 #    import get_stock_pool_buffer_volume
-#from thelma.automation.tools.libcreation.base import LibraryBaseLayout
-#from thelma.automation.tools.libcreation.base import LibraryBaseLayoutConverter
-#from thelma.automation.tools.libcreation.base import LibraryBaseLayoutParameters
-#from thelma.automation.tools.libcreation.base import LibraryBaseLayoutPosition
-#from thelma.automation.tools.libcreation.base import LibraryLayout
-#from thelma.automation.tools.libcreation.base import LibraryLayoutConverter
-#from thelma.automation.tools.libcreation.base import LibraryParameters
-#from thelma.automation.tools.libcreation.base import LibraryPosition
-#from thelma.automation.tools.semiconstants import get_96_rack_shape
-#from thelma.automation.tools.semiconstants import get_rack_position_from_label
+#from thelma.tools.libcreation.base import LibraryBaseLayout
+#from thelma.tools.libcreation.base import LibraryBaseLayoutConverter
+#from thelma.tools.libcreation.base import LibraryBaseLayoutParameters
+#from thelma.tools.libcreation.base import LibraryBaseLayoutPosition
+#from thelma.tools.libcreation.base import LibraryLayout
+#from thelma.tools.libcreation.base import LibraryLayoutConverter
+#from thelma.tools.libcreation.base import LibraryParameters
+#from thelma.tools.libcreation.base import LibraryPosition
+#from thelma.tools.semiconstants import get_96_rack_shape
+#from thelma.tools.semiconstants import get_rack_position_from_label
 #from thelma.interfaces import IMoleculeDesignPool
 #from thelma.entities.racklayout import RackLayout
 #from thelma.entities.tagging import Tag

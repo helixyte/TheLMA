@@ -4,16 +4,16 @@ Tests for classes that deal with the final tube picking for lab ISOs.
 AAB
 """
 from everest.repositories.rdb.testing import RdbContextManager
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.iso.lab.base import FinalLabIsoPosition
-from thelma.automation.tools.iso.lab.stockrack.base import StockTubeContainer
-from thelma.automation.tools.iso.lab.stockrack.tubepicking \
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.iso.lab.base import FinalLabIsoPosition
+from thelma.tools.iso.lab.stockrack.base import StockTubeContainer
+from thelma.tools.iso.lab.stockrack.tubepicking \
     import LabIsoXL20TubePicker
-from thelma.automation.tools.stock.base import STOCK_DEAD_VOLUME
-from thelma.automation.tools.stock.tubepicking import MultiPoolQuery
-from thelma.automation.tools.stock.tubepicking import SinglePoolQuery
-from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.utils.layouts import FIXED_POSITION_TYPE
+from thelma.tools.stock.base import STOCK_DEAD_VOLUME
+from thelma.tools.stock.tubepicking import MultiPoolQuery
+from thelma.tools.stock.tubepicking import SinglePoolQuery
+from thelma.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.tools.utils.layouts import FIXED_POSITION_TYPE
 from thelma.interfaces import ITube
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 

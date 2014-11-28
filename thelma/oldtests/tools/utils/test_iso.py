@@ -3,16 +3,16 @@ Tests of classes related to ISO-handling.
 
 AAB
 """
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.utils.iso import IsoRequestAssociationData
-from thelma.automation.utils.iso import IsoRequestLayout
-from thelma.automation.utils.iso import IsoRequestLayoutConverter
-from thelma.automation.utils.iso import IsoRequestParameters
-from thelma.automation.utils.iso import IsoRequestPosition
-from thelma.automation.utils.iso import IsoRequestSectorAssociator
-from thelma.automation.utils.iso import IsoRequestValueDeterminer
-from thelma.automation.utils.layouts import LIBRARY_POSITION_TYPE
-from thelma.automation.utils.layouts import UNTREATED_POSITION_TYPE
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.utils.iso import IsoRequestAssociationData
+from thelma.tools.utils.iso import IsoRequestLayout
+from thelma.tools.utils.iso import IsoRequestLayoutConverter
+from thelma.tools.utils.iso import IsoRequestParameters
+from thelma.tools.utils.iso import IsoRequestPosition
+from thelma.tools.utils.iso import IsoRequestSectorAssociator
+from thelma.tools.utils.iso import IsoRequestValueDeterminer
+from thelma.tools.utils.layouts import LIBRARY_POSITION_TYPE
+from thelma.tools.utils.layouts import UNTREATED_POSITION_TYPE
 from thelma.entities.tagging import Tag
 from thelma.oldtests.tools.utils.utils import ConverterTestCase
 from thelma.oldtests.tools.utils.utils import MoleculeDesignPoolBaseTestCase

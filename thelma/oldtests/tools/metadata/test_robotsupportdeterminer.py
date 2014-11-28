@@ -6,20 +6,20 @@ add the missing values to the source layout.
 AAB
 """
 from everest.entities.utils import get_root_aggregate
-from thelma.automation.semiconstants import RACK_SHAPE_NAMES
-from thelma.automation.semiconstants import get_384_rack_shape
-from thelma.automation.semiconstants import get_96_rack_shape
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.metadata.base import TransfectionAssociationData
-from thelma.automation.tools.metadata.base import TransfectionLayout
-from thelma.automation.tools.metadata.base import TransfectionPosition
-from thelma.automation.tools.metadata.generation \
+from thelma.tools.semiconstants import RACK_SHAPE_NAMES
+from thelma.tools.semiconstants import get_384_rack_shape
+from thelma.tools.semiconstants import get_96_rack_shape
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.metadata.base import TransfectionAssociationData
+from thelma.tools.metadata.base import TransfectionLayout
+from thelma.tools.metadata.base import TransfectionPosition
+from thelma.tools.metadata.generation \
     import RobotSupportDeterminatorLibrary
-from thelma.automation.tools.metadata.generation \
+from thelma.tools.metadata.generation \
     import RobotSupportDeterminatorOpti
-from thelma.automation.tools.metadata.generation \
+from thelma.tools.metadata.generation \
     import RobotSupportDeterminatorScreen
-from thelma.automation.utils.layouts import UNTREATED_POSITION_TYPE
+from thelma.tools.utils.layouts import UNTREATED_POSITION_TYPE
 from thelma.interfaces import IMoleculeDesignLibrary
 from thelma.interfaces import IMoleculeType
 from thelma.entities.moleculetype import MOLECULE_TYPE_IDS

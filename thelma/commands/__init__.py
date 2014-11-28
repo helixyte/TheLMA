@@ -1,3 +1,0 @@
-"""
-Package with paster commands
-"""

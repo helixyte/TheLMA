@@ -3,15 +3,15 @@ Tests for the re-use of prepared stock racks in lab ISOs.
 
 AAB
 """
-from thelma.automation.semiconstants import get_pipetting_specs_biomek_stock
-from thelma.automation.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.iso.lab.base import LABELS
-from thelma.automation.tools.iso.lab.stockrack.recycling \
+from thelma.tools.semiconstants import get_pipetting_specs_biomek_stock
+from thelma.tools.semiconstants import get_pipetting_specs_cybio
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.iso.lab.base import LABELS
+from thelma.tools.iso.lab.stockrack.recycling \
     import StockRackRecyclerLabIso
-from thelma.automation.tools.iso.lab.stockrack.recycling \
+from thelma.tools.iso.lab.stockrack.recycling \
     import StockRackRecyclerIsoJob
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
 from thelma.entities.liquidtransfer import TRANSFER_TYPES
 from thelma.oldtests.tools.iso.lab.stockrack.utils import LabIsoStockRackTestCase
 from thelma.oldtests.tools.iso.lab.utils import LAB_ISO_TEST_CASES

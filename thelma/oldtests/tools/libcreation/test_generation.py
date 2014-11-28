@@ -5,16 +5,16 @@
 #"""
 #
 #from pkg_resources import resource_filename # pylint: disable=E0611,F0401
-#from thelma.automation.tools.libcreation.base import LibraryBaseLayout
-#from thelma.automation.tools.libcreation.base import LibraryBaseLayoutConverter
-#from thelma.automation.tools.libcreation.base import LibraryBaseLayoutPosition
-#from thelma.automation.tools.libcreation.base import MOLECULE_TYPE
-#from thelma.automation.tools.libcreation.generation \
+#from thelma.tools.libcreation.base import LibraryBaseLayout
+#from thelma.tools.libcreation.base import LibraryBaseLayoutConverter
+#from thelma.tools.libcreation.base import LibraryBaseLayoutPosition
+#from thelma.tools.libcreation.base import MOLECULE_TYPE
+#from thelma.tools.libcreation.generation \
 #    import LibraryCreationWorklistGenerator
-#from thelma.automation.tools.libcreation.generation import LibraryGenerator
-#from thelma.automation.tools.semiconstants import get_384_rack_shape
-#from thelma.automation.tools.semiconstants import get_rack_position_from_label
-#from thelma.automation.tools.stock.base import get_default_stock_concentration
+#from thelma.tools.libcreation.generation import LibraryGenerator
+#from thelma.tools.semiconstants import get_384_rack_shape
+#from thelma.tools.semiconstants import get_rack_position_from_label
+#from thelma.tools.stock.base import get_default_stock_concentration
 #from thelma.entities.liquidtransfer import TRANSFER_TYPES
 #from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
 #from thelma.entities.utils import get_user

@@ -2,37 +2,37 @@
 Base classes for stock sample generation ISO testing.
 """
 from everest.entities.utils import get_root_aggregate
-from thelma.automation.semiconstants import RACK_SPECS_NAMES
-from thelma.automation.semiconstants import get_96_rack_shape
-from thelma.automation.semiconstants import get_item_status_future
-from thelma.automation.semiconstants import get_item_status_managed
-from thelma.automation.semiconstants import get_pipetting_specs_biomek_stock
-from thelma.automation.semiconstants import get_pipetting_specs_cybio
-from thelma.automation.semiconstants import get_positions_for_shape
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.iso.base import StockRackLayout
-from thelma.automation.tools.iso.base import StockRackLayoutConverter
-from thelma.automation.tools.iso.poolcreation.base \
+from thelma.tools.semiconstants import RACK_SPECS_NAMES
+from thelma.tools.semiconstants import get_96_rack_shape
+from thelma.tools.semiconstants import get_item_status_future
+from thelma.tools.semiconstants import get_item_status_managed
+from thelma.tools.semiconstants import get_pipetting_specs_biomek_stock
+from thelma.tools.semiconstants import get_pipetting_specs_cybio
+from thelma.tools.semiconstants import get_positions_for_shape
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.iso.base import StockRackLayout
+from thelma.tools.iso.base import StockRackLayoutConverter
+from thelma.tools.iso.poolcreation.base \
     import PoolCreationStockRackLayoutConverter
-from thelma.automation.tools.iso.poolcreation.base \
+from thelma.tools.iso.poolcreation.base \
     import PoolCreationStockRackPosition
-from thelma.automation.tools.iso.poolcreation.base \
+from thelma.tools.iso.poolcreation.base \
     import SingleDesignStockRackLayoutConverter
-from thelma.automation.tools.iso.poolcreation.base \
+from thelma.tools.iso.poolcreation.base \
     import StockSampleCreationLayout
-from thelma.automation.tools.iso.poolcreation.base \
+from thelma.tools.iso.poolcreation.base \
     import StockSampleCreationLayoutConverter
-from thelma.automation.tools.iso.poolcreation.base \
+from thelma.tools.iso.poolcreation.base \
     import StockSampleCreationPosition
-from thelma.automation.tools.iso.poolcreation.base import DILUENT_INFO
-from thelma.automation.tools.iso.poolcreation.base import LABELS
-from thelma.automation.tools.iso.poolcreation.generation \
+from thelma.tools.iso.poolcreation.base import DILUENT_INFO
+from thelma.tools.iso.poolcreation.base import LABELS
+from thelma.tools.iso.poolcreation.generation \
     import StockSampleCreationIsoRequestGenerator
-from thelma.automation.tools.iso.poolcreation.jobcreator \
+from thelma.tools.iso.poolcreation.jobcreator \
     import StockSampleCreationIsoPopulator
-from thelma.automation.tracbase import BaseTracTool
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.utils.base import are_equal_values
+from thelma.tools.tracbase import BaseTracTool
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.utils.base import are_equal_values
 from thelma.interfaces import ITubeRack
 from thelma.entities.liquidtransfer import PlannedSampleDilution
 from thelma.entities.liquidtransfer import PlannedSampleTransfer

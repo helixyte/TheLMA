@@ -4,18 +4,18 @@ tool base utils testing
 AAB Aug 12, 2011
 """
 
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.utils.base import add_list_map_element
-from thelma.automation.utils.base import are_equal_values
-from thelma.automation.utils.base import create_in_term_for_db_queries
-from thelma.automation.utils.base import get_converted_number
-from thelma.automation.utils.base import get_nested_dict
-from thelma.automation.utils.base import get_trimmed_string
-from thelma.automation.utils.base import is_larger_than
-from thelma.automation.utils.base import is_smaller_than
-from thelma.automation.utils.base import is_valid_number
-from thelma.automation.utils.base import round_up
-from thelma.automation.utils.base import sort_rack_positions
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.utils.base import add_list_map_element
+from thelma.tools.utils.base import are_equal_values
+from thelma.tools.utils.base import create_in_term_for_db_queries
+from thelma.tools.utils.base import get_converted_number
+from thelma.tools.utils.base import get_nested_dict
+from thelma.tools.utils.base import get_trimmed_string
+from thelma.tools.utils.base import is_larger_than
+from thelma.tools.utils.base import is_smaller_than
+from thelma.tools.utils.base import is_valid_number
+from thelma.tools.utils.base import round_up
+from thelma.tools.utils.base import sort_rack_positions
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 

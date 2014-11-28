@@ -6,9 +6,9 @@ AAB
 from StringIO import StringIO
 from datetime import datetime
 
-from thelma.automation.parsers.tubehandler import XL20OutputParser
-from thelma.automation.tools.dummies import XL20Dummy
-from thelma.automation.tools.writers import LINEBREAK_CHAR
+from thelma.tools.parsers.tubehandler import XL20OutputParser
+from thelma.tools.dummies import XL20Dummy
+from thelma.tools.writers import LINEBREAK_CHAR
 from thelma.oldtests.tools.tooltestingutils import ToolsAndUtilsTestCase
 
 

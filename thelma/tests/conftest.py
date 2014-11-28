@@ -8,10 +8,10 @@ from everest.entities.utils import get_root_aggregate
 from everest.entities.utils import slug_from_string
 from everest.repositories.rdb.session import ScopedSessionMaker as Session
 from everest.repositories.rdb.testing import RdbContextManager
-from thelma.automation.semiconstants import ITEM_STATUS_NAMES
-from thelma.automation.semiconstants import PIPETTING_SPECS_NAMES
-from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
-from thelma.automation.tools.iso.lab.base import DILUENT_INFO
+from thelma.tools.semiconstants import ITEM_STATUS_NAMES
+from thelma.tools.semiconstants import PIPETTING_SPECS_NAMES
+from thelma.tools.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.tools.iso.lab.base import DILUENT_INFO
 from thelma.interfaces import IChemicalStructureType
 from thelma.interfaces import IExperimentMetadataType
 from thelma.interfaces import IItemStatus

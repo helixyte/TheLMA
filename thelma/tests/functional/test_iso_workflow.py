@@ -28,13 +28,13 @@ from everest.resources.attributes import get_resource_class_attributes
 from everest.resources.staging import create_staging_collection
 from everest.resources.utils import resource_to_url
 from everest.resources.utils import url_to_resource
-from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.semiconstants import get_96_rack_shape
-from thelma.automation.semiconstants import get_item_status_managed
-from thelma.automation.semiconstants import get_rack_position_from_indices
-from thelma.automation.tools.iso.lab.planner import LabIsoPlanner
-from thelma.automation.tools.worklists.tubehandler import XL20Executor
-from thelma.automation.tools.writers import read_zip_archive
+from thelma.tools.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.tools.semiconstants import get_96_rack_shape
+from thelma.tools.semiconstants import get_item_status_managed
+from thelma.tools.semiconstants import get_rack_position_from_indices
+from thelma.tools.iso.lab.planner import LabIsoPlanner
+from thelma.tools.worklists.tubehandler import XL20Executor
+from thelma.tools.writers import read_zip_archive
 from thelma.interfaces import IExperimentMetadata
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import IRack
@@ -46,7 +46,7 @@ from thelma.entities.iso import LabIso
 from thelma.entities.racklayout import RackLayout
 from thelma.entities.utils import get_current_user
 from thelma.tests.functional.conftest import TestFunctionalBase
-from thelma.automation.semiconstants import get_experiment_metadata_type
+from thelma.tools.semiconstants import get_experiment_metadata_type
 
 
 __docformat__ = 'reStructuredText en'

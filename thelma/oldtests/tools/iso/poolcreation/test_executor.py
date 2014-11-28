@@ -3,25 +3,25 @@ Tests for tools involved the execution of pool stock sample creation worklists.
 
 AAB
 """
-from thelma.automation.semiconstants import ITEM_STATUS_NAMES
-from thelma.automation.semiconstants import RESERVOIR_SPECS_NAMES
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.iso.base import StockRackLayout
-from thelma.automation.tools.iso.base import StockRackPosition
-from thelma.automation.tools.iso.poolcreation import get_executor
-from thelma.automation.tools.iso.poolcreation.base \
+from thelma.tools.semiconstants import ITEM_STATUS_NAMES
+from thelma.tools.semiconstants import RESERVOIR_SPECS_NAMES
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.iso.base import StockRackLayout
+from thelma.tools.iso.base import StockRackPosition
+from thelma.tools.iso.poolcreation import get_executor
+from thelma.tools.iso.poolcreation.base \
     import SingleDesignStockRackLayout
-from thelma.automation.tools.iso.poolcreation.base import LABELS
-from thelma.automation.tools.iso.poolcreation.execution \
+from thelma.tools.iso.poolcreation.base import LABELS
+from thelma.tools.iso.poolcreation.execution \
     import StockSampleCreationIsoExecutor
-from thelma.automation.tools.iso.poolcreation.execution \
+from thelma.tools.iso.poolcreation.execution \
     import StockSampleCreationStockTransferReporter
-from thelma.automation.tools.iso.poolcreation.execution \
+from thelma.tools.iso.poolcreation.execution \
     import _StockSampleCreationStockLogFileWriter
-from thelma.automation.tools.iso.tracreporting import IsoStockTransferReporter
-from thelma.automation.utils.base import CONCENTRATION_CONVERSION_FACTOR
-from thelma.automation.utils.base import VOLUME_CONVERSION_FACTOR
-from thelma.automation.utils.layouts import TransferTarget
+from thelma.tools.iso.tracreporting import IsoStockTransferReporter
+from thelma.tools.utils.base import CONCENTRATION_CONVERSION_FACTOR
+from thelma.tools.utils.base import VOLUME_CONVERSION_FACTOR
+from thelma.tools.utils.layouts import TransferTarget
 from thelma.entities.iso import ISO_STATUS
 from thelma.entities.liquidtransfer import TRANSFER_TYPES
 from thelma.entities.racklayout import RackLayout

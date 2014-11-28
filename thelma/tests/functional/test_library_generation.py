@@ -8,19 +8,19 @@ from pkg_resources import resource_filename # pylint: disable=E0611
 from everest.entities.utils import get_root_aggregate
 from everest.querying.specifications import eq
 from everest.repositories.interfaces import IRepositoryManager
-from thelma.automation.semiconstants import get_item_status_managed
-from thelma.automation.semiconstants import get_rack_position_from_indices
-from thelma.automation.tools.iso.libcreation.executor import \
+from thelma.tools.semiconstants import get_item_status_managed
+from thelma.tools.semiconstants import get_rack_position_from_indices
+from thelma.tools.iso.libcreation.executor import \
     LibraryCreationIsoExecutor
-from thelma.automation.tools.iso.libcreation.isogenerator import \
+from thelma.tools.iso.libcreation.isogenerator import \
     LibraryCreationIsoGenerator
-from thelma.automation.tools.iso.libcreation.jobcreator import \
+from thelma.tools.iso.libcreation.jobcreator import \
     LibraryCreationIsoJobCreator
-from thelma.automation.tools.iso.libcreation.requestgenerator import \
+from thelma.tools.iso.libcreation.requestgenerator import \
     LibraryCreationIsoRequestGenerator
-from thelma.automation.tools.iso.libcreation.writer import \
+from thelma.tools.iso.libcreation.writer import \
     LibraryCreationIsoWorklistWriter
-from thelma.automation.tools.worklists.tubehandler import XL20Executor
+from thelma.tools.worklists.tubehandler import XL20Executor
 from thelma.interfaces import ITubeRack
 from thelma.interfaces import ITubeRackSpecs
 from thelma.interfaces import ITubeSpecs

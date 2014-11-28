@@ -4,7 +4,7 @@ import json
 
 from everest.mime import JsonMime
 from everest.views.postcollection import PostCollectionView
-from thelma.automation.tools.stock.sampleregistration import SupplierSampleRegistrar
+from thelma.tools.stock.sampleregistration import SupplierSampleRegistrar
 from pyramid.httpexceptions import HTTPCreated
 
 

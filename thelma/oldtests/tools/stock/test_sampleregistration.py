@@ -7,9 +7,9 @@ from everest.mime import JsonMime
 from everest.representers.utils import as_representer
 from everest.resources.utils import get_collection_class
 from pkg_resources import resource_filename # pylint: disable=E0611,F0401
-from thelma.automation.tools.stock.sampleregistration import \
+from thelma.tools.stock.sampleregistration import \
                                     ISupplierSampleRegistrationItem
-from thelma.automation.tools.stock.sampleregistration import \
+from thelma.tools.stock.sampleregistration import \
                                     SupplierSampleRegistrar
 from thelma.interfaces import IContainerSpecs
 from thelma.interfaces import IItemStatus
@@ -24,8 +24,8 @@ import logging
 import os
 import shutil
 import tempfile
-#from thelma.automation.tools.stock.sampleregistration import SampleRegistrar
-#from thelma.automation.tools.stock.sampleregistration import \
+#from thelma.tools.stock.sampleregistration import SampleRegistrar
+#from thelma.tools.stock.sampleregistration import \
 #                                    ISampleRegistrationItem
 
 

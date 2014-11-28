@@ -3,15 +3,15 @@ Tests for tools that report to stock transfers involved in lab ISO preparation.
 
 AAB
 """
-from thelma.automation.semiconstants import get_rack_position_from_label
-from thelma.automation.tools.iso.base import StockRackLayout
-from thelma.automation.tools.iso.base import StockRackPosition
-from thelma.automation.tools.iso.lab.tracreporting \
+from thelma.tools.semiconstants import get_rack_position_from_label
+from thelma.tools.iso.base import StockRackLayout
+from thelma.tools.iso.base import StockRackPosition
+from thelma.tools.iso.lab.tracreporting \
     import LabIsoStockTransferLogFileWriter
-from thelma.automation.tools.iso.lab.tracreporting \
+from thelma.tools.iso.lab.tracreporting \
     import LabIsoStockTransferReporter
-from thelma.automation.tools.iso.tracreporting import IsoStockTransferReporter
-from thelma.automation.utils.layouts import TransferTarget
+from thelma.tools.iso.tracreporting import IsoStockTransferReporter
+from thelma.tools.utils.layouts import TransferTarget
 from thelma.entities.iso import ISO_STATUS
 from thelma.entities.liquidtransfer import TRANSFER_TYPES
 from thelma.oldtests.tools.iso.lab.test_processing \

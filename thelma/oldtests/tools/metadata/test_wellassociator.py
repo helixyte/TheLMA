@@ -5,18 +5,18 @@ in an experiment cell plate well.
 
 AAB
 """
-from thelma.automation.handlers.experimentdesign \
+from thelma.tools.handlers.experimentdesign \
     import ExperimentDesignParserHandler
-from thelma.automation.handlers.isorequest import IsoRequestParserHandler
-from thelma.automation.semiconstants import EXPERIMENT_SCENARIOS
-from thelma.automation.semiconstants import get_384_rack_shape
-from thelma.automation.semiconstants import get_experiment_metadata_type
-from thelma.automation.tools.metadata.base import TransfectionLayoutConverter
-from thelma.automation.tools.metadata.base import TransfectionParameters
-from thelma.automation.tools.metadata.base import TransfectionPosition
-from thelma.automation.tools.metadata.generation \
+from thelma.tools.handlers.isorequest import IsoRequestParserHandler
+from thelma.tools.semiconstants import EXPERIMENT_SCENARIOS
+from thelma.tools.semiconstants import get_384_rack_shape
+from thelma.tools.semiconstants import get_experiment_metadata_type
+from thelma.tools.metadata.base import TransfectionLayoutConverter
+from thelma.tools.metadata.base import TransfectionParameters
+from thelma.tools.metadata.base import TransfectionPosition
+from thelma.tools.metadata.generation \
     import WellAssociatorOptimisation
-from thelma.automation.tools.metadata.generation import WellAssociatorManual
+from thelma.tools.metadata.generation import WellAssociatorManual
 from thelma.entities.racklayout import RackLayout
 from thelma.entities.utils import get_user
 from thelma.oldtests.tools.tooltestingutils import FileReadingTestCase
