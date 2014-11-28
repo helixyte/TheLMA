@@ -16,7 +16,6 @@ from thelma.utils import get_utc_time
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Anna-Antonia Berger'
 
 __all__ = ['TRANSFER_TYPES',
            'PlannedLiquidTransfer',

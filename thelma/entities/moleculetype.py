@@ -8,7 +8,6 @@ from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['MoleculeType',
            'MOLECULE_TYPE_IDS']
 

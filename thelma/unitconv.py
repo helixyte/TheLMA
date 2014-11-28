@@ -9,10 +9,6 @@ NP
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Nikos Papagrigoriou'
-__date__ = '$Date: 2010-03-02 18:13:47 +0100 (Tue, 02 Mar 2010) $'
-__revision__ = '$Rev: 11398 $'
-__source__ = '$URL: http://svn/cenix/TheLMA/trunk/thelma/unitconv.py $'
 
 __all__ = ['VOLUME_DISPLAY_UNIT',
            'CONCENTRATION_DISPLAY_UNIT',

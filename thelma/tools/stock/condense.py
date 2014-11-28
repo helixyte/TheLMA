@@ -30,7 +30,6 @@ from thelma.tools.utils.base import sort_rack_positions
 
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['StockCondenser',
            'STOCK_CONDENSE_ROLES',
            'StockCondenseRack',

@@ -118,7 +118,6 @@ from thelma.tools.utils.base import is_valid_number
 from thelma.tools.utils.layouts import ParameterAliasValidator
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['GenericSampleTransferPlanParser',
            'TransferParsingContainer']
 

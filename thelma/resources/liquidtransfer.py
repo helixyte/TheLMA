@@ -14,7 +14,6 @@ from thelma.interfaces import IRackPosition
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Anna-Antonia Berger'
 
 __all__ = ['ReservoirSpecsCollection',
            'ReservoirSpecsMember',

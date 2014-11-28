@@ -24,10 +24,6 @@ from thelma.interfaces import IOrganization
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Nikos Papagrigoriou'
-__date__ = '$Date: 2012-12-06 20:47:04 +0100 (Thu, 06 Dec 2012) $'
-__revision__ = '$Rev: 12985 $'
-__source__ = '$URL:: http://svn/cenix/TheLMA/trunk/thelma/resources/container#$'
 
 __all__ = ['TubeMember',
            'WellMember',

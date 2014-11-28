@@ -14,10 +14,6 @@ from sqlalchemy.schema import DDLElement
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Nikos Papagrigoriou'
-__date__ = '$Date: 2010-06-22 16:34:22 +0200 (Tue, 22 Jun 2010) $'
-__revision__ = '$Rev: 11572 $'
-__source__ = '$URL: http://svn/cenix/TheLMA/trunk/thelma/db/view.py $'
 
 __all__ = ['CreateView',
            'DropView',

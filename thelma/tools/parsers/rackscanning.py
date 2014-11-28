@@ -53,7 +53,6 @@ from thelma.tools.parsers.base import TxtFileParser
 from thelma.utils import as_utc_time
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['RackScanningParser']
 
 

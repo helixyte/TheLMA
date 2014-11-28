@@ -6,7 +6,6 @@ FOG Nov 26, 2010
 from everest.entities.base import Entity
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['RackLayout']
 
 

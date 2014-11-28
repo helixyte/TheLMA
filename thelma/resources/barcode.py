@@ -17,10 +17,6 @@ from thelma.resources.base import RELATION_BASE_URL
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Tobias Rothe'
-__date__ = '$Date: 2012-12-18 14:50:32 +0100 (Tue, 18 Dec 2012) $'
-__revision__ = '$Rev: 13011 $'
-__source__ = '$URL:: http://svn/cenix/TheLMA/trunk/thelma/resources/barcode.py $'
 
 __all__ = ['BarcodePrintJobMember',
            'BarcodePrintJobCollection',

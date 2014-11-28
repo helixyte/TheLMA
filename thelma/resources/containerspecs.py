@@ -18,10 +18,6 @@ from everest.constants import CARDINALITIES
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Nikos Papagrigoriou'
-__date__ = '$Date: 2012-11-12 12:45:24 +0100 (Mon, 12 Nov 2012) $'
-__revision__ = '$Rev: 12945 $'
-__source__ = '$URL:: http://svn/cenix/TheLMA/trunk/thelma/resources/container#$'
 
 __all__ = ['ContainerSpecsCollection',
            'ContainerSpecsMember',

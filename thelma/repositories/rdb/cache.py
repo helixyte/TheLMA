@@ -23,10 +23,6 @@ from sqlalchemy.sql import visitors
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Nikos Papagrigoriou'
-__date__ = '$Date: 2011-11-10 12:55:22 +0100 (Thu, 10 Nov 2011) $'
-__revision__ = '$Rev: 12254 $'
-__source__ = '$URL:: http://svn/cenix/TheLMA/trunk/thelma/db/cache.py         $'
 
 __all__ = ['CachingQueryFactory',
            'CachingQuery',

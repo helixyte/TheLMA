@@ -19,7 +19,6 @@ from thelma.tools.parsers.base import RackShapeParsingContainer
 from thelma.entities.utils import label_from_number
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['LibraryBaseLayoutParser',
            ]
 

@@ -9,7 +9,6 @@ from thelma.entities.liquidtransfer import PlannedWorklist
 
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['PlannedWorklistGenerator'
            ]
 

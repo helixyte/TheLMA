@@ -157,10 +157,6 @@ from thelma.resources.subproject import SubprojectMember
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Nikos Papagrigoriou'
-__date__ = '$Date: 2013-05-08 17:42:10 +0200 (Wed, 08 May 2013) $'
-__revision__ = '$Rev: 13330 $'
-__source__ = '$URL: http://svn/cenix/TheLMA/trunk/thelma/testing.py $'
 
 __all__ = ['ThelmaEntityTestCase',
            'ThelmaResourceTestCase',

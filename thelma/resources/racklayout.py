@@ -14,10 +14,6 @@ from thelma.interfaces import ITaggedRackPositionSet
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Anna-Antonia Berger'
-__date__ = '$Date:  $'
-__revision__ = '$Rev:  $'
-__source__ = '$URL:: http://svn/cenix/TheLMA/trunk/thelma/resources/racklayou#$'
 
 __all__ = ['RackLayoutCollection',
            'RackLayoutMember',

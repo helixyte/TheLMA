@@ -24,10 +24,6 @@ from everest.constants import CARDINALITIES
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Nikos Papagrigoriou'
-__date__ = '$Date: 2013-05-15 16:37:16 +0200 (Wed, 15 May 2013) $'
-__revision__ = '$Rev: 13349 $'
-__source__ = '$URL:: http://svn/cenix/TheLMA/trunk/thelma/resources/rack.py   $'
 
 __all__ = ['PlateCollection',
            'PlateMember',

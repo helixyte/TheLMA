@@ -7,7 +7,6 @@ from subprocess import (Popen,
                         PIPE)
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['BarcodePrinter',
            'SatoBarcode',
            'UniTwoLabelRackBarcode',
@@ -16,10 +15,6 @@ __all__ = ['BarcodePrinter',
            'print_two_label_unirack_barcode',
            'print_location_barcode']
 
-__author__ = 'F Oliver Gathmann'
-__date__ = '$Date: 2012-10-25 14:14:00 +0200 (Thu, 25 Oct 2012) $'
-__revision__ = '$Rev: 12918 $'
-__source__ = '$URL: #$'
 
 class BarcodePrinter:
     """

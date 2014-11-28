@@ -134,7 +134,6 @@ from thelma.tools.parsers.base import RackParsingContainer
 from thelma.tools.utils.base import get_trimmed_string
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['ExperimentDesignParser',
            '_ExperimentDesignSheetParsingContainer']
 

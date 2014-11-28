@@ -8,10 +8,6 @@ import string # pylint: disable=W0402
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Nikos Papagrigoriou'
-__date__ = '$Date: 2011-10-07 12:52:11 +0200 (Fri, 07 Oct 2011) $'
-__revision__ = '$Rev: 12174 $'
-__source__ = '$URL:: http://svn/cenix/TheLMA/trunk/thelma/stringconv.py       $'
 
 __all__ = ['reverse_dna_sequence']
 

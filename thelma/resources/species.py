@@ -14,10 +14,6 @@ from thelma.resources.base import RELATION_BASE_URL
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Nikos Papagrigoriou'
-__date__ = '$Date: 2013-02-12 09:16:49 +0100 (Tue, 12 Feb 2013) $'
-__revision__ = '$Rev: 13137 $'
-__source__ = '$URL:: http://svn/cenix/TheLMA/trunk/thelma/resources/species.p#$'
 
 __all__ = ['SpeciesCollection',
            'SpeciesMember',

@@ -63,7 +63,6 @@ from thelma.entities.utils import label_from_number
 from pyramid.compat import string_types
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['ExperimentPoolSetParser',
            ]
 

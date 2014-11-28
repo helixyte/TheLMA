@@ -7,7 +7,6 @@ from everest.entities.base import Entity
 from thelma.utils import get_utc_time
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['Subproject']
 
 

@@ -11,7 +11,6 @@ from thelma.utils import get_utc_time
 
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['EXPERIMENT_METADATA_TYPES',
            'ExperimentMetadataType',
            'Experiment',

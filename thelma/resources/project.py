@@ -18,10 +18,6 @@ from thelma.resources.base import RELATION_BASE_URL
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Tobias Rothe'
-__date__ = '$Date: 2013-01-03 14:41:06 +0100 (Thu, 03 Jan 2013) $'
-__revision__ = '$Rev: 13025 $'
-__source__ = '$URL:#$'
 
 __all__ = ['ProjectCollection',
            'ProjectMember',

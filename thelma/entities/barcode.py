@@ -7,7 +7,6 @@ TR
 from everest.entities.base import Entity
 
 __docformat__ = 'reStructuredText en'
-__author__ = 'Tobias Rothe'
 __all__ = ['BarcodePrintJob']
 
 

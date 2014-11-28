@@ -30,7 +30,6 @@ from thelma.entities.racklayout import RackLayout
 from thelma.entities.tagging import TaggedRackPositionSet
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['TransfectionParameters',
            'TransfectionPosition',
            'TransfectionLayout',

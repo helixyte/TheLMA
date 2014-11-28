@@ -18,7 +18,6 @@ from thelma.tools.utils.racksector import ValueDeterminer
 
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['IsoRequestParameters',
            'IsoRequestPosition',
            'IsoRequestLayout',

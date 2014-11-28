@@ -20,10 +20,6 @@ from everest.constants import CARDINALITIES
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Nikos Papagrigoriou'
-__date__ = '$Date: 2013-01-08 10:31:07 +0100 (Tue, 08 Jan 2013) $'
-__revision__ = '$Rev: 13027 $'
-__source__ = '$URL:: http://svn/cenix/TheLMA/trunk/thelma/resources/stockinfo#$'
 
 __all__ = ['StockInfoCollection',
            'StockInfoMember',

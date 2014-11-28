@@ -52,10 +52,6 @@ from thelma.resources.base import RELATION_BASE_URL
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'F Oliver Gathmann'
-__date__ = '$Date: 2013-05-13 14:13:15 +0200 (Mon, 13 May 2013) $'
-__revision__ = '$Rev: 13338 $'
-__source__ = '$URL::                                                          $'
 
 __all__ = ['ExperimentMetadataTypeMember',
            'ExperimentCollection',

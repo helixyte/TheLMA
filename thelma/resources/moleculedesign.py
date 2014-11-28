@@ -21,10 +21,6 @@ from everest.constants import CARDINALITIES
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Nikos Papagrigoriou'
-__date__ = '$Date: 2013-02-27 14:59:00 +0100 (Wed, 27 Feb 2013) $'
-__revision__ = '$Rev: 13189 $'
-__source__ = '$URL: http://svn/cenix/TheLMA/trunk/thelma/resources/moleculedesign.py $'
 
 __all__ = ['MoleculeDesignCollection',
            'MoleculeDesignMember',

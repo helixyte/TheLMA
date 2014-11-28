@@ -8,7 +8,6 @@ from everest.entities.utils import slug_from_string
 from thelma.utils import get_utc_time
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['Project']
 
 

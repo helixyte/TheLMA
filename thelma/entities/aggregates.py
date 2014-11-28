@@ -21,10 +21,6 @@ from thelma.entities.suppliermoleculedesign import SupplierMoleculeDesign
 
 
 __docformat__ = 'reStructuredText en'
-__author__ = 'F Oliver Gathmann'
-__date__ = '$Date: 2013-01-28 10:35:54 +0100 (Mon, 28 Jan 2013) $'
-__revision__ = '$Rev: 13112 $'
-__source__ = '$URL::                                                        #$'
 
 __all__ = ['ThelmaRdbAggregate',
            ]

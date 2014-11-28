@@ -10,7 +10,6 @@ from sqlalchemy.orm.query import Query
 
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['MAX_PLATE_LABEL_LENGTH',
            'VOLUME_CONVERSION_FACTOR',
            'CONCENTRATION_CONVERSION_FACTOR',

@@ -31,7 +31,6 @@ from thelma.entities.racklayout import RackLayout
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Anna-Antonia Berger'
 
 __all__ = ['BaseLayoutConverter',
            'TransferLayoutConverter',

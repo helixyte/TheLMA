@@ -12,7 +12,6 @@ from thelma.entities.tubetransfer import TubeTransfer
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'Anna-Antonia Berger'
 
 __all__ = ['create_mapper']
 

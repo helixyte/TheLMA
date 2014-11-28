@@ -11,11 +11,6 @@ from tractor import make_api_from_config
 
 __docformat__ = "reStructuredText en"
 
-__author__ = 'Nikos Papagrigoriou'
-__date__ = '$Date: 2012-12-02 14:30:54 +0100 (Sun, 02 Dec 2012) $'
-__revision__ = '$Rev: 12968 $'
-__source__ = '$URL:: http://svn/cenix/TheLMA/trunk/thelma/run.py              $'
-
 __all__ = ['app',
            'create_config',
            ]

@@ -24,7 +24,6 @@ from thelma.entities.utils import get_user
 
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['ParameterSet',
            'ParameterAliasValidator',
            'WorkingPosition',

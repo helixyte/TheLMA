@@ -18,7 +18,6 @@ from thelma.tools.parsers.base import ExcelFileParser
 from thelma.tools.utils.base import is_valid_number
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['LibraryMemberParser',
            ]
 

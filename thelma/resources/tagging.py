@@ -14,10 +14,6 @@ from thelma.resources.base import RELATION_BASE_URL
 
 __docformat__ = 'reStructuredText en'
 
-__author__ = 'F Oliver Gathmann'
-__date__ = '$Date: 2013-02-12 09:16:49 +0100 (Tue, 12 Feb 2013) $'
-__revision__ = '$Rev: 13137 $'
-__source__ = '$URL::                                                          $'
 
 __all__ = ['TagCollection',
            'TagMember',
