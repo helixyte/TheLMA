@@ -41,6 +41,10 @@
     <!-- UTILITIES -->
 
     <!-- RENDERERS -->
+    
+    <renderer
+        name="service"
+        factory=".renderers.ThelmaRendererFactory" />
 
     <renderer
         name="atom"
@@ -66,18 +70,18 @@
 
     <!-- Service -->
 
-    <view
+     <view
         context="everest.resources.interfaces.IService"
         name=""
-        renderer="templates/index.pt"
+        renderer="louice"
         request_method="GET"
         permission="view" />
 
-    <view
+     <view
         context="everest.resources.interfaces.IService"
         view="everest.views.static.public_view"
         name="public"
-        request_method="GET" />
+        request_method="GET"/>
 
     <!-- Collection views (default ATOM) -->
 

@@ -1,8 +1,13 @@
 """
 TheLMA response renderers.
 """
-from pyramid.httpexceptions import HTTPBadRequest
+import os
 
+from pyramid.compat import bytes_
+from pyramid.httpexceptions import HTTPBadRequest
+from pyramid.interfaces import IRenderer
+
+from everest.mime import HtmlMime
 from everest.mime import ZipMime
 from everest.renderers import ResourceRenderer
 from everest.resources.interfaces import IResource
@@ -12,6 +17,7 @@ from thelma.mime import ExperimentZippedWorklistMime
 from thelma.mime import IsoJobZippedWorklistMime
 from thelma.mime import IsoZippedWorklistMime
 from thelma.utils import run_tool
+from zope.interface import implementer # pylint: disable=E0611,F0401
 from zope.interface import providedBy as provided_by # pylint: disable=E0611,F0401
 
 
@@ -29,7 +35,9 @@ class ThelmaRendererFactory(object):
         self.__name = info.name
 
     def __call__(self, value, system):
-        if self.__name == ExperimentZippedWorklistMime.mime_type_string:
+        if self.__name == 'louice':
+            rnd = LouiceServiceRenderer()
+        elif self.__name == ExperimentZippedWorklistMime.mime_type_string:
             rnd = ExperimentWorklistRenderer()
         elif self.__name == IsoZippedWorklistMime.mime_type_string:
             rnd = IsoWorklistRenderer()
@@ -38,6 +46,16 @@ class ThelmaRendererFactory(object):
         else:
             raise ValueError('No renderer available for ' + self.__name)
         return rnd(value, system)
+
+
+@implementer(IRenderer)
+class LouiceServiceRenderer(object):
+    def __call__(self, value, system):
+        request = system['request']
+        public_dir = request.registry.settings['public_dir']
+        client_html = os.path.join(public_dir, 'LOUICe.html')
+        request.response.content_type = HtmlMime.mime_type_string
+        return bytes_(open(client_html, 'rb').read(), 'utf8')
 
 
 class CustomRenderer(ResourceRenderer):
