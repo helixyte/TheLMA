@@ -1,7 +1,5 @@
 """
-
-This file is part of the everest project.
-See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+Registry for cache loaders.
 
 Created on Oct 24, 2013.
 """

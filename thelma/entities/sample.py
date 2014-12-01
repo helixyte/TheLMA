@@ -5,8 +5,8 @@ from everest.entities.base import Entity
 from everest.entities.utils import slug_from_integer
 from thelma.utils import get_utc_time
 
-__docformat__ = 'reStructuredText en'
 
+__docformat__ = 'reStructuredText en'
 __all__ = ['SAMPLE_TYPES',
            'Molecule',
            'Sample',
@@ -208,8 +208,6 @@ class SampleMolecule(Entity):
     """
     This class represents a molecule in a particular sample. It also stores
     the meta data for it.
-
-    **Equality condition**: equal :attr:`sample` and :attr:`molecule`
     """
     #: The samples (:class:`Sample`) containing this molecule.
     sample = None
@@ -231,6 +229,9 @@ class SampleMolecule(Entity):
         self.freeze_thaw_cycles = 0
 
     def __eq__(self, other):
+        """
+        Equality is based on the sample and molecule attributes.
+        """
         return (isinstance(other, SampleMolecule) and
                 self.sample == other.sample and
                 self.molecule == other.molecule)

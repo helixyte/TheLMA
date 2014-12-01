@@ -1,11 +1,9 @@
 """
 Location resource.
-
-NP
 """
-
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.representers.dataelements import DataElementAttributeProxy
+from everest.representers.interfaces import IDataElement
 from everest.resources.base import Collection
 from everest.resources.base import Member
 from everest.resources.descriptors import member_attribute
@@ -13,10 +11,9 @@ from everest.resources.descriptors import terminal_attribute
 from thelma.interfaces import IDevice
 from thelma.interfaces import IRack
 from thelma.resources.base import RELATION_BASE_URL
-from everest.representers.interfaces import IDataElement
+
 
 __docformat__ = 'reStructuredText en'
-
 __all__ = ['LocationCollection',
            'LocationMember']
 

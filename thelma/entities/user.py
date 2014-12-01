@@ -1,11 +1,9 @@
 """
 User entity classes.
-
-TR, AAB
 """
-
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['User']
@@ -14,10 +12,7 @@ __all__ = ['User']
 class User(Entity):
     """
     This class represents TheLMA users.
-
-    **Equality Condition**: equal :attr:`id`
     """
-
     #: Database user name of the user.
     username = None
     #: Organization wide directory ID of the user.
@@ -47,11 +42,8 @@ class User(Entity):
 
 class UserPreferences(Entity):
     """
-    This class represents TheLMA users.
-
-    **Equality Condition**: equal :attr:`id`
+    This class represents TheLMA user preferences.
     """
-
     #: The user who this preferences belong to
     #: (:class:`thelma.entities.user.User`).
     user = None

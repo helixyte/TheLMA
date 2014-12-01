@@ -1,15 +1,17 @@
 """
 Chemical structure entity classes.
 """
+import re
+
 from everest.entities.base import Entity
 from everest.entities.utils import get_root_aggregate
 from everest.entities.utils import slug_from_string
 from everest.querying.specifications import cntd
-from thelma.interfaces import IChemicalStructureType
-from thelma.interfaces import IMoleculeType
 from thelma.entities.cacheloaderregistry import cache_loader_registry
 from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
-import re
+from thelma.interfaces import IChemicalStructureType
+from thelma.interfaces import IMoleculeType
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['CHEMICAL_STRUCTURE_TYPE_IDS',

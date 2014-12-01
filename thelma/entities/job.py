@@ -1,18 +1,14 @@
 """
 Job entity classes.
-
-AAB, Created on Jun 22, 2011
 """
-
 from everest.entities.base import Entity
-from thelma.tools.semiconstants import get_item_status_managed
 from thelma.entities.iso import ISO_STATUS
 from thelma.entities.iso import IsoJobPreparationPlate
+from thelma.tools.semiconstants import get_item_status_managed
 from thelma.utils import get_utc_time
 
 
 __docformat__ = 'reStructuredText en'
-
 __all__ = ['JOB_TYPES',
            'Job',
            'ExperimentJob',
@@ -44,8 +40,6 @@ class Job(Entity):
 
     There is no status tracking at the moment except for the storage of
     the creation time.
-
-    **Equality Condition**: equal :attr:`id`
     """
     #: Defines the entity type group by this job (see :class:`JOB_TYPES`).
     job_type = None
@@ -85,10 +79,7 @@ class ExperimentJob(Job):
     """
     A job class grouping :class:`Experiment` entities. All experiments must
     belong to the same :class:`ExperimentDesign`.
-
-    **Equality Condition**: equal :attr:`id`
     """
-
     #: A list of ExperimentRack objects (:class:`ExperimentRack`)
     #: associated with this job.
     experiments = None
@@ -116,8 +107,6 @@ class IsoJob(Job):
     A job class grouping :class:`Iso` entities. All ISOs must belong to the
     same :class:`IsoRequest`. They might share an :class:`IsoJobStockRack`
     and an :class:`IsoJobPreparationPlate`.
-
-    **Equality Condition**: equal :attr:`id`
     """
     #: The ISOs belonging to this job.
     isos = []
@@ -138,9 +127,6 @@ class IsoJob(Job):
 
     def __init__(self, label, user, isos, number_stock_racks,
                  worklist_series=None, **kw):
-        """
-        Constructor
-        """
         if isos is None or len(isos) < 1:
             raise ValueError('An ISO job must consist of at least 1 ISO!')
         Job.__init__(self, label=label, user=user, job_type=JOB_TYPES.ISO, **kw)

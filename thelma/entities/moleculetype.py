@@ -1,11 +1,9 @@
 """
 MoleculeType entity classes.
-
-NP, AAB
 """
-
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['MoleculeType',
@@ -42,7 +40,6 @@ class MoleculeType(Entity):
     """
     Instances of this class describe molecule types, such as \'siRna\'.
     """
-
     #: The name of the molecule type.
     name = None
     #: A more detailed description.

@@ -1,11 +1,9 @@
 """
 Organization entity classes.
-
-NP, AAB
 """
-
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['Organization']
@@ -14,10 +12,7 @@ __all__ = ['Organization']
 class Organization(Entity):
     """
     Organizations can be customers, suppliers, etc.
-
-    **Equality Condition**: equal :attr:`id`
     """
-
     #: The name of the organization.
     name = None
 

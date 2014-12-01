@@ -1,7 +1,7 @@
 """
 Job resource.
 
-AAB, Jun 2011
+Created Jun 2011
 """
 from datetime import datetime
 import logging
@@ -17,22 +17,21 @@ from everest.resources.base import Member
 from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
-from thelma.tools.semiconstants import ITEM_STATUS_NAMES
-from thelma.tools.experiment import get_batch_writer
-from thelma.tools.experiment import get_executor
-from thelma.tools.experiment import get_manual_executor
+from thelma.entities.utils import get_current_user
 from thelma.interfaces import IExperiment
 from thelma.interfaces import IIso
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import IPlate
 from thelma.interfaces import IStockRack
 from thelma.interfaces import IUser
-from thelma.entities.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
+from thelma.tools.experiment import get_batch_writer
+from thelma.tools.experiment import get_executor
+from thelma.tools.experiment import get_manual_executor
+from thelma.tools.semiconstants import ITEM_STATUS_NAMES
 
 
 __docformat__ = 'reStructuredText en'
-
 __all__ = ['ExperimentJobCollection',
            'ExperimentJobMember',
            'IsoJobCollection',

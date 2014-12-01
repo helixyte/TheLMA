@@ -1,10 +1,10 @@
 """
 Sample resource.
 
-FOG, Jul 04, 2011
+Created Jul 04, 2011
 """
-
 from datetime import datetime
+
 from everest.resources.base import Collection
 from everest.resources.base import Member
 from everest.resources.descriptors import collection_attribute
@@ -12,17 +12,15 @@ from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from thelma.interfaces import IContainer
 from thelma.interfaces import IMoleculeDesign
+from thelma.interfaces import IMoleculeType
 from thelma.interfaces import IOrganization
 from thelma.interfaces import ISample
 from thelma.interfaces import ISampleMolecule
-from thelma.resources.base import RELATION_BASE_URL
-from thelma.interfaces import IMoleculeType
 from thelma.interfaces import ISupplierMoleculeDesign
-#from thelma.interfaces import IMoleculeDesignPool
+from thelma.resources.base import RELATION_BASE_URL
+
 
 __docformat__ = 'reStructuredText en'
-
-
 __all__ = ['MoleculeCollection',
            'MoleculeMember',
            'SampleMember',

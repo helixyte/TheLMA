@@ -4,8 +4,8 @@ Entity classes involved in XL20 run storage.
 from everest.entities.base import Entity
 from thelma.utils import get_utc_time
 
-__docformat__ = 'reStructuredText en'
 
+__docformat__ = 'reStructuredText en'
 __all__ = ['TubeTransfer',
            'TubeTransferWorklist']
 
@@ -15,10 +15,7 @@ class TubeTransfer(Entity):
     This class represents one tube transfer operation performed by the XL20
     tubehandler robot, i.e. the transfer of one closed tube from one position
     in a tube rack to another one (in the same tube rack or a different one).
-
-    **Equality Condition:** equal :attr:`id`
     """
-
     #: The transferred tube (:class:`thelma.entities.container.Tube`).
     tube = None
     #: The source rack (:class:`thelma.entities.rack.TubeRack`).
@@ -34,9 +31,6 @@ class TubeTransfer(Entity):
 
     def __init__(self, tube, source_rack, source_position, target_rack,
                  target_position, **kw):
-        """
-        Constructor
-        """
         Entity.__init__(self, **kw)
         self.tube = tube
         self.source_rack = source_rack
@@ -58,10 +52,7 @@ class TubeTransfer(Entity):
 class TubeTransferWorklist(Entity):
     """
     Comprises all tube transfers that have executed in one XL20 tubehandler run.
-
-    **Equality Condition:** equal :attr:`id`
     """
-
     #: The tube transfers being part of the worklist (:class:`TubeTransfer`).
     tube_transfers = None
     #: The user who has carried out the transfer
@@ -72,9 +63,6 @@ class TubeTransferWorklist(Entity):
     timestamp = None
 
     def __init__(self, user, tube_transfers=None, timestamp=None, **kw):
-        """
-        Constructor
-        """
         Entity.__init__(self, **kw)
         self.user = user
         if timestamp is None:

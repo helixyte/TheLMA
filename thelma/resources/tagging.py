@@ -1,7 +1,8 @@
 """
-FOG Mar 29, 2011
-"""
+Tagging resources.
 
+Created Mar 29, 2011
+"""
 from everest.resources.base import Collection
 from everest.resources.base import Member
 from everest.resources.descriptors import collection_attribute
@@ -13,8 +14,6 @@ from thelma.resources.base import RELATION_BASE_URL
 
 
 __docformat__ = 'reStructuredText en'
-
-
 __all__ = ['TagCollection',
            'TagMember',
            'TaggedRackPositionSetCollection',

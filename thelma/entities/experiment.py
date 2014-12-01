@@ -1,7 +1,7 @@
 """
 Experiment entity classes.
 
-FOG Nov 26, 2010
+Created Nov 26, 2010
 """
 from everest.entities.base import Entity
 from everest.entities.utils import get_root_aggregate
@@ -68,9 +68,6 @@ class Experiment(Entity):
     The number of expeirment racks is the product of the number of replicates
     (stored at the experiment metadata) and the number of design racks
     (design racks are stored at the :attr:`experiment_design`).
-
-    **Equality Condition**: equal :attr:`experiment_design` and \
-        :attr:`source_rack`
     """
     #: The label of the experiment.
     label = None
@@ -99,6 +96,9 @@ class Experiment(Entity):
         self.experiment_racks = experiment_racks
 
     def __eq__(self, other):
+        """
+        Equality is based on the experiment_design and source_rack attributes.
+        """
         return (isinstance(other, Experiment) \
                 and other.experiment_design == self.experiment_design \
                 and other.source_rack == self.source_rack)
@@ -118,8 +118,6 @@ class ExperimentRack(Entity):
     An experiment rack is a physical cell plate rack
     (:class:`thelma.entities.rack.Rack`) used in an
     experiment (:class:`Experiment`).
-
-    **Equality Condition**: equal :attr:`id`
     """
     #: The experiment (:class:`Experiment`)
     #: this rack belongs to.
@@ -168,12 +166,9 @@ class ExperimentDesign(Entity):
     An experiment design defines all parameters for a group of
     experiments (:class:`Experiment`) belonging
     to the same subproject.
-
-    **Equality Condition**: equal :attr:`id`
     """
     #: The domain for experiment design tags.
     DOMAIN = 'experiment_design'
-
     #: The shape (:class:`thelma.entities.rack.RackShape`) of all
     #: experiment racks (:class:`ExperimentRack`)
     #: covered by this experiment design.
@@ -235,8 +230,6 @@ class ExperimentDesignRack(Entity):
     (:class:`thelma.entities.tagging.TaggedRackPositionSet`)
     instances of a cell plate rack (:class:`ExperimentRack`).
     Design racks are virtual, they do *not* exist as physical racks.
-
-    **Equality Condition**: :attr:`id`
     """
     #: The ID of the object in the DB.
     id = None
@@ -293,8 +286,6 @@ class ExperimentMetadata(Entity):
     design set (:class:`thelma.entities.moleculedesign.MoleculeDesign`) and
     the subproject (:class:`thelma.entities.subproject.Subproject`) all this
     is related to.
-
-    **Equality Condition**: equal :attr:`subproject` and :attr:`label`
     """
 
     #: The (human-readable) name of the experiment metadata.
@@ -384,6 +375,9 @@ class ExperimentMetadata(Entity):
         return (self.experiment_metadata_type.id == type_id)
 
     def __eq__(self, other):
+        """
+        Equality is based on the subproject and label attributes.
+        """
         return (isinstance(other, ExperimentMetadata) \
                 and self.subproject == other.subproject \
                 and self.label == other.label)

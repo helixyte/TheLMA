@@ -1,11 +1,13 @@
 """
+Custom view for the sample registration item resource.
 """
 import json
+
+from pyramid.httpexceptions import HTTPCreated
 
 from everest.mime import JsonMime
 from everest.views.postcollection import PostCollectionView
 from thelma.tools.stock.sampleregistration import SupplierSampleRegistrar
-from pyramid.httpexceptions import HTTPCreated
 
 
 __docformat__ = 'reStructuredText en'

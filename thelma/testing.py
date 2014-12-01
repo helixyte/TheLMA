@@ -1,7 +1,5 @@
 """
 Testing base classes.
-
-NP
 """
 
 from datetime import datetime
@@ -25,7 +23,6 @@ from everest.testing import EntityTestCase
 from everest.testing import FunctionalTestCase
 from everest.testing import ResourceCreatorMixin as EverestResourceCreatorMixin
 from everest.testing import ResourceTestCase
-from thelma.tools.iso.libcreation.base import DEFAULT_PREPARATION_PLATE_VOLUME
 from thelma.entities.barcode import BarcodePrintJob
 from thelma.entities.chemicalstructure import NucleicAcidChemicalStructure
 from thelma.entities.container import ContainerLocation
@@ -153,11 +150,10 @@ from thelma.resources.rackspecs import TubeRackSpecsMember
 from thelma.resources.species import SpeciesMember
 from thelma.resources.stockinfo import StockInfoMember
 from thelma.resources.subproject import SubprojectMember
+from thelma.tools.iso.libcreation.base import DEFAULT_PREPARATION_PLATE_VOLUME
 
 
 __docformat__ = 'reStructuredText en'
-
-
 __all__ = ['ThelmaEntityTestCase',
            'ThelmaResourceTestCase',
            ]

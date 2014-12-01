@@ -1,14 +1,11 @@
 """
 Device entity classes.
-
-NP
 """
-
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
 
-__docformat__ = 'reStructuredText en'
 
+__docformat__ = 'reStructuredText en'
 __all__ = ['Device',
            'DeviceType']
 
@@ -18,10 +15,7 @@ class DeviceType(Entity):
     This class defines the general application area of a device.
     Manufacturer and model of a device are not defined here but in the
     class :class:`Device`.
-
-    **Equality Condition**: equal :attr:`id`
     """
-
     #: The name of the device type (unique).
     name = None
     #: The name of that device type (human readable marker).
@@ -55,10 +49,7 @@ class DeviceType(Entity):
 class Device(Entity):
     """
     Represents an external device.
-
-    **Equality Condition**: equal :attr:`id`
     """
-
     #: The name of the device (unique).
     name = None
     #: The label of the device (human readable marker).

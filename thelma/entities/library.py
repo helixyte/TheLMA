@@ -14,8 +14,6 @@ __all__ = ['LibraryPlate',
 class MoleculeDesignLibrary(Entity):
     """
     Library of molecule designs.
-
-    **Equality Condition:** equal :attr:`label`
     """
     #: The pool set contains the stock sample molecule design set for this
     #: library.
@@ -68,6 +66,9 @@ class MoleculeDesignLibrary(Entity):
         return slug_from_string(self.label)
 
     def __eq__(self, other):
+        """
+        Equality is based on the label attribute.
+        """
         return isinstance(other, MoleculeDesignLibrary) and \
                 other.label == self.label
 
@@ -90,8 +91,6 @@ class LibraryPlate(Entity):
     Represents a ready-to-use plates being part of a screening library.
     These plates usually already contain samples but have some positions
     free for controls or other position types.
-
-    **Equality Condition:** equal :attr:`id`
     """
     #: The library this plate belongs to (:class:`MoleculeDesignLibrary`).
     molecule_design_library = None

@@ -4,6 +4,7 @@ Tagging entity classes.
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
 
+
 __docformat__ = "reStructuredText en"
 __all__ = ['Tag',
            'Tagging',
@@ -50,6 +51,9 @@ class Tag(Entity):
                                 (self.domain, self.predicate, self.value))
 
     def __eq__(self, other):
+        """
+        Equality is based on the domain, predicate, and value attributes.
+        """
         return isinstance(other, Tag) \
                and other.domain == self.domain \
                and other.predicate == self.predicate \
@@ -165,6 +169,10 @@ class TaggedRackPositionSet(Tagged):
         self.rack_position_set = rack_position_set
 
     def __eq__(self, other):
+        """
+        Equality is based on the tags attribute and rack_position_set's hash
+        value.
+        """
         return isinstance(other, TaggedRackPositionSet) \
                and self.tags == other.tags \
                and self.rack_position_set.hash_value \

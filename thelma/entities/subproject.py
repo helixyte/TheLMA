@@ -1,10 +1,11 @@
 """
 Subproject entity classes.
 
-FOG 11.2010, AAB
+Created 11.2010
 """
 from everest.entities.base import Entity
 from thelma.utils import get_utc_time
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['Subproject']
@@ -12,11 +13,8 @@ __all__ = ['Subproject']
 
 class Subproject(Entity):
     """
-    This class represents subproject of projects.
-
-    **Equality Condition**: equal :attr:`project` and equal :attr:`label`
+    A subproject of a project.
     """
-
     #: The (human-readable) label of this subproject.
     label = None
     #: The project (:class:`thelma.entities.project.Project`) this subproject
@@ -53,6 +51,9 @@ class Subproject(Entity):
         self.active = member.active
 
     def __eq__(self, other):
+        """
+        Equality is based on the project and label attributes.
+        """
         return (isinstance(other, Subproject) \
                 and other.project == self.project \
                 and other.label == self.label)

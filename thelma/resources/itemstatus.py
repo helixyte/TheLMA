@@ -1,9 +1,6 @@
 """
 Item status resource.
-
-NP
 """
-
 from everest.querying.specifications import DescendingOrderSpecification
 from everest.resources.base import Collection
 from everest.resources.base import Member
@@ -13,7 +10,6 @@ from thelma.resources.base import RELATION_BASE_URL
 
 
 __docformat__ = 'reStructuredText en'
-
 __all__ = ['ItemStatusCollection',
            'ItemStatusMember']
 
@@ -26,8 +22,6 @@ class ItemStatusMember(Member):
 
 
 class ItemStatusCollection(Collection):
-    """
-    """
     title = 'Item Statuses'
     root_name = 'item-statuses'
     description = 'Manage item statuses'

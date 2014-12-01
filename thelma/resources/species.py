@@ -1,9 +1,6 @@
 """
 Species resource.
-
-NP
 """
-
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.resources.base import Collection
 from everest.resources.base import Member
@@ -13,8 +10,6 @@ from thelma.resources.base import RELATION_BASE_URL
 
 
 __docformat__ = 'reStructuredText en'
-
-
 __all__ = ['SpeciesCollection',
            'SpeciesMember',
            ]
@@ -28,6 +23,7 @@ class SpeciesMember(Member):
     common_name = terminal_attribute(str, 'common_name')
     acronym = terminal_attribute(str, 'acronym')
     ncbi_tax_id = terminal_attribute(int, 'ncbi_tax_id')
+
 
 class SpeciesCollection(Collection):
     title = 'Species'

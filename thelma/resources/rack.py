@@ -1,10 +1,9 @@
 """
 Rack resource.
-
-NP
 """
-
 from datetime import datetime
+
+from everest.constants import CARDINALITIES
 from everest.querying.specifications import DescendingOrderSpecification
 from everest.resources.base import Collection
 from everest.resources.base import Member
@@ -19,12 +18,9 @@ from thelma.interfaces import IRackSpecs
 from thelma.interfaces import ITube
 from thelma.interfaces import IWell
 from thelma.resources.base import RELATION_BASE_URL
-from everest.constants import CARDINALITIES
 
 
 __docformat__ = 'reStructuredText en'
-
-
 __all__ = ['PlateCollection',
            'PlateMember',
            'RackCollection',
@@ -40,10 +36,7 @@ __all__ = ['PlateCollection',
 
 
 class RackMember(Member):
-    """
-    """
     relation = "%s/rack" % RELATION_BASE_URL
-
     label = terminal_attribute(str, 'label')
     barcode = terminal_attribute(str, 'barcode')
     comment = terminal_attribute(str, 'comment')

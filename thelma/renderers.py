@@ -12,10 +12,10 @@ from everest.mime import ZipMime
 from everest.renderers import ResourceRenderer
 from everest.resources.interfaces import IResource
 from everest.views.base import WarnAndResubmitExecutor
-from thelma.tools.iso import lab
 from thelma.mime import ExperimentZippedWorklistMime
 from thelma.mime import IsoJobZippedWorklistMime
 from thelma.mime import IsoZippedWorklistMime
+from thelma.tools.iso import lab
 from thelma.utils import run_tool
 from zope.interface import implementer # pylint: disable=E0611,F0401
 from zope.interface import providedBy as provided_by # pylint: disable=E0611,F0401
@@ -25,6 +25,7 @@ __docformat__ = "reStructuredText en"
 __all__ = ['ThelmaRendererFactory',
            'CustomRenderer',
            'ExperimentWorklistRenderer',
+           'LouiceServiceRenderer',
            'ZippedWorklistRenderer',
            'IsoJobWorklistRenderer',
            'IsoWorklistRenderer']
@@ -50,6 +51,9 @@ class ThelmaRendererFactory(object):
 
 @implementer(IRenderer)
 class LouiceServiceRenderer(object):
+    """
+    Renderer for the LOUICe service (root) object.
+    """
     def __call__(self, value, system):
         request = system['request']
         public_dir = request.registry.settings['public_dir']
@@ -59,6 +63,9 @@ class LouiceServiceRenderer(object):
 
 
 class CustomRenderer(ResourceRenderer):
+    """
+    Base class for custom renderers.
+    """
     def __call__(self, value, system):
         context = value.get('context', system.get('context'))
         if not IResource in provided_by(context):
@@ -103,6 +110,9 @@ class CustomRenderer(ResourceRenderer):
 
 
 class ExperimentWorklistRenderer(CustomRenderer):
+    """
+    Custom renderer for experiment (transfection) worklists.
+    """
     def __init__(self):
         CustomRenderer.__init__(self, ZipMime)
 
@@ -131,6 +141,9 @@ class ExperimentWorklistRenderer(CustomRenderer):
 
 
 class ZippedWorklistRenderer(CustomRenderer):
+    """
+    Custom renderer for zipped worklists.
+    """
     def __init__(self):
         CustomRenderer.__init__(self, ZipMime)
 
@@ -216,6 +229,9 @@ class ZippedWorklistRenderer(CustomRenderer):
 
 
 class IsoJobWorklistRenderer(ZippedWorklistRenderer):
+    """
+    Custom renderer for zipped ISO job worklists.
+    """
     def _prepare_for_xl20_worklist_creation(self, entity):
         while len(entity.iso_job_stock_racks) > 0:
             stock_rack = entity.iso_job_stock_racks.pop()
@@ -223,6 +239,9 @@ class IsoJobWorklistRenderer(ZippedWorklistRenderer):
 
 
 class IsoWorklistRenderer(ZippedWorklistRenderer):
+    """
+    Custom renderer for zipped ISO worklists.
+    """
     def _prepare_for_xl20_worklist_creation(self, entity):
         for sr in entity.iso_stock_racks[:]:
             self._delete_stock_rack(sr)

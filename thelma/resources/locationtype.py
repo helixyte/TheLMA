@@ -1,21 +1,17 @@
 """
 Location type resource.
-
-NP
 """
-
+from everest.querying.specifications import AscendingOrderSpecification
 from everest.resources.base import Collection
 from everest.resources.base import Member
 from everest.resources.descriptors import attribute_alias
-#from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import terminal_attribute
-from everest.querying.specifications import AscendingOrderSpecification
-#from thelma.interfaces import ILocation
 from thelma.resources.base import RELATION_BASE_URL
 
 
+#from everest.resources.descriptors import collection_attribute
+#from thelma.interfaces import ILocation
 __docformat__ = 'reStructuredText en'
-
 __all__ = ['LocationTypeCollection',
            'LocationTypeMember',
            ]

@@ -1,4 +1,7 @@
 """
+Sample registration resources.
+
+Created sNov 24, 2014
 """
 from everest.resources.base import Member
 from everest.resources.descriptors import collection_attribute
@@ -15,7 +18,11 @@ from thelma.resources.base import RELATION_BASE_URL
 
 
 __docformat__ = 'reStructuredText en'
-__all__ = []
+__all__ = ['MoleculeDesignPoolRegistrationItemMember',
+           'MoleculeDesignRegistrationItemMember',
+           'SampleRegistrationItemMember',
+           'SupplierSampleRegistrationItemMember',
+           ]
 
 
 class MoleculeDesignRegistrationItemMember(Member):

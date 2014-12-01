@@ -1,19 +1,17 @@
 """
-PutExperimentMetadataMemberView
-
-TR
+Custom views for the experiment metadata resource.
 """
 from pyramid.httpexceptions import HTTPBadRequest
 from pyramid.httpexceptions import HTTPOk
 
 from everest.resources.utils import resource_to_url
 from everest.views.putmember import PutMemberView
+from thelma.entities.experiment import ExperimentMetadata
+from thelma.entities.utils import get_current_user
 from thelma.tools.metadata.generation import \
     ExperimentMetadataGenerator
 from thelma.tools.metadata.uploadreport import \
     ExperimentMetadataReportUploader
-from thelma.entities.experiment import ExperimentMetadata
-from thelma.entities.utils import get_current_user
 from thelma.utils import run_tool
 from thelma.utils import run_trac_tool
 

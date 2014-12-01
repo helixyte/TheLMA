@@ -1,7 +1,5 @@
 """
 Container resources.
-
-NP
 """
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.querying.specifications import DescendingOrderSpecification
@@ -13,18 +11,15 @@ from everest.resources.descriptors import terminal_attribute
 from thelma.interfaces import IContainerSpecs
 from thelma.interfaces import IItemStatus
 from thelma.interfaces import ILocation
+from thelma.interfaces import IOrganization
 from thelma.interfaces import IRack
 from thelma.interfaces import IRackPosition
 from thelma.interfaces import IRackSpecs
 from thelma.interfaces import ISampleMolecule
 from thelma.resources.base import RELATION_BASE_URL
-from thelma.interfaces import IOrganization
-#from thelma.interfaces import IMoleculeDesignPool
 
 
 __docformat__ = 'reStructuredText en'
-
-
 __all__ = ['TubeMember',
            'WellMember',
            ]

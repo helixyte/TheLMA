@@ -1,7 +1,5 @@
 """
 Tube transfer related resources
-
-AAB
 """
 from everest.resources.base import Member
 from everest.resources.descriptors import collection_attribute
@@ -15,15 +13,13 @@ from thelma.resources.base import RELATION_BASE_URL
 
 
 __docformat__ = 'reStructuredText en'
-
 __all__ = ['TubeTransferMember',
            'TubeTransferWorklistMember',
            ]
 
+
 class TubeTransferMember(Member):
-
     relation = '%s/tube-transfers' % RELATION_BASE_URL
-
     tube = member_attribute(ITube, 'tube')
     source_rack = member_attribute(IRack, 'source_rack')
     source_position = member_attribute(IRackPosition, 'source_position')
@@ -37,9 +33,7 @@ class TubeTransferMember(Member):
 
 
 class TubeTransferWorklistMember(Member):
-
     relation = '%s/tube-transfer-worklists' % RELATION_BASE_URL
-
     user = member_attribute(IUser, 'user')
     tube_transfers = collection_attribute(ITubeTransfer, 'tube_transfers')
 

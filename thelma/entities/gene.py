@@ -1,23 +1,17 @@
 """
 Gene entity classes.
-
-NP, AAB
 """
-
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
 
 
 __docformat__ = 'reStructuredText en'
-
 __all__ = ['Gene',
            ]
 
 class Gene(Entity):
     """
     This class represents particular genes.
-
-    **Equality Condition**: equal :attr:`accession`
     """
     #: Accession number.
     accession = None
@@ -52,6 +46,9 @@ class Gene(Entity):
         return slug_from_string(self.accession)
 
     def __eq__(self, other):
+        """
+        Equality is based on the accession attribute.
+        """
         return (isinstance(other, Gene) and self.accession == other.accession)
 
     def __str__(self):

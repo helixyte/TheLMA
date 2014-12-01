@@ -1,9 +1,6 @@
 """
 Molecule design resource.
-
-NP
 """
-
 from everest.resources.base import Collection
 from everest.resources.base import Member
 from everest.resources.descriptors import collection_attribute
@@ -20,8 +17,6 @@ from everest.entities.interfaces import IEntity
 from everest.constants import CARDINALITIES
 
 __docformat__ = 'reStructuredText en'
-
-
 __all__ = ['MoleculeDesignCollection',
            'MoleculeDesignMember',
            'MoleculeDesignPoolMember',

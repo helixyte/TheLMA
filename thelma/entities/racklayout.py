@@ -1,7 +1,7 @@
 """
 Rack layout entity classes.
 
-FOG Nov 26, 2010
+Created Nov 26, 2010
 """
 from everest.entities.base import Entity
 
@@ -11,6 +11,8 @@ __all__ = ['RackLayout']
 
 class RackLayout(Entity):
     """
+    Rack layout.
+
     A rack layout is a set of tagged rack position sets for a given rack
     shape. Each rack position can have multiple tags and each tag can be
     assigned to multiple rack positions. Best conceptualized as a stack of

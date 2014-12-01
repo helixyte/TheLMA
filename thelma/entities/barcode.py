@@ -1,10 +1,8 @@
 """
 BarcodePrintJob entity classes.
-
-TR
 """
-
 from everest.entities.base import Entity
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['BarcodePrintJob']
@@ -13,10 +11,7 @@ __all__ = ['BarcodePrintJob']
 class BarcodePrintJob(Entity):
     """
     Represents an external barcode.
-
-    **Equality Condition**: equal :attr:`id`
     """
-
     #: A csv list of barcodes (unique).
     barcodes = None
     #: A csv list of labels.

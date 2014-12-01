@@ -1,14 +1,11 @@
 """
 Item status entity classes.
-
-NP, AAB
 """
-
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
 
-__docformat__ = 'reStructuredText en'
 
+__docformat__ = 'reStructuredText en'
 __all__ = ['ItemStatus']
 
 
@@ -21,11 +18,11 @@ class ITEM_STATUSES(object):
 
 class ItemStatus(Entity):
     """
-    The item status of a rack of container.
+    Status of a rack of container.
+
     At the moment, there are four different item status:
     *managed*, *unmanaged*, *future* and *destroyed*.
     """
-
     #: The name is similar to the :attr:`id`.
     name = None
     #: A description of the item status.

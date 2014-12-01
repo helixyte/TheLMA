@@ -1,9 +1,6 @@
 """
 Stock info entity classes.
-
-NP, AAB
 """
-
 from everest.entities.base import Entity
 
 __docformat__ = 'reStructuredText en'
@@ -18,7 +15,6 @@ class StockInfo(Entity):
     Stock info items report on the availability of stock sample tubes
     per molecule design pool ID and concentration.
     """
-
     #: The molecule design set requested for this stock info item.
     #: (:class:`thelma.entities.moleculedesign.MoleculeDesignPool`)
     molecule_design_pool = None

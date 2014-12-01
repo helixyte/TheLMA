@@ -1,7 +1,5 @@
 """
-thelma.interfaces
-
-NP
+Resource interfaces for TheLMA.
 """
 
 from zope.interface import Interface # pylint: disable=E0611,F0401

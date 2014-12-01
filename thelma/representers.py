@@ -1,15 +1,20 @@
 """
+Representers for TheLMA.
+
 Created on Apr 23, 2013.
 """
+import logging
+
+from pyramid.httpexceptions import HTTPBadRequest
+from pyramid.threadlocal import get_current_registry
+
 from everest.interfaces import IUserMessageNotifier
 from everest.representers.base import ResourceRepresenter
 from everest.resources.utils import get_member_class
-from pyramid.httpexceptions import HTTPBadRequest
-from pyramid.threadlocal import get_current_registry
-import logging
-from thelma.mime import BioMicroLabXl20TextOutputMime
 from thelma.entities.utils import get_current_user
+from thelma.mime import BioMicroLabXl20TextOutputMime
 from thelma.tools.worklists.tubehandler import XL20Executor
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['Xl20OutputRepresenter',
@@ -71,11 +76,14 @@ class ExternalParserResourceRepresenter(ResourceRepresenter):
     def data_to_stream(self, resource, stream):
         ResourceRepresenter.data_to_stream(self, resource, stream)
 
-    def data_from_resource(self, resource):
-        ResourceRepresenter.data_from_resource(self, resource)
+    def resource_to_data(self, resource):
+        ResourceRepresenter.resource_to_data(self, resource)
 
 
 class Xl20OutputRepresenter(ExternalParserResourceRepresenter):
+    """
+    Representer for XL20 output files.
+    """
     content_type = BioMicroLabXl20TextOutputMime
 
     @classmethod

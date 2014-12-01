@@ -1,7 +1,7 @@
 """
 ISO resources.
 
-AAB, Jun 2011
+Created Jun 2011
 """
 from datetime import datetime
 
@@ -18,15 +18,10 @@ from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from everest.resources.utils import get_root_collection
-from thelma.tools.iso import get_job_creator
-from thelma.tools.iso import lab
-from thelma.tools.iso.lab import get_stock_rack_recyler
-from thelma.tools.iso.lab import get_worklist_executor
-from thelma.tools.iso.lab.tracreporting import LabIsoStockTransferReporter
-from thelma.tools.metadata.ticket import IsoRequestTicketAccepter
-from thelma.tools.metadata.ticket import IsoRequestTicketReassigner
-from thelma.tools.metadata.ticket import IsoRequestTicketReopener
-from thelma.tools.stock.base import STOCKMANAGEMENT_USER
+from thelma.entities.experiment import EXPERIMENT_METADATA_TYPES
+from thelma.entities.iso import ISO_STATUS
+from thelma.entities.iso import ISO_TYPES
+from thelma.entities.utils import get_current_user
 from thelma.interfaces import IExperimentMetadata
 from thelma.interfaces import IIsoJob
 from thelma.interfaces import ILabIso
@@ -39,18 +34,22 @@ from thelma.interfaces import IRack
 from thelma.interfaces import IRackLayout
 from thelma.interfaces import IStockRack
 from thelma.interfaces import IUser
-from thelma.entities.experiment import EXPERIMENT_METADATA_TYPES
-from thelma.entities.iso import ISO_STATUS
-from thelma.entities.iso import ISO_TYPES
-from thelma.entities.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
+from thelma.tools.iso import get_job_creator
+from thelma.tools.iso import lab
+from thelma.tools.iso.lab import get_stock_rack_recyler
+from thelma.tools.iso.lab import get_worklist_executor
+from thelma.tools.iso.lab.tracreporting import LabIsoStockTransferReporter
+from thelma.tools.metadata.ticket import IsoRequestTicketAccepter
+from thelma.tools.metadata.ticket import IsoRequestTicketReassigner
+from thelma.tools.metadata.ticket import IsoRequestTicketReopener
+from thelma.tools.stock.base import STOCKMANAGEMENT_USER
 from thelma.utils import run_tool
 from thelma.utils import run_trac_tool
 
 
 #from thelma.tools.libcreation.iso import LibraryCreationIsoPopulator
 __docformat__ = 'reStructuredText en'
-
 __all__ = ['IsoCollection',
            'IsoMember',
            'LabIsoMember',

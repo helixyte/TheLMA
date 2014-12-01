@@ -1,15 +1,13 @@
 """
 Location entity classes.
-
-NP
 """
+import datetime
 
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
-import datetime
+
 
 __docformat__ = 'reStructuredText en'
-
 __all__ = ['BarcodedLocation',
            'BarcodedLocationType',
            'BarcodedLocationRack',
@@ -18,12 +16,11 @@ __all__ = ['BarcodedLocation',
 
 class BarcodedLocationType(Entity):
     """
-    This class represents a location type, i.e. a kind of container for
-    locations such as a drawer, a robot or a freezer.
+    Location type.
 
-    **Equality Condition**: equal :attr:`name`
+    A location type denotes the kind of container for locations such as a
+    drawer, a robot or a freezer.
     """
-
     #: The name of the location type (e.g. *freezer*, *drawer*).
     name = None
 
@@ -38,6 +35,9 @@ class BarcodedLocationType(Entity):
         return slug_from_string(self.name)
 
     def __eq__(self, other):
+        """
+        Equality depends on the name attribute.
+        """
         return (isinstance(other, BarcodedLocationType) and
                 self.name == other.name)
 
@@ -52,7 +52,7 @@ class BarcodedLocationType(Entity):
 
 class BarcodedLocation(Entity):
     """
-    This class represents a barcoded location.
+    Barcoded location.
 
     A barcoded location may hold a rack.
 

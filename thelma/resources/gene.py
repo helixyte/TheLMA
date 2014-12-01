@@ -1,9 +1,7 @@
 """
 Gene resource.
-
-NP
 """
-
+from everest.constants import CARDINALITIES
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.resources.base import Collection
 from everest.resources.base import Member
@@ -15,12 +13,9 @@ from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IMoleculeDesignPool
 from thelma.interfaces import ISpecies
 from thelma.resources.base import RELATION_BASE_URL
-from everest.constants import CARDINALITIES
 
 
 __docformat__ = 'reStructuredText en'
-
-
 __all__ = ['GeneCollection',
            'GeneMember',
            ]

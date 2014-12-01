@@ -2,12 +2,15 @@
 Authentication code.
 """
 
+from threading import Lock
+
+import ldap
+
 from repoze.who.interfaces import IAuthenticator # pylint: disable=E0611,F0401
 from repoze.who.interfaces import IChallengeDecider # pylint: disable=E0611,F0401
-from threading import Lock
 from zope.interface import directlyProvides # pylint: disable=E0611,F0401
 from zope.interface import implements # pylint: disable=E0611,F0401
-import ldap
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['LDAPAuthenticatorPlugin',

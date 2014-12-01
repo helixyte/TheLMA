@@ -1,9 +1,6 @@
 """
 BarcodePrintJob resource.
-
-TR
 """
-
 from everest.resources.base import Collection
 from everest.resources.base import Member
 from everest.resources.descriptors import attribute_alias
@@ -16,8 +13,6 @@ from thelma.resources.base import RELATION_BASE_URL
 
 
 __docformat__ = 'reStructuredText en'
-
-
 __all__ = ['BarcodePrintJobMember',
            'BarcodePrintJobCollection',
            ]
@@ -30,6 +25,7 @@ class BarcodePrintJobMember(Member):
     labels = terminal_attribute(str, 'labels')
     printer = terminal_attribute(str, 'printer')
     type = terminal_attribute(str, 'type')
+
 
 class BarcodePrintJobCollection(Collection):
     title = 'BarcodePrintJobs'

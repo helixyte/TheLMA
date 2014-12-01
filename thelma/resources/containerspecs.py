@@ -1,9 +1,7 @@
 """
 Container specs resource.
-
-NP
 """
-
+from everest.constants import CARDINALITIES
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.resources.base import Collection
 from everest.resources.base import Member
@@ -14,11 +12,9 @@ from everest.resources.descriptors import terminal_attribute
 from thelma.interfaces import IOrganization
 from thelma.interfaces import IRackSpecs
 from thelma.resources.base import RELATION_BASE_URL
-from everest.constants import CARDINALITIES
+
 
 __docformat__ = 'reStructuredText en'
-
-
 __all__ = ['ContainerSpecsCollection',
            'ContainerSpecsMember',
            'TubeSpecsMember',

@@ -1,11 +1,12 @@
 """
 Project entity classes.
 
-FOG 11.2010, AAB
+Created 11.2010
 """
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
 from thelma.utils import get_utc_time
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['Project']
@@ -14,10 +15,7 @@ __all__ = ['Project']
 class Project(Entity):
     """
     This class is for the representation of projects.
-
-    **Equality Condition**: equal :attr:`id`
     """
-
     #: The (human-readable) label of this project.
     label = None
     #: Equals the :attr:`label`. Titles are required for atom templates.

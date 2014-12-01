@@ -1,19 +1,21 @@
 """
 Rack entity classes.
 """
+import re
+
 from everest.entities.base import Entity
 from everest.entities.utils import get_root_aggregate
 from everest.entities.utils import slug_from_string
 from everest.querying.specifications import eq
 from everest.querying.specifications import lt
-from thelma.interfaces import IRackPosition
-from thelma.interfaces import IRackPositionSet
 from thelma.entities.container import ContainerLocation
 from thelma.entities.container import Well
 from thelma.entities.utils import BinaryRunLengthEncoder
 from thelma.entities.utils import number_from_label
+from thelma.interfaces import IRackPosition
+from thelma.interfaces import IRackPositionSet
 from thelma.utils import get_utc_time
-import re
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['Rack',
@@ -51,10 +53,7 @@ class Rack(Entity):
     """
     This is an abstract base class for all racks
     (:class:`TubeRack` and :class:`Plate`).
-
-    **Equality Condition**: equal :attr:`id`
     """
-
     #: The (human-readable) label of this rack.
     label = None
     #: A comment made for this rack.
@@ -135,7 +134,6 @@ class TubeRack(Rack):
     This class represents tube racks (racks harboring movable,
     barcoded tubes (:class:`thelma.entities.container.Tube`)).
     """
-
     def __init__(self, label, specs, status, **kw):
         Rack.__init__(self, label, specs, status, **kw)
         self.rack_type = RACK_TYPES.TUBE_RACK
@@ -233,7 +231,6 @@ class Plate(Rack):
     This class represents plate racks (racks harboring immobile,
     unbarcoded wells (:class:`thelma.entities.container.Well`)).
     """
-
     def __init__(self, label, specs, status, **kw):
         Rack.__init__(self, label, specs, status, **kw)
         self.rack_type = RACK_TYPES.PLATE
@@ -268,10 +265,7 @@ class RackShape(Entity):
     This class defines rack dimensions.
     RackShape instance can easily obtained by the
     :class:`RackShapeFactory`.
-
-    **Equality Condition**: equal :attr:`name`
     """
-
     #: Name of the rack shape.
     name = None
     #: Equals the :attr:`name`.
@@ -322,6 +316,9 @@ class RackShape(Entity):
         return self.number_rows * self.number_columns
 
     def __eq__(self, other):
+        """
+        Equality is based on the name attribute.
+        """
         return (isinstance(other, RackShape) and self.name == other.name)
 
     def __str__(self):
@@ -370,10 +367,7 @@ rack_shape_from_rows_columns = RackShapeFactory.shape_from_rows_columns
 class RackSpecs(Entity):
     """
     Abstract class for all rack specifications (rack types).
-
-    **Equality Condition**: equal :attr:`id`
     """
-
     #: The name of the rack specification, similar to the :attr:`label`.
     name = None
     #: A more human-readable label, similar to :attr:`name`.
@@ -435,7 +429,6 @@ class TubeRackSpecs(RackSpecs):
     """
     This class defines tube rack specifications (tube rack types).
     """
-
     #: List of compatible tube (container) specs for this tube rack specs.
     tube_specs = None
 
@@ -454,7 +447,6 @@ class PlateSpecs(RackSpecs):
     """
     This class defines plate specifications (plate types).
     """
-
     #: The well (container) specs for this plate specs.
     well_specs = None
 
@@ -478,8 +470,6 @@ class RackPosition(Entity):
 
     RackPosition object can easily be obtained using the
     :class:`RackPositionFactory`.
-
-    **Equality Condition**: equal :attr:`row_index` and :attr:`column_index`
     """
 
     #: The label of this rack position, i.e. a combination of letters
@@ -601,6 +591,9 @@ class RackPosition(Entity):
         return (self._row_index, self._column_index)
 
     def __eq__(self, other):
+        """
+        Equality is based on the row_index and column_index attributes.
+        """
         return isinstance(other, RackPosition) \
                and self._row_index == other.row_index \
                and self._column_index == other.column_index
@@ -714,6 +707,9 @@ class RackPositionSet(Entity):
         return rack_position in self.positions
 
     def __eq__(self, other):
+        """
+        Equality is based on the hash_value attribute.
+        """
         return isinstance(other, RackPositionSet) \
             and self._hash_value == other.hash_value
 
@@ -737,7 +733,6 @@ class _PositionSetLengthEncoder(BinaryRunLengthEncoder):
     Special BinaryRunLengthEncoder dealing with sets of RackPosition objects.
     Wells present in the position set are considered "positive".
     """
-
     def _create_lookup(self):
         """
         For rack positions the coordinates must be derived from the entity.

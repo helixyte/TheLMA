@@ -1,10 +1,11 @@
 """
-barcode printing
+Barcode printer driver.
 """
 import logging
 import os
-from subprocess import (Popen,
-                        PIPE)
+from subprocess import PIPE
+from subprocess import Popen
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['BarcodePrinter',
@@ -16,15 +17,14 @@ __all__ = ['BarcodePrinter',
            'print_location_barcode']
 
 
-class BarcodePrinter:
+class BarcodePrinter(object):
     """
-    Print a barcode to a barcode printer
-
+    Print a barcode to a barcode printer.
     """
     def __init__(self, barcode_printer_name):
         """
-        @param barcode_printer_name: The name of a printer in the unix-lpd system
-            If None or "", then the barcode is printed to the terminal.
+        @param barcode_printer_name: The name of a printer in the unix-lpd
+          system. If None or "", then the barcode is printed to the terminal.
         @type barcode_printer_name: L{str} or L{NoneType}
         """
         self.barcode_printer_name = barcode_printer_name
@@ -37,10 +37,11 @@ class BarcodePrinter:
         bc_string = barcode.render()
         if self.barcode_printer_name and \
                not self.barcode_printer_name.upper().endswith('DUMMY'):
-            cmd = 'lpr -H192.168.1.33:631 -P%s -#%d' % (self.barcode_printer_name, 1)
+            cmd = 'lpr -H192.168.1.33:631 -P%s -#%d' \
+                  % (self.barcode_printer_name, 1)
             self._run_command(cmd, input_string=bc_string)
-        logging.getLogger().info('Sent format string %r to barcode printer %s' %
-                                 (bc_string, self.barcode_printer_name))
+        logging.getLogger().info('Sent format string %r to barcode printer %s'
+                                 % (bc_string, self.barcode_printer_name))
 
     def get_printer_name(self):
         return self.barcode_printer_name
@@ -56,10 +57,11 @@ class BarcodePrinter:
         @type cmd_string: string
         @param input_string: input to pass to C{sys.stdin} of the process
         @type input_string: string
-        @param suppress_errors: if set, errors happening during the execution of
-          the command are only printed to C{sys.stdout}
+        @param suppress_errors: if set, errors happening during the execution
+          of the command are only printed to C{sys.stdout}
         @type suppress_errors: Boolean
-        @param environment: mapping to use as the environment for the subprocess
+        @param environment: mapping to use as the environment for the
+          subprocess
         @type environment: dictionary
         @raise OSError: if an error happens during command execution and
           L{suppressError} is not set
@@ -82,11 +84,9 @@ class BarcodePrinter:
 
 
 class SatoBarcode(object):
-
     """
     Barcode generator for the Sato CL 412 printer for
     Cenix "Dish", "Tube", "Box", and "User" barcodes.
-
     """
 
     # rotation codes for 0, 90, 180, and 270 degrees:
@@ -140,33 +140,43 @@ class SatoBarcode(object):
                 + self._esc('XS%s' % text))
 
     def _interleave_5_barcode(self, barcode, offsetX, offsetY, hight=80):
-        return self._horizontal_space(offsetX)+self._vertical_space(offsetY)+\
-               self._esc('B2020%02d%s' % (hight, barcode))
+        return self._horizontal_space(offsetX) \
+               + self._vertical_space(offsetY) \
+               + self._esc('B2020%02d%s' % (hight, barcode))
 
     code39Ratio = {'1:3': 'B1', '2:5': 'BD1', '1:2': 'D1' }
     #
     def _code_39_barcode(self, barcode, offsetX, offsetY,
                         hight=80, ratio='1:3', width=8):
-        """allowed ratios are 1:3, 2:5, and 1:2, width is 01-12"""
+        # Allowed ratios are 1:3, 2:5, and 1:2, width is 01-12
         strRatio = self.code39Ratio[ratio]
-        return self._horizontal_space(offsetX)+self._vertical_space(offsetY)+\
-               self._esc('%s%02d%03d*%s*' % (strRatio, width, hight, barcode))
+        return self._horizontal_space(offsetX) \
+               + self._vertical_space(offsetY) \
+               + self._esc('%s%02d%03d*%s*'
+                           % (strRatio, width, hight, barcode))
 
     def _text_barcode_C128(self, barcode, offsetX, offsetY,
                           hight=80, narrow_dots=3):
-        """ less condens text barcode """
+        """
+        Less condensed text barcode.
+        """
         return (self._horizontal_space(offsetX)
                 + self._vertical_space(offsetY)
                 + self._esc('BG%02d%03d>H%s' % (narrow_dots, hight, barcode)))
 
     def _text_barcode_C93(self, barcode, offsetX, offsetY, hight=80):
-        "text barcode with better density, especially with excl. uppercase chars"
-        return self._horizontal_space(offsetX) + self._vertical_space(offsetY) \
-               +self._esc('BC02%03d%02d%s' % (hight,len(barcode),barcode))
+        """
+        Text barcode with better density, especially with excl. uppercase
+        .chars
+        """
+        return self._horizontal_space(offsetX) \
+               + self._vertical_space(offsetY) \
+               + self._esc('BC02%03d%02d%s' % (hight, len(barcode), barcode))
 
     def _graphics_pcx(self, data, numBytes, offsetX, offsetY):
-        return self._horizontal_space(offsetX) + self._vertical_space(offsetY) + \
-               self._esc('GP%d,' % (numBytes) + data)
+        return self._horizontal_space(offsetX) \
+               + self._vertical_space(offsetY) \
+               + self._esc('GP%d,' % (numBytes) + data)
 
     def _quantity(self, num):
         return self._esc('Q%d' % num)
@@ -185,13 +195,11 @@ class SatoBarcode(object):
 
 
 class SatoUniTwoLabelRackBarcode(SatoBarcode):
-
     """
     Barcode generator for the Sato CL 412 printer for
     printing a barcode split over *two* labels - one machine-readable
     label and one human-readable label with two rows featuring a
     total of four label entries.
-
     """
 
     _LABEL_PROFILES = {
@@ -213,7 +221,7 @@ class SatoUniTwoLabelRackBarcode(SatoBarcode):
 
     def __init__(self, barcode, label_row_1, label_row_2=''):
         super(SatoUniTwoLabelRackBarcode, self).__init__()
-        self.barcode   = barcode
+        self.barcode = barcode
         self.label_row_1 = label_row_1 or ''
         self.label_row_2 = label_row_2 or ''
 
@@ -223,12 +231,14 @@ class SatoUniTwoLabelRackBarcode(SatoBarcode):
                      + self._print_speed(1)
                      + self._darkness(5)
                      + self._rotate(profile['rotation'])
-                     + self._mid_text(self.label_row_1,
-                                      profile['text_x1']+profile['offset_x'],
-                                      profile['field1_y']+profile['offset_y'])
-                     + self._mid_text(self.label_row_2,
-                                      profile['text_x2']+profile['offset_x'],
-                                      profile['field2_y']+profile['offset_y'])
+                     + self._mid_text(
+                            self.label_row_1,
+                            profile['text_x1'] + profile['offset_x'],
+                            profile['field1_y'] + profile['offset_y'])
+                     + self._mid_text(
+                            self.label_row_2,
+                            profile['text_x2'] + profile['offset_x'],
+                            profile['field2_y'] + profile['offset_y'])
                      + self._quantity(1)
                      + self._stop())
         if self.barcode != '':
@@ -236,11 +246,12 @@ class SatoUniTwoLabelRackBarcode(SatoBarcode):
                              + self._print_speed(1)
                              + self._darkness(5)
                              + self._rotate(profile['rotation'])
-                             + self._text_barcode_C128(self.barcode,
-                                                     profile['bc_x']+profile['offset_x'],
-                                                     profile['bc_y']+profile['offset_y'],
-                                                     profile['bc_hight'],
-                                                     profile['bc_narrow_dots'])
+                             + self._text_barcode_C128(
+                                        self.barcode,
+                                        profile['bc_x'] + profile['offset_x'],
+                                        profile['bc_y'] + profile['offset_y'],
+                                        profile['bc_hight'],
+                                        profile['bc_narrow_dots'])
                              + self._quantity(1)
                              + self._stop())
             return text_label + barcode_label
@@ -253,34 +264,34 @@ UniTwoLabelRackBarcode = SatoUniTwoLabelRackBarcode
 class SatoUniLocationBarcode(SatoBarcode):
 
     _LABEL_PROFILES = {
-       'LOCATION': { 'rotation': SatoBarcode._ROT[180], 'bc_x':180, 'bc_y':125,
-                     'bc_hight':60, 'num_bc_x':175, 'num_bc_y':65,
-                     'offset_x':1000, 'offset_y':25, 'text_x':120,
-                     'row1_y':200
+       'LOCATION': {'rotation': SatoBarcode._ROT[180], 'bc_x':180,
+                    'bc_y':125, 'bc_hight':60, 'num_bc_x':175, 'num_bc_y':65,
+                    'offset_x':1000, 'offset_y':25, 'text_x':120, 'row1_y':200
                      }
        }
 
     def __init__(self, barcode, label_row_1):
         super(SatoUniLocationBarcode, self).__init__()
-        self.barcode   = barcode
+        self.barcode = barcode
         self.label_row_1 = label_row_1 or ''
 
     def render(self):
         profile = self._LABEL_PROFILES['LOCATION']
-        return ( self._start()
+        return (self._start()
                  + self._print_speed(1)
                  + self._darkness(5)
                  + self._rotate(profile['rotation'])
                  + self._mid_text(self.label_row_1,
-                                 profile['text_x']+profile['offset_x'],
-                                 profile['row1_y']+profile['offset_y'])
-                 + self._interleave_5_barcode(self.barcode,
-                                            profile['bc_x']+profile['offset_x'],
-                                            profile['bc_y']+profile['offset_y'],
-                                            profile['bc_hight'])
+                                 profile['text_x'] + profile['offset_x'],
+                                 profile['row1_y'] + profile['offset_y'])
+                 + self._interleave_5_barcode(
+                                self.barcode,
+                                profile['bc_x'] + profile['offset_x'],
+                                profile['bc_y'] + profile['offset_y'],
+                                profile['bc_hight'])
                  + self._mid_text(self.barcode,
-                                 profile['num_bc_x']+profile['offset_x'],
-                                 profile['num_bc_y']+profile['offset_y'])
+                                 profile['num_bc_x'] + profile['offset_x'],
+                                 profile['num_bc_y'] + profile['offset_y'])
                  + self._quantity(1)
                  + self._stop()
                  )
@@ -297,11 +308,11 @@ class SatoEmptyBarcode(SatoBarcode):
         super(SatoEmptyBarcode, self).__init__()
         if quantity > self.MAX_QUANTITY:
             raise ValueError('Quantity %s above max '\
-                             'value %d' % (quantity,self.MAX_QUANTITY))
+                             'value %d' % (quantity, self.MAX_QUANTITY))
         self.quantity = quantity
 
     def render(self):
-        return (  self._start()
+        return (self._start()
                 + self._print_speed(1)
                 + self._darkness(5)
                 + self._rotate(self._ROT[180])
@@ -313,9 +324,11 @@ class SatoEmptyBarcode(SatoBarcode):
 EmptyBarcode = SatoEmptyBarcode
 
 
-def print_two_label_unirack_barcode(barcode_number,
-                                     label_row_1, label_row_2, printer_name=None):
-    """print two-label unidb barcode"""
+def print_two_label_unirack_barcode(barcode_number, label_row_1, label_row_2,
+                                    printer_name=None):
+    """
+    Prints a two-label rack barcode.
+    """
     barcode = UniTwoLabelRackBarcode(barcode=barcode_number,
                                         label_row_1=label_row_1,
                                         label_row_2=label_row_2)
@@ -324,6 +337,9 @@ def print_two_label_unirack_barcode(barcode_number,
 
 
 def print_location_barcode(barcode_number, label_row_1, printer_name=None):
+    """
+    Prints a location barcode.
+    """
     barcode = LocationBarcode(barcode=barcode_number,
                               label_row_1=label_row_1)
     barcodePrinter = BarcodePrinter(printer_name)

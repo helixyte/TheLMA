@@ -1,7 +1,7 @@
 """
 Aggregate implementations.
 
-FOG Sep 25, 2011
+Created Sep 25, 2011
 """
 from sqlalchemy.orm import joinedload
 from sqlalchemy.sql.expression import and_
@@ -21,7 +21,6 @@ from thelma.entities.suppliermoleculedesign import SupplierMoleculeDesign
 
 
 __docformat__ = 'reStructuredText en'
-
 __all__ = ['ThelmaRdbAggregate',
            ]
 

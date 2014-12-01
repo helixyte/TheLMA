@@ -1,9 +1,6 @@
 """
 Device resource.
-
-NP
 """
-
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.resources.base import Collection
 from everest.resources.base import Member
@@ -15,7 +12,6 @@ from thelma.interfaces import IOrganization
 from thelma.resources.base import RELATION_BASE_URL
 
 __docformat__ = 'reStructuredText en'
-
 __all__ = ['DeviceCollection',
            'DeviceMember',
            ]

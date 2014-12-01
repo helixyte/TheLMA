@@ -1,4 +1,6 @@
 """
+MIME types for TheLMA.
+
 Created on Apr 23, 2013.
 """
 from everest.interfaces import IMime
@@ -6,9 +8,13 @@ from everest.mime import ZipMime
 from everest.mime import register_mime_type
 from zope.interface import provider # pylint: disable=E0611,F0401
 
+
 __docformat__ = 'reStructuredText en'
 __all__ = ['BioMicroLabXl20TextOutputMime',
+           'ExperimentZippedWorklistMime',
            'IBioMicroLabXl20TextOutputMime',
+           'IsoJobZippedWorklistMime',
+           'IsoZippedWorklistMime',
            ]
 
 

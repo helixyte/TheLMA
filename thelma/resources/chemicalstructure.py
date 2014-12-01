@@ -11,6 +11,7 @@ from thelma.interfaces import IMoleculeDesign
 from thelma.interfaces import IMoleculeType
 from thelma.resources.base import RELATION_BASE_URL
 
+
 __docformat__ = 'reStructuredText en'
 __all__ = ['ChemicalStructureMember',
            'ChemicalStructureTypeMember',

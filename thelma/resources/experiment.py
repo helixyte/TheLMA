@@ -1,9 +1,6 @@
 """
 Experiment resources.
-
-FOG Mar 21, 2011
 """
-
 from datetime import datetime
 import logging
 
@@ -22,14 +19,8 @@ from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from everest.resources.utils import get_root_collection
 from everest.resources.utils import url_to_resource
-from thelma.tools.semiconstants import get_experiment_metadata_type
-from thelma.tools.experiment import get_writer
-from thelma.tools.metadata.ticket \
-    import IsoRequestTicketDescriptionUpdater
-from thelma.tools.metadata.ticket import IsoRequestTicketActivator
-from thelma.tools.metadata.ticket import IsoRequestTicketCreator
-from thelma.tools.metadata.ticket import IsoRequestTicketDescriptionRemover
-from thelma.tools.stock.base import STOCKMANAGEMENT_USER
+from thelma.entities.racklayout import RackLayout
+from thelma.entities.utils import get_current_user
 from thelma.interfaces import IExperiment
 from thelma.interfaces import IExperimentDesign
 from thelma.interfaces import IExperimentDesignRack
@@ -45,14 +36,18 @@ from thelma.interfaces import IRackLayout
 from thelma.interfaces import IRackShape
 from thelma.interfaces import ISubproject
 from thelma.interfaces import ITag
-from thelma.entities.racklayout import RackLayout
-from thelma.entities.utils import get_current_user
 from thelma.resources.base import RELATION_BASE_URL
+from thelma.tools.experiment import get_writer
+from thelma.tools.metadata.ticket \
+    import IsoRequestTicketDescriptionUpdater
+from thelma.tools.metadata.ticket import IsoRequestTicketActivator
+from thelma.tools.metadata.ticket import IsoRequestTicketCreator
+from thelma.tools.metadata.ticket import IsoRequestTicketDescriptionRemover
+from thelma.tools.semiconstants import get_experiment_metadata_type
+from thelma.tools.stock.base import STOCKMANAGEMENT_USER
 
 
 __docformat__ = 'reStructuredText en'
-
-
 __all__ = ['ExperimentMetadataTypeMember',
            'ExperimentCollection',
            'ExperimentDesignCollection',
@@ -211,7 +206,7 @@ class ExperimentMetadataMember(Member):
             if not self_entity.lab_iso_request is None:
                 if self.iso_request.owner == STOCKMANAGEMENT_USER:
                     ticket_activator = IsoRequestTicketActivator(
-                                                experiment_metadata=self_entity)
+                                            experiment_metadata=self_entity)
                     self.__run_trac_tool(ticket_activator,
                                          'Could not update the ticket: %s.')
                 else:

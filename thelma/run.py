@@ -1,22 +1,23 @@
 """
 Functions to create a WSGI application
-
-NP
 """
+from tractor import make_api_from_config
 
 from everest.configuration import Configurator
 from everest.root import RootFactory
 from thelma.interfaces import ITractor
-from tractor import make_api_from_config
+
 
 __docformat__ = "reStructuredText en"
-
 __all__ = ['app',
            'create_config',
            ]
 
 
 def create_config(settings, package='thelma', registry=None):
+    """
+    Returns a configurator for TheLMA.
+    """
     config = Configurator(package=package,
                           registry=registry)
     if registry is None:
@@ -31,7 +32,8 @@ def create_config(settings, package='thelma', registry=None):
 
 
 def app(global_settings, **local_settings): # pylint: disable=W0613
-    """This function returns a WSGI application.
+    """
+    Returns a WSGI application.
 
     It is usually called by the PasteDeploy framework during
     ``paster serve``.

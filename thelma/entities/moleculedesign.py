@@ -2,12 +2,14 @@
 Molecule design entity classes.
 """
 from collections import Counter
+from md5 import md5
+
 from everest.entities.base import Entity
 from everest.entities.utils import get_root_aggregate
 from everest.querying.specifications import eq
-from md5 import md5
 from thelma.entities.chemicalstructure import CHEMICAL_STRUCTURE_TYPE_IDS
 from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['AmpliconDesign',
@@ -36,7 +38,6 @@ class MoleculeDesign(Entity):
     Molecule designs are defined by a molecule tye and one or several
     chemical structures.
     """
-
     #: The kind (:class:`thelma.entities.moleculetype.MoleculeType`)
     #: of the molecule design.
     molecule_type = None
@@ -189,6 +190,9 @@ class MoleculeDesign(Entity):
         return cmp(self.id, other.id)
 
     def __eq__(self, other):
+        """
+        Equality is based on the structure_hash attribute.
+        """
         return isinstance(other, MoleculeDesign) \
                and self.structure_hash == other.structure_hash
 
@@ -411,7 +415,6 @@ class MoleculeDesignSetBase(Entity):
 
     Molecule design sets have a label and a type.
     """
-
     #: A set of molecule designs (:class:`MoleculeDesign`).
     molecule_designs = None
     #: Type of the design set.
@@ -610,13 +613,10 @@ class MoleculeDesignPoolSet(Entity):
     Similar to a molecule design set but containing molecule design pools
     instead of molecule designs. Used by libraries, ISOs and experiment
     metadata.
-
-    **Equality Condition:** equal :attr:`id`
     """
     #: The molecule design sets (pools) in the pool set
     #: (:class:`MoleculeDesignPool`).
     molecule_design_pools = None
-
     #: The molecule type of the pools in the set
     #: (:class:`thelma.entities.moleculetype.MoleculeType`).
     molecule_type = None

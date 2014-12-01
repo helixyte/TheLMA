@@ -1,8 +1,7 @@
 """
 User resource.
-
-TR
 """
+from pyramid.exceptions import Forbidden
 
 from everest.querying.specifications import AscendingOrderSpecification
 from everest.resources.base import Collection
@@ -10,15 +9,12 @@ from everest.resources.base import Member
 from everest.resources.descriptors import attribute_alias
 from everest.resources.descriptors import collection_attribute
 from everest.resources.descriptors import terminal_attribute
-from pyramid.exceptions import Forbidden
+from thelma.entities.utils import get_current_user
 from thelma.interfaces import IUserPreferences
 from thelma.resources.base import RELATION_BASE_URL
-from thelma.entities.utils import get_current_user
 
 
 __docformat__ = 'reStructuredText en'
-
-
 __all__ = ['UserCollection',
            'UserMember',
            'UserPreferencesCollection',

@@ -1,21 +1,16 @@
 """
 Species entity classes.
-
-NP, AAB
 """
-
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
 
-__docformat__ = 'reStructuredText en'
 
+__docformat__ = 'reStructuredText en'
 __all__ = ['Species']
 
 class Species(Entity):
     """
     Represents a species.
-
-    **Equality Condition**: equal :attr:`name`
     """
     #: Genus name.
     genus_name = None
@@ -50,6 +45,9 @@ class Species(Entity):
         return slug_from_string(self.common_name)
 
     def __eq__(self, other):
+        """
+        Equality is based on the name attribute.
+        """
         return (isinstance(other, Species) \
                 and self.common_name == other.common_name)
 

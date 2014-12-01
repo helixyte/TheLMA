@@ -1,15 +1,13 @@
 """
 Container entity classes.
-
-NP
 """
 
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_string
 from thelma.entities.sample import Sample
 
-__docformat__ = 'reStructuredText en'
 
+__docformat__ = 'reStructuredText en'
 __all__ = ['CONTAINER_TYPES',
            'CONTAINER_SPECS_TYPES',
            'ContainerLocation',
@@ -37,10 +35,7 @@ class CONTAINER_SPECS_TYPES(object):
 class ContainerLocation(Entity):
     """
     A container's location in a rack.
-
-    **Equality Condition**: equal :attr:`rack` and :attr:`position`
     """
-
     #: A rack or plate (:class:`thelma.entities.rack.Rack`).
     rack = None
     #: The position on the rack or plate
@@ -56,7 +51,9 @@ class ContainerLocation(Entity):
         self.rack = rack
 
     def __eq__(self, other):
-        """Equality operator"""
+        """
+        Equality is based on the rack and position attributes.
+        """
         return (isinstance(other, ContainerLocation) and
                 self.rack == other.rack and
                 self.position == other.position)
@@ -74,8 +71,6 @@ class Container(Entity):
     """
     Abstract base class for all containers (incl. :class:`Tube` and
     :class:`Well`).
-
-    **Equality Condition**: equal :attr:`id`
     """
     #: Defines the container specs (:class:`ContainerSpecs`).
     specs = None
@@ -170,7 +165,6 @@ class Tube(Container):
     """
     Barcoded tube.
     """
-
     #: Barcode of the Tube.
     barcode = None
 
@@ -206,7 +200,6 @@ class Well(Container):
     """
     A plate well.
     """
-
     def __init__(self, specs, status, location, **kw):
         Container.__init__(self, specs, status, location, **kw)
         self.container_type = CONTAINER_TYPES.WELL
@@ -232,10 +225,7 @@ class ContainerSpecs(Entity):
     """
     This is an abstract class for container specifications.
     It defines the properties of a certain containers type.
-
-    **Equality Condition**: equal :attr:`id`
     """
-
     #: The name of the container specification.
     name = None
     #: The (human-readable) label.
@@ -292,7 +282,6 @@ class TubeSpecs(ContainerSpecs):
 
     :note: Tubes need to have barcodes.
     """
-
     #: A list of tube racks sorts
     #: (:class:`thelma.entities.rack.TubeRackSpecs`)
     #: this tube can be stored in.
@@ -326,7 +315,6 @@ class WellSpecs(ContainerSpecs):
 
     :Note: Wells must not have barcodes.
     """
-
     #: Specifies which kind of plate this well belongs to.
     plate_specs = None
 

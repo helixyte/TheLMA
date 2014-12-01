@@ -1,9 +1,6 @@
 """
-thelma.stringconv
-
-NP
+String conversion utilities.
 """
-
 import string # pylint: disable=W0402
 
 __docformat__ = 'reStructuredText en'
@@ -14,12 +11,11 @@ __all__ = ['reverse_dna_sequence']
 
 def reverse_dna_sequence(sequence):
     """
-    Convert a DNA strand to its reverse complement
+    Convert a DNA strand to its reverse complement.
 
-    It is based on http://www.wellho.net/resources/ex.php4?item=y108/seqrev.py
+    Based on http://www.wellho.net/resources/ex.php4?item=y108/seqrev.py
 
-    :param sequence: a DNA sequence
-    :type sequence: str
+    :param str sequence: a DNA sequence
     :returns: reverse complement of sequence
     :rtype: str
     """

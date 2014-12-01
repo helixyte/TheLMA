@@ -1,14 +1,17 @@
 """
 Miscellaneous utilities.
 """
-from everest.interfaces import IUserMessageNotifier
-from pyramid.httpexceptions import HTTPBadRequest
-from pyramid.threadlocal import get_current_registry
 import datetime
 import logging
+import os
+
+from pyramid.httpexceptions import HTTPBadRequest
+from pyramid.threadlocal import get_current_registry
 import pytz
 import tzlocal
-import os
+
+from everest.interfaces import IUserMessageNotifier
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['as_utc_time',

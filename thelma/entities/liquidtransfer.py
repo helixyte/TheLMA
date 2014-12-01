@@ -1,22 +1,22 @@
 """
 Pipetting entity classes (liquid transfers).
 
-Oct 2011, AAB
+Created Oct 2011
 """
+from md5 import md5
+
 from everest.entities.base import Entity
 from everest.entities.utils import get_root_aggregate
 from everest.entities.utils import slug_from_integer
 from everest.entities.utils import slug_from_string
-from md5 import md5
 from thelma.interfaces import IPlannedLiquidTransfer
 from thelma.interfaces import IPlannedRackSampleTransfer
 from thelma.interfaces import IPlannedSampleDilution
 from thelma.interfaces import IPlannedSampleTransfer
 from thelma.utils import get_utc_time
 
+
 __docformat__ = 'reStructuredText en'
-
-
 __all__ = ['TRANSFER_TYPES',
            'PlannedLiquidTransfer',
            'PlannedSampleDilution',
@@ -53,8 +53,6 @@ class PlannedLiquidTransfer(Entity):
     or container.
 
     :Note: Do not create directly but use the :func:`get_entity` method.
-
-    **Equality Condition**: equal :attr:`hash_value`
     """
     #: The volume to be transferred (float) *in liters*.
     _volume = None
@@ -162,6 +160,9 @@ class PlannedLiquidTransfer(Entity):
         return vol_str
 
     def __eq__(self, other):
+        """
+        Equality is based on the hash_value attribute.
+        """
         return isinstance(other, self.__class__) and \
                 self._hash_value == other.hash_value
 
@@ -176,8 +177,6 @@ class PlannedSampleDilution(PlannedLiquidTransfer):
     source wells are assigned on the fly during worklist file creation.
 
     :Note: Do not create directly but use the :func:`get_entity` method.
-
-    **Equality Condition**: equal :attr:`hash_value`
     """
 
     #: The rack position (:class:`thelma.entities.rack.RackPosition`) to which
@@ -268,10 +267,7 @@ class PlannedSampleTransfer(PlannedLiquidTransfer):
     (in the target rack - target rack and source rack can be identical).
 
     :Note: Do not create directly but use the :func:`get_entity` method.
-
-    **Equality Condition**: equal :attr:`hash_value`
     """
-
     #: The rack position (:class:`thelma.entities.rack.RackPosition`) from which
     #: the volume is taken.
     _source_position = None
@@ -283,9 +279,6 @@ class PlannedSampleTransfer(PlannedLiquidTransfer):
 
     def __init__(self, volume, hash_value, source_position, target_position,
                  **kw):
-        """
-        Constructor
-        """
         PlannedLiquidTransfer.__init__(self, volume,
                                transfer_type=TRANSFER_TYPES.SAMPLE_TRANSFER,
                                hash_value=hash_value, **kw)
@@ -375,8 +368,6 @@ class PlannedRackSampleTransfer(PlannedLiquidTransfer):
     A rack sample transfer represents a part of a CyBio run.
 
     :Note: Do not create directly but use the :func:`get_entity` method.
-
-    **Equality Condition**: equal :attr:`hash_value`
     """
     #: The sector of the source plate the volume is taken from (:class:`int`).
     _source_sector_index = None
@@ -484,10 +475,7 @@ class PlannedWorklist(Entity):
     """
     A planned worklist represents an (abstract unordered) series of liquid
     transfer steps. It allows the generation of a robot worklist file.
-
-    **Equality Condition**: equal :attr:`id`
     """
-
     #: A label for the worklist.
     label = None
     #: The particular steps forming this worklist (list of
@@ -509,9 +497,6 @@ class PlannedWorklist(Entity):
     def __init__(self, label, transfer_type, pipetting_specs,
                  planned_liquid_transfers=None, worklist_series_member=None,
                  executed_worklists=None, **kw):
-        """
-        Constructor
-        """
         Entity.__init__(self, **kw)
         self.label = label
         self.transfer_type = transfer_type
@@ -565,9 +550,8 @@ class PlannedWorklist(Entity):
 
 class WorklistSeries(Entity):
     """
-    This class represents an ordered series of :class:`PlannedWorklist` objects.
-
-    **Equality Condition**: equal :attr:`id`
+    This class represents an ordered series of :class:`PlannedWorklist`
+    objects.
     """
 
     #: The :class:`WorklistSeriesMember` entity linking this worklist series to
@@ -575,9 +559,6 @@ class WorklistSeries(Entity):
     worklist_series_members = None
 
     def __init__(self, **kw):
-        """
-        Constructor
-        """
         Entity.__init__(self, **kw)
         self.worklist_series_members = []
 
@@ -648,9 +629,6 @@ class WorklistSeries(Entity):
 class WorklistSeriesMember(Entity):
     """
     The class links :class:`PlannedWorklists` to a :class:`WorklistSeries`.
-
-    **Equality Condition**: equal :attr:`planned_worklists` and
-        :attr:`worklist_series`
     """
 
     #: The planned worklist being the series member.
@@ -667,6 +645,10 @@ class WorklistSeriesMember(Entity):
         self.index = index
 
     def __eq__(self, other):
+        """
+        Equality is based on the planned_worklists and worklist_series
+        attributes.
+        """
         return (isinstance(other, WorklistSeriesMember) and \
                 self.planned_worklist == other.planned_worklist and \
                 self.worklist_series == other.worklist_series)
@@ -685,13 +667,12 @@ class WorklistSeriesMember(Entity):
 
 class ExecutedLiquidTransfer(Entity):
     """
-    This is an abstract base class for executed liquid transfer. An executed
-    liquid transfer represents a planned transfer that has actually been
-    carried out. Thus, there are specific racks or containers involved.
+    Abstract base class for executed liquid transfer.
 
-    **Equality Condition**: equal :attr:`id`
+    An executed liquid transfer represents a planned transfer that has
+    actually been carried out. Thus, there are specific racks or containers
+    involved.
     """
-
     #: The planned liquid transfer that has been executed
     #: (:class:`PlannedLiquidTransfer`).
     planned_liquid_transfer = None
@@ -707,9 +688,6 @@ class ExecutedLiquidTransfer(Entity):
 
     def __init__(self, planned_liquid_transfer, user, timestamp=None,
                  transfer_type=None, **kw): # pylint: disable=W0622
-        """
-        Constructor
-        """
         if self.__class__ is ExecutedLiquidTransfer:
             raise NotImplementedError('Abstract class')
         Entity.__init__(self, **kw)
@@ -718,8 +696,9 @@ class ExecutedLiquidTransfer(Entity):
         self.transfer_type = transfer_type
         if not planned_liquid_transfer.transfer_type == transfer_type:
             msg = 'Invalid planned liquid transfer type "%s" for executed ' \
-                  'transfer class %s.' % (planned_liquid_transfer.transfer_type,
-                                          self.__class__.__name__)
+                  'transfer class %s.' \
+                    % (planned_liquid_transfer.transfer_type,
+                       self.__class__.__name__)
             raise ValueError(msg)
         self.planned_liquid_transfer = planned_liquid_transfer
         self.user = user
@@ -733,14 +712,12 @@ class ExecutedLiquidTransfer(Entity):
 
 class ExecutedSampleDilution(ExecutedLiquidTransfer):
     """
-    An executed sample dilution. Sample dilution means that there is a target
-    container but not source container. The source container is not specified
-    since it exists only temporary. Instead the specs of the source rack
-    are logged.
+    Executed sample dilution.
 
-    **Equality Condition**: equal :attr:`id`
+    Sample dilution means that there is a target container but not source
+    container. The source container is not specified since it exists only
+    temporary. Instead the specs of the source rack are logged.
     """
-
     #: The container the volume has been dispensed into
     #: (:class:`thelma.entities.container.Container`).
     target_container = None
@@ -749,9 +726,6 @@ class ExecutedSampleDilution(ExecutedLiquidTransfer):
 
     def __init__(self, target_container, reservoir_specs,
                  planned_sample_dilution, user, timestamp=None, **kw):
-        """
-        Constructor
-        """
         ExecutedLiquidTransfer.__init__(self, planned_sample_dilution, user,
                                         timestamp=timestamp,
                                         transfer_type=
@@ -785,13 +759,11 @@ class ExecutedSampleDilution(ExecutedLiquidTransfer):
 
 class ExecutedSampleTransfer(ExecutedLiquidTransfer):
     """
-    An executed sample transfer. Sample transfer represent transfers
-    from one source container to a target container. The container can
-    be situated in different racks.
+    Executed sample transfer.
 
-    **Equality Condition**: equal :attr:`id`
+    Sample transfer represent transfers from one source container to a target
+    container. The container can be situated in different racks.
     """
-
     #: The container the volume has been taken from
     #: (:class:`thelma.entities.container.Container`).
     source_container = None
@@ -801,9 +773,6 @@ class ExecutedSampleTransfer(ExecutedLiquidTransfer):
 
     def __init__(self, source_container, target_container,
                  planned_sample_transfer, user, timestamp=None, **kw):
-        """
-        Constructor
-        """
         ExecutedLiquidTransfer.__init__(self, planned_sample_transfer, user,
                                         timestamp=timestamp,
                                         transfer_type=
@@ -844,13 +813,12 @@ class ExecutedSampleTransfer(ExecutedLiquidTransfer):
 
 class ExecutedRackSampleTransfer(ExecutedLiquidTransfer):
     """
-    An executed rack transfer. In the rack transfer the contents of all
-    containers of a rack (sector) is transferred to another rack (sector).
-    The volumes must be the same for all containers.
+    Executed rack transfer.
 
-    **Equality Condition**: equal :attr:`id`
+    In the rack transfer the contents of all containers of a rack (sector) is
+    transferred to another rack (sector). The volumes must be the same for all
+    containers.
     """
-
     #: The rack the volumes are taken from (:class:`thelma.entities.rack.Rack`).
     source_rack = None
     #: The rack the volumes are dispensed into
@@ -859,9 +827,6 @@ class ExecutedRackSampleTransfer(ExecutedLiquidTransfer):
 
     def __init__(self, source_rack, target_rack, planned_rack_sample_transfer,
                  user, timestamp=None, **kw):
-        """
-        Constructor.
-        """
         ExecutedLiquidTransfer.__init__(self, planned_rack_sample_transfer,
                                         user, timestamp,
                                         transfer_type=
@@ -887,11 +852,8 @@ class ExecutedRackSampleTransfer(ExecutedLiquidTransfer):
 
 class ExecutedWorklist(Entity):
     """
-    This class represents a planned worklist that has actually been carried out.
-
-    **Equality Condition**: equal :attr:`id`
+    Executed planned worklist.
     """
-
     #: The planned worklist that has been executed (:class:`PlannedWorklist`).
     planned_worklist = None
     #: The executed transfer steps belonging to this worklist
@@ -899,9 +861,6 @@ class ExecutedWorklist(Entity):
     executed_liquid_transfers = None
 
     def __init__(self, planned_worklist, executed_liquid_transfers=None, **kw):
-        """
-        Constructor
-        """
         Entity.__init__(self, **kw)
         self.planned_worklist = planned_worklist
         if executed_liquid_transfers is None:
@@ -927,8 +886,6 @@ class ExecutedWorklist(Entity):
 class PipettingSpecs(Entity):
     """
     Contains the properties for a pipetting method or robot.
-
-    **Equality Condition**: equal :attr:`name`
     """
     #: The name of the robot or method.
     _name = None
@@ -949,9 +906,6 @@ class PipettingSpecs(Entity):
     def __init__(self, name, min_transfer_volume, max_transfer_volume,
                  max_dilution_factor, has_dynamic_dead_volume, is_sector_bound,
                  **kw):
-        """
-        Constructor
-        """
         Entity.__init__(self, **kw)
         self._name = name
         self._min_transfer_volume = min_transfer_volume
@@ -1027,15 +981,13 @@ class PipettingSpecs(Entity):
 
 class ReservoirSpecs(Entity):
     """
+    Specs for a reservoir.
+
     A reservoir represents an anonymous source rack. Reservoirs
     exist only temporary (in the physical world) and are not stored in the DB.
     They constitute the source for container dilutions where the origin of a
     volume is not specified.
-
-    **Equality condition:** equal :attr:`rack_shape`, :attr:`max_volume`,
-        :attr:`min_dead_volume` and attr:`max_dead_volume`
     """
-
     #: This attribute is used as slug.
     _name = None
     #: Contains a little more information than the :attr:`name`.
@@ -1052,9 +1004,6 @@ class ReservoirSpecs(Entity):
 
     def __init__(self, name, description, rack_shape, max_volume,
                  min_dead_volume, max_dead_volume, **kw):
-        """
-        Constructor
-        """
         Entity.__init__(self, **kw)
         self._name = name
         self._description = description
@@ -1114,6 +1063,10 @@ class ReservoirSpecs(Entity):
         return self._max_dead_volume
 
     def __eq__(self, other):
+        """
+        Equality depends on the rack_hspae, max_volume, min_dead_volume, and
+        max_dead_volume attributes.
+        """
         return isinstance(other, ReservoirSpecs) and \
                 self._rack_shape == other.rack_shape and \
                 self._max_volume == other.max_volume and \

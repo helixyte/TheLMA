@@ -1,4 +1,7 @@
 """
+Sample registration entity classes.
+
+Created Nov 24, 2014.
 """
 from everest.entities.base import Entity
 
