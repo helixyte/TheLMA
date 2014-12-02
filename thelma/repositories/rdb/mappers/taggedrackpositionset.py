@@ -3,12 +3,15 @@ Tagged rack position set mapper.
 """
 from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
+
 from thelma.entities.rack import RackPositionSet
 from thelma.entities.racklayout import RackLayout
 from thelma.entities.tagging import TaggedRackPositionSet
 
+
 __docformat__ = "epytext"
 __all__ = ['create_mapper']
+
 
 TAGGED_RACK_POSITIONS_TYPE = 'TAGGED_RACK_POSITIONS'
 

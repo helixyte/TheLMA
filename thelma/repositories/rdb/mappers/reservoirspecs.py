@@ -1,11 +1,13 @@
 """
 Reservoir specs mapper.
 """
+from sqlalchemy.orm import relationship
+
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
-from sqlalchemy.orm import relationship
 from thelma.entities.liquidtransfer import ReservoirSpecs
 from thelma.entities.rack import RackShape
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
@@ -13,7 +15,6 @@ __all__ = ['create_mapper']
 
 def create_mapper(reservoir_specs_tbl):
     "Mapper factory."
-
     tbl = reservoir_specs_tbl
     m = mapper(ReservoirSpecs, reservoir_specs_tbl,
                id_attribute='reservoir_specs_id',

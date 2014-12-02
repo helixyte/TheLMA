@@ -1,13 +1,15 @@
 """
 Molecule design mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.chemicalstructure import ChemicalStructure
 from thelma.entities.gene import Gene
 from thelma.entities.moleculedesign import MoleculeDesign
 from thelma.entities.moleculetype import MoleculeType
 from thelma.entities.suppliermoleculedesign import SupplierMoleculeDesign
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

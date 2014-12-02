@@ -1,5 +1,5 @@
 """
-Molecule design library lab ISO request association table
+Molecule design library lab ISO request association table.
 """
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey

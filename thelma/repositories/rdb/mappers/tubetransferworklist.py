@@ -1,24 +1,21 @@
 """
-Tube transfer worklist mapper
-
-AAB
+Tube transfer worklist mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.tubetransfer import TubeTransfer
 from thelma.entities.tubetransfer import TubeTransferWorklist
 from thelma.entities.user import User
 
-__docformat__ = 'reStructuredText en'
 
+__docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
 
 
 def create_mapper(tube_transfer_worklist_tbl, tube_transfer_tbl,
                   tube_transfer_worklist_member_tbl, user_tbl):
-    """
-    Planned container transfer class mapper factory
-    """
+    "Mapper factory."
     ttw = tube_transfer_worklist_tbl
     tt = tube_transfer_tbl
     ttwm = tube_transfer_worklist_member_tbl

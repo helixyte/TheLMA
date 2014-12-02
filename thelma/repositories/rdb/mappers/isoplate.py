@@ -1,14 +1,17 @@
 """
 ISO plate mapper
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.iso import ISO_PLATE_TYPES
 from thelma.entities.iso import IsoPlate
 from thelma.entities.rack import Rack
 
+
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
+
 
 def create_mapper(iso_plate_tbl):
     "Mapper factory."

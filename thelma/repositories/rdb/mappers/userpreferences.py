@@ -1,10 +1,12 @@
 """
 User preferences mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.user import User
 from thelma.entities.user import UserPreferences
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

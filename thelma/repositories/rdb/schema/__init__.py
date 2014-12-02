@@ -1,6 +1,8 @@
 from sqlalchemy import MetaData
+
 from thelma.repositories.rdb.schema.tables import initialize_tables
 from thelma.repositories.rdb.schema.views import initialize_views
+
 
 def initialize_schema():
     metadata = MetaData()

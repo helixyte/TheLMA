@@ -1,20 +1,20 @@
 """
-Experiment source rack association table
+Experiment source rack association table.
 """
-
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import Table
 
+
 __docformat__ = "reStructuredText en"
 __all__ = ['create_table']
 
+
 def create_table(metadata, experiment_tbl, rack_tbl):
     """
-    Table factory
+    Table factory.
     """
-
     tbl = Table('experiment_source_rack', metadata,
                 Column('experiment_id', Integer,
                        ForeignKey(experiment_tbl.c.experiment_id,
@@ -25,5 +25,4 @@ def create_table(metadata, experiment_tbl, rack_tbl):
                                   onupdate='CASCADE', ondelete='NO ACTION'),
                        nullable=False)
                 )
-
     return tbl

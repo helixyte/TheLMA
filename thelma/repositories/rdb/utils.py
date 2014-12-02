@@ -10,16 +10,14 @@ from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.schema import Sequence
 from sqlalchemy.sql.expression import ColumnElement
 from sqlalchemy.sql.expression import _literal_as_binds
-from sqlalchemy.sql.expression import func
 from sqlalchemy.sql.expression import literal_column
 from sqlalchemy.sql.visitors import Visitable
 
 
 class BarcodeSequence(Sequence):
-    """
-    """
-    def next_value(self):
-        return func.lpad(func.cast(Sequence.next_value(self), String), 8, '0')
+    def next_value(self, func):
+        return func.lpad(func.cast(Sequence.next_value(self, func), String),
+                         8, '0')
 
 
 @compiles(BarcodeSequence)

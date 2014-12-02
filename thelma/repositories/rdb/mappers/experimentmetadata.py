@@ -1,16 +1,18 @@
 """
 Experiment metadata mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import column_property
 from sqlalchemy.orm import relationship
-from thelma.repositories.rdb.mappers.utils import CaseInsensitiveComparator
+
 from everest.repositories.rdb.utils import as_slug_expression
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.experiment import ExperimentDesign
 from thelma.entities.experiment import ExperimentMetadata
 from thelma.entities.experiment import ExperimentMetadataType
-from thelma.entities.subproject import Subproject
 from thelma.entities.iso import LabIsoRequest
+from thelma.entities.subproject import Subproject
+from thelma.repositories.rdb.mappers.utils import CaseInsensitiveComparator
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

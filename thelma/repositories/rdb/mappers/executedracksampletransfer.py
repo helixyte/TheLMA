@@ -3,9 +3,11 @@ Executed rack transfer mapper.
 """
 from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
+
 from thelma.entities.liquidtransfer import ExecutedRackSampleTransfer
 from thelma.entities.liquidtransfer import TRANSFER_TYPES
 from thelma.entities.rack import Rack
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

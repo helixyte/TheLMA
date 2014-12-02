@@ -1,13 +1,15 @@
 """
 Device mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+
 from everest.repositories.rdb.utils import as_slug_expression
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.device import Device
 from thelma.entities.device import DeviceType
 from thelma.entities.location import BarcodedLocation
 from thelma.entities.organization import Organization
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

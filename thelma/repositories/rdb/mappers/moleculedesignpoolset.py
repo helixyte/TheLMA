@@ -1,11 +1,13 @@
 """
-Molecule design set mapper.
+Molecule design pool set mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.moleculedesign import MoleculeDesignPool
 from thelma.entities.moleculedesign import MoleculeDesignPoolSet
 from thelma.entities.moleculetype import MoleculeType
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

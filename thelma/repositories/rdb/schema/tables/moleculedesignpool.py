@@ -9,6 +9,7 @@ from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy.schema import ForeignKey
 
+
 __docformat__ = "reStructuredText en"
 __all__ = ['create_table']
 

@@ -12,8 +12,8 @@ from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy.schema import DDL
 
-from thelma.repositories.rdb.utils import BarcodeSequence
 from thelma.entities.rack import RACK_TYPES
+from thelma.repositories.rdb.utils import BarcodeSequence
 
 
 __docformat__ = 'reStructuredText en'

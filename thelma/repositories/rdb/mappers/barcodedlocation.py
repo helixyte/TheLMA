@@ -6,10 +6,10 @@ from sqlalchemy.orm import relationship
 
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
-from thelma.repositories.rdb.mappers.utils import CaseInsensitiveComparator
 from thelma.entities.device import Device
 from thelma.entities.location import BarcodedLocation
 from thelma.entities.location import BarcodedLocationRack
+from thelma.repositories.rdb.mappers.utils import CaseInsensitiveComparator
 
 
 __docformat__ = 'reStructuredText en'

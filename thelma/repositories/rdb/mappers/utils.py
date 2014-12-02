@@ -10,6 +10,7 @@ __all__ = ['CaseInsensitiveComparator',
            'ProxyDict',
            ]
 
+
 class CaseInsensitiveComparator(ColumnProperty.Comparator): # pylint: disable=W0223
     """
     Case Insensitive Comparator

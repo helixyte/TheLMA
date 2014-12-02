@@ -1,11 +1,13 @@
 """
 Lab ISO mapper
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.iso import ISO_TYPES
 from thelma.entities.iso import LabIso
 from thelma.entities.library import LibraryPlate
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

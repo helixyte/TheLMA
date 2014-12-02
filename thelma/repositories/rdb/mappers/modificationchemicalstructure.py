@@ -1,9 +1,11 @@
 """
-Compound chemical structure mapper.
+Modification chemical structure mapper.
 """
 from sqlalchemy.orm import mapper
+
 from thelma.entities.chemicalstructure import CHEMICAL_STRUCTURE_TYPE_IDS
 from thelma.entities.chemicalstructure import ModificationChemicalStructure
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

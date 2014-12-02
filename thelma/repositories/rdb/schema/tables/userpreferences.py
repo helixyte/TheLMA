@@ -8,6 +8,7 @@ from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Table
 
+
 __docformat__ = "epytext"
 __all__ = ['create_table']
 
@@ -27,6 +28,5 @@ def create_table(metadata, user_tbl):
                        CheckConstraint('length(preferences)>0'),
                        nullable=False
                        ),
-
                 )
     return tbl

@@ -4,8 +4,8 @@ Molecule modification view.
 from sqlalchemy.sql import and_
 from sqlalchemy.sql import select
 
-from thelma.repositories.rdb.view import view_factory
 from thelma.entities.chemicalstructure import CHEMICAL_STRUCTURE_TYPE_IDS
+from thelma.repositories.rdb.view import view_factory
 
 
 __docformat__ = 'reStructuredText en'
@@ -18,7 +18,7 @@ VIEW_NAME = 'molecule_type_modification_view'
 def create_view(metadata, molecule_design_tbl, molecule_design_structure_tbl,
                 chemical_structure_tbl):
     """
-    molecule_type_modification_view factory
+    molecule_type_modification_view factory.
     """
     md = molecule_design_tbl
     mds = molecule_design_structure_tbl

@@ -1,10 +1,12 @@
 """
 Rack position set mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.rack import RackPosition
 from thelma.entities.rack import RackPositionSet
+
 
 __docformat__ = "epytext"
 __all__ = ['create_mapper']

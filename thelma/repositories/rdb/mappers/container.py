@@ -1,14 +1,16 @@
 """
 Container mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.container import CONTAINER_TYPES
 from thelma.entities.container import Container
 from thelma.entities.container import ContainerLocation
 from thelma.entities.container import ContainerSpecs
 from thelma.entities.sample import Sample
 from thelma.entities.status import ItemStatus
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

@@ -3,9 +3,11 @@ Planned sample dilution mapper.
 """
 from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
+
 from thelma.entities.liquidtransfer import PlannedSampleDilution
 from thelma.entities.liquidtransfer import TRANSFER_TYPES
 from thelma.entities.rack import RackPosition
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

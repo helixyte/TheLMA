@@ -1,17 +1,19 @@
 """
 Molecule mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import column_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import distinct
 from sqlalchemy.sql import select
 from sqlalchemy.sql.expression import and_
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.moleculedesign import MoleculeDesign
 from thelma.entities.organization import Organization
 from thelma.entities.sample import Molecule
 from thelma.entities.sample import SampleMolecule
 from thelma.entities.suppliermoleculedesign import SupplierMoleculeDesign
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

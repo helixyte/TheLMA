@@ -1,11 +1,12 @@
 """
-ISO job member table
+ISO job member table.
 """
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import Table
 from sqlalchemy.schema import PrimaryKeyConstraint
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_table']

@@ -1,11 +1,13 @@
 """
 Executed worklist mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.liquidtransfer import ExecutedLiquidTransfer
 from thelma.entities.liquidtransfer import ExecutedWorklist
 from thelma.entities.liquidtransfer import PlannedWorklist
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

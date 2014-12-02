@@ -17,9 +17,7 @@ __all__ = ['create_mapper']
 
 def create_mapper(experiment_tbl, experiment_source_rack_tbl):
     "Mapper factory."
-
     esr = experiment_source_rack_tbl
-
     m = mapper(Experiment, experiment_tbl,
                id_attribute='experiment_id',
                properties=

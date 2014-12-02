@@ -1,14 +1,16 @@
 """
 ISO job mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.iso import Iso
+from thelma.entities.iso import IsoJobPreparationPlate
 from thelma.entities.iso import IsoJobStockRack
 from thelma.entities.job import IsoJob
 from thelma.entities.job import JOB_TYPES
-from thelma.entities.iso import IsoJobPreparationPlate
 from thelma.entities.liquidtransfer import WorklistSeries
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
@@ -17,7 +19,6 @@ __all__ = ['create_mapper']
 def create_mapper(job_mapper, iso_job_tbl, iso_job_member_tbl,
                   worklist_series_iso_request_tbl):
     "Mapper factory."
-
     m = mapper(IsoJob, iso_job_tbl,
                inherits=job_mapper,
                polymorphic_identity=JOB_TYPES.ISO,

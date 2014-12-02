@@ -25,7 +25,7 @@ _STOCK_CONTAINER_SPECS = 'MATRIX0500'
 def create_view(metadata, molecule_design_pool_tbl,
                 stock_sample_tbl, sample_tbl, container_tbl):
     """
-    stock_info_view factory
+    stock_info_view factory.
     """
     mdp = molecule_design_pool_tbl
     ss = stock_sample_tbl
@@ -41,11 +41,13 @@ def create_view(metadata, molecule_design_pool_tbl,
             # We need to set the label explicitly here because
             # mdp.c.molecule_type_id is really mdp.c.molecule_type.
             mdp.c.molecule_type_id.label('molecule_type_id'),
+            # pylint: disable=E1101
             coalesce(ss.c.concentration, 0).label('concentration'),
             coalesce(func.count(c.c.container_id), 0).label('total_tubes'),
             coalesce(func.sum(s.c.volume), 0).label('total_volume'),
             coalesce(func.min(s.c.volume), 0).label('minimum_volume'),
             coalesce(func.max(s.c.volume), 0).label('maximum_volume')
+            # pylint: enable=E1101
             ],
             from_obj=
                 mdp.outerjoin(ss, ss.c.molecule_design_set_id ==

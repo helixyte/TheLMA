@@ -2,8 +2,10 @@
 Well mapper.
 """
 from sqlalchemy.orm import mapper
+
 from thelma.entities.container import CONTAINER_TYPES
 from thelma.entities.container import Well
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

@@ -1,11 +1,13 @@
 """
 ISO sample stock rack mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.iso import Iso
 from thelma.entities.iso import IsoStockRack
 from thelma.entities.iso import STOCK_RACK_TYPES
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

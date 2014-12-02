@@ -1,12 +1,14 @@
 """
 Rack shape mapper.
 """
+from sqlalchemy.orm import relationship
+
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
 from everest.repositories.rdb.utils import synonym
-from sqlalchemy.orm import relationship
 from thelma.entities.rack import RackShape
 from thelma.entities.rack import RackSpecs
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

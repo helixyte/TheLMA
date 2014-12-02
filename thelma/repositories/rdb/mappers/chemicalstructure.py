@@ -1,8 +1,9 @@
 """
 Chemical structure mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.chemicalstructure import ChemicalStructure
 from thelma.entities.moleculedesign import MoleculeDesign
 

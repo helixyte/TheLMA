@@ -2,6 +2,7 @@
 Subproject table.
 """
 from datetime import datetime
+
 from sqlalchemy import Boolean
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
@@ -11,6 +12,7 @@ from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy.schema import UniqueConstraint
+
 
 __docformat__ = "epytext"
 __all__ = ['create_table']

@@ -1,8 +1,9 @@
 """
 Lab ISO request mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.experiment import ExperimentMetadata
 from thelma.entities.iso import ISO_TYPES
 from thelma.entities.iso import LabIsoRequest
@@ -11,19 +12,18 @@ from thelma.entities.liquidtransfer import ReservoirSpecs
 from thelma.entities.racklayout import RackLayout
 from thelma.entities.user import User
 
+
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']
+
 
 def create_mapper(iso_request_mapper, lab_iso_request_tbl,
                   experiment_metadata_iso_request_tbl, reservoir_specs_tbl,
                   molecule_design_library_lab_iso_request_tbl):
     "Mapper factory."
-
-
     lir = lab_iso_request_tbl
     emir = experiment_metadata_iso_request_tbl
     rs = reservoir_specs_tbl
-
     m = mapper(LabIsoRequest, lab_iso_request_tbl,
                inherits=iso_request_mapper,
                properties=dict(
@@ -44,5 +44,4 @@ def create_mapper(iso_request_mapper, lab_iso_request_tbl,
                                ),
                polymorphic_identity=ISO_TYPES.LAB,
                )
-
     return m

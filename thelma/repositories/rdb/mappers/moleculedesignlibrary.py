@@ -1,28 +1,28 @@
 """
 Molecule design library mapper.
 """
+from sqlalchemy.orm import relationship
+
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
-from sqlalchemy.orm import relationship
 from thelma.entities.iso import StockSampleCreationIsoRequest
 from thelma.entities.library import LibraryPlate
 from thelma.entities.library import MoleculeDesignLibrary
 from thelma.entities.moleculedesign import MoleculeDesignPoolSet
 from thelma.entities.racklayout import RackLayout
 
+
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']
+
 
 def create_mapper(molecule_design_library_tbl,
                   stock_sample_creation_iso_request_tbl,
                   molecule_design_library_creation_iso_request_tbl):
-    """
-    Mapper factory
-    """
+    "Mapper factory."
     mdl = molecule_design_library_tbl
     sscir = stock_sample_creation_iso_request_tbl
     mdlcir = molecule_design_library_creation_iso_request_tbl
-
     m = mapper(MoleculeDesignLibrary, molecule_design_library_tbl,
                id_attribute='molecule_design_library_id',
                slug_expression=lambda cls: as_slug_expression(cls.label),

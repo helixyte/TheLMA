@@ -7,8 +7,10 @@ from sqlalchemy import Index
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Table
+
 from thelma.entities.container import CONTAINER_TYPES
 from thelma.tools.semiconstants import ITEM_STATUS_NAMES
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_table']

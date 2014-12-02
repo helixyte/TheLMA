@@ -27,5 +27,4 @@ def create_table(metadata, molecule_design_library_tbl,
         )
 
     PrimaryKeyConstraint(tbl.c.molecule_design_library_id)
-
     return tbl

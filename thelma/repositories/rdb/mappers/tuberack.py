@@ -2,8 +2,10 @@
 Tube rack mapper.
 """
 from sqlalchemy.orm import mapper
+
 from thelma.entities.rack import RACK_TYPES
 from thelma.entities.rack import TubeRack
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

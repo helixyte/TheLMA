@@ -2,6 +2,7 @@
 Project table.
 """
 from datetime import datetime
+
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
 from sqlalchemy import DateTime
@@ -9,6 +10,7 @@ from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Table
+
 
 __docformat__ = "epytext"
 __all__ = ['create_table']

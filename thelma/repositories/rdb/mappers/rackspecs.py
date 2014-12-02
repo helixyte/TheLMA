@@ -1,18 +1,20 @@
 """
 Rack specs mapper.
 """
-from everest.repositories.rdb.utils import as_slug_expression
-from everest.repositories.rdb.utils import mapper
-from everest.repositories.rdb.utils import synonym
 from sqlalchemy.orm import column_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import case
 from sqlalchemy.sql import literal
 from sqlalchemy.sql import select
+
+from everest.repositories.rdb.utils import as_slug_expression
+from everest.repositories.rdb.utils import mapper
+from everest.repositories.rdb.utils import synonym
 from thelma.entities.organization import Organization
 from thelma.entities.rack import RACK_SPECS_TYPES
 from thelma.entities.rack import RackShape
 from thelma.entities.rack import RackSpecs
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

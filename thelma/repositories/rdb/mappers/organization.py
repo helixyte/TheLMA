@@ -1,11 +1,13 @@
 """
 Organization mapper.
 """
+from sqlalchemy.orm import column_property
+
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
-from sqlalchemy.orm import column_property
-from thelma.repositories.rdb.mappers.utils import CaseInsensitiveComparator
 from thelma.entities.organization import Organization
+from thelma.repositories.rdb.mappers.utils import CaseInsensitiveComparator
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

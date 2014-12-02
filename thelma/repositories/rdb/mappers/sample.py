@@ -1,7 +1,6 @@
 """
 Sample mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy import String
 from sqlalchemy import event
 from sqlalchemy.orm import column_property
@@ -16,12 +15,15 @@ from sqlalchemy.sql.expression import func
 from sqlalchemy.sql.expression import insert
 from sqlalchemy.sql.expression import null
 from sqlalchemy.sql.functions import coalesce
-from thelma.repositories.rdb.utils import string_agg
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.container import Container
 from thelma.entities.sample import SAMPLE_TYPES
 from thelma.entities.sample import Sample
 from thelma.entities.sample import SampleMolecule
 from thelma.entities.sample import StockSample
+from thelma.repositories.rdb.utils import string_agg
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

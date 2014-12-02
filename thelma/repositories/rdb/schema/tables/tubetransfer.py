@@ -1,9 +1,6 @@
 """
-tube transfer table
-
-AAB
+Tube transfer table.
 """
-
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
@@ -11,15 +8,11 @@ from sqlalchemy import Table
 
 
 __docformat__ = 'reStructuredText en'
-
 __all__ = ['create_table']
 
 
 def create_table(metadata, container_tbl, rack_tbl, rack_position_tbl):
-    """
-    Tube transfer table factory method
-    """
-
+    "Table factory."
     tbl = Table('tube_transfer', metadata,
                 Column('tube_transfer_id', Integer, primary_key=True),
                 Column('tube_id', Integer,
@@ -36,5 +29,4 @@ def create_table(metadata, container_tbl, rack_tbl, rack_position_tbl):
                        ForeignKey(rack_position_tbl.c.rack_position_id),
                        nullable=False)
                 )
-
     return tbl

@@ -1,20 +1,15 @@
 """
-utilities to create/drop views
+Utilities to create/drop views.
 
 Based on a recipe published in:
 
 http://www.sqlalchemy.org/trac/wiki/UsageRecipes/Views
-
-NP
 """
-
 from sqlalchemy.sql import table
 from sqlalchemy.ext import compiler
 from sqlalchemy.schema import DDLElement
 
 __docformat__ = 'reStructuredText en'
-
-
 __all__ = ['CreateView',
            'DropView',
            'view_factory',
@@ -65,9 +60,6 @@ def drop_view_compile(element, compiler, **kw): # pylint: disable=W0621,W0613
 
 
 def view_factory(name, metadata, selectable):
-    """
-    ...explain...
-    """
     if not hasattr(metadata, 'views'):
         metadata.views = {}
 

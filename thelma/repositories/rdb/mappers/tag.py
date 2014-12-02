@@ -1,22 +1,25 @@
 """
 Tag mapper.
 """
-from everest.repositories.rdb.utils import as_slug_expression
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import column_property
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm.interfaces import MapperExtension
+from sqlalchemy.orm.deprecated_interfaces import MapperExtension
 from sqlalchemy.sql import select
 from sqlalchemy.sql.expression import func
 from sqlalchemy.sql.expression import insert
+
+from everest.repositories.rdb.utils import as_slug_expression
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.tagging import Tag
 from thelma.entities.tagging import Tagged
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']
 
 
 class TagMapperExtension(MapperExtension):
+    # FIXME: the mapper extension mechanism is deprecated.
     """
     Mapper extension to take care of inserting/updating the non-mapped
     `tag_domain`, `tag_predicate`, and `tag_value` records when a `tag`

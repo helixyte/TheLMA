@@ -1,11 +1,12 @@
 """
-ISO preparation plate table
+ISO preparation plate table.
 """
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import Table
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_table']
@@ -23,6 +24,5 @@ def create_table(metadata, iso_plate_tbl, rack_layout_tbl):
                                   onupdate='CASCADE', ondelete='CASCADE'),
                        nullable=False),
                 )
-
     PrimaryKeyConstraint(tbl.c.iso_plate_id)
     return tbl

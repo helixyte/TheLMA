@@ -1,11 +1,13 @@
 """
 Molecule type mapper.
 """
+from sqlalchemy.orm import relationship
+
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
-from sqlalchemy.orm import relationship
 from thelma.entities.chemicalstructure import ChemicalStructure
 from thelma.entities.moleculetype import MoleculeType
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

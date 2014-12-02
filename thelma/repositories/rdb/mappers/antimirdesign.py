@@ -2,8 +2,10 @@
 Antimir design mapper.
 """
 from sqlalchemy.orm import mapper
+
 from thelma.entities.moleculedesign import AntiMirDesign
 from thelma.entities.moleculetype import MOLECULE_TYPE_IDS
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

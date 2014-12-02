@@ -6,6 +6,7 @@ from everest.repositories.rdb.utils import mapper
 from thelma.entities.liquidtransfer import PlannedLiquidTransfer
 from thelma.entities.liquidtransfer import TRANSFER_TYPES
 
+
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
 

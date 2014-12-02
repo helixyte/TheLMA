@@ -1,5 +1,5 @@
 """
-Library plate table
+Library plate table.
 """
 from sqlalchemy import Boolean
 from sqlalchemy import Column
@@ -8,12 +8,13 @@ from sqlalchemy import Integer
 from sqlalchemy import Table
 from sqlalchemy.schema import CheckConstraint
 
+
 __docformat__ = "reStructuredText en"
 __all__ = ['create_table']
 
-def create_table(metadata, molecule_design_library_tbl, rack_tbl):
-    """Table Factory"""
 
+def create_table(metadata, molecule_design_library_tbl, rack_tbl):
+    "Table factory."
     tbl = Table('library_plate', metadata,
                 Column('library_plate_id', Integer, primary_key=True),
                 Column('molecule_design_library_id', Integer,
@@ -28,5 +29,4 @@ def create_table(metadata, molecule_design_library_tbl, rack_tbl):
                 Column('layout_number', Integer, nullable=False),
                 Column('has_been_used', Boolean, nullable=False),
                 CheckConstraint('layout_number > 0'))
-
     return tbl

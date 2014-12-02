@@ -1,12 +1,13 @@
 """
-ISO aliquot plate table
+ISO aliquot plate table.
 """
 from sqlalchemy import Boolean
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
-from sqlalchemy import Table
 from sqlalchemy import PrimaryKeyConstraint
+from sqlalchemy import Table
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_table']

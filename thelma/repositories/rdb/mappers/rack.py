@@ -1,22 +1,24 @@
 """
 Rack mapper.
 """
-from everest.repositories.rdb.utils import as_slug_expression
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import column_property
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy.sql import func
 from sqlalchemy.sql import select
-from thelma.repositories.rdb.mappers.utils import CaseInsensitiveComparator
+
+from everest.repositories.rdb.utils import as_slug_expression
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.container import Container
 from thelma.entities.container import ContainerLocation
 from thelma.entities.location import BarcodedLocation
+from thelma.entities.location import BarcodedLocationRack
 from thelma.entities.rack import RACK_TYPES
 from thelma.entities.rack import Rack
 from thelma.entities.rack import RackSpecs
 from thelma.entities.status import ItemStatus
-from thelma.entities.location import BarcodedLocationRack
+from thelma.repositories.rdb.mappers.utils import CaseInsensitiveComparator
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

@@ -2,11 +2,13 @@
 Molecule table.
 """
 from datetime import datetime
-from sqlalchemy import Table
+
 from sqlalchemy import Column
-from sqlalchemy import Integer
 from sqlalchemy import DateTime
 from sqlalchemy import ForeignKey
+from sqlalchemy import Integer
+from sqlalchemy import Table
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_table']

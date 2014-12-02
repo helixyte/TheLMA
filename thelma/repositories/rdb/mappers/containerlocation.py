@@ -1,16 +1,18 @@
 """
 Container location mapper.
 """
-from everest.repositories.rdb.querying import OrderClauseList
 from sqlalchemy import sql
 from sqlalchemy.orm import composite
 from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.descriptor_props import CompositeProperty
+
+from everest.repositories.rdb.querying import OrderClauseList
 from thelma.entities.container import Container
 from thelma.entities.container import ContainerLocation
 from thelma.entities.rack import Rack
 from thelma.entities.rack import RackPosition
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

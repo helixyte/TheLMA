@@ -1,11 +1,12 @@
 """
 Molecule design table.
 """
-from sqlalchemy import Table
 from sqlalchemy import Column
-from sqlalchemy import String
-from sqlalchemy import Integer
 from sqlalchemy import ForeignKey
+from sqlalchemy import Integer
+from sqlalchemy import String
+from sqlalchemy import Table
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_table']

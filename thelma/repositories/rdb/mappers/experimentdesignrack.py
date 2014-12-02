@@ -1,12 +1,14 @@
 """
 Experiment design rack mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.experiment import ExperimentDesign
 from thelma.entities.experiment import ExperimentDesignRack
 from thelma.entities.liquidtransfer import WorklistSeries
 from thelma.entities.racklayout import RackLayout
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']

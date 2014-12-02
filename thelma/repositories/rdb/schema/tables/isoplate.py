@@ -1,13 +1,15 @@
 """
-ISO plate table
+ISO plate table.
 """
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
-from sqlalchemy import Table
 from sqlalchemy import String
+from sqlalchemy import Table
+
 from thelma.entities.iso import ISO_PLATE_TYPES
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_table']
@@ -33,5 +35,4 @@ def create_table(metadata, iso_tbl, rack_tbl):
                             ISO_PLATE_TYPES.SECTOR_PREPARATION)),
                        nullable=False)
                 )
-
     return tbl

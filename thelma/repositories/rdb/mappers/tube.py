@@ -3,7 +3,6 @@ Tube mapper.
 """
 from sqlalchemy import String
 from sqlalchemy.orm import column_property
-#from sqlalchemy.orm import relationship
 from sqlalchemy.orm.deprecated_interfaces import MapperExtension
 from sqlalchemy.sql import case
 from sqlalchemy.sql import cast
@@ -15,7 +14,6 @@ from sqlalchemy.sql.expression import insert
 from everest.repositories.rdb.utils import mapper
 from thelma.entities.container import CONTAINER_TYPES
 from thelma.entities.container import Tube
-#from thelma.entities.sample import StockSample
 
 
 __docformat__ = 'reStructuredText en'
@@ -52,10 +50,6 @@ def create_mapper(container_mapper, container_tbl, container_barcode_tbl):
                inherits=container_mapper,
                properties=
                 dict(barcode=column_property(bc_select.as_scalar()),
-#                     sample=relationship(Stock4Sample, uselist=False,
-#                                         back_populates='container',
-#                                         lazy='joined'
-#                                         ),
                      ),
                polymorphic_identity=CONTAINER_TYPES.TUBE)
     return m

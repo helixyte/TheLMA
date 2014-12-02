@@ -1,7 +1,8 @@
 """
-Sample table.
+Sample registration table.
 """
 from datetime import datetime
+
 from sqlalchemy import CheckConstraint
 from sqlalchemy import Column
 from sqlalchemy import DateTime
@@ -9,6 +10,7 @@ from sqlalchemy import Float
 from sqlalchemy import Integer
 from sqlalchemy import Table
 from sqlalchemy.schema import ForeignKey
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_table']

@@ -1,11 +1,12 @@
 """
 ISO stock rack table.
 """
-from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
+from sqlalchemy import PrimaryKeyConstraint
 from sqlalchemy import Table
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_table']
@@ -25,5 +26,4 @@ def create_table(metadata, stock_rack_tbl, iso_tbl):
                 )
 
     PrimaryKeyConstraint(tbl.c.stock_rack_id)
-
     return tbl

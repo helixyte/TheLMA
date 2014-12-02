@@ -8,7 +8,9 @@ from sqlalchemy import Integer
 from sqlalchemy import String
 from sqlalchemy import Table
 from sqlalchemy.schema import CheckConstraint
+
 from thelma.entities.liquidtransfer import TRANSFER_TYPES
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_table']

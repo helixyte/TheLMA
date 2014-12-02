@@ -1,8 +1,9 @@
 """
 Supplier molecule design mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import relationship
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.moleculedesign import MoleculeDesign
 from thelma.entities.moleculedesign import MoleculeDesignPool
 from thelma.entities.organization import Organization

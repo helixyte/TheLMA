@@ -2,9 +2,11 @@
 Tube rack specs mapper.
 """
 from sqlalchemy.orm import mapper, relationship
+
 from thelma.entities.container import TubeSpecs
 from thelma.entities.rack import RACK_SPECS_TYPES
 from thelma.entities.rack import TubeRackSpecs
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

@@ -3,10 +3,12 @@ Executed sample dilution mapper.
 """
 from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
+
 from thelma.entities.container import Container
 from thelma.entities.liquidtransfer import ExecutedSampleDilution
 from thelma.entities.liquidtransfer import ReservoirSpecs
 from thelma.entities.liquidtransfer import TRANSFER_TYPES
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']

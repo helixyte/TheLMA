@@ -1,17 +1,18 @@
 """
-ISO job preparation plate table
+ISO job preparation plate table.
 """
 from sqlalchemy import Column
 from sqlalchemy import ForeignKey
 from sqlalchemy import Integer
 from sqlalchemy import Table
 
+
 __docformat__ = "reStructuredText en"
 __all__ = ['create_table']
 
-def create_table(metadata, rack_tbl, job_tbl, rack_layout_tbl):
-    """Table Factory"""
 
+def create_table(metadata, rack_tbl, job_tbl, rack_layout_tbl):
+    "Table Factory."
     tbl = Table('iso_job_preparation_plate', metadata,
                 Column('iso_job_preparation_plate_id', Integer,
                        primary_key=True),
@@ -27,5 +28,4 @@ def create_table(metadata, rack_tbl, job_tbl, rack_layout_tbl):
                                   onupdate='CASCADE', ondelete='CASCADE'),
                        nullable=False)
                 )
-
     return tbl

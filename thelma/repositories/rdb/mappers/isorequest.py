@@ -1,15 +1,17 @@
 """
 ISO request mapper.
 """
-from everest.repositories.rdb.utils import mapper
 from sqlalchemy.orm import column_property
 from sqlalchemy.orm import relationship
-from thelma.repositories.rdb.mappers.utils import CaseInsensitiveComparator
+
+from everest.repositories.rdb.utils import mapper
 from thelma.entities.iso import ISO_TYPES
 from thelma.entities.iso import Iso
 from thelma.entities.iso import IsoRequest
 from thelma.entities.liquidtransfer import WorklistSeries
 from thelma.entities.moleculedesign import MoleculeDesignPoolSet
+from thelma.repositories.rdb.mappers.utils import CaseInsensitiveComparator
+
 
 __docformat__ = "reStructuredText en"
 __all__ = ['create_mapper']
@@ -19,9 +21,7 @@ __all__ = ['create_mapper']
 def create_mapper(iso_request_tbl, worklist_series_iso_request_tbl,
                   iso_request_pool_set_tbl):
     "Mapper factory."
-
     wsir = worklist_series_iso_request_tbl
-
     m = mapper(IsoRequest, iso_request_tbl,
                id_attribute='iso_request_id',
                properties=

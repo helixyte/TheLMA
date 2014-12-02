@@ -1,16 +1,18 @@
 """
 Refseq Gene mapper.
 """
+from sqlalchemy.orm import column_property
+from sqlalchemy.orm import relationship
+
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
 from everest.repositories.rdb.utils import synonym
-from sqlalchemy.orm import column_property
-from sqlalchemy.orm import relationship
-from thelma.repositories.rdb.mappers.utils import CaseInsensitiveComparator
 from thelma.entities.gene import Gene
 from thelma.entities.moleculedesign import MoleculeDesign
 from thelma.entities.moleculedesign import MoleculeDesignPool
 from thelma.entities.species import Species
+from thelma.repositories.rdb.mappers.utils import CaseInsensitiveComparator
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
