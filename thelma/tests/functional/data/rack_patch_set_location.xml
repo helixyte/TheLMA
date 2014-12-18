@@ -1,0 +1,12 @@
+<r:tube_rack
+    xmlns:l="http://schemata.cenix-bioscience.com/location"
+    xmlns:r="http://schemata.cenix-bioscience.com/rack"
+>
+    <l:location>
+        <l:link
+            href="http://localhost/locations/c127s8/"
+            kind="MEMBER"
+            rel="http://relations.cenix-bioscience.com/location"
+            title="carrier slot: c127s8" />
+    </l:location>
+</r:tube_rack>

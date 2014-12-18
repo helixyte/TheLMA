@@ -105,6 +105,7 @@ from thelma.entities.user import UserPreferences
 from thelma.entities.barcode import BarcodePrintJob
 from thelma.interfaces import IRackPosition
 from thelma.interfaces import IDeviceType
+from thelma.interfaces import ILocation
 
 
 __docformat__ = 'reStructuredText en'
@@ -830,6 +831,12 @@ def worklist_series_member_fac(test_object_fac, planned_worklist_fac,
 
 
 # Constants fixtures.
+
+@fixture
+def barcoded_location_c127s8():
+    agg = get_root_aggregate(ILocation)
+    return agg.get_by_slug('c127s8')
+
 
 @fixture
 def chemical_structure_type_nucleic_acid():

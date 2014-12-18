@@ -15,6 +15,7 @@ from thelma.entities.utils import number_from_label
 from thelma.interfaces import IRackPosition
 from thelma.interfaces import IRackPositionSet
 from thelma.utils import get_utc_time
+from thelma.entities.location import BarcodedLocationRack
 
 
 __docformat__ = 'reStructuredText en'
@@ -64,9 +65,11 @@ class Rack(Entity):
     barcode = None
     # FIXME: rack_specs should be made private/protected
     specs = None
-    #: The location (:class:`thelma.entities.location.BarcodedLocation`)
+    #: Barcoded location (:class:`thelma.entities.location.BarcodedLocation`)
     #: at which the rack is stored at the moment.
     location = None
+    #: Barcoded location rack (association object between rack and location).
+    location_rack = None
     #: The item status (:class:`thelma.entities.status.ItemStatus`) of the rack.
     status = None
     #: A list of container (currently) present in the rack
@@ -76,7 +79,7 @@ class Rack(Entity):
     total_containers = None
 
     def __init__(self, label, specs, status, comment='',
-                 creation_date=None, barcode=None, location=None, **kw):
+                 creation_date=None, barcode=None, **kw):
         Entity.__init__(self, **kw)
         if self.__class__ is Rack:
             raise NotImplementedError('Abstract class')
@@ -88,9 +91,9 @@ class Rack(Entity):
             creation_date = get_utc_time()
         self.creation_date = creation_date
         self.barcode = barcode
-        self.location = location
         self.container_locations = {}
         self.containers = []
+        self._location = None
 
     @property
     def slug(self):
@@ -117,6 +120,43 @@ class Rack(Entity):
         return isinstance(barcode, basestring) \
                and RACK_BARCODE_REGEXP.match(barcode)
 
+    def check_in(self, location):
+        """
+        Checks this rack into the given barcoded location.
+
+        All samples are updated.
+        """
+        self.location_rack = BarcodedLocationRack(location.rack, location)
+        for container in self.containers:
+            if not container.sample is None:
+                container.sample.check_in()
+
+    def check_out(self):
+        """
+        Checks this rack out of its current barcoded location.
+
+        All samples are updated.
+        """
+        self.location_rack = None
+        for container in self.containers:
+            if not container.sample is None:
+                container.sample.check_out()
+
+    def _get_location(self):
+        return self._location
+
+    def _set_location(self, location):
+        if not location is None:
+            if not self.location_rack is None:
+                raise ValueError()
+            self.check_in(location)
+        else:
+            if self.location_rack is None:
+                raise ValueError()
+            self.check_out()
+
+    location = property(_get_location, _set_location)
+
     def __str__(self):
         return self.barcode
 
@@ -137,16 +177,6 @@ class TubeRack(Rack):
     def __init__(self, label, specs, status, **kw):
         Rack.__init__(self, label, specs, status, **kw)
         self.rack_type = RACK_TYPES.TUBE_RACK
-
-    def check_in(self):
-        for container in self.containers:
-            if not container.sample is None:
-                container.sample.check_in()
-
-    def check_out(self):
-        for container in self.containers:
-            if not container.sample is None:
-                container.sample.check_out()
 
     def is_empty(self, position):
         """

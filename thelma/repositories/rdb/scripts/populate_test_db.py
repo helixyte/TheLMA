@@ -35,6 +35,7 @@ from thelma.entities.device import DeviceType
 from thelma.entities.experiment import ExperimentMetadataType
 from thelma.entities.liquidtransfer import PipettingSpecs
 from thelma.entities.liquidtransfer import ReservoirSpecs
+from thelma.entities.location import BarcodedLocation
 from thelma.entities.moleculetype import MoleculeType
 from thelma.entities.organization import Organization
 from thelma.entities.project import Project
@@ -256,6 +257,7 @@ SEMICONSTANT_ENTITY_CLASSES = [Organization,
                                RackShape,
                                RackSpecs,
                                ReservoirSpecs,
+                               BarcodedLocation,
                                ]
 
 for ent_cls in SEMICONSTANT_ENTITY_CLASSES:

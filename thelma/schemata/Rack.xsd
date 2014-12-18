@@ -16,11 +16,6 @@
         namespace="http://schemata.cenix-bioscience.com/itemstatus"
     ></import>
     <import
-        schemaLocation="ItemStatus.xsd"
-        namespace="http://schemata.cenix-bioscience.com/itemstatus"
-    >
-    </import>
-    <import
         schemaLocation="Location.xsd"
         namespace="http://schemata.cenix-bioscience.com/location"
     >

@@ -229,6 +229,14 @@
         permission="delete" />
 
     <member_view
+        for=".interfaces.ILocation"
+        request_method="DELETE
+                        FAKE_DELETE
+                       "
+        containment=".interfaces.ITubeRack"
+        permission="delete" />
+        
+    <member_view
         for=".interfaces.IDevice
              .interfaces.IDeviceType
              .interfaces.IExperimentJob
@@ -247,13 +255,14 @@
     <member_view
         for=".interfaces.IIsoRequest
              .interfaces.ITube
+             .interfaces.ITubeRack
             "
         renderer="atom"
         request_method="PATCH
                         FAKE_PATCH
                        "
         permission="update" />
-
+        
     <!-- for experiment metadata xls upload we use a custom view for now -->
 
     <member_view

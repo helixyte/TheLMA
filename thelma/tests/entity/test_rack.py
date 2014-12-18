@@ -63,6 +63,14 @@ class TestRackEntity(TestEntityBase):
         rack = fac()
         persist(nested_session, rack, fac.init_kw, True)
 
+    def test_persist_with_location(self, nested_session, tube_rack_fac,
+                                   barcoded_location_c127s8):
+        tr = tube_rack_fac()
+        tr.location = barcoded_location_c127s8
+        kw = tube_rack_fac.init_kw.copy()
+        kw['location'] = barcoded_location_c127s8
+        persist(nested_session, tr, kw, True)
+
 
 class TestRackSpecsEntity(TestEntityBase):
     def test_abstract(self):

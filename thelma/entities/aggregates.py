@@ -58,7 +58,7 @@ class _QueryOptimizers(object):
     @classmethod
     def _rack_query_generator(cls, query, key):
         if key is None: # iteration over full collection
-            opt_query = query.options(joinedload(Rack.location),
+            opt_query = query.options(joinedload(Rack._location), # pylint: disable=W0212,E1101
                                       joinedload(Rack.specs),
                                       joinedload(Rack.status))
         else:
