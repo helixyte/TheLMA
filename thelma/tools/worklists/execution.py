@@ -641,8 +641,11 @@ class SampleTransferWorklistExecutor(WorklistExecutor):
             source_sample = self._get_source_sample(src_pos)
             if not source_sample is None:
                 transfer_sample = source_sample.create_and_add_transfer(
-                                                        planned_liquid_transfer)
+                                                    planned_liquid_transfer)
                 target_sample = self._get_target_sample(trg_pos)
+                # Copy over freeze/thaw cycle information.
+                target_sample.freeze_thaw_cycles = \
+                                    source_sample.freeze_thaw_cycles
                 target_sample.add_transfer(transfer_sample)
 
     def _update_racks(self):
@@ -969,6 +972,9 @@ class SampleData(object):
             raise TypeError('Abstract class')
         #: The volume of the liquid *in ul*.
         self.volume = volume * VOLUME_CONVERSION_FACTOR
+        #: Freeze thaw cycles the sample has gone through. This
+        #: information is copied from the source to the target sample.
+        self.freeze_thaw_cycles = None
         #: The components making up that liquid (0-n).
         self._sample_components = dict()
 
@@ -986,7 +992,7 @@ class SampleData(object):
         if sample is None:
             result = None
         else:
-            sample_data = cls(volume=sample.volume)
+            sample_data = cls(sample.volume)
             for sm in sample.sample_molecules:
                 sample_data.add_sample_component(sm)
             result = sample_data
@@ -1105,8 +1111,7 @@ class SourceSample(SampleData):
             msg = 'Unsupported type "%s"' \
                    % (planned_liquid_transfer.__class__.__name__)
             raise TypeError(msg)
-        transfer_sample = TransferredSample(volume=\
-                                            planned_liquid_transfer.volume)
+        transfer_sample = TransferredSample(planned_liquid_transfer.volume)
         transfer_sample.add_source_sample_components(self._sample_components)
         self.__transfers.append(transfer_sample)
         return transfer_sample
@@ -1125,6 +1130,13 @@ class SourceSample(SampleData):
             container.sample.volume = final_volume / VOLUME_CONVERSION_FACTOR
             result = container.sample
         return result
+
+    @classmethod
+    def from_sample(cls, sample):
+        sample_data = super(SourceSample, cls).from_sample(sample)
+        if not sample_data is None:
+            sample_data.freeze_thaw_cycles = sample.freeze_thaw_cycles
+        return sample_data
 
     def __repr__(self):
         str_format = '<%s volume: %.1f ul, components: %s, number of ' \
@@ -1180,8 +1192,7 @@ class TargetSample(SampleData):
             msg = 'Unsupported type "%s"' \
                    % (planned_sample_dilution.__class__.__name__)
             raise TypeError(msg)
-        transfer_sample = TransferredSample(volume=
-                                            planned_sample_dilution.volume)
+        transfer_sample = TransferredSample(planned_sample_dilution.volume)
         self.add_transfer(transfer_sample)
         return transfer_sample
 
@@ -1202,9 +1213,20 @@ class TargetSample(SampleData):
         if are_equal_values(final_volume, 0):
             return None
         elif container.sample is None:
-            container.make_sample(conv_final_volume)
+            spl = container.make_sample(conv_final_volume)
         else:
-            container.sample.volume = conv_final_volume
+            spl = container.sample
+            spl.volume = conv_final_volume
+        # FIXME: This is ugly; however, there is no better way to squeeze
+        #        f/t cycle tracking into the current system.
+        if self.freeze_thaw_cycles is None:
+            # If we have even a single source sample that is not tracked, we
+            # can not make any sensible statement as to the maximum number
+            # of f/t cycles the pool went through.
+            spl.freeze_thaw_cycles = None
+        else:
+            spl.freeze_thaw_cycles = max(spl.freeze_thaw_cycles,
+                                         self.freeze_thaw_cycles)
         updated_mds = set()
         transfer_components = dict()
         md_transfers = dict()

@@ -3,6 +3,7 @@ Sample entity classes.
 """
 from everest.entities.base import Entity
 from everest.entities.utils import slug_from_integer
+from thelma.utils import as_utc_time
 from thelma.utils import get_utc_time
 
 
@@ -92,6 +93,13 @@ class Sample(Entity):
     #: stock samples; it will certainly be `None` if the designs of the
     #: sample molecules have not all the same molecule type.
     molecule_design_pool_id = None
+    #: Number of freeze/thaw (f/t) cycles this sample has gone through since
+    #: it was created. For samples created from other samples, the maximum
+    #: f/t cycle count from all source samples is used.
+    freeze_thaw_cycles = None
+    #: Date time the sample was checked out of the stock. `None` if it is
+    #: currently checked in.
+    checkout_date = None
 
     def __init__(self, volume, container, **kw):
         Entity.__init__(self, **kw)
@@ -139,6 +147,44 @@ class Sample(Entity):
         self.concentration = concentration
         self.sample_type = SAMPLE_TYPES.STOCK
         # pylint: enable=W0201
+
+    @property
+    def is_checked_out(self):
+        return not self.checkout_date is None
+
+    def check_in(self):
+        """
+        Checks this sample into a freezer.
+
+        Requires the `checkout_date` attribute to be set so that we can
+        determine if a freeze/thaw cycle increment is in order.
+
+        :raises RuntimeError: If the `checkout_date` attribute is `None`.
+        """
+        checkout_date = self.checkout_date
+        if checkout_date is None:
+            raise RuntimeError('Trying to check in a sample that has not '
+                               'been checked out.')
+        if checkout_date.tzinfo is None:
+            checkout_date = as_utc_time(self.checkout_date)
+        checkout_secs = abs(get_utc_time() - checkout_date).seconds
+        if checkout_secs > self.molecule_type.thaw_time:
+            if self.freeze_thaw_cycles is None:
+                self.freeze_thaw_cycles = 1
+            else:
+                self.freeze_thaw_cycles += 1
+        self.checkout_date = None
+
+    def check_out(self):
+        """
+        Checks this sample out of the freezer it is currently in.
+
+        :raises RuntimeError: If the `checkout_date` attribute is not `None`.
+        """
+        if not self.checkout_date is None:
+            raise RuntimeError('Trying to check out a sample that has not '
+                               'been checked in.')
+        self.checkout_date = get_utc_time()
 
 
 class StockSample(Sample):
@@ -188,20 +234,11 @@ class StockSample(Sample):
         for molecule_design in molecule_design_pool.molecule_designs:
             mol = Molecule(molecule_design, supplier)
             self.make_sample_molecule(mol, sm_mol_conc)
+        self.registration = None
 
     def register(self):
         self.registration = SampleRegistration(self, self.volume)
-
-    def check_in(self):
-        for sm in self.sample_molecules:
-            checkout_time = abs(get_utc_time() - sm.checkout_date).seconds
-            if checkout_time > sm.molecule.molecule_type.thaw_time:
-                sm.freeze_thaw_cycles += 1
-            sm.checkout_date = None
-
-    def check_out(self):
-        for sm in self.sample_molecules:
-            sm.checkout_date = get_utc_time()
+        self.freeze_thaw_cycles = 0
 
 
 class SampleMolecule(Entity):

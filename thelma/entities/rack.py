@@ -10,12 +10,12 @@ from everest.querying.specifications import eq
 from everest.querying.specifications import lt
 from thelma.entities.container import ContainerLocation
 from thelma.entities.container import Well
+from thelma.entities.location import BarcodedLocationRack
 from thelma.entities.utils import BinaryRunLengthEncoder
 from thelma.entities.utils import number_from_label
 from thelma.interfaces import IRackPosition
 from thelma.interfaces import IRackPositionSet
 from thelma.utils import get_utc_time
-from thelma.entities.location import BarcodedLocationRack
 
 
 __docformat__ = 'reStructuredText en'
@@ -124,23 +124,35 @@ class Rack(Entity):
         """
         Checks this rack into the given barcoded location.
 
-        All samples are updated.
+        We assume the barcoded location belongs to a freezer and check in all
+        samples in this rack.
         """
+        if not self.location_rack is None:
+            raise RuntimeError('Trying to check in a rack that has not been '
+                               'checked out (barcode: %s).' % self.barcode)
         self.location_rack = BarcodedLocationRack(location.rack, location)
-        for container in self.containers:
-            if not container.sample is None:
-                container.sample.check_in()
+        for cnt in self.containers:
+#            cnt = cnt_loc.container
+            # When we check in samples for the first time, they will not be
+            # checked out; hence, we add an additional check here.
+            if not cnt.sample is None and cnt.sample.is_checked_out:
+                cnt.sample.check_in()
 
     def check_out(self):
         """
         Checks this rack out of its current barcoded location.
 
-        All samples are updated.
+        We assume the barcoded location belongs to a freezer and check out all
+        samples in this rack.
         """
+        if self.location_rack is None:
+            raise RuntimeError('Trying to check out a rack that has not been '
+                               'checked in (barcode: %s).' % self.barcode)
+        for cnt in self.containers: # cnt_loc in itervalues_(self.container_locations):
+#            cnt = cnt_loc.container
+            if not cnt.sample is None:
+                cnt.sample.check_out()
         self.location_rack = None
-        for container in self.containers:
-            if not container.sample is None:
-                container.sample.check_out()
 
     def _get_location(self):
         return self._location
