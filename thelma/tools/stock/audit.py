@@ -2,13 +2,15 @@
 Stock audit - report amount and concentration for stock samples by
 molecule type.
 """
+from collections import OrderedDict
 from csv import Dialect
+from csv import DictWriter
 from csv import QUOTE_NONNUMERIC
 from csv import register_dialect
-from csv import DictWriter
-from everest.repositories.rdb import Session
+
+from everest.repositories.rdb.session import ScopedSessionMaker as Session
 from thelma.tools.base import BaseTool
-from collections import OrderedDict
+
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['StockAuditReporter',
@@ -56,14 +58,14 @@ class StockAuditReporter(BaseTool):
             round(first(sm.concentration)*count(sm.concentration)*1e6) as concentration,
             s.volume*round(first(sm.concentration)*count(sm.concentration)*1e9) as amount,
             first(o.name) as supplier,
-            first(sr.volume)*first(sm.concentration)*1e9 as initialamount
+            first(sr.volume)*round(first(sm.concentration)*first(mdp.number_designs)*1e9) as initialamount
             %s
      from container c
             inner join container_barcode cb on cb.container_id = c.container_id
             inner join container_specs cs on cs.container_specs_id = c.container_specs_id
             inner join sample s on s.container_id = c.container_id
             left join stock_sample ss on ss.sample_id = s.sample_id
-            left join molecule_design_pool mdp on mdp.molecule_desgin_set_id = ss.molecule_design_set_id
+            left join molecule_design_pool mdp on mdp.molecule_design_set_id = ss.molecule_design_set_id
             left join sample_registration sr on sr.sample_id=s.sample_id
             inner join sample_molecule sm on sm.sample_id = s.sample_id
             inner join molecule m on m.molecule_id = sm.molecule_id
@@ -120,7 +122,7 @@ class StockAuditReporter(BaseTool):
          (
           """, case when (first(set.label) in ('ORD_103', 'ORD_106')) then 'old'
             when (first(set.label) in ('ORD_253')) then 'new'
-            when (mdp.number_designs == 3) then 'pool'
+            when (first(mdp.number_designs) = 3) then 'pool'
             else 'no'
             end as \"library\",
             case when (first(structs.representation) is null) then 'unmodified'
