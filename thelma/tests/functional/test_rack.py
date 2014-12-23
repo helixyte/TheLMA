@@ -14,6 +14,12 @@ class TestRackFunctional(TestFunctionalBase):
     path = '/racks'
     setup_rdb_context = True
 
+    def test_load_racks(self, app_creator):
+        rsp = app_creator.get(self.path,
+                              params=dict(size=10),
+                              status=HTTPOk.code)
+        assert not rsp is None
+
     def test_patch_set_location(self, app_creator,
                                 rack_patch_set_location_data):
         rack_bc = '02490469'
@@ -26,7 +32,9 @@ class TestRackFunctional(TestFunctionalBase):
         transaction.commit()
         coll = get_root_collection(ITubeRack)
         rack = coll[rack_bc]
-        assert rack.location.id == loc_id
+        lr = rack.get_entity().location_rack
+        assert not lr is None
+        assert lr.location.id == loc_id
 
     def test_patch_unset_location(self, app_creator):
         rack_bc = '02481966'
@@ -36,4 +44,4 @@ class TestRackFunctional(TestFunctionalBase):
         transaction.commit()
         coll = get_root_collection(ITubeRack)
         rack = coll[rack_bc]
-        assert rack.location is None
+        assert rack.get_entity().location_rack is None

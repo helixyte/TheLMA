@@ -5,6 +5,7 @@ from everest.repositories.rdb.testing import persist
 from thelma.entities.rack import Rack
 from thelma.entities.rack import RackPosition
 from thelma.entities.rack import RackSpecs
+from thelma.interfaces import IRack
 from thelma.tests.entity.conftest import TestEntityBase
 
 
@@ -70,6 +71,13 @@ class TestRackEntity(TestEntityBase):
         kw = tube_rack_fac.init_kw.copy()
         kw['location'] = barcoded_location_c127s8
         persist(nested_session, tr, kw, True)
+
+    def test_checkout(self, session_entity_repo):
+        agg = session_entity_repo.get_aggregate(IRack)
+        rack = agg.get_by_slug('02503031')
+        loc = rack.location
+        rack.check_out()
+        rack.check_in(loc)
 
 
 class TestRackSpecsEntity(TestEntityBase):

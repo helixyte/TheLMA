@@ -33,6 +33,7 @@ def create_mapper(barcoded_location_tbl):
                     back_populates='location',
                     lazy='joined',
                     cascade='all,delete,delete-orphan',
+                    single_parent=True
                     ),
                 ),
             )
