@@ -115,8 +115,7 @@ def initialize_mappers(tables, views):
     wellspecs.create_mapper(containerspecs_mapper,
                             tables['rack_specs_container_specs'])
     container_mapper = container.create_mapper(tables['container'])
-    tube.create_mapper(container_mapper,
-                       tables['container'], tables['container_barcode'])
+    tube.create_mapper(container_mapper, tables['container_barcode'])
     well.create_mapper(container_mapper)
     rack_mapper = rack.create_mapper(tables['rack'],
                                      tables['rack_barcoded_location'],

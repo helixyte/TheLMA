@@ -13,7 +13,7 @@ __docformat__ = 'reStructuredText en'
 __all__ = ['create_table']
 
 
-def create_table(metadata, container_tbl, rack_tbl):
+def create_table(metadata, container_tbl, rack_tbl, rack_position_tbl):
     "Table factory."
     tbl = Table('containment', metadata,
         Column('holder_id', Integer,
@@ -27,6 +27,9 @@ def create_table(metadata, container_tbl, rack_tbl):
                primary_key=True),
         Column('col', Integer, CheckConstraint('col>=0'), nullable=False),
         Column('row', Integer, CheckConstraint('row>=0'), nullable=False),
+        Column('rack_position_id',
+               ForeignKey(rack_position_tbl.c.rack_position_id),
+               nullable=False)
         )
     UniqueConstraint(tbl.c.holder_id, tbl.c.row, tbl.c.col)
     return tbl

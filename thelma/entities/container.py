@@ -49,6 +49,9 @@ class ContainerLocation(Entity):
         self.position = position
         self.container = container
         self.rack = rack
+        # FIXME: This is CeLMA legacy.
+        self.row = position.row_index
+        self.col = position.column_index
 
     def __eq__(self, other):
         """

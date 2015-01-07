@@ -142,7 +142,9 @@ def initialize_tables(metadata):
                                                         metadata,
                                                         rack_tbl,
                                                         barcoded_location_tbl)
-    containment.create_table(metadata, container_tbl, rack_tbl)
+    rack_position_tbl = rackposition.create_table(metadata)
+    containment.create_table(metadata, container_tbl, rack_tbl,
+                             rack_position_tbl)
     molecule_tbl = molecule.create_table(metadata, molecule_design_tbl,
                                          organization_tbl)
     sample_tbl = sample.create_table(metadata, container_tbl)
@@ -186,7 +188,6 @@ def initialize_tables(metadata):
     tagged_tbl = tagged.create_table(metadata)
     tagging_tbl = tagging.create_table(metadata, tagged_tbl, tag_tbl,
                                        dbuser_tbl)
-    rack_position_tbl = rackposition.create_table(metadata)
     rack_position_set_tbl = rackpositionset.create_table(metadata)
     rack_position_set_member_tbl = rackpositionsetmember.create_table(
                         metadata, rack_position_set_tbl, rack_position_tbl)
