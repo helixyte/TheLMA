@@ -58,9 +58,11 @@ def create_mapper(sample_tbl, sample_molecule_tbl, molecule_tbl,
         id_attribute='sample_id',
         properties=dict(
             molecule_design_pool_id=
-                    column_property(coalesce(mds_sel.as_scalar(), null())),
+                    column_property(coalesce(mds_sel.as_scalar(), null()),
+                                    deferred=True),
             container=relationship(Container,
                                    uselist=False,
+                                   innerjoin=True,
                                    back_populates='sample'),
             sample_molecules=
                     relationship(SampleMolecule,

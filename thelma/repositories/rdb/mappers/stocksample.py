@@ -56,7 +56,7 @@ def create_mapper(sample_mapper, stock_sample_tbl,
     m = mapper(StockSample, stock_sample_tbl, inherits=sample_mapper,
         properties=dict(
             molecule_design_pool=relationship(MoleculeDesignPool,
-                                              uselist=False,
+                                              uselist=False, innerjoin=True,
                                               back_populates='stock_samples',
                                               lazy='joined'),
             supplier=relationship(Organization),
@@ -65,7 +65,7 @@ def create_mapper(sample_mapper, stock_sample_tbl,
                     relationship(SampleRegistration,
                                  back_populates='sample',
                                  uselist=False),
-            product_id=column_property(prd_sel.as_scalar())
+            product_id=column_property(prd_sel.as_scalar(), deferred=True)
             ),
         polymorphic_identity=SAMPLE_TYPES.STOCK
         )

@@ -2,12 +2,12 @@
 Tube mapper.
 """
 from sqlalchemy import String
-from sqlalchemy.orm import column_property
+from sqlalchemy.orm import mapper as sa_mapper
+from sqlalchemy.orm import relationship
 from sqlalchemy.orm.deprecated_interfaces import MapperExtension
 from sqlalchemy.sql import case
 from sqlalchemy.sql import cast
 from sqlalchemy.sql import literal
-from sqlalchemy.sql import select
 from sqlalchemy.sql.expression import delete
 from sqlalchemy.sql.expression import insert
 
@@ -35,21 +35,23 @@ class TubeMapperExtension(MapperExtension):
         connection.execute(delete(self.__container_barcode_tbl.c.container_id
                                         == instance.container_id))
 
+class TubeBarcode(object):
+    pass
 
-def create_mapper(container_mapper, container_tbl, container_barcode_tbl):
+
+def create_mapper(container_mapper, container_barcode_tbl):
     "Mapper factory."
-    bc_select = select([container_barcode_tbl.c.barcode],
-                       container_barcode_tbl.c.container_id ==
-                                                container_tbl.c.container_id)
+    sa_mapper(TubeBarcode, container_barcode_tbl)
     m = mapper(Tube,
                slug_expression=lambda cls: case([(cls.barcode == None,
                                                   literal('no-barcode-') +
                                                   cast(cls.id, String))],
                                                 else_=cls.barcode),
-               extension=TubeMapperExtension(container_barcode_tbl),
+#               extension=TubeMapperExtension(container_barcode_tbl),
                inherits=container_mapper,
                properties=
-                dict(barcode=column_property(bc_select.as_scalar()),
+                dict(_tube_barcode=relationship(TubeBarcode, lazy='subquery',
+                                                uselist=False, viewonly=True),
                      ),
                polymorphic_identity=CONTAINER_TYPES.TUBE)
     return m

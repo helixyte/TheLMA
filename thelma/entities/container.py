@@ -168,12 +168,9 @@ class Tube(Container):
     """
     Barcoded tube.
     """
-    #: Barcode of the Tube.
-    barcode = None
-
     def __init__(self, specs, status, barcode, location=None, **kw):
         Container.__init__(self, specs, status, location, **kw)
-        self.barcode = barcode
+        self._tube_barcode = barcode
         self.container_type = CONTAINER_TYPES.TUBE
 
     @classmethod
@@ -182,6 +179,10 @@ class Tube(Container):
         tube = cls(specs, status, barcode, None, **kw)
         rack.add_tube(tube, position)
         return tube
+
+    @property
+    def barcode(self):
+        return self._tube_barcode.barcode
 
     def __repr__(self):
         str_format = '<%s id: %s, container_specs: %s, location: %s, ' \
