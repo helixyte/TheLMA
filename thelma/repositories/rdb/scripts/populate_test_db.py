@@ -61,13 +61,6 @@ except: # catch all pylint:disable=W0702
     print('Usage: python populate_test_db.py <alembic config file>')
 
 
-TARGET_DB_HOST = 'raven'
-TARGET_DB_PORT = '5432'
-TARGET_DB_NAME = 'unidb_unit_test_empty'
-PG_BINARIES_PATH = '/Library/PostgreSQL/9.2/bin/'
-EXPORT_DATA_FILE = 'exported_data_%s.sql' % TARGET_DB_NAME
-
-
 def parse_config():
     alembic_cfg = Config(alembic_ini_file_path)
     app_ini_file_name = alembic_cfg.get_main_option('pylons_config_file')
@@ -80,23 +73,35 @@ print('STARTING TEST DATABASE CREATION:')
 print('Parsing configuration.')
 settings = parse_config()
 
-db_user = settings.get('db_user')
-db_pwd = settings.get('db_password')
+PG_BINARIES_PATH = '/Library/PostgreSQL/9.2/bin/'
+
+# We assume the user namd and password are the same for the source and
+# target databases.
+DB_USER = settings.get('db_user')
+DB_PWD = settings.get('db_password')
+
+SOURCE_DB_HOST = 'raven'
+SOURCE_DB_PORT = '5432'
+SOURCE_DB_NAME = 'unidb'
+TARGET_DB_HOST = settings.get('db_server')
+TARGET_DB_PORT = settings.get('db_port')
+TARGET_DB_NAME = settings.get('db_name')
+EXPORT_DATA_FILE = 'exported_data_%s.sql' % TARGET_DB_NAME
 
 DROP_DB_CMD = os.path.join(PG_BINARIES_PATH,
                            'dropdb -h %s -p %s -U %s %s'
-                           % (TARGET_DB_HOST, TARGET_DB_PORT, db_user,
+                           % (TARGET_DB_HOST, TARGET_DB_PORT, DB_USER,
                               TARGET_DB_NAME))
 CREATE_DB_CMD = os.path.join(PG_BINARIES_PATH,
                            'createdb -h %s -p %s -U %s %s'
-                            % (TARGET_DB_HOST, TARGET_DB_PORT, db_user,
+                            % (TARGET_DB_HOST, TARGET_DB_PORT, DB_USER,
                                TARGET_DB_NAME))
 ALEMBIC_CMD = os.path.join(os.path.dirname(sys.executable),
                            'alembic --config %s upgrade head'
                            % alembic_ini_file_path)
 PG_DUMP_CMD = os.path.join(PG_BINARIES_PATH,
                            'pg_dump -h %s -p %s -U %s -a %s > %s'
-                           % (TARGET_DB_HOST, TARGET_DB_PORT, db_user,
+                           % (TARGET_DB_HOST, TARGET_DB_PORT, DB_USER,
                               TARGET_DB_NAME, EXPORT_DATA_FILE))
 
 FIX_SEQUENCES_SQL = """\
@@ -107,13 +112,15 @@ CREATE OR REPLACE FUNCTION
       DECLARE
       BEGIN
       EXECUTE 'SELECT setval( ''' || sequence_name  || ''', ' ||
-              '(SELECT MAX(' || columnname || ') FROM ' || tablename || ')' || ')';
+              '(SELECT MAX(' || columnname || ')
+                FROM ' || tablename || ')' || ')';
       END;
     $body$
     LANGUAGE 'plpgsql';
 
 select table_name || '_' || column_name || '_seq',
-    reset_sequence(table_name, column_name, table_name || '_' || column_name || '_seq')
+    reset_sequence(table_name, column_name,
+                   table_name || '_' || column_name || '_seq')
     from information_schema.columns
     where column_default like 'nextval%';
 """
@@ -151,7 +158,7 @@ def setup_thelma(thelma_settings):
     repo_mgr = config.get_registered_utility(IRepositoryManager)
     repo_mgr.initialize_all()
     target_db_string = "postgresql+psycopg2://%s:%s@%s:%s/%s" \
-                       % (db_user, db_pwd, TARGET_DB_HOST,
+                       % (DB_USER, DB_PWD, TARGET_DB_HOST,
                           TARGET_DB_PORT, TARGET_DB_NAME)
     tgt_engine = create_engine(target_db_string)
     repo = repo_mgr.get(REPOSITORY_TYPES.RDB)

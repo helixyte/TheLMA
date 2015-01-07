@@ -42,7 +42,7 @@ def get_db_url(config):
     config_uri = 'config:%s' % config_file
     settings = appconfig(config_uri, 'thelma',
                          relative_to=os.path.dirname(config.config_file_name))
-    return settings.get('test_db_string')
+    return settings.get('db_string')
 
 
 def create_engine(config):
