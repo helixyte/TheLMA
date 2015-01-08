@@ -228,15 +228,27 @@ class DoubleStrandedDesign(MoleculeDesign):
 
     @classmethod
     def _validate_chemical_structures(cls, chemical_structures):
-        if not (len(chemical_structures) == 2
-                and set([cs.structure_type_id for cs in chemical_structures])
-                    == set([CHEMICAL_STRUCTURE_TYPE_IDS.NUCLEIC_ACID])) \
-           or (len(chemical_structures) == 1
-                and chemical_structures[0].structure_type_id
-                        == CHEMICAL_STRUCTURE_TYPE_IDS.UNKNOWN):
+        """
+        A double stranded design may either contain two nucleic acid
+        structures, a single unknown structure, or an unknown structure and
+        a modification structure.
+        """
+        struc_ids = set([cs.structure_type_id for cs in chemical_structures])
+        if not ((len(chemical_structures) == 2
+                 and struc_ids
+                     == set([CHEMICAL_STRUCTURE_TYPE_IDS.NUCLEIC_ACID]))
+                or (len(chemical_structures) == 1
+                     and struc_ids
+                         == set([CHEMICAL_STRUCTURE_TYPE_IDS.UNKNOWN]))
+                or (len(chemical_structures) == 2
+                    and struc_ids
+                         == set([CHEMICAL_STRUCTURE_TYPE_IDS.UNKNOWN,
+                                 CHEMICAL_STRUCTURE_TYPE_IDS.MODIFICATION]))):
             raise ValueError('%s designs require exactly two nucleic '
-                             'acid structures OR one unknown structure.'
-                             % cls._molecule_type_id)
+                             'acid structures OR one unknown structure OR '
+                             'one unknown and one modification structures '
+                             '(found: %s).'
+                             % (cls._molecule_type_id, struc_ids))
 
 
 class RnaDesign(object):
