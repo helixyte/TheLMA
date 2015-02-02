@@ -4,6 +4,9 @@ Place 'pylons_config_file' into alembic.ini, and the application will
 be loaded from there.
 
 """
+from logging.config import fileConfig
+import os
+
 from alembic import context
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.base import Engine
@@ -14,6 +17,14 @@ from thelma.repositories.rdb.schema.migrations.util import get_db_url
 
 config = context.config # pylint:disable=E1101
 db_url = get_db_url(config)
+
+# Use the pylons config file for logging configuration. Unfortunately, this
+# implies that the alembic logger needs to be configured there, not in the
+# alembic ini file.
+pylons_cfg_file_path = \
+    os.path.join(config.get_main_option('here'),
+                 config.file_config.get('alembic', 'pylons_config_file'))
+fileConfig(pylons_cfg_file_path)
 
 # customize this section for non-standard engine configurations.
 target_metadata = initialize_schema()

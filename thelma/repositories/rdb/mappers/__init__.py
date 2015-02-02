@@ -8,7 +8,7 @@ from thelma.repositories.rdb.mappers import cloneddsdnadesign
 from thelma.repositories.rdb.mappers import compoundchemicalstructure
 from thelma.repositories.rdb.mappers import compounddesign
 from thelma.repositories.rdb.mappers import container
-from thelma.repositories.rdb.mappers import containerlocation
+from thelma.repositories.rdb.mappers import tubelocation
 from thelma.repositories.rdb.mappers import containerspecs
 from thelma.repositories.rdb.mappers import device
 from thelma.repositories.rdb.mappers import devicetype
@@ -51,7 +51,7 @@ from thelma.repositories.rdb.mappers import moleculedesign
 from thelma.repositories.rdb.mappers import moleculedesignlibrary
 from thelma.repositories.rdb.mappers import moleculedesignpool
 from thelma.repositories.rdb.mappers import moleculedesignpoolset
-from thelma.repositories.rdb.mappers import moleculedesignset
+from thelma.repositories.rdb.mappers import moleculedesignsetbase
 from thelma.repositories.rdb.mappers import moleculetype
 from thelma.repositories.rdb.mappers import nucleicacidchemicalstructure
 from thelma.repositories.rdb.mappers import organization
@@ -72,12 +72,12 @@ from thelma.repositories.rdb.mappers import rackpositionset
 from thelma.repositories.rdb.mappers import rackshape
 from thelma.repositories.rdb.mappers import rackspecs
 from thelma.repositories.rdb.mappers import reservoirspecs
-from thelma.repositories.rdb.mappers import sample
+from thelma.repositories.rdb.mappers import samplebase
 from thelma.repositories.rdb.mappers import samplemolecule
 from thelma.repositories.rdb.mappers import sampleregistration
 from thelma.repositories.rdb.mappers import sirnadesign
 from thelma.repositories.rdb.mappers import species
-from thelma.repositories.rdb.mappers import standardmoleculedesignset
+from thelma.repositories.rdb.mappers import moleculedesignset
 from thelma.repositories.rdb.mappers import stockinfo
 from thelma.repositories.rdb.mappers import stockrack
 from thelma.repositories.rdb.mappers import stocksample
@@ -103,6 +103,7 @@ from thelma.repositories.rdb.mappers import well
 from thelma.repositories.rdb.mappers import wellspecs
 from thelma.repositories.rdb.mappers import worklistseries
 from thelma.repositories.rdb.mappers import worklistseriesmember
+from thelma.repositories.rdb.mappers import sample
 
 
 def initialize_mappers(tables, views):
@@ -115,15 +116,14 @@ def initialize_mappers(tables, views):
     wellspecs.create_mapper(containerspecs_mapper,
                             tables['rack_specs_container_specs'])
     container_mapper = container.create_mapper(tables['container'])
-    tube.create_mapper(container_mapper, tables['container_barcode'])
-    well.create_mapper(container_mapper)
+    tube.create_mapper(container_mapper, tables['tube'])
+    well.create_mapper(container_mapper, tables['well'])
     rack_mapper = rack.create_mapper(tables['rack'],
-                                     tables['rack_barcoded_location'],
-                                     tables['container'],
-                                     tables['containment'])
-    tuberack.create_mapper(rack_mapper)
-    plate.create_mapper(rack_mapper)
-    containerlocation.create_mapper(tables['containment'])
+                                     tables['rack_barcoded_location'])
+    tuberack.create_mapper(rack_mapper, tables['tube_rack'],
+                           tables['tube_location'])
+    plate.create_mapper(rack_mapper, tables['plate'])
+    tubelocation.create_mapper(tables['tube_location'])
     rackshape.create_mapper(tables['rack_shape'])
     rackspecs_mapper = rackspecs.create_mapper(tables['rack_specs'])
     tuberackspecs.create_mapper(rackspecs_mapper,
@@ -142,11 +142,11 @@ def initialize_mappers(tables, views):
     molecule.create_mapper(tables['molecule'],
                            tables['single_supplier_molecule_design'],
                            tables['supplier_molecule_design'])
-    sample_mapper = \
-        sample.create_mapper(tables['sample'],
-                             tables['sample_molecule'],
-                             tables['molecule'],
-                             tables['molecule_design_pool'])
+    sample_base_mapper = \
+        samplebase.create_mapper(tables['sample'])
+    sample.create_mapper(sample_base_mapper, tables['sample'],
+                         tables['sample_molecule'], tables['molecule'],
+                         tables['molecule_design_pool'])
     sampleregistration.create_mapper(tables['sample_registration'])
     gene.create_mapper(tables['refseq_gene'],
                        tables['molecule_design_gene'],
@@ -177,7 +177,7 @@ def initialize_mappers(tables, views):
                                     tables['refseq_gene'])
 
     molecule_design_set_mapper = \
-        moleculedesignset.create_mapper(tables['molecule_design_set'],
+        moleculedesignsetbase.create_mapper(tables['molecule_design_set'],
                                         tables['molecule_design_set_member'])
 
     moleculedesignlibrary.create_mapper(tables['molecule_design_library'],
@@ -185,7 +185,7 @@ def initialize_mappers(tables, views):
                         tables['molecule_design_library_creation_iso_request'])
     libraryplate.create_mapper(tables['library_plate'],
                                tables['lab_iso_library_plate'])
-    standardmoleculedesignset.create_mapper(
+    moleculedesignset.create_mapper(
                                 molecule_design_set_mapper)
     moleculedesignpool.create_mapper(
                                 molecule_design_set_mapper,
@@ -193,7 +193,7 @@ def initialize_mappers(tables, views):
                                 tables['pooled_supplier_molecule_design'],
                                 tables['supplier_molecule_design'],
                                 tables['molecule_design_set_gene'])
-    stocksample.create_mapper(sample_mapper, tables['stock_sample'],
+    stocksample.create_mapper(sample_base_mapper, tables['stock_sample'],
                               tables['pooled_supplier_molecule_design'],
                               tables['supplier_molecule_design'])
     moleculedesignpoolset.create_mapper(

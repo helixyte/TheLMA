@@ -23,7 +23,7 @@ def create_mapper(rack_layout_tbl):
                                         uselist=False),
                      tagged_rack_position_sets=
                        relationship(TaggedRackPositionSet,
-                                    lazy='joined',
+#                                    lazy='joined',
                                     back_populates='layout',
                                     cascade='all,delete,delete-orphan'),
                      ),

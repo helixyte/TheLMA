@@ -17,8 +17,7 @@ import sqlalchemy as sa
 
 def upgrade():
     op.add_column('sample',
-                  sa.Column('freeze_thaw_cycles', sa.Integer, nullable=False,
-                            default=0))
+                  sa.Column('freeze_thaw_cycles', sa.Integer))
     op.add_column('sample', sa.Column('checkout_date',
                                       sa.DateTime(timezone=True)))
     # Fill the new freeze thaw cycle field. We use the maximum of all sample
@@ -27,7 +26,7 @@ def upgrade():
                '  set freeze_thaw_cycles=(select max(sm.freeze_thaw_cycles)'
                '     from sample s inner join sample_molecule sm '
                '                   on sm.sample_id=s.sample_id '
-               '     where s.sample_id=s1.sample_id group by s.sample_id)')
+               '     where s.sample_id=s.sample_id group by s.sample_id)')
 
 
 def downgrade():

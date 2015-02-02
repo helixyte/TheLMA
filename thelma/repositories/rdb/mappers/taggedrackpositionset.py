@@ -24,7 +24,9 @@ def create_mapper(tagged_mapper, tagged_rack_position_set_tbl):
                properties=
                 dict(rack_position_set=
                        relationship(
-                         RackPositionSet, uselist=False, lazy='joined'),
+                         RackPositionSet, uselist=False,
+#                         lazy='joined'
+                         ),
                      layout=
                         relationship(
                           RackLayout,

@@ -20,7 +20,7 @@ __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
 
 
-def create_mapper(sample_mapper, stock_sample_tbl,
+def create_mapper(sample_base_mapper, stock_sample_tbl,
                   pooled_supplier_molecule_design_tbl,
                   supplier_molecule_design_tbl):
     "Mapper factory."
@@ -53,14 +53,19 @@ def create_mapper(sample_mapper, stock_sample_tbl,
 #                                  smd.c.supplier_molecule_design_id ==
 #                                         psmd.c.supplier_molecule_design_id)]
 #               )
-    m = mapper(StockSample, stock_sample_tbl, inherits=sample_mapper,
+    m = mapper(StockSample, stock_sample_tbl, inherits=sample_base_mapper,
         properties=dict(
             molecule_design_pool=relationship(MoleculeDesignPool,
                                               uselist=False, innerjoin=True,
-                                              back_populates='stock_samples',
-                                              lazy='joined'),
+                                              back_populates='stock_samples'),
+            molecule_design_pool_id=stock_sample_tbl.c.molecule_design_set_id,
+#            container=relationship(Tube,
+#                                   uselist=False,
+#                                   back_populates='sample'),
             supplier=relationship(Organization),
-            molecule_type=relationship(MoleculeType, lazy='joined'),
+            molecule_type=relationship(MoleculeType,
+#                                       lazy='joined'
+                                       ),
             registration=
                     relationship(SampleRegistration,
                                  back_populates='sample',

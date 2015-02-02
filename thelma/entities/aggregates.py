@@ -62,10 +62,11 @@ class _QueryOptimizers(object):
                                       joinedload(Rack.specs),
                                       joinedload(Rack.status))
         else:
-            opt_query = query
+            opt_query = query.op
         return opt_query
 
-    __map = {Rack:'_rack_query_generator',
+    __map = {TubeRack:'_rack_query_generator',
+             Plate:'_rack_query_generator'
              }
 
     @classmethod

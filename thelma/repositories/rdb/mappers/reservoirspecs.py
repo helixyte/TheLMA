@@ -21,7 +21,8 @@ def create_mapper(reservoir_specs_tbl):
                slug_expression=lambda cls: as_slug_expression(cls._name), # pylint: disable=W0212
                properties=dict(
                     _rack_shape=relationship(RackShape, uselist=False,
-                                            lazy='joined'),
+#                                            lazy='joined'
+                                            ),
                     _name=tbl.c.name,
                     _description=tbl.c.description,
                     _max_volume=tbl.c.max_volume,

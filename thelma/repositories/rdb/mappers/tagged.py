@@ -24,7 +24,8 @@ def create_mapper(tagged_tbl, tagging_tbl):
                                          secondary=tagging_tbl,
                                          viewonly=True,
                                          collection_class=set,
-                                         lazy='joined'),
+#                                         lazy='joined'
+                                         ),
                                taggings=relationship(Tagging,
                                          back_populates='tagged',
                                          cascade='all,delete,delete-orphan'),

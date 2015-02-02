@@ -22,7 +22,8 @@ def create_mapper(sample_molecule_tbl):
                                     back_populates='sample_molecules'),
                 molecule=relationship(Molecule, uselist=False,
                     back_populates='sample_molecules',
-                    lazy='joined'),
+#                    lazy='joined'
+                    ),
                 ),
         )
     return m

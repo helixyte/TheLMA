@@ -28,7 +28,7 @@ from thelma.interfaces import IUser
 from thelma.entities.chemicalstructure import CHEMICAL_STRUCTURE_TYPE_IDS
 from thelma.entities.chemicalstructure import CompoundChemicalStructure
 from thelma.entities.chemicalstructure import NucleicAcidChemicalStructure
-from thelma.entities.container import ContainerLocation
+from thelma.entities.container import TubeLocation
 from thelma.entities.container import Tube
 from thelma.entities.container import TubeSpecs
 from thelma.entities.container import WellSpecs
@@ -163,7 +163,7 @@ def container_location_fac(test_object_fac, tube_fac, tube_rack_fac,
     kw = dict(rack=tube_rack_fac(),
               position=rack_position_fac(),
               container=tube_fac())
-    return test_object_fac(ContainerLocation, kw=kw)
+    return test_object_fac(TubeLocation, kw=kw)
 
 
 
@@ -527,7 +527,7 @@ def planned_worklist_fac(test_object_fac, pipetting_specs_biomek,
 
 @fixture
 def plate_fac(test_object_fac, plate_specs_fac, item_status_managed):
-    kw = dict(label='test tube rack',
+    kw = dict(label='test plate',
               specs=plate_specs_fac(),
               status=item_status_managed)
     return test_object_fac(Plate, kw=kw)

@@ -63,7 +63,8 @@ def create_mapper(refseq_gene_tbl, molecule_design_gene_tbl,
                     ),
             species=relationship(Species, uselist=False,
                                  back_populates='genes',
-                                 lazy='joined'),
+#                                 lazy='joined'
+                                 ),
             ),
         )
     Gene.name = synonym('locus_name')

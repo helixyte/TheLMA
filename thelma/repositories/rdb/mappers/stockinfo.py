@@ -34,11 +34,12 @@ def create_mapper(stock_info_vw, molecule_design_set_tbl,
                                                 siv.c.molecule_design_set_id),
                                  foreign_keys=[siv.c.molecule_design_set_id],
                                  uselist=False,
-                                 lazy='joined'
+#                                 lazy='joined'
                                  ),
             molecule_type=relationship(MoleculeType,
                                        uselist=False,
-                                       lazy='joined'),
+#                                       lazy='joined'
+                                       ),
             genes=relationship(Gene, viewonly=True,
                                primaryjoin=(mdsg.c.molecule_design_set_id ==
                                                 siv.c.molecule_design_set_id),
@@ -46,7 +47,7 @@ def create_mapper(stock_info_vw, molecule_design_set_tbl,
                                foreign_keys=(mdsg.c.molecule_design_set_id,
                                              mdsg.c.gene_id),
                                secondary=molecule_design_set_gene_tbl,
-                               lazy='joined'
+ #                              lazy='joined'
                                ),
             ),
         )

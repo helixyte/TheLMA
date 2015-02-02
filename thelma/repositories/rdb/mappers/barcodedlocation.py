@@ -31,7 +31,7 @@ def create_mapper(barcoded_location_tbl):
                 location_rack=relationship(BarcodedLocationRack,
                     uselist=False,
                     back_populates='location',
-                    lazy='joined',
+#                    lazy='joined',
                     cascade='all,delete,delete-orphan',
                     single_parent=True
                     ),

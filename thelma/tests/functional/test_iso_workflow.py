@@ -22,7 +22,7 @@ from everest.querying.specifications import eq
 from everest.repositories.interfaces import IRepositoryManager
 from everest.representers.config import IGNORE_OPTION
 from everest.representers.config import WRITE_AS_LINK_OPTION
-from everest.representers.utils import UpdatedRepresenterConfigurationContext
+from everest.representers.utils import UpdatingRepresenterConfigurationContext
 from everest.representers.utils import as_representer
 from everest.resources.attributes import get_resource_class_attributes
 from everest.resources.staging import create_staging_collection
@@ -338,7 +338,7 @@ class TestIsoWorkflow(TestFunctionalBase):
             else:
                 key = attr_key
             cfg_opts[key] = attr_cfg_opts
-        return UpdatedRepresenterConfigurationContext(type(rc),
+        return UpdatingRepresenterConfigurationContext(type(rc),
                                                       XmlMime,
                                                       attribute_options=
                                                                     cfg_opts)

@@ -25,7 +25,7 @@ from everest.testing import ResourceCreatorMixin as EverestResourceCreatorMixin
 from everest.testing import ResourceTestCase
 from thelma.entities.barcode import BarcodePrintJob
 from thelma.entities.chemicalstructure import NucleicAcidChemicalStructure
-from thelma.entities.container import ContainerLocation
+from thelma.entities.container import TubeLocation
 from thelma.entities.container import Tube
 from thelma.entities.container import TubeSpecs
 from thelma.entities.container import Well
@@ -186,7 +186,7 @@ class EntityCreatorMixin(EverestEntityCreatorMixin):
             kw['position'] = self._get_entity(IRackPosition)
         if not 'container' in kw:
             kw['container'] = self._create_tube(location=None)
-        return self._create_entity(ContainerLocation, kw)
+        return self._create_entity(TubeLocation, kw)
 
     def _create_device(self, **kw):
         if not 'name' in kw:

@@ -115,8 +115,9 @@
            .interfaces.IMoleculeDesignSet
            .interfaces.IMoleculeType
            .interfaces.IOrganization
+           .interfaces.IPlate
            .interfaces.IProject
-           .interfaces.IRack
+           .interfaces.ITubeRack
            .interfaces.IRackLayout
            .interfaces.IRackPosition
            .interfaces.IRackPositionSet

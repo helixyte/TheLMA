@@ -4,32 +4,34 @@ Container location mapper.
 from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
 
-from thelma.entities.container import Container
-from thelma.entities.container import ContainerLocation
-from thelma.entities.rack import Rack
+from thelma.entities.container import Tube
+from thelma.entities.container import TubeLocation
 from thelma.entities.rack import RackPosition
+from thelma.entities.rack import TubeRack
 
 
 __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
 
 
-def create_mapper(containment_tbl):
+def create_mapper(tube_location_tbl):
     "Mapper factory."
-    cnt = containment_tbl.alias('containment_cnt_loc')
-    m = mapper(ContainerLocation, cnt,
+    m = mapper(TubeLocation, tube_location_tbl,
         properties=dict(
             position=relationship(RackPosition, uselist=False,
-                                  innerjoin=True, lazy='subquery'),
-            rack=relationship(Rack, uselist=False,
+                                  innerjoin=True,
+#                                  lazy='joined'
+#                                  lazy='subquery'
+                                  ),
+            rack=relationship(TubeRack, uselist=False,
                               innerjoin=True,
 #                              cascade='all',
                               back_populates='container_locations'),
-            container=relationship(Container, uselist=False,
+            container=relationship(Tube, uselist=False,
 #                                   cascade='all,delete,delete-orphan',
 #                                   single_parent=True,
                                    back_populates='location',
-                                   innerjoin=True
+                                   innerjoin=True,
 #                                   lazy='joined'
                                    )
 #                                   lazy='subquery'),

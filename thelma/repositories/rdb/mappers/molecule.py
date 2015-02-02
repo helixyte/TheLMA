@@ -44,7 +44,8 @@ def create_mapper(molecule_tbl, single_supplier_molecule_design_tbl,
         properties=dict(
             supplier=relationship(Organization),
             molecule_design=relationship(MoleculeDesign, uselist=False,
-                                         lazy='joined'),
+#                                         lazy='joined'
+                                         ),
             # Loading the product ID like this is faster than loading it
             # through the supplier molecule design.
             product_id=column_property(prd_sel.as_scalar(), deferred=True),

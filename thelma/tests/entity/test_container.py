@@ -2,7 +2,7 @@ import pytest
 
 from everest.repositories.rdb.testing import check_attributes
 from thelma.entities.container import Container
-from thelma.entities.container import ContainerLocation
+from thelma.entities.container import TubeLocation
 from thelma.entities.container import ContainerSpecs
 from thelma.entities.container import Tube
 from thelma.entities.container import TubeSpecs
@@ -25,8 +25,7 @@ class TestContainerEntity(TestEntityBase):
 
     def test_init_abstract(self, item_status_destroyed, tube_specs):
         kw = dict(status=item_status_destroyed,
-                  specs=tube_specs,
-                  location=None)
+                  specs=tube_specs)
         with pytest.raises(NotImplementedError):
             Container(**kw)
 
@@ -74,10 +73,10 @@ class TestWellEntity(TestEntityBase):
     def test_init(self, well_fac):
         kw = well_fac.init_kw
         well = Well.create_from_rack_and_position(**kw)
-        assert well.location.rack.barcode == kw['rack'].barcode
-        assert well.location.position == kw['position']
+        assert well.rack.barcode == kw['rack'].barcode
+        assert well.position == kw['position']
         check_attributes(well, kw)
-        assert well.slug == well.location.position.label
+        assert well.slug == well.position.label
 
     def test_equality(self, well_fac, rack_position_fac):
         kw = well_fac.init_kw
@@ -147,11 +146,11 @@ class TestWellSpecsEntity(TestEntityBase):
         assert well_specs2 == well_specs3
 
 
-class TestContainerLocationEntity(TestEntityBase):
+class TestTubeLocationEntity(TestEntityBase):
 
     def test_init(self, container_location_fac):
         kw = container_location_fac.init_kw
-        cl = ContainerLocation(**kw)
+        cl = TubeLocation(**kw)
         check_attributes(cl, kw)
 
     def test_equality(self, container_location_fac, tube_rack,

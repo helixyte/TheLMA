@@ -29,7 +29,7 @@ def create_mapper(molecule_design_tbl, molecule_design_structure_tbl,
     m = mapper(MoleculeDesign, molecule_design_tbl,
           id_attribute='molecule_design_id',
           properties=dict(
-            molecule_type=relationship(MoleculeType, lazy='joined'),
+            molecule_type=relationship(MoleculeType), #, lazy='joined'),
             chemical_structures=relationship(
                                     ChemicalStructure,
                                     secondary=molecule_design_structure_tbl,

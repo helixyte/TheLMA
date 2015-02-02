@@ -30,7 +30,8 @@ def create_mapper(molecule_design_set_mapper, molecule_design_pool_tbl,
                inherits=molecule_design_set_mapper,
                properties=dict(
                     molecule_type=relationship(MoleculeType,
-                                               lazy='joined'),
+#                                               lazy='joined'
+                                               ),
                     supplier_molecule_designs=
                         relationship(
                             SupplierMoleculeDesign,

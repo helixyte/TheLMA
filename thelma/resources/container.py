@@ -10,7 +10,6 @@ from everest.resources.descriptors import member_attribute
 from everest.resources.descriptors import terminal_attribute
 from thelma.interfaces import IContainerSpecs
 from thelma.interfaces import IItemStatus
-from thelma.interfaces import ILocation
 from thelma.interfaces import IOrganization
 from thelma.interfaces import IRack
 from thelma.interfaces import IRackPosition
@@ -29,7 +28,6 @@ class ContainerMember(Member):
     relation = "%s/container" % RELATION_BASE_URL
 
     specs = member_attribute(IContainerSpecs, 'specs')
-    location = member_attribute(ILocation, 'location.rack.location')
     position = member_attribute(IRackPosition, 'location.position')
     sample_volume = terminal_attribute(float, 'sample.volume')
     sample_molecules = collection_attribute(ISampleMolecule,
@@ -39,7 +37,6 @@ class ContainerMember(Member):
     sample_molecule_design_pool_id = \
                         terminal_attribute(str,
                                            'sample.molecule_design_pool_id')
-    rack = member_attribute(IRack, 'location.rack')
     rack_specs = member_attribute(IRackSpecs, 'location.rack.specs')
 #    sample_molecule_design_pool = member_attribute(
 #                                    IMoleculeDesignPool,
@@ -52,6 +49,7 @@ class TubeMember(ContainerMember):
     # None in containers that do not hold stock samples.
     sample_product_id = terminal_attribute(str, 'sample.product_id')
     sample_supplier = member_attribute(IOrganization, 'sample.supplier')
+    rack = member_attribute(IRack, 'location.rack')
 
     @property
     def title(self):
@@ -63,6 +61,7 @@ class TubeMember(ContainerMember):
 
 class WellMember(ContainerMember):
     relation = "%s/well" % RELATION_BASE_URL
+    rack = member_attribute(IRack, 'rack')
 
     @property
     def title(self):

@@ -2678,7 +2678,7 @@
                     name="namespace"
                     value="http://schemata.cenix-bioscience.com/rack" />
             </attribute>
-            <attribute name="containers">
+<!--             <attribute name="containers">
                 <option
                     name="ignore"
                     value="false" />
@@ -2691,7 +2691,7 @@
                     name="ignore"
                     value="true" />
             </attribute>
-        </representer>
+ -->        </representer>
     </resource>
 
     <resource

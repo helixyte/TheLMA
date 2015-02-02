@@ -8,7 +8,7 @@ from everest.entities.utils import get_root_aggregate
 from everest.entities.utils import slug_from_string
 from everest.querying.specifications import eq
 from everest.querying.specifications import lt
-from thelma.entities.container import ContainerLocation
+from thelma.entities.container import TubeLocation
 from thelma.entities.container import Well
 from thelma.entities.location import BarcodedLocationRack
 from thelma.entities.utils import BinaryRunLengthEncoder
@@ -72,10 +72,13 @@ class Rack(Entity):
     location_rack = None
     #: The item status (:class:`thelma.entities.status.ItemStatus`) of the rack.
     status = None
-    #: A list of container (currently) present in the rack
+    #: List of container (currently) present in the rack
     #: (:class:`thelma.entities.container.Container`).
     #: This is mapped automatically by SQLAlchemy ORM.
     containers = None
+    #: Dictionary mapping rack positions to container locations.
+    container_locations = None
+    #: Total number of containers in this rack.
     total_containers = None
 
     def __init__(self, label, specs, status, comment='',
@@ -91,8 +94,8 @@ class Rack(Entity):
             creation_date = get_utc_time()
         self.creation_date = creation_date
         self.barcode = barcode
-        self.container_locations = {}
         self.containers = []
+        self.container_locations = {}
         self._location = None
 
     @property
@@ -148,8 +151,7 @@ class Rack(Entity):
         if self.location_rack is None:
             raise RuntimeError('Trying to check out a rack that has not been '
                                'checked in (barcode: %s).' % self.barcode)
-        for cnt in self.containers: # cnt_loc in itervalues_(self.container_locations):
-#            cnt = cnt_loc.container
+        for cnt in self.containers:
             if not cnt.sample is None:
                 cnt.sample.check_out()
         self.location_rack = None
@@ -189,6 +191,18 @@ class TubeRack(Rack):
     def __init__(self, label, specs, status, **kw):
         Rack.__init__(self, label, specs, status, **kw)
         self.rack_type = RACK_TYPES.TUBE_RACK
+        self.__containers = None
+
+#    @property
+#    def containers(self):
+#        if self.__containers is None:
+#            self.__containers = [tl.container
+#                                 for tl in self.container_locations.values()]
+#        return self.__containers
+#
+#    @property
+#    def total_containers(self):
+#        return len(self.container_locations)
 
     def is_empty(self, position):
         """
@@ -243,7 +257,7 @@ class TubeRack(Rack):
            or position.column_index >= self.rack_shape.number_columns:
             raise ValueError('Invalid position "%s" for rack with specs '
                              '"%s"' % (position.label, self.specs.label))
-        new_location = ContainerLocation(tube, self, position)
+        new_location = TubeLocation(tube, self, position)
         self.container_locations[position] = new_location
 
     def remove_tube(self, tube):
@@ -273,15 +287,23 @@ class Plate(Rack):
     This class represents plate racks (racks harboring immobile,
     unbarcoded wells (:class:`thelma.entities.container.Well`)).
     """
+    class PlateLocation(object):
+        def __init__(self, well, plate, position):
+            self.container = well
+            self.rack = plate
+            self.position = position
+
     def __init__(self, label, specs, status, **kw):
         Rack.__init__(self, label, specs, status, **kw)
         self.rack_type = RACK_TYPES.PLATE
         if self.specs != None:
             self.__init_wells()
+        self.total_containers = self.rack_shape.size
 
     def __init_wells(self):
         c_specs = self.specs.well_specs
         containers = []
+        container_locations = {}
         # we fetch all the rack positions in one query to speed up things
         shape = self.specs.shape
         agg = get_root_aggregate(IRackPosition)
@@ -299,7 +321,10 @@ class Plate(Rack):
                                                           self,
                                                           rack_pos)
                 containers.append(well)
+                loc = self.PlateLocation(well, self, rack_pos)
+                container_locations[rack_pos] = loc
         self.containers = containers
+        self.container_locations = container_locations
 
 
 class RackShape(Entity):

@@ -13,6 +13,7 @@ down_revision = ${repr(down_revision)}
 from alembic import op
 import sqlalchemy as sa
 ${imports if imports else ""}
+# op module has magic attributes pylint: disable=E1101
 
 def upgrade():
     ${upgrades if upgrades else "pass"}

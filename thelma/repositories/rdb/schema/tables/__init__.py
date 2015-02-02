@@ -4,7 +4,6 @@ from thelma.repositories.rdb.schema.tables import compound
 from thelma.repositories.rdb.schema.tables import container
 from thelma.repositories.rdb.schema.tables import containerbarcode
 from thelma.repositories.rdb.schema.tables import containerspecs
-from thelma.repositories.rdb.schema.tables import containment
 from thelma.repositories.rdb.schema.tables import device
 from thelma.repositories.rdb.schema.tables import devicetype
 from thelma.repositories.rdb.schema.tables import executedliquidtransfer
@@ -92,17 +91,23 @@ from thelma.repositories.rdb.schema.tables import tag
 from thelma.repositories.rdb.schema.tables import tagged
 from thelma.repositories.rdb.schema.tables import taggedrackpositionset
 from thelma.repositories.rdb.schema.tables import tagging
+from thelma.repositories.rdb.schema.tables import tube
+from thelma.repositories.rdb.schema.tables import tubelocation
 from thelma.repositories.rdb.schema.tables import tubetransfer
 from thelma.repositories.rdb.schema.tables import tubetransferworklist
 from thelma.repositories.rdb.schema.tables import tubetransferworklistmember
 from thelma.repositories.rdb.schema.tables import user
 from thelma.repositories.rdb.schema.tables import userpreferences
+from thelma.repositories.rdb.schema.tables import well
 from thelma.repositories.rdb.schema.tables import worklistseries
 from thelma.repositories.rdb.schema.tables import worklistseriesexperimentdesign
 from thelma.repositories.rdb.schema.tables import worklistseriesexperimentdesignrack
 from thelma.repositories.rdb.schema.tables import worklistseriesisojob
 from thelma.repositories.rdb.schema.tables import worklistseriesisorequest
 from thelma.repositories.rdb.schema.tables import worklistseriesmember
+from thelma.repositories.rdb.schema.tables import tuberack
+from thelma.repositories.rdb.schema.tables import plate
+
 
 # Not all tables are dependencies for other tables. pylint: disable=W0612
 def initialize_tables(metadata):
@@ -135,6 +140,12 @@ def initialize_tables(metadata):
         rackspecscontainerspecs.create_table(metadata, rack_specs_tbl,
                                              container_specs_tbl)
     rack_tbl = rack.create_table(metadata, item_status_tbl, rack_specs_tbl)
+    tube_rack_tbl = tuberack.create_table(metadata, rack_tbl)
+    plate_tbl = plate.create_table(metadata, rack_tbl)
+    rack_position_tbl = rackposition.create_table(metadata)
+    tube_tbl = tube.create_table(metadata, container_tbl)
+    well_tbl = well.create_table(metadata, container_tbl, plate_tbl,
+                                 rack_position_tbl)
     device_type_tbl = devicetype.create_table(metadata)
     device_tbl = device.create_table(metadata, device_type_tbl, organization_tbl)
     barcoded_location_tbl = barcodedlocation.create_table(metadata, device_tbl)
@@ -142,8 +153,7 @@ def initialize_tables(metadata):
                                                         metadata,
                                                         rack_tbl,
                                                         barcoded_location_tbl)
-    rack_position_tbl = rackposition.create_table(metadata)
-    containment.create_table(metadata, container_tbl, rack_tbl,
+    tubelocation.create_table(metadata, container_tbl, rack_tbl,
                              rack_position_tbl)
     molecule_tbl = molecule.create_table(metadata, molecule_design_tbl,
                                          organization_tbl)

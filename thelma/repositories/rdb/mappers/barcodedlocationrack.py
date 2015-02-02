@@ -23,7 +23,7 @@ def create_mapper(rack_barcoded_location_tbl):
                properties=dict(
                 rack=relationship(Rack,
                                   uselist=False,
-                                  lazy='joined'
+#                                  lazy='joined'
                                   ),
                 location=relationship(BarcodedLocation,
                                       uselist=False)

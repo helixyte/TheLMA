@@ -28,6 +28,7 @@ from sqlalchemy.orm import subqueryload_all
 
 from everest.repositories.constants import REPOSITORY_TYPES
 from everest.repositories.interfaces import IRepositoryManager
+from everest.repositories.utils import get_engine
 from paste.deploy import appconfig # pylint: disable=E0611,F0401
 from thelma.entities.container import ContainerSpecs
 from thelma.entities.device import Device
@@ -39,8 +40,8 @@ from thelma.entities.location import BarcodedLocation
 from thelma.entities.moleculetype import MoleculeType
 from thelma.entities.organization import Organization
 from thelma.entities.project import Project
+from thelma.entities.rack import Plate
 from thelma.entities.rack import PlateSpecs
-from thelma.entities.rack import Rack
 from thelma.entities.rack import RackPosition
 from thelma.entities.rack import RackShape
 from thelma.entities.rack import RackSpecs
@@ -150,6 +151,14 @@ run_command(ALEMBIC_CMD)
 
 
 def setup_thelma(thelma_settings):
+    # Create source DB session.
+    src_db_string = "postgresql+psycopg2://%s:%s@%s:%s/%s" \
+                       % (DB_USER, DB_PWD, SOURCE_DB_HOST,
+                          SOURCE_DB_PORT, SOURCE_DB_NAME)
+    src_engine = create_engine(src_db_string)
+    src_session_maker = sessionmaker(bind=src_engine)
+    src_sess = src_session_maker()
+    # Initialize TheLMA and create target DB session.
     reg = Registry('thelma')
     config = create_config(thelma_settings, registry=reg)
     config.setup_registry(settings=thelma_settings)
@@ -157,12 +166,7 @@ def setup_thelma(thelma_settings):
     config.load_zcml('configure.zcml')
     repo_mgr = config.get_registered_utility(IRepositoryManager)
     repo_mgr.initialize_all()
-    target_db_string = "postgresql+psycopg2://%s:%s@%s:%s/%s" \
-                       % (DB_USER, DB_PWD, TARGET_DB_HOST,
-                          TARGET_DB_PORT, TARGET_DB_NAME)
-    tgt_engine = create_engine(target_db_string)
-    repo = repo_mgr.get(REPOSITORY_TYPES.RDB)
-    src_sess = repo.session_factory()
+    tgt_engine = get_engine(REPOSITORY_TYPES.RDB)
     tgt_session_maker = sessionmaker(bind=tgt_engine)
     tgt_sess = tgt_session_maker()
     return src_sess, tgt_sess
@@ -182,7 +186,6 @@ class EntityTraverser(object):
 class RackPreTraverser(EntityTraverser):
     def traverse(self, rack_):
         for cnt in rack_.containers:
-            getattr(cnt, 'barcode', None)
             spl = getattr(cnt, 'sample', None)
             if not spl is None:
                 getattr(spl, 'molecule_design_pool', None)
@@ -207,7 +210,7 @@ class TubeRackSpecsPreTraverser(EntityTraverser):
 
 
 class EntityTransferer(object):
-    __pre_trv_map = {Rack:RackPreTraverser,
+    __pre_trv_map = {Plate:RackPreTraverser,
                      TubeRack:RackPreTraverser,
 #                     Project:ProjectPreTraverser,
                      PlateSpecs:PlateSpecsPreTraverser,
@@ -282,6 +285,8 @@ for project in pq.filter(Project.id.in_(project_ids)).all():
     print ('Transferring project %s to target database.' % project.label)
     transfer(project)
 
+# FIXME: This is still only a workaround until we have time to create samples
+#        and racks from scratch.
 rq = src_session.query(TubeRack) \
     .options(subqueryload_all('containers.sample.sample_molecules.molecule.molecule_design.genes')) \
     .options(subqueryload_all('containers.sample.sample_molecules.molecule.molecule_design.supplier_molecule_designs')) \
@@ -306,7 +311,7 @@ rack_bcs = [
             '02501359', # 0 tubes
             '02501366', # 0 tubes
             ]
-for rack in rq.filter(Rack.barcode.in_(rack_bcs)).all():
+for rack in rq.filter(TubeRack.barcode.in_(rack_bcs)).all():
     print ('Transferring rack %s to target database.' % rack.barcode)
     transfer(rack)
 

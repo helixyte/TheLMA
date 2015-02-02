@@ -10,9 +10,9 @@ from thelma.entities.sample import Sample
 __docformat__ = 'reStructuredText en'
 __all__ = ['CONTAINER_TYPES',
            'CONTAINER_SPECS_TYPES',
-           'ContainerLocation',
            'Container',
            'Tube',
+           'TubeLocation',
            'Well',
            'ContainerSpecs',
            'TubeSpecs',
@@ -32,16 +32,72 @@ class CONTAINER_SPECS_TYPES(object):
     TUBE = 'TUBE_SPECS'
 
 
-class ContainerLocation(Entity):
+class Container(Entity):
     """
-    A container's location in a rack.
+    Abstract base class for all containers (incl. :class:`Tube` and
+    :class:`Well`).
     """
-    #: A rack or plate (:class:`thelma.entities.rack.Rack`).
+    #: Defines the container specs (:class:`ContainerSpecs`).
+    specs = None
+    #: The item status (:class:`thelma.entities.status.ItemStatus`) of the
+    #: container.
+    status = None
+    #: The sample (:class:`thelma.entities.sample.Sample`) associated with this
+    #: container; may be *None*.
+    sample = None
+    #
+    position = None
+    rack = None
+
+    def __init__(self, specs, status, sample=None, **kw):
+        Entity.__init__(self, **kw)
+        if self.__class__ is Container:
+            raise NotImplementedError('Abstract class')
+        self.specs = specs
+        self.status = status
+        self.sample = sample
+
+    @classmethod
+    def create_from_rack_and_position(cls, specs, status, rack, position,
+                                      **kw):
+        """
+        Creates a new container with a :class:`TubeLocation` properly
+        set up from the given rack and position parameters.
+
+        This is solving the "chicken and egg problem" posed by the location
+        constructor requiring not-NULL container and rack arguments and the
+        container constructor requiring a location instance.
+        """
+        raise NotImplementedError('Abstract method.')
+
+    def make_sample(self, volume, **kw):
+        """
+        Creates a new sample for this container.
+
+        :returns: :class:`thelma.entities.sample.Sample`
+        """
+        return Sample(volume, self, **kw)
+
+    def __str__(self):
+        return str(self.id)
+
+    def __repr__(self):
+        str_format = '<%s id: %s, specs: %s, position: %s, status: %s>'
+        params = (self.__class__.__name__, self.id, self.specs,
+                  self.position, self.status)
+        return str_format % params
+
+
+class TubeLocation(Entity):
+    """
+    A tube's location in a rack.
+    """
+    #: Tube rack (:class:`thelma.entities.rack.TubeRack`).
     rack = None
     #: The position on the rack or plate
     #: (:class:`thelma.entities.rack.RackPosition`).
     position = None
-    #: back referenced by SQLAlchemy ORM.
+    #: Tube.
     container = None
 
     def __init__(self, container, rack, position, **kw):
@@ -49,15 +105,12 @@ class ContainerLocation(Entity):
         self.position = position
         self.container = container
         self.rack = rack
-        # FIXME: This is CeLMA legacy.
-        self.row = position.row_index
-        self.col = position.column_index
 
     def __eq__(self, other):
         """
         Equality is based on the rack and position attributes.
         """
-        return (isinstance(other, ContainerLocation) and
+        return (isinstance(other, TubeLocation) and
                 self.rack == other.rack and
                 self.position == other.position)
 
@@ -70,107 +123,17 @@ class ContainerLocation(Entity):
         return str_format % params
 
 
-class Container(Entity):
-    """
-    Abstract base class for all containers (incl. :class:`Tube` and
-    :class:`Well`).
-    """
-    #: Defines the container specs (:class:`ContainerSpecs`).
-    specs = None
-    #: The item status (:class:`thelma.entities.status.ItemStatus`) of the
-    #: container.
-    status = None
-     # FIXME: pylint:disable=W0511
-     #        location should be readonly and only editable for tubes
-    #: The associated container location; may be *None* for movable containers.
-    #: Container locations are a combination of rack, container, and position
-    #: (:class:`ContainerLocation`).
-    location = None
-    #: The sample (:class:`thelma.entities.sample.Sample`) associated with this
-    #: container; may be *None*.
-    sample = None
-
-    def __init__(self, specs, status, location, sample=None, **kw):
-        Entity.__init__(self, **kw)
-        if self.__class__ is Container:
-            raise NotImplementedError('Abstract class')
-        self.specs = specs
-        self.status = status
-        if not location is None:
-            # Do not set this to a None value to avoid inserting a container
-            # location with a None value into the rack's container locations.
-            self.location = location
-        self.sample = sample
-
-    @classmethod
-    def create_from_rack_and_position(cls, specs, status, rack, position,
-                                      **kw):
-        """
-        Creates a new container with a :class:`ContainerLocation` properly
-        set up from the given rack and position parameters.
-
-        This is solving the "chicken and egg problem" posed by the location
-        constructor requiring not-NULL container and rack arguments and the
-        container constructor requiring a location instance.
-        """
-        raise NotImplementedError('Abstract method.')
-
-    @property
-    def rack_position(self):
-        """
-        The position of a container in the rack
-        (:class:`thelma.entities.rack.RackPosition`).
-        """
-        return self.location.position
-
-    @property
-    def rack(self):
-        """
-        The :class:`thelma.entities.rack.Rack` the container is located in.
-        """
-        return self.location.rack
-
-    def make_sample(self, volume, **kw):
-        """
-        Creates a new sample for this container.
-
-        :returns: :class:`thelma.entities.sample.Sample`
-        """
-        return Sample(volume, self, **kw)
-
-    def __get_position(self):
-        if self.location is None:
-            pos = None
-        else:
-            pos = self.location.position
-        return pos
-
-    def __set_position(self, pos):
-        if self.location is None:
-            raise ValueError('Can not set position for a container '
-                             'which is not in a rack.')
-        new_location = ContainerLocation(self, self.location.rack, pos)
-        self.location = new_location
-
-    position = property(__get_position, __set_position)
-
-    def __str__(self):
-        return str(self.id)
-
-    def __repr__(self):
-        str_format = '<%s id: %s, specs: %s, location: %s, status: %s>'
-        params = (self.__class__.__name__, self.id, self.specs,
-                  self.location, self.status)
-        return str_format % params
-
-
 class Tube(Container):
     """
     Barcoded tube.
     """
+    barcode = None
+    location = None
+
     def __init__(self, specs, status, barcode, location=None, **kw):
-        Container.__init__(self, specs, status, location, **kw)
-        self._tube_barcode = barcode
+        Container.__init__(self, specs, status, **kw)
+        self.barcode = barcode
+        self.location = location
         self.container_type = CONTAINER_TYPES.TUBE
 
     @classmethod
@@ -179,10 +142,6 @@ class Tube(Container):
         tube = cls(specs, status, barcode, None, **kw)
         rack.add_tube(tube, position)
         return tube
-
-    @property
-    def barcode(self):
-        return self._tube_barcode.barcode
 
     def __repr__(self):
         str_format = '<%s id: %s, container_specs: %s, location: %s, ' \
@@ -199,30 +158,55 @@ class Tube(Container):
             slug = self.barcode
         return slug
 
+    def _get_position(self):
+        if self.location is None:
+            pos = None
+        else:
+            pos = self.location.position
+        return pos
+
+    def _set_position(self, pos):
+        if self.location is None:
+            raise ValueError('Can not set position for a container '
+                             'which is not in a rack.')
+        new_location = TubeLocation(self, self.location.rack, pos)
+        self.location = new_location
+
+    position = property(_get_position, _set_position)
+
+    @property
+    def rack(self):
+        if self.location is None:
+            rack = None
+        else:
+            rack = self.location.rack
+        return rack
+
 
 class Well(Container):
     """
     A plate well.
     """
-    def __init__(self, specs, status, location, **kw):
-        Container.__init__(self, specs, status, location, **kw)
+    def __init__(self, specs, status, **kw):
+        Container.__init__(self, specs, status, **kw)
         self.container_type = CONTAINER_TYPES.WELL
 
     @classmethod
     def create_from_rack_and_position(cls, specs, status, rack, position,
                                       **kw):
-        container = cls(specs, status, None, **kw)
-        container.location = ContainerLocation(container, rack, position)
+        container = cls(specs, status, **kw)
+        container.rack = rack
+        container.position = position
         return container
 
     @property
     def slug(self):
         #: For instances of this class, the slug is derived from the
         #: position label of the location.
-        return self.location.position.label
+        return self.position.label
 
     def __str__(self):
-        return str(self.location.position.label)
+        return str(self.position.label)
 
 
 class ContainerSpecs(Entity):
@@ -308,7 +292,7 @@ class TubeSpecs(ContainerSpecs):
         :param item_status: the item status.
         :param barcode: The tube's barcode.
         :param location: The tube's location on the rack
-            (:class:`ContainerLocation`)
+            (:class:`TubeLocation`)
         """
         return Tube(self, item_status, barcode, location)
 

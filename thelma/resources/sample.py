@@ -37,7 +37,9 @@ class SampleMoleculeMember(Member):
     insert_date = terminal_attribute(datetime, 'molecule.insert_date')
     molecule_design_id = terminal_attribute(int, 'molecule.molecule_design.id')
     checkout_date = terminal_attribute(datetime, 'checkout_date')
-    product_id = terminal_attribute(str, 'molecule.product_id')
+    product_id = \
+        terminal_attribute(str,
+                           'molecule.supplier_molecule_design.product_id')
     supplier_molecule_design = \
             member_attribute(ISupplierMoleculeDesign,
                              'molecule.supplier_molecule_design')

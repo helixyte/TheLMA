@@ -71,7 +71,7 @@ class Molecule(Entity):
         return str_format % params
 
 
-class Sample(Entity):
+class SampleBase(Entity):
     """
     Sample.
 
@@ -187,7 +187,11 @@ class Sample(Entity):
         self.checkout_date = get_utc_time()
 
 
-class StockSample(Sample):
+class Sample(SampleBase):
+    pass
+
+
+class StockSample(SampleBase):
     """
     Stock sample.
 
@@ -216,7 +220,7 @@ class StockSample(Sample):
 
     def __init__(self, volume, container, molecule_design_pool, supplier,
                  molecule_type, concentration, **kw):
-        Sample.__init__(self, volume, container, **kw)
+        SampleBase.__init__(self, volume, container, **kw)
         self.sample_type = SAMPLE_TYPES.STOCK
         if molecule_design_pool.molecule_type != molecule_type:
             raise ValueError('The molecule types of molecule design pool '
