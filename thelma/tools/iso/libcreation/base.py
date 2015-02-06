@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 """
 from thelma.tools.iso.poolcreation.base import \
     LABELS as _POOL_CREATION_LABELS

@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 Entity classes involved in XL20 run storage.
 """
 from everest.entities.base import Entity

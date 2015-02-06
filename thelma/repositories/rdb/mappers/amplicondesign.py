@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 Amplicon design mapper.
 """
 from sqlalchemy.orm import mapper

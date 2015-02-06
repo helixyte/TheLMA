@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 Inspect differences between the entity domain model and the current DB schema.
 """
 import pprint

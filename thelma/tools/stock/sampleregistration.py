@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 Stock sample registrar.
 
 Created on September 06, 2012.

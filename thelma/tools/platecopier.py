@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 """
 from everest.entities.utils import get_root_aggregate
 from everest.querying.specifications import eq

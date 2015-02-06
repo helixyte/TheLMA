@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 Classes and queries involved in tube picking. The purpose is to find a tube
 for a particular molecule design pool that can be used for an ISO. For this,
 the stock sample must have a certain concentration and a certain minimum volume.

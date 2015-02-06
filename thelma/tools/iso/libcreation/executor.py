@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 Library creation ISO execution.
 """
 from thelma.tools.semiconstants import RACK_SHAPE_NAMES

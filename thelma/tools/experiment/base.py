@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 This module provides base classes for tools dealing with experiments.
 The :class:`ExperimentTool` fetches experiment data such as the source rack,
 the experiment racks and the worklist series.

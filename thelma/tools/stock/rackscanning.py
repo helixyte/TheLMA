@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 Classes related to rack scanning tasks and data. \'Rack Scanning\' refers
 to a device that records the tube barcodes for each position of a 96-well stock
 rack.

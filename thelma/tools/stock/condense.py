@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 These classes deal with stock condense.
 At this, stock tubes are moved to other stock racks in order to produce empty
 stock racks that can be used for ISO generation.

@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 This handler converts the results of the library member parser into a
 molecule design set (:class:`thelma.entities.molecule.MoleculeDesignSet`).
 The handler tries to determine the stock sample molecule design ID
