@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 JThe classes in this module is takes part in the processing of stock samples
 creation ISOs. It mainly deals with the generation of robot worklists. To this
 end, it also assigns stock racks to the ISOs (including transfer worklists).

@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 These tools deal with the processing of lab ISOs. This comprises both
 the transfers from stock and the actual series processing.
 

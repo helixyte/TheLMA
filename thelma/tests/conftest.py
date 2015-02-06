@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 pytest fixtures for the entity test suite.
 """
 from pytest import fixture # pylint: disable=E0611

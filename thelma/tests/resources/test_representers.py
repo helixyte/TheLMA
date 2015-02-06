@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 Unit tests for representers.
 """
 from pkg_resources import resource_stream # pylint: disable=E0611

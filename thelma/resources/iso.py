@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 ISO resources.
 
 Created Jun 2011
@@ -270,7 +273,7 @@ class LabIsoRequestMember(IsoRequestMember):
         requested_library_plates = None
         for iso_prx in isos_prx:
             status = iso_prx.status
-            iso_id = iso_prx.id
+            iso_id = getattr(iso_prx, 'id', None)
             if status == 'NEW':
                 number_of_new_isos += 1
                 optimizer_excluded_racks = \

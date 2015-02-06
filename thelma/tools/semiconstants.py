@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 This module contains classes and functions for semi-constants entities
 such as rack shapes, reservoir specs etc., that are used often but
 changed rarely.

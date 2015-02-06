@@ -1,4 +1,7 @@
 """
+This file is part of the TheLMA (THe Laboratory Management Application) project.
+See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
+
 This is so to say the brain module for lab ISO processing. Here it is decided
 what sort of plates and layout we need.
 
