@@ -31,7 +31,7 @@ def create_mapper(sample_tbl):
                                  ),
             ),
         polymorphic_on=sample_tbl.c.sample_type,
-        polymorphic_identity=SAMPLE_TYPES.BASIC
+        polymorphic_identity=SAMPLE_TYPES.SAMPLE
         )
     # Listen to changes to the sample_type attribute.
     event.listen(SampleBase.sample_type, "set", check_set_sample_type) # pylint: disable=E1101

@@ -170,7 +170,7 @@ class TestLibraryGeneration(TestFunctionalBase):
             ap_cnts_with_samples = [cnt for cnt in ap.rack.containers
                                     if not cnt.sample is None]
             assert len(ap_cnts_with_samples) == len(pos_labels)
-            assert set([cnt.location.position.label.upper()
+            assert set([cnt.position.label.upper()
                         for cnt in ap_cnts_with_samples]) == pos_labels
             assert set([cnt.sample.volume for cnt in ap_cnts_with_samples]) \
                     == set([4e-6])

@@ -116,6 +116,7 @@
            .interfaces.IMoleculeType
            .interfaces.IOrganization
            .interfaces.IPlate
+           .interfaces.IPlateSpecs
            .interfaces.IProject
            .interfaces.ITubeRack
            .interfaces.IRackLayout
@@ -130,6 +131,7 @@
            .interfaces.ITag
            .interfaces.ITaggedRackPositionSet
            .interfaces.ITube
+           .interfaces.ITubeRackSpecs
            .interfaces.IUser
            .interfaces.IUserPreferences
            .interfaces.IWell

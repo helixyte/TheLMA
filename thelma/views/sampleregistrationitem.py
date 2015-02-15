@@ -38,8 +38,8 @@ class PostSupplierSampleRegistrationItemCollectionView(PostCollectionView):
                          molecule_design_pool_id=ss.molecule_design_pool.id,
                          is_new_molecule_design_pool=
                                 ss.molecule_design_pool.id in new_mdp_ids,
-                         rack_barcode=ss.container.location.rack.barcode,
-                         rack_position=ss.container.location.position.label,
+                         rack_barcode=ss.container.rack.barcode,
+                         rack_position=ss.container.position.label,
                          volume=ss.volume,
                          concentration=ss.concentration,
                          supplier=ss.supplier.name

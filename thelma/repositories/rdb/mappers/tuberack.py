@@ -7,7 +7,6 @@ Tube rack mapper.
 from sqlalchemy.orm import column_property
 from sqlalchemy.orm import mapper
 from sqlalchemy.orm import relationship
-from sqlalchemy.orm.collections import attribute_mapped_collection
 from sqlalchemy.sql import func
 from sqlalchemy.sql import select
 
@@ -27,10 +26,8 @@ def create_mapper(rack_mapper, tube_rack_tbl, tube_location_tbl):
     m = mapper(TubeRack, tube_rack_tbl,
                inherits=rack_mapper,
                properties=dict(
-                container_locations=
+                tube_locations=
                     relationship(TubeLocation,
-                                 collection_class=
-                                    attribute_mapped_collection('position'),
                                  back_populates='rack',
                                  cascade='all,delete,delete-orphan'),
                 total_containers=column_property(

@@ -79,8 +79,6 @@ class Rack(Entity):
     #: (:class:`thelma.entities.container.Container`).
     #: This is mapped automatically by SQLAlchemy ORM.
     containers = None
-    #: Dictionary mapping rack positions to container locations.
-    container_locations = None
     #: Total number of containers in this rack.
     total_containers = None
 
@@ -98,7 +96,6 @@ class Rack(Entity):
         self.creation_date = creation_date
         self.barcode = barcode
         self.containers = []
-        self.container_locations = {}
         self._location = None
 
     @property
@@ -125,6 +122,13 @@ class Rack(Entity):
         """
         return isinstance(barcode, basestring) \
                and RACK_BARCODE_REGEXP.match(barcode)
+
+    @property
+    def container_positions(self):
+        """
+        Maps container positions to containers.
+        """
+        raise NotImplementedError('Abstract property.')
 
     def check_in(self, location):
         """
@@ -191,21 +195,23 @@ class TubeRack(Rack):
     This class represents tube racks (racks harboring movable,
     barcoded tubes (:class:`thelma.entities.container.Tube`)).
     """
+    #: List of tube locations (:class:`TubeLocation`).
+    tube_locations = None
+
     def __init__(self, label, specs, status, **kw):
         Rack.__init__(self, label, specs, status, **kw)
         self.rack_type = RACK_TYPES.TUBE_RACK
         self.__containers = None
+        self.__container_positions = None
 
-#    @property
-#    def containers(self):
-#        if self.__containers is None:
-#            self.__containers = [tl.container
-#                                 for tl in self.container_locations.values()]
-#        return self.__containers
-#
-#    @property
-#    def total_containers(self):
-#        return len(self.container_locations)
+    @property
+    def container_positions(self):
+        if self.__container_positions is None:
+            cp_map = {}
+            for cnt in self.containers:
+                cp_map[cnt.position] = cnt
+            self.__container_positions = cp_map
+        return self.__container_positions
 
     def is_empty(self, position):
         """
@@ -214,7 +220,7 @@ class TubeRack(Rack):
         :param position: position to check
         :type position: `thelma.entities.RackPosition`
         """
-        return not self.container_locations.has_key(position)
+        return not position in self.container_positions
 
     def move_tube(self, start_position, dest_position):
         """
@@ -234,9 +240,9 @@ class TubeRack(Rack):
         if not self.is_empty(dest_position):
             raise ValueError('Can not put a tube in occupied position "%s"'
                              % dest_position.label)
-        location = self.container_locations.pop(start_position)
-        self.container_locations[dest_position] = location
-        location.position = dest_position
+        tube = self.container_positions.pop(start_position)
+        tube.location.position = dest_position
+        self.container_positions[dest_position] = tube
 
     def add_tube(self, tube, position):
         """
@@ -261,7 +267,8 @@ class TubeRack(Rack):
             raise ValueError('Invalid position "%s" for rack with specs '
                              '"%s"' % (position.label, self.specs.label))
         new_location = TubeLocation(tube, self, position)
-        self.container_locations[position] = new_location
+        self.tube_locations.append(new_location)
+        self.container_positions[position] = tube
 
     def remove_tube(self, tube):
         """
@@ -280,8 +287,7 @@ class TubeRack(Rack):
                              'it is currently associated with rack "%s".'
                              % (tube.barcode, self.barcode,
                                 tube.location.rack.barcode))
-        location = self.container_locations.pop(tube.location.position)
-        location.position = None
+        tube = self.container_positions.pop(tube.location.position)
         tube.location = None
 
 
@@ -290,24 +296,22 @@ class Plate(Rack):
     This class represents plate racks (racks harboring immobile,
     unbarcoded wells (:class:`thelma.entities.container.Well`)).
     """
-    class PlateLocation(object):
-        def __init__(self, well, plate, position):
-            self.container = well
-            self.rack = plate
-            self.position = position
-
     def __init__(self, label, specs, status, **kw):
         Rack.__init__(self, label, specs, status, **kw)
         self.rack_type = RACK_TYPES.PLATE
         if self.specs != None:
-            self.__init_wells()
+            self.__container_positions = self.__init_wells()
         self.total_containers = self.rack_shape.size
+
+    @property
+    def container_positions(self):
+        return self.__container_positions
 
     def __init_wells(self):
         c_specs = self.specs.well_specs
         containers = []
-        container_locations = {}
-        # we fetch all the rack positions in one query to speed up things
+        cp_map = {}
+        # We fetch all the rack positions in one query to speed up things.
         shape = self.specs.shape
         agg = get_root_aggregate(IRackPosition)
         agg.filter = lt(_row_index=shape.number_rows) \
@@ -324,10 +328,9 @@ class Plate(Rack):
                                                           self,
                                                           rack_pos)
                 containers.append(well)
-                loc = self.PlateLocation(well, self, rack_pos)
-                container_locations[rack_pos] = loc
+                cp_map[rack_pos] = well
         self.containers = containers
-        self.container_locations = container_locations
+        return cp_map
 
 
 class RackShape(Entity):

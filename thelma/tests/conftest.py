@@ -595,9 +595,9 @@ def reservoir_specs_fac(test_object_fac, rack_shape_8x12):
 
 
 @fixture
-def sample_fac(test_object_fac, tube_fac):
+def sample_fac(test_object_fac, well_fac):
     kw = dict(volume=1e-4,
-              container=tube_fac())
+              container=well_fac())
     return test_object_fac(Sample, kw=kw)
 
 
@@ -719,8 +719,8 @@ def tagged_rack_position_set_fac(test_object_fac, tag_fac,
 
 
 @fixture
-def tube_fac(test_object_fac, tube_specs_fac, item_status_managed):
-    kw = dict(specs=tube_specs_fac(),
+def tube_fac(test_object_fac, tube_specs_matrix, item_status_managed):
+    kw = dict(specs=tube_specs_matrix,
               status=item_status_managed,
               barcode='1019999999')
     return test_object_fac(Tube, kw=kw)
@@ -792,7 +792,7 @@ def well_fac(test_object_fac, well_specs_fac, item_status_managed, plate_fac,
     def _fetch_well(**kw):
         pos = kw['position']
         rack = kw['rack']
-        well = rack.container_locations[pos].container
+        well = rack.container_positions[pos]
         well.status = kw['status']
         return well
     # Wells are actually created in the constructor of its plate, hence we

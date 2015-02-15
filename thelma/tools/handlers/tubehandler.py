@@ -168,9 +168,9 @@ class XL20OutputParserHandler(BaseParserHandler):
         """
         if rack is None or rack_pos is None: return None
 
-        if rack.container_locations.has_key(rack_pos):
-            wanted_tube = rack.container_locations[rack_pos].container
-        else:
+        try:
+            wanted_tube = rack.container_positions[rack_pos]
+        except KeyError:
             info = '%s (%s %s)' % (tube_barcode, rack.barcode,
                                    rack_pos.label)
             self.__missing_tube.append(info)

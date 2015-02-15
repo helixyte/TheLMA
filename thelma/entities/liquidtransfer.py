@@ -750,7 +750,7 @@ class ExecutedSampleDilution(ExecutedLiquidTransfer):
         """
         The rack of the target container.
         """
-        return self.target_container.location.rack
+        return self.target_container.rack
 
     def __repr__(self):
         str_format = '<%s id: %s, target container: %s, reservoir specs: %s, ' \
@@ -797,14 +797,14 @@ class ExecutedSampleTransfer(ExecutedLiquidTransfer):
         """
         The rack of the target container.
         """
-        return self.target_container.location.rack
+        return self.target_container.rack
 
     @property
     def source_rack(self):
         """
         The rack of the source container.
         """
-        return self.source_container.location.rack
+        return self.source_container.rack
 
     def __repr__(self):
         str_format = '<%s id: %s, source container: %s, target ' \

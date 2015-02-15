@@ -328,7 +328,7 @@ class TubeTransferExecutor(BaseTool):
         elif not self.__rack_containers.has_key(barcode):
             tube_map = dict()
             for tube in rack.containers:
-                tube_map[tube.location.position] = tube
+                tube_map[tube.position] = tube
             self.__rack_containers[barcode] = tube_map
 
     def __check_transfers(self):
@@ -388,7 +388,7 @@ class TubeTransferExecutor(BaseTool):
             if not trg_rack.is_empty(trg_pos):
                 info = '%s (target position: %s (%s), found there: %s)' % \
                         (tube.barcode, trg_pos.label, trg_rack.barcode,
-                         trg_rack.container_locations[trg_pos].barcode)
+                         trg_rack.container_positions[trg_pos].barcode)
                 non_empty.append(info)
                 continue
         if len(non_empty) > 0:

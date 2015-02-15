@@ -173,8 +173,7 @@ class TestTubeLocationEntity(TestEntityBase):
         assert tube.location.position is rack_position11
         assert tube.location.rack is tube_rack
         assert tube.location.container is tube
-        assert tube_rack.container_locations[rack_position11].container \
-               is tube
+        assert tube_rack.container_positions[rack_position11] is tube
         #
         empty_position = rack_position_fac(row_index=0, column_index=0)
         new_position = rack_position_fac(row_index=0, column_index=3)

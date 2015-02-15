@@ -46,10 +46,11 @@ class TestStockSampleEntity(TestEntityBase):
         sspl = stock_sample_fac()
         persist(nested_session, sspl, stock_sample_fac.init_kw, True)
 
-    def test_convert_from_sample(self, nested_session, tube_fac,
-                                 molecule_fac):
+    def test_convert_from_sample(self, nested_session,
+                                 sample_fac,
+                                 tube_fac, molecule_fac):
         container = tube_fac()
-        sample = container.make_sample(1e-5)
+        sample = sample_fac(container=container)
         molecule = molecule_fac()
         sm = sample.make_sample_molecule(molecule, 1e-5)
         assert sm in sample.sample_molecules

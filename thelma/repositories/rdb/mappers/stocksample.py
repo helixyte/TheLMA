@@ -11,6 +11,7 @@ from sqlalchemy.sql import distinct
 from sqlalchemy.sql import select
 from sqlalchemy.sql.expression import and_
 
+#from thelma.entities.container import Tube
 from thelma.entities.moleculedesign import MoleculeDesignPool
 from thelma.entities.moleculetype import MoleculeType
 from thelma.entities.organization import Organization
@@ -31,31 +32,19 @@ def create_mapper(sample_base_mapper, stock_sample_tbl,
     smd = supplier_molecule_design_tbl
     sts = stock_sample_tbl.alias()
     prd_sel = \
-         select([distinct(smd.c.product_id)],
-                and_(
-                     sts.c.molecule_design_set_id == stock_sample_tbl.c.molecule_design_set_id,
-                     smd.c.supplier_id == stock_sample_tbl.c.supplier_id,
-                     smd.c.is_current),
-                from_obj=[sts.join(psmd,
-                                   psmd.c.molecule_design_set_id ==
-                                             sts.c.molecule_design_set_id)
-                             .join(smd,
-                                   smd.c.supplier_molecule_design_id ==
-                                          psmd.c.supplier_molecule_design_id)]
-                )
-#        select([distinct(smd.c.product_id)],
-#               and_(
-#                    sts.c.molecule_design_set_id == stock_sample_tbl.c.molecule_design_set_id,
-#                    smd.c.supplier_id == stock_sample_tbl.c.supplier_id,
-#                    smd.c.is_current
-#                    ),
-#               from_obj=[sts.join(psmd,
-#                                  psmd.c.molecule_design_set_id ==
-#                                            sts.c.molecule_design_set_id)
-#                            .join(smd,
-#                                  smd.c.supplier_molecule_design_id ==
-#                                         psmd.c.supplier_molecule_design_id)]
-#               )
+        select([distinct(smd.c.product_id)],
+               and_(
+                    sts.c.molecule_design_set_id == stock_sample_tbl.c.molecule_design_set_id,
+                    smd.c.supplier_id == stock_sample_tbl.c.supplier_id,
+                    smd.c.is_current
+                    ),
+               from_obj=[sts.join(psmd,
+                                  psmd.c.molecule_design_set_id ==
+                                            sts.c.molecule_design_set_id)
+                            .join(smd,
+                                  smd.c.supplier_molecule_design_id ==
+                                         psmd.c.supplier_molecule_design_id)]
+               )
     m = mapper(StockSample, stock_sample_tbl, inherits=sample_base_mapper,
         properties=dict(
             molecule_design_pool=relationship(MoleculeDesignPool,

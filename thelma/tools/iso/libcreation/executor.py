@@ -320,7 +320,7 @@ class LibraryCreationIsoExecutor(BaseTool):
                     sample = tube.sample
                     if sample is None:
                         continue
-                    rack_pos = tube.location.position
+                    rack_pos = tube.position
                     ssc_pos = ssc_layout.get_working_position(rack_pos)
                     exp_mds = set([md.id for md in ssc_pos.pool])
                     found_mds = set([sm.molecule.molecule_design_id

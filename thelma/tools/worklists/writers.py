@@ -154,7 +154,7 @@ class WorklistWriter(CsvWriter):
         Initialises the target rack related values and lookups.
         """
         for container in self.target_rack.containers:
-            rack_pos = container.location.position
+            rack_pos = container.position
             self._target_containers[rack_pos] = container
             if container.sample is None:
                 self._target_volumes[rack_pos] = 0.0

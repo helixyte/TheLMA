@@ -74,7 +74,7 @@ class Molecule(Entity):
         return str_format % params
 
 
-class SampleBase(Entity):
+class Sample(Entity):
     """
     Sample.
 
@@ -109,14 +109,20 @@ class SampleBase(Entity):
         self.volume = volume
         self.container = container
         self.sample_type = SAMPLE_TYPES.BASIC
+        self.__thaw_time = None
 
-    def __repr__(self):
-        str_format = '<%s id: %s, container: %s, volume: %s>'
-        params = (self.__class__.__name__, self.id, self.container,
-                  self.volume)
-        return str_format % params
+    @property
+    def thaw_time(self):
+        if self.__thaw_time is None:
+            self.__thaw_time = \
+                min([sm.molecule.molecule_design.molecule_type.thaw_time
+                     for sm in self.sample_molecules])
+        return self.__thaw_time
 
     def make_sample_molecule(self, molecule, concentration, **kw):
+        tt = molecule.molecule_design.molecule_type.thaw_time
+        if self.__thaw_time is None or tt < self.__thaw_time:
+            self.__thaw_time = tt
         return SampleMolecule(molecule, concentration, sample=self, **kw)
 
     def convert_to_stock_sample(self):
@@ -143,12 +149,12 @@ class SampleBase(Entity):
         for sm in self.sample_molecules:
             concentration += sm.concentration
         concentration = round(concentration, 10) # one decimal place if in nM
-
         self.molecule_design_pool = mdp
         self.supplier = mols[0].supplier
         self.molecule_type = mols[0].molecule_design.molecule_type
         self.concentration = concentration
         self.sample_type = SAMPLE_TYPES.STOCK
+        self.__class__ = StockSample
         # pylint: enable=W0201
 
     @property
@@ -171,7 +177,7 @@ class SampleBase(Entity):
         if checkout_date.tzinfo is None:
             checkout_date = as_utc_time(self.checkout_date)
         checkout_secs = abs(get_utc_time() - checkout_date).seconds
-        if checkout_secs > self.molecule_type.thaw_time:
+        if checkout_secs > self.thaw_time:
             if self.freeze_thaw_cycles is None:
                 self.freeze_thaw_cycles = 1
             else:
@@ -189,12 +195,14 @@ class SampleBase(Entity):
                                'been checked in.')
         self.checkout_date = get_utc_time()
 
+    def __repr__(self):
+        str_format = '<%s id: %s, container: %s, volume: %s>'
+        params = (self.__class__.__name__, self.id, self.container,
+                  self.volume)
+        return str_format % params
 
-class Sample(SampleBase):
-    pass
 
-
-class StockSample(SampleBase):
+class StockSample(Sample):
     """
     Stock sample.
 
@@ -223,14 +231,14 @@ class StockSample(SampleBase):
 
     def __init__(self, volume, container, molecule_design_pool, supplier,
                  molecule_type, concentration, **kw):
-        SampleBase.__init__(self, volume, container, **kw)
+        Sample.__init__(self, volume, container, **kw)
         self.sample_type = SAMPLE_TYPES.STOCK
         if molecule_design_pool.molecule_type != molecule_type:
             raise ValueError('The molecule types of molecule design pool '
                              'and stock sample differ.')
         self.molecule_design_pool = molecule_design_pool
-        self.supplier = supplier
         self.molecule_type = molecule_type
+        self.supplier = supplier
         self.concentration = concentration
         # Create the sample molecules for this stock sample. By definition,
         # they all have the same supplier and same concentration (which is
@@ -242,6 +250,10 @@ class StockSample(SampleBase):
             mol = Molecule(molecule_design, supplier)
             self.make_sample_molecule(mol, sm_mol_conc)
         self.registration = None
+
+    @property
+    def thaw_time(self):
+        return self.molecule_type.thaw_time
 
     def register(self):
         self.registration = SampleRegistration(self, self.volume)

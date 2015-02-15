@@ -73,14 +73,6 @@ class Container(Entity):
         """
         raise NotImplementedError('Abstract method.')
 
-    def make_sample(self, volume, **kw):
-        """
-        Creates a new sample for this container.
-
-        :returns: :class:`thelma.entities.sample.Sample`
-        """
-        return Sample(volume, self, **kw)
-
     def __str__(self):
         return str(self.id)
 
@@ -201,6 +193,14 @@ class Well(Container):
         container.rack = rack
         container.position = position
         return container
+
+    def make_sample(self, volume, **kw):
+        """
+        Creates a new sample for this container.
+
+        :returns: :class:`thelma.entities.sample.Sample`
+        """
+        return Sample(volume, self, **kw)
 
     @property
     def slug(self):

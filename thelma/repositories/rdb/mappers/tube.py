@@ -14,7 +14,6 @@ from everest.repositories.rdb.utils import mapper
 from thelma.entities.container import CONTAINER_TYPES
 from thelma.entities.container import Tube
 from thelma.entities.container import TubeLocation
-from thelma.entities.sample import SampleBase
 
 
 __docformat__ = 'reStructuredText en'
@@ -33,13 +32,9 @@ def create_mapper(container_mapper, tube_tbl):
                     dict(location=relationship(
                                     TubeLocation, uselist=False,
                                     back_populates='container',
-#                                    lazy='joined',
                                     cascade='all,delete,delete-orphan',
                                     single_parent=True
                                     ),
-                         sample=relationship(SampleBase, uselist=False,
-#                                             lazy='joined'
-                                             ),
                          ),
                polymorphic_identity=CONTAINER_TYPES.TUBE)
     return m

@@ -837,15 +837,11 @@ class EntityCreatorMixin(EverestEntityCreatorMixin):
             kw['status'] = self._get_entity(IItemStatus)
         if not 'specs' in kw:
             kw['specs'] = self._get_entity(ITubeSpecs)
-        # Well creation is special in that we have to initialize it with
-        # the location set to None and then assign a proper location.
-        kw['location'] = None
+        pos = kw.pop('position', self._get_entity(IRackPosition))
         rack = kw.pop('rack', self._get_entity(IPlate))
-        position = kw.pop('position', self._get_entity(IRackPosition))
         well = self._create_entity(Well, kw)
-        well.location = self._create_container_location(rack=rack,
-                                                        position=position,
-                                                        container=None)
+        well.position = pos
+        well.rack = rack
         return well
 
     def _create_well_specs(self, **kw):

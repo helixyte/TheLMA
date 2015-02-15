@@ -1815,7 +1815,7 @@ class BaseRackVerifier(BaseTool):
             self._rack_md_map[pos_label] = None
             self._rack_volume_map[pos_label] = None
         for container in self._rack.containers:
-            pos_label = container.location.position.label
+            pos_label = container.position.label
             sample = container.sample
             if sample is None:
                 self._rack_md_map[pos_label] = None

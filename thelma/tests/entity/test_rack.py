@@ -48,10 +48,10 @@ class TestRackEntity(TestEntityBase):
         if fac_name == 'plate_fac':
             assert len(rack.containers) == 96
             pos = rack_position_fac(row_index=5, column_index=5)
-            location = rack.container_locations[pos]
-            assert location.position.row_index == 5
-            assert location.position.column_index == 5
-            assert location.rack is rack
+            well = rack.container_positions[pos]
+            assert well.position.row_index == 5
+            assert well.position.column_index == 5
+            assert well.rack is rack
         else:
             assert len(rack.containers) == 0
 

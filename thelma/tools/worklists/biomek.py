@@ -146,7 +146,7 @@ class SampleTransferWorklistWriter(BiomekWorklistWriter):
         Initialises the source rack related values and lookups.
         """
         for container in self.source_rack.containers:
-            rack_pos = container.location.position
+            rack_pos = container.position
             self._source_containers[rack_pos] = container
             if container.sample is None:
                 self._source_volumes[rack_pos] = 0.0

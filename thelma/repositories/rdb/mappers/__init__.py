@@ -72,7 +72,6 @@ from thelma.repositories.rdb.mappers import rackpositionset
 from thelma.repositories.rdb.mappers import rackshape
 from thelma.repositories.rdb.mappers import rackspecs
 from thelma.repositories.rdb.mappers import reservoirspecs
-from thelma.repositories.rdb.mappers import samplebase
 from thelma.repositories.rdb.mappers import samplemolecule
 from thelma.repositories.rdb.mappers import sampleregistration
 from thelma.repositories.rdb.mappers import sirnadesign
@@ -140,11 +139,8 @@ def initialize_mappers(tables, views):
                                tables['chemical_structure'])
     samplemolecule.create_mapper(tables['sample_molecule'])
     molecule.create_mapper(tables['molecule'],
-                           tables['single_supplier_molecule_design'],
-                           tables['supplier_molecule_design'])
-    sample_base_mapper = \
-        samplebase.create_mapper(tables['sample'])
-    sample.create_mapper(sample_base_mapper, tables['sample'],
+                           tables['molecule_supplier_molecule_design'])
+    sample_mapper = sample.create_mapper(tables['sample'],
                          tables['sample_molecule'], tables['molecule'],
                          tables['molecule_design_pool'])
     sampleregistration.create_mapper(tables['sample_registration'])
@@ -193,7 +189,7 @@ def initialize_mappers(tables, views):
                                 tables['pooled_supplier_molecule_design'],
                                 tables['supplier_molecule_design'],
                                 tables['molecule_design_set_gene'])
-    stocksample.create_mapper(sample_base_mapper, tables['stock_sample'],
+    stocksample.create_mapper(sample_mapper, tables['stock_sample'],
                               tables['pooled_supplier_molecule_design'],
                               tables['supplier_molecule_design'])
     moleculedesignpoolset.create_mapper(

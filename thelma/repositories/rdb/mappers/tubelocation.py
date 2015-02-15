@@ -26,12 +26,13 @@ def create_mapper(tube_location_tbl):
             rack=relationship(TubeRack, uselist=False,
                               innerjoin=True,
 #                              cascade='all',
-                              back_populates='container_locations'),
+                              back_populates='tube_locations'),
             container=relationship(Tube, uselist=False,
 #                                   cascade='all,delete,delete-orphan',
 #                                   single_parent=True,
                                    back_populates='location',
                                    innerjoin=True,
+                                   cascade_backrefs=False
 #                                   lazy='joined'
                                    )
 #                                   lazy='subquery'),

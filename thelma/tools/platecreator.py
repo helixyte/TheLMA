@@ -51,8 +51,8 @@ class PlateCreator96To384(BaseTool):
         tgt_rack = self.__get_target_rack(self.__target_barcode)
         for pos_label, pool_id in layout_map.iteritems():
             pos = get_rack_position_from_label(pos_label)
-            cnt_loc = tgt_rack.container_locations[pos]
-            smpl = cnt_loc.container.make_sample(self.__iso_volume)
+            cnt = tgt_rack.container_positions[pos]
+            smpl = cnt.make_sample(self.__iso_volume)
             tube = tube_map[pool_tube_barcode_map[pool_id]]
             sm_conc = \
                 self.__iso_concentration / len(tube.sample.sample_molecules)

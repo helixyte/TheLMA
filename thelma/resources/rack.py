@@ -61,7 +61,8 @@ class RackMember(Member):
 
 class TubeRackMember(RackMember):
     relation = "%s/tube-rack" % RELATION_BASE_URL
-    containers = collection_attribute(ITube, 'containers', backref='rack')
+    containers = collection_attribute(ITube, 'tube_locations.container',
+                                      backref='rack')
 
     def __getitem__(self, name):
         if name == 'tubes':

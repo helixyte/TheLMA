@@ -107,6 +107,7 @@ from thelma.repositories.rdb.schema.tables import worklistseriesisorequest
 from thelma.repositories.rdb.schema.tables import worklistseriesmember
 from thelma.repositories.rdb.schema.tables import tuberack
 from thelma.repositories.rdb.schema.tables import plate
+from thelma.repositories.rdb.schema.tables import moleculesuppliermoleculedesign
 
 
 # Not all tables are dependencies for other tables. pylint: disable=W0612
@@ -191,6 +192,9 @@ def initialize_tables(metadata):
     supplierstructureannotation.create_table(metadata,
                                              supplier_molecule_design_tbl,
                                              chemical_structure_tbl)
+    moleculesuppliermoleculedesign.create_table(metadata,
+                                                molecule_tbl,
+                                                supplier_molecule_design_tbl)
     dbuser_tbl = user.create_table(metadata)
     user_preferences_tbl = userpreferences.create_table(metadata, dbuser_tbl)
 

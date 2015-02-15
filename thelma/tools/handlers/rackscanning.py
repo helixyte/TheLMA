@@ -8,14 +8,18 @@ This handler converts the results of the rack scanning parser into a
 AAB
 """
 from re import match
+
+from pyramid.compat import iteritems_
+
+from thelma.entities.rack import RACK_BARCODE_REGEXP
+from thelma.entities.rack import RACK_POSITION_REGEXP
+from thelma.entities.rack import TubeRack
 from thelma.tools.handlers.base import BaseParserHandler
 from thelma.tools.parsers.rackscanning import RackScanningParser
 from thelma.tools.semiconstants import get_96_rack_shape
 from thelma.tools.semiconstants import get_rack_position_from_label
-from thelma.entities.rack import RACK_BARCODE_REGEXP
-from thelma.entities.rack import RACK_POSITION_REGEXP
-from thelma.entities.rack import TubeRack
 from thelma.utils import get_utc_time
+
 
 __docformat__ = 'reStructuredText en'
 
@@ -204,10 +208,10 @@ class RackScanningLayout(object):
         rsl = RackScanningLayout(rack_barcode=tube_rack.barcode,
                                  timestamp=get_utc_time())
 #        for tube in tube_rack.containers:
-#            rack_pos = tube.location.position
+#            rack_pos = tube.position
 #            rsl.add_position(rack_pos, tube.barcode)
-        for location in tube_rack.container_locations.values():
-            rsl.add_position(location.position, location.container.barcode)
+        for pos, tube in iteritems_(tube_rack.container_positions):
+            rsl.add_position(pos, tube.barcode)
         return rsl
 
     def add_position(self, rack_position, tube_barcode):

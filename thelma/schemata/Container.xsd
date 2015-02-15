@@ -71,19 +71,6 @@
     <group name="ContainerBase">
         <sequence>
             <element
-                ref="l:location"
-                minOccurs="0"
-                maxOccurs="1"
-            >
-            </element>
-            <element
-                name="position"
-                type="rp:RackPositionType"
-                minOccurs="0"
-                maxOccurs="1"
-            >
-            </element>
-            <element
                 name="sample_volume"
                 type="double"
                 minOccurs="0"
@@ -105,11 +92,18 @@
                 maxOccurs="1"
             ></element>
             <element
-                name="barcode"
-                type="string"
+                name="position"
+                type="rp:RackPositionType"
                 minOccurs="0"
                 maxOccurs="1"
-            ></element>
+            >
+            </element>
+            <element
+                ref="l:location"
+                minOccurs="0"
+                maxOccurs="1"
+            >
+            </element>
         </sequence>
     </group>
 
@@ -155,10 +149,19 @@
                         <element
                             name="sample_product_id"
                             type="string"
+                            minOccurs="0"
+                            maxOccurs="1"
                         ></element>
                         <element
                             name="sample_supplier"
                             type="o:OrganizationType"
+                            minOccurs="0"
+                            maxOccurs="1"
+                        ></element>
+                        <element
+                            name="barcode"
+                            minOccurs="0"
+                            maxOccurs="1"
                         ></element>
                     </sequence>
                 </choice>

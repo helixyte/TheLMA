@@ -284,7 +284,7 @@ class ExperimentTool(SerialWriterExecutorTool):
         been checked by the verifier.
         """
         for container in self._source_plate.containers:
-            rack_pos = container.location.position
+            rack_pos = container.position
             sample = container.sample
             if not (sample is None or sample.volume is None or \
                     sample.volume == 0):

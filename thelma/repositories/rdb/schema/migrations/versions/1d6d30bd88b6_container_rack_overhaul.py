@@ -109,7 +109,35 @@ def upgrade():
                           'tube_location', 'tube',
                           ['container_id'], ['container_id'])
     op.drop_table('container_barcode')
-
+    #
+    op.execute("create view molecule_supplier_molecule_design_view as"
+               " select m.molecule_id, smd.supplier_molecule_design_id"
+               "  from molecule m"
+               "   inner join single_supplier_molecule_design ssmd"
+               "   on ssmd.molecule_design_id=m.molecule_design_id"
+               "   inner join supplier_molecule_design smd"
+               "   on smd.supplier_molecule_design_id="
+               "   ssmd.supplier_molecule_design_id"
+               " where smd.is_current and smd.supplier_id=m.supplier_id")
+    op.execute("create table molecule_supplier_molecule_design"
+               "(molecule_id integer not null"
+               " references"
+               "   molecule(molecule_id),"
+               " supplier_molecule_design_id integer not null"
+               " references"
+               "   supplier_molecule_design(supplier_molecule_design_id)"
+               " primary key (molecule_id)"
+               ")")
+    op.execute("create or replace function "
+               "refresh_molecule_supplier_molecule_design()"
+               " returns trigger as $$"
+               " begin"
+               " delete from molecule_supplier_molecule_design;"
+               " insert into molecule_supplier_molecule_design"
+               " select * from molecule_supplier_molecule_design_view;"
+               " return null;"
+               " end"
+               " $$ language 'plpgsql'")
 
 def downgrade():
     raise NotImplementedError('Downgrade not implemented for this migration.')

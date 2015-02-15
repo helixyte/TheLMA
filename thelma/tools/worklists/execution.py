@@ -168,7 +168,7 @@ class LiquidTransferExecutor(BaseTool):
         Initialises the target rack related values and lookups.
         """
         for container in self.target_rack.containers:
-            rack_pos = container.location.position
+            rack_pos = container.position
             self._target_containers[rack_pos] = container
         if isinstance(self.target_rack, Plate):
             well_specs = self.target_rack.specs.well_specs
@@ -356,11 +356,11 @@ class LiquidTransferExecutor(BaseTool):
         #        rack when you only update a few containers.
         #        Should do:
         #        for pos, sample_data in sample_data_map.iteritems():
-        #            cnt = rack.container_locations[pos].container
+        #            cnt = rack.container_positions[pos]
         #            upd_spl = sample_data.update_container_sample(cnt)
         #            cnt.sample = upd_spl
         for container in rack.containers:
-            rack_pos = container.location.position
+            rack_pos = container.position
             if not sample_data_map.has_key(rack_pos):
                 continue
             sample_data = sample_data_map[rack_pos]
@@ -620,7 +620,7 @@ class SampleTransferWorklistExecutor(WorklistExecutor):
         Initialises the source rack related values and lookups.
         """
         for container in self.source_rack.containers:
-            rack_pos = container.location.position
+            rack_pos = container.position
             self._source_containers[rack_pos] = container
         if isinstance(self.source_rack, Plate):
             well_specs = self.source_rack.specs.well_specs
@@ -739,7 +739,7 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
         the rack shape and translation type match and the transfer volume.
         """
         for container in self.source_rack.containers:
-            rack_pos = container.location.position
+            rack_pos = container.position
             self._source_containers[rack_pos] = container
         if isinstance(self.source_rack, Plate):
             well_specs = self.source_rack.specs.well_specs
@@ -837,7 +837,7 @@ class RackSampleTransferExecutor(LiquidTransferExecutor):
             sample = container.sample
             if sample.volume == 0:
                 continue
-            source_pos = container.location.position
+            source_pos = container.position
 
             try:
                 target_pos = self._translator.translate(source_pos)

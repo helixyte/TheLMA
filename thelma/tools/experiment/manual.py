@@ -105,7 +105,7 @@ class ExperimentManualExecutor(ExperimentTool):
         if not self._scenario.id == EXPERIMENT_SCENARIOS.ISO_LESS:
             for well in self._source_plate.containers:
                 if well.sample is None: continue
-                rack_pos = well.location.position
+                rack_pos = well.position
                 ir_pos = self._source_layout.get_working_position(rack_pos)
                 if ir_pos.is_library:
                     pool = rack_pos.label
@@ -177,7 +177,7 @@ class ExperimentManualExecutor(ExperimentTool):
         are no pools in the experiment (volumes only).
         """
         for well in plate.containers:
-            rack_pos = well.location.position
+            rack_pos = well.position
             if not rack_pos in positions: continue
             well.make_sample(self.__final_vol)
 
@@ -188,7 +188,7 @@ class ExperimentManualExecutor(ExperimentTool):
         """
         missing_pools = set()
         for well in plate.containers:
-            rack_pos = well.location.position
+            rack_pos = well.position
             tf_pos = layout.get_working_position(rack_pos)
             if tf_pos is None: continue
             if tf_pos.is_empty: continue

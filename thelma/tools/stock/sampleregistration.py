@@ -345,7 +345,7 @@ class SampleRegistrar(RegistrationTool):
     def __check_wells(self):
         self.add_debug('Checking wells.')
         for sri in self.registration_items:
-            container = sri.rack.container_locations[sri.rack_position]
+            container = sri.rack.container_positions[sri.rack_position]
             sri.container = container
 
     def __make_new_rack(self, sample_registration_item):
@@ -407,14 +407,14 @@ class SampleRegistrar(RegistrationTool):
                        'positions with positions in sample registration '
                        'data).')
         for sri in self.registration_items:
-            if sri.rack_position != sri.container.location.position \
-               or sri.rack.barcode != sri.container.location.rack.barcode:
+            if sri.rack_position != sri.container.position \
+               or sri.rack.barcode != sri.container.rack.barcode:
                 msg = 'Location information in the registration item ' \
                       '(%s@%s) differs from actual location information ' \
                       '(%s@%s)' % \
                       (sri.rack.barcode, sri.rack_position.label,
-                       sri.container.location.rack.barcode,
-                       sri.container.location.position.label)
+                       sri.container.rack.barcode,
+                       sri.container.position.label)
                 self.add_error(msg)
         if not self.has_errors() and not self.__validation_files is None:
             self.__validate_locations_from_scanfile()
