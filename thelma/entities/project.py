@@ -23,12 +23,12 @@ class Project(Entity):
     label = None
     #: Equals the :attr:`label`. Titles are required for atom templates.
     title = None
-    #: The customer who ordered the project
+    #: Customer for the project.
     #: (:class:`thelma.entities.organization.Organization`).
     customer = None
-    #: The date the project was created in the database.
+    #: Date the project was created in the database.
     creation_date = None
-    #: The official project leader at Cenix (:class:`thelma.entities.user.User`).
+    #: Leader of the project (:class:`thelma.entities.user.User`).
     leader = None
     #: Subprojects (:class:`thelma.entities.subproject.Subproject`) belonging
     #: to this project.

@@ -89,7 +89,7 @@ class BarcodePrinter(object):
 class SatoBarcode(object):
     """
     Barcode generator for the Sato CL 412 printer for
-    Cenix "Dish", "Tube", "Box", and "User" barcodes.
+    "Dish", "Tube", "Box", and "User" barcodes.
     """
 
     # rotation codes for 0, 90, 180, and 270 degrees:

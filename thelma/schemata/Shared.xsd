@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
     xmlns="http://www.w3.org/2001/XMLSchema"
-    targetNamespace="http://schemata.cenix-bioscience.com/shared"
+    targetNamespace="http://schemata.thelma.org/shared"
     elementFormDefault="qualified"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
 
     <simpleType name="RackBarcodeType">

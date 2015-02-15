@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/experimentmetadatatype"
+    targetNamespace="http://schemata.thelma.org/experimentmetadatatype"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:emt="http://schemata.cenix-bioscience.com/experimentmetadatatype"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:emt="http://schemata.thelma.org/experimentmetadatatype"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
@@ -67,7 +67,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-metadata-type"
+                    fixed="http://relations.thelma.org/experiment-metadata-type"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -83,7 +83,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-metadata-type-collection"
+                    fixed="http://relations.thelma.org/experiment-metadata-type-collection"
                 ></attribute>
             </restriction>
         </complexContent>

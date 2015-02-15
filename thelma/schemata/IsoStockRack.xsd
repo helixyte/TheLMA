@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/isostockrack"
+    targetNamespace="http://schemata.thelma.org/isostockrack"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:isr="http://schemata.cenix-bioscience.com/isostockrack"
-    xmlns:r="http://schemata.cenix-bioscience.com/rack"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:sc="http://schemata.cenix-bioscience.com/species"
-    xmlns:md="http://schemata.cenix-bioscience.com/moleculedesign"
+    xmlns:isr="http://schemata.thelma.org/isostockrack"
+    xmlns:r="http://schemata.thelma.org/rack"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:sc="http://schemata.thelma.org/species"
+    xmlns:md="http://schemata.thelma.org/moleculedesign"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="Rack.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rack"
+        namespace="http://schemata.thelma.org/rack"
     >
     </import>
 
@@ -134,7 +134,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/stock-rack"
+                    fixed="http://relations.thelma.org/stock-rack"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -146,7 +146,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/iso-stock-rack"
+                    fixed="http://relations.thelma.org/iso-stock-rack"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -158,7 +158,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/iso-sector-stock-rack"
+                    fixed="http://relations.thelma.org/iso-sector-stock-rack"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -170,7 +170,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/stock-rack-collection"
+                    fixed="http://relations.thelma.org/stock-rack-collection"
                 ></attribute>
             </restriction>
         </complexContent>

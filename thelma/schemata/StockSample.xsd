@@ -1,38 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/stocksample"
+    targetNamespace="http://schemata.thelma.org/stocksample"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:ss="http://schemata.cenix-bioscience.com/stocksample"
-    xmlns:g="http://schemata.cenix-bioscience.com/gene"
-    xmlns:o="http://schemata.cenix-bioscience.com/organization"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:md="http://schemata.cenix-bioscience.com/moleculedesign"
-    xmlns:mt="http://schemata.cenix-bioscience.com/moleculetype"
+    xmlns:ss="http://schemata.thelma.org/stocksample"
+    xmlns:g="http://schemata.thelma.org/gene"
+    xmlns:o="http://schemata.thelma.org/organization"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:md="http://schemata.thelma.org/moleculedesign"
+    xmlns:mt="http://schemata.thelma.org/moleculetype"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="MoleculeDesign.xsd"
-        namespace="http://schemata.cenix-bioscience.com/moleculedesign"
+        namespace="http://schemata.thelma.org/moleculedesign"
     >
     </import>
     <import
         schemaLocation="Gene.xsd"
-        namespace="http://schemata.cenix-bioscience.com/gene"
+        namespace="http://schemata.thelma.org/gene"
     >
     </import>
     <import
         schemaLocation="Organization.xsd"
-        namespace="http://schemata.cenix-bioscience.com/organization"
+        namespace="http://schemata.thelma.org/organization"
     >
     </import>
     <import
         schemaLocation="MoleculeType.xsd"
-        namespace="http://schemata.cenix-bioscience.com/moleculetype"
+        namespace="http://schemata.thelma.org/moleculetype"
     >
     </import>
 
@@ -91,7 +91,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/stock-samples"
+                    fixed="http://relations.thelma.org/stock-samples"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -103,7 +103,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/stock-sample-collection"
+                    fixed="http://relations.thelma.org/stock-sample-collection"
                 ></attribute>
             </restriction>
         </complexContent>

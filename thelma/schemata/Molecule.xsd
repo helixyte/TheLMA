@@ -1,33 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/molecule"
+    targetNamespace="http://schemata.thelma.org/molecule"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:md="http://schemata.cenix-bioscience.com/moleculedesign"
-    xmlns:mo="http://schemata.cenix-bioscience.com/molecule"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:s="http://schemata.cenix-bioscience.com/sample"
-    xmlns:o="http://schemata.cenix-bioscience.com/organization"
+    xmlns:md="http://schemata.thelma.org/moleculedesign"
+    xmlns:mo="http://schemata.thelma.org/molecule"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:s="http://schemata.thelma.org/sample"
+    xmlns:o="http://schemata.thelma.org/organization"
 >
 
     <import
         schemaLocation="MoleculeDesign.xsd"
-        namespace="http://schemata.cenix-bioscience.com/moleculedesign"
+        namespace="http://schemata.thelma.org/moleculedesign"
     >
     </import>
     <import
         schemaLocation="Sample.xsd"
-        namespace="http://schemata.cenix-bioscience.com/sample"
+        namespace="http://schemata.thelma.org/sample"
     >
     </import>
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="Organization.xsd"
-        namespace="http://schemata.cenix-bioscience.com/organization"
+        namespace="http://schemata.thelma.org/organization"
     >
     </import>
 
@@ -106,7 +106,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/molecule"
+                    fixed="http://relations.thelma.org/molecule"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -122,7 +122,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/molecule-collection"
+                    fixed="http://relations.thelma.org/molecule-collection"
                 ></attribute>
             </restriction>
         </complexContent>

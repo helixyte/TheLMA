@@ -15,7 +15,7 @@
                 value="thelma:schemata/BarcodePrintJob.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/barcodeprintjob" />
+                value="http://schemata.thelma.org/barcodeprintjob" />
             <option
                 name="xml_prefix"
                 value="bpj" />
@@ -53,7 +53,7 @@
                 value="thelma:schemata/ChemicalStructureType.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/chemicalstructuretype" />
+                value="http://schemata.thelma.org/chemicalstructuretype" />
             <option
                 name="xml_prefix"
                 value="chst" />
@@ -117,7 +117,7 @@
                 value="thelma:schemata/ChemicalStructure.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/chemicalstructure" />
+                value="http://schemata.thelma.org/chemicalstructure" />
             <option
                 name="xml_prefix"
                 value="chs" />
@@ -180,19 +180,19 @@
                 value="thelma:schemata/Container.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/container" />
+                value="http://schemata.thelma.org/container" />
             <option
                 name="xml_prefix"
                 value="co" />
             <attribute name="position">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/container" />
+                    value="http://schemata.thelma.org/container" />
             </attribute>
             <attribute name="sample_supplier">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/container" />
+                    value="http://schemata.thelma.org/container" />
             </attribute>
             <ref attribute="sample_molecules" kind="INLINE"/>
             <ref attribute="sample_molecules.product_id" kind="INLINE"/>
@@ -314,7 +314,7 @@
                 value="thelma:schemata/ContainerSpecs.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/containerspecs" />
+                value="http://schemata.thelma.org/containerspecs" />
             <option
                 name="xml_prefix"
                 value="csp" />
@@ -329,7 +329,7 @@
             <attribute name="manufacturer">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/containerspecs" />
+                    value="http://schemata.thelma.org/containerspecs" />
             </attribute>
         </representer>
         <representer
@@ -342,7 +342,7 @@
             <attribute name="manufacturer">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/containerspecs" />
+                    value="http://schemata.thelma.org/containerspecs" />
             </attribute>
         </representer>
     </resource>
@@ -364,12 +364,12 @@
             <attribute name="manufacturer">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/containerspecs" />
+                    value="http://schemata.thelma.org/containerspecs" />
             </attribute>
             <attribute name="tube_rack_specs">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/rackspecs" />
+                    value="http://schemata.thelma.org/rackspecs" />
             </attribute>
         </representer>
     </resource>
@@ -390,7 +390,7 @@
             <attribute name="manufacturer">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/containerspecs" />
+                    value="http://schemata.thelma.org/containerspecs" />
             </attribute>
         </representer>
     </resource>
@@ -410,19 +410,19 @@
                 value="thelma:schemata/Device.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/device" />
+                value="http://schemata.thelma.org/device" />
             <option
                 name="xml_prefix"
                 value="d" />
             <attribute name="type">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/device" />
+                    value="http://schemata.thelma.org/device" />
             </attribute>
             <attribute name="manufacturer">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/device" />
+                    value="http://schemata.thelma.org/device" />
             </attribute>
         </representer>
         <representer
@@ -466,7 +466,7 @@
                 value="thelma:schemata/DeviceType.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/devicetype" />
+                value="http://schemata.thelma.org/devicetype" />
             <option
                 name="xml_prefix"
                 value="dt" />
@@ -497,7 +497,7 @@
             <attribute name="devices">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/device" />
+                    value="http://schemata.thelma.org/device" />
                 <option
                     name="write_as_link"
                     value="true" />
@@ -520,14 +520,14 @@
                 value="thelma:schemata/Experiment.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/experiment" />
+                value="http://schemata.thelma.org/experiment" />
             <option
                 name="xml_prefix"
                 value="e" />
             <attribute name="source_rack">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/experiment" />
+                    value="http://schemata.thelma.org/experiment" />
             </attribute>
             <attribute name="experiment_racks">
                 <option
@@ -571,7 +571,7 @@
                 value="thelma:schemata/ExperimentDesign.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/experimentdesign" />
+                value="http://schemata.thelma.org/experimentdesign" />
             <option
                 name="xml_prefix"
                 value="ed" />
@@ -813,7 +813,7 @@
                 value="thelma:schemata/ExperimentDesignRack.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/experimentdesignrack" />
+                value="http://schemata.thelma.org/experimentdesignrack" />
             <option
                 name="xml_prefix"
                 value="edr" />
@@ -875,7 +875,7 @@
                 value="thelma:schemata/ExperimentMetaData.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/experimentmetadata" />
+                value="http://schemata.thelma.org/experimentmetadata" />
             <option
                 name="xml_prefix"
                 value="em" />
@@ -1039,7 +1039,7 @@
                 value="thelma:schemata/ExperimentMetaDataType.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/experimentmetadatatype" />
+                value="http://schemata.thelma.org/experimentmetadatatype" />
             <option
                 name="xml_prefix"
                 value="emt" />
@@ -1078,19 +1078,19 @@
                 value="thelma:schemata/ExperimentRack.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/experimentrack" />
+                value="http://schemata.thelma.org/experimentrack" />
             <option
                 name="xml_prefix"
                 value="er" />
             <attribute name="source_rack">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/experimentrack" />
+                    value="http://schemata.thelma.org/experimentrack" />
             </attribute>
             <attribute name="design_rack">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/experimentrack" />
+                    value="http://schemata.thelma.org/experimentrack" />
             </attribute>
             <attribute name="plate">
                 <option
@@ -1154,7 +1154,7 @@
                 value="thelma:schemata/Gene.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/gene" />
+                value="http://schemata.thelma.org/gene" />
             <option
                 name="xml_prefix"
                 value="g" />
@@ -1213,7 +1213,7 @@
                 value="thelma:schemata/Iso.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/iso" />
+                value="http://schemata.thelma.org/iso" />
             <option
                 name="xml_prefix"
                 value="iso" />
@@ -1280,7 +1280,7 @@
             <attribute name="preparation_plates">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/iso" />
+                    value="http://schemata.thelma.org/iso" />
                 <option
                     name="ignore"
                     value="false" />
@@ -1296,7 +1296,7 @@
             <attribute name="aliquot_plates">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/iso" />
+                    value="http://schemata.thelma.org/iso" />
                 <option
                     name="ignore"
                     value="false" />
@@ -1433,7 +1433,7 @@
                 value="thelma:schemata/IsoRequest.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/isorequest" />
+                value="http://schemata.thelma.org/isorequest" />
             <option
                 name="xml_prefix"
                 value="isor" />
@@ -1481,7 +1481,7 @@
             <attribute name="requester">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/isorequest" />
+                    value="http://schemata.thelma.org/isorequest" />
             </attribute>
         </representer>
         <representer
@@ -1582,7 +1582,7 @@
                 value="thelma:schemata/IsoStockRack.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/isostockrack" />
+                value="http://schemata.thelma.org/isostockrack" />
             <option
                 name="xml_prefix"
                 value="isr" />
@@ -1707,7 +1707,7 @@
                 value="thelma:schemata/ItemStatus.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/itemstatus" />
+                value="http://schemata.thelma.org/itemstatus" />
             <option
                 name="xml_prefix"
                 value="i" />
@@ -1745,7 +1745,7 @@
                 value="thelma:schemata/Job.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/job" />
+                value="http://schemata.thelma.org/job" />
             <option
                 name="xml_prefix"
                 value="j" />
@@ -1819,7 +1819,7 @@
             <attribute name="preparation_plates">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/job" />
+                    value="http://schemata.thelma.org/job" />
                 <option
                     name="ignore"
                     value="false" />
@@ -1936,7 +1936,7 @@
                 value="thelma:schemata/Location.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/location" />
+                value="http://schemata.thelma.org/location" />
             <option
                 name="xml_prefix"
                 value="l" />
@@ -1974,7 +1974,7 @@
                 value="thelma:schemata/LocationType.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/locationtype" />
+                value="http://schemata.thelma.org/locationtype" />
             <option
                 name="xml_prefix"
                 value="lt" />
@@ -2022,7 +2022,7 @@
                 value="thelma:schemata/Molecule.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/molecule" />
+                value="http://schemata.thelma.org/molecule" />
             <option
                 name="xml_prefix"
                 value="mo" />
@@ -2060,7 +2060,7 @@
                 value="thelma:schemata/MoleculeDesign.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/moleculedesign" />
+                value="http://schemata.thelma.org/moleculedesign" />
             <option
                 name="xml_prefix"
                 value="md" />
@@ -2137,7 +2137,7 @@
                 value="thelma:schemata/LibraryPlate.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/libraryplate" />
+                value="http://schemata.thelma.org/libraryplate" />
             <option
                 name="xml_prefix"
                 value="lp" />
@@ -2175,7 +2175,7 @@
                 value="thelma:schemata/MoleculeDesignSet.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/moleculedesignset" />
+                value="http://schemata.thelma.org/moleculedesignset" />
             <option
                 name="xml_prefix"
                 value="mds" />
@@ -2325,7 +2325,7 @@
                 value="thelma:schemata/MoleculeDesignPoolSet.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/moleculedesignpoolset" />
+                value="http://schemata.thelma.org/moleculedesignpoolset" />
             <option
                 name="xml_prefix"
                 value="mdps" />
@@ -2393,14 +2393,14 @@
                 value="thelma:schemata/MoleculeType.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/moleculetype" />
+                value="http://schemata.thelma.org/moleculetype" />
             <option
                 name="xml_prefix"
                 value="mt" />
             <attribute name="modifications">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/moleculetype"
+                    value="http://schemata.thelma.org/moleculetype"
                 >
                 </option>
             </attribute>
@@ -2469,7 +2469,7 @@
                 value="thelma:schemata/Organization.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/organization" />
+                value="http://schemata.thelma.org/organization" />
             <option
                 name="xml_prefix"
                 value="o" />
@@ -2547,19 +2547,19 @@
                 value="thelma:schemata/Project.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/project" />
+                value="http://schemata.thelma.org/project" />
             <option
                 name="xml_prefix"
                 value="p" />
             <attribute name="leader">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/project" />
+                    value="http://schemata.thelma.org/project" />
             </attribute>
             <attribute name="customer">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/project" />
+                    value="http://schemata.thelma.org/project" />
             </attribute>
             <attribute name="subprojects">
                 <option
@@ -2608,19 +2608,19 @@
                 value="thelma:schemata/Rack.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/rack" />
+                value="http://schemata.thelma.org/rack" />
             <option
                 name="xml_prefix"
                 value="r" />
             <attribute name="specs">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/rack" />
+                    value="http://schemata.thelma.org/rack" />
             </attribute>
             <attribute name="status">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/rack" />
+                    value="http://schemata.thelma.org/rack" />
             </attribute>
         </representer>
         <representer
@@ -2666,7 +2666,7 @@
             <attribute name="specs">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/rack" />
+                    value="http://schemata.thelma.org/rack" />
             </attribute>
             <ref attribute="containers.sample_product_id" kind="INLINE"/>
             <ref attribute="containers.sample_supplier" kind="URL"/>
@@ -2689,7 +2689,7 @@
             <attribute name="specs">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/rack" />
+                    value="http://schemata.thelma.org/rack" />
             </attribute>
 <!--             <ref attribute="containers.sample_molecules.product_id" kind="OFF"/>
  -->        </representer>
@@ -2710,7 +2710,7 @@
                 value="thelma:schemata/RackLayout.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/racklayout" />
+                value="http://schemata.thelma.org/racklayout" />
             <option
                 name="xml_prefix"
                 value="rl" />
@@ -2784,7 +2784,7 @@
                 value="thelma:schemata/RackPosition.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/rackposition" />
+                value="http://schemata.thelma.org/rackposition" />
             <option
                 name="xml_prefix"
                 value="rp" />
@@ -2830,7 +2830,7 @@
                 value="thelma:schemata/RackPositionSet.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/rackpositionset" />
+                value="http://schemata.thelma.org/rackpositionset" />
             <option
                 name="xml_prefix"
                 value="rps" />
@@ -2877,7 +2877,7 @@
                 value="thelma:schemata/RackShape.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/rackshape" />
+                value="http://schemata.thelma.org/rackshape" />
             <option
                 name="xml_prefix"
                 value="rs" />
@@ -2915,19 +2915,19 @@
                 value="thelma:schemata/RackSpecs.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/rackspecs" />
+                value="http://schemata.thelma.org/rackspecs" />
             <option
                 name="xml_prefix"
                 value="rsp" />
             <attribute name="shape">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/rackspecs" />
+                    value="http://schemata.thelma.org/rackspecs" />
             </attribute>
             <attribute name="manufacturer">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/rackspecs" />
+                    value="http://schemata.thelma.org/rackspecs" />
             </attribute>
         </representer>
         <representer
@@ -2967,7 +2967,7 @@
                     value="false" />
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/rackspecs" />
+                    value="http://schemata.thelma.org/rackspecs" />
             </attribute>
         </representer>
     </resource>
@@ -3036,14 +3036,14 @@
                 value="thelma:schemata/SampleMolecule.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/samplemolecule" />
+                value="http://schemata.thelma.org/samplemolecule" />
             <option
                 name="xml_prefix"
                 value="sm" />
             <attribute name="supplier">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/samplemolecule" />
+                    value="http://schemata.thelma.org/samplemolecule" />
             </attribute>
             <attribute name="supplier_molecule_design">
                 <option
@@ -3162,7 +3162,7 @@
                 value="thelma:schemata/Species.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/species" />
+                value="http://schemata.thelma.org/species" />
             <option
                 name="xml_prefix"
                 value="sc" />
@@ -3210,7 +3210,7 @@
                 value="thelma:schemata/StockInfo.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/stockinfo" />
+                value="http://schemata.thelma.org/stockinfo" />
             <option
                 name="xml_prefix"
                 value="si" />
@@ -3284,7 +3284,7 @@
                 value="thelma:schemata/StockSample.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/stocksample" />
+                value="http://schemata.thelma.org/stocksample" />
             <option
                 name="xml_prefix"
                 value="ss" />
@@ -3321,7 +3321,7 @@
                 value="thelma:schemata/SubProject.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/subproject" />
+                value="http://schemata.thelma.org/subproject" />
             <option
                 name="xml_prefix"
                 value="sp" />
@@ -3364,14 +3364,14 @@
                 value="thelma:schemata/SupplierMoleculeDesign.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/suppliermoleculedesign" />
+                value="http://schemata.thelma.org/suppliermoleculedesign" />
             <option
                 name="xml_prefix"
                 value="smd" />
             <attribute name="supplier">
                 <option
                     name="namespace"
-                    value="http://schemata.cenix-bioscience.com/suppliermoleculedesign" />
+                    value="http://schemata.thelma.org/suppliermoleculedesign" />
             </attribute>
         </representer>
         <representer
@@ -3406,7 +3406,7 @@
                 value="thelma:schemata/Tag.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/tag" />
+                value="http://schemata.thelma.org/tag" />
             <option
                 name="xml_prefix"
                 value="t" />
@@ -3444,7 +3444,7 @@
                 value="thelma:schemata/TaggedRackPositionSet.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/taggedrackpositionset" />
+                value="http://schemata.thelma.org/taggedrackpositionset" />
             <option
                 name="xml_prefix"
                 value="tp" />
@@ -3498,7 +3498,7 @@
                 value="thelma:schemata/User.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/user" />
+                value="http://schemata.thelma.org/user" />
             <option
                 name="xml_prefix"
                 value="u" />
@@ -3545,7 +3545,7 @@
                 value="thelma:schemata/TubeTransfer.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/tubetransfer" />
+                value="http://schemata.thelma.org/tubetransfer" />
             <option
                 name="xml_prefix"
                 value="tt" />
@@ -3583,7 +3583,7 @@
                 value="thelma:schemata/TubeTransferWorklist.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/tubetransferworklist" />
+                value="http://schemata.thelma.org/tubetransferworklist" />
             <option
                 name="xml_prefix"
                 value="ttw" />
@@ -3621,7 +3621,7 @@
                 value="thelma:schemata/UserPreferences.xsd" />
             <option
                 name="xml_ns"
-                value="http://schemata.cenix-bioscience.com/userpreferences" />
+                value="http://schemata.thelma.org/userpreferences" />
             <option
                 name="xml_prefix"
                 value="up" />

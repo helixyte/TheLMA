@@ -52,21 +52,21 @@ There is no reason to incite more confusion than necessary.
    :linenos:
 
    <schema
-       targetNamespace="http://schemata.cenix-bioscience.com/example"
+       targetNamespace="http://schemata.thelma.org/example"
        elementFormDefault="qualified"
        xmlns="http://www.w3.org/2001/XMLSchema"
-       xmlns:e="http://schemata.cenix-bioscience.com/example"
-       xmlns:t="http://schemata.cenix-bioscience.com/thing"
-       xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+       xmlns:e="http://schemata.thelma.org/example"
+       xmlns:t="http://schemata.thelma.org/thing"
+       xmlns:sh="http://schemata.thelma.org/shared"
    >
        <import
            schemaLocation="Shared.xsd"
-           namespace="http://schemata.cenix-bioscience.com/shared"
+           namespace="http://schemata.thelma.org/shared"
        >
        </import>
        <import
            schemaLocation="Thing.xsd"
-           namespace="http://schemata.cenix-bioscience.com/thing"
+           namespace="http://schemata.thelma.org/thing"
        >
        </import>
 
@@ -193,7 +193,7 @@ Modify the :attr:`fixed` attribute (*line 11*) and name the type (*line 2*).
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/example"
+                    fixed="http://relations.thelma.org/example"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -289,12 +289,12 @@ The complete schema could look like this:
    <!-- Root Element and Namespaces -->
 
    <schema
-       targetNamespace="http://schemata.cenix-bioscience.com/example"
+       targetNamespace="http://schemata.thelma.org/example"
        elementFormDefault="qualified"
        xmlns="http://www.w3.org/2001/XMLSchema"
-       xmlns:e="http://schemata.cenix-bioscience.com/example"
-       xmlns:t="http://schemata.cenix-bioscience.com/thing"
-       xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+       xmlns:e="http://schemata.thelma.org/example"
+       xmlns:t="http://schemata.thelma.org/thing"
+       xmlns:sh="http://schemata.thelma.org/shared"
    >
 
 
@@ -302,12 +302,12 @@ The complete schema could look like this:
 
        <import
            schemaLocation="Shared.xsd"
-           namespace="http://schemata.cenix-bioscience.com/shared"
+           namespace="http://schemata.thelma.org/shared"
        >
        </import>
        <import
            schemaLocation="Thing.xsd"
-           namespace="http://schemata.cenix-bioscience.com/thing"
+           namespace="http://schemata.thelma.org/thing"
        >
        </import>
 
@@ -373,7 +373,7 @@ The complete schema could look like this:
                    <attribute
                        name="rel"
                        type="string"
-                       fixed="http://relations.cenix-bioscience.com/example"
+                       fixed="http://relations.thelma.org/example"
                    ></attribute>
                </restriction>
            </complexContent>

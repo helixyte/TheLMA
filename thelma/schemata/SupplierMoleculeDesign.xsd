@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
     xmlns="http://www.w3.org/2001/XMLSchema"
-    targetNamespace="http://schemata.cenix-bioscience.com/suppliermoleculedesign"
+    targetNamespace="http://schemata.thelma.org/suppliermoleculedesign"
     elementFormDefault="qualified"
-    xmlns:o="http://schemata.cenix-bioscience.com/organization"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:smd="http://schemata.cenix-bioscience.com/suppliermoleculedesign"
+    xmlns:o="http://schemata.thelma.org/organization"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:smd="http://schemata.thelma.org/suppliermoleculedesign"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="Organization.xsd"
-        namespace="http://schemata.cenix-bioscience.com/organization"
+        namespace="http://schemata.thelma.org/organization"
     >
     </import>
 
@@ -70,7 +70,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/supplier-molecule-design"
+                    fixed="http://relations.thelma.org/supplier-molecule-design"
                 >
                 </attribute>
             </restriction>
@@ -84,7 +84,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/supplier-molecule-design-collection"
+                    fixed="http://relations.thelma.org/supplier-molecule-design-collection"
                 >
                 </attribute>
             </restriction>

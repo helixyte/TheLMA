@@ -1,5 +1,5 @@
--- introduces a table that stores the properties of the pipetting robots
--- available at Cenix (including manual pipetting)
+-- introduces a table that stores pipetting robot properties
+-- (including manual pipetting).
 
 SELECT assert('(select version from db_version) = 209.0015');
 

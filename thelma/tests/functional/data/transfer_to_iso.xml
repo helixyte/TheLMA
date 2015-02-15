@@ -1,4 +1,4 @@
-<isor:lab_iso_request xmlns:iso="http://schemata.cenix-bioscience.com/iso" xmlns:isor="http://schemata.cenix-bioscience.com/isorequest">
+<isor:lab_iso_request xmlns:iso="http://schemata.thelma.org/iso" xmlns:isor="http://schemata.thelma.org/isorequest">
   <iso:isos>
     <iso:iso id="%d">
       <iso:status>PIPETTING</iso:status>

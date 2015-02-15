@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/stockinfo"
+    targetNamespace="http://schemata.thelma.org/stockinfo"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:si="http://schemata.cenix-bioscience.com/stockinfo"
-    xmlns:g="http://schemata.cenix-bioscience.com/gene"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:mds="http://schemata.cenix-bioscience.com/moleculedesignset"
-    xmlns:mt="http://schemata.cenix-bioscience.com/moleculetype"
+    xmlns:si="http://schemata.thelma.org/stockinfo"
+    xmlns:g="http://schemata.thelma.org/gene"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:mds="http://schemata.thelma.org/moleculedesignset"
+    xmlns:mt="http://schemata.thelma.org/moleculetype"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="MoleculeDesignSet.xsd"
-        namespace="http://schemata.cenix-bioscience.com/moleculedesignset"
+        namespace="http://schemata.thelma.org/moleculedesignset"
     >
     </import>
     <import
         schemaLocation="Gene.xsd"
-        namespace="http://schemata.cenix-bioscience.com/gene"
+        namespace="http://schemata.thelma.org/gene"
     >
     </import>
     <import
         schemaLocation="MoleculeType.xsd"
-        namespace="http://schemata.cenix-bioscience.com/moleculetype"
+        namespace="http://schemata.thelma.org/moleculetype"
     >
     </import>
 
@@ -105,7 +105,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/stock-info"
+                    fixed="http://relations.thelma.org/stock-info"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -117,7 +117,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/stock-info-collection"
+                    fixed="http://relations.thelma.org/stock-info-collection"
                 ></attribute>
             </restriction>
         </complexContent>

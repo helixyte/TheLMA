@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/rackspecs"
+    targetNamespace="http://schemata.thelma.org/rackspecs"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:csp="http://schemata.cenix-bioscience.com/containerspecs"
-    xmlns:o="http://schemata.cenix-bioscience.com/organization"
-    xmlns:rs="http://schemata.cenix-bioscience.com/rackshape"
-    xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:csp="http://schemata.thelma.org/containerspecs"
+    xmlns:o="http://schemata.thelma.org/organization"
+    xmlns:rs="http://schemata.thelma.org/rackshape"
+    xmlns:rsp="http://schemata.thelma.org/rackspecs"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="RackShape.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rackshape"
+        namespace="http://schemata.thelma.org/rackshape"
     >
     </import>
     <import
         schemaLocation="Organization.xsd"
-        namespace="http://schemata.cenix-bioscience.com/organization"
+        namespace="http://schemata.thelma.org/organization"
     >
     </import>
     <import
         schemaLocation="ContainerSpecs.xsd"
-        namespace="http://schemata.cenix-bioscience.com/containerspecs"
+        namespace="http://schemata.thelma.org/containerspecs"
     >
     </import>
 
@@ -182,7 +182,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/rack-specs"
+                    fixed="http://relations.thelma.org/rack-specs"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -198,7 +198,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/tube-rack-specs"
+                    fixed="http://relations.thelma.org/tube-rack-specs"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -214,7 +214,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/plate-specs"
+                    fixed="http://relations.thelma.org/plate-specs"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -230,7 +230,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/rack-specs-collection"
+                    fixed="http://relations.thelma.org/rack-specs-collection"
                 ></attribute>
             </restriction>
         </complexContent>

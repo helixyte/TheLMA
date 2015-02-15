@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/rackpositionset"
+    targetNamespace="http://schemata.thelma.org/rackpositionset"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:rps="http://schemata.cenix-bioscience.com/rackpositionset"
-    xmlns:rp="http://schemata.cenix-bioscience.com/rackposition"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:rps="http://schemata.thelma.org/rackpositionset"
+    xmlns:rp="http://schemata.thelma.org/rackposition"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
     <import
         schemaLocation="RackPosition.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rackposition"
+        namespace="http://schemata.thelma.org/rackposition"
     >
     </import>
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
@@ -74,7 +74,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/rack-position-set"
+                    fixed="http://relations.thelma.org/rack-position-set"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -90,7 +90,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/rack-position-set-collection"
+                    fixed="http://relations.thelma.org/rack-position-set-collection"
                 ></attribute>
             </restriction>
         </complexContent>

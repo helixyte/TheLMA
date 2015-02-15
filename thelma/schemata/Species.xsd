@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/species"
+    targetNamespace="http://schemata.thelma.org/species"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:sc="http://schemata.cenix-bioscience.com/species"
-    xmlns:g="http://schemata.cenix-bioscience.com/gene"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:sc="http://schemata.thelma.org/species"
+    xmlns:g="http://schemata.thelma.org/gene"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="Gene.xsd"
-        namespace="http://schemata.cenix-bioscience.com/gene"
+        namespace="http://schemata.thelma.org/gene"
     >
     </import>
 
@@ -103,7 +103,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/species"
+                    fixed="http://relations.thelma.org/species"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -119,7 +119,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/species-collection"
+                    fixed="http://relations.thelma.org/species-collection"
                 ></attribute>
             </restriction>
         </complexContent>

@@ -1,49 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/experimentmetadata"
+    targetNamespace="http://schemata.thelma.org/experimentmetadata"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:em="http://schemata.cenix-bioscience.com/experimentmetadata"
-    xmlns:emt="http://schemata.cenix-bioscience.com/experimentmetadatatype"
-    xmlns:ed="http://schemata.cenix-bioscience.com/experimentdesign"
-    xmlns:isor="http://schemata.cenix-bioscience.com/isorequest"
-    xmlns:mdps="http://schemata.cenix-bioscience.com/moleculedesignpoolset"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:sp="http://schemata.cenix-bioscience.com/subproject"
+    xmlns:em="http://schemata.thelma.org/experimentmetadata"
+    xmlns:emt="http://schemata.thelma.org/experimentmetadatatype"
+    xmlns:ed="http://schemata.thelma.org/experimentdesign"
+    xmlns:isor="http://schemata.thelma.org/isorequest"
+    xmlns:mdps="http://schemata.thelma.org/moleculedesignpoolset"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:sp="http://schemata.thelma.org/subproject"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
     <import
         schemaLocation="ExperimentDesign.xsd"
-        namespace="http://schemata.cenix-bioscience.com/experimentdesign"
+        namespace="http://schemata.thelma.org/experimentdesign"
     >
     </import>
 
     <import
         schemaLocation="ExperimentMetaDataType.xsd"
-        namespace="http://schemata.cenix-bioscience.com/experimentmetadatatype"
+        namespace="http://schemata.thelma.org/experimentmetadatatype"
     >
     </import>
 
     <import
         schemaLocation="MoleculeDesignPoolSet.xsd"
-        namespace="http://schemata.cenix-bioscience.com/moleculedesignpoolset"
+        namespace="http://schemata.thelma.org/moleculedesignpoolset"
     >
     </import>
 
     <import
         schemaLocation="IsoRequest.xsd"
-        namespace="http://schemata.cenix-bioscience.com/isorequest"
+        namespace="http://schemata.thelma.org/isorequest"
     >
     </import>
 
     <import
         schemaLocation="Subproject.xsd"
-        namespace="http://schemata.cenix-bioscience.com/subproject"
+        namespace="http://schemata.thelma.org/subproject"
     >
     </import>
 
@@ -153,7 +153,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-metadata"
+                    fixed="http://relations.thelma.org/experiment-metadata"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -169,7 +169,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-metadata-collection"
+                    fixed="http://relations.thelma.org/experiment-metadata-collection"
                 ></attribute>
             </restriction>
         </complexContent>

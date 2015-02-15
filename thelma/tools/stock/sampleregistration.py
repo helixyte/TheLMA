@@ -165,7 +165,7 @@ class SampleRegistrar(RegistrationTool):
      * If location information was provided in the registration items,
        validate the tube locations against the validation files (rack
        scanning files). Write a CSV file mapping the supplier rack barcodes
-       from the registration items to the Cenix barcodes of the freshly
+       from the registration items to the TheLMA barcodes of the freshly
        created racks;
      * Create stock samples.
 
@@ -174,7 +174,7 @@ class SampleRegistrar(RegistrationTool):
       stock_samples : list of stock samples created.
       tubes : list of tubes created.
       molecule_design_pools : list of molecule design pools created.
-      supplier_rack_barcodes : dictionary supplier barcode -> Cenix barcode
+      supplier_rack_barcodes : dictionary supplier barcode -> TheLMA barcode
     """
     NAME = 'SampleRegistrar'
 
@@ -239,7 +239,7 @@ class SampleRegistrar(RegistrationTool):
             else:
                 self.__check_wells()
         if not self.has_errors():
-            # Store supplier rack barcode -> Cenix rack barcode map.
+            # Store supplier rack barcode -> TheLMA rack barcode map.
             self.return_value['rack_barcodes'] = \
                         self.__new_rack_supplier_barcode_map.items()
         if not self.has_errors() and self.__has_location_info:
@@ -437,7 +437,7 @@ class SampleRegistrar(RegistrationTool):
                     processed_racks.add(sri.rack)
                     reg_rsl = RackScanningLayout.from_rack(sri.rack)
                     # The barcode of the scanned rack could be a supplier
-                    # barcode for which we just created a new Cenix barcode.
+                    # barcode for which we just created a new TheLMA barcode.
                     rack_bc = self.__new_rack_supplier_barcode_map.get(
                                                     sri.rack,
                                                     reg_rsl.rack_barcode)

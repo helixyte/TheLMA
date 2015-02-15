@@ -2,9 +2,6 @@
 This file is part of the TheLMA (THe Laboratory Management Application) project.
 See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
 
-:Date: 2011 Aug 1st
-:Author: AAB, berger at cenix-bioscience dot com
-
 .. currentmodule:: thelma.tools.metadata.generation
 
 This is the handler for ISO and transfection parsing. It converts the parsing

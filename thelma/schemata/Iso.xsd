@@ -1,56 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/iso"
+    targetNamespace="http://schemata.thelma.org/iso"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:iso="http://schemata.cenix-bioscience.com/iso"
-    xmlns:isor="http://schemata.cenix-bioscience.com/isorequest"
-    xmlns:isr="http://schemata.cenix-bioscience.com/isostockrack"
-    xmlns:j="http://schemata.cenix-bioscience.com/job"
-    xmlns:lp="http://schemata.cenix-bioscience.com/libraryplate"
-    xmlns:mdps="http://schemata.cenix-bioscience.com/moleculedesignpoolset"
-    xmlns:r="http://schemata.cenix-bioscience.com/rack"
-    xmlns:rl="http://schemata.cenix-bioscience.com/racklayout"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:iso="http://schemata.thelma.org/iso"
+    xmlns:isor="http://schemata.thelma.org/isorequest"
+    xmlns:isr="http://schemata.thelma.org/isostockrack"
+    xmlns:j="http://schemata.thelma.org/job"
+    xmlns:lp="http://schemata.thelma.org/libraryplate"
+    xmlns:mdps="http://schemata.thelma.org/moleculedesignpoolset"
+    xmlns:r="http://schemata.thelma.org/rack"
+    xmlns:rl="http://schemata.thelma.org/racklayout"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
     <import
         schemaLocation="IsoRequest.xsd"
-        namespace="http://schemata.cenix-bioscience.com/isorequest"
+        namespace="http://schemata.thelma.org/isorequest"
     >
     </import>
     <import
         schemaLocation="IsoStockRack.xsd"
-        namespace="http://schemata.cenix-bioscience.com/isostockrack"
+        namespace="http://schemata.thelma.org/isostockrack"
     >
     </import>
     <import
         schemaLocation="Job.xsd"
-        namespace="http://schemata.cenix-bioscience.com/job"
+        namespace="http://schemata.thelma.org/job"
     >
     </import>
     <import
         schemaLocation="LibraryPlate.xsd"
-        namespace="http://schemata.cenix-bioscience.com/libraryplate"
+        namespace="http://schemata.thelma.org/libraryplate"
     >
     </import>
     <import
         schemaLocation="MoleculeDesignPoolSet.xsd"
-        namespace="http://schemata.cenix-bioscience.com/moleculedesignpoolset"
+        namespace="http://schemata.thelma.org/moleculedesignpoolset"
     >
     </import>
     <import
         schemaLocation="Rack.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rack"
+        namespace="http://schemata.thelma.org/rack"
     >
     </import>
     <import
         schemaLocation="RackLayout.xsd"
-        namespace="http://schemata.cenix-bioscience.com/racklayout"
+        namespace="http://schemata.thelma.org/racklayout"
     >
     </import>
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
@@ -202,7 +202,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/iso"
+                    fixed="http://relations.thelma.org/iso"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -214,7 +214,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/lab-iso"
+                    fixed="http://relations.thelma.org/lab-iso"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -226,7 +226,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/iso-collection"
+                    fixed="http://relations.thelma.org/iso-collection"
                 ></attribute>
             </restriction>
         </complexContent>

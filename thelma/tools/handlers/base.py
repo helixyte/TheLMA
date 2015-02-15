@@ -2,8 +2,6 @@
 This file is part of the TheLMA (THe Laboratory Management Application) project.
 See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
 
-:Date: 2011-05
-:Author: AAB, berger at cenix-bioscience dot com
 
 Parser handler base classes. Handlers initializes and run parsers and
 transform their results to entities, if the parser was completed successfully.

@@ -2,9 +2,6 @@
 This file is part of the TheLMA (THe Laboratory Management Application) project.
 See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
 
-:Date: 2011 July
-:Author: AAB, berger at cenix-bioscience dot com
-
 This is an Excel parser getting molecule design pool sets from Excel Files.
 The molecule design pool IDs can for instance be used for the generation of
 ISOs.

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <xs:schema
     xmlns:xs="http://www.w3.org/2001/XMLSchema"
-    targetNamespace="http://schemata.cenix-bioscience.com/service"
+    targetNamespace="http://schemata.thelma.org/service"
     elementFormDefault="qualified"
-    xmlns="http://schemata.cenix-bioscience.com/service"
+    xmlns="http://schemata.thelma.org/service"
 >
 
     <!-- SHARED TYPES -->
@@ -214,7 +214,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/container"
+                    fixed="http://relations.thelma.org/container"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -229,7 +229,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/container-collection"
+                    fixed="http://relations.thelma.org/container-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -380,7 +380,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/container-specs"
+                    fixed="http://relations.thelma.org/container-specs"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -396,7 +396,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/container-specs-collection"
+                    fixed="http://relations.thelma.org/container-specs-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -506,7 +506,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/device"
+                    fixed="http://relations.thelma.org/device"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -522,7 +522,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/device-collection"
+                    fixed="http://relations.thelma.org/device-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -606,7 +606,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/device-type"
+                    fixed="http://relations.thelma.org/device-type"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -622,7 +622,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/device-type-collection"
+                    fixed="http://relations.thelma.org/device-type-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -731,7 +731,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/experiment"
+                    fixed="http://relations.thelma.org/experiment"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -747,7 +747,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-collection"
+                    fixed="http://relations.thelma.org/experiment-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -844,7 +844,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-design"
+                    fixed="http://relations.thelma.org/experiment-design"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -859,7 +859,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-design-collection"
+                    fixed="http://relations.thelma.org/experiment-design-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -948,7 +948,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-design-rack"
+                    fixed="http://relations.thelma.org/experiment-design-rack"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -964,7 +964,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-design-rack"
+                    fixed="http://relations.thelma.org/experiment-design-rack"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -1066,7 +1066,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-metadata"
+                    fixed="http://relations.thelma.org/experiment-metadata"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -1082,7 +1082,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-metadata-collection"
+                    fixed="http://relations.thelma.org/experiment-metadata-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -1182,7 +1182,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-rack"
+                    fixed="http://relations.thelma.org/experiment-rack"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -1198,7 +1198,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-rack-collection"
+                    fixed="http://relations.thelma.org/experiment-rack-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -1289,7 +1289,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/gene"
+                    fixed="http://relations.thelma.org/gene"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -1305,7 +1305,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/gene-collection"
+                    fixed="http://relations.thelma.org/gene-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -1398,7 +1398,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/iso"
+                    fixed="http://relations.thelma.org/iso"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -1414,7 +1414,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/iso-collection"
+                    fixed="http://relations.thelma.org/iso-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -1531,7 +1531,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/iso-request"
+                    fixed="http://relations.thelma.org/iso-request"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -1547,7 +1547,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/iso-request-collection"
+                    fixed="http://relations.thelma.org/iso-request-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -1633,7 +1633,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/item-status"
+                    fixed="http://relations.thelma.org/item-status"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -1649,7 +1649,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/item-status-collection"
+                    fixed="http://relations.thelma.org/item-status-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -1779,7 +1779,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/job"
+                    fixed="http://relations.thelma.org/job"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -1795,7 +1795,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/job-collection"
+                    fixed="http://relations.thelma.org/job-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -1874,7 +1874,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/job-type"
+                    fixed="http://relations.thelma.org/job-type"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -1890,7 +1890,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/job-type-collection"
+                    fixed="http://relations.thelma.org/job-type-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2002,7 +2002,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/location"
+                    fixed="http://relations.thelma.org/location"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2018,7 +2018,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/location-collection"
+                    fixed="http://relations.thelma.org/location-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2097,7 +2097,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/location-type"
+                    fixed="http://relations.thelma.org/location-type"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2113,7 +2113,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/location-type-collection"
+                    fixed="http://relations.thelma.org/location-type-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2209,7 +2209,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/molecule"
+                    fixed="http://relations.thelma.org/molecule"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2225,7 +2225,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/molecule-collection"
+                    fixed="http://relations.thelma.org/molecule-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2319,7 +2319,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/molecule-design"
+                    fixed="http://relations.thelma.org/molecule-design"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2335,7 +2335,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/molecule-design-collection"
+                    fixed="http://relations.thelma.org/molecule-design-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2408,7 +2408,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/molecule-design-set"
+                    fixed="http://relations.thelma.org/molecule-design-set"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2424,7 +2424,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/molecule-design-set-collection"
+                    fixed="http://relations.thelma.org/molecule-design-set-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2530,7 +2530,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/molecule-type"
+                    fixed="http://relations.thelma.org/molecule-type"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2546,7 +2546,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/molecule-type-collection"
+                    fixed="http://relations.thelma.org/molecule-type-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2623,7 +2623,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/organization"
+                    fixed="http://relations.thelma.org/organization"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2639,7 +2639,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/organization-collection"
+                    fixed="http://relations.thelma.org/organization-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2741,7 +2741,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/project"
+                    fixed="http://relations.thelma.org/project"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2757,7 +2757,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/project-collection"
+                    fixed="http://relations.thelma.org/project-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2936,7 +2936,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/rack"
+                    fixed="http://relations.thelma.org/rack"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -2952,7 +2952,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/rack-collection"
+                    fixed="http://relations.thelma.org/rack-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -3048,7 +3048,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/rack-layout"
+                    fixed="http://relations.thelma.org/rack-layout"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -3064,7 +3064,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/rack-layout-collection"
+                    fixed="http://relations.thelma.org/rack-layout-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -3146,7 +3146,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/rack-position"
+                    fixed="http://relations.thelma.org/rack-position"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -3162,7 +3162,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/rack-position-collection"
+                    fixed="http://relations.thelma.org/rack-position-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -3239,7 +3239,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/rack-position-set"
+                    fixed="http://relations.thelma.org/rack-position-set"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -3255,7 +3255,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/rack-position-set-collection"
+                    fixed="http://relations.thelma.org/rack-position-set-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -3346,7 +3346,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/rack-shape"
+                    fixed="http://relations.thelma.org/rack-shape"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -3362,7 +3362,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/rack-shape-collection"
+                    fixed="http://relations.thelma.org/rack-shape-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -3520,7 +3520,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/rackspecs"
+                    fixed="http://relations.thelma.org/rackspecs"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -3536,7 +3536,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/rackspecs-collection"
+                    fixed="http://relations.thelma.org/rackspecs-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -3630,7 +3630,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/sample"
+                    fixed="http://relations.thelma.org/sample"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -3646,7 +3646,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/sample-collection"
+                    fixed="http://relations.thelma.org/sample-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -3761,7 +3761,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/sample-molecule"
+                    fixed="http://relations.thelma.org/sample-molecule"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -3777,7 +3777,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/sample-molecule-collection"
+                    fixed="http://relations.thelma.org/sample-molecule-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -3890,7 +3890,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/species"
+                    fixed="http://relations.thelma.org/species"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -3906,7 +3906,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/species-collection"
+                    fixed="http://relations.thelma.org/species-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -4023,7 +4023,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/stock-info"
+                    fixed="http://relations.thelma.org/stock-info"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -4039,7 +4039,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/stock-info-collection"
+                    fixed="http://relations.thelma.org/stock-info-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -4141,7 +4141,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/subproject"
+                    fixed="http://relations.thelma.org/subproject"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -4157,7 +4157,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/subproject-collection"
+                    fixed="http://relations.thelma.org/subproject-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -4250,7 +4250,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/tag"
+                    fixed="http://relations.thelma.org/tag"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -4266,7 +4266,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/tag-collection"
+                    fixed="http://relations.thelma.org/tag-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -4345,7 +4345,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/tagged-rack-position-set"
+                    fixed="http://relations.thelma.org/tagged-rack-position-set"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -4361,7 +4361,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/tagged-rack-position-set-collection"
+                    fixed="http://relations.thelma.org/tagged-rack-position-set-collection"
                 ></xs:attribute>
             </xs:restriction>
         </xs:complexContent>
@@ -4438,7 +4438,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/user-collection"
+                    fixed="http://relations.thelma.org/user-collection"
                 >
                 </xs:attribute>
             </xs:restriction>
@@ -4455,7 +4455,7 @@
                 <xs:attribute
                     name="rel"
                     type="xs:string"
-                    fixed="http://relations.cenix-bioscience.com/user"
+                    fixed="http://relations.thelma.org/user"
                 >
                 </xs:attribute>
             </xs:restriction>

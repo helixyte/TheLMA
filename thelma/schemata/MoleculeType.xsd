@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/moleculetype"
+    targetNamespace="http://schemata.thelma.org/moleculetype"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:mt="http://schemata.cenix-bioscience.com/moleculetype"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:chs="http://schemata.cenix-bioscience.com/chemicalstructure"
+    xmlns:mt="http://schemata.thelma.org/moleculetype"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:chs="http://schemata.thelma.org/chemicalstructure"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="ChemicalStructure.xsd"
-        namespace="http://schemata.cenix-bioscience.com/chemicalstructure"
+        namespace="http://schemata.thelma.org/chemicalstructure"
     >
     </import>
 
@@ -95,7 +95,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/molecule-type"
+                    fixed="http://relations.thelma.org/molecule-type"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -111,7 +111,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/molecule-type-collection"
+                    fixed="http://relations.thelma.org/molecule-type-collection"
                 ></attribute>
             </restriction>
         </complexContent>

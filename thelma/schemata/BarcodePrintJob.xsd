@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/barcodeprintjob"
+    targetNamespace="http://schemata.thelma.org/barcodeprintjob"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:bpj="http://schemata.cenix-bioscience.com/barcodeprintjob"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:dt="http://schemata.cenix-bioscience.com/barcodetype"
-    xmlns:l="http://schemata.cenix-bioscience.com/location"
-    xmlns:o="http://schemata.cenix-bioscience.com/organization"
+    xmlns:bpj="http://schemata.thelma.org/barcodeprintjob"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:dt="http://schemata.thelma.org/barcodetype"
+    xmlns:l="http://schemata.thelma.org/location"
+    xmlns:o="http://schemata.thelma.org/organization"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
@@ -89,7 +89,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/barcode"
+                    fixed="http://relations.thelma.org/barcode"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -105,7 +105,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/barcode-collection"
+                    fixed="http://relations.thelma.org/barcode-collection"
                 ></attribute>
             </restriction>
         </complexContent>

@@ -118,7 +118,7 @@ class Rack(Entity):
     @classmethod
     def is_valid_barcode(cls, barcode):
         """
-        Checks if the given value is a valid Cenix rack barcode.
+        Checks if the given value is a valid rack barcode.
         """
         return isinstance(barcode, basestring) \
                and RACK_BARCODE_REGEXP.match(barcode)

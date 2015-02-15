@@ -1,4 +1,4 @@
-<isor:lab_iso_request xmlns:j="http://schemata.cenix-bioscience.com/job" xmlns:isor="http://schemata.cenix-bioscience.com/isorequest">
+<isor:lab_iso_request xmlns:j="http://schemata.thelma.org/job" xmlns:isor="http://schemata.thelma.org/isorequest">
   <j:jobs>
     <j:iso_job id="%d">
       <j:status>PIPETTING</j:status>

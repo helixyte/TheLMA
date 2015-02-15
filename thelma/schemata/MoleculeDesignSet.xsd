@@ -1,42 +1,42 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/moleculedesignset"
+    targetNamespace="http://schemata.thelma.org/moleculedesignset"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:mds="http://schemata.cenix-bioscience.com/moleculedesignset"
-    xmlns:md="http://schemata.cenix-bioscience.com/moleculedesign"
-    xmlns:mt="http://schemata.cenix-bioscience.com/moleculetype"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:smd="http://schemata.cenix-bioscience.com/suppliermoleculedesign"
-    xmlns:g="http://schemata.cenix-bioscience.com/gene"
+    xmlns:mds="http://schemata.thelma.org/moleculedesignset"
+    xmlns:md="http://schemata.thelma.org/moleculedesign"
+    xmlns:mt="http://schemata.thelma.org/moleculetype"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:smd="http://schemata.thelma.org/suppliermoleculedesign"
+    xmlns:g="http://schemata.thelma.org/gene"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
     <import
         schemaLocation="MoleculeDesign.xsd"
-        namespace="http://schemata.cenix-bioscience.com/moleculedesign"
+        namespace="http://schemata.thelma.org/moleculedesign"
     >
     </import>
 
     <import
         schemaLocation="MoleculeType.xsd"
-        namespace="http://schemata.cenix-bioscience.com/moleculetype"
+        namespace="http://schemata.thelma.org/moleculetype"
     >
     </import>
 
     <import
         schemaLocation="Gene.xsd"
-        namespace="http://schemata.cenix-bioscience.com/gene"
+        namespace="http://schemata.thelma.org/gene"
     >
     </import>
 
     <import
         schemaLocation="SupplierMoleculeDesign.xsd"
-        namespace="http://schemata.cenix-bioscience.com/suppliermoleculedesign"
+        namespace="http://schemata.thelma.org/suppliermoleculedesign"
     >
     </import>
 
@@ -145,7 +145,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/molecule-design-set"
+                    fixed="http://relations.thelma.org/molecule-design-set"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -157,7 +157,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/molecule-design-pool"
+                    fixed="http://relations.thelma.org/molecule-design-pool"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -169,7 +169,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/molecule-design-set-collection"
+                    fixed="http://relations.thelma.org/molecule-design-set-collection"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -181,7 +181,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/molecule-design-pool-collection"
+                    fixed="http://relations.thelma.org/molecule-design-pool-collection"
                 ></attribute>
             </restriction>
         </complexContent>

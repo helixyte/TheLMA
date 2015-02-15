@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/device"
+    targetNamespace="http://schemata.thelma.org/device"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:d="http://schemata.cenix-bioscience.com/device"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:dt="http://schemata.cenix-bioscience.com/devicetype"
-    xmlns:l="http://schemata.cenix-bioscience.com/location"
-    xmlns:o="http://schemata.cenix-bioscience.com/organization"
+    xmlns:d="http://schemata.thelma.org/device"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:dt="http://schemata.thelma.org/devicetype"
+    xmlns:l="http://schemata.thelma.org/location"
+    xmlns:o="http://schemata.thelma.org/organization"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="DeviceType.xsd"
-        namespace="http://schemata.cenix-bioscience.com/devicetype"
+        namespace="http://schemata.thelma.org/devicetype"
     >
     </import>
     <import
         schemaLocation="Location.xsd"
-        namespace="http://schemata.cenix-bioscience.com/location"
+        namespace="http://schemata.thelma.org/location"
     >
     </import>
     <import
         schemaLocation="Organization.xsd"
-        namespace="http://schemata.cenix-bioscience.com/organization"
+        namespace="http://schemata.thelma.org/organization"
     >
     </import>
 
@@ -107,7 +107,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/device"
+                    fixed="http://relations.thelma.org/device"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -123,7 +123,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/device-collection"
+                    fixed="http://relations.thelma.org/device-collection"
                 ></attribute>
             </restriction>
         </complexContent>

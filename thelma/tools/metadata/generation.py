@@ -2,9 +2,6 @@
 This file is part of the TheLMA (THe Laboratory Management Application) project.
 See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
 
-:Date: 05 Aug 2011
-:Author: AAB, berger at cenix-bioscience dot com
-
 This module creates or updates an experiment metadata. It applies several
 parsers and tools.
 """

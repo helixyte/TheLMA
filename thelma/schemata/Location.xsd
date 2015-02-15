@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/location"
+    targetNamespace="http://schemata.thelma.org/location"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:l="http://schemata.cenix-bioscience.com/location"
-    xmlns:d="http://schemata.cenix-bioscience.com/device"
-    xmlns:r="http://schemata.cenix-bioscience.com/rack"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:l="http://schemata.thelma.org/location"
+    xmlns:d="http://schemata.thelma.org/device"
+    xmlns:r="http://schemata.thelma.org/rack"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="Device.xsd"
-        namespace="http://schemata.cenix-bioscience.com/device"
+        namespace="http://schemata.thelma.org/device"
     >
     </import>
     <import
         schemaLocation="Rack.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rack"
+        namespace="http://schemata.thelma.org/rack"
     >
     </import>
 
@@ -122,7 +122,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/location"
+                    fixed="http://relations.thelma.org/location"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -138,7 +138,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/location-collection"
+                    fixed="http://relations.thelma.org/location-collection"
                 ></attribute>
             </restriction>
         </complexContent>

@@ -1,28 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/moleculedesignpoolset"
+    targetNamespace="http://schemata.thelma.org/moleculedesignpoolset"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:mdps="http://schemata.cenix-bioscience.com/moleculedesignpoolset"
-    xmlns:mds="http://schemata.cenix-bioscience.com/moleculedesignset"
-    xmlns:mt="http://schemata.cenix-bioscience.com/moleculetype"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:mdps="http://schemata.thelma.org/moleculedesignpoolset"
+    xmlns:mds="http://schemata.thelma.org/moleculedesignset"
+    xmlns:mt="http://schemata.thelma.org/moleculetype"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
     <import
         schemaLocation="MoleculeDesignSet.xsd"
-        namespace="http://schemata.cenix-bioscience.com/moleculedesignset"
+        namespace="http://schemata.thelma.org/moleculedesignset"
     >
     </import>
 
     <import
         schemaLocation="MoleculeType.xsd"
-        namespace="http://schemata.cenix-bioscience.com/moleculetype"
+        namespace="http://schemata.thelma.org/moleculetype"
     >
     </import>
 
@@ -89,7 +89,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/molecule-design-pool-set"
+                    fixed="http://relations.thelma.org/molecule-design-pool-set"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -105,7 +105,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/molecule-design-pool-set-collection"
+                    fixed="http://relations.thelma.org/molecule-design-pool-set-collection"
                 ></attribute>
             </restriction>
         </complexContent>

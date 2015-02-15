@@ -1,70 +1,70 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/container"
+    targetNamespace="http://schemata.thelma.org/container"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:co="http://schemata.cenix-bioscience.com/container"
-    xmlns:csp="http://schemata.cenix-bioscience.com/containerspecs"
-    xmlns:o="http://schemata.cenix-bioscience.com/organization"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:r="http://schemata.cenix-bioscience.com/rack"
-    xmlns:l="http://schemata.cenix-bioscience.com/location"
-    xmlns:is="http://schemata.cenix-bioscience.com/itemstatus"
-    xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs"
-    xmlns:rp="http://schemata.cenix-bioscience.com/rackposition"
-    xmlns:sm="http://schemata.cenix-bioscience.com/samplemolecule"
+    xmlns:co="http://schemata.thelma.org/container"
+    xmlns:csp="http://schemata.thelma.org/containerspecs"
+    xmlns:o="http://schemata.thelma.org/organization"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:r="http://schemata.thelma.org/rack"
+    xmlns:l="http://schemata.thelma.org/location"
+    xmlns:is="http://schemata.thelma.org/itemstatus"
+    xmlns:rsp="http://schemata.thelma.org/rackspecs"
+    xmlns:rp="http://schemata.thelma.org/rackposition"
+    xmlns:sm="http://schemata.thelma.org/samplemolecule"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
     <import
         schemaLocation="ContainerSpecs.xsd"
-        namespace="http://schemata.cenix-bioscience.com/containerspecs"
+        namespace="http://schemata.thelma.org/containerspecs"
     >
     </import>
 
     <import
         schemaLocation="ItemStatus.xsd"
-        namespace="http://schemata.cenix-bioscience.com/itemstatus"
+        namespace="http://schemata.thelma.org/itemstatus"
     >
     </import>
 
     <import
         schemaLocation="Location.xsd"
-        namespace="http://schemata.cenix-bioscience.com/location"
+        namespace="http://schemata.thelma.org/location"
     >
     </import>
 
     <import
         schemaLocation="Organization.xsd"
-        namespace="http://schemata.cenix-bioscience.com/organization"
+        namespace="http://schemata.thelma.org/organization"
     >
     </import>
 
     <import
         schemaLocation="Rack.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rack"
+        namespace="http://schemata.thelma.org/rack"
     >
     </import>
 
     <import
         schemaLocation="RackSpecs.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rackspecs"
+        namespace="http://schemata.thelma.org/rackspecs"
     >
     </import>
 
     <import
         schemaLocation="RackPosition.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rackposition"
+        namespace="http://schemata.thelma.org/rackposition"
     >
     </import>
 
     <import
         schemaLocation="SampleMolecule.xsd"
-        namespace="http://schemata.cenix-bioscience.com/samplemolecule"
+        namespace="http://schemata.thelma.org/samplemolecule"
     >
     </import>
 
@@ -231,7 +231,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/container"
+                    fixed="http://relations.thelma.org/container"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -243,7 +243,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/container-collection"
+                    fixed="http://relations.thelma.org/container-collection"
                 ></attribute>
             </restriction>
         </complexContent>

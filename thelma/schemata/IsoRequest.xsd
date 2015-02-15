@@ -1,56 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/isorequest"
+    targetNamespace="http://schemata.thelma.org/isorequest"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:em="http://schemata.cenix-bioscience.com/experimentmetadata"
-    xmlns:emt="http://schemata.cenix-bioscience.com/experimentmetadatatype"
-    xmlns:iso="http://schemata.cenix-bioscience.com/iso"
-    xmlns:j="http://schemata.cenix-bioscience.com/job"
-    xmlns:isor="http://schemata.cenix-bioscience.com/isorequest"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:rl="http://schemata.cenix-bioscience.com/racklayout"
-    xmlns:u="http://schemata.cenix-bioscience.com/user"
+    xmlns:em="http://schemata.thelma.org/experimentmetadata"
+    xmlns:emt="http://schemata.thelma.org/experimentmetadatatype"
+    xmlns:iso="http://schemata.thelma.org/iso"
+    xmlns:j="http://schemata.thelma.org/job"
+    xmlns:isor="http://schemata.thelma.org/isorequest"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:rl="http://schemata.thelma.org/racklayout"
+    xmlns:u="http://schemata.thelma.org/user"
 >
     <import
         schemaLocation="ExperimentMetaData.xsd"
-        namespace="http://schemata.cenix-bioscience.com/experimentmetadata"
+        namespace="http://schemata.thelma.org/experimentmetadata"
     >
     </import>
 
     <import
         schemaLocation="ExperimentMetaDataType.xsd"
-        namespace="http://schemata.cenix-bioscience.com/experimentmetadatatype"
+        namespace="http://schemata.thelma.org/experimentmetadatatype"
     >
     </import>
 
     <import
         schemaLocation="Iso.xsd"
-        namespace="http://schemata.cenix-bioscience.com/iso"
+        namespace="http://schemata.thelma.org/iso"
     >
     </import>
 
     <import
         schemaLocation="Job.xsd"
-        namespace="http://schemata.cenix-bioscience.com/job"
+        namespace="http://schemata.thelma.org/job"
     >
     </import>
 
     <import
         schemaLocation="RackLayout.xsd"
-        namespace="http://schemata.cenix-bioscience.com/racklayout"
+        namespace="http://schemata.thelma.org/racklayout"
     >
     </import>
 
     <import
         schemaLocation="User.xsd"
-        namespace="http://schemata.cenix-bioscience.com/user"
+        namespace="http://schemata.thelma.org/user"
     >
     </import>
 
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
@@ -185,7 +185,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/iso-request"
+                    fixed="http://relations.thelma.org/iso-request"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -197,7 +197,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/lab-iso-request"
+                    fixed="http://relations.thelma.org/lab-iso-request"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -209,7 +209,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/iso-request-collection"
+                    fixed="http://relations.thelma.org/iso-request-collection"
                 ></attribute>
             </restriction>
         </complexContent>

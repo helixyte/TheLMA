@@ -11,4 +11,4 @@ __all__ = ['RELATION_BASE_URL',
            ]
 
 
-RELATION_BASE_URL = 'http://relations.cenix-bioscience.com'
+RELATION_BASE_URL = 'http://relations.thelma.org'

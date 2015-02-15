@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/experimentdesignrack"
+    targetNamespace="http://schemata.thelma.org/experimentdesignrack"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:edr="http://schemata.cenix-bioscience.com/experimentdesignrack"
-    xmlns:rl="http://schemata.cenix-bioscience.com/racklayout"
-    xmlns:rs="http://schemata.cenix-bioscience.com/rackshape"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:edr="http://schemata.thelma.org/experimentdesignrack"
+    xmlns:rl="http://schemata.thelma.org/racklayout"
+    xmlns:rs="http://schemata.thelma.org/rackshape"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="RackLayout.xsd"
-        namespace="http://schemata.cenix-bioscience.com/racklayout"
+        namespace="http://schemata.thelma.org/racklayout"
     >
     </import>
     <import
         schemaLocation="RackShape.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rackshape"
+        namespace="http://schemata.thelma.org/rackshape"
     >
     </import>
     <complexType
@@ -90,7 +90,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-design-rack"
+                    fixed="http://relations.thelma.org/experiment-design-rack"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -106,7 +106,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-design-rack-collection"
+                    fixed="http://relations.thelma.org/experiment-design-rack-collection"
                 ></attribute>
             </restriction>
         </complexContent>

@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/subproject"
+    targetNamespace="http://schemata.thelma.org/subproject"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:sp="http://schemata.cenix-bioscience.com/subproject"
-    xmlns:p="http://schemata.cenix-bioscience.com/project"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:sp="http://schemata.thelma.org/subproject"
+    xmlns:p="http://schemata.thelma.org/project"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="Project.xsd"
-        namespace="http://schemata.cenix-bioscience.com/project"
+        namespace="http://schemata.thelma.org/project"
     >
     </import>
 
@@ -96,7 +96,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/subproject"
+                    fixed="http://relations.thelma.org/subproject"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -112,7 +112,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/subproject-collection"
+                    fixed="http://relations.thelma.org/subproject-collection"
                 ></attribute>
             </restriction>
         </complexContent>

@@ -1,4 +1,4 @@
-[ { "__jsonclass__" : "http://relations.cenix-bioscience.com/supplier-sample-registration-item",
+[ { "__jsonclass__" : "http://relations.thelma.org/supplier-sample-registration-item",
     "supplier" : "http://localhost:6543/organizations/ambion",
     "product_id" : "s47766",
     "concentration" : 5.00E-005,
@@ -8,17 +8,17 @@
     "rack_barcode" : "AMB0123",
     "rack_position" : "http://localhost:6543/rack-positions/a1",
     "molecule_design_pool_registration_item" :
-    { "__jsonclass__" : "http://relations.cenix-bioscience.com/molecule-design-pool-registration-item",
+    { "__jsonclass__" : "http://relations.thelma.org/molecule-design-pool-registration-item",
       "molecule_design_registration_items" :
-	    [ { "__jsonclass__" : "http://relations.cenix-bioscience.com/molecule-design-registration-item",
+	    [ { "__jsonclass__" : "http://relations.thelma.org/molecule-design-registration-item",
 	        "chemical_structures" :
-	            [ { "__jsonclass__" : "http://relations.cenix-bioscience.com/chemical-structure",
+	            [ { "__jsonclass__" : "http://relations.thelma.org/chemical-structure",
 	                "structure_type_id" : "NUCLEIC_ACID",
 	                "representation" : "CGAAGGUUCAAUUCACAGAtt" },
-	              { "__jsonclass__" : "http://relations.cenix-bioscience.com/chemical-structure",
+	              { "__jsonclass__" : "http://relations.thelma.org/chemical-structure",
 	                "structure_type_id" : "NUCLEIC_ACID",
 	                "representation" : "UCUGUGAAUUGAACCUUCGag" },
-	              { "__jsonclass__" : "http://relations.cenix-bioscience.com/chemical-structure",
+	              { "__jsonclass__" : "http://relations.thelma.org/chemical-structure",
 	                "structure_type_id" : "MODIFICATION",
 	                "representation" : "Ambion H" }
 	                ]
@@ -26,7 +26,7 @@
 	      ]
 	  }
     },
-  { "__jsonclass__" : "http://relations.cenix-bioscience.com/supplier-sample-registration-item",
+  { "__jsonclass__" : "http://relations.thelma.org/supplier-sample-registration-item",
     "supplier" : "http://localhost:6543/organizations/ambion",
     "product_id" : "s-1",
     "concentration" : 5.00E-005,
@@ -36,17 +36,17 @@
     "rack_barcode" : "AMB0123",
     "rack_position" : "http://localhost:6543/rack-positions/a2",
     "molecule_design_pool_registration_item" :
-    { "__jsonclass__" : "http://relations.cenix-bioscience.com/molecule-design-pool-registration-item",
+    { "__jsonclass__" : "http://relations.thelma.org/molecule-design-pool-registration-item",
       "molecule_design_registration_items" :
-	    [ { "__jsonclass__" : "http://relations.cenix-bioscience.com/molecule-design-registration-item",
+	    [ { "__jsonclass__" : "http://relations.thelma.org/molecule-design-registration-item",
 	        "chemical_structures" :
-	            [ { "__jsonclass__" : "http://relations.cenix-bioscience.com/chemical-structure",
+	            [ { "__jsonclass__" : "http://relations.thelma.org/chemical-structure",
 	                "structure_type_id" : "NUCLEIC_ACID",
 	                "representation" : "AAAAAAAAAAAAAAAAAAAAAAA" },
-	              { "__jsonclass__" : "http://relations.cenix-bioscience.com/chemical-structure",
+	              { "__jsonclass__" : "http://relations.thelma.org/chemical-structure",
 	                "structure_type_id" : "NUCLEIC_ACID",
 	                "representation" : "UUUUUUUUUUUUUUUUUUUUUUU" },
-	              { "__jsonclass__" : "http://relations.cenix-bioscience.com/chemical-structure",
+	              { "__jsonclass__" : "http://relations.thelma.org/chemical-structure",
 	                "structure_type_id" : "MODIFICATION",
 	                "representation" : "Ambion H" }
 	                ]

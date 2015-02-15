@@ -332,7 +332,7 @@ and the global namespace prefix for the plugin.
 
    class _XML_EXAMPLE(XmlRepresenterConfiguration):
        xml_schema = 'thelma:schemata/Example.xsd'
-       xml_ns = 'http://schemata.cenix-bioscience.com/example'
+       xml_ns = 'http://schemata.thelma.org/example'
        xml_prefix = 'e'
 
 Finally, we need a set of classes containing the tag names for the root member

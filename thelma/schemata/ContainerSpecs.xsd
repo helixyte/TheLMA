@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/containerspecs"
+    targetNamespace="http://schemata.thelma.org/containerspecs"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:csp="http://schemata.cenix-bioscience.com/containerspecs"
-    xmlns:o="http://schemata.cenix-bioscience.com/organization"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:csp="http://schemata.thelma.org/containerspecs"
+    xmlns:o="http://schemata.thelma.org/organization"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
     <import
         schemaLocation="Organization.xsd"
-        namespace="http://schemata.cenix-bioscience.com/organization"
+        namespace="http://schemata.thelma.org/organization"
     >
     </import>
 
@@ -163,7 +163,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/container-specs"
+                    fixed="http://relations.thelma.org/container-specs"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -179,7 +179,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/tube-specs"
+                    fixed="http://relations.thelma.org/tube-specs"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -195,7 +195,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/well-specs"
+                    fixed="http://relations.thelma.org/well-specs"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -211,7 +211,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/container-specs-collection"
+                    fixed="http://relations.thelma.org/container-specs-collection"
                 ></attribute>
             </restriction>
         </complexContent>

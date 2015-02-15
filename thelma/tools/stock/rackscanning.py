@@ -17,7 +17,7 @@ import os
 from everest.entities.utils import get_root_aggregate
 from thelma.tools.handlers.rackscanning import RackScanningLayout
 from thelma.tools.handlers.rackscanning import \
-                                        CenixRackScanningParserHandler
+                                        RackScanningParserHandler
 from thelma.tools.base import BaseTool
 from thelma.tools.worklists.tubehandler import TubeTransferData
 from thelma.tools.worklists.tubehandler import TubeTransferExecutor
@@ -237,7 +237,7 @@ class RackScanningAdjuster(BaseTool):
     def __parse_rack_scanning_file(self, stream, file_name=None):
         # Converts the file stream and stores the resulting rack scanning
         # layout. Also checks the validity of the file time stamp.
-        parser_handler = CenixRackScanningParserHandler(stream, parent=self)
+        parser_handler = RackScanningParserHandler(stream, parent=self)
         rs_layout = parser_handler.get_result()
         if rs_layout is None:
             msg = 'Error when trying to parse rack scanning file.'

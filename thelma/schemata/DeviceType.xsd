@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/devicetype"
+    targetNamespace="http://schemata.thelma.org/devicetype"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:dt="http://schemata.cenix-bioscience.com/devicetype"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:d="http://schemata.cenix-bioscience.com/device"
+    xmlns:dt="http://schemata.thelma.org/devicetype"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:d="http://schemata.thelma.org/device"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="Device.xsd"
-        namespace="http://schemata.cenix-bioscience.com/device"
+        namespace="http://schemata.thelma.org/device"
     >
     </import>
 
@@ -88,7 +88,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/device-type"
+                    fixed="http://relations.thelma.org/device-type"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -103,7 +103,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/device-type-collection"
+                    fixed="http://relations.thelma.org/device-type-collection"
                 ></attribute>
             </restriction>
         </complexContent>

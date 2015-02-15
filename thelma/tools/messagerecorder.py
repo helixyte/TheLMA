@@ -3,7 +3,6 @@ This file is part of the TheLMA (THe Laboratory Management Application) project.
 See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
 
 :Date: May 2011
-:Author: AAB, berger at cenix-bioscience dot com
 """
 import logging
 

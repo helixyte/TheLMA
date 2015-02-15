@@ -1,49 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/job"
+    targetNamespace="http://schemata.thelma.org/job"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:j="http://schemata.cenix-bioscience.com/job"
-    xmlns:e="http://schemata.cenix-bioscience.com/experiment"
-    xmlns:iso="http://schemata.cenix-bioscience.com/iso"
-    xmlns:isr="http://schemata.cenix-bioscience.com/isostockrack"
-    xmlns:r="http://schemata.cenix-bioscience.com/rack"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:u="http://schemata.cenix-bioscience.com/user"
+    xmlns:j="http://schemata.thelma.org/job"
+    xmlns:e="http://schemata.thelma.org/experiment"
+    xmlns:iso="http://schemata.thelma.org/iso"
+    xmlns:isr="http://schemata.thelma.org/isostockrack"
+    xmlns:r="http://schemata.thelma.org/rack"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:u="http://schemata.thelma.org/user"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
     <import
         schemaLocation="Experiment.xsd"
-        namespace="http://schemata.cenix-bioscience.com/experiment"
+        namespace="http://schemata.thelma.org/experiment"
     >
     </import>
 
     <import
         schemaLocation="Iso.xsd"
-        namespace="http://schemata.cenix-bioscience.com/iso"
+        namespace="http://schemata.thelma.org/iso"
     >
     </import>
 
     <import
         schemaLocation="IsoStockRack.xsd"
-        namespace="http://schemata.cenix-bioscience.com/isostockrack"
+        namespace="http://schemata.thelma.org/isostockrack"
     >
     </import>
 
     <import
         schemaLocation="User.xsd"
-        namespace="http://schemata.cenix-bioscience.com/user"
+        namespace="http://schemata.thelma.org/user"
     >
     </import>
 
     <import
         schemaLocation="Rack.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rack"
+        namespace="http://schemata.thelma.org/rack"
     >
     </import>
 
@@ -181,7 +181,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/job"
+                    fixed="http://relations.thelma.org/job"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -193,7 +193,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/job-collection"
+                    fixed="http://relations.thelma.org/job-collection"
                 ></attribute>
             </restriction>
         </complexContent>

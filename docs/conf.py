@@ -39,7 +39,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'TheLMA'
-copyright = u'2010, Cenix Bioscience GmbH - IT Department' # pylint: disable=W0622
+copyright = u'2010-2015, F. Oliver Gathmann' # pylint: disable=W0622
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -170,7 +170,7 @@ htmlhelp_basename = 'TheLMAdoc'
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'TheLMA.tex', u'TheLMA Documentation',
-   u'Cenix Bioscience GmbH - IT Department', 'manual'),
+   u'F. Oliver Gathmann', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of

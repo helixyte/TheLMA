@@ -2,9 +2,6 @@
 This file is part of the TheLMA (THe Laboratory Management Application) project.
 See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
 
-:Date: 12 Aug 2011
-:Author: AAB, berger at cenix-bioscience dot com
-
 Utility methods and classes for tools.
 """
 from math import ceil

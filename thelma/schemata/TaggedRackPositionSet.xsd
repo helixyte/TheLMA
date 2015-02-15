@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/taggedrackpositionset"
+    targetNamespace="http://schemata.thelma.org/taggedrackpositionset"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:rps="http://schemata.cenix-bioscience.com/rackpositionset"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:tp="http://schemata.cenix-bioscience.com/taggedrackpositionset"
-    xmlns:tag="http://schemata.cenix-bioscience.com/tag"
+    xmlns:rps="http://schemata.thelma.org/rackpositionset"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:tp="http://schemata.thelma.org/taggedrackpositionset"
+    xmlns:tag="http://schemata.thelma.org/tag"
 >
     <import
         schemaLocation="RackPositionSet.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rackpositionset"
+        namespace="http://schemata.thelma.org/rackpositionset"
     >
     </import>
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="Tag.xsd"
-        namespace="http://schemata.cenix-bioscience.com/tag"
+        namespace="http://schemata.thelma.org/tag"
     >
     </import>
 
@@ -87,7 +87,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/tagged-rack-position-set"
+                    fixed="http://relations.thelma.org/tagged-rack-position-set"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -103,7 +103,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/tagged-rack-position-set-collection"
+                    fixed="http://relations.thelma.org/tagged-rack-position-set-collection"
                 ></attribute>
             </restriction>
         </complexContent>

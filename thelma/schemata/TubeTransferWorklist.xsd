@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/tubetransferworklist"
+    targetNamespace="http://schemata.thelma.org/tubetransferworklist"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:tt="http://schemata.cenix-bioscience.com/tubetransfer"
-    xmlns:ttw="http://schemata.cenix-bioscience.com/tubetransferworklist"
-    xmlns:u="http://schemata.cenix-bioscience.com/user"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:tt="http://schemata.thelma.org/tubetransfer"
+    xmlns:ttw="http://schemata.thelma.org/tubetransferworklist"
+    xmlns:u="http://schemata.thelma.org/user"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="TubeTransfer.xsd"
-        namespace="http://schemata.cenix-bioscience.com/tubetransfer"
+        namespace="http://schemata.thelma.org/tubetransfer"
     >
     </import>
     <import
         schemaLocation="User.xsd"
-        namespace="http://schemata.cenix-bioscience.com/user"
+        namespace="http://schemata.thelma.org/user"
     >
     </import>
 
@@ -68,7 +68,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/tube_transfer_worklist"
+                    fixed="http://relations.thelma.org/tube_transfer_worklist"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -80,7 +80,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/tube_transfer_worklist-collection"
+                    fixed="http://relations.thelma.org/tube_transfer_worklist-collection"
                 ></attribute>
             </restriction>
         </complexContent>

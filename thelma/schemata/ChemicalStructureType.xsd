@@ -1,21 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/chemicalstructuretype"
+    targetNamespace="http://schemata.thelma.org/chemicalstructuretype"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:chst="http://schemata.cenix-bioscience.com/chemicalstructuretype"
-    xmlns:mt="http://schemata.cenix-bioscience.com/moleculetype"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:chst="http://schemata.thelma.org/chemicalstructuretype"
+    xmlns:mt="http://schemata.thelma.org/moleculetype"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
     <import
         schemaLocation="MoleculeType.xsd"
-        namespace="http://schemata.cenix-bioscience.com/moleculetype"
+        namespace="http://schemata.thelma.org/moleculetype"
     >
     </import>
 
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
@@ -80,7 +80,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/chemical-structure-type"
+                    fixed="http://relations.thelma.org/chemical-structure-type"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -92,7 +92,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/chemical-structure-type-collection"
+                    fixed="http://relations.thelma.org/chemical-structure-type-collection"
                 ></attribute>
             </restriction>
         </complexContent>

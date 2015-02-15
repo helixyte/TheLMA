@@ -1,38 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/experimentdesign"
+    targetNamespace="http://schemata.thelma.org/experimentdesign"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:e="http://schemata.cenix-bioscience.com/experiment"
-    xmlns:ed="http://schemata.cenix-bioscience.com/experimentdesign"
-    xmlns:edr="http://schemata.cenix-bioscience.com/experimentdesignrack"
-    xmlns:rs="http://schemata.cenix-bioscience.com/rackshape"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:ep="http://schemata.cenix-bioscience.com/experimentmetadata"
+    xmlns:e="http://schemata.thelma.org/experiment"
+    xmlns:ed="http://schemata.thelma.org/experimentdesign"
+    xmlns:edr="http://schemata.thelma.org/experimentdesignrack"
+    xmlns:rs="http://schemata.thelma.org/rackshape"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:ep="http://schemata.thelma.org/experimentmetadata"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="RackShape.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rackshape"
+        namespace="http://schemata.thelma.org/rackshape"
     >
     </import>
     <import
         schemaLocation="ExperimentDesignRack.xsd"
-        namespace="http://schemata.cenix-bioscience.com/experimentdesignrack"
+        namespace="http://schemata.thelma.org/experimentdesignrack"
     >
     </import>
     <import
         schemaLocation="Experiment.xsd"
-        namespace="http://schemata.cenix-bioscience.com/experiment"
+        namespace="http://schemata.thelma.org/experiment"
     >
     </import>
     <import
         schemaLocation="ExperimentMetaData.xsd"
-        namespace="http://schemata.cenix-bioscience.com/experimentmetadata"
+        namespace="http://schemata.thelma.org/experimentmetadata"
     >
     </import>
 
@@ -110,7 +110,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-design"
+                    fixed="http://relations.thelma.org/experiment-design"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -126,7 +126,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-design-collection"
+                    fixed="http://relations.thelma.org/experiment-design-collection"
                 ></attribute>
             </restriction>
         </complexContent>

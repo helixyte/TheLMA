@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/organization"
+    targetNamespace="http://schemata.thelma.org/organization"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:o="http://schemata.cenix-bioscience.com/organization"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:o="http://schemata.thelma.org/organization"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
@@ -68,7 +68,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/organization"
+                    fixed="http://relations.thelma.org/organization"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -84,7 +84,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/organization-collection"
+                    fixed="http://relations.thelma.org/organization-collection"
                 ></attribute>
             </restriction>
         </complexContent>

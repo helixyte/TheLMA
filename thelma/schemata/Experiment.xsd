@@ -1,51 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/experiment"
+    targetNamespace="http://schemata.thelma.org/experiment"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:e="http://schemata.cenix-bioscience.com/experiment"
-    xmlns:er="http://schemata.cenix-bioscience.com/experimentrack"
-    xmlns:ed="http://schemata.cenix-bioscience.com/experimentdesign"
-    xmlns:emt="http://schemata.cenix-bioscience.com/experimentmetadatatype"
-    xmlns:r="http://schemata.cenix-bioscience.com/rack"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:rsp="http://schemata.cenix-bioscience.com/rackspecs"
-    xmlns:j="http://schemata.cenix-bioscience.com/job"
+    xmlns:e="http://schemata.thelma.org/experiment"
+    xmlns:er="http://schemata.thelma.org/experimentrack"
+    xmlns:ed="http://schemata.thelma.org/experimentdesign"
+    xmlns:emt="http://schemata.thelma.org/experimentmetadatatype"
+    xmlns:r="http://schemata.thelma.org/rack"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:rsp="http://schemata.thelma.org/rackspecs"
+    xmlns:j="http://schemata.thelma.org/job"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
     <import
         schemaLocation="ExperimentDesign.xsd"
-        namespace="http://schemata.cenix-bioscience.com/experimentdesign"
+        namespace="http://schemata.thelma.org/experimentdesign"
     >
     </import>
     <import
         schemaLocation="ExperimentMetaDataType.xsd"
-        namespace="http://schemata.cenix-bioscience.com/experimentmetadatatype"
+        namespace="http://schemata.thelma.org/experimentmetadatatype"
     >
     </import>
     <import
         schemaLocation="ExperimentRack.xsd"
-        namespace="http://schemata.cenix-bioscience.com/experimentrack"
+        namespace="http://schemata.thelma.org/experimentrack"
     >
     </import>
     <import
         schemaLocation="Rack.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rack"
+        namespace="http://schemata.thelma.org/rack"
     >
     </import>
     <import
         schemaLocation="RackSpecs.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rackspecs"
+        namespace="http://schemata.thelma.org/rackspecs"
     >
     </import>
     <import
         schemaLocation="Job.xsd"
-        namespace="http://schemata.cenix-bioscience.com/job"
+        namespace="http://schemata.thelma.org/job"
     >
     </import>
 
@@ -140,7 +140,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/experiment"
+                    fixed="http://relations.thelma.org/experiment"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -156,7 +156,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-collection"
+                    fixed="http://relations.thelma.org/experiment-collection"
                 ></attribute>
             </restriction>
         </complexContent>

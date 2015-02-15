@@ -2,9 +2,6 @@
 This file is part of the TheLMA (THe Laboratory Management Application) project.
 See LICENSE.txt for licensing, CONTRIBUTORS.txt for contributor information.
 
-:Date: 1st Aug 2011
-:Author: AAB, berger at cenix-bioscience dot com
-
 .. currentmodule:: thelma.tools.metadata.generation
 
 This is the handler for molecule design lists in Excel sheets. It is a

@@ -24,7 +24,7 @@ from thelma.utils import get_utc_time
 __docformat__ = 'reStructuredText en'
 
 __all__ = ['AnyRackScanningParserHandler',
-           'CenixRackScanningParserHandler',
+           'RackScanningParserHandler',
            'RackScanningLayout',
            ]
 
@@ -148,7 +148,7 @@ class _RackScanningParserHandler(BaseParserHandler):
             self.add_error(msg)
 
 
-class CenixRackScanningParserHandler(_RackScanningParserHandler):
+class RackScanningParserHandler(_RackScanningParserHandler):
     def _check_rack_barcode(self):
         self.add_debug('Check rack barcode ...')
         rack_barcode = self.parser.rack_barcode

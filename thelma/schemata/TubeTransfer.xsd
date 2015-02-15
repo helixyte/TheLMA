@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/tubetransfer"
+    targetNamespace="http://schemata.thelma.org/tubetransfer"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:co="http://schemata.cenix-bioscience.com/container"
-    xmlns:r="http://schemata.cenix-bioscience.com/rack"
-    xmlns:rp="http://schemata.cenix-bioscience.com/rackposition"
-    xmlns:tt="http://schemata.cenix-bioscience.com/tubetransfer"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:co="http://schemata.thelma.org/container"
+    xmlns:r="http://schemata.thelma.org/rack"
+    xmlns:rp="http://schemata.thelma.org/rackposition"
+    xmlns:tt="http://schemata.thelma.org/tubetransfer"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
     <import
         schemaLocation="Container.xsd"
-        namespace="http://schemata.cenix-bioscience.com/container"
+        namespace="http://schemata.thelma.org/container"
     >
     </import>
     <import
         schemaLocation="Rack.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rack"
+        namespace="http://schemata.thelma.org/rack"
     >
     </import>
     <import
         schemaLocation="RackPosition.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rackposition"
+        namespace="http://schemata.thelma.org/rackposition"
     >
     </import>
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
@@ -92,7 +92,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/tube_transfer_worklist"
+                    fixed="http://relations.thelma.org/tube_transfer_worklist"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -104,7 +104,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/tube_transfer_worklist-collection"
+                    fixed="http://relations.thelma.org/tube_transfer_worklist-collection"
                 ></attribute>
             </restriction>
         </complexContent>

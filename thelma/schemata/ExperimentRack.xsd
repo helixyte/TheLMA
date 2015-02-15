@@ -1,35 +1,35 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/experimentrack"
+    targetNamespace="http://schemata.thelma.org/experimentrack"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:er="http://schemata.cenix-bioscience.com/experimentrack"
-    xmlns:e="http://schemata.cenix-bioscience.com/experiment"
-    xmlns:edr="http://schemata.cenix-bioscience.com/experimentdesignrack"
-    xmlns:r="http://schemata.cenix-bioscience.com/rack"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:er="http://schemata.thelma.org/experimentrack"
+    xmlns:e="http://schemata.thelma.org/experiment"
+    xmlns:edr="http://schemata.thelma.org/experimentdesignrack"
+    xmlns:r="http://schemata.thelma.org/rack"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
     <import
         schemaLocation="Experiment.xsd"
-        namespace="http://schemata.cenix-bioscience.com/experiment"
+        namespace="http://schemata.thelma.org/experiment"
     >
     </import>
 
     <import
         schemaLocation="ExperimentDesignRack.xsd"
-        namespace="http://schemata.cenix-bioscience.com/experimentdesignrack"
+        namespace="http://schemata.thelma.org/experimentdesignrack"
     >
     </import>
 
     <import
         schemaLocation="Rack.xsd"
-        namespace="http://schemata.cenix-bioscience.com/rack"
+        namespace="http://schemata.thelma.org/rack"
     >
     </import>
 
@@ -112,7 +112,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-rack"
+                    fixed="http://relations.thelma.org/experiment-rack"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -128,7 +128,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/experiment-rack-collection"
+                    fixed="http://relations.thelma.org/experiment-rack-collection"
                 ></attribute>
             </restriction>
         </complexContent>

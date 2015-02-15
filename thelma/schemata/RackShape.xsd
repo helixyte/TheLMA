@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/rackshape"
+    targetNamespace="http://schemata.thelma.org/rackshape"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:rs="http://schemata.cenix-bioscience.com/rackshape"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:rs="http://schemata.thelma.org/rackshape"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
 
@@ -82,7 +82,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/rack-shape"
+                    fixed="http://relations.thelma.org/rack-shape"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -98,7 +98,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/rack-shape-collection"
+                    fixed="http://relations.thelma.org/rack-shape-collection"
                 ></attribute>
             </restriction>
         </complexContent>

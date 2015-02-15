@@ -1,26 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/gene"
+    targetNamespace="http://schemata.thelma.org/gene"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:g="http://schemata.cenix-bioscience.com/gene"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
-    xmlns:sc="http://schemata.cenix-bioscience.com/species"
-    xmlns:md="http://schemata.cenix-bioscience.com/moleculedesign"
+    xmlns:g="http://schemata.thelma.org/gene"
+    xmlns:sh="http://schemata.thelma.org/shared"
+    xmlns:sc="http://schemata.thelma.org/species"
+    xmlns:md="http://schemata.thelma.org/moleculedesign"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="Species.xsd"
-        namespace="http://schemata.cenix-bioscience.com/species"
+        namespace="http://schemata.thelma.org/species"
     >
     </import>
     <import
         schemaLocation="MoleculeDesign.xsd"
-        namespace="http://schemata.cenix-bioscience.com/moleculedesign"
+        namespace="http://schemata.thelma.org/moleculedesign"
     >
     </import>
     <complexType
@@ -100,7 +100,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/gene"
+                    fixed="http://relations.thelma.org/gene"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -116,7 +116,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/gene-collection"
+                    fixed="http://relations.thelma.org/gene-collection"
                 ></attribute>
             </restriction>
         </complexContent>

@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schema
-    targetNamespace="http://schemata.cenix-bioscience.com/locationtype"
+    targetNamespace="http://schemata.thelma.org/locationtype"
     elementFormDefault="qualified"
     xmlns="http://www.w3.org/2001/XMLSchema"
-    xmlns:lt="http://schemata.cenix-bioscience.com/locationtype"
-    xmlns:l="http://schemata.cenix-bioscience.com/location"
-    xmlns:sh="http://schemata.cenix-bioscience.com/shared"
+    xmlns:lt="http://schemata.thelma.org/locationtype"
+    xmlns:l="http://schemata.thelma.org/location"
+    xmlns:sh="http://schemata.thelma.org/shared"
 >
     <import
         schemaLocation="Shared.xsd"
-        namespace="http://schemata.cenix-bioscience.com/shared"
+        namespace="http://schemata.thelma.org/shared"
     >
     </import>
     <import
         schemaLocation="Location.xsd"
-        namespace="http://schemata.cenix-bioscience.com/location"
+        namespace="http://schemata.thelma.org/location"
     >
     </import>
 
@@ -77,7 +77,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/location-type"
+                    fixed="http://relations.thelma.org/location-type"
                 ></attribute>
             </restriction>
         </complexContent>
@@ -93,7 +93,7 @@
                 <attribute
                     name="rel"
                     type="string"
-                    fixed="http://relations.cenix-bioscience.com/location-type-collection"
+                    fixed="http://relations.thelma.org/location-type-collection"
                 ></attribute>
             </restriction>
         </complexContent>
