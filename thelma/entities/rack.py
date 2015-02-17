@@ -197,6 +197,8 @@ class TubeRack(Rack):
     """
     #: List of tube locations (:class:`TubeLocation`).
     tube_locations = None
+    #
+    __container_positions = None
 
     def __init__(self, label, specs, status, **kw):
         Rack.__init__(self, label, specs, status, **kw)

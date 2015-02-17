@@ -35,6 +35,9 @@ def create_mapper(container_mapper, tube_tbl):
                                     cascade='all,delete,delete-orphan',
                                     single_parent=True
                                     ),
+#                         sample=relationship(StockSample, uselist=False,
+#                                             back_populates='container',
+#                                            ),
                          ),
                polymorphic_identity=CONTAINER_TYPES.TUBE)
     return m

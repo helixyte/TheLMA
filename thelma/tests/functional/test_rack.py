@@ -11,7 +11,7 @@ from thelma.tests.functional.conftest import TestFunctionalBase
 
 
 class TestRackFunctional(TestFunctionalBase):
-    path = '/racks'
+    path = '/tube-racks'
     setup_rdb_context = True
 
     def test_load_racks(self, app_creator):

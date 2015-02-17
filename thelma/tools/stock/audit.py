@@ -57,14 +57,14 @@ class StockAuditReporter(BaseTool):
     QUERY_TEMPLATE = """
      select first(ss.molecule_design_set_id) as cenixpoolid,
             string_agg(cast(md.molecule_design_id as text), ';' order by md.molecule_design_id) as cenixolddesignids,
-            first(cb.barcode) as tubebarcode,
+            first(t.barcode) as tubebarcode,
             round(first(sm.concentration)*count(sm.concentration)*1e6) as concentration,
             s.volume*round(first(sm.concentration)*count(sm.concentration)*1e9) as amount,
             first(o.name) as supplier,
             first(sr.volume)*round(first(sm.concentration)*first(mdp.number_designs)*1e9) as initialamount
             %s
-     from container c
-            inner join container_barcode cb on cb.container_id = c.container_id
+     from tube t
+            inner join container c on c.container_id = t.container_id
             inner join container_specs cs on cs.container_specs_id = c.container_specs_id
             inner join sample s on s.container_id = c.container_id
             left join stock_sample ss on ss.sample_id = s.sample_id
@@ -89,37 +89,6 @@ class StockAuditReporter(BaseTool):
      group by s.sample_id
      order by %s first(o.name), first(sm.concentration) desc, first(ss.molecule_design_set_id)
      """
-#    QUERY_TEMPLATE = """
-#    select md.molecule_design_id as cenixdesignid,
-#           cb.barcode as tubebarcode,
-#           sm.concentration*1e6 as concentration,
-#           s.volume*sm.concentration*1e9 as amount,
-#           o.name as supplier,
-#           sr.volume*sm.concentration*1e9 as initialamount
-#           %s
-#      from container c
-#            inner join container_barcode cb on cb.container_id = c.container_id
-#            inner join container_specs cs on cs.container_specs_id = c.container_specs_id
-#            inner join sample s on s.container_id = c.container_id
-#            left join sample_registration sr on sr.sample_id=s.sample_id
-#            inner join sample_molecule sm on sm.sample_id = s.sample_id
-#            inner join molecule m on m.molecule_id = sm.molecule_id
-#            inner join organization o on o.organization_id = m.supplier_id
-#            inner join molecule_design md on md.molecule_design_id = m.molecule_design_id
-#            left join (select mds.molecule_design_id, chs.representation
-#                       from molecule_design_structure mds
-#                           inner join chemical_structure chs
-#                           on (chs.chemical_structure_id = mds.chemical_structure_id and chs.structure_type = 'MODIFICATION')) as structs
-#                on structs.molecule_design_id=md.molecule_design_id
-#      left join (select ss.label, sss.sample_id from sample_set ss
-#                    inner join sample_set_sample sss on sss.sample_set_id = ss.sample_set_id
-#                           and ss.sample_set_type='ORDER') as ss on ss.sample_id = s.sample_id
-#     where cs.name='MATRIX0500'
-#       and c.item_status='MANAGED'
-#       and md.molecule_type = '%s'
-#       %s
-#     order by %s o.name, sm.concentration desc, m.molecule_design_id
-#    """
     CUSTOM_BITS = \
       {'SIRNA' :
          (

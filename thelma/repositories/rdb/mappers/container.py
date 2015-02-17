@@ -21,16 +21,16 @@ __all__ = ['create_mapper']
 def create_mapper(container_tbl):
     "Mapper factory."
     m = mapper(Container, container_tbl,
-           id_attribute='container_id',
-           properties=
-            dict(specs=relationship(ContainerSpecs, uselist=False),
-                 sample=relationship(Sample, uselist=False,
-                                     back_populates='container'
-                                     ),
-                 #empty=True or False if it has no sample or volume is 0
-                 status=relationship(ItemStatus, uselist=False),
-                 ),
-            polymorphic_on=container_tbl.c.container_type,
-            polymorphic_identity=CONTAINER_TYPES.CONTAINER
-            )
+               id_attribute='container_id',
+               properties=
+                dict(specs=relationship(ContainerSpecs, uselist=False),
+                     #empty=True or False if it has no sample or volume is 0
+                     status=relationship(ItemStatus, uselist=False),
+                    sample=relationship(Sample, uselist=False,
+                                        back_populates='container',
+                                        ),
+                     ),
+               polymorphic_on=container_tbl.c.container_type,
+               polymorphic_identity=CONTAINER_TYPES.CONTAINER
+               )
     return m

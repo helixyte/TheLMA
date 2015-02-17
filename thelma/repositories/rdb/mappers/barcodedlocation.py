@@ -6,6 +6,8 @@ Barcoded location mapper.
 """
 from sqlalchemy.orm import column_property
 from sqlalchemy.orm import relationship
+from sqlalchemy.sql import exists
+from sqlalchemy.sql import select
 
 from everest.repositories.rdb.utils import as_slug_expression
 from everest.repositories.rdb.utils import mapper
@@ -19,8 +21,10 @@ __docformat__ = 'reStructuredText en'
 __all__ = ['create_mapper']
 
 
-def create_mapper(barcoded_location_tbl):
+def create_mapper(barcoded_location_tbl, rack_barcoded_location_tbl):
     "Mapper factory."
+    bl = barcoded_location_tbl
+    rbl = rack_barcoded_location_tbl.alias()
     m = mapper(BarcodedLocation, barcoded_location_tbl,
                id_attribute='barcoded_location_id',
                slug_expression=lambda cls: as_slug_expression(cls.name),
@@ -38,6 +42,13 @@ def create_mapper(barcoded_location_tbl):
                     cascade='all,delete,delete-orphan',
                     single_parent=True
                     ),
-                ),
-            )
+                empty=
+                  column_property(~exists(# the symbol "~" negates the clause
+                    select([rbl.c.barcoded_location_id],
+                      bl.c.barcoded_location_id == rbl.c.barcoded_location_id
+                      )),
+                    deferred=True
+                    ),
+                )
+               )
     return m

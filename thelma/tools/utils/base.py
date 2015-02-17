@@ -349,9 +349,8 @@ class CustomQuery(object):
 
         self._results = self.RESULT_COLLECTION_CLS() #pylint: disable=E1102
         column_names = tuple(self.COLUMN_NAMES)
-        query_options = dict(query_class=Query)
         try:
-            results = session.query(*column_names, **query_options) \
+            results = session.query(*column_names) \
                              .from_statement(self.sql_statement) \
                              .all()
         except NoResultFound:

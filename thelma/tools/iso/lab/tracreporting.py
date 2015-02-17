@@ -233,8 +233,8 @@ class LabIsoStockTransferLogFileWriter(CsvWriter):
                 self.__tube_barcode_values.append(source_container.barcode)
                 volume = plt.volume * VOLUME_CONVERSION_FACTOR
                 self.__volume_values.append(get_trimmed_string(volume))
-                self.__trg_rack_barcode_values.append(elt.target_container.\
-                                                      location.rack.barcode)
+                self.__trg_rack_barcode_values.append(
+                                        elt.target_container.rack.barcode)
                 self.__trg_position_values.append(plt.target_position.label)
 
         if len(well_containers) > 0:

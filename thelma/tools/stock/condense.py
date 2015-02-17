@@ -11,25 +11,25 @@ AAB
 from StringIO import StringIO
 from datetime import datetime
 
-from everest.repositories.rdb import Session
+from everest.repositories.rdb.session import ScopedSessionMaker
+from thelma.tools.base import SessionTool
 from thelma.tools.semiconstants import get_96_rack_shape
 from thelma.tools.semiconstants import get_positions_for_shape
 from thelma.tools.semiconstants import get_rack_position_from_indices
-from thelma.tools.base import SessionTool
 from thelma.tools.stock.base import RackLocationQuery
 from thelma.tools.stock.base import STOCK_ITEM_STATUS
 from thelma.tools.stock.base import STOCK_TUBE_SPECS
 from thelma.tools.stock.base import get_stock_rack_size
 from thelma.tools.stock.base import get_stock_tube_specs_db_term
-from thelma.tools.worklists.tubehandler import TubeTransferData
-from thelma.tools.worklists.tubehandler import XL20WorklistWriter
-from thelma.tools.writers import TxtWriter
-from thelma.tools.writers import create_zip_archive
 from thelma.tools.utils.base import CustomQuery
 from thelma.tools.utils.base import add_list_map_element
 from thelma.tools.utils.base import create_in_term_for_db_queries
 from thelma.tools.utils.base import get_trimmed_string
 from thelma.tools.utils.base import sort_rack_positions
+from thelma.tools.worklists.tubehandler import TubeTransferData
+from thelma.tools.worklists.tubehandler import XL20WorklistWriter
+from thelma.tools.writers import TxtWriter
+from thelma.tools.writers import create_zip_archive
 
 
 __docformat__ = "reStructuredText en"
@@ -157,7 +157,7 @@ class StockCondenser(SessionTool):
 
     def __initialize_session(self):
         # Initializes a session for ORM operations.
-        self.__session = Session()
+        self.__session = ScopedSessionMaker()
 
     def __check_input(self):
         # Checks the initialisation values.
@@ -569,25 +569,26 @@ class CondenseRackQuery(CustomQuery):
     QUERY_TEMPLATE = \
     'SELECT DISTINCT x.rack_barcode AS rack_barcode, ' \
                     'x.desired_count AS tube_count ' \
-    'FROM container, container_barcode, containment, container_specs, ' \
+    'FROM tube, container, tube_location, container_specs, ' \
        '(SELECT rack.rack_id, rack.barcode as rack_barcode,  ' \
                'rack_specs.number_rows, rack_specs.number_columns, ' \
-               'count(container.container_id) as desired_count ' \
-        'FROM rack, containment, container, container_specs, rack_specs ' \
-        'WHERE rack.rack_id = containment.holder_id ' \
+               'count(tube.container_id) as desired_count ' \
+        'FROM rack, tube, container, tube_location, container_specs, rack_specs ' \
+        'WHERE rack.rack_id = tube_location.rack_id ' \
         'AND rack.rack_specs_id = rack_specs.rack_specs_id ' \
-        'AND container.container_id = containment.held_id ' \
+        'AND tube.container_id = tube_location.container_id ' \
+        'AND container.container_id = tube.container_id' \
         'AND container.container_specs_id =  ' \
                             'container_specs.container_specs_id ' \
         'AND container_specs.name in %s ' \
         'AND container.item_status = \'%s\' ' \
         'GROUP BY rack_id, rack.barcode, rack_specs.number_rows,  ' \
                 'rack_specs.number_columns ' \
-        'HAVING count(container.container_id) > 0) AS x ' \
-    'WHERE container.container_id = containment.held_id ' \
-    'AND containment.holder_id = x.rack_id ' \
+        'HAVING count(tube.container_id) > 0) AS x ' \
+    'WHERE tube.container_id = tube_location.container_id ' \
+    'AND tube_location.rack_id = x.rack_id ' \
+    'AND container.container_id = tube.container_id' \
     'AND container.container_specs_id = container_specs.container_specs_id ' \
-    'AND container.container_id = container_barcode.container_id ' \
     'AND container_specs.name in %s ' \
     'AND container.item_status = \'%s\' ' \
     'AND x.desired_count < %i ' \
@@ -647,15 +648,16 @@ class RackContainerQuery(CustomQuery):
     The results are added to the :class:`StockCondenseRack` objects.
     """
     QUERY_TEMPLATE = \
-        'SELECT r.barcode AS rack_barcode, rc.row AS row_index, ' \
-            'rc.col AS column_index, cb.barcode AS tube_barcode, ' \
+        'SELECT r.barcode AS rack_barcode, rp.row_index AS row_index, ' \
+            'rp.column_index AS column_index, t.barcode AS tube_barcode, ' \
             'c.item_status AS tube_status, cs.name AS tube_specs_name ' \
-        'FROM container c, container_barcode cb, containment rc, rack r, ' \
-            'container_specs cs ' \
-        'WHERE c.container_id = rc.held_id ' \
+        'FROM tube t, container c, tube_location tl, rack_position rp, '\
+            'rack r, container_specs cs ' \
+        'WHERE t.container_id = tl.container_id ' \
+        'AND rp.rack_position_id = tl.rack_position_id' \
+        'AND c.container_id = t.container_id' \
         'AND c.container_specs_id = cs.container_specs_id ' \
-        'AND c.container_id = cb.container_id ' \
-        'AND rc.holder_id = r.rack_id ' \
+        'AND r.rack_id = tl.rack_id ' \
         'AND r.barcode IN %s ' \
         'ORDER BY r.barcode'
 

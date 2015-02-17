@@ -60,7 +60,8 @@ class StockSampleQuery(CustomQuery):
     AND s.sample_id = ss.sample_id
     AND s.volume >= %s
     AND c.container_id = s.container_id
-    AND c.item_status = '%s';'''
+    AND c.item_status = '%s'
+    '''
 
     RESULT_COLLECTION_CLS = dict
 
@@ -120,11 +121,11 @@ class TubePoolQuery(CustomQuery):
     The results are stored in a dictionary (pool IDs mapped onto tube barcodes).
     """
     QUERY_TEMPLATE = 'SELECT ss.molecule_design_set_id AS pool_id, ' \
-                     '  cb.barcode AS tube_barcode ' \
-                     'FROM stock_sample ss, sample s, container_barcode cb ' \
+                     ' t.barcode AS tube_barcode ' \
+                     'FROM stock_sample ss, sample s, tube t ' \
                      'WHERE ss.sample_id = s.sample_id ' \
-                     'AND s.container_id = cb.container_id ' \
-                     'AND cb.barcode IN %s;'
+                     'AND s.container_id = t.container_id ' \
+                     'AND t.barcode IN %s;'
 
     __POOL_COL_NAME = 'pool_id'
     __TUBE_BARCODE_COL_NAME = 'tube_barcode'
@@ -320,23 +321,25 @@ class _PoolQuery(TubePickingQuery):
     _POOL_OPERATOR = None
 
     QUERY_TEMPLATE = '''
-    SELECT cb.barcode AS tube_barcode, s.volume AS volume,
-        rc.row AS row_index, rc.col AS column_index, r.barcode AS rack_barcode,
+    SELECT t.barcode AS tube_barcode, s.volume AS volume,
+        rp.row_index AS row_index, rp.column_index AS column_index, r.barcode AS rack_barcode,
         ss.concentration AS concentration,
         ss.molecule_design_set_id AS pool_id
-    FROM stock_sample ss, sample s, container c, container_barcode cb,
-        container_specs cs, containment rc, rack r
+    FROM stock_sample ss, sample s, container c, tube t,
+        container_specs cs, tube_location tl, rack_position rp, rack r
     WHERE ss.molecule_design_set_id %s %s
     AND ss.sample_id = s.sample_id
     AND ss.concentration = %s
     AND s.volume >= %s
-    AND s.container_id = c.container_id
+    AND t.container_id = s.container_id
+    AND c.container_id = t.container_id
     AND c.item_status = '%s'
-    AND c.container_id = cb.container_id
     AND c.container_specs_id = cs.container_specs_id
     AND cs.name IN %s
-    AND rc.held_id = c.container_id
-    AND rc.holder_id = r.rack_id;'''
+    AND tl.container_id = c.container_id
+    AND rp.rack_position_id = tl.rack_position_id
+    AND tl.rack_id = r.rack_id
+    '''
 
     COLUMN_NAMES = ['tube_barcode', 'volume', 'row_index', 'column_index',
                     'rack_barcode', 'concentration', 'pool_id']
@@ -484,31 +487,31 @@ class OptimizingQuery(TubePickingQuery):
     QUERY_TEMPLATE = '''
     SELECT DISTINCT stock_sample.molecule_design_set_id AS pool_id,
            rack_tube_counts.rack_barcode AS rack_barcode,
-           containment.row AS row_index,
-           containment.col AS column_index,
-           container_barcode.barcode AS tube_barcode,
+           rack_position.row_index AS row_index,
+           rack_position.column_index AS column_index,
+           tube.barcode AS tube_barcode,
            rack_tube_counts.desired_count AS total_candidates,
            stock_sample.concentration AS concentration,
            sample.volume AS volume
-    FROM stock_sample, sample, container, container_barcode, containment,
+    FROM stock_sample, sample, tube, tube_location, rack_position,
          (SELECT tmp.rack_id, tmp.rack_barcode AS rack_barcode,
                    COUNT(tmp.mds_cnt) AS desired_count
           FROM (SELECT xr.rack_id, xr.barcode AS rack_barcode,
                        xmds.molecule_design_set_id as mds_cnt
           FROM rack xr
-          INNER JOIN containment xrc ON xrc.holder_id=xr.rack_id
-          INNER JOIN sample xs ON xs.container_id=xrc.held_id
+          INNER JOIN tube_location xtl ON xtl.rack_id=xr.rack_id
+          INNER JOIN sample xs ON xs.container_id=xtl.container_id
           INNER JOIN stock_sample xss ON xss.sample_id=xs.sample_id
           INNER JOIN molecule_design_set xmds
               ON xmds.molecule_design_set_id=xss.molecule_design_set_id
           WHERE xss.sample_id IN %s
           GROUP BY xr.rack_id, xmds.molecule_design_set_id
-          HAVING COUNT(xrc.held_id) > 0 ) AS tmp
+          HAVING COUNT(xtl.container_id) > 0 ) AS tmp
           GROUP BY tmp.rack_id, tmp.rack_barcode ) AS rack_tube_counts
-    WHERE container.container_id = containment.held_id
-    AND containment.holder_id = rack_tube_counts.rack_id
-    AND container.container_id = sample.container_id
-    AND container_barcode.container_id = container.container_id
+    WHERE tube.container_id = tube_location.container_id
+    AND rack_position.rack_position_id = tube_location.rack_position_id
+    AND tube_location.rack_id = rack_tube_counts.rack_id
+    AND tube.container_id = sample.container_id
     AND sample.sample_id = stock_sample.sample_id
     AND sample.sample_id IN %s
     ORDER BY rack_tube_counts.desired_count desc,

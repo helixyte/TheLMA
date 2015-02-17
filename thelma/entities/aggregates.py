@@ -94,7 +94,15 @@ class _FilterVisitorFactories(object):
         return visitor_cls(BarcodedLocation, custom_clause_factories)
 
     @classmethod
-    def _rack_filter_visitor_factory(cls, session): # pylint: disable=W0613
+    def _plate_filter_visitor_factory(cls, session): # pylint: disable=W0613
+        return cls._rack_filter_visitor_factory(session, Plate)
+
+    @classmethod
+    def _tube_rack_filter_visitor_factory(cls, session): # pylint: disable=W0613
+        return cls._rack_filter_visitor_factory(session, TubeRack)
+
+    @classmethod
+    def _rack_filter_visitor_factory(cls, session, rack_cls): # pylint: disable=W0613
         def one_location_type_expr(location_type_member):
             value = location_type_member.name
             return Rack.location.has(
@@ -104,7 +112,7 @@ class _FilterVisitorFactories(object):
             ('location.type', 'equal_to'): one_location_type_expr,
             }
         visitor_cls = get_filter_specification_visitor(EXPRESSION_KINDS.SQL)
-        return visitor_cls(Rack, custom_clause_factories)
+        return visitor_cls(rack_cls, custom_clause_factories)
 
     @classmethod
     def _tube_filter_visitor_factory(cls, session): # pylint: disable=W0613
@@ -132,9 +140,8 @@ class _FilterVisitorFactories(object):
         return visitor_cls(Tube, custom_clause_factories)
 
     __map = {BarcodedLocation:'_location_filter_visitor_factory',
-             Rack:'_rack_filter_visitor_factory',
-             TubeRack:'_rack_filter_visitor_factory',
-             Plate:'_rack_filter_visitor_factory',
+             TubeRack:'_tube_rack_filter_visitor_factory',
+             Plate:'_plate_filter_visitor_factory',
              Tube:'_tube_filter_visitor_factory',
              }
 

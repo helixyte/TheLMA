@@ -14,21 +14,6 @@ import os
 from everest.entities.utils import get_root_aggregate
 from everest.querying.specifications import cntd
 from everest.querying.specifications import eq
-from thelma.tools.handlers.rackscanning \
-                                    import AnyRackScanningParserHandler
-from thelma.tools.handlers.rackscanning import RackScanningLayout
-from thelma.tools.semiconstants import ITEM_STATUS_NAMES
-from thelma.tools.base import BaseTool
-from thelma.interfaces import IChemicalStructure
-from thelma.interfaces import IContainerSpecs
-from thelma.interfaces import IItemStatus
-from thelma.interfaces import IMoleculeDesign
-from thelma.interfaces import IMoleculeDesignPool
-from thelma.interfaces import IRack
-from thelma.interfaces import IRackSpecs
-from thelma.interfaces import IStockSample
-from thelma.interfaces import ISupplierMoleculeDesign
-from thelma.interfaces import ITube
 from thelma.entities.container import Tube
 from thelma.entities.moleculedesign import MoleculeDesign
 from thelma.entities.moleculedesign import MoleculeDesignPool
@@ -36,6 +21,21 @@ from thelma.entities.rack import Plate
 from thelma.entities.rack import TubeRack
 from thelma.entities.sample import StockSample
 from thelma.entities.suppliermoleculedesign import SupplierMoleculeDesign
+from thelma.interfaces import IChemicalStructure
+from thelma.interfaces import IContainerSpecs
+from thelma.interfaces import IItemStatus
+from thelma.interfaces import IMoleculeDesign
+from thelma.interfaces import IMoleculeDesignPool
+from thelma.interfaces import IRackSpecs
+from thelma.interfaces import IStockSample
+from thelma.interfaces import ISupplierMoleculeDesign
+from thelma.interfaces import ITube
+from thelma.interfaces import ITubeRack
+from thelma.tools.base import BaseTool
+from thelma.tools.handlers.rackscanning \
+                                    import AnyRackScanningParserHandler
+from thelma.tools.handlers.rackscanning import RackScanningLayout
+from thelma.tools.semiconstants import ITEM_STATUS_NAMES
 
 
 __docformat__ = 'reStructuredText en'
@@ -282,7 +282,7 @@ class SampleRegistrar(RegistrationTool):
                                             ITEM_STATUS_NAMES.MANAGED.lower())
 
     def __check_racks(self):
-        rack_agg = get_root_aggregate(IRack)
+        rack_agg = get_root_aggregate(ITubeRack)
         self.add_debug('Checking rack position information.')
         pos_infos = [(getattr(sri, 'rack_barcode'),
                      getattr(sri, 'rack_position'))

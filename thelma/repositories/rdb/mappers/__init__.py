@@ -131,7 +131,8 @@ def initialize_mappers(tables, views):
                              tables['rack_specs_container_specs'])
     devicetype.create_mapper(tables['device_type'])
     device.create_mapper(tables['device'])
-    barcodedlocation.create_mapper(tables['barcoded_location'])
+    barcodedlocation.create_mapper(tables['barcoded_location'],
+                                   tables['rack_barcoded_location'])
     barcodedlocationrack.create_mapper(tables['rack_barcoded_location'])
     barcodedlocationtype.create_mapper(tables['barcoded_location'])
     moleculetype.create_mapper(tables['molecule_type'],

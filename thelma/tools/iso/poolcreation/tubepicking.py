@@ -342,31 +342,30 @@ class PoolGenerationOptimizationQuery(OptimizingQuery):
 #    QUERY_TEMPLATE = '''
 #    SELECT DISTINCT stock_sample.molecule_design_set_id AS pool_id,
 #           rack_tube_counts.rack_barcode AS rack_barcode,
-#           containment.row AS row_index,
-#           containment.col AS column_index,
-#           container_barcode.barcode AS tube_barcode,
+#           rack_position.row AS row_index,
+#           rack_position.col AS column_index,
 #           rack_tube_counts.desired_count AS total_candidates,
 #           stock_sample.concentration AS concentration
-#    FROM stock_sample, sample, container, container_barcode, containment,
+#    FROM stock_sample, sample, tube, tube_location, rack_position
 #         (SELECT xr.rack_id, xr.barcode AS rack_barcode,
 #                   COUNT(xc.container_id) AS desired_count
-#          FROM rack xr, containment xrc, container xc, sample xs,
+#          FROM rack xr, tube_location xtl, container xc, sample xs,
 #               stock_sample xss
-#          WHERE xr.rack_id = xrc.holder_id
-#          AND xc.container_id = xrc.held_id
+#          WHERE xr.rack_id = xtl.rack_id
+#          AND xc.container_id = xtl.container_id
 #          AND xc.container_id = xs.container_id
 #          AND xs.sample_id = xss.sample_id
 #          AND xs.sample_id IN %s
 #          GROUP BY xr.rack_id, xr.barcode
 #          HAVING COUNT(xc.container_id) > 0 ) AS rack_tube_counts
-#    WHERE container.container_id = containment.held_id
-#    AND containment.holder_id = rack_tube_counts.rack_id
-#    AND container.container_id = sample.container_id
-#    AND container_barcode.container_id = container.container_id
+#    WHERE tube_location.rack_id = rack_tube_counts.rack_id
+#    AND rack_position.rack_position_id = tube_location.rack_position_id
+#    AND tube.container_id = tube_location.container_id
+#    AND tube.container_id = sample.container_id
 #    AND sample.sample_id = stock_sample.sample_id
 #    AND sample.sample_id IN %s
 #    ORDER BY rack_tube_counts.desired_count desc,
-#        rack_tube_counts.rack_barcode;'''
+#        rack_tube_counts.rack_barcode'''
 #
 #    COLUMN_NAMES = ['pool_id', 'rack_barcode', 'row_index', 'column_index',
 #                    'tube_barcode', 'total_candidates', 'concentration']

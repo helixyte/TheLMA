@@ -67,7 +67,6 @@ def create_mapper(sample_tbl, sample_molecule_tbl, molecule_tbl,
                         relationship(SampleMolecule,
                                      back_populates='sample',
                                      cascade='all,delete,delete-orphan',
-#                                     lazy='joined'
                                      ),
                 molecule_design_pool_id=
                     column_property(coalesce(mds_sel.as_scalar(), null()),

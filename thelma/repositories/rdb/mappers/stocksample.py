@@ -11,7 +11,6 @@ from sqlalchemy.sql import distinct
 from sqlalchemy.sql import select
 from sqlalchemy.sql.expression import and_
 
-#from thelma.entities.container import Tube
 from thelma.entities.moleculedesign import MoleculeDesignPool
 from thelma.entities.moleculetype import MoleculeType
 from thelma.entities.organization import Organization
@@ -51,13 +50,8 @@ def create_mapper(sample_base_mapper, stock_sample_tbl,
                                               uselist=False, innerjoin=True,
                                               back_populates='stock_samples'),
             molecule_design_pool_id=stock_sample_tbl.c.molecule_design_set_id,
-#            container=relationship(Tube,
-#                                   uselist=False,
-#                                   back_populates='sample'),
             supplier=relationship(Organization),
-            molecule_type=relationship(MoleculeType,
-#                                       lazy='joined'
-                                       ),
+            molecule_type=relationship(MoleculeType),
             registration=
                     relationship(SampleRegistration,
                                  back_populates='sample',

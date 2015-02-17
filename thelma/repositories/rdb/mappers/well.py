@@ -11,7 +11,6 @@ from thelma.entities.container import CONTAINER_TYPES
 from thelma.entities.container import Well
 from thelma.entities.rack import Plate
 from thelma.entities.rack import RackPosition
-#from thelma.entities.sample import Sample
 
 
 __docformat__ = 'reStructuredText en'
@@ -25,10 +24,9 @@ def create_mapper(container_mapper, well_tbl):
                properties=
                  dict(rack=relationship(Plate, uselist=False),
                       position=relationship(RackPosition, uselist=False),
-#                      sample=relationship(Sample, uselist=False,
-#                                          back_populates='container',
-#                                          lazy='joined'
-#                                          ),
+#                    sample=relationship(Sample, uselist=False,
+#                                        back_populates='container',
+#                                        ),
                       ),
                polymorphic_identity=CONTAINER_TYPES.WELL)
     # FIXME: need a slug here # pylint:disable=W0511
