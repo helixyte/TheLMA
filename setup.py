@@ -7,7 +7,6 @@ import os
 
 here = os.path.abspath(os.path.dirname(__file__))
 README = open(os.path.join(here, 'README.md')).read()
-CHANGES = open(os.path.join(here, 'CHANGES.txt')).read()
 
 setup_requirements = []
 
@@ -26,7 +25,7 @@ tests_requirements = install_requirements + [
 setup(name='TheLMA',
       version='1.9.x',
       description='TheLMA',
-      long_description=README + '\n\n' + CHANGES,
+      long_description=README,
       classifiers=[
         "Programming Language :: Python",
         "Framework :: everest",
