@@ -2,7 +2,6 @@
 Created on Dec 09, 2014.
 """
 from pyramid.httpexceptions import HTTPOk
-import transaction
 
 from everest.mime import XmlMime
 from everest.resources.utils import get_root_collection
@@ -29,7 +28,6 @@ class TestRackFunctional(TestFunctionalBase):
                                 content_type=XmlMime.mime_type_string,
                                 status=HTTPOk.code)
         assert not rsp is None
-        transaction.commit()
         coll = get_root_collection(ITubeRack)
         rack = coll[rack_bc]
         lr = rack.get_entity().location_rack
@@ -41,7 +39,6 @@ class TestRackFunctional(TestFunctionalBase):
         rsp = app_creator.delete('%s/%s/location' % (self.path, rack_bc),
                                  status=HTTPOk.code)
         assert not rsp is None
-        transaction.commit()
         coll = get_root_collection(ITubeRack)
         rack = coll[rack_bc]
         assert rack.get_entity().location_rack is None
