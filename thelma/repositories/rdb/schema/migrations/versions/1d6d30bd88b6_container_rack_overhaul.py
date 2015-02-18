@@ -120,13 +120,12 @@ def upgrade():
                "   ssmd.supplier_molecule_design_id"
                " where smd.is_current and smd.supplier_id=m.supplier_id")
     op.execute("create table molecule_supplier_molecule_design"
-               "(molecule_id integer not null"
+               "(molecule_id integer primary key"
                " references"
                "   molecule(molecule_id),"
                " supplier_molecule_design_id integer not null"
                " references"
                "   supplier_molecule_design(supplier_molecule_design_id)"
-               " primary key (molecule_id)"
                ")")
     op.execute("create or replace function "
                "refresh_molecule_supplier_molecule_design()"

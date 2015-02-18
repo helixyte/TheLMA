@@ -22,11 +22,20 @@ def upgrade():
                                       sa.DateTime(timezone=True)))
     # Fill the new freeze thaw cycle field. We use the maximum of all sample
     # molecule f/t cycles.
-    op.execute('update sample '
-               '  set freeze_thaw_cycles=(select max(sm.freeze_thaw_cycles)'
-               '     from sample s inner join sample_molecule sm '
-               '                   on sm.sample_id=s.sample_id '
-               '     where s.sample_id=s.sample_id group by s.sample_id)')
+    op.execute('select s.sample_id, max(sm.freeze_thaw_cycles) as ftc'
+               ' into tmp_max_ftc'
+               ' from sample s'
+               ' inner join sample_molecule sm'
+               ' on sm.sample_id=s.sample_id'
+               ' where s.sample_id=s.sample_id group by s.sample_id')
+    op.execute('alter table tmp_max_ftc'
+               ' add constraint tmp_max_ftc_sample_id_uq'
+               'unique (sample_id)')
+    op.execute('update sample'
+               ' set freeze_thaw_cycles=tmp.ftc'
+               ' from tmp_max_ftc tmp'
+               ' where tmp.sample_id=sample.sample_id')
+    op.execute('drop table tmp_max_ftc')
 
 
 def downgrade():
